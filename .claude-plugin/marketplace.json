@@ -1,0 +1,20 @@
+{
+  "name": "pyvar-marketplace",
+  "owner": { "name": "Fibtec Limited", "url": "https://pyvar.com" },
+  "description": "382 functions across 8 risk domains + 5 architecture layer skills. NumPy, Numba, Polars, PyArrow, Dask, Ray, FastAPI, Celery.",
+  "plugins": [
+    { "name": "pyvar-market-risk",         "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/market-risk" },         "description": "68 functions: VaR, ES, stress, Greeks, P&L attribution, backtesting, GARCH, FRTB SA/IMA" },
+    { "name": "pyvar-credit-risk",         "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/credit-risk" },         "description": "55 functions: PD/LGD/EAD, IRB/SA, XVA full suite, IFRS 9 ECL, CDS, SA-CCR, scoring" },
+    { "name": "pyvar-liquidity-risk",      "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/liquidity-risk" },      "description": "40 functions: LCR, NSFR, HQLA, cash flow, ILAAP, intraday, LiqVaR" },
+    { "name": "pyvar-operational-risk",    "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/operational-risk" },    "description": "44 functions: LDA, AMA, SMA, RCSA, KRI, scenario, BEICF, cyber/model/IT risk" },
+    { "name": "pyvar-portfolio-analytics", "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/portfolio-analytics" }, "description": "50 functions: Markowitz/BL/risk-parity, Sharpe/Sortino, Brinson, FF5, PCA, HMM, ESG" },
+    { "name": "pyvar-regulatory",          "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/regulatory" },          "description": "30 functions: Basel III/IV, FRTB, ICAAP/SREP, MiFID II, EMIR, Solvency II, CRR2" },
+    { "name": "pyvar-derivatives",         "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/derivatives" },         "description": "62 functions: BS/Heston/SABR/Dupire/LSM, exotic options, bonds, IRS/CDS, FX" },
+    { "name": "pyvar-alm",                 "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/alm" },                 "description": "33 functions: Duration gap, NII/EVE, IRRBB 6 shocks, repricing, NMD, FTP" },
+    { "name": "pyvar-arch-api-gateway",    "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/arch/api-gateway" },    "description": "Arch: FastAPI, Pydantic v2, JWT, orjson, rate limiting, OpenAPI" },
+    { "name": "pyvar-arch-data-ingestion", "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/arch/data-ingestion" }, "description": "Arch: Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation" },
+    { "name": "pyvar-arch-compute",        "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/arch/compute" },        "description": "Arch: NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch" },
+    { "name": "pyvar-arch-storage",        "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/arch/storage" },        "description": "Arch: Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store" },
+    { "name": "pyvar-arch-observability",  "source": { "source": "github", "repo": "fibtec/pyvar", "path": "plugins/arch/observability" },  "description": "Arch: Prometheus, Grafana, Sentry, Bandit, input validation security" }
+  ]
+}

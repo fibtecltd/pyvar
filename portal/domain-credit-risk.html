@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Credit Risk — pyvar.com · Fibtec</title>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+:root{--svc:#c8a44a;--svc2:rgba(200,164,74,0.10);--svc3:rgba(200,164,74,0.22)}
+.fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:48px}
+.fn-card{background:var(--bg2);padding:20px 22px;transition:background .15s;position:relative;overflow:hidden}
+.fn-card:hover{background:var(--bg3)}
+.fn-card::before{content:'';position:absolute;top:0;left:0;width:2px;height:0;background:var(--svc);transition:height .3s}
+.fn-card:hover::before{height:100%}
+.fn-cat{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.fn-name{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--text);line-height:1.3;margin-bottom:6px}
+.fn-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.55}
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:hover{color:var(--text);border-color:var(--border2)}
+.hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;text-align:center}
+.hero-metric-val{font-family:var(--serif);font-size:36px;font-weight:300;letter-spacing:-.02em}
+.hero-metric-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.insight-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.insight-title{font-family:var(--serif);font-size:18px;font-weight:400;color:var(--text);margin-bottom:10px}
+.insight-body{font-size:13px;font-weight:300;color:var(--text2);line-height:1.65}
+.reg-item{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.reg-item:last-child{border-bottom:none}
+.reg-check{color:var(--svc);font-size:13px;flex-shrink:0;margin-top:1px}
+.reg-title{font-size:13px;color:var(--text);margin-bottom:3px}
+.reg-body{font-size:12px;color:var(--text2);font-weight:300;line-height:1.55}
+@media(max-width:768px){.fn-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('pyvar'))</script>
+
+<!-- Hero -->
+<section class="page-hero">
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(200,164,74,0.06) 0%,transparent 70%)"></div>
+  <div class="page-hero-grid"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="eyebrow reveal">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Credit Risk
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end;margin-top:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--svc);margin-bottom:16px">Domain 02 · Credit Risk</div>
+        <h1 class="h1 reveal reveal-delay-1">PD, LGD, EAD.<br/><em>Every credit metric,</em><br/>one API.</h1>
+        <p class="body-lg reveal reveal-delay-2" style="max-width:540px;margin:24px 0 0">55 functions covering the full credit risk spectrum — from IRB capital models and IFRS 9 ECL through to CVA/DVA/XVA and counterparty credit risk. Basel III/IV and IFRS 9 compliant.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">55</div><div class="hero-metric-lbl">Functions</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">Basel</div><div class="hero-metric-lbl">IRB compliant</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">IFRS 9</div><div class="hero-metric-lbl">ECL framework</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Function browser -->
+<section class="section section-dark">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px" class="reveal">
+      <div>
+        <div class="eyebrow">Function library</div>
+        <h2 class="h2">55 credit risk <em>functions</em></h2>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats">
+        <div class="cat-pill act" data-cat="all">All · 55</div>
+        <div class="cat-pill" data-cat="pd">PD / LGD / EAD</div>
+        <div class="cat-pill" data-cat="irb">IRB Capital</div>
+        <div class="cat-pill" data-cat="ccr">Counterparty (CCR)</div>
+        <div class="cat-pill" data-cat="xva">CVA / XVA</div>
+        <div class="cat-pill" data-cat="ifrs9">IFRS 9 ECL</div>
+        <div class="cat-pill" data-cat="scoring">Scoring &amp; Portfolio</div>
+      </div>
+    </div>
+    <div class="fn-grid reveal" id="fnGrid"></div>
+  </div>
+</section>
+
+<!-- Insights -->
+<section class="section">
+  <div class="container">
+    <div class="eyebrow reveal">Key capabilities</div>
+    <h2 class="h2 reveal" style="margin-bottom:40px">Built on <em>institutional credit expertise</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:48px" class="reveal">
+      <div class="insight-card">
+        <div class="insight-title">IRB Foundation &amp; Advanced</div>
+        <div class="insight-body">Full implementation of both IRB approaches under Basel III/IV. Computes RWA, capital requirements, scaling factors and maturity adjustments per the CRR2 framework.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">SA-CCR Counterparty Risk</div>
+        <div class="insight-body">Standardised Approach for Counterparty Credit Risk (SA-CCR) as mandated under CRR2. Replaces CEM and SM with replacement cost and PFE add-on computation.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">Full XVA Suite</div>
+        <div class="insight-body">CVA, DVA, FVA, KVA and MVA computed consistently from the same EPE/ENE simulation engine. Supports both unilateral and bilateral valuation adjustments.</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+      <div class="reveal">
+        <div class="eyebrow">Regulatory alignment</div>
+        <h3 class="h3" style="margin-bottom:20px">Standards <em>covered</em></h3>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0 24px">
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">Basel III / IV IRB — CRR2 / CRR3</div><div class="reg-body">Foundation and Advanced IRB with output floor, SME correlation factors and revised standardised approach.</div></div></div>
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">IFRS 9 — Expected Credit Loss</div><div class="reg-body">3-stage ECL model with scenario-weighted PD, macroeconomic overlays and lifetime vs 12-month segmentation.</div></div></div>
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">SA-CCR — CRR2 Article 274</div><div class="reg-body">Standardised Approach CCR replacing CEM. Replacement cost, PFE add-on and aggregated EAD per netting set.</div></div></div>
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">CVA Capital Charge — Basel III</div><div class="reg-body">SA-CVA and BA-CVA capital charges as per Basel III final rule. Supports both full and reduced hedges.</div></div></div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <div class="eyebrow">API example</div>
+        <h3 class="h3" style="margin-bottom:20px">IFRS 9 ECL <em>endpoint</em></h3>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2">
+          <span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/credit/ecl</span><br/>
+          <span style="color:var(--dim)">{</span><br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"exposure"</span>: 1000000,<br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"pd_stage1"</span>: 0.012,<br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"pd_lifetime"</span>: 0.087,<br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"lgd"</span>: 0.45,<br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"stage"</span>: 2,<br/>
+          &nbsp;&nbsp;<span style="color:var(--svc)">"macro_scenarios"</span>: [0.3, 0.5, 0.2]<br/>
+          <span style="color:var(--dim)">}</span><br/>
+          <br/>
+          <span style="color:var(--dim">→ ecl_12m: £12,000</span><br/>
+          <span style="color:var(--dim)">→ ecl_lifetime: £39,150</span><br/>
+          <span style="color:var(--dim)">→ scenario_weighted_ecl: £28,400</span>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a href="index.html" class="btn-outline" style="flex:1;justify-content:center;font-size:10px">← All domains</a>
+          <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-gold" style="flex:1;justify-content:center;font-size:10px">API access →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+<script>
+const FUNCTIONS = [
+  {cat:"pd",name:"Probability of Default (PD) Estimation",desc:"Statistical PD estimation from historical default rates, credit scores and financial ratios."},
+  {cat:"pd",name:"Loss Given Default (LGD) Model",desc:"LGD estimation using workout and market LGD approaches, recovery rate distributions."},
+  {cat:"pd",name:"Exposure at Default (EAD) Calculator",desc:"EAD computation for drawn and undrawn credit facilities using credit conversion factors."},
+  {cat:"pd",name:"Expected Loss (EL) Computation",desc:"EL = PD × LGD × EAD. Aggregated across portfolios with correlation adjustments."},
+  {cat:"pd",name:"Unexpected Loss (UL) Computation",desc:"Portfolio UL using Vasicek single-factor model and asset correlation assumptions."},
+  {cat:"pd",name:"Through-the-Cycle PD Adjustment",desc:"Converts point-in-time PD to through-the-cycle PD for regulatory capital using long-run averages."},
+  {cat:"pd",name:"Point-in-Time PD Estimation",desc:"PD estimation conditional on current economic conditions using macroeconomic factor models."},
+  {cat:"pd",name:"Ratings Migration Matrix",desc:"Transition probability matrices from historical credit rating changes. Includes generator matrix."},
+  {cat:"pd",name:"Default Correlation Matrix",desc:"Pairwise default correlations estimated from equity returns via Merton framework."},
+  {cat:"pd",name:"Retail Scorecard PD Model",desc:"Logistic regression scorecard for retail PD with application and behavioural score integration."},
+  {cat:"pd",name:"Corporate Credit Scoring Model",desc:"Multivariate credit scoring for corporates using financial statement ratios and qualitative factors."},
+  {cat:"pd",name:"Sovereign Credit Risk Assessment",desc:"Sovereign PD estimation using macroeconomic indicators, CDS spreads and ratings models."},
+  {cat:"pd",name:"Sector Default Rate Analysis",desc:"Historical and forward-looking default rates by sector, geography and rating cohort."},
+  {cat:"pd",name:"Downturn LGD Adjustment",desc:"Regulatory downturn LGD adjustment per Basel IRB requirements for economic downturn periods."},
+  {cat:"pd",name:"Recovery Rate Estimation",desc:"Recovery rate distributions by seniority, collateral type and jurisdiction."},
+  {cat:"irb",name:"IRB Foundation Approach Capital",desc:"Basel IRB Foundation RWA and capital requirement using supervisory LGD estimates."},
+  {cat:"irb",name:"IRB Advanced Approach Capital",desc:"Basel IRB Advanced RWA using own PD, LGD, EAD estimates and maturity adjustments."},
+  {cat:"irb",name:"Basel Standardised Approach RWA",desc:"Credit RWA under Basel Standardised Approach using external ratings and risk weights."},
+  {cat:"irb",name:"Maturity Adjustment (Basel IRB)",desc:"M adjustment factor for corporate, bank and sovereign exposures under IRB."},
+  {cat:"irb",name:"SME Correlation Factor (Basel)",desc:"Reduced asset correlation for SME exposures with turnover-based adjustment."},
+  {cat:"irb",name:"Credit Concentration Risk (HHI)",desc:"Herfindahl-Hirschman Index for credit portfolio concentration by obligor, sector and geography."},
+  {cat:"irb",name:"Credit VaR (Monte Carlo)",desc:"Portfolio credit VaR via correlated default simulation using Gaussian copula."},
+  {cat:"irb",name:"Credit VaR (Analytical Vasicek)",desc:"Closed-form credit VaR under single-factor Vasicek model for homogeneous portfolios."},
+  {cat:"irb",name:"CreditMetrics Portfolio Model",desc:"CreditMetrics multi-step migration-based credit VaR for bond and loan portfolios."},
+  {cat:"irb",name:"KMV / Merton Distance-to-Default",desc:"Structural credit model — asset value and volatility implied from equity using Merton framework."},
+  {cat:"irb",name:"Altman Z-Score Credit Scoring",desc:"Classic and modified Altman Z-Score for distress prediction in public and private companies."},
+  {cat:"irb",name:"Credit Stress Testing",desc:"Stressed PD, LGD and EL under macro scenarios (base, adverse, severely adverse)."},
+  {cat:"ccr",name:"Counterparty Credit Risk (CCR) Exposure",desc:"Gross and net CCR exposure aggregated across netting sets and collateral agreements."},
+  {cat:"ccr",name:"Current Exposure Method (CEM)",desc:"Legacy CEM CCR add-on computation. Retained for back-compatibility with older portfolios."},
+  {cat:"ccr",name:"Standardised Approach CCR (SA-CCR)",desc:"SA-CCR per CRR2: replacement cost, PFE add-on, delta and maturity factor."},
+  {cat:"ccr",name:"Potential Future Exposure (PFE)",desc:"PFE profile at multiple confidence levels using Monte Carlo simulation of market factors."},
+  {cat:"ccr",name:"Expected Positive Exposure (EPE)",desc:"Time-averaged expected exposure profile for regulatory CCR capital computation."},
+  {cat:"ccr",name:"Effective EPE (Regulatory)",desc:"Effective EPE per Basel III using non-decreasing exposure constraint for capital calculation."},
+  {cat:"ccr",name:"Collateral Haircut Calculation",desc:"Standard supervisory and own-estimate haircuts for collateral in netting set EAD computation."},
+  {cat:"ccr",name:"Wrong-Way Risk Adjustment",desc:"General and specific wrong-way risk adjustments to PFE and EPE profiles."},
+  {cat:"ccr",name:"CDS Pricing (ISDA Standard)",desc:"CDS mark-to-market under ISDA standard model with upfront and running spread conventions."},
+  {cat:"ccr",name:"Credit Spread Curve Bootstrap",desc:"Bootstraps survival probability curve from CDS spreads at standard tenors."},
+  {cat:"ccr",name:"Credit Default Swap VaR",desc:"VaR of CDS position using spread DV01 and spread volatility."},
+  {cat:"xva",name:"Credit Valuation Adjustment (CVA)",desc:"CVA via EPE × PD × LGD integration over exposure profile. Unilateral and bilateral."},
+  {cat:"xva",name:"Debt Valuation Adjustment (DVA)",desc:"DVA using own ENE profile and own credit spread/PD. Regulatory and accounting treatment."},
+  {cat:"xva",name:"Funding Valuation Adjustment (FVA)",desc:"FVA using asymmetric funding costs on uncollateralised derivative portfolios."},
+  {cat:"xva",name:"Capital Valuation Adjustment (KVA)",desc:"KVA measuring the cost of holding regulatory capital against derivative exposures."},
+  {cat:"xva",name:"Margin Valuation Adjustment (MVA)",desc:"MVA computing the funding cost of initial margin posted over the life of the trade."},
+  {cat:"xva",name:"XVA Aggregation",desc:"Consistent aggregation of all XVA components with overlap and double-counting controls."},
+  {cat:"xva",name:"CVA Sensitivity (CVA Greeks)",desc:"CVA delta, gamma, vega and CS01 for hedging and risk management of the CVA portfolio."},
+  {cat:"ifrs9",name:"IFRS 9 Stage Classification (PD Threshold)",desc:"Significant increase in credit risk (SICR) assessment for IFRS 9 stage allocation."},
+  {cat:"ifrs9",name:"IFRS 9 Lifetime ECL (Stage 2/3)",desc:"Lifetime expected credit loss for Stage 2 and Stage 3 exposures with macro overlays."},
+  {cat:"ifrs9",name:"IFRS 9 12-Month ECL (Stage 1)",desc:"12-month ECL for Stage 1 performing exposures using point-in-time PD estimates."},
+  {cat:"ifrs9",name:"IFRS 9 Scenario-Weighted ECL",desc:"Probability-weighted ECL across base, upside and downside economic scenarios."},
+  {cat:"ifrs9",name:"Macroeconomic Overlays (ECL)",desc:"Macroeconomic factor model linking GDP, unemployment and house prices to PD/LGD."},
+  {cat:"ifrs9",name:"IFRS 9 Staging Criteria Assessment",desc:"Automated SICR trigger detection and manual override framework for staging decisions."},
+  {cat:"scoring",name:"Machine Learning PD Calibration",desc:"Gradient boosting and random forest PD models with isotonic regression calibration."},
+  {cat:"scoring",name:"Logistic Regression PD Model",desc:"Logistic regression scorecard with WoE binning, IV selection and calibration."},
+  {cat:"scoring",name:"Credit Portfolio Optimisation",desc:"Markowitz-style credit portfolio optimisation balancing yield against credit risk."},
+  {cat:"scoring",name:"Sector Default Rate Analysis",desc:"Historical and forward-looking default rates by GICS sector, rating and geography."},
+];
+
+const CATS = {
+  all:"All", pd:"PD / LGD / EAD", irb:"IRB Capital",
+  ccr:"Counterparty (CCR)", xva:"CVA / XVA",
+  ifrs9:"IFRS 9 ECL", scoring:"Scoring & Portfolio"
+};
+
+let currentCat = 'all';
+function render() {
+  const items = currentCat === 'all' ? FUNCTIONS : FUNCTIONS.filter(f => f.cat === currentCat);
+  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
+    `<div class="fn-card" style="animation-delay:${i*0.02}s">
+      <div class="fn-cat">${CATS[f.cat]||f.cat}</div>
+      <div class="fn-name">${f.name}</div>
+      <div class="fn-desc">${f.desc}</div>
+    </div>`
+  ).join('');
+}
+
+document.getElementById('cats').addEventListener('click', e => {
+  const pill = e.target.closest('[data-cat]');
+  if (!pill) return;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
+  pill.classList.add('act');
+  currentCat = pill.dataset.cat;
+  render();
+});
+
+render();
+initReveal(); initNav();
+</script>
+</body>
+</html>

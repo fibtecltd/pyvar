@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Regulatory & Compliance — pyvar.com · Fibtec</title>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+:root{--svc:#4a9e22;--svc2:rgba(74,158,34,0.10);--svc3:rgba(74,158,34,0.22)}
+.fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:40px}
+.fn-card{background:var(--bg2);padding:18px 20px;transition:background .15s;position:relative;overflow:hidden}
+.fn-card:hover{background:var(--bg3)}
+.fn-card::before{content:'';position:absolute;top:0;left:0;width:2px;height:0;background:var(--svc);transition:height .3s}
+.fn-card:hover::before{height:100%}
+.fn-name{font-family:var(--serif);font-size:14px;font-weight:400;color:var(--text);line-height:1.3}
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:hover{color:var(--text);border-color:var(--border2)}
+.hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;text-align:center}
+.hero-metric-val{font-family:var(--serif);font-size:32px;font-weight:300;letter-spacing:-.02em}
+.hero-metric-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.insight-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.insight-title{font-family:var(--serif);font-size:17px;font-weight:400;color:var(--text);margin-bottom:8px}
+.insight-body{font-size:12px;font-weight:300;color:var(--text2);line-height:1.65}
+.reg-item{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.reg-item:last-child{border-bottom:none}
+.reg-check{color:var(--svc);font-size:13px;flex-shrink:0;margin-top:1px}
+.reg-title{font-size:13px;color:var(--text);margin-bottom:3px}
+.reg-body{font-size:12px;color:var(--text2);font-weight:300;line-height:1.55}
+.fn-count{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:6px}
+@media(max-width:768px){.fn-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('pyvar'))</script>
+
+<section class="page-hero">
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(74,158,34,0.055) 0%,transparent 70%)"></div>
+  <div class="page-hero-grid"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="eyebrow reveal">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Regulatory & Compliance
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end;margin-top:16px">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--svc);margin-bottom:16px">Domain 06 · Regulatory & Compliance</div>
+        <h1 class="h1 reveal reveal-delay-1">Basel IV, FRTB, MiFID II.<br/><em>Every framework,</em><br/>one platform.</h1>
+        <p class="body-lg reveal reveal-delay-2" style="max-width:540px;margin:24px 0 0">30 functions covering capital adequacy, reporting obligations and compliance metrics across the major regulatory frameworks applicable to UK and EU financial institutions. From Basel IV output floor to MiFID II best execution and EMIR trade reporting.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">30</div><div class="hero-metric-lbl">Functions</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">Basel IV</div><div class="hero-metric-lbl">Standard</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">FRTB</div><div class="hero-metric-lbl">Compliant</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px" class="reveal">
+      <div>
+        <div class="eyebrow">Function library</div>
+        <h2 class="h2">30 Regulatory <em>functions</em></h2>
+        <p class="fn-count" id="countLbl">Showing all 30 functions</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="basel">Basel III / IV</div><div class="cat-pill" data-cat="frtb">FRTB</div><div class="cat-pill" data-cat="mifid">MiFID II</div><div class="cat-pill" data-cat="emir">EMIR / SFTR</div><div class="cat-pill" data-cat="icaap">ICAAP / SREP</div><div class="cat-pill" data-cat="other">Other Frameworks</div></div>
+    </div>
+    <div class="fn-grid reveal" id="fnGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="eyebrow reveal">Key capabilities</div>
+    <h2 class="h2 reveal" style="margin-bottom:36px">Built for <em>institutional precision</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:48px" class="reveal">
+      <div class="insight-card"><div class="insight-title">Basel IV Capital Stack</div><div class="insight-body">Full computation of CET1, Tier 1 and Total Capital ratios with all deductions, buffers (CCB, CCyB, G-SII, O-SII) and the new output floor binding constraint.</div></div><div class="insight-card"><div class="insight-title">FRTB SA &amp; IMA</div><div class="insight-body">Sensitivity-Based Method for SA: delta, vega and curvature risk charges per asset class. IMA: stressed ES, NMRF capital charge and P&L Attribution Test thresholds.</div></div><div class="insight-card"><div class="insight-title">MiFID II Algorithm Documentation</div><div class="insight-body">Auto-generates FCA-compliant algorithm documentation covering decision logic, controls, kill-switch procedures and annual self-assessment per RTS 6.</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start" class="reveal">
+      <div>
+        <div class="eyebrow">Regulatory alignment</div>
+        <h3 class="h3" style="margin-bottom:20px">Standards <em>covered</em></h3>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0 24px">
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">Basel IV — CRR3 (EU) / PRA Rulebook (UK)</div><div class="reg-body">Output floor at 72.5%, revised SA, new market risk and CVA framework effective 2025.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">FRTB — CRR2 Article 325 / PRA SS13/13</div><div class="reg-body">Fundamental Review of the Trading Book — SA sensitivity method and IMA with P&L Attribution Test.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">MiFID II — Markets in Financial Instruments</div><div class="reg-body">Transaction reporting, best execution, algo documentation and systematic internaliser obligations.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">EMIR — European Market Infrastructure Reg.</div><div class="reg-body">Mandatory clearing, margin requirements, trade reporting to trade repositories and risk mitigation.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="eyebrow">API example</div>
+        <h3 class="h3" style="margin-bottom:20px">Regulatory & Compliance <em>endpoint</em></h3>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2"><span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/regulatory/cet1</span><br/><span style="color:var(--dim)">{</span><br/>&nbsp;&nbsp;<span style="color:var(--svc)">"common_equity"</span>: 500000000,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"deductions"</span>: 45000000,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"rwa_total"</span>: 3200000000<br/><span style="color:var(--dim)">}</span><br/><br/><span style="color:var(--dim)">→ cet1_ratio: 14.22%</span><br/><span style="color:var(--dim)">→ cet1_surplus: 130400000</span><br/><span style="color:var(--dim)">→ combined_buffer: 7.0%</span></div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a href="index.html" class="btn-outline" style="flex:1;justify-content:center;font-size:10px">← All domains</a>
+          <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-gold" style="flex:1;justify-content:center;font-size:10px">API access →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-sm" style="background:var(--bg2);text-align:center">
+  <div class="container">
+    <h2 class="h2 reveal" style="margin-bottom:20px">Ready to use <em>pyvar.com?</em></h2>
+    <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is open source and free to use. Enterprise API access and commercial support via Fibtec Limited.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="index.html" class="btn-outline">← All domains</a>
+      <a href="https://pyvar.com" class="btn-gold">pyvar.com →</a>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+<script>
+const ALL_FNS = [{"name": "Basel III Common Equity Tier 1 (CET1)", "cat": "basel"}, {"name": "Basel III Tier 1 Capital Ratio", "cat": "frtb"}, {"name": "Basel III Total Capital Ratio", "cat": "mifid"}, {"name": "Basel III Leverage Ratio", "cat": "emir"}, {"name": "Basel IV Output Floor", "cat": "icaap"}, {"name": "ICAAP Capital Assessment", "cat": "other"}, {"name": "SREP Capital Add-On", "cat": "basel"}, {"name": "Pillar 2A Capital Calculation", "cat": "frtb"}, {"name": "Pillar 2B Stress Buffer", "cat": "mifid"}, {"name": "Combined Buffer Requirement", "cat": "emir"}, {"name": "FRTB SA Market Risk Capital", "cat": "icaap"}, {"name": "FRTB IMA Market Risk Capital", "cat": "other"}, {"name": "FRTB P&L Attribution Test", "cat": "basel"}, {"name": "FRTB Trading Desk Aggregation", "cat": "frtb"}, {"name": "MiFID II Transaction Report Validator", "cat": "mifid"}, {"name": "MiFID II Pre-Trade Transparency", "cat": "emir"}, {"name": "MiFID II Post-Trade Transparency", "cat": "icaap"}, {"name": "MiFID II Best Execution Metric", "cat": "other"}, {"name": "MiFID II Algorithm Documentation", "cat": "basel"}, {"name": "EMIR Trade Repository Report", "cat": "frtb"}, {"name": "EMIR Clearing Obligation Check", "cat": "mifid"}, {"name": "EMIR Margin Requirement", "cat": "emir"}, {"name": "SFTR Securities Finance Report", "cat": "icaap"}, {"name": "AIFMD Risk Metrics", "cat": "other"}, {"name": "UCITS KIID Risk Indicator", "cat": "basel"}, {"name": "Solvency II SCR Market Risk", "cat": "frtb"}, {"name": "Solvency II SCR Credit Risk", "cat": "mifid"}, {"name": "CRR2 Large Exposure Limit", "cat": "emir"}, {"name": "Capital Conservation Buffer", "cat": "icaap"}, {"name": "Countercyclical Capital Buffer", "cat": "other"}];
+let cur = 'all';
+
+function render() {
+  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
+  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
+  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
+    `<div class="fn-card" style="animation-delay:${i*0.015}s">
+      <div class="fn-name">${f.name}</div>
+    </div>`
+  ).join('');
+}
+
+document.getElementById('cats').addEventListener('click', e => {
+  const pill = e.target.closest('[data-cat]');
+  if (!pill) return;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
+  pill.classList.add('act');
+  cur = pill.dataset.cat;
+  render();
+});
+
+render();
+initReveal(); initNav();
+</script>
+</body>
+</html>

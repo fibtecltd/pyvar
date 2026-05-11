@@ -1,0 +1,93 @@
+{
+  "_purpose": "pyvar.com complete plugin config — phase-annotated",
+  "_place_at": "pyvar/.claude/settings.local.json",
+  "_total": "50 installable + 13 local SKILL.md | 2 never",
+
+  "enabledPlugins": {
+
+    "── CORE — always on, every phase ───────────────": true,
+    "commit-commands@claude-plugins-official": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+    "comprehensive-review@claude-code-workflows": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+    "context7@claude-plugins-official": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+    "github@claude-plugins-official": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+    "pyright-lsp@claude-plugins-official": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+    "ralph-loop@claude-plugins-official": true,  // ON: P1, P2, P3, P4, P5, P6, P7, P8, P9
+
+    "── OFFICIAL — selective ────────────────────────": true,
+    "claude-md-management@claude-plugins-official": true,  // ON: P1
+    "frontend-design@claude-plugins-official": true,  // ON: P8
+    "skill-creator@claude-plugins-official": true,  // ON: P1
+
+    "── PYTHON QUALITY — python-backend-plugins ─────": true,
+    "clean-code@python-backend-plugins": true,  // ON: P2, P3, P7
+    "pytest-assistant@python-backend-plugins": true,  // ON: P2, P3, P5
+    "python-typing@python-backend-plugins": true,  // ON: P2, P3
+    "ruff-lint@python-backend-plugins": true,  // ON: P2, P3, P7
+
+    "── SCIENTIFIC — K-Dense-AI ─────────────────────": true,
+    "data-analysis@K-Dense-AI-scientific-agent-skills": true,  // ON: P5, P6
+    "scientific-computing@K-Dense-AI-scientific-agent-skills": true,  // ON: P2, P5, P7
+
+    "── FINANCE DOMAIN — JoelLewis ──────────────────": true,
+    "compliance@JoelLewis-finance-skills": true,  // ON: P2, P3, P5, P9
+    "core@JoelLewis-finance-skills": true,  // ON: P2
+    "trading-operations@JoelLewis-finance-skills": true,  // ON: P2
+    "wealth-management@JoelLewis-finance-skills": true,  // ON: P2
+
+    "── ENGINEERING — alirezarezvani + levnikolaevich ": true,
+    "autoresearch-agent@claude-code-skills": true,  // ON: P2, P7
+    "ln-100-documents-pipeline@levnikolaevich-skills-marketplace": true,  // ON: P8, P9
+    "ln-620-codebase-auditor@levnikolaevich-skills-marketplace": true,  // ON: P5, P7
+    "ra-qm-skills@claude-code-skills": true,  // ON: P2, P5
+
+    "── SKILLS — entrypoint.sh ──────────────────────": true,
+    "aws-architect@claude-code-skills": true,  // ON: P4, P5, P6, P7, P9
+    "data-quality-auditor@claude-code-skills": true,  // ON: P2, P5
+    "docker-development@claude-code-skills": true,  // ON: P4, P6
+    "finance-skills@claude-code-skills": true,  // ON: P2, P3, P5
+    "karpathy-coder@claude-code-skills": true,  // ON: P2, P7
+    "statistical-analyst@claude-code-skills": true,  // ON: P2, P5, P6, P7
+    "terraform-patterns@claude-code-skills": true,  // ON: P4
+
+    "── WORKFLOWS — wshobson/agents (new) ───────────": true,
+    "agent-orchestration@claude-code-workflows": true,  // ON: P2, P4, P5
+    "backend-development@claude-code-workflows": true,  // ON: P3, P9
+    "python-development@claude-code-workflows": true,  // ON: P2, P3, P7
+    "unit-testing@claude-code-workflows": true,  // ON: P2, P3, P5
+
+    "── WORKFLOWS — entrypoint.sh ───────────────────": true,
+    "api-scaffolding@claude-code-workflows": true,  // ON: P3
+    "api-testing-observability@claude-code-workflows": true,  // ON: P3, P4, P5, P6, P8, P9
+    "application-performance@claude-code-workflows": true,  // ON: P7
+    "cloud-infrastructure@claude-code-workflows": true,  // ON: P4, P5, P6, P7, P9
+    "code-documentation@claude-code-workflows": true,  // ON: P8, P9
+    "data-engineering@claude-code-workflows": true,  // ON: P3, P6, P7
+    "database-cloud-optimization@claude-code-workflows": true,  // ON: P3, P4, P6, P7
+    "documentation-generation@claude-code-workflows": true,  // ON: P8, P9
+    "frontend-mobile-development@claude-code-workflows": true,  // ON: P8
+    "performance-testing-review@claude-code-workflows": true,  // ON: P5, P7
+    "quantitative-trading@claude-code-workflows": true,  // ON: P2, P3, P5
+    "security-scanning@claude-code-workflows": true,  // ON: P5, P9
+
+    "── LOCAL SKILLS — pyvar domain + arch (SKILL.md auto-loaded) ": true,
+    "pyvar-alm@pyvar-marketplace": true,  // NEVER
+    "pyvar-arch-api-gateway@pyvar-marketplace": true,  // NEVER
+    "pyvar-arch-compute@pyvar-marketplace": true,  // NEVER
+    "pyvar-arch-data-ingestion@pyvar-marketplace": true,  // NEVER
+    "pyvar-arch-observability@pyvar-marketplace": true,  // NEVER
+    "pyvar-arch-storage@pyvar-marketplace": true,  // NEVER
+    "pyvar-credit-risk@pyvar-marketplace": true,  // NEVER
+    "pyvar-derivatives@pyvar-marketplace": true,  // NEVER
+    "pyvar-liquidity-risk@pyvar-marketplace": true,  // NEVER
+    "pyvar-market-risk@pyvar-marketplace": true,  // NEVER
+    "pyvar-operational-risk@pyvar-marketplace": true,  // NEVER
+    "pyvar-portfolio-analytics@pyvar-marketplace": true,  // NEVER
+    "pyvar-regulatory@pyvar-marketplace": true,  // NEVER
+
+    "── NEVER — project-wide disabled ───────────────": false,
+    "blockchain-web3@claude-code-workflows": false,  // NEVER
+    "superpowers@claude-plugins-official": false,  // NEVER
+
+    "enabledMcpjsonServers": ["github", "context7"]
+  }
+}

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Market Risk — pyvar.com</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#06090e; --surface:#0f1522; --surface2:#141d2e;
+    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.11);
+    --text:#dde3ed; --muted:#6b7a90; --dim:#3d4a5e;
+    --accent:#378ADD; --mono:'Consolas','Courier New',monospace;
+  }
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh}
+
+  /* ── Header ── */
+  .hdr{background:rgba(11,16,24,0.97);border-bottom:1px solid var(--border2);padding:0 28px;height:52px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+  .logo{font-family:var(--mono);font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;text-decoration:none}
+  .logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+  .nav{display:flex;gap:2px;flex:1}
+  .nav a{padding:5px 11px;border-radius:6px;font-size:12px;color:var(--muted);text-decoration:none;transition:background .15s,color .15s}
+  .nav a:hover{background:var(--surface);color:var(--text)}
+  .nav a.act{color:var(--accent);background:#0d1625}
+  .hdr-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+  .search{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 12px;color:var(--text);font-size:12px;width:220px;outline:none;font-family:inherit;transition:border-color .15s}
+  .search::placeholder{color:var(--dim)}
+  .search:focus{border-color:var(--accent)}
+  .avatar{width:30px;height:30px;background:var(--surface2);border:1px solid var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
+
+  /* ── Domain hero ── */
+  .domain-hero{border-left:4px solid var(--accent);background:linear-gradient(90deg,rgba(55,138,221,0.07) 0%,transparent 55%);padding:22px 28px;border-bottom:1px solid var(--border)}
+  .breadcrumb{font-family:var(--mono);font-size:11px;color:var(--dim);margin-bottom:10px}
+  .breadcrumb a{color:var(--muted);text-decoration:none}
+  .breadcrumb a:hover{color:var(--text)}
+  .breadcrumb .cur{color:var(--accent)}
+  .dh-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .dh-left h1{font-size:22px;font-weight:700;color:#fff;margin-bottom:5px}
+  .dh-left p{font-size:12px;color:var(--muted);max-width:520px;line-height:1.6;margin-bottom:12px}
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:9px;font-family:var(--mono);padding:3px 9px;border-radius:4px;font-weight:600}
+  .dh-stats{display:flex;gap:0;flex-shrink:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;align-self:flex-start;margin-top:4px}
+  .dh-stat{text-align:center;padding:10px 20px;border-right:1px solid var(--border)}
+  .dh-stat:last-child{border-right:none}
+  .dh-sv{font-family:var(--mono);font-size:18px;font-weight:700;color:#fff}
+  .dh-sl{font-size:10px;color:var(--muted);margin-top:1px}
+
+  /* ── Main layout ── */
+  .main-layout{display:grid;grid-template-columns:200px 1fr;gap:0;min-height:calc(100vh - 52px - 120px)}
+
+  /* ── Sidebar ── */
+  .sidebar{border-right:1px solid var(--border);padding:20px 0;background:var(--surface);position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+  .sb-section{padding:0 16px;margin-bottom:20px}
+  .sb-label{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px;padding:0 4px}
+  .sb-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:12px;transition:background .15s,color .15s;margin-bottom:2px}
+  .sb-item:hover{background:var(--surface2);color:var(--text)}
+  .sb-item.act{background:rgba(55,138,221,0.1);color:var(--accent)}
+  .sb-item .sb-cnt{font-family:var(--mono);font-size:10px;opacity:.6}
+  .sb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-right:8px}
+  .sb-divider{border-top:1px solid var(--border);margin:12px 16px}
+  .sb-item-row{display:flex;align-items:center}
+
+  /* ── Content ── */
+  .content{padding:24px 28px;background:var(--bg)}
+
+  /* ── Featured ── */
+  .sec-lbl{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono);margin-bottom:12px}
+  .feat-card{background:var(--surface);border:1px solid rgba(55,138,221,0.3);border-radius:12px;overflow:hidden;margin-bottom:28px}
+  .feat-bar{height:3px;background:var(--accent)}
+  .feat-body{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .feat-name{font-size:17px;font-weight:700;color:#fff;margin-bottom:5px}
+  .feat-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+  .params{display:flex;flex-direction:column;gap:10px}
+  .param-row{display:flex;flex-direction:column;gap:3px}
+  .param-lbl{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .param-input{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:7px 11px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;width:100%;transition:border-color .15s}
+  .param-input:focus{border-color:var(--accent)}
+  .feat-actions{display:flex;gap:8px;margin-top:16px}
+  .btn-run{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+  .btn-run:hover{background:#2e7bc4}
+  .btn-docs{background:transparent;color:var(--accent);border:1px solid rgba(55,138,221,0.3);border-radius:7px;padding:9px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .15s}
+  .btn-docs:hover{background:rgba(55,138,221,0.08)}
+  .feat-right{}
+  .output-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:12px}
+  .output-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .out-card{background:var(--surface2);border-radius:8px;padding:12px 14px}
+  .out-val{font-family:var(--mono);font-size:18px;font-weight:700;color:#fff}
+  .out-val.neg{color:#E24B4A}
+  .out-lbl2{font-size:10px;color:var(--muted);margin-top:3px}
+  .api-block{background:#0a0d15;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7}
+  .api-block .method{color:var(--accent)}
+  .api-block .endpoint{color:#1D9E75}
+  .api-block .key{color:var(--dim)}
+  .api-block .success{color:#1D9E75}
+
+  /* ── Function grid ── */
+  .fn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .fn-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .18s,transform .12s;animation:fadein .3s ease both}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .fn-card:hover{transform:translateY(-1px)}
+  .fn-bar{height:2px}
+  .fn-body{padding:15px}
+  .fn-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .fn-name{font-size:13px;font-weight:600;color:#fff;line-height:1.3}
+  .fn-cx{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:3px;white-space:nowrap;margin-top:2px;flex-shrink:0}
+  .fn-desc{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:11px}
+  .fn-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
+  .fn-tag{font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:3px;background:rgba(55,138,221,0.08);color:#6b8db5;border:1px solid rgba(55,138,221,0.14)}
+  .fn-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px}
+  .fn-time{font-family:var(--mono);font-size:9px;color:var(--dim)}
+  .fn-btns{display:flex;gap:5px}
+  .fn-btn{font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .15s}
+  .fn-btn-r{background:rgba(55,138,221,0.12);color:var(--accent);border:1px solid rgba(55,138,221,0.22)}
+  .fn-btn-r:hover{background:rgba(55,138,221,0.22)}
+  .fn-btn-d{background:transparent;color:var(--dim);border:1px solid var(--border)}
+  .fn-btn-d:hover{color:var(--muted)}
+  .empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:12px}
+
+  /* ── Footer ── */
+  footer{border-top:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .ft-logo{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .ft-links{display:flex;gap:20px}
+  .ft-links a{font-size:11px;color:var(--dim);text-decoration:none}
+  .ft-links a:hover{color:var(--muted)}
+
+  /* ── Responsive ── */
+  @media(max-width:900px){
+    .main-layout{grid-template-columns:1fr}
+    .sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+    .dh-stats{display:none}
+    .feat-body{grid-template-columns:1fr}
+  }
+  @media(max-width:600px){
+    .hdr{padding:0 16px;gap:12px}
+    .nav a:not(.act){display:none}
+    .search{width:140px}
+    .domain-hero,.content{padding-left:16px;padding-right:16px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="pyvar_portal.html" class="logo">
+    <div class="logo-dot"></div>
+    pyvar<span style="color:var(--accent)">.com</span>
+  </a>
+  <nav class="nav">
+    <a href="pyvar_portal.html">Domains</a>
+    <a href="#" class="act">Market Risk</a>
+    <a href="#">Functions</a>
+    <a href="#">API docs</a>
+  </nav>
+  <div class="hdr-right">
+    <input class="search" id="globalSearch" type="text" placeholder="Search functions…"/>
+    <div class="avatar">FL</div>
+  </div>
+</header>
+
+<div class="domain-hero">
+  <div class="breadcrumb">
+    <a href="pyvar_portal.html">pyvar.com</a> /
+    <a href="pyvar_portal.html">domains</a> /
+    <span class="cur">market-risk</span>
+  </div>
+  <div class="dh-row">
+    <div class="dh-left">
+      <h1>Market Risk</h1>
+      <p>VaR models, Expected Shortfall, stress testing, Greeks and P&amp;L attribution across equities, rates, FX and commodities. All functions are FRTB-compliant and accelerated via Numba JIT compiled kernels.</p>
+      <div class="badges">
+        <span class="badge" style="background:rgba(55,138,221,.12);color:#378ADD;border:1px solid rgba(55,138,221,.2)">FRTB SA</span>
+        <span class="badge" style="background:rgba(55,138,221,.12);color:#378ADD;border:1px solid rgba(55,138,221,.2)">FRTB IMA</span>
+        <span class="badge" style="background:rgba(29,158,117,.12);color:#1D9E75;border:1px solid rgba(29,158,117,.2)">Basel III / IV</span>
+        <span class="badge" style="background:rgba(127,119,221,.12);color:#7F77DD;border:1px solid rgba(127,119,221,.2)">Numba JIT</span>
+        <span class="badge" style="background:rgba(239,159,39,.12);color:#EF9F27;border:1px solid rgba(239,159,39,.2)">MiFID II</span>
+      </div>
+    </div>
+    <div class="dh-stats">
+      <div class="dh-stat"><div class="dh-sv">74</div><div class="dh-sl">Functions</div></div>
+      <div class="dh-stat"><div class="dh-sv">6</div><div class="dh-sl">Categories</div></div>
+      <div class="dh-stat"><div class="dh-sv" style="color:#1D9E75">2.1s</div><div class="dh-sl">Avg runtime</div></div>
+      <div class="dh-stat"><div class="dh-sv">99%</div><div class="dh-sl">Basel conf.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Categories</div>
+      <div class="sb-item act" data-cat="all">
+        <div class="sb-item-row"><div class="sb-dot" style="background:var(--accent)"></div>All functions</div>
+        <span class="sb-cnt">74</span>
+      </div>
+      <div class="sb-item" data-cat="var">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#378ADD"></div>VaR Models</div>
+        <span class="sb-cnt">20</span>
+      </div>
+      <div class="sb-item" data-cat="es">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#7F77DD"></div>Exp. Shortfall</div>
+        <span class="sb-cnt">8</span>
+      </div>
+      <div class="sb-item" data-cat="stress">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#E24B4A"></div>Stress Testing</div>
+        <span class="sb-cnt">15</span>
+      </div>
+      <div class="sb-item" data-cat="greeks">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#1D9E75"></div>Greeks</div>
+        <span class="sb-cnt">18</span>
+      </div>
+      <div class="sb-item" data-cat="pnl">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#EF9F27"></div>P&amp;L Attribution</div>
+        <span class="sb-cnt">8</span>
+      </div>
+      <div class="sb-item" data-cat="bt">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#D85A30"></div>Backtesting</div>
+        <span class="sb-cnt">5</span>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Complexity</div>
+      <div class="sb-item" data-cx="standard">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#1D9E75"></div>Standard</div>
+        <span class="sb-cnt">52</span>
+      </div>
+      <div class="sb-item" data-cx="advanced">
+        <div class="sb-item-row"><div class="sb-dot" style="background:#7F77DD"></div>Advanced</div>
+        <span class="sb-cnt">22</span>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Regulatory</div>
+      <div class="sb-item" data-reg="frtb">
+        <div class="sb-item-row" style="font-size:11px">FRTB IMA</div>
+        <span class="sb-cnt">31</span>
+      </div>
+      <div class="sb-item" data-reg="frtb-sa">
+        <div class="sb-item-row" style="font-size:11px">FRTB SA</div>
+        <span class="sb-cnt">43</span>
+      </div>
+      <div class="sb-item" data-reg="icaap">
+        <div class="sb-item-row" style="font-size:11px">ICAAP</div>
+        <span class="sb-cnt">18</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Featured function -->
+    <div class="sec-lbl">Featured function</div>
+    <div class="feat-card">
+      <div class="feat-bar"></div>
+      <div class="feat-body">
+        <div>
+          <div class="feat-name">Monte Carlo VaR</div>
+          <div class="feat-desc">Parametric Monte Carlo simulation engine. JIT-compiled via Numba with parallel <code style="font-family:var(--mono);color:var(--accent)">prange</code> loops across all CPU cores. Accepts a returns series, runs N simulation paths, and returns the full sorted loss distribution for CVaR, fan charts and scenario analysis without re-simulation.</div>
+          <div class="params">
+            <div class="param-row">
+              <div class="param-lbl">portfolio_value (£)</div>
+              <input class="param-input" value="1,000,000"/>
+            </div>
+            <div class="param-row">
+              <div class="param-lbl">confidence_level</div>
+              <input class="param-input" value="0.99"/>
+            </div>
+            <div class="param-row">
+              <div class="param-lbl">horizon_days</div>
+              <input class="param-input" value="1"/>
+            </div>
+            <div class="param-row">
+              <div class="param-lbl">n_simulations</div>
+              <input class="param-input" value="100,000"/>
+            </div>
+          </div>
+          <div class="feat-actions">
+            <button class="btn-run">Run function</button>
+            <button class="btn-docs">API docs</button>
+          </div>
+        </div>
+        <div>
+          <div class="output-lbl">Last result · 100,000 paths · 2.3s runtime</div>
+          <div class="output-grid">
+            <div class="out-card"><div class="out-val neg">2.82%</div><div class="out-lbl2">VaR (99%, 1d)</div></div>
+            <div class="out-card"><div class="out-val neg">£28,200</div><div class="out-lbl2">VaR absolute</div></div>
+            <div class="out-card"><div class="out-val neg">3.51%</div><div class="out-lbl2">CVaR / ES</div></div>
+            <div class="out-card"><div class="out-val" style="color:var(--muted)">1.18%</div><div class="out-lbl2">Daily vol σ</div></div>
+          </div>
+          <div class="api-block">
+            <span class="method">POST</span> <span class="endpoint">/api/v1/var/compute</span><br/>
+            <span class="key">Content-Type:</span> application/json<br/>
+            <span class="key">Authorization:</span> Bearer {token}<br/>
+            ──────────────────────────<br/>
+            <span class="key">task_id:</span> a3f2c8d1-49e2-…<br/>
+            <span class="key">status:</span> <span class="success">success</span><br/>
+            <span class="key">var_abs:</span> 28200.00<br/>
+            <span class="key">cvar_abs:</span> 35100.00
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Function grid -->
+    <div class="sec-lbl" id="grid-label">All functions — 25 shown</div>
+    <div class="fn-grid" id="fnGrid"></div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="ft-logo">pyvar.com — open-source financial &amp; risk computation platform</div>
+  <div class="ft-links">
+    <a href="#">Documentation</a>
+    <a href="#">API reference</a>
+    <a href="#">GitHub</a>
+    <a href="pyvar_portal.html">← Back to portal</a>
+  </div>
+</footer>
+
+<script>
+const fns = [
+  {cat:'var',name:'Historical Simulation VaR',desc:'Non-parametric VaR using ordered historical P&L scenarios. No distributional assumptions — captures fat tails and skewness from actual market history.',tags:['Non-parametric','Full revaluation','Historical'],time:'0.4s',cx:'standard',reg:['frtb-sa']},
+  {cat:'var',name:'Parametric (Delta-Normal) VaR',desc:'Closed-form Gaussian VaR using portfolio delta, correlation matrix and volatility estimates. Fast approximation suitable for linear portfolios.',tags:['Delta-normal','Analytical','Fast'],time:'<0.1s',cx:'standard',reg:['frtb-sa']},
+  {cat:'var',name:'Filtered Historical Simulation',desc:'Combines historical simulation with GARCH volatility scaling to capture the current volatility regime. More responsive than plain historical simulation.',tags:['GARCH-scaled','Regime-aware','FHS'],time:'1.1s',cx:'advanced',reg:['frtb-sa','frtb']},
+  {cat:'var',name:'Cornish-Fisher VaR',desc:'Parametric VaR adjusted for skewness and excess kurtosis using Cornish-Fisher expansion. Better tail fit than Gaussian for non-normal return distributions.',tags:['Cornish-Fisher','Skewness','Kurtosis'],time:'<0.1s',cx:'standard',reg:['frtb-sa']},
+  {cat:'var',name:'Component VaR',desc:'Decomposes portfolio VaR into individual position contributions using the Euler allocation. Sum of components equals total portfolio VaR.',tags:['Decomposition','Euler alloc.','Attribution'],time:'0.3s',cx:'standard',reg:['frtb-sa','icaap']},
+  {cat:'var',name:'Marginal VaR',desc:'Rate of change of portfolio VaR with respect to a small increase in each position weight. Used for portfolio optimisation and risk-based capital allocation.',tags:['Marginal','Gradient','Optimisation'],time:'0.5s',cx:'advanced',reg:['frtb-sa']},
+  {cat:'var',name:'Incremental VaR',desc:'Change in total portfolio VaR from adding or removing a single position. More accurate than marginal VaR for large trades relative to portfolio size.',tags:['Incremental','Trade sizing','Large positions'],time:'0.8s',cx:'advanced',reg:['frtb-sa']},
+  {cat:'var',name:'VaR by Risk Factor',desc:'Decomposes VaR by risk factor (equity, IR, FX, credit). Shows how much each risk factor class contributes to total portfolio risk.',tags:['Risk factors','Attribution','Multi-asset'],time:'0.6s',cx:'standard',reg:['frtb-sa','icaap']},
+  {cat:'es',name:'Historical Expected Shortfall',desc:'Average of losses exceeding the VaR threshold. Basel IV / FRTB standard risk measure. More coherent than VaR — properly penalises tail concentration.',tags:['FRTB','Coherent','Tail risk'],time:'0.4s',cx:'standard',reg:['frtb','frtb-sa']},
+  {cat:'es',name:'Monte Carlo Expected Shortfall',desc:'ES estimated from the full simulated loss distribution. Enables CVaR decomposition and sensitivity analysis at the Expected Shortfall level.',tags:['Monte Carlo','Full dist.','CVaR'],time:'2.4s',cx:'standard',reg:['frtb','frtb-sa']},
+  {cat:'es',name:'CVaR Decomposition',desc:'Breaks Conditional VaR into per-position contributions using the CVaR gradient (Euler allocation). Essential for FRTB IMA internal model capital allocation.',tags:['FRTB IMA','Euler alloc.','Gradient'],time:'1.8s',cx:'advanced',reg:['frtb']},
+  {cat:'es',name:'Stressed Expected Shortfall',desc:'ES computed over a 12-month stressed historical period identified as worst for the current portfolio. Required input for FRTB IMA capital calculation.',tags:['FRTB IMA','Stressed period','Regulatory'],time:'3.1s',cx:'advanced',reg:['frtb']},
+  {cat:'es',name:'Liquidity-Adjusted ES (FRTB)',desc:'ES adjusted for liquidity horizons (10/20/40/60/120 days) as required under FRTB IMA. Aggregates across liquidity horizon buckets per risk factor class.',tags:['FRTB IMA','Liquidity horizon','LAH'],time:'4.0s',cx:'advanced',reg:['frtb']},
+  {cat:'stress',name:'Historical Scenario Replay',desc:'Replays a named historical stress event (GFC 2008, COVID Mar 2020, EUR crisis 2011) against the current portfolio with full revaluation using actual market moves.',tags:['Historical','Full reval.','Named scenarios'],time:'1.2s',cx:'standard',reg:['frtb-sa','icaap']},
+  {cat:'stress',name:'Hypothetical Scenario Builder',desc:'User-defined multi-factor shock scenario. Specify parallel and tilt shifts to yield curves, equity shocks, FX moves, credit spread widening and volatility surface shifts.',tags:['Custom shocks','Multi-factor','User-defined'],time:'0.8s',cx:'standard',reg:['icaap','frtb-sa']},
+  {cat:'stress',name:'Reverse Stress Testing',desc:'Identifies the market scenarios that would cause a specified loss level. Works backwards from outcome to scenario. Required under ICAAP and SREP guidelines.',tags:['Reverse','ICAAP','Scenario finding'],time:'4.2s',cx:'advanced',reg:['icaap']},
+  {cat:'stress',name:'Sensitivity Stress Profile',desc:'Applies graduated shocks from -10σ to +10σ on each risk factor independently. Produces a stress P&L profile and identifies non-linearities and kinks.',tags:['Sensitivity','Profile','Non-linearity'],time:'1.5s',cx:'standard',reg:['icaap','frtb-sa']},
+  {cat:'greeks',name:'Portfolio Delta',desc:'First-order sensitivity of portfolio value to changes in underlying prices. Aggregated across all positions, asset classes and currencies with FX conversion.',tags:['First-order','Aggregated','FX-adjusted'],time:'0.1s',cx:'standard',reg:['frtb-sa']},
+  {cat:'greeks',name:'Gamma & Cross-Gamma Matrix',desc:'Second-order price sensitivity and full cross-asset gamma matrix. Critical for non-linear portfolios with optionality. Used in P&L explain residual analysis.',tags:['Second-order','Options','Non-linear'],time:'0.3s',cx:'standard',reg:['frtb-sa']},
+  {cat:'greeks',name:'Vega Surface',desc:'Volatility sensitivity across the entire implied vol surface by expiry and moneyness. Returns a bucketed vega grid for structured vol risk management and hedging.',tags:['Vol surface','Bucketed','Expiry/strike'],time:'0.5s',cx:'advanced',reg:['frtb-sa']},
+  {cat:'greeks',name:'DV01 / PV01',desc:'Dollar value of a one basis point shift in interest rates. Computed per curve, per tenor bucket (3M, 6M, 1Y…30Y) and aggregated to portfolio level with netting.',tags:['Interest rate','Tenor bucket','IR risk'],time:'0.2s',cx:'standard',reg:['frtb-sa','icaap']},
+  {cat:'greeks',name:'CS01 — Credit Spread DV01',desc:'Sensitivity to a 1bp parallel shift in credit spreads. Computed per issuer, sector and rating bucket for structured credit book risk management and hedging.',tags:['Credit spread','CS01','Per issuer'],time:'0.3s',cx:'standard',reg:['frtb-sa']},
+  {cat:'pnl',name:'Greeks-based P&L Explain',desc:'Decomposes daily P&L into Delta, Gamma, Vega, Theta and Rho components. Identifies unexplained residual (model error) for FRTB P&L Attribution Test (PAT).',tags:['P&L decomp.','FRTB PAT','Greeks'],time:'0.4s',cx:'standard',reg:['frtb']},
+  {cat:'pnl',name:'P&L Attribution Test (FRTB)',desc:'Formal FRTB PAT comparing desk-level Hypothetical P&L to Risk-Theoretical P&L using Spearman correlation and ratio tests. Determines IMA eligibility per trading desk.',tags:['FRTB','PAT','IMA eligibility'],time:'1.1s',cx:'advanced',reg:['frtb']},
+  {cat:'bt',name:'Traffic Light Backtesting',desc:'Basel Committee standard backtest. Counts daily VaR exceedances over a 250 trading day window. Green/Amber/Red zones determine the capital add-on multiplication factor.',tags:['Basel','250-day','Capital add-on'],time:'0.3s',cx:'standard',reg:['frtb','frtb-sa','icaap']},
+  {cat:'bt',name:'Kupiec Proportion of Failures',desc:'Likelihood-ratio test of whether the observed exceedance rate is statistically consistent with the stated VaR confidence level. Standard statistical backtest.',tags:['Kupiec','LR test','Statistical'],time:'0.1s',cx:'standard',reg:['frtb']},
+  {cat:'bt',name:'Christoffersen Independence Test',desc:'Tests whether VaR breaches are independent of each other (no clustering). Clustered failures indicate the model fails to capture volatility regime changes.',tags:['Independence','Clustering','Regime'],time:'0.1s',cx:'advanced',reg:['frtb']},
+];
+
+const cxStyles = {
+  standard:{bg:'rgba(29,158,117,.1)',color:'#1D9E75'},
+  advanced:{bg:'rgba(127,119,221,.1)',color:'#7F77DD'},
+};
+
+const catColors = {var:'#378ADD',es:'#7F77DD',stress:'#E24B4A',greeks:'#1D9E75',pnl:'#EF9F27',bt:'#D85A30'};
+
+let currentCat = 'all';
+let currentCx = 'all';
+let currentQuery = '';
+
+function renderGrid() {
+  let items = fns;
+  if (currentCat !== 'all') items = items.filter(f => f.cat === currentCat);
+  if (currentCx !== 'all') items = items.filter(f => f.cx === currentCx);
+  if (currentQuery) items = items.filter(f =>
+    f.name.toLowerCase().includes(currentQuery) ||
+    f.desc.toLowerCase().includes(currentQuery) ||
+    f.tags.some(t => t.toLowerCase().includes(currentQuery))
+  );
+
+  document.getElementById('grid-label').textContent =
+    (currentCat === 'all' ? 'All functions' : document.querySelector(`.sb-item[data-cat="${currentCat}"] .sb-item-row`).textContent.trim()) +
+    ` — ${items.length} shown`;
+
+  const grid = document.getElementById('fnGrid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty">No functions match your filter. Try clearing the search or selecting a different category.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  items.forEach((f, i) => {
+    const cs = cxStyles[f.cx] || cxStyles.standard;
+    const barColor = catColors[f.cat] || 'var(--accent)';
+    const card = document.createElement('div');
+    card.className = 'fn-card';
+    card.style.animationDelay = `${i * 0.03}s`;
+    card.addEventListener('mouseenter', () => card.style.borderColor = barColor + '55');
+    card.addEventListener('mouseleave', () => card.style.borderColor = 'var(--border)');
+    card.innerHTML = `
+      <div class="fn-bar" style="background:${barColor}"></div>
+      <div class="fn-body">
+        <div class="fn-head">
+          <div class="fn-name">${f.name}</div>
+          <div class="fn-cx" style="background:${cs.bg};color:${cs.color}">${f.cx}</div>
+        </div>
+        <div class="fn-desc">${f.desc}</div>
+        <div class="fn-tags">${f.tags.map(t => `<span class="fn-tag">${t}</span>`).join('')}</div>
+        <div class="fn-footer">
+          <div class="fn-time" style="color:${barColor}">&bull;</div>
+          <div class="fn-time" style="margin-left:4px">${f.time} avg</div>
+          <div style="flex:1"></div>
+          <div class="fn-btns">
+            <button class="fn-btn fn-btn-r">Run</button>
+            <button class="fn-btn fn-btn-d">Docs</button>
+          </div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+document.querySelectorAll('.sb-item[data-cat]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sb-item[data-cat]').forEach(i => i.classList.remove('act'));
+    item.classList.add('act');
+    currentCat = item.dataset.cat;
+    currentCx = 'all';
+    document.querySelectorAll('.sb-item[data-cx]').forEach(i => i.classList.remove('act'));
+    renderGrid();
+  });
+});
+
+document.querySelectorAll('.sb-item[data-cx]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sb-item[data-cx]').forEach(i => i.classList.remove('act'));
+    if (currentCx === item.dataset.cx) { currentCx = 'all'; }
+    else { item.classList.add('act'); currentCx = item.dataset.cx; }
+    renderGrid();
+  });
+});
+
+document.getElementById('globalSearch').addEventListener('input', function() {
+  currentQuery = this.value.toLowerCase().trim();
+  renderGrid();
+});
+
+renderGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>pyvar.com — Open-Source Financial Risk Computation Platform</title>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+/* ── Hero ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 0 72px;position:relative;overflow:hidden}
+.hero-scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,217,126,0.007) 3px,rgba(0,217,126,0.007) 4px);pointer-events:none}
+.hero-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 50% at 75% 45%,rgba(0,217,126,0.04) 0%,transparent 65%);pointer-events:none}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,217,126,0.028) 1px,transparent 1px),linear-gradient(90deg,rgba(0,217,126,0.028) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 100% 80% at 80% 50%,black 0%,transparent 70%)}
+.hero-inner{display:grid;grid-template-columns:1fr 460px;gap:64px;align-items:center;position:relative;z-index:1}
+.hero-eyebrow{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.hero-eyebrow span{color:var(--green);font-weight:500}
+.hero-h1{font-family:var(--sans);font-size:clamp(38px,5vw,68px);font-weight:600;line-height:1.08;letter-spacing:-.025em;color:var(--text);margin-bottom:20px}
+.hero-h1 em{font-style:normal;color:var(--green);font-weight:400}
+.hero-sub{font-size:16px;color:var(--text2);line-height:1.7;max-width:500px;margin-bottom:36px}
+.hero-actions{display:flex;gap:12px;margin-bottom:44px;flex-wrap:wrap}
+.hero-install{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;display:flex;align-items:center;gap:12px;max-width:380px}
+.hero-install-cmd{font-family:var(--mono);font-size:12px;color:var(--text);flex:1}
+.hero-install-copy{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:2px;transition:all .15s}
+.hero-install-copy:hover{border-color:var(--green);color:var(--green)}
+/* Terminal panel */
+.terminal{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;overflow:hidden}
+.terminal-bar{background:var(--bg3);padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.terminal-dot{width:10px;height:10px;border-radius:50%}
+.terminal-title{font-family:var(--mono);font-size:11px;color:var(--dim);margin-left:8px}
+.terminal-body{padding:18px 20px;font-family:var(--mono);font-size:12px;line-height:1.9}
+.t-prompt{color:var(--green)}
+.t-cmd{color:var(--text)}
+.t-output{color:var(--text2)}
+.t-val{color:#64b0f0}
+.t-key{color:var(--amber)}
+.t-ok{color:var(--green)}
+.t-section{color:var(--dim);font-style:italic}
+/* Status bar */
+.status-bar{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:20px}
+.status-item{padding:10px 18px;border-right:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--text2)}
+.status-item:last-child{border-right:none}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+/* Domain grid */
+.domain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.domain-card{background:var(--bg2);padding:22px 20px;transition:background .15s;cursor:pointer;position:relative;overflow:hidden;text-decoration:none;display:block}
+.domain-card:hover{background:var(--bg3)}
+.domain-bar{position:absolute;top:0;left:0;right:0;height:1px;transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.domain-card:hover .domain-bar{transform:scaleX(1)}
+.domain-id{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+.domain-icon{font-size:20px;margin-bottom:10px}
+.domain-name{font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px;line-height:1.25}
+.domain-desc{font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.domain-count{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.domain-count span{color:var(--green)}
+/* API section */
+.endpoint-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)}
+.endpoint-row:last-child{border-bottom:none}
+.method{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:2px;flex-shrink:0}
+.m-post{background:rgba(0,217,126,0.1);color:var(--green);border:1px solid rgba(0,217,126,0.2)}
+.m-get{background:rgba(26,111,232,0.1);color:var(--blue);border:1px solid rgba(26,111,232,0.2)}
+.endpoint-path{font-family:var(--mono);font-size:12px;color:var(--text);flex:1}
+.endpoint-desc{font-size:12px;color:var(--text2)}
+/* Tech row */
+.tech-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border)}
+.tech-row:last-child{border-bottom:none}
+.tech-name{font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px}
+.tech-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tech-purpose{font-family:var(--mono);font-size:10px;color:var(--text2)}
+.tech-layer{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:2px;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--dim)}
+/* By Fibtec callout */
+.fibtec-callout{border:1px solid rgba(198,162,69,0.2);background:rgba(198,162,69,0.03);border-radius:var(--radius);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+@media(max-width:1024px){.hero-inner{grid-template-columns:1fr}.terminal{display:none}.domain-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.domain-grid{grid-template-columns:1fr 1fr}.status-bar{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('home'))</script>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-grid-bg"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow reveal">
+          <span class="status-pill status-green">All systems operational</span>
+          · v0.1.0-beta · MIT licence
+        </div>
+        <h1 class="hero-h1 reveal d1">
+          382 risk functions.<br/><em>One REST API.</em><br/>Open source.
+        </h1>
+        <p class="hero-sub reveal d2">Regulatory-grade financial and risk computation across 8 domains — Monte Carlo VaR, Greeks, stress testing, FRTB, IFRS 9 ECL and more. Accelerated via Numba JIT. Free forever.</p>
+        <div class="hero-actions reveal d3">
+          <a href="#domains" class="btn-green">Explore domains</a>
+          <a href="#api" class="btn-ghost">API docs</a>
+        </div>
+        <div class="hero-install reveal d3">
+          <span class="hero-install-cmd"><span style="color:var(--green)">$</span> pip install pyvar-client</span>
+          <button class="hero-install-copy" onclick="navigator.clipboard.writeText('pip install pyvar-client');this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)">copy</button>
+        </div>
+        <div class="status-bar reveal">
+          <div class="status-item"><div class="status-dot" style="background:var(--green)"></div>382 functions</div>
+          <div class="status-item"><div class="status-dot" style="background:var(--green)"></div>8 domains</div>
+          <div class="status-item"><div class="status-dot" style="background:var(--green)"></div>99.97% uptime</div>
+          <div class="status-item"><div class="status-dot" style="background:var(--green)"></div>1.4ms p50</div>
+        </div>
+      </div>
+      <!-- Terminal demo -->
+      <div class="terminal reveal d2">
+        <div class="terminal-bar">
+          <div class="terminal-dot" style="background:#e84040"></div>
+          <div class="terminal-dot" style="background:#e8a020"></div>
+          <div class="terminal-dot" style="background:#00d97e"></div>
+          <div class="terminal-title">pyvar.com · Monte Carlo VaR demo</div>
+        </div>
+        <div class="terminal-body">
+          <div><span class="t-prompt">$</span> <span class="t-cmd">python3</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">from pyvar import VaRClient</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">client = VaRClient(api_key=<span class="t-key">"pv_..."</span>)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">result = client.var.compute(</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">portfolio_value</span>=<span class="t-val">1_000_000</span>,</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">returns</span>=returns,</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">confidence</span>=<span class="t-val">0.99</span>,</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">n_simulations</span>=<span class="t-val">100_000</span></div>
+          <div>)</div>
+          <br/>
+          <div class="t-section"># ── Result ──────────────────────────</div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.var_abs)</span></div>
+          <div><span class="t-ok">28200.0</span>  <span class="t-section"># £28,200 (99% VaR)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.cvar_abs)</span></div>
+          <div><span class="t-ok">35100.0</span>  <span class="t-section"># £35,100 (CVaR/ES)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.runtime_ms)</span></div>
+          <div><span class="t-ok">2341</span>  <span class="t-section"># 100k paths · 2.3s</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Domains -->
+<section class="section section-dark" id="domains">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end;margin-bottom:40px" class="reveal">
+      <div>
+        <div class="label">risk domains</div>
+        <h2 class="h2">Eight domains.<br/><em>382 functions.</em></h2>
+      </div>
+      <p class="body-md">Every function is accessible via the pyvar REST API. Submit a job, receive a task_id, poll for results. All domains share the same auth, the same client library, the same response format.</p>
+    </div>
+    <div class="domain-grid reveal">
+
+      <a href="domain-market-risk.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#2a6fd4"></div>
+        <div class="domain-id">domain_01</div>
+        <div class="domain-icon">📈</div>
+        <div class="domain-name">Market Risk</div>
+        <div class="domain-desc">VaR, ES, Greeks, stress testing, P&L attribution, FRTB</div>
+        <div class="domain-count"><span>68</span> functions</div>
+      </a>
+
+      <a href="domain-credit-risk.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#c8a44a"></div>
+        <div class="domain-id">domain_02</div>
+        <div class="domain-icon">🏦</div>
+        <div class="domain-name">Credit Risk</div>
+        <div class="domain-desc">PD/LGD/EAD, IRB, CVA/XVA, IFRS 9 ECL, SA-CCR</div>
+        <div class="domain-count"><span>55</span> functions</div>
+      </a>
+
+      <a href="domain-liquidity-risk.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#00d97e"></div>
+        <div class="domain-id">domain_03</div>
+        <div class="domain-icon">💧</div>
+        <div class="domain-name">Liquidity Risk</div>
+        <div class="domain-desc">LCR, NSFR, intraday, survival horizon, ILAAP</div>
+        <div class="domain-count"><span>40</span> functions</div>
+      </a>
+
+      <a href="domain-operational-risk.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#e84040"></div>
+        <div class="domain-id">domain_04</div>
+        <div class="domain-icon">⚠️</div>
+        <div class="domain-name">Operational Risk</div>
+        <div class="domain-desc">LDA, AMA, RCSA, KRI, scenario analysis, SMA</div>
+        <div class="domain-count"><span>44</span> functions</div>
+      </a>
+
+      <a href="domain-portfolio-analytics.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#7060d4"></div>
+        <div class="domain-id">domain_05</div>
+        <div class="domain-icon">📊</div>
+        <div class="domain-name">Portfolio Analytics</div>
+        <div class="domain-desc">MV optimisation, Sharpe, factor models, Black-Litterman</div>
+        <div class="domain-count"><span>50</span> functions</div>
+      </a>
+
+      <a href="domain-regulatory.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#4a9e22"></div>
+        <div class="domain-id">domain_06</div>
+        <div class="domain-icon">📋</div>
+        <div class="domain-name">Regulatory &amp; Compliance</div>
+        <div class="domain-desc">Basel IV, FRTB, MiFID II, EMIR, ICAAP/SREP</div>
+        <div class="domain-count"><span>30</span> functions</div>
+      </a>
+
+      <a href="domain-derivatives.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#c47a2a"></div>
+        <div class="domain-id">domain_07</div>
+        <div class="domain-icon">∿</div>
+        <div class="domain-name">Derivatives &amp; Pricing</div>
+        <div class="domain-desc">Black-Scholes, Heston, yield curves, SABR, fixed income</div>
+        <div class="domain-count"><span>62</span> functions</div>
+      </a>
+
+      <a href="domain-alm.html" class="domain-card" style="text-decoration:none">
+        <div class="domain-bar" style="background:#6a7a8a"></div>
+        <div class="domain-id">domain_08</div>
+        <div class="domain-icon">⚖️</div>
+        <div class="domain-name">ALM &amp; Balance Sheet</div>
+        <div class="domain-desc">Duration, NII sensitivity, EVE, IRRBB, FTP</div>
+        <div class="domain-count"><span>33</span> functions</div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- API -->
+<section class="section" id="api">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start" class="reveal">
+      <div>
+        <div class="label">api reference</div>
+        <h2 class="h2" style="margin-bottom:20px">Simple async<br/><em>job pattern.</em></h2>
+        <p class="body-md" style="margin-bottom:32px">All 382 functions use the same async job pattern: POST to submit, GET to poll. No timeouts, no blocking — designed for 100k-path Monte Carlo simulations running 2–10 seconds.</p>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg3)">
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">core endpoints</div>
+          </div>
+          <div style="padding:0 18px">
+            <div class="endpoint-row"><div class="method m-post">POST</div><div><div class="endpoint-path">/api/v1/{domain}/compute</div><div class="endpoint-desc">Submit job · returns task_id immediately</div></div></div>
+            <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/api/v1/{domain}/result/{task_id}</div><div class="endpoint-desc">Poll result · pending → started → success</div></div></div>
+            <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/api/v1/domains</div><div class="endpoint-desc">List all 8 domains and function catalogue</div></div></div>
+            <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Platform status · no auth required</div></div></div>
+          </div>
+        </div>
+        <div style="margin-top:20px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:11px;color:var(--text2)">
+          Base URL: <span style="color:var(--green)">https://api.pyvar.com/v1</span><br/>
+          Auth: <span style="color:var(--amber)">Authorization: Bearer pv_...</span>
+        </div>
+      </div>
+      <div>
+        <div class="label">technology</div>
+        <h2 class="h2" style="margin-bottom:24px">Built for<br/><em>performance.</em></h2>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:#c8a44a"></div>Anthropic Claude</div><div class="tech-purpose">AI reasoning</div><div class="tech-layer">claude-sonnet-4-6</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--green)"></div>NumPy · Numba JIT</div><div class="tech-purpose">Monte Carlo engine</div><div class="tech-layer">@njit parallel</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--green)"></div>Polars · PyArrow</div><div class="tech-purpose">Data ingestion</div><div class="tech-layer">lazy scan</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--blue)"></div>FastAPI · orjson</div><div class="tech-purpose">REST API</div><div class="tech-layer">async</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:#7060d4"></div>Celery · SQS FIFO</div><div class="tech-purpose">Job queue</div><div class="tech-layer">AWS</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--amber)"></div>ECS Fargate · EC2 Spot</div><div class="tech-purpose">Compute · UK region</div><div class="tech-layer">eu-west-2</div></div>
+        </div>
+        <div class="fibtec-callout">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#c8a44a;margin-bottom:8px">Built by Fibtec Limited</div>
+            <div style="font-size:13px;color:var(--text);margin-bottom:6px">pyvar.com is a Fibtec open-source project</div>
+            <div style="font-size:12px;color:var(--text2)">Enterprise support, SLA guarantees and private deployment available via fibtec.co.uk</div>
+          </div>
+          <a href="https://fibtec.co.uk" target="_blank" style="font-family:var(--mono);font-size:11px;color:#c8a44a;border:1px solid rgba(198,162,69,0.3);padding:8px 16px;border-radius:2px;white-space:nowrap;transition:all .15s;display:inline-block">fibtec.co.uk ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">get started</div>
+    <h2 class="h2 reveal" style="margin-bottom:16px">Free forever. <em>Open source.</em></h2>
+    <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is MIT licensed. The API is free to use. Enterprise support and private deployment available via fibtec.co.uk.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="https://github.com/fibtec-limited/pyvar" target="_blank" class="btn-ghost">GitHub ↗</a>
+      <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-green">Enterprise support →</a>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+</body>
+</html>

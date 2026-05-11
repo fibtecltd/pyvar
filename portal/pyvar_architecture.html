@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>pyvar.com — Architecture Diagram</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f5f4f0;
+      --color-background-tertiary: #eeede8;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #5f5e5a;
+      --color-border-tertiary: rgba(0,0,0,0.12);
+      --font-sans: system-ui, -apple-system, sans-serif;
+      --border-radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background-primary: #1a1a18;
+        --color-background-secondary: #242420;
+        --color-background-tertiary: #2c2c2a;
+        --color-text-primary: #e8e6dc;
+        --color-text-secondary: #9c9a92;
+        --color-border-tertiary: rgba(255,255,255,0.1);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .card {
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 780px;
+    }
+
+    svg .th { font: 500 14px var(--font-sans); fill: var(--color-text-primary); }
+    svg .ts { font: 400 12px var(--font-sans); fill: var(--color-text-secondary); }
+
+    /* c-gray */
+    svg .c-gray > rect, svg .c-gray > ellipse { fill: #F1EFE8; stroke: #5F5E5A; }
+    svg .c-gray > text.th { fill: #444441; }
+    svg .c-gray > text.ts { fill: #5F5E5A; }
+    /* c-blue */
+    svg .c-blue > rect { fill: #E6F1FB; stroke: #185FA5; }
+    svg .c-blue > text.th { fill: #0C447C; }
+    svg .c-blue > text.ts { fill: #185FA5; }
+    /* c-teal */
+    svg .c-teal > rect { fill: #E1F5EE; stroke: #0F6E56; }
+    svg .c-teal > text.th { fill: #085041; }
+    svg .c-teal > text.ts { fill: #0F6E56; }
+    /* c-purple */
+    svg .c-purple > rect { fill: #EEEDFE; stroke: #534AB7; }
+    svg .c-purple > text.th { fill: #3C3489; }
+    svg .c-purple > text.ts { fill: #534AB7; }
+    /* c-amber */
+    svg .c-amber > rect { fill: #FAEEDA; stroke: #854F0B; }
+    svg .c-amber > text.th { fill: #633806; }
+    svg .c-amber > text.ts { fill: #854F0B; }
+    /* c-coral */
+    svg .c-coral > rect { fill: #FAECE7; stroke: #993C1D; }
+    svg .c-coral > text.th { fill: #712B13; }
+    svg .c-coral > text.ts { fill: #993C1D; }
+
+    svg .arr { stroke: var(--color-text-secondary); stroke-width: 1.5; fill: none; }
+
+    @media (prefers-color-scheme: dark) {
+      svg .c-gray > rect  { fill: #444441; stroke: #B4B2A9; }
+      svg .c-gray > text.th { fill: #D3D1C7; }
+      svg .c-gray > text.ts { fill: #B4B2A9; }
+      svg .c-blue > rect  { fill: #0C447C; stroke: #85B7EB; }
+      svg .c-blue > text.th { fill: #B5D4F4; }
+      svg .c-blue > text.ts { fill: #85B7EB; }
+      svg .c-teal > rect  { fill: #085041; stroke: #5DCAA5; }
+      svg .c-teal > text.th { fill: #9FE1CB; }
+      svg .c-teal > text.ts { fill: #5DCAA5; }
+      svg .c-purple > rect { fill: #3C3489; stroke: #AFA9EC; }
+      svg .c-purple > text.th { fill: #CECBF6; }
+      svg .c-purple > text.ts { fill: #AFA9EC; }
+      svg .c-amber > rect { fill: #633806; stroke: #EF9F27; }
+      svg .c-amber > text.th { fill: #FAC775; }
+      svg .c-amber > text.ts { fill: #EF9F27; }
+      svg .c-coral > rect { fill: #712B13; stroke: #F0997B; }
+      svg .c-coral > text.th { fill: #F5C4B3; }
+      svg .c-coral > text.ts { fill: #F0997B; }
+      svg .th { fill: #e8e6dc; }
+      svg .ts { fill: #9c9a92; }
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>pyvar.com — system architecture</h1>
+  <p>AI-powered financial &amp; risk computation platform · powered by NumPy &amp; Numba</p>
+</header>
+
+<div class="card">
+  <svg width="100%" viewBox="0 0 680 700" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>pyvar.com architecture diagram</title>
+    <desc>Seven-layer architecture: users, API gateway, data ingestion, task queue, compute workers, results and storage, observability</desc>
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Layer 1: Users -->
+    <g class="c-gray">
+      <rect x="40" y="16" width="600" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="340" y="36" text-anchor="middle" dominant-baseline="central">Users</text>
+      <text class="ts" x="340" y="54" text-anchor="middle" dominant-baseline="central">Web browser · REST client · Python SDK</text>
+    </g>
+
+    <line x1="340" y1="68" x2="340" y2="88" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 2: API gateway + orjson -->
+    <g class="c-blue">
+      <rect x="40" y="90" width="600" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="340" y="110" text-anchor="middle" dominant-baseline="central">API gateway — FastAPI · Pydantic · JWT · orjson</text>
+      <text class="ts" x="340" y="128" text-anchor="middle" dominant-baseline="central">Parameter validation · auth · rate limiting · fast JSON serialisation</text>
+    </g>
+
+    <line x1="340" y1="142" x2="340" y2="162" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 3: Ingestion — Polars + PyArrow -->
+    <g class="c-teal">
+      <rect x="40" y="164" width="600" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="340" y="184" text-anchor="middle" dominant-baseline="central">Data ingestion — Polars · PyArrow</text>
+      <text class="ts" x="340" y="202" text-anchor="middle" dominant-baseline="central">Lazy scan · filter pushdown · Parquet I/O · Arrow IPC</text>
+    </g>
+
+    <line x1="340" y1="216" x2="340" y2="236" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 4: Task queue -->
+    <g class="c-purple">
+      <rect x="40" y="238" width="600" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="340" y="258" text-anchor="middle" dominant-baseline="central">Task queue — Celery · Redis broker</text>
+      <text class="ts" x="340" y="276" text-anchor="middle" dominant-baseline="central">Async dispatch · progress tracking · result TTL</text>
+    </g>
+
+    <line x1="340" y1="290" x2="340" y2="310" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 5: Compute workers label -->
+    <text class="ts" x="340" y="324" text-anchor="middle" dominant-baseline="central">Compute workers</text>
+
+    <!-- Four compute worker boxes -->
+    <g class="c-teal">
+      <rect x="42" y="334" width="138" height="74" rx="10" stroke-width="0.5"/>
+      <text class="th" x="111" y="360" text-anchor="middle" dominant-baseline="central">NumPy / Numba</text>
+      <text class="ts" x="111" y="378" text-anchor="middle" dominant-baseline="central">JIT · Monte Carlo</text>
+      <text class="ts" x="111" y="394" text-anchor="middle" dominant-baseline="central">VaR · IRR loops</text>
+    </g>
+
+    <g class="c-teal">
+      <rect x="192" y="334" width="138" height="74" rx="10" stroke-width="0.5"/>
+      <text class="th" x="261" y="360" text-anchor="middle" dominant-baseline="central">SciPy / statsmodels</text>
+      <text class="ts" x="261" y="378" text-anchor="middle" dominant-baseline="central">Optimisation</text>
+      <text class="ts" x="261" y="394" text-anchor="middle" dominant-baseline="central">GARCH · curves</text>
+    </g>
+
+    <g class="c-teal">
+      <rect x="342" y="334" width="138" height="74" rx="10" stroke-width="0.5"/>
+      <text class="th" x="411" y="360" text-anchor="middle" dominant-baseline="central">Dask</text>
+      <text class="ts" x="411" y="378" text-anchor="middle" dominant-baseline="central">Large arrays</text>
+      <text class="ts" x="411" y="394" text-anchor="middle" dominant-baseline="central">Distributed DataFrames</text>
+    </g>
+
+    <g class="c-teal">
+      <rect x="492" y="334" width="146" height="74" rx="10" stroke-width="0.5"/>
+      <text class="th" x="565" y="360" text-anchor="middle" dominant-baseline="central">Ray</text>
+      <text class="ts" x="565" y="378" text-anchor="middle" dominant-baseline="central">Multi-node scale-out</text>
+      <text class="ts" x="565" y="394" text-anchor="middle" dominant-baseline="central">Ray Serve · actors</text>
+    </g>
+
+    <line x1="340" y1="408" x2="340" y2="428" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 6: Results & storage label -->
+    <text class="ts" x="340" y="444" text-anchor="middle" dominant-baseline="central">Results &amp; storage</text>
+
+    <g class="c-amber">
+      <rect x="42" y="454" width="282" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="183" y="474" text-anchor="middle" dominant-baseline="central">Result store</text>
+      <text class="ts" x="183" y="492" text-anchor="middle" dominant-baseline="central">Redis cache · PostgreSQL · SQLAlchemy</text>
+    </g>
+
+    <g class="c-amber">
+      <rect x="336" y="454" width="302" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="487" y="474" text-anchor="middle" dominant-baseline="central">Object storage — PyArrow + S3/MinIO</text>
+      <text class="ts" x="487" y="492" text-anchor="middle" dominant-baseline="central">Parquet · Arrow IPC · scenario files</text>
+    </g>
+
+    <line x1="340" y1="506" x2="340" y2="526" class="arr" marker-end="url(#arrow)"/>
+
+    <!-- Layer 7: Observability -->
+    <g class="c-coral">
+      <rect x="40" y="528" width="600" height="52" rx="10" stroke-width="0.5"/>
+      <text class="th" x="340" y="548" text-anchor="middle" dominant-baseline="central">Observability &amp; security</text>
+      <text class="ts" x="340" y="566" text-anchor="middle" dominant-baseline="central">Prometheus · Grafana · Sentry · Bandit · input validation</text>
+    </g>
+
+    <!-- Legend -->
+    <rect x="40" y="600" width="14" height="14" rx="3" fill="#5DCAA5" opacity="0.7"/>
+    <text class="ts" x="60" y="611" dominant-baseline="central">New framework (Polars, PyArrow, Dask, Ray, orjson)</text>
+    <rect x="40" y="624" width="14" height="14" rx="3" fill="#1D9E75" opacity="0.4"/>
+    <text class="ts" x="60" y="635" dominant-baseline="central">PyArrow appears in ingestion and storage layers</text>
+  </svg>
+</div>
+
+<footer>pyvar.com · architecture reference · Fibtec Limited</footer>
+
+</body>
+</html>

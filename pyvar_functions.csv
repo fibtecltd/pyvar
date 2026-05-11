@@ -1,0 +1,383 @@
+DOMAIN,FUNCTION_NAME
+Market Risk,Monte Carlo VaR (Parametric Normal)
+Market Risk,Historical Simulation VaR
+Market Risk,Filtered Historical Simulation VaR
+Market Risk,Parametric Delta-Normal VaR
+Market Risk,Cornish-Fisher VaR
+Market Risk,Component VaR (Euler Allocation)
+Market Risk,Marginal VaR
+Market Risk,Incremental VaR
+Market Risk,VaR by Risk Factor
+Market Risk,VaR Fan Chart (Percentile Bands)
+Market Risk,Conditional VaR (CVaR / ES)
+Market Risk,Historical Expected Shortfall
+Market Risk,Monte Carlo Expected Shortfall
+Market Risk,CVaR Decomposition (Euler)
+Market Risk,Stressed Expected Shortfall (FRTB)
+Market Risk,Liquidity-Adjusted ES (FRTB LAH)
+Market Risk,ES at Multiple Confidence Levels
+Market Risk,Expected Shortfall Contribution
+Market Risk,Historical Scenario Replay
+Market Risk,Hypothetical Multi-Factor Scenario
+Market Risk,Reverse Stress Testing
+Market Risk,Sensitivity Stress Profile
+Market Risk,Sector Stress Scenario
+Market Risk,Macro Scenario Generator
+Market Risk,Contagion Stress Scenario
+Market Risk,Portfolio Delta (Aggregated)
+Market Risk,Gamma and Cross-Gamma Matrix
+Market Risk,Vega Surface (Bucketed)
+Market Risk,DV01 / PV01 (Tenor Bucketed)
+Market Risk,CS01 Credit Spread DV01
+Market Risk,Rho (Interest Rate Sensitivity)
+Market Risk,Theta (Time Decay)
+Market Risk,Charm (Delta Decay)
+Market Risk,Volga (Vega Convexity)
+Market Risk,Vanna (Delta-Vega Cross)
+Market Risk,Greeks-based P&L Explain
+Market Risk,P&L Attribution Test (FRTB PAT)
+Market Risk,Theta / Carry Attribution
+Market Risk,Gamma P&L Attribution
+Market Risk,Vega P&L Attribution
+Market Risk,FX P&L Attribution
+Market Risk,Rates P&L Attribution
+Market Risk,Credit P&L Attribution
+Market Risk,Residual P&L (Unexplained)
+Market Risk,Traffic Light Backtesting (Basel)
+Market Risk,Kupiec Proportion of Failures Test
+Market Risk,Christoffersen Independence Test
+Market Risk,Combined Backtesting (Kupiec + Christoffersen)
+Market Risk,Basel Capital Add-On Multiplier
+Market Risk,Rolling VaR Backtest (250-day)
+Market Risk,VaR Breach Cluster Analysis
+Market Risk,Volatility Surface (Implied Vol)
+Market Risk,"GARCH(1,1) Volatility Forecast"
+Market Risk,EGARCH Volatility Model
+Market Risk,GJR-GARCH Asymmetric Model
+Market Risk,Realised Volatility (RV)
+Market Risk,Correlation Matrix (Historical)
+Market Risk,DCC-GARCH Dynamic Correlation
+Market Risk,Risk Factor PCA Decomposition
+Market Risk,FRTB SA Sensitivity-Based Method
+Market Risk,FRTB SA Default Risk Charge
+Market Risk,FRTB SA Residual Risk Add-On
+Market Risk,FRTB IMA Expected Shortfall
+Market Risk,FRTB IMA Stressed Period Finder
+Market Risk,FRTB IMA Non-Modellable Risk Factors
+Market Risk,FRTB IMA Aggregate Capital Charge
+Market Risk,Extreme Value Theory (EVT) VaR
+Market Risk,Spectral Risk Measure
+Credit Risk,Probability of Default (PD) Estimation
+Credit Risk,Loss Given Default (LGD) Model
+Credit Risk,Exposure at Default (EAD) Calculator
+Credit Risk,Expected Loss (EL) Computation
+Credit Risk,Unexpected Loss (UL) Computation
+Credit Risk,IRB Foundation Approach Capital
+Credit Risk,IRB Advanced Approach Capital
+Credit Risk,Basel Standardised Approach RWA
+Credit Risk,Credit VaR (Monte Carlo)
+Credit Risk,Credit VaR (Analytical Vasicek)
+Credit Risk,CreditMetrics Portfolio Model
+Credit Risk,KMV / Merton Distance-to-Default
+Credit Risk,Altman Z-Score Credit Scoring
+Credit Risk,Logistic Regression PD Model
+Credit Risk,Machine Learning PD Calibration
+Credit Risk,Through-the-Cycle PD Adjustment
+Credit Risk,Point-in-Time PD Estimation
+Credit Risk,Ratings Migration Matrix
+Credit Risk,Default Correlation Matrix
+Credit Risk,Credit Concentration Risk (HHI)
+Credit Risk,Counterparty Credit Risk (CCR) Exposure
+Credit Risk,Current Exposure Method (CEM)
+Credit Risk,Standardised Approach CCR (SA-CCR)
+Credit Risk,Potential Future Exposure (PFE)
+Credit Risk,Expected Positive Exposure (EPE)
+Credit Risk,Effective EPE (Regulatory)
+Credit Risk,Credit Valuation Adjustment (CVA)
+Credit Risk,Debt Valuation Adjustment (DVA)
+Credit Risk,Funding Valuation Adjustment (FVA)
+Credit Risk,Capital Valuation Adjustment (KVA)
+Credit Risk,Margin Valuation Adjustment (MVA)
+Credit Risk,XVA Aggregation
+Credit Risk,CVA Sensitivity (CVA Greeks)
+Credit Risk,Wrong-Way Risk Adjustment
+Credit Risk,Credit Spread Curve Bootstrap
+Credit Risk,CDS Pricing (ISDA Standard)
+Credit Risk,CDS Spread to PD Conversion
+Credit Risk,Credit Default Swap VaR
+Credit Risk,Collateral Haircut Calculation
+Credit Risk,IFRS 9 Stage Classification (PD Threshold)
+Credit Risk,IFRS 9 Lifetime ECL (Stage 2/3)
+Credit Risk,IFRS 9 12-Month ECL (Stage 1)
+Credit Risk,IFRS 9 Scenario-Weighted ECL
+Credit Risk,Macroeconomic Overlays (ECL)
+Credit Risk,IFRS 9 Staging Criteria Assessment
+Credit Risk,Retail Scorecard PD Model
+Credit Risk,Corporate Credit Scoring Model
+Credit Risk,Sovereign Credit Risk Assessment
+Credit Risk,Sector Default Rate Analysis
+Credit Risk,Credit Portfolio Optimisation
+Credit Risk,Recovery Rate Estimation
+Credit Risk,Downturn LGD Adjustment
+Credit Risk,Maturity Adjustment (Basel IRB)
+Credit Risk,SME Correlation Factor (Basel)
+Credit Risk,Credit Stress Testing
+Liquidity Risk,Liquidity Coverage Ratio (LCR)
+Liquidity Risk,Net Stable Funding Ratio (NSFR)
+Liquidity Risk,Intraday Liquidity Monitor
+Liquidity Risk,Intraday Liquidity Stress Test
+Liquidity Risk,Available Stable Funding (ASF) Calc
+Liquidity Risk,Required Stable Funding (RSF) Calc
+Liquidity Risk,HQLA Level 1 Asset Classifier
+Liquidity Risk,HQLA Level 2A Asset Classifier
+Liquidity Risk,HQLA Level 2B Asset Classifier
+Liquidity Risk,Cash Flow Ladder (30-day)
+Liquidity Risk,Cash Flow Ladder (1-year)
+Liquidity Risk,Liquidity Stress Scenario
+Liquidity Risk,Idiosyncratic Stress Scenario
+Liquidity Risk,Market-Wide Stress Scenario
+Liquidity Risk,Combined Stress Scenario
+Liquidity Risk,Survival Horizon Calculator
+Liquidity Risk,Liquidity Buffer Sizing
+Liquidity Risk,Contingency Funding Plan Trigger
+Liquidity Risk,Wholesale Funding Concentration
+Liquidity Risk,Retail Deposit Runoff Rate
+Liquidity Risk,Secured Funding Rollover Risk
+Liquidity Risk,Asset Encumbrance Ratio
+Liquidity Risk,Collateral Availability Analysis
+Liquidity Risk,Repo Market Stress Haircut
+Liquidity Risk,FX Liquidity Risk by Currency
+Liquidity Risk,Intragroup Liquidity Flow
+Liquidity Risk,Funding Cost Analysis
+Liquidity Risk,Liquidity Transfer Pricing
+Liquidity Risk,ILAAP Internal Liquidity Metric
+Liquidity Risk,ILAAP Stress Testing Framework
+Liquidity Risk,Liquidity Risk Appetite Threshold
+Liquidity Risk,Early Warning Indicator (Liquidity)
+Liquidity Risk,Central Bank Facility Eligibility
+Liquidity Risk,Liquidity Gap Analysis
+Liquidity Risk,Contingent Liquidity Risk
+Liquidity Risk,Liquidity VaR (LiqVaR)
+Liquidity Risk,Funding Tenor Analysis
+Liquidity Risk,Liquidity Scorecard Aggregation
+Liquidity Risk,Deposit Stability Classification
+Liquidity Risk,Cross-Currency Liquidity Bridge
+Operational Risk,Loss Distribution Approach (LDA)
+Operational Risk,Advanced Measurement Approach (AMA)
+Operational Risk,Basel Standardised Measurement (SMA)
+Operational Risk,Operational VaR (OpVaR)
+Operational Risk,Loss Data Collection Framework
+Operational Risk,External Loss Data Integration
+Operational Risk,RCSA Risk Identification
+Operational Risk,RCSA Inherent Risk Scoring
+Operational Risk,RCSA Residual Risk Scoring
+Operational Risk,RCSA Control Effectiveness
+Operational Risk,Key Risk Indicator (KRI) Library
+Operational Risk,KRI Threshold Breach Detection
+Operational Risk,KRI Trend Analysis
+Operational Risk,Scenario Analysis (OpRisk)
+Operational Risk,Scenario Expert Elicitation Model
+Operational Risk,Scenario Severity Estimation
+Operational Risk,Scenario Frequency Estimation
+Operational Risk,Business Environment Factor (BEI)
+Operational Risk,Internal Control Factor (ICF)
+Operational Risk,Severity Distribution Fitting
+Operational Risk,Frequency Distribution Fitting
+Operational Risk,Compound Loss Distribution
+Operational Risk,Monte Carlo OpRisk Capital
+Operational Risk,OpRisk Capital Allocation
+Operational Risk,Cyber Risk Loss Estimation
+Operational Risk,Conduct Risk Metric
+Operational Risk,Model Risk Assessment
+Operational Risk,IT Risk Scoring
+Operational Risk,Third-Party / Vendor Risk
+Operational Risk,Business Continuity Risk Score
+Operational Risk,Insurance Offset Calculation
+Operational Risk,Loss Event Classification (Basel)
+Operational Risk,Near-Miss Capture Framework
+Operational Risk,Root Cause Analysis Template
+Operational Risk,Risk Appetite Statement (OpRisk)
+Operational Risk,Control Testing Effectiveness
+Operational Risk,Escalation Threshold Calculation
+Operational Risk,OpRisk Heat Map Generator
+Operational Risk,Regulatory Compliance Score
+Operational Risk,Audit Finding Risk Scorer
+Operational Risk,Tail Risk Scenario (OpRisk)
+Operational Risk,OpRisk Stress Testing
+Operational Risk,Diversification Benefit (OpRisk)
+Operational Risk,OpRisk Economic Capital
+Portfolio Analytics,Mean-Variance Optimisation (Markowitz)
+Portfolio Analytics,Minimum Variance Portfolio
+Portfolio Analytics,Maximum Sharpe Ratio Portfolio
+Portfolio Analytics,Risk Parity Portfolio
+Portfolio Analytics,Equal Weight Portfolio
+Portfolio Analytics,Black-Litterman Model
+Portfolio Analytics,Resampled Efficient Frontier
+Portfolio Analytics,Robust Portfolio Optimisation
+Portfolio Analytics,CVaR-Constrained Optimisation
+Portfolio Analytics,Factor-Based Optimisation
+Portfolio Analytics,Sharpe Ratio
+Portfolio Analytics,Sortino Ratio
+Portfolio Analytics,Calmar Ratio
+Portfolio Analytics,Information Ratio
+Portfolio Analytics,Treynor Ratio
+Portfolio Analytics,Jensen's Alpha
+Portfolio Analytics,Omega Ratio
+Portfolio Analytics,Maximum Drawdown
+Portfolio Analytics,Average Drawdown
+Portfolio Analytics,Drawdown Duration
+Portfolio Analytics,Conditional Drawdown at Risk
+Portfolio Analytics,Tail Ratio
+Portfolio Analytics,Ulcer Index
+Portfolio Analytics,Return Attribution (Brinson)
+Portfolio Analytics,Factor Return Attribution
+Portfolio Analytics,Sector Attribution
+Portfolio Analytics,Currency Attribution
+Portfolio Analytics,GICS Sector Exposure
+Portfolio Analytics,Factor Exposure Analysis (Barra)
+Portfolio Analytics,Fama-French 3-Factor Model
+Portfolio Analytics,Carhart 4-Factor Model
+Portfolio Analytics,Fama-French 5-Factor Model
+Portfolio Analytics,Principal Component Analysis (PCA)
+Portfolio Analytics,Correlation Clustering
+Portfolio Analytics,Regime Detection (HMM)
+Portfolio Analytics,Portfolio Beta
+Portfolio Analytics,Active Share
+Portfolio Analytics,Tracking Error
+Portfolio Analytics,Residual Risk
+Portfolio Analytics,Portfolio Turnover
+Portfolio Analytics,Transaction Cost Analysis (TCA)
+Portfolio Analytics,Rebalancing Optimiser
+Portfolio Analytics,ESG Score Integration
+Portfolio Analytics,Carbon Footprint Attribution
+Portfolio Analytics,Liquidity-Adjusted Portfolio VaR
+Portfolio Analytics,Marginal Contribution to Risk
+Portfolio Analytics,Diversification Ratio
+Portfolio Analytics,Correlation Matrix (Portfolio)
+Portfolio Analytics,Concentration Risk (HHI)
+Portfolio Analytics,Monte Carlo Portfolio Simulation
+Regulatory & Compliance,Basel III Common Equity Tier 1 (CET1)
+Regulatory & Compliance,Basel III Tier 1 Capital Ratio
+Regulatory & Compliance,Basel III Total Capital Ratio
+Regulatory & Compliance,Basel III Leverage Ratio
+Regulatory & Compliance,Basel IV Output Floor
+Regulatory & Compliance,ICAAP Capital Assessment
+Regulatory & Compliance,SREP Capital Add-On
+Regulatory & Compliance,Pillar 2A Capital Calculation
+Regulatory & Compliance,Pillar 2B Stress Buffer
+Regulatory & Compliance,Combined Buffer Requirement
+Regulatory & Compliance,FRTB SA Market Risk Capital
+Regulatory & Compliance,FRTB IMA Market Risk Capital
+Regulatory & Compliance,FRTB P&L Attribution Test
+Regulatory & Compliance,FRTB Trading Desk Aggregation
+Regulatory & Compliance,MiFID II Transaction Report Validator
+Regulatory & Compliance,MiFID II Pre-Trade Transparency
+Regulatory & Compliance,MiFID II Post-Trade Transparency
+Regulatory & Compliance,MiFID II Best Execution Metric
+Regulatory & Compliance,MiFID II Algorithm Documentation
+Regulatory & Compliance,EMIR Trade Repository Report
+Regulatory & Compliance,EMIR Clearing Obligation Check
+Regulatory & Compliance,EMIR Margin Requirement
+Regulatory & Compliance,SFTR Securities Finance Report
+Regulatory & Compliance,AIFMD Risk Metrics
+Regulatory & Compliance,UCITS KIID Risk Indicator
+Regulatory & Compliance,Solvency II SCR Market Risk
+Regulatory & Compliance,Solvency II SCR Credit Risk
+Regulatory & Compliance,CRR2 Large Exposure Limit
+Regulatory & Compliance,Capital Conservation Buffer
+Regulatory & Compliance,Countercyclical Capital Buffer
+Derivatives & Pricing,Black-Scholes European Option
+Derivatives & Pricing,Black-Scholes Greeks
+Derivatives & Pricing,Binomial Tree Option Pricer
+Derivatives & Pricing,Trinomial Tree Option Pricer
+Derivatives & Pricing,Monte Carlo Option Pricer
+Derivatives & Pricing,Heston Stochastic Volatility Model
+Derivatives & Pricing,SABR Volatility Model
+Derivatives & Pricing,Local Volatility (Dupire) Model
+Derivatives & Pricing,Rough Volatility (rBergomi) Model
+Derivatives & Pricing,Variance Gamma Model
+Derivatives & Pricing,Normal Inverse Gaussian Model
+Derivatives & Pricing,Displaced Diffusion Model
+Derivatives & Pricing,Digital Option Pricer
+Derivatives & Pricing,Barrier Option Pricer
+Derivatives & Pricing,Asian Option Pricer
+Derivatives & Pricing,Lookback Option Pricer
+Derivatives & Pricing,American Option (LSM)
+Derivatives & Pricing,Bermudan Option Pricer
+Derivatives & Pricing,Rainbow Option Pricer
+Derivatives & Pricing,Basket Option Pricer
+Derivatives & Pricing,Spread Option (Kirk Approximation)
+Derivatives & Pricing,Compound Option Pricer
+Derivatives & Pricing,Chooser Option Pricer
+Derivatives & Pricing,Bond Pricer (Fixed Coupon)
+Derivatives & Pricing,Bond Pricer (Floating Rate)
+Derivatives & Pricing,Zero Coupon Bond Pricer
+Derivatives & Pricing,Inflation-Linked Bond Pricer
+Derivatives & Pricing,Callable Bond Pricer
+Derivatives & Pricing,Puttable Bond Pricer
+Derivatives & Pricing,Convertible Bond Pricer
+Derivatives & Pricing,Duration (Macaulay)
+Derivatives & Pricing,Modified Duration
+Derivatives & Pricing,Effective Duration
+Derivatives & Pricing,Convexity
+Derivatives & Pricing,DV01 / PVBP
+Derivatives & Pricing,Yield to Maturity
+Derivatives & Pricing,Yield to Call
+Derivatives & Pricing,Asset Swap Spread
+Derivatives & Pricing,Z-Spread Calculator
+Derivatives & Pricing,OAS (Option-Adjusted Spread)
+Derivatives & Pricing,Nelson-Siegel Curve Fit
+Derivatives & Pricing,Nelson-Siegel-Svensson Curve
+Derivatives & Pricing,Bootstrap Yield Curve
+Derivatives & Pricing,Swap Rate Curve
+Derivatives & Pricing,OIS Curve (SONIA / SOFR)
+Derivatives & Pricing,Forward Rate Agreement (FRA)
+Derivatives & Pricing,Interest Rate Swap (IRS) Pricer
+Derivatives & Pricing,Cross-Currency Swap Pricer
+Derivatives & Pricing,Overnight Index Swap (OIS)
+Derivatives & Pricing,Total Return Swap (TRS)
+Derivatives & Pricing,Credit Default Swap (CDS) Pricer
+Derivatives & Pricing,Equity Swap Pricer
+Derivatives & Pricing,Caplet / Floorlet Pricer (Black)
+Derivatives & Pricing,Cap / Floor Pricer
+Derivatives & Pricing,Swaption Pricer (Black)
+Derivatives & Pricing,Swaption Pricer (SABR)
+Derivatives & Pricing,LMM / BGM Rate Model
+Derivatives & Pricing,Hull-White Short Rate Model
+Derivatives & Pricing,Cox-Ingersoll-Ross Model
+Derivatives & Pricing,Vasicek Interest Rate Model
+Derivatives & Pricing,FX Forward Pricer
+Derivatives & Pricing,FX Option Pricer (Garman-Kohlhagen)
+ALM & Balance Sheet,Duration Gap Analysis
+ALM & Balance Sheet,Macaulay Duration (Balance Sheet)
+ALM & Balance Sheet,Modified Duration (Balance Sheet)
+ALM & Balance Sheet,Effective Duration (ALM)
+ALM & Balance Sheet,Convexity Gap
+ALM & Balance Sheet,NII Sensitivity (Rate Shock)
+ALM & Balance Sheet,NII Simulation (Baseline)
+ALM & Balance Sheet,NII Simulation (Stress)
+ALM & Balance Sheet,Economic Value of Equity (EVE)
+ALM & Balance Sheet,EVE Sensitivity Analysis
+ALM & Balance Sheet,IRRBB Standardised Framework
+ALM & Balance Sheet,IRRBB Internal Model
+ALM & Balance Sheet,IRRBB Six Standard Rate Shocks
+ALM & Balance Sheet,Repricing Gap Analysis
+ALM & Balance Sheet,Repricing Maturity Profile
+ALM & Balance Sheet,Static Gap Analysis
+ALM & Balance Sheet,Dynamic Gap Analysis
+ALM & Balance Sheet,Basis Risk (IRRBB)
+ALM & Balance Sheet,Option Risk (IRRBB)
+ALM & Balance Sheet,Pipeline Risk Measurement
+ALM & Balance Sheet,Prepayment Model (Mortgages)
+ALM & Balance Sheet,Behavioural Modelling (NMDs)
+ALM & Balance Sheet,Non-Maturity Deposit Stability
+ALM & Balance Sheet,Core Deposit Duration
+ALM & Balance Sheet,Loan Prepayment Rate (CPR)
+ALM & Balance Sheet,Liquidity-Adjusted NII
+ALM & Balance Sheet,Funds Transfer Pricing (FTP)
+ALM & Balance Sheet,FTP Curve Construction
+ALM & Balance Sheet,Asset-Liability Mismatch Index
+ALM & Balance Sheet,Interest Rate Risk Capital (IRRBB)
+ALM & Balance Sheet,Structural Hedge Optimisation
+ALM & Balance Sheet,ALM Stress Test
+ALM & Balance Sheet,Balance Sheet Projection Model

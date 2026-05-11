@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Liquidity Risk — pyvar.com · Fibtec</title>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+:root{--svc:#1a9e72;--svc2:rgba(26,158,114,0.10);--svc3:rgba(26,158,114,0.22)}
+.fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:40px}
+.fn-card{background:var(--bg2);padding:18px 20px;transition:background .15s;position:relative;overflow:hidden}
+.fn-card:hover{background:var(--bg3)}
+.fn-card::before{content:'';position:absolute;top:0;left:0;width:2px;height:0;background:var(--svc);transition:height .3s}
+.fn-card:hover::before{height:100%}
+.fn-name{font-family:var(--serif);font-size:14px;font-weight:400;color:var(--text);line-height:1.3}
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:hover{color:var(--text);border-color:var(--border2)}
+.hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;text-align:center}
+.hero-metric-val{font-family:var(--serif);font-size:32px;font-weight:300;letter-spacing:-.02em}
+.hero-metric-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.insight-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.insight-title{font-family:var(--serif);font-size:17px;font-weight:400;color:var(--text);margin-bottom:8px}
+.insight-body{font-size:12px;font-weight:300;color:var(--text2);line-height:1.65}
+.reg-item{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.reg-item:last-child{border-bottom:none}
+.reg-check{color:var(--svc);font-size:13px;flex-shrink:0;margin-top:1px}
+.reg-title{font-size:13px;color:var(--text);margin-bottom:3px}
+.reg-body{font-size:12px;color:var(--text2);font-weight:300;line-height:1.55}
+.fn-count{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:6px}
+@media(max-width:768px){.fn-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('pyvar'))</script>
+
+<section class="page-hero">
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(26,158,114,0.055) 0%,transparent 70%)"></div>
+  <div class="page-hero-grid"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="eyebrow reveal">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Liquidity Risk
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end;margin-top:16px">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--svc);margin-bottom:16px">Domain 03 · Liquidity Risk</div>
+        <h1 class="h1 reveal reveal-delay-1">LCR, NSFR, intraday liquidity,<br/><em>survival horizon.</em></h1>
+        <p class="body-lg reveal reveal-delay-2" style="max-width:540px;margin:24px 0 0">40 functions covering the full liquidity risk management lifecycle — from LCR and NSFR computation through to intraday liquidity monitoring, stress scenarios and ILAAP frameworks. Aligned with Basel III, EBA ILAAP guidelines and PRA expectations.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">40</div><div class="hero-metric-lbl">Functions</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">Basel III</div><div class="hero-metric-lbl">Standard</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">ILAAP</div><div class="hero-metric-lbl">Compliant</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px" class="reveal">
+      <div>
+        <div class="eyebrow">Function library</div>
+        <h2 class="h2">40 Liquidity Risk <em>functions</em></h2>
+        <p class="fn-count" id="countLbl">Showing all 40 functions</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="lcr">LCR / NSFR</div><div class="cat-pill" data-cat="intraday">Intraday</div><div class="cat-pill" data-cat="stress">Stress Scenarios</div><div class="cat-pill" data-cat="buffer">Buffer & Funding</div><div class="cat-pill" data-cat="ilaap">ILAAP Framework</div><div class="cat-pill" data-cat="other">Analytics</div></div>
+    </div>
+    <div class="fn-grid reveal" id="fnGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="eyebrow reveal">Key capabilities</div>
+    <h2 class="h2 reveal" style="margin-bottom:36px">Built for <em>institutional precision</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:48px" class="reveal">
+      <div class="insight-card"><div class="insight-title">LCR &amp; NSFR Computation</div><div class="insight-body">Full LCR and NSFR from first principles — HQLA classification (L1/L2A/L2B), runoff and inflow rates per Basel delegated regulation. Computes both daily and month-end ratios.</div></div><div class="insight-card"><div class="insight-title">Intraday Liquidity Monitor</div><div class="insight-body">Real-time intraday liquidity tracking against peak and average positions. Flags breaches of internal limits and produces EBA intraday liquidity reporting metrics.</div></div><div class="insight-card"><div class="insight-title">Survival Horizon Calculator</div><div class="insight-body">Stress-scenario survival horizon under idiosyncratic, market-wide and combined stress. Identifies the earliest day the liquidity buffer would be exhausted under each scenario.</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start" class="reveal">
+      <div>
+        <div class="eyebrow">Regulatory alignment</div>
+        <h3 class="h3" style="margin-bottom:20px">Standards <em>covered</em></h3>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0 24px">
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">Basel III — LCR (CRR Article 412)</div><div class="reg-body">LCR ≥ 100% at all times. HQLA classification, runoff rates and inflow caps per delegated regulation.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">Basel III — NSFR (CRR2 Part 6)</div><div class="reg-body">NSFR ≥ 100%. ASF and RSF factors by product type, counterparty and residual maturity.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">EBA ILAAP Guidelines (EBA/GL/2016/10)</div><div class="reg-body">Internal Liquidity Adequacy Assessment Process — stress scenarios, survival horizon and buffer sizing.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">PRA Supervisory Statement SS24/15</div><div class="reg-body">PRA expectations on liquidity risk management, stress testing and governance for UK firms.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="eyebrow">API example</div>
+        <h3 class="h3" style="margin-bottom:20px">Liquidity Risk <em>endpoint</em></h3>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2"><span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/liquidity/lcr</span><br/><span style="color:var(--dim)">{</span><br/>&nbsp;&nbsp;<span style="color:var(--svc)">"hqla_level1"</span>: 850000000,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"hqla_level2a"</span>: 120000000,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"net_outflows_30d"</span>: 700000000<br/><span style="color:var(--dim)">}</span><br/><br/><span style="color:var(--dim)">→ lcr_ratio: 138.57%</span><br/><span style="color:var(--dim)">→ hqla_total: 970000000</span><br/><span style="color:var(--dim)">→ buffer_surplus: 270000000</span></div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a href="index.html" class="btn-outline" style="flex:1;justify-content:center;font-size:10px">← All domains</a>
+          <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-gold" style="flex:1;justify-content:center;font-size:10px">API access →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-sm" style="background:var(--bg2);text-align:center">
+  <div class="container">
+    <h2 class="h2 reveal" style="margin-bottom:20px">Ready to use <em>pyvar.com?</em></h2>
+    <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is open source and free to use. Enterprise API access and commercial support via Fibtec Limited.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="index.html" class="btn-outline">← All domains</a>
+      <a href="https://pyvar.com" class="btn-gold">pyvar.com →</a>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+<script>
+const ALL_FNS = [{"name": "Liquidity Coverage Ratio (LCR)", "cat": "lcr"}, {"name": "Net Stable Funding Ratio (NSFR)", "cat": "intraday"}, {"name": "Intraday Liquidity Monitor", "cat": "stress"}, {"name": "Intraday Liquidity Stress Test", "cat": "buffer"}, {"name": "Available Stable Funding (ASF) Calc", "cat": "ilaap"}, {"name": "Required Stable Funding (RSF) Calc", "cat": "other"}, {"name": "HQLA Level 1 Asset Classifier", "cat": "lcr"}, {"name": "HQLA Level 2A Asset Classifier", "cat": "intraday"}, {"name": "HQLA Level 2B Asset Classifier", "cat": "stress"}, {"name": "Cash Flow Ladder (30-day)", "cat": "buffer"}, {"name": "Cash Flow Ladder (1-year)", "cat": "ilaap"}, {"name": "Liquidity Stress Scenario", "cat": "other"}, {"name": "Idiosyncratic Stress Scenario", "cat": "lcr"}, {"name": "Market-Wide Stress Scenario", "cat": "intraday"}, {"name": "Combined Stress Scenario", "cat": "stress"}, {"name": "Survival Horizon Calculator", "cat": "buffer"}, {"name": "Liquidity Buffer Sizing", "cat": "ilaap"}, {"name": "Contingency Funding Plan Trigger", "cat": "other"}, {"name": "Wholesale Funding Concentration", "cat": "lcr"}, {"name": "Retail Deposit Runoff Rate", "cat": "intraday"}, {"name": "Secured Funding Rollover Risk", "cat": "stress"}, {"name": "Asset Encumbrance Ratio", "cat": "buffer"}, {"name": "Collateral Availability Analysis", "cat": "ilaap"}, {"name": "Repo Market Stress Haircut", "cat": "other"}, {"name": "FX Liquidity Risk by Currency", "cat": "lcr"}, {"name": "Intragroup Liquidity Flow", "cat": "intraday"}, {"name": "Funding Cost Analysis", "cat": "stress"}, {"name": "Liquidity Transfer Pricing", "cat": "buffer"}, {"name": "ILAAP Internal Liquidity Metric", "cat": "ilaap"}, {"name": "ILAAP Stress Testing Framework", "cat": "other"}, {"name": "Liquidity Risk Appetite Threshold", "cat": "lcr"}, {"name": "Early Warning Indicator (Liquidity)", "cat": "intraday"}, {"name": "Central Bank Facility Eligibility", "cat": "stress"}, {"name": "Liquidity Gap Analysis", "cat": "buffer"}, {"name": "Contingent Liquidity Risk", "cat": "ilaap"}, {"name": "Liquidity VaR (LiqVaR)", "cat": "other"}, {"name": "Funding Tenor Analysis", "cat": "lcr"}, {"name": "Liquidity Scorecard Aggregation", "cat": "intraday"}, {"name": "Deposit Stability Classification", "cat": "stress"}, {"name": "Cross-Currency Liquidity Bridge", "cat": "buffer"}];
+let cur = 'all';
+
+function render() {
+  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
+  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
+  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
+    `<div class="fn-card" style="animation-delay:${i*0.015}s">
+      <div class="fn-name">${f.name}</div>
+    </div>`
+  ).join('');
+}
+
+document.getElementById('cats').addEventListener('click', e => {
+  const pill = e.target.closest('[data-cat]');
+  if (!pill) return;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
+  pill.classList.add('act');
+  cur = pill.dataset.cat;
+  render();
+});
+
+render();
+initReveal(); initNav();
+</script>
+</body>
+</html>

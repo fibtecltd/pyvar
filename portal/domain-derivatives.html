@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Derivatives & Pricing — pyvar.com · Fibtec</title>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+:root{--svc:#c47a2a;--svc2:rgba(196,122,42,0.10);--svc3:rgba(196,122,42,0.22)}
+.fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:40px}
+.fn-card{background:var(--bg2);padding:18px 20px;transition:background .15s;position:relative;overflow:hidden}
+.fn-card:hover{background:var(--bg3)}
+.fn-card::before{content:'';position:absolute;top:0;left:0;width:2px;height:0;background:var(--svc);transition:height .3s}
+.fn-card:hover::before{height:100%}
+.fn-name{font-family:var(--serif);font-size:14px;font-weight:400;color:var(--text);line-height:1.3}
+.cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:hover{color:var(--text);border-color:var(--border2)}
+.hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;text-align:center}
+.hero-metric-val{font-family:var(--serif);font-size:32px;font-weight:300;letter-spacing:-.02em}
+.hero-metric-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.insight-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.insight-title{font-family:var(--serif);font-size:17px;font-weight:400;color:var(--text);margin-bottom:8px}
+.insight-body{font-size:12px;font-weight:300;color:var(--text2);line-height:1.65}
+.reg-item{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.reg-item:last-child{border-bottom:none}
+.reg-check{color:var(--svc);font-size:13px;flex-shrink:0;margin-top:1px}
+.reg-title{font-size:13px;color:var(--text);margin-bottom:3px}
+.reg-body{font-size:12px;color:var(--text2);font-weight:300;line-height:1.55}
+.fn-count{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:6px}
+@media(max-width:768px){.fn-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('pyvar'))</script>
+
+<section class="page-hero">
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(196,122,42,0.055) 0%,transparent 70%)"></div>
+  <div class="page-hero-grid"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="eyebrow reveal">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Derivatives & Pricing
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end;margin-top:16px">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--svc);margin-bottom:16px">Domain 07 · Derivatives & Pricing</div>
+        <h1 class="h1 reveal reveal-delay-1">Black-Scholes to Heston.<br/><em>Every instrument,</em><br/>precisely priced.</h1>
+        <p class="body-lg reveal reveal-delay-2" style="max-width:540px;margin:24px 0 0">62 functions covering equity, FX, rates and credit derivatives pricing — from analytical Black-Scholes through Monte Carlo and PDE methods to full yield curve construction. Includes QuantLib integration for fixed income and rates models.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">62</div><div class="hero-metric-lbl">Functions</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">FRTB SA</div><div class="hero-metric-lbl">Standard</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">EMIR SIMM</div><div class="hero-metric-lbl">Compliant</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px" class="reveal">
+      <div>
+        <div class="eyebrow">Function library</div>
+        <h2 class="h2">62 Derivatives <em>functions</em></h2>
+        <p class="fn-count" id="countLbl">Showing all 62 functions</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="equity">Equity Options</div><div class="cat-pill" data-cat="exotic">Exotic Options</div><div class="cat-pill" data-cat="fixed">Fixed Income</div><div class="cat-pill" data-cat="rates">Rates Models</div><div class="cat-pill" data-cat="curve">Yield Curves</div><div class="cat-pill" data-cat="fx">FX Derivatives</div></div>
+    </div>
+    <div class="fn-grid reveal" id="fnGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="eyebrow reveal">Key capabilities</div>
+    <h2 class="h2 reveal" style="margin-bottom:36px">Built for <em>institutional precision</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:48px" class="reveal">
+      <div class="insight-card"><div class="insight-title">Stochastic Volatility Suite</div><div class="insight-body">Heston, SABR, rough volatility (rBergomi) and local volatility (Dupire) models — all calibrated to implied vol surface via Levenberg-Marquardt. Returns calibrated parameters and model prices.</div></div><div class="insight-card"><div class="insight-title">Full Fixed Income Analytics</div><div class="insight-body">Bond pricing, duration (Macaulay, modified, effective), convexity, yield to maturity/call, asset swap spread and Z-spread — powered by QuantLib for industry-standard accuracy.</div></div><div class="insight-card"><div class="insight-title">Yield Curve Construction</div><div class="insight-body">Bootstrap from instruments (deposits, FRAs, futures, swaps) using Nelson-Siegel-Svensson or spline interpolation. Multi-curve (OIS, LIBOR fallbacks, SONIA, SOFR).</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start" class="reveal">
+      <div>
+        <div class="eyebrow">Regulatory alignment</div>
+        <h3 class="h3" style="margin-bottom:20px">Standards <em>covered</em></h3>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0 24px">
+          <div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">FRTB — Sensitivity-Based Method (SBM)</div><div class="reg-body">Delta, vega and curvature risk charges for options books under FRTB SA. Standardised prescribed scenarios.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">EMIR — Initial Margin (SIMM)</div><div class="reg-body">ISDA SIMM methodology for uncleared derivatives IM computation. Sensitivity-based, not schedule.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">IFRS 9 / IAS 39 — Hedge Accounting</div><div class="reg-body">Hedge effectiveness testing (80-125%), prospective and retrospective assessment for designated hedges.</div></div></div><div class="reg-item"><div class="reg-check">✓</div><div><div class="reg-title">IASB IFRS 13 — Fair Value Measurement</div><div class="reg-body">Fair value hierarchy (L1/L2/L3), day-one P&L deferral and valuation uncertainty disclosure.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="eyebrow">API example</div>
+        <h3 class="h3" style="margin-bottom:20px">Derivatives & Pricing <em>endpoint</em></h3>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2"><span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/derivatives/option</span><br/><span style="color:var(--dim)">{</span><br/>&nbsp;&nbsp;<span style="color:var(--svc)">"model"</span>: "heston",<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"S"</span>: 100, <span style="color:var(--svc)">"K"</span>: 105,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"T"</span>: 0.5, <span style="color:var(--svc)">"r"</span>: 0.05,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"v0"</span>: 0.04, <span style="color:var(--svc)">"kappa"</span>: 2.0,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"theta"</span>: 0.04, <span style="color:var(--svc)">"sigma"</span>: 0.3<br/><span style="color:var(--dim)">}</span><br/><br/><span style="color:var(--dim)">→ price: 6.842</span><br/><span style="color:var(--dim)">→ delta: 0.412  vega: 0.187</span><br/><span style="color:var(--dim)">→ implied_vol: 21.4%</span></div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a href="index.html" class="btn-outline" style="flex:1;justify-content:center;font-size:10px">← All domains</a>
+          <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-gold" style="flex:1;justify-content:center;font-size:10px">API access →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-sm" style="background:var(--bg2);text-align:center">
+  <div class="container">
+    <h2 class="h2 reveal" style="margin-bottom:20px">Ready to use <em>pyvar.com?</em></h2>
+    <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is open source and free to use. Enterprise API access and commercial support via Fibtec Limited.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="index.html" class="btn-outline">← All domains</a>
+      <a href="https://pyvar.com" class="btn-gold">pyvar.com →</a>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+<script>
+const ALL_FNS = [{"name": "Black-Scholes European Option", "cat": "equity"}, {"name": "Black-Scholes Greeks", "cat": "exotic"}, {"name": "Binomial Tree Option Pricer", "cat": "fixed"}, {"name": "Trinomial Tree Option Pricer", "cat": "rates"}, {"name": "Monte Carlo Option Pricer", "cat": "curve"}, {"name": "Heston Stochastic Volatility Model", "cat": "fx"}, {"name": "SABR Volatility Model", "cat": "equity"}, {"name": "Local Volatility (Dupire) Model", "cat": "exotic"}, {"name": "Rough Volatility (rBergomi) Model", "cat": "fixed"}, {"name": "Variance Gamma Model", "cat": "rates"}, {"name": "Normal Inverse Gaussian Model", "cat": "curve"}, {"name": "Displaced Diffusion Model", "cat": "fx"}, {"name": "Digital Option Pricer", "cat": "equity"}, {"name": "Barrier Option Pricer", "cat": "exotic"}, {"name": "Asian Option Pricer", "cat": "fixed"}, {"name": "Lookback Option Pricer", "cat": "rates"}, {"name": "American Option (LSM)", "cat": "curve"}, {"name": "Bermudan Option Pricer", "cat": "fx"}, {"name": "Rainbow Option Pricer", "cat": "equity"}, {"name": "Basket Option Pricer", "cat": "exotic"}, {"name": "Spread Option (Kirk Approximation)", "cat": "fixed"}, {"name": "Compound Option Pricer", "cat": "rates"}, {"name": "Chooser Option Pricer", "cat": "curve"}, {"name": "Bond Pricer (Fixed Coupon)", "cat": "fx"}, {"name": "Bond Pricer (Floating Rate)", "cat": "equity"}, {"name": "Zero Coupon Bond Pricer", "cat": "exotic"}, {"name": "Inflation-Linked Bond Pricer", "cat": "fixed"}, {"name": "Callable Bond Pricer", "cat": "rates"}, {"name": "Puttable Bond Pricer", "cat": "curve"}, {"name": "Convertible Bond Pricer", "cat": "fx"}, {"name": "Duration (Macaulay)", "cat": "equity"}, {"name": "Modified Duration", "cat": "exotic"}, {"name": "Effective Duration", "cat": "fixed"}, {"name": "Convexity", "cat": "rates"}, {"name": "DV01 / PVBP", "cat": "curve"}, {"name": "Yield to Maturity", "cat": "fx"}, {"name": "Yield to Call", "cat": "equity"}, {"name": "Asset Swap Spread", "cat": "exotic"}, {"name": "Z-Spread Calculator", "cat": "fixed"}, {"name": "OAS (Option-Adjusted Spread)", "cat": "rates"}, {"name": "Nelson-Siegel Curve Fit", "cat": "curve"}, {"name": "Nelson-Siegel-Svensson Curve", "cat": "fx"}, {"name": "Bootstrap Yield Curve", "cat": "equity"}, {"name": "Swap Rate Curve", "cat": "exotic"}, {"name": "OIS Curve (SONIA / SOFR)", "cat": "fixed"}, {"name": "Forward Rate Agreement (FRA)", "cat": "rates"}, {"name": "Interest Rate Swap (IRS) Pricer", "cat": "curve"}, {"name": "Cross-Currency Swap Pricer", "cat": "fx"}, {"name": "Overnight Index Swap (OIS)", "cat": "equity"}, {"name": "Total Return Swap (TRS)", "cat": "exotic"}, {"name": "Credit Default Swap (CDS) Pricer", "cat": "fixed"}, {"name": "Equity Swap Pricer", "cat": "rates"}, {"name": "Caplet / Floorlet Pricer (Black)", "cat": "curve"}, {"name": "Cap / Floor Pricer", "cat": "fx"}, {"name": "Swaption Pricer (Black)", "cat": "equity"}, {"name": "Swaption Pricer (SABR)", "cat": "exotic"}, {"name": "LMM / BGM Rate Model", "cat": "fixed"}, {"name": "Hull-White Short Rate Model", "cat": "rates"}, {"name": "Cox-Ingersoll-Ross Model", "cat": "curve"}, {"name": "Vasicek Interest Rate Model", "cat": "fx"}, {"name": "FX Forward Pricer", "cat": "equity"}, {"name": "FX Option Pricer (Garman-Kohlhagen)", "cat": "exotic"}];
+let cur = 'all';
+
+function render() {
+  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
+  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
+  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
+    `<div class="fn-card" style="animation-delay:${i*0.015}s">
+      <div class="fn-name">${f.name}</div>
+    </div>`
+  ).join('');
+}
+
+document.getElementById('cats').addEventListener('click', e => {
+  const pill = e.target.closest('[data-cat]');
+  if (!pill) return;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
+  pill.classList.add('act');
+  cur = pill.dataset.cat;
+  render();
+});
+
+render();
+initReveal(); initNav();
+</script>
+</body>
+</html>
