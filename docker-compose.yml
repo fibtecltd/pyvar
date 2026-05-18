@@ -1,0 +1,202 @@
+# ============================================================
+# docker-compose.yml  —  pyvar application stack
+# Location  :  ~/projects/pyvar/docker-compose.yml
+#
+# Runs: pyvar-api, Celery worker, Redis, PostgreSQL.
+# Claude Code lives in a separate compose file in ~/claude-docker/.
+#
+# To run both together (Option C full stack):
+#   docker compose \
+#     -f ~/claude-docker/docker-compose.yml \
+#     -f ~/projects/pyvar/docker-compose.yml \
+#     up
+#
+# pyvar only (API development, integration tests):
+#   cd ~/projects/pyvar && docker compose up
+#
+# Prerequisites:
+#   docker network create pyvar_net   (once, before first run)
+#
+# Usage:
+#   Start pyvar stack:
+#     docker compose up
+#   Start with hot-reload (dev):
+#     docker compose --profile dev up
+#   Run Alembic migrations:
+#     docker compose run --rm pyvar-api python scripts/db.py upgrade
+#   Scale workers:
+#     docker compose up --scale worker=2
+# ============================================================
+
+services:
+
+  # ── pyvar FastAPI service ─────────────────────────────────
+  pyvar-api:
+    build:
+      context: .                      # ~/projects/pyvar/
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-api:latest
+
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      POSTGRES_DSN: postgresql+asyncpg://pyvar:pyvar@postgres:5432/pyvar
+      APP_ENV: development
+      NUMBA_CACHE_DIR: /home/pyvar/.cache/numba
+      PYTHONUNBUFFERED: "1"
+
+    volumes:
+      # Bind-mount source so edits are picked up on restart
+      # (or immediately with --reload, see dev profile below)
+      - .:/app
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+    networks:
+      - pyvar_net
+
+  # ── pyvar-api with hot-reload (dev profile only) ──────────
+  # docker compose --profile dev up
+  pyvar-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-api:latest
+    command:
+      - uvicorn
+      - main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --reload
+      - --loop
+      - uvloop
+      - --http
+      - httptools
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      POSTGRES_DSN: postgresql+asyncpg://pyvar:pyvar@postgres:5432/pyvar
+      APP_ENV: development
+      NUMBA_CACHE_DIR: /home/pyvar/.cache/numba
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - pyvar_net
+    profiles:
+      - dev                           # only starts with --profile dev
+
+  # ── Celery worker ─────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-api:latest           # reuses the same image
+
+    command: ["python", "worker.py"]
+
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      POSTGRES_DSN: postgresql+asyncpg://pyvar:pyvar@postgres:5432/pyvar
+      APP_ENV: development
+      NUMBA_CACHE_DIR: /home/pyvar/.cache/numba
+
+    volumes:
+      - .:/app
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - pyvar_net
+
+    # Scale: docker compose up --scale worker=2
+    deploy:
+      replicas: 1
+
+  # ── Redis (local Celery broker, replaces SQS) ────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pyvar_net
+
+  # ── PostgreSQL (local Aurora-compatible DB) ───────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pyvar
+      POSTGRES_USER: pyvar
+      POSTGRES_PASSWORD: pyvar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pyvar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pyvar_net
+
+  # ── Celery Flower (task monitor, optional) ────────────────
+  flower:
+    image: mher/flower:2.0
+    command: ["celery", "flower", "--broker=redis://redis:6379/0"]
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - pyvar_net
+    profiles:
+      - monitoring                    # docker compose --profile monitoring up
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  pyvar_net:
+    # Shared with ~/claude-docker/docker-compose.yml.
+    # Create once: docker network create pyvar_net
+    external: true
