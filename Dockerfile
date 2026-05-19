@@ -76,16 +76,21 @@ FROM python:3.11-slim AS runtime
 WORKDIR /app
 
 # Runtime system deps only (no build tools)
-# libpq5     — asyncpg PostgreSQL driver
-# curl       — ECS / ALB health check probe
-# liblz4-1   — PyArrow LZ4 runtime  ← required for reading Parquet
-# libsnappy1 — PyArrow Snappy runtime
-# libzstd1   — PyArrow / Polars Zstandard runtime
+# libpq5   — asyncpg PostgreSQL driver
+# curl     — ECS / ALB health check probe
+# liblz4-1 — PyArrow LZ4 Parquet codec runtime
+# libzstd1 — PyArrow / Polars Zstandard Parquet codec runtime
+#
+# libsnappy1 intentionally excluded:
+#   Package was removed / renamed in Debian Bookworm and has no
+#   installation candidate. Snappy Parquet codec is therefore
+#   unavailable at runtime — PyArrow degrades gracefully (no crash).
+#   Ensure Parquet writes in the application use 'lz4' or 'zstd':
+#     pq.write_table(table, path, compression='lz4')
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     liblz4-1 \
-    libsnappy1 \
     libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
