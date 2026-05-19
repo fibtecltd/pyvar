@@ -31,7 +31,7 @@ ray[default]>=2.10.0
 # ── Financial models (C++ extensions) ────────────────────────
 statsmodels>=0.14.0
 arch>=6.3.0
-quantlib-python>=1.33
+QuantLib>=1.33                 # correct package name (quantlib-python is a dead legacy alias)
 empyrical>=0.5.5
 
 # ── Visualisation (large transitive deps) ────────────────────
