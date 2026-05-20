@@ -65,7 +65,9 @@ COPY engine/ /build/engine/
 #   /build                                 — engine/montecarlo.py source
 # Without /install/lib/..., Python cannot find numpy even though it was
 # successfully installed in the previous RUN step.
-RUN PYTHONPATH=/install/lib/python3.11/site-packages:/build python3 -c "\
+RUN NUMBA_CACHE_DIR=/root/.cache/numba \
+    PYTHONPATH=/install/lib/python3.11/site-packages:/build \
+    python3 -c "\
 import numpy as np; \
 import sys; \
 sys.path.insert(0, '/build'); \
