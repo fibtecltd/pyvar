@@ -60,7 +60,12 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # If engine/montecarlo.py @njit signature changes, rebuild
 # with --no-cache to regenerate the compiled cache.
 COPY engine/ /build/engine/
-RUN PYTHONPATH=/build python3 -c "\
+# PYTHONPATH must include both locations:
+#   /install/lib/python3.11/site-packages  — numpy/numba installed via --prefix=/install
+#   /build                                 — engine/montecarlo.py source
+# Without /install/lib/..., Python cannot find numpy even though it was
+# successfully installed in the previous RUN step.
+RUN PYTHONPATH=/install/lib/python3.11/site-packages:/build python3 -c "\
 import numpy as np; \
 import sys; \
 sys.path.insert(0, '/build'); \
