@@ -18,7 +18,9 @@ Reasoning:
 from __future__ import annotations
 
 import logging
+
 from celery import Celery, Task
+
 from config import get_settings
 
 cfg = get_settings()
@@ -37,15 +39,16 @@ celery_app.conf.update(
     result_serializer="json",
     accept_content=["json"],
     task_track_started=True,
-    result_extended=True,                          # stores task args/kwargs in result
+    result_extended=True,  # stores task args/kwargs in result
     result_expires=cfg.celery_result_ttl,
-    worker_prefetch_multiplier=1,                  # one task at a time per worker (CPU-bound)
-    task_acks_late=True,                           # only ack after task completes (safe retry)
-    worker_max_tasks_per_child=100,                # recycle workers to prevent memory leak
+    worker_prefetch_multiplier=1,  # one task at a time per worker (CPU-bound)
+    task_acks_late=True,  # only ack after task completes (safe retry)
+    worker_max_tasks_per_child=100,  # recycle workers to prevent memory leak
 )
 
 
 # ── Task ──────────────────────────────────────────────────────────────────────
+
 
 @celery_app.task(
     bind=True,
@@ -68,6 +71,7 @@ def compute_var_task(self: Task, payload: dict) -> dict:
         dict matching VaRResult schema fields.
     """
     import numpy as np
+
     from engine.montecarlo import run_monte_carlo_var
 
     task_id = self.request.id

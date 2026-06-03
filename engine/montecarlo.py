@@ -20,8 +20,8 @@ from numba import njit, prange
 
 @njit(parallel=True, cache=True)
 def _simulate_paths(
-    returns: np.ndarray,       # shape (T,) — historical daily log-returns
-    random_shocks: np.ndarray, # shape (n_sims, horizon) — pre-drawn N(0,1)
+    returns: np.ndarray,  # shape (T,) — historical daily log-returns
+    random_shocks: np.ndarray,  # shape (n_sims, horizon) — pre-drawn N(0,1)
     horizon: int,
 ) -> np.ndarray:
     """
@@ -39,7 +39,7 @@ def _simulate_paths(
 
     pnl = np.zeros(n_sims)
 
-    for i in prange(n_sims):           # prange → parallelised across CPU cores
+    for i in prange(n_sims):  # prange → parallelised across CPU cores
         cumulative = 0.0
         for t in range(horizon):
             daily_return = mu + sigma * random_shocks[i, t]
@@ -55,8 +55,8 @@ def _sorted_losses(pnl: np.ndarray) -> np.ndarray:
     Convert P&L array to sorted loss array (losses are positive values).
     Sorting inside JIT avoids a Python round-trip.
     """
-    losses = -pnl                        # flip sign: loss = negative P&L
-    losses.sort()                        # in-place ascending sort
+    losses = -pnl  # flip sign: loss = negative P&L
+    losses.sort()  # in-place ascending sort
     return losses
 
 
@@ -67,7 +67,7 @@ def run_monte_carlo_var(
     horizon_days: int = 1,
     n_simulations: int = 100_000,
     seed: int | None = 42,
-) -> dict:
+) -> dict:  # type: ignore[type-arg]
     """
     Public interface for the Monte Carlo VaR engine.
 
@@ -109,14 +109,14 @@ def run_monte_carlo_var(
     var_idx = min(var_idx, n_simulations - 1)
 
     var_pct = float(sorted_losses[var_idx])
-    cvar_pct = float(np.mean(sorted_losses[var_idx:]))   # Expected Shortfall
+    cvar_pct = float(np.mean(sorted_losses[var_idx:]))  # Expected Shortfall
 
     return {
         "var_pct": round(var_pct, 6),
         "var_abs": round(var_pct * portfolio_value, 2),
         "cvar_pct": round(cvar_pct, 6),
         "cvar_abs": round(cvar_pct * portfolio_value, 2),
-        "loss_dist": sorted_losses.tolist(),             # full distribution
+        "loss_dist": sorted_losses.tolist(),  # full distribution
         "mu": round(float(np.mean(returns)), 8),
         "sigma": round(float(np.std(returns)), 8),
         "n_simulations": n_simulations,

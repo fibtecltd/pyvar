@@ -20,18 +20,18 @@ Read @CLAUDE.md and @pyvar_release_plan.md Phase 2.
 
 Spawn 4 teammates with these names and tasks:
 - market-risk: implement engine/market_risk.py + tests (68 functions, @CLAUDE.md Numba rules)
-- credit-risk: implement engine/credit_risk.py + tests (55 functions, IFRS 9 + IRB rules)  
+- credit-risk: implement engine/credit_risk.py + tests (55 functions, IFRS 9 + IRB rules)
 - liquidity-ops: implement engine/liquidity.py + engine/oprisk.py + tests (84 functions combined)
 - portfolio-alm: implement engine/portfolio.py + engine/alm.py + tests (83 functions combined)
 
-Each teammate must: (1) read CLAUDE.md section 3.1 before writing any @njit function, 
+Each teammate must: (1) read CLAUDE.md section 3.1 before writing any @njit function,
 (2) write tests alongside implementation, (3) report back with function count and coverage.
 
 Regulatory + Derivatives domains are reserved for a second wave due to QuantLib dependency."
 
 <!-- .claude/commands/phase-start.md -->
 Read @CLAUDE.md and @pyvar_release_plan.md.
-We are starting $PHASE. Confirm you have read both documents 
+We are starting $PHASE. Confirm you have read both documents
 and summarise the exit gate for this phase before proceeding.
 
 # Start of any P2 domain session

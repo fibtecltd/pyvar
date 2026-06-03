@@ -43,6 +43,7 @@ def get_sync_url() -> str:
     postgresql+asyncpg://user:pass@host/db → postgresql://user:pass@host/db
     """
     import os
+
     url = os.environ.get("POSTGRES_DSN", config.get_main_option("sqlalchemy.url", ""))
     # Strip async driver suffix
     url = re.sub(r"\+asyncpg", "", url)
@@ -80,14 +81,14 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,    # no connection pooling in migration runs
+        poolclass=pool.NullPool,  # no connection pooling in migration runs
     )
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,        # detect column type changes
+            compare_type=True,  # detect column type changes
             compare_server_default=True,  # detect default value changes
             include_schemas=True,
         )

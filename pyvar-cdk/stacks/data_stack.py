@@ -19,17 +19,15 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_ec2 as ec2,
-    aws_rds as rds,
-    aws_elasticache as elasticache,
-    aws_s3 as s3,
-    aws_secretsmanager as sm,
-    Duration, RemovalPolicy, Stack,
-)
+from aws_cdk import Duration, RemovalPolicy, Stack
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_elasticache as elasticache
+from aws_cdk import aws_rds as rds
+from aws_cdk import aws_s3 as s3
 from constructs import Construct
-from config import PyvarConfig
 from stacks.network_stack import SecurityGroups
+
+from config import PyvarConfig
 
 
 class DataStack(Stack):
@@ -49,7 +47,8 @@ class DataStack(Stack):
         # ── Aurora Serverless v2 PostgreSQL ────────────────────────────────────
         # Subnet group in ISOLATED subnets — no internet route at all
         aurora_subnet_group = rds.SubnetGroup(
-            self, "AuroraSubnetGroup",
+            self,
+            "AuroraSubnetGroup",
             vpc=vpc,
             description="pyvar Aurora isolated subnets",
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
@@ -57,13 +56,15 @@ class DataStack(Stack):
 
         # Credentials stored in Secrets Manager with 30-day auto-rotation
         self.db_secret = rds.DatabaseSecret(
-            self, "AuroraSecret",
+            self,
+            "AuroraSecret",
             username="pyvar_admin",
             secret_name=f"pyvar/{cfg.env_name}/aurora-credentials",
         )
 
         self.aurora = rds.DatabaseCluster(
-            self, "Aurora",
+            self,
+            "Aurora",
             engine=rds.DatabaseClusterEngine.aurora_postgres(
                 version=rds.AuroraPostgresEngineVersion.VER_16_1,
             ),
@@ -76,7 +77,7 @@ class DataStack(Stack):
                 # One reader in the second AZ for read-heavy query offload
                 rds.ClusterInstance.serverless_v2(
                     "Reader",
-                    scale_with_writer=True,   # reader scales with writer — cost-efficient
+                    scale_with_writer=True,  # reader scales with writer — cost-efficient
                 ),
             ],
             vpc=vpc,
@@ -85,7 +86,9 @@ class DataStack(Stack):
             subnet_group=aurora_subnet_group,
             backup=rds.BackupProps(retention=Duration.days(7)),
             deletion_protection=cfg.env_name == "prod",
-            removal_policy=RemovalPolicy.SNAPSHOT if cfg.env_name == "prod" else RemovalPolicy.DESTROY,
+            removal_policy=(
+                RemovalPolicy.SNAPSHOT if cfg.env_name == "prod" else RemovalPolicy.DESTROY
+            ),
             storage_encrypted=True,
             monitoring_interval=Duration.seconds(60),
             enable_performance_insights=True,
@@ -94,26 +97,24 @@ class DataStack(Stack):
 
         # ── ElastiCache Serverless Redis ───────────────────────────────────────
         # L1 construct — ElastiCache Serverless not yet in L2 at time of writing
-        cache_subnet_group = elasticache.CfnSubnetGroup(
-            self, "CacheSubnetGroup",
+        _cache_subnet_group = elasticache.CfnSubnetGroup(
+            self,
+            "CacheSubnetGroup",
             description="pyvar ElastiCache isolated subnets",
-            subnet_ids=vpc.select_subnets(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
-            ).subnet_ids,
+            subnet_ids=vpc.select_subnets(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED).subnet_ids,
         )
 
         self.cache = elasticache.CfnServerlessCache(
-            self, "RedisServerless",
+            self,
+            "RedisServerless",
             engine="redis",
             serverless_cache_name=f"pyvar-{cfg.env_name}",
             description="pyvar result cache and rate limiting",
-            subnet_ids=vpc.select_subnets(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
-            ).subnet_ids,
+            subnet_ids=vpc.select_subnets(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED).subnet_ids,
             security_group_ids=[sgs.cache.security_group_id],
             cache_usage_limits=elasticache.CfnServerlessCache.CacheUsageLimitsProperty(
                 data_storage=elasticache.CfnServerlessCache.DataStorageProperty(
-                    maximum=10,                # GB — cap storage cost
+                    maximum=10,  # GB — cap storage cost
                     unit="GB",
                 ),
                 ecpu_per_second=elasticache.CfnServerlessCache.ECPUPerSecondProperty(
@@ -124,7 +125,8 @@ class DataStack(Stack):
 
         # ── S3 result bucket ───────────────────────────────────────────────────
         self.result_bucket = s3.Bucket(
-            self, "ResultBucket",
+            self,
+            "ResultBucket",
             bucket_name=f"pyvar-{cfg.env_name}-results-{self.account}",
             encryption=s3.BucketEncryption.S3_MANAGED,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
@@ -150,7 +152,9 @@ class DataStack(Stack):
                     enabled=True,
                 ),
             ],
-            removal_policy=RemovalPolicy.RETAIN if cfg.env_name == "prod" else RemovalPolicy.DESTROY,
+            removal_policy=(
+                RemovalPolicy.RETAIN if cfg.env_name == "prod" else RemovalPolicy.DESTROY
+            ),
             auto_delete_objects=cfg.env_name != "prod",
         )
 

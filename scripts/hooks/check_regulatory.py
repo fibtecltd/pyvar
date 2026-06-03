@@ -24,9 +24,9 @@ import re
 import sys
 from pathlib import Path
 
-RED   = "\033[31m"
-BOLD  = "\033[1m"
-CYAN  = "\033[36m"
+RED = "\033[31m"
+BOLD = "\033[1m"
+CYAN = "\033[36m"
 RESET = "\033[0m"
 
 # ── Regulatory constant definitions ──────────────────────────────────────────
@@ -39,19 +39,19 @@ VAR_CONFIDENCE_MAX = 0.9999
 BACKTEST_WINDOW = 250
 
 # Basel breach zones (BCBS FRTB Table 1)
-BREACH_GREEN_MAX   = 4   # 0–4 breaches: green
-BREACH_YELLOW_MAX  = 9   # 5–9 breaches: yellow
+BREACH_GREEN_MAX = 4  # 0–4 breaches: green
+BREACH_YELLOW_MAX = 9  # 5–9 breaches: yellow
 # ≥10 breaches: red
 
 # Capital add-on multipliers (BCBS FRTB Table 1)
-MULTIPLIER_GREEN  = 3.0
-MULTIPLIER_RED    = 4.0
+MULTIPLIER_GREEN = 3.0
+MULTIPLIER_RED = 4.0
 
 # FRTB PAT thresholds (BCBS FRTB § 9.5)
-PAT_CORR_GREEN    = 0.80
-PAT_CORR_AMBER    = 0.70
-PAT_RATIO_HI      = 1.2
-PAT_RATIO_LO      = 0.8
+PAT_CORR_GREEN = 0.80
+PAT_CORR_AMBER = 0.70
+PAT_RATIO_HI = 1.2
+PAT_RATIO_LO = 0.8
 
 
 def find_float_literals(tree: ast.Module, source_lines: list[str]) -> list[tuple[float, int]]:
@@ -85,7 +85,7 @@ def check_file(filepath: str) -> list[tuple[str, int, str]]:
     violations = []
 
     floats = find_float_literals(tree, source_lines)
-    ints   = find_int_literals(tree)
+    ints = find_int_literals(tree)
 
     for value, lineno in floats:
         line_ctx = source_lines[lineno - 1].strip() if lineno <= len(source_lines) else ""
@@ -95,12 +95,16 @@ def check_file(filepath: str) -> list[tuple[str, int, str]]:
         if 0.5 < value < 1.0:
             if value < VAR_CONFIDENCE_MIN or value > VAR_CONFIDENCE_MAX:
                 # Skip if it's clearly not a confidence level
-                if any(kw in line_ctx.lower() for kw in
-                       ("confidence", "alpha", "quantile", "percentile", "var", "level")):
-                    violations.append((filepath, lineno,
-                        f"VaR confidence level {value} outside Basel valid range "
-                        f"[{VAR_CONFIDENCE_MIN}, {VAR_CONFIDENCE_MAX}]. "
-                        "Enforced by schemas/var.py validator — do not relax."))
+                if any(kw in line_ctx.lower() for kw in ("confidence", "alpha", "quantile", "var")):
+                    violations.append(
+                        (
+                            filepath,
+                            lineno,
+                            f"VaR confidence level {value} outside Basel valid range "
+                            f"[{VAR_CONFIDENCE_MIN}, {VAR_CONFIDENCE_MAX}]. "
+                            "Enforced by schemas/var.py validator — do not relax.",
+                        )
+                    )
 
         # Capital add-on multiplier: 3.0 is green, 4.0 is red
         # If a value near these is used in a multiplier context, flag if wrong
@@ -110,50 +114,83 @@ def check_file(filepath: str) -> list[tuple[str, int, str]]:
                 pass
         if 3.0 < value < 3.4 or 3.8 < value < 4.0:
             if any(kw in line_ctx.lower() for kw in ("multiplier", "add_on", "addon", "capital")):
-                violations.append((filepath, lineno,
-                    f"Capital multiplier {value} is outside Basel allowed values. "
-                    f"Green=3.0, Yellow=3.4–3.8, Red=4.0 (BCBS FRTB Table 1)."))
+                violations.append(
+                    (
+                        filepath,
+                        lineno,
+                        f"Capital multiplier {value} is outside Basel allowed values. "
+                        f"Green=3.0, Yellow=3.4–3.8, Red=4.0 (BCBS FRTB Table 1).",
+                    )
+                )
 
         # PAT correlation thresholds
         if any(kw in line_ctx.lower() for kw in ("corr", "spearman", "pat", "attribution")):
             if abs(value - 0.80) > 0.001 and abs(value - 0.70) > 0.001:
                 if 0.6 < value < 0.95:
-                    violations.append((filepath, lineno,
-                        f"PAT correlation threshold {value} does not match Basel values. "
-                        f"Green≥{PAT_CORR_GREEN}, Amber≥{PAT_CORR_AMBER} (BCBS FRTB § 9.5)."))
+                    violations.append(
+                        (
+                            filepath,
+                            lineno,
+                            f"PAT correlation threshold {value} does not match Basel values. "
+                            f"Green≥{PAT_CORR_GREEN}, Amber≥{PAT_CORR_AMBER} (BCBS FRTB § 9.5).",
+                        )
+                    )
 
     for value, lineno in ints:
         line_ctx = source_lines[lineno - 1].strip() if lineno <= len(source_lines) else ""
 
         # Backtesting window: must be exactly 250
         if value in (252, 260, 365, 261):
-            if any(kw in line_ctx.lower() for kw in
-                   ("backtest", "window", "days", "trading", "lookback")):
-                violations.append((filepath, lineno,
-                    f"Backtesting window {value} detected. Basel standard is EXACTLY 250 "
-                    "trading days — not 252, 260, or 365. (BCBS FRTB § 5.5)"))
+            if any(
+                kw in line_ctx.lower()
+                for kw in ("backtest", "window", "days", "trading", "lookback")
+            ):
+                violations.append(
+                    (
+                        filepath,
+                        lineno,
+                        f"Backtesting window {value} detected. Basel standard is EXACTLY 250 "
+                        "trading days — not 252, 260, or 365. (BCBS FRTB § 5.5)",
+                    )
+                )
 
         # Basel breach zone boundaries
         if value == 4 and any(kw in line_ctx.lower() for kw in ("breach", "exception", "green")):
             # 4 is correct for green zone max
             pass
-        if value in (10, 11) and any(kw in line_ctx.lower() for kw in ("breach", "exception", "red")):
+        if value in (10, 11) and any(
+            kw in line_ctx.lower() for kw in ("breach", "exception", "red")
+        ):
             # Check it's used as >= 10 not > 10 or > 9
             if ">" in line_ctx and "= " not in line_ctx and ">10" not in line_ctx.replace(" ", ""):
-                violations.append((filepath, lineno,
-                    f"Basel red zone check: use '>= 10' breaches not '> {value}'. "
-                    "This is a compliance-critical boundary (BCBS FRTB Table 1)."))
+                violations.append(
+                    (
+                        filepath,
+                        lineno,
+                        f"Basel red zone check: use '>= 10' breaches not '> {value}'. "
+                        "This is a compliance-critical boundary (BCBS FRTB Table 1).",
+                    )
+                )
 
     # Text-based checks for ES computation pattern
     # ES must be the MEAN of losses beyond VaR, not median or max
     es_patterns = [
-        (r"\bmedian\b.*\bexceed\b|\bexceed\b.*\bmedian\b", "ES computed as median — must be mean of losses beyond VaR threshold"),
-        (r"\bmax\b.*\bexceed\b|\bexceed\b.*\bmax\b",       "ES computed as max — must be mean of losses beyond VaR threshold"),
-        (r"\.percentile\s*\(\s*losses.*,\s*9[0-9]",        "Check: ES should use mean of tail losses, not percentile of losses"),
+        (
+            r"\bmedian\b.*\bexceed\b|\bexceed\b.*\bmedian\b",
+            "ES computed as median — must be mean of losses beyond VaR threshold",
+        ),
+        (
+            r"\bmax\b.*\bexceed\b|\bexceed\b.*\bmax\b",
+            "ES computed as max — must be mean of losses beyond VaR threshold",
+        ),
+        (
+            r"\.percentile\s*\(\s*losses.*,\s*9[0-9]",
+            "Check: ES should use mean of tail losses, not percentile of losses",
+        ),
     ]
     for pattern, msg in es_patterns:
         for match in re.finditer(pattern, source, re.IGNORECASE):
-            lineno = source[:match.start()].count("\n") + 1
+            lineno = source[: match.start()].count("\n") + 1
             violations.append((filepath, lineno, msg))
 
     return violations

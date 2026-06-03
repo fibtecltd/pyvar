@@ -8,11 +8,11 @@ They verify the pure numerical correctness of the engine.
 import numpy as np
 import pytest
 
+from engine.metrics import compute_breaches, compute_cvar, compute_loss_percentiles
 from engine.montecarlo import run_monte_carlo_var
-from engine.metrics import compute_cvar, compute_breaches, compute_loss_percentiles
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def synthetic_returns():
@@ -21,6 +21,7 @@ def synthetic_returns():
 
 
 # ── Engine tests ──────────────────────────────────────────────────────────────
+
 
 def test_var_result_keys(synthetic_returns):
     result = run_monte_carlo_var(synthetic_returns, portfolio_value=1_000_000, n_simulations=10_000)
@@ -37,9 +38,15 @@ def test_var_is_positive_loss(synthetic_returns):
 
 def test_var_scales_with_portfolio_value(synthetic_returns):
     """Absolute VaR should scale linearly with portfolio value."""
-    r1 = run_monte_carlo_var(synthetic_returns, portfolio_value=1_000_000, n_simulations=10_000, seed=42)
-    r2 = run_monte_carlo_var(synthetic_returns, portfolio_value=2_000_000, n_simulations=10_000, seed=42)
-    assert abs(r2["var_abs"] - 2 * r1["var_abs"]) < 1.0, "Absolute VaR should double with portfolio value"
+    r1 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1_000_000, n_simulations=10_000, seed=42
+    )
+    r2 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=2_000_000, n_simulations=10_000, seed=42
+    )
+    assert (
+        abs(r2["var_abs"] - 2 * r1["var_abs"]) < 1.0
+    ), "Absolute VaR should double with portfolio value"
 
 
 def test_cvar_greater_than_var(synthetic_returns):
@@ -49,8 +56,12 @@ def test_cvar_greater_than_var(synthetic_returns):
 
 def test_var_99_greater_than_var_95(synthetic_returns):
     """Higher confidence level → larger VaR."""
-    r95 = run_monte_carlo_var(synthetic_returns, portfolio_value=1e6, confidence_level=0.95, n_simulations=50_000, seed=0)
-    r99 = run_monte_carlo_var(synthetic_returns, portfolio_value=1e6, confidence_level=0.99, n_simulations=50_000, seed=0)
+    r95 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, confidence_level=0.95, n_simulations=50_000, seed=0
+    )
+    r99 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, confidence_level=0.99, n_simulations=50_000, seed=0
+    )
     assert r99["var_pct"] > r95["var_pct"], "99% VaR must exceed 95% VaR"
 
 
@@ -75,8 +86,9 @@ def test_deterministic_with_seed(synthetic_returns):
 
 # ── Metrics tests ─────────────────────────────────────────────────────────────
 
+
 def test_compute_cvar():
-    losses = np.linspace(0, 1, 1000)   # uniform 0..1
+    losses = np.linspace(0, 1, 1000)  # uniform 0..1
     cvar = compute_cvar(losses, confidence_level=0.99)
     # For uniform [0,1], CVaR at 99% ≈ mean of top 1% = 0.995
     assert abs(cvar - 0.995) < 0.01
@@ -93,7 +105,7 @@ def test_compute_loss_percentiles(synthetic_returns):
 def test_backtesting_breach_count():
     # Create scenario: VaR always 0.01 (1%), actual losses are 2%
     var_estimates = np.full(250, 0.01)
-    actual_returns = np.full(250, -0.02)   # loss = 2% every day
+    actual_returns = np.full(250, -0.02)  # loss = 2% every day
     result = compute_breaches(actual_returns, var_estimates)
     assert result["n_breaches"] == 250
     assert result["basel_zone"] == "red"

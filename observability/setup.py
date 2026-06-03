@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 
 import structlog
 from prometheus_client import Histogram
@@ -45,7 +47,9 @@ VAR_SIMULATION_COUNT = Histogram(
 
 
 @contextmanager
-def track_computation(confidence_level: float, horizon_days: int, n_simulations: int):
+def track_computation(
+    confidence_level: float, horizon_days: int, n_simulations: int
+) -> Generator[None, None, None]:
     """
     Context manager for Celery tasks to record computation timing and path count.
     Usage:
@@ -65,6 +69,7 @@ def track_computation(confidence_level: float, horizon_days: int, n_simulations:
 
 
 # ── Sentry ────────────────────────────────────────────────────────────────────
+
 
 def setup_sentry() -> None:
     """Initialise Sentry SDK if DSN is configured. No-op in development."""
@@ -91,6 +96,7 @@ def setup_sentry() -> None:
 
 # ── structlog ─────────────────────────────────────────────────────────────────
 
+
 def setup_logging() -> None:
     """
     Configure structlog for structured JSON output in production,
@@ -109,12 +115,11 @@ def setup_logging() -> None:
         renderer = structlog.processors.JSONRenderer()
 
     structlog.configure(
-        processors=shared_processors + [
+        processors=shared_processors
+        + [
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            logging.getLevelName(cfg.log_level)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelName(cfg.log_level)),
         logger_factory=structlog.PrintLoggerFactory(),
     )
 
@@ -132,7 +137,8 @@ def setup_logging() -> None:
 
 # ── FastAPI instrumentation ───────────────────────────────────────────────────
 
-def setup_observability(app) -> None:
+
+def setup_observability(app: Any) -> None:
     """
     Wire up all observability components to the FastAPI app.
     Called once in main.py on startup.

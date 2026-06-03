@@ -26,18 +26,17 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_ec2 as ec2,
-    aws_autoscaling as autoscaling,
-    aws_iam as iam,
-    aws_sqs as sqs,
-    aws_cloudwatch as cloudwatch,
-    Duration, Stack,
-)
+from aws_cdk import Duration, Stack
+from aws_cdk import aws_autoscaling as autoscaling
+from aws_cdk import aws_cloudwatch as cloudwatch
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_sqs as sqs
 from constructs import Construct
-from config import PyvarConfig
-from stacks.network_stack import SecurityGroups
 from stacks.data_stack import DataStack
+from stacks.network_stack import SecurityGroups
+
+from config import PyvarConfig
 
 
 class ComputeStack(Stack):
@@ -59,7 +58,8 @@ class ComputeStack(Stack):
 
         # ── IAM Role for EC2 workers ───────────────────────────────────────────
         worker_role = iam.Role(
-            self, "WorkerRole",
+            self,
+            "WorkerRole",
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             role_name=f"pyvar-{cfg.env_name}-worker-role",
             managed_policies=[
@@ -79,11 +79,13 @@ class ComputeStack(Stack):
         data.db_secret.grant_read(worker_role)
 
         # CloudWatch — publish custom metrics (computation duration, sim count)
-        worker_role.add_to_policy(iam.PolicyStatement(
-            actions=["cloudwatch:PutMetricData"],
-            resources=["*"],
-            conditions={"StringEquals": {"cloudwatch:namespace": "pyvar"}},
-        ))
+        worker_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["cloudwatch:PutMetricData"],
+                resources=["*"],
+                conditions={"StringEquals": {"cloudwatch:namespace": "pyvar"}},
+            )
+        )
 
         # ── EC2 Launch Template ────────────────────────────────────────────────
         instance_type = ec2.InstanceType(cfg.worker_instance_type)
@@ -94,17 +96,14 @@ class ComputeStack(Stack):
         user_data.add_commands(
             "#!/bin/bash",
             "set -euo pipefail",
-
             # System dependencies
             "yum update -y",
             "yum install -y python3.11 python3.11-pip",
             "alternatives --set python3 /usr/bin/python3.11",
-
             # Pull application wheel from S3 (version baked into AMI in production)
             f"aws s3 cp s3://pyvar-{cfg.env_name}-deploy/pyvar-latest.tar.gz /opt/pyvar.tar.gz",
             "mkdir -p /opt/pyvar && tar -xzf /opt/pyvar.tar.gz -C /opt/pyvar",
             "pip3 install -r /opt/pyvar/requirements.txt",
-
             # Pull secrets from Secrets Manager and export as env vars
             f"export AWS_REGION={cfg.region}",
             "SECRET=$(aws secretsmanager get-secret-value "
@@ -112,13 +111,11 @@ class ComputeStack(Stack):
             "--query SecretString --output text)",
             "export DB_HOST=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['host'])\")",
             "export DB_PASS=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['password'])\")",
-
             # Configure Celery to use SQS broker
-            f"export CELERY_BROKER_URL=sqs://",
+            "export CELERY_BROKER_URL=sqs://",
             f"export CELERY_RESULT_BACKEND=redis://$(aws ssm get-parameter "
             f"--name /pyvar/{cfg.env_name}/cache-endpoint --query Parameter.Value --output text):6379/0",
             f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
-
             # Install Celery as a systemd service
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
@@ -126,14 +123,14 @@ class ComputeStack(Stack):
             "ExecStart=/usr/bin/python3 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
             "[Install]\nWantedBy=multi-user.target\nEOF",
-
             "systemctl daemon-reload",
             "systemctl enable celery-worker",
             "systemctl start celery-worker",
         )
 
         launch_template = ec2.LaunchTemplate(
-            self, "WorkerLaunchTemplate",
+            self,
+            "WorkerLaunchTemplate",
             launch_template_name=f"pyvar-{cfg.env_name}-worker",
             instance_type=instance_type,
             machine_image=ec2.MachineImage.latest_amazon_linux2023(
@@ -153,21 +150,21 @@ class ComputeStack(Stack):
                     ),
                 )
             ],
-            require_imdsv2=True,       # security: block IMDSv1 credential theft
+            require_imdsv2=True,  # security: block IMDSv1 credential theft
             nitro_enclave_enabled=False,
         )
 
         # ── Auto Scaling Group ────────────────────────────────────────────────
         self.asg = autoscaling.AutoScalingGroup(
-            self, "WorkerAsg",
+            self,
+            "WorkerAsg",
             auto_scaling_group_name=f"pyvar-{cfg.env_name}-workers",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-
             # Use MixedInstancesPolicy for Spot with capacity-optimised allocation
             mixed_instances_policy=autoscaling.MixedInstancesPolicy(
                 instances_distribution=autoscaling.InstancesDistribution(
-                    on_demand_percentage_above_base_capacity=0,    # 100% Spot
+                    on_demand_percentage_above_base_capacity=0,  # 100% Spot
                     spot_max_price=cfg.worker_spot_max_price,
                     spot_allocation_strategy=autoscaling.SpotAllocationStrategy.PRICE_CAPACITY_OPTIMIZED,
                 ),
@@ -175,21 +172,21 @@ class ComputeStack(Stack):
                     launch_template=launch_template,
                 ),
             ),
-
             min_capacity=cfg.worker_min_capacity,
             max_capacity=cfg.worker_max_capacity,
-            desired_capacity=0,        # start with 0; SQS scaling takes over
-
+            desired_capacity=0,  # start with 0; SQS scaling takes over
             # Health check: if instance fails 2 consecutive EC2 status checks, replace it
             health_check=autoscaling.HealthCheck.ec2(grace=Duration.seconds(120)),
-
             # Warm pool: pre-initialise stopped instances so scale-out is faster (~30s vs ~90s)
             # Warm pool costs ~30% of running instance price while stopped
-            warm_pool=autoscaling.WarmPool(
-                min_size=1,
-                pool_state=autoscaling.PoolState.STOPPED,
-            ) if cfg.env_name == "prod" else None,
-
+            warm_pool=(
+                autoscaling.WarmPool(
+                    min_size=1,
+                    pool_state=autoscaling.PoolState.STOPPED,
+                )
+                if cfg.env_name == "prod"
+                else None
+            ),
             update_policy=autoscaling.UpdatePolicy.rolling_update(
                 max_batch_size=2,
                 min_instances_in_service=0,
@@ -225,14 +222,14 @@ class ComputeStack(Stack):
             "ScaleOnQueueDepth",
             metric=queue_depth_metric,
             scaling_steps=[
-                autoscaling.ScalingInterval(upper=0,  change=0),
-                autoscaling.ScalingInterval(lower=1,  upper=5,  change=1),
-                autoscaling.ScalingInterval(lower=6,  upper=20, change=3),
+                autoscaling.ScalingInterval(upper=0, change=0),
+                autoscaling.ScalingInterval(lower=1, upper=5, change=1),
+                autoscaling.ScalingInterval(lower=6, upper=20, change=3),
                 autoscaling.ScalingInterval(lower=21, upper=50, change=6),
                 autoscaling.ScalingInterval(lower=51, change=min(12, cfg.worker_max_capacity)),
             ],
             adjustment_type=autoscaling.AdjustmentType.EXACT_CAPACITY,
-            cooldown=Duration.minutes(2),               # fast scale-out
+            cooldown=Duration.minutes(2),  # fast scale-out
             estimated_instance_warmup=Duration.seconds(90),  # time for instance to be ready
         )
 

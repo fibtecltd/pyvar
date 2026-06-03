@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import logging
+from typing import Any
 
 import boto3
 import pyarrow as pa
@@ -30,14 +31,14 @@ cfg = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def _get_s3_client():
+def _get_s3_client() -> Any:
     """Build boto3 S3 client. Points to MinIO in dev, real AWS in production."""
     kwargs = {
         "region_name": cfg.s3_region,
         "aws_access_key_id": cfg.s3_access_key,
         "aws_secret_access_key": cfg.s3_secret_key,
     }
-    if cfg.s3_endpoint_url:                    # MinIO or other S3-compatible
+    if cfg.s3_endpoint_url:  # MinIO or other S3-compatible
         kwargs["endpoint_url"] = cfg.s3_endpoint_url
     return boto3.client("s3", **kwargs)
 
@@ -55,33 +56,35 @@ def write_result_to_s3(result: dict, task_id: str) -> str:
     """
     s3_key = f"results/{task_id[:8]}/{task_id}.parquet"
 
-    schema = pa.schema([
-        pa.field("task_id",           pa.string()),
-        pa.field("var_pct",           pa.float64()),
-        pa.field("var_abs",           pa.float64()),
-        pa.field("cvar_pct",          pa.float64()),
-        pa.field("cvar_abs",          pa.float64()),
-        pa.field("mu",                pa.float64()),
-        pa.field("sigma",             pa.float64()),
-        pa.field("n_simulations",     pa.int64()),
-        pa.field("confidence_level",  pa.float64()),
-        pa.field("horizon_days",      pa.int32()),
-        pa.field("loss_dist",         pa.list_(pa.float64())),
-    ])
+    schema = pa.schema(
+        [
+            pa.field("task_id", pa.string()),
+            pa.field("var_pct", pa.float64()),
+            pa.field("var_abs", pa.float64()),
+            pa.field("cvar_pct", pa.float64()),
+            pa.field("cvar_abs", pa.float64()),
+            pa.field("mu", pa.float64()),
+            pa.field("sigma", pa.float64()),
+            pa.field("n_simulations", pa.int64()),
+            pa.field("confidence_level", pa.float64()),
+            pa.field("horizon_days", pa.int32()),
+            pa.field("loss_dist", pa.list_(pa.float64())),
+        ]
+    )
 
     table = pa.table(
         {
-            "task_id":          [task_id],
-            "var_pct":          [result["var_pct"]],
-            "var_abs":          [result["var_abs"]],
-            "cvar_pct":         [result["cvar_pct"]],
-            "cvar_abs":         [result["cvar_abs"]],
-            "mu":               [result["mu"]],
-            "sigma":            [result["sigma"]],
-            "n_simulations":    [result["n_simulations"]],
+            "task_id": [task_id],
+            "var_pct": [result["var_pct"]],
+            "var_abs": [result["var_abs"]],
+            "cvar_pct": [result["cvar_pct"]],
+            "cvar_abs": [result["cvar_abs"]],
+            "mu": [result["mu"]],
+            "sigma": [result["sigma"]],
+            "n_simulations": [result["n_simulations"]],
             "confidence_level": [result["confidence_level"]],
-            "horizon_days":     [result["horizon_days"]],
-            "loss_dist":        [result["loss_dist"]],
+            "horizon_days": [result["horizon_days"]],
+            "loss_dist": [result["loss_dist"]],
         },
         schema=schema,
     )
@@ -116,7 +119,7 @@ def generate_presigned_url(s3_key: str, expiry_seconds: int = 3600) -> str:
             Params={"Bucket": cfg.s3_bucket, "Key": s3_key},
             ExpiresIn=expiry_seconds,
         )
-        return url
+        return str(url)
     except ClientError as exc:
         logger.exception("Failed to generate presigned URL", extra={"s3_key": s3_key})
         raise exc

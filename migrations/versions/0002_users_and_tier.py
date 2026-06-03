@@ -12,6 +12,7 @@ Adds:
 """
 
 from __future__ import annotations
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -29,24 +30,19 @@ def upgrade() -> None:
     # ── users table ────────────────────────────────────────────────────────
     op.create_table(
         "users",
-
         sa.Column(
             "id",
             postgresql.UUID(as_uuid=True),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
-
         # Matches the 'sub' claim in the JWT — external identity provider ID
         sa.Column("external_id", sa.String(128), nullable=False),
-
         # Account tier — drives simulation caps and pricing
         # free | pro | enterprise
         sa.Column("tier", sa.String(16), nullable=False, server_default="free"),
-
         # API key hash (SHA-256 of the raw key — never store raw key)
         sa.Column("api_key_hash", sa.String(64), nullable=True),
-
         # Timestamps
         sa.Column(
             "created_at",
@@ -55,11 +51,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("last_active_at", sa.DateTime(timezone=True), nullable=True),
-
         # Usage counters (updated on job completion)
         sa.Column("total_jobs", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("total_simulations", sa.BigInteger(), nullable=False, server_default="0"),
-
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("external_id", name="uq_users_external_id"),
     )

@@ -41,7 +41,7 @@ def compute_loss_percentiles(
 
 def compute_rolling_var(
     returns: np.ndarray,
-    window: int = 252,
+    window: int = 250,
     confidence_level: float = 0.99,
 ) -> np.ndarray:
     """
@@ -61,7 +61,7 @@ def compute_rolling_var(
         window_returns = returns[i - window : i]
         mu = np.mean(window_returns)
         sigma = np.std(window_returns)
-        rolling_var[i] = -(mu - q * sigma)      # loss is positive
+        rolling_var[i] = -(mu - q * sigma)  # loss is positive
 
     return rolling_var
 
@@ -69,7 +69,7 @@ def compute_rolling_var(
 def compute_breaches(
     actual_returns: np.ndarray,
     var_estimates: np.ndarray,
-) -> dict:
+) -> dict:  # type: ignore[type-arg]
     """
     Backtesting: count days where actual loss exceeded VaR estimate.
     Basel traffic-light zones:

@@ -36,7 +36,9 @@ async def lifespan(app: FastAPI):
     # First call compiles; subsequent calls hit the cache.
     # Without warmup, the first real request pays the ~2s compilation cost.
     import numpy as np
+
     from engine.montecarlo import run_monte_carlo_var
+
     dummy_returns = np.random.randn(30) * 0.01
     run_monte_carlo_var(dummy_returns, portfolio_value=1.0, n_simulations=1_000, seed=0)
 

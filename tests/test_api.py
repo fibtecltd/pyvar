@@ -15,16 +15,17 @@ Reasoning:
 
 from __future__ import annotations
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-from main import create_app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from api.middleware.auth import create_access_token
 from ingestion.fixtures import generate_gbm_returns
+from main import create_app
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def app():
@@ -70,11 +71,13 @@ MOCK_VAR_RESULT = {
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
+
 def auth_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_health(app):
@@ -85,6 +88,7 @@ async def test_health(app):
 
 
 # ── POST /var/compute ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_submit_var_returns_202(app, free_token, valid_payload):
@@ -170,6 +174,7 @@ async def test_pro_tier_allows_larger_simulations(app, pro_token, valid_payload)
 
 
 # ── GET /var/result/{task_id} ─────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_result_success(app, free_token):

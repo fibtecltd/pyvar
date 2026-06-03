@@ -18,17 +18,18 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
+
 class JobStatus(str, Enum):
-    PENDING  = "pending"
-    STARTED  = "started"
-    SUCCESS  = "success"
-    FAILURE  = "failure"
+    PENDING = "pending"
+    STARTED = "started"
+    SUCCESS = "success"
+    FAILURE = "failure"
 
 
 # ── Request ────────────────────────────────────────────────────────────────────
+
 
 class VaRRequest(BaseModel):
     """
@@ -71,6 +72,7 @@ class VaRRequest(BaseModel):
     def returns_must_be_finite(cls, v: list[float]) -> list[float]:
         """Reject NaN or infinite values in the returns series."""
         import math
+
         if any(not math.isfinite(r) for r in v):
             raise ValueError("Returns series contains NaN or infinite values.")
         return v
@@ -93,6 +95,7 @@ class VaRRequest(BaseModel):
 
 # ── Response ───────────────────────────────────────────────────────────────────
 
+
 class VaRResult(BaseModel):
     """
     Computed VaR result returned to the client.
@@ -113,6 +116,7 @@ class VaRResult(BaseModel):
 
 class JobResponse(BaseModel):
     """Returned immediately on POST /var/compute — client uses task_id to poll."""
+
     task_id: str
     status: JobStatus = JobStatus.PENDING
     message: str = "Job queued successfully"
@@ -120,6 +124,7 @@ class JobResponse(BaseModel):
 
 class JobResultResponse(BaseModel):
     """Returned on GET /var/result/{task_id}."""
+
     task_id: str
     status: JobStatus
     result: VaRResult | None = None

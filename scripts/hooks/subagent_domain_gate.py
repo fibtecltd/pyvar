@@ -19,19 +19,18 @@ Output is written to /workspace/pyvar/DOMAIN_GATE_RESULT.md
 The lead agent reads this file to decide next action.
 """
 
-import json
 import subprocess
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 WORKSPACE = Path("/workspace/pyvar")
 CHECKPOINT = WORKSPACE / "CHECKPOINT.md"
 GATE_RESULT = WORKSPACE / "DOMAIN_GATE_RESULT.md"
 
 GREEN = "\033[32m"
-RED   = "\033[31m"
-BOLD  = "\033[1m"
+RED = "\033[31m"
+BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
@@ -66,7 +65,7 @@ def check_pytest_domain() -> tuple[bool, str]:
 
     content = CHECKPOINT.read_text()
     # Extract domain name from checkpoint
-    domain_line = [l for l in content.splitlines() if "## Domain:" in l]
+    domain_line = [ln for ln in content.splitlines() if "## Domain:" in ln]
     if not domain_line:
         return True, "Domain not specified — skipping pytest gate"
 
@@ -79,11 +78,13 @@ def check_pytest_domain() -> tuple[bool, str]:
 
     r = run(["python", "-m", "pytest", test_file, "-x", "-q", "--tb=short"], timeout=180)
     if r.returncode != 0:
-        failing_lines = [l for l in r.stdout.splitlines() if "FAILED" in l or "ERROR" in l]
-        return False, f"pytest failures in {test_file}:\n" + "\n".join(f"  {l}" for l in failing_lines[:5])
+        failing_lines = [ln for ln in r.stdout.splitlines() if "FAILED" in ln or "ERROR" in ln]
+        return False, f"pytest failures in {test_file}:\n" + "\n".join(
+            f"  {ln}" for ln in failing_lines[:5]
+        )
 
     # Extract pass count
-    summary = [l for l in r.stdout.splitlines() if "passed" in l]
+    summary = [ln for ln in r.stdout.splitlines() if "passed" in ln]
     return True, summary[0] if summary else f"pytest passed on {test_file}"
 
 
@@ -109,7 +110,7 @@ def check_numba_violations() -> tuple[bool, str]:
 def write_gate_result(gates: list[tuple[str, bool, str]], ready_for_adversarial: bool) -> None:
     timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [
-        f"# DOMAIN_GATE_RESULT",
+        "# DOMAIN_GATE_RESULT",
         f"## Timestamp: {timestamp}",
         f"## Ready for adversarial validation: {'YES' if ready_for_adversarial else 'NO'}",
         "",
@@ -143,23 +144,29 @@ def write_gate_result(gates: list[tuple[str, bool, str]], ready_for_adversarial:
 
 def main() -> int:
     gates = [
-        ("Checkpoint complete",   *check_checkpoint_complete()),
-        ("No uncommitted files",  *check_no_uncommitted()),
-        ("pytest domain",         *check_pytest_domain()),
-        ("Numba rules",           *check_numba_violations()),
+        ("Checkpoint complete", *check_checkpoint_complete()),
+        ("No uncommitted files", *check_no_uncommitted()),
+        ("pytest domain", *check_pytest_domain()),
+        ("Numba rules", *check_numba_violations()),
     ]
 
     all_passed = all(passed for _, passed, _ in gates)
     write_gate_result(gates, all_passed)
 
     if all_passed:
-        print(f"{GREEN}[domain-gate] All gates passed — adversarial validation ready.{RESET}", file=sys.stderr)
-        print(f"[domain-gate] Results written to DOMAIN_GATE_RESULT.md", file=sys.stderr)
+        print(
+            f"{GREEN}[domain-gate] All gates passed — adversarial validation ready.{RESET}",
+            file=sys.stderr,
+        )
+        print("[domain-gate] Results written to DOMAIN_GATE_RESULT.md", file=sys.stderr)
         return 0
     else:
         failed = [name for name, passed, _ in gates if not passed]
-        print(f"{RED}[domain-gate] {len(failed)} gate(s) failed: {', '.join(failed)}{RESET}", file=sys.stderr)
-        print(f"[domain-gate] Results written to DOMAIN_GATE_RESULT.md", file=sys.stderr)
+        print(
+            f"{RED}[domain-gate] {len(failed)} gate(s) failed: {', '.join(failed)}{RESET}",
+            file=sys.stderr,
+        )
+        print("[domain-gate] Results written to DOMAIN_GATE_RESULT.md", file=sys.stderr)
         return 1
 
 

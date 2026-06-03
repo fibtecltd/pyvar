@@ -23,20 +23,19 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_ec2 as ec2,
-    aws_ecs as ecs,
-    aws_ecs_patterns as ecs_patterns,
-    aws_ecr as ecr,
-    aws_iam as iam,
-    aws_sqs as sqs,
-    aws_elasticloadbalancingv2 as elbv2,
-    Duration, Stack,
-)
+from aws_cdk import Duration, Stack
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_ecr as ecr
+from aws_cdk import aws_ecs as ecs
+from aws_cdk import aws_ecs_patterns as ecs_patterns
+from aws_cdk import aws_elasticloadbalancingv2 as elbv2
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_sqs as sqs
 from constructs import Construct
-from config import PyvarConfig
-from stacks.network_stack import SecurityGroups
 from stacks.data_stack import DataStack
+from stacks.network_stack import SecurityGroups
+
+from config import PyvarConfig
 
 
 class ApiStack(Stack):
@@ -57,9 +56,10 @@ class ApiStack(Stack):
 
         # ── ECR Repository ─────────────────────────────────────────────────────
         self.ecr_repo = ecr.Repository(
-            self, "ApiRepo",
+            self,
+            "ApiRepo",
             repository_name=f"pyvar-{cfg.env_name}-api",
-            image_scan_on_push=True,       # free ECR image scanning
+            image_scan_on_push=True,  # free ECR image scanning
             lifecycle_rules=[
                 ecr.LifecycleRule(
                     description="Remove untagged images after 30 days",
@@ -78,31 +78,36 @@ class ApiStack(Stack):
 
         # ── ECS Cluster ────────────────────────────────────────────────────────
         cluster = ecs.Cluster(
-            self, "Cluster",
+            self,
+            "Cluster",
             cluster_name=f"pyvar-{cfg.env_name}",
             vpc=vpc,
-            container_insights=True,     # CloudWatch Container Insights (costs ~$0.50/task/month)
+            container_insights=True,  # CloudWatch Container Insights (costs ~$0.50/task/month)
             enable_fargate_capacity_providers=True,
         )
 
         # ── Task IAM Role ─────────────────────────────────────────────────────
         task_role = iam.Role(
-            self, "ApiTaskRole",
+            self,
+            "ApiTaskRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             role_name=f"pyvar-{cfg.env_name}-api-task-role",
         )
-        var_queue.grant_send_messages(task_role)          # dispatch VaR jobs
-        data.result_bucket.grant_read(task_role)          # presigned URL generation
+        var_queue.grant_send_messages(task_role)  # dispatch VaR jobs
+        data.result_bucket.grant_read(task_role)  # presigned URL generation
         data.db_secret.grant_read(task_role)
-        task_role.add_to_policy(iam.PolicyStatement(
-            actions=["cloudwatch:PutMetricData"],
-            resources=["*"],
-            conditions={"StringEquals": {"cloudwatch:namespace": "pyvar"}},
-        ))
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["cloudwatch:PutMetricData"],
+                resources=["*"],
+                conditions={"StringEquals": {"cloudwatch:namespace": "pyvar"}},
+            )
+        )
 
         # Execution role: allows ECS to pull image and write logs
         execution_role = iam.Role(
-            self, "ApiExecutionRole",
+            self,
+            "ApiExecutionRole",
             assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -114,7 +119,8 @@ class ApiStack(Stack):
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
-            self, "ApiTaskDef",
+            self,
+            "ApiTaskDef",
             family=f"pyvar-{cfg.env_name}-api",
             cpu=cfg.api_cpu,
             memory_limit_mib=cfg.api_memory_mb,
@@ -122,11 +128,9 @@ class ApiStack(Stack):
             execution_role=execution_role,
         )
 
-        container = task_def.add_container(
+        _container = task_def.add_container(
             "api",
-            image=ecs.ContainerImage.from_ecr_repository(
-                self.ecr_repo, tag=cfg.api_image_tag
-            ),
+            image=ecs.ContainerImage.from_ecr_repository(self.ecr_repo, tag=cfg.api_image_tag),
             port_mappings=[ecs.PortMapping(container_port=8000)],
             logging=ecs.LogDrivers.aws_logs(
                 stream_prefix="pyvar-api",
@@ -134,14 +138,16 @@ class ApiStack(Stack):
             ),
             environment={
                 "APP_ENV": cfg.env_name,
-                "CELERY_BROKER_URL": f"sqs://",
+                "CELERY_BROKER_URL": "sqs://",
                 "SQS_QUEUE_NAME": f"pyvar-{cfg.env_name}-var-jobs.fifo",
                 "AWS_REGION": cfg.region,
                 "S3_BUCKET": data.result_bucket.bucket_name,
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image)
-                "POSTGRES_DSN": ecs.Secret.from_secrets_manager(data.db_secret, "connection_string"),
+                "POSTGRES_DSN": ecs.Secret.from_secrets_manager(
+                    data.db_secret, "connection_string"
+                ),
                 "JWT_SECRET": ecs.Secret.from_secrets_manager(
                     cdk.aws_secretsmanager.Secret.from_secret_name_v2(
                         self, "JwtSecret", f"pyvar/{cfg.env_name}/jwt-secret"
@@ -153,14 +159,15 @@ class ApiStack(Stack):
                 interval=Duration.seconds(30),
                 timeout=Duration.seconds(5),
                 retries=3,
-                start_period=Duration.seconds(30),   # allow Numba JIT warmup
+                start_period=Duration.seconds(30),  # allow Numba JIT warmup
             ),
-            stop_timeout=Duration.seconds(30),       # graceful shutdown window
+            stop_timeout=Duration.seconds(30),  # graceful shutdown window
         )
 
         # ── ALB + Fargate Service ──────────────────────────────────────────────
         fargate_service = ecs_patterns.ApplicationLoadBalancedFargateService(
-            self, "ApiService",
+            self,
+            "ApiService",
             service_name=f"pyvar-{cfg.env_name}-api",
             cluster=cluster,
             task_definition=task_def,
@@ -169,7 +176,7 @@ class ApiStack(Stack):
             task_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
             load_balancer_name=f"pyvar-{cfg.env_name}-alb",
             public_load_balancer=True,
-            open_listener=False,        # we attach sgs.alb manually
+            open_listener=False,  # we attach sgs.alb manually
             listener_port=443,
             protocol=elbv2.ApplicationProtocol.HTTP,  # HTTPS requires certificate_arn
             target_protocol=elbv2.ApplicationProtocol.HTTP,
@@ -187,7 +194,7 @@ class ApiStack(Stack):
                 ecs.CapacityProviderStrategy(
                     capacity_provider="FARGATE",
                     weight=1,
-                    base=cfg.api_min_tasks,   # guarantee on-demand base for HA
+                    base=cfg.api_min_tasks,  # guarantee on-demand base for HA
                 ),
             ],
         )
@@ -201,9 +208,7 @@ class ApiStack(Stack):
             healthy_threshold_count=2,
             unhealthy_threshold_count=3,
         )
-        fargate_service.target_group.enable_stickiness_for_origin_header_v2(
-            Duration.hours(1)
-        )
+        fargate_service.target_group.enable_stickiness_for_origin_header_v2(Duration.hours(1))
 
         # ── Auto-scaling on CPU ───────────────────────────────────────────────
         scaling = fargate_service.service.auto_scale_task_count(

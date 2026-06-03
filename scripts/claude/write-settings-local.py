@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 WORKSPACE = Path("/workspace/pyvar")
-OUTPUT    = WORKSPACE / ".claude" / "settings.local.json"
+OUTPUT = WORKSPACE / ".claude" / "settings.local.json"
 HOOKS_DIR = "/workspace/pyvar/scripts/hooks"
 
 
@@ -38,93 +38,92 @@ def phase_hooks(phase: str, mode: str = "seq") -> dict:
     # ── Hooks shared across all pyvar phases ─────────────────────────────────
     pre_tool_use_shared = [
         {
-            "// name": "Block main branch direct writes",
             "matcher": "Write|Edit",
             "hooks": [
                 {
                     "type": "command",
                     "command": (
                         "bash -c 'BRANCH=$(git -C /workspace/pyvar branch --show-current 2>/dev/null); "
-                        "if [ \"$BRANCH\" = \"main\" ]; then "
-                        "echo \"[pyvar-hook] ERROR: Direct write to main blocked. Use feat/* or fix/*.\"; "
+                        'if [ "$BRANCH" = "main" ]; then '
+                        'echo "[pyvar-hook] ERROR: Direct write to main blocked. Use feat/* or fix/*."; '
                         "exit 1; fi'"
-                    )
+                    ),
                 }
-            ]
+            ],
         }
     ]
 
     post_tool_use_shared = []
-    stop_hooks           = []
-    subagent_stop_hooks  = []
+    stop_hooks = []
+    subagent_stop_hooks = []
 
     # ── P2 / P5: engine write hooks ───────────────────────────────────────────
     if phase in ("p2", "p5"):
         post_tool_use_shared += [
             {
-                "// name": f"{phase.upper()}: Numba rule checker after engine write",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            f"bash -c 'FILE=\"${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}\"; "
-                            f"if [[ \"$FILE\" == */engine/*.py ]] && [ -f \"$FILE\" ]; then "
-                            f"python3 {HOOKS_DIR}/check_numba_rules.py \"$FILE\"; fi'"
-                        )
+                            f'bash -c \'FILE="${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}"; '
+                            f'if [[ "$FILE" == */engine/*.py ]] && [ -f "$FILE" ]; then '
+                            f'python3 {HOOKS_DIR}/check_numba_rules.py "$FILE"; fi\''
+                        ),
                     }
-                ]
+                ],
             },
             {
-                "// name": f"{phase.upper()}: Regulatory threshold guard after engine/api write",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            f"bash -c 'FILE=\"${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}\"; "
-                            f"if [[ \"$FILE\" =~ /engine/|/api/|/tasks/|/schemas/ ]] && [ -f \"$FILE\" ]; then "
-                            f"python3 {HOOKS_DIR}/check_regulatory.py \"$FILE\"; fi'"
-                        )
+                            f'bash -c \'FILE="${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}"; '
+                            f'if [[ "$FILE" =~ /engine/|/api/|/tasks/|/schemas/ ]] && [ -f "$FILE" ]; then '
+                            f'python3 {HOOKS_DIR}/check_regulatory.py "$FILE"; fi\''
+                        ),
                     }
-                ]
+                ],
             },
             {
-                "// name": f"{phase.upper()}: Fast pytest on changed engine file",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            f"bash -c 'FILE=\"${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}\"; "
-                            f"if [[ \"$FILE\" == */engine/*.py ]] && [ -f \"$FILE\" ]; then "
-                            f"MODULE=$(basename \"$FILE\" .py); TEST=\"/workspace/pyvar/tests/test_${{MODULE}}.py\"; "
-                            f"if [ -f \"$TEST\" ]; then "
-                            f"echo \"[pyvar-hook] pytest $TEST\"; "
-                            f"cd /workspace/pyvar && python -m pytest \"$TEST\" -x -q 2>&1 | tail -4; fi; fi'"
-                        )
+                            'bash -c \'FILE="${CLAUDE_TOOL_INPUT_FILE_PATH:-}"; '
+                            'if [[ "$FILE" == */engine/*.py ]] && [ -f "$FILE" ]; then '
+                            'MODULE=$(basename "$FILE" .py); TEST="/workspace/pyvar/tests/test_${MODULE}.py"; '
+                            'if [ -f "$TEST" ]; then '
+                            'echo "[pyvar-hook] pytest $TEST"; '
+                            'cd /workspace/pyvar && python -m pytest "$TEST" -x -q 2>&1 | tail -4; fi; fi\''
+                        ),
                     }
-                ]
+                ],
             },
             {
-                "// name": f"{phase.upper()}: Checkpoint on git commit",
                 "matcher": "Bash",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            f"bash -c 'if echo \"${{CLAUDE_TOOL_INPUT_COMMAND:-}}\" | grep -q \"git commit\"; then "
+                            f'bash -c \'if echo "${{CLAUDE_TOOL_INPUT_COMMAND:-}}" | grep -q "git commit"; then '
                             f"python3 {HOOKS_DIR}/post_commit_checkpoint.py; fi'"
-                        )
+                        ),
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         stop_hooks = [
             {
-                "// name": f"{phase.upper()}: Stop — enforce checkpoint and clean state",
-                "hooks": [{"type": "command", "command": f"python3 {HOOKS_DIR}/stop_checkpoint_enforcer.py"}]
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": f"python3 {HOOKS_DIR}/stop_checkpoint_enforcer.py",
+                    }
+                ]
             }
         ]
 
@@ -132,8 +131,12 @@ def phase_hooks(phase: str, mode: str = "seq") -> dict:
         if mode == "agent":
             subagent_stop_hooks = [
                 {
-                    "// name": f"{phase.upper()}: SubagentStop — domain boundary gate + adversarial trigger",
-                    "hooks": [{"type": "command", "command": f"python3 {HOOKS_DIR}/subagent_domain_gate.py"}]
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"python3 {HOOKS_DIR}/subagent_domain_gate.py",
+                        }
+                    ]
                 }
             ]
 
@@ -141,54 +144,51 @@ def phase_hooks(phase: str, mode: str = "seq") -> dict:
     elif phase == "p3":
         post_tool_use_shared += [
             {
-                "// name": "P3: Regulatory guard on API/schema writes",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            f"bash -c 'FILE=\"${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}\"; "
-                            f"if [[ \"$FILE\" =~ /api/|/schemas/ ]] && [ -f \"$FILE\" ]; then "
-                            f"python3 {HOOKS_DIR}/check_regulatory.py \"$FILE\"; fi'"
-                        )
+                            f'bash -c \'FILE="${{CLAUDE_TOOL_INPUT_FILE_PATH:-}}"; '
+                            f'if [[ "$FILE" =~ /api/|/schemas/ ]] && [ -f "$FILE" ]; then '
+                            f'python3 {HOOKS_DIR}/check_regulatory.py "$FILE"; fi\''
+                        ),
                     }
-                ]
+                ],
             },
             {
-                "// name": "P3: FastAPI app loads after route write",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            "bash -c 'FILE=\"${CLAUDE_TOOL_INPUT_FILE_PATH:-}\"; "
-                            "if [[ \"$FILE\" == */api/routes/*.py ]] && [ -f \"$FILE\" ]; then "
+                            'bash -c \'FILE="${CLAUDE_TOOL_INPUT_FILE_PATH:-}"; '
+                            'if [[ "$FILE" == */api/routes/*.py ]] && [ -f "$FILE" ]; then '
                             "cd /workspace/pyvar && python -c "
-                            "\"from main import create_app; app=create_app(); "
-                            "print(f\\\"[pyvar-hook] API OK: {len(app.routes)} routes\\\")\" 2>&1 | tail -2; fi'"
-                        )
+                            '"from main import create_app; app=create_app(); '
+                            'print(f\\"[pyvar-hook] API OK: {len(app.routes)} routes\\")" 2>&1 | tail -2; fi\''
+                        ),
                     }
-                ]
-            }
+                ],
+            },
         ]
 
     # ── P4: CDK stack validation ───────────────────────────────────────────────
     elif phase == "p4":
         post_tool_use_shared += [
             {
-                "// name": "P4: CDK stack changed — notify to run synth",
                 "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
                         "command": (
-                            "bash -c 'FILE=\"${CLAUDE_TOOL_INPUT_FILE_PATH:-}\"; "
-                            "if [[ \"$FILE\" == */pyvar-cdk/stacks/*.py ]]; then "
-                            "echo \"[pyvar-hook] CDK stack changed — run: "
+                            'bash -c \'FILE="${CLAUDE_TOOL_INPUT_FILE_PATH:-}"; '
+                            'if [[ "$FILE" == */pyvar-cdk/stacks/*.py ]]; then '
+                            'echo "[pyvar-hook] CDK stack changed — run: '
                             "cd /workspace/pyvar/pyvar-cdk && cdk synth --quiet\"; fi'"
-                        )
+                        ),
                     }
-                ]
+                ],
             }
         ]
 
@@ -224,10 +224,7 @@ def write_settings_local(phase: str, mode: str = "seq") -> None:
     """Write .claude/settings.local.json for the given phase."""
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
-    data: dict = {
-        "// generated_by": f"write-settings-local.py phase={phase} mode={mode}",
-        "// note": "This file is regenerated by pyvar-phase.sh on each session start. Do not edit manually.",
-    }
+    data: dict = {}
 
     hooks = phase_hooks(phase, mode)
     if hooks:
@@ -250,5 +247,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     phase = sys.argv[1].lower()
-    mode  = "agent" if "--mode agent" in " ".join(sys.argv) else "seq"
+    mode = "agent" if "--mode agent" in " ".join(sys.argv) else "seq"
     write_settings_local(phase, mode)

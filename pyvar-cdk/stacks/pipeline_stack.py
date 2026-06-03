@@ -23,19 +23,15 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    pipelines,
-    aws_codebuild as cb,
-    aws_codepipeline as cp,
-    aws_codepipeline_actions as cp_actions,
-    aws_iam as iam,
-    aws_secretsmanager as sm,
-    aws_sns as sns,
-    aws_sns_subscriptions as subs,
-    aws_codestarnotifications as notifications,
-    Stack, Duration,
-)
+from aws_cdk import Stack
+from aws_cdk import aws_codebuild as cb
+from aws_cdk import aws_codestarnotifications as notifications
+from aws_cdk import aws_secretsmanager as sm
+from aws_cdk import aws_sns as sns
+from aws_cdk import aws_sns_subscriptions as subs
+from aws_cdk import pipelines
 from constructs import Construct
+
 from config import PyvarConfig
 
 
@@ -53,10 +49,10 @@ class PipelineStack(Stack):
 
         # ── Source ────────────────────────────────────────────────────────────
         source = pipelines.CodePipelineSource.git_hub(
-            repo_string="fibtec-limited/pyvar",        # replace with your org/repo
+            repo_string="fibtec-limited/pyvar",  # replace with your org/repo
             branch="main",
             authentication=github_token,
-            trigger=pipelines.GitHubTrigger.WEBHOOK,   # triggers on push to main
+            trigger=pipelines.GitHubTrigger.WEBHOOK,  # triggers on push to main
         )
 
         # ── Synth step (CDK synth + unit tests) ───────────────────────────────
@@ -72,16 +68,13 @@ class PipelineStack(Stack):
                 # Python setup
                 "pip install -r pyvar/requirements.txt",
                 "pip install -r pyvar-cdk/requirements.txt",
-
                 # Security scan — fail pipeline on HIGH/CRITICAL findings
                 "pip install bandit",
                 "bandit -r pyvar/ -ll -x pyvar/tests/ || (echo 'Security issues found' && exit 1)",
-
                 # Unit + integration tests with coverage gate
                 "cd pyvar",
                 "pytest -v --cov=. --cov-report=term-missing --cov-fail-under=80",
                 "cd ..",
-
                 # CDK synth (required for self-mutation)
                 "cd pyvar-cdk",
                 f"cdk synth --context env={cfg.env_name} --context account={cfg.account}",
@@ -92,29 +85,29 @@ class PipelineStack(Stack):
 
         # ── CDK Pipeline ──────────────────────────────────────────────────────
         pipeline = pipelines.CodePipeline(
-            self, "Pipeline",
+            self,
+            "Pipeline",
             pipeline_name=f"pyvar-{cfg.env_name}-pipeline",
             synth=synth,
             docker_enabled_for_synth=True,
             docker_enabled_for_self_mutation=True,
-
             # Use SMALL build image — sufficient for synth + tests
             # Switch to BUILD_GENERAL1_MEDIUM if tests start timing out
             code_build_defaults=pipelines.CodeBuildOptions(
                 build_environment=cb.BuildEnvironment(
                     build_image=cb.LinuxBuildImage.STANDARD_7_0,
                     compute_type=cb.ComputeType.SMALL,
-                    privileged=True,    # required for docker build
+                    privileged=True,  # required for docker build
                 ),
             ),
-
             # Self-mutation: pipeline upgrades itself on every run
             self_mutation=True,
         )
 
         # ── Dev deploy stage ──────────────────────────────────────────────────
         dev_stage = PyvarDeployStage(
-            self, "Dev",
+            self,
+            "Dev",
             cfg=PyvarConfig.for_env("dev", account=cfg.account),
             env=cdk.Environment(account=cfg.account, region=cfg.region),
         )
@@ -140,7 +133,8 @@ class PipelineStack(Stack):
 
         # ── Prod deploy stage (manual approval gate) ──────────────────────────
         prod_stage = PyvarDeployStage(
-            self, "Prod",
+            self,
+            "Prod",
             cfg=PyvarConfig.for_env("prod", account=cfg.account),
             env=cdk.Environment(account=cfg.account, region=cfg.region),
         )
@@ -160,7 +154,7 @@ class PipelineStack(Stack):
                 pipelines.ShellStep(
                     "ProdSmokeTest",
                     commands=[
-                        "sleep 60",    # ECS blue/green needs longer to stabilise
+                        "sleep 60",  # ECS blue/green needs longer to stabilise
                         f"curl -f https://api.{cfg.domain_name}/health || exit 1",
                     ],
                 )
@@ -170,22 +164,22 @@ class PipelineStack(Stack):
         # ── Pipeline notifications (Slack / email) ────────────────────────────
         # ops_topic receives pipeline state change notifications
         ops_topic = sns.Topic(
-            self, "PipelineNotifications",
-            topic_name=f"pyvar-pipeline-notifications",
+            self,
+            "PipelineNotifications",
+            topic_name="pyvar-pipeline-notifications",
             display_name="pyvar Pipeline Notifications",
         )
 
         # Add email subscription — replace with your ops email
-        ops_topic.add_subscription(
-            subs.EmailSubscription("ops@fibtec.co.uk")
-        )
+        ops_topic.add_subscription(subs.EmailSubscription("ops@fibtec.co.uk"))
 
         # CodeStar notification rule — fires on pipeline failure and success
         # Must be added after pipeline.build_pipeline() is called
         pipeline.build_pipeline()
 
         notifications.NotificationRule(
-            self, "PipelineNotificationRule",
+            self,
+            "PipelineNotificationRule",
             source=pipeline.pipeline,
             events=[
                 "codepipeline-pipeline-pipeline-execution-failed",
@@ -198,12 +192,14 @@ class PipelineStack(Stack):
 
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(
-            self, "PipelineConsoleUrl",
+            self,
+            "PipelineConsoleUrl",
             value=f"https://{cfg.region}.console.aws.amazon.com/codesuite/codepipeline/pipelines/pyvar-{cfg.env_name}-pipeline/view",
         )
 
 
 # ── Deploy stage (wraps all application stacks) ───────────────────────────────
+
 
 class PyvarDeployStage(cdk.Stage):
     """
@@ -223,22 +219,43 @@ class PyvarDeployStage(cdk.Stage):
 
         # Import application stacks — same stacks as in app.py
         # Imported here to avoid circular imports
-        from stacks.network_stack import NetworkStack
-        from stacks.data_stack import DataStack
-        from stacks.queue_stack import QueueStack
-        from stacks.compute_stack import ComputeStack
         from stacks.api_stack import ApiStack
+        from stacks.compute_stack import ComputeStack
+        from stacks.data_stack import DataStack
         from stacks.edge_stack import EdgeStack
+        from stacks.network_stack import NetworkStack
+        from stacks.queue_stack import QueueStack
 
         prefix = f"pyvar-{cfg.env_name}"
         env_primary = cdk.Environment(account=cfg.account, region=cfg.region)
         env_edge = cdk.Environment(account=cfg.account, region="us-east-1")
 
         network = NetworkStack(self, f"{prefix}-network", cfg=cfg, env=env_primary)
-        data = DataStack(self, f"{prefix}-data", cfg=cfg, vpc=network.vpc, sgs=network.sgs, env=env_primary)
+        data = DataStack(
+            self, f"{prefix}-data", cfg=cfg, vpc=network.vpc, sgs=network.sgs, env=env_primary
+        )
         queue = QueueStack(self, f"{prefix}-queue", cfg=cfg, env=env_primary)
-        compute = ComputeStack(self, f"{prefix}-compute", cfg=cfg, vpc=network.vpc, sgs=network.sgs, var_queue=queue.var_queue, dlq=queue.dlq, data=data, env=env_primary)
-        api = ApiStack(self, f"{prefix}-api", cfg=cfg, vpc=network.vpc, sgs=network.sgs, var_queue=queue.var_queue, data=data, env=env_primary)
+        compute = ComputeStack(
+            self,
+            f"{prefix}-compute",
+            cfg=cfg,
+            vpc=network.vpc,
+            sgs=network.sgs,
+            var_queue=queue.var_queue,
+            dlq=queue.dlq,
+            data=data,
+            env=env_primary,
+        )
+        api = ApiStack(
+            self,
+            f"{prefix}-api",
+            cfg=cfg,
+            vpc=network.vpc,
+            sgs=network.sgs,
+            var_queue=queue.var_queue,
+            data=data,
+            env=env_primary,
+        )
         edge = EdgeStack(self, f"{prefix}-edge", cfg=cfg, alb_dns=api.alb_dns_name, env=env_edge)
 
         data.add_dependency(network)

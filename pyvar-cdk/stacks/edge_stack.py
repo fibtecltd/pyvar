@@ -21,15 +21,14 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_cloudfront as cf,
-    aws_cloudfront_origins as origins,
-    aws_route53 as route53,
-    aws_route53_targets as targets,
-    aws_wafv2 as waf,
-    Stack,
-)
+from aws_cdk import Stack
+from aws_cdk import aws_cloudfront as cf
+from aws_cdk import aws_cloudfront_origins as origins
+from aws_cdk import aws_route53 as route53
+from aws_cdk import aws_route53_targets as targets
+from aws_cdk import aws_wafv2 as waf
 from constructs import Construct
+
 from config import PyvarConfig
 
 
@@ -49,7 +48,8 @@ class EdgeStack(Stack):
         # ── WAF WebACL (must be in us-east-1 for CloudFront) ──────────────────
         # Managed rule groups from AWS — maintained by AWS Security team
         web_acl = waf.CfnWebACL(
-            self, "WebAcl",
+            self,
+            "WebAcl",
             name=f"pyvar-{cfg.env_name}-waf",
             scope="CLOUDFRONT",
             default_action=waf.CfnWebACL.DefaultActionProperty(allow={}),
@@ -132,11 +132,12 @@ class EdgeStack(Stack):
         # - Respects Cache-Control headers from FastAPI
         # - min TTL = 0 so PENDING responses (Cache-Control: no-store) are never cached
         api_cache_policy = cf.CachePolicy(
-            self, "ApiCachePolicy",
+            self,
+            "ApiCachePolicy",
             cache_policy_name=f"pyvar-{cfg.env_name}-api-cache",
-            default_ttl=cdk.Duration.seconds(0),    # default: don't cache
+            default_ttl=cdk.Duration.seconds(0),  # default: don't cache
             min_ttl=cdk.Duration.seconds(0),
-            max_ttl=cdk.Duration.hours(1),           # max: 1 hour for SUCCESS responses
+            max_ttl=cdk.Duration.hours(1),  # max: 1 hour for SUCCESS responses
             enable_accept_encoding_brotli=True,
             enable_accept_encoding_gzip=True,
             query_string_behavior=cf.CacheQueryStringBehavior.none(),
@@ -147,13 +148,13 @@ class EdgeStack(Stack):
         )
 
         self.distribution = cf.Distribution(
-            self, "Distribution",
+            self,
+            "Distribution",
             comment=f"pyvar {cfg.env_name} CDN",
             web_acl_id=web_acl.attr_arn,
             http_version=cf.HttpVersion.HTTP2_AND_3,
             minimum_protocol_version=cf.SecurityPolicyProtocol.TLS_V1_2_2021,
-            price_class=cf.PriceClass.PRICE_CLASS_100,   # US + Europe PoPs only — cheapest
-
+            price_class=cf.PriceClass.PRICE_CLASS_100,  # US + Europe PoPs only — cheapest
             default_behavior=cf.BehaviorOptions(
                 origin=alb_origin,
                 viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -162,7 +163,6 @@ class EdgeStack(Stack):
                 origin_request_policy=cf.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
                 compress=True,
             ),
-
             additional_behaviors={
                 # Health check: never cached, always passes through
                 "/health": cf.BehaviorOptions(
@@ -179,7 +179,6 @@ class EdgeStack(Stack):
                     allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
                 ),
             },
-
             enable_logging=True,
             log_includes_cookies=False,
         )
@@ -187,17 +186,17 @@ class EdgeStack(Stack):
         # ── Route53 (optional — only if hosted_zone_id is configured) ─────────
         if cfg.hosted_zone_id:
             zone = route53.HostedZone.from_hosted_zone_attributes(
-                self, "HostedZone",
+                self,
+                "HostedZone",
                 hosted_zone_id=cfg.hosted_zone_id,
                 zone_name=cfg.domain_name,
             )
             route53.ARecord(
-                self, "AliasRecord",
+                self,
+                "AliasRecord",
                 zone=zone,
                 record_name="api",
-                target=route53.RecordTarget.from_alias(
-                    targets.CloudFrontTarget(self.distribution)
-                ),
+                target=route53.RecordTarget.from_alias(targets.CloudFrontTarget(self.distribution)),
             )
 
         # ── Outputs ───────────────────────────────────────────────────────────

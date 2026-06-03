@@ -14,14 +14,14 @@ Reasoning:
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_ec2 as ec2,
-    Stack,
-)
+from aws_cdk import Stack
+from aws_cdk import aws_ec2 as ec2
 from constructs import Construct
+
 from config import PyvarConfig
 
 
@@ -41,7 +41,8 @@ class NetworkStack(Stack):
 
         # ── VPC ───────────────────────────────────────────────────────────────
         self.vpc = ec2.Vpc(
-            self, "Vpc",
+            self,
+            "Vpc",
             ip_addresses=ec2.IpAddresses.cidr("10.0.0.0/16"),
             max_azs=cfg.vpc_max_azs,
             nat_gateways=cfg.vpc_nat_gateways,
@@ -122,7 +123,8 @@ class NetworkStack(Stack):
 
         # ALB: accepts HTTPS from internet
         sg_alb = ec2.SecurityGroup(
-            self, "SgAlb",
+            self,
+            "SgAlb",
             vpc=self.vpc,
             description="pyvar ALB — public HTTPS ingress",
             allow_all_outbound=False,
@@ -133,24 +135,27 @@ class NetworkStack(Stack):
 
         # ECS API tasks: only accepts traffic from ALB
         sg_api = ec2.SecurityGroup(
-            self, "SgApi",
+            self,
+            "SgApi",
             vpc=self.vpc,
             description="pyvar ECS FastAPI tasks",
-            allow_all_outbound=True,    # needs SQS, Secrets Manager, ECR
+            allow_all_outbound=True,  # needs SQS, Secrets Manager, ECR
         )
         sg_api.add_ingress_rule(sg_alb, ec2.Port.tcp(8000), "From ALB")
 
         # EC2 Spot workers: no inbound (pull model via SQS)
         sg_worker = ec2.SecurityGroup(
-            self, "SgWorker",
+            self,
+            "SgWorker",
             vpc=self.vpc,
             description="pyvar EC2 Spot Celery workers",
-            allow_all_outbound=True,    # needs SQS, S3, Secrets Manager
+            allow_all_outbound=True,  # needs SQS, S3, Secrets Manager
         )
 
         # Aurora: only from API tasks and workers
         sg_aurora = ec2.SecurityGroup(
-            self, "SgAurora",
+            self,
+            "SgAurora",
             vpc=self.vpc,
             description="pyvar Aurora PostgreSQL",
             allow_all_outbound=False,
@@ -160,7 +165,8 @@ class NetworkStack(Stack):
 
         # ElastiCache Redis: only from API tasks and workers
         sg_cache = ec2.SecurityGroup(
-            self, "SgCache",
+            self,
+            "SgCache",
             vpc=self.vpc,
             description="pyvar ElastiCache Redis",
             allow_all_outbound=False,

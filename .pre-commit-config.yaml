@@ -2,26 +2,13 @@
 # Install: pip install pre-commit && pre-commit install
 # Run all:  pre-commit run --all-files
 # Update:   pre-commit autoupdate
-#
-# Hook order is intentional:
-#   1. Formatting (fast, non-semantic)
-#   2. Import hygiene
-#   3. Linting (catches logic-level issues)
-#   4. Security scanning
-#   5. Type checking (slowest, most thorough)
-#   6. Custom: Numba rule enforcement (engine/ only)
-#   7. Custom: Regulatory threshold guard
-#
-# Note: pytest is NOT here — coverage gate belongs in CI (GitHub Actions).
-# Pre-commit runs on every commit; a full pytest suite on every commit
-# is too slow and creates bad commit habits.
 
 default_stages: [pre-commit]
-fail_fast: false  # run all hooks even if one fails — see full picture
+fail_fast: false
 
 repos:
 
-  # ── 1. Formatting ──────────────────────────────────────────────────────────
+  # ── 1. Formatting ──────────────────────────────────────────
   - repo: https://github.com/psf/black
     rev: 24.4.2
     hooks:
@@ -29,30 +16,30 @@ repos:
         language_version: python3.11
         args: [--line-length=100]
 
-  # ── 2. Import sorting ──────────────────────────────────────────────────────
+  # ── 2. Import sorting ──────────────────────────────────────
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
         args: [--profile=black, --line-length=100]
 
-  # ── 3. Linting ─────────────────────────────────────────────────────────────
+  # ── 3. Linting ─────────────────────────────────────────────
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
 
-  # ── 4. Security scanning ───────────────────────────────────────────────────
+  # ── 4. Security scanning ───────────────────────────────────
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.8
     hooks:
       - id: bandit
+        # Config is in pyproject.toml [tool.bandit]
         args: [-c, pyproject.toml]
-        # Skip test files — bandit false-positives on assert statements in tests
         exclude: ^tests/
 
-  # ── 5. Type checking — strict on engine/, standard elsewhere ───────────────
+  # ── 5. Type checking ───────────────────────────────────────
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.10.0
     hooks:
@@ -63,6 +50,8 @@ repos:
           - --strict
           - --python-version=3.11
           - --ignore-missing-imports
+          # numba @njit decorators are untyped — suppress misc errors
+          - --disable-error-code=misc
         additional_dependencies:
           - numpy>=1.26.0
           - numba>=0.59.0
@@ -79,9 +68,7 @@ repos:
           - sqlalchemy[asyncio]>=2.0.0
           - fastapi>=0.110.0
 
-  # ── 6. Numba rule enforcement (engine/ only) ───────────────────────────────
-  # Catches the 6 most common @njit violations BEFORE they hit the test suite.
-  # See CLAUDE.md section 3.1 for the full rule set.
+  # ── 6. Numba rule enforcement (engine/ only) ───────────────
   - repo: local
     hooks:
       - id: check-numba-rules
@@ -92,10 +79,7 @@ repos:
         pass_filenames: true
         verbose: true
 
-  # ── 7. Regulatory threshold guard ─────────────────────────────────────────
-  # Prevents hardcoded regulatory constants from being replaced with
-  # arbitrary literals. Catches: VaR confidence levels, backtesting
-  # window, Basel breach zones, ES computation logic.
+  # ── 7. Regulatory threshold guard ─────────────────────────
   - repo: local
     hooks:
       - id: check-regulatory
@@ -106,7 +90,7 @@ repos:
         pass_filenames: true
         verbose: true
 
-  # ── 8. General file hygiene ────────────────────────────────────────────────
+  # ── 8. File hygiene ────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -114,6 +98,9 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+        # Exclude .claude/ — Claude Code uses JSONC (// comments)
+        # which is not valid JSON. These files are gitignored anyway.
+        exclude: ^\.claude/
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=500]

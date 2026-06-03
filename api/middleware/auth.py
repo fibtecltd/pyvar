@@ -29,10 +29,10 @@ class TokenPayload:
 
     def __init__(self, sub: str, tier: str = "free"):
         self.user_id = sub
-        self.tier = tier               # free | pro | enterprise
+        self.tier = tier  # free | pro | enterprise
         self.max_simulations = {
-            "free":       100_000,
-            "pro":        500_000,
+            "free": 100_000,
+            "pro": 500_000,
             "enterprise": 1_000_000,
         }.get(tier, 100_000)
 
@@ -77,4 +77,4 @@ def create_access_token(user_id: str, tier: str = "free") -> str:
 
     expire = datetime.now(timezone.utc) + timedelta(minutes=cfg.jwt_expiry_minutes)
     payload = {"sub": user_id, "tier": tier, "exp": expire}
-    return jwt.encode(payload, cfg.jwt_secret, algorithm=cfg.jwt_algorithm)
+    return str(jwt.encode(payload, cfg.jwt_secret, algorithm=cfg.jwt_algorithm))

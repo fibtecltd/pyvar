@@ -32,15 +32,15 @@ Usage (import):
 """
 
 import os
+import platform
+import shutil
+import subprocess
 import sys
 import time
-import shutil
-import platform
-import subprocess
 from pathlib import Path
 
-
 # ── Backend detection ─────────────────────────────────────────────
+
 
 def detect_backend() -> str:
     """
@@ -50,6 +50,7 @@ def detect_backend() -> str:
     # 1. watchdog (Python, cross-platform)
     try:
         import watchdog  # noqa: F401
+
         return "watchdog"
     except ImportError:
         pass
@@ -90,17 +91,17 @@ def _warn_wsl_ntfs(watch_dir: str) -> None:
 
 # ── Backend implementations ───────────────────────────────────────
 
+
 def _wait_watchdog(watch_dir: str, target_file: str) -> None:
     """
     Event-driven watch using the watchdog library.
     Latency: ~50ms (FSEvents/macOS), ~10ms (inotify/Linux).
     Install: pip install watchdog
     """
+    from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler
     from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileModifiedEvent
 
     target_path = os.path.join(os.path.abspath(watch_dir), target_file)
-    found = threading_Event()
 
     class Handler(FileSystemEventHandler):
         def on_created(self, event: FileCreatedEvent) -> None:
@@ -115,6 +116,7 @@ def _wait_watchdog(watch_dir: str, target_file: str) -> None:
 
     # Import threading Event here to avoid shadowing builtins at module level
     import threading
+
     found = threading.Event()
     Handler_ = Handler  # rebind after threading import
 
@@ -141,9 +143,12 @@ def _wait_inotifywait(watch_dir: str, target_file: str) -> None:
     cmd = [
         "inotifywait",
         "--quiet",
-        "-e", "close_write",
-        "-e", "moved_to",
-        "--include", f"^{target_file}$",
+        "-e",
+        "close_write",
+        "-e",
+        "moved_to",
+        "--include",
+        f"^{target_file}$",
         watch_dir,
     ]
     while True:
@@ -162,9 +167,11 @@ def _wait_fswatch(watch_dir: str, target_file: str) -> None:
     """
     cmd = [
         "fswatch",
-        "-1",                       # exit after first match
-        "-e", ".*",                 # exclude everything
-        "-i", f"{target_file}$",    # re-include target
+        "-1",  # exit after first match
+        "-e",
+        ".*",  # exclude everything
+        "-i",
+        f"{target_file}$",  # re-include target
         watch_dir,
     ]
     subprocess.run(cmd, check=True)
@@ -195,6 +202,7 @@ def _wait_poll(watch_dir: str, target_file: str, interval: float = 5.0) -> None:
 
 
 # ── Public API ────────────────────────────────────────────────────
+
 
 def wait_for_file(watch_dir: str, target_file: str) -> None:
     """
@@ -252,12 +260,15 @@ def print_status() -> None:
     print("Backend availability:")
     try:
         import watchdog  # noqa: F401
+
         print(f"  watchdog     ✓  ({watchdog.__version__})")
     except ImportError:
-        print(f"  watchdog     ✗  → pip install watchdog")
-    print(f"  inotifywait  {'✓' if shutil.which('inotifywait') else '✗  → sudo apt-get install inotify-tools'}")
+        print("  watchdog     ✗  → pip install watchdog")
+    print(
+        f"  inotifywait  {'✓' if shutil.which('inotifywait') else '✗  → sudo apt-get install inotify-tools'}"
+    )
     print(f"  fswatch      {'✓' if shutil.which('fswatch') else '✗  → brew install fswatch'}")
-    print(f"  poll         ✓  (always available — 5s latency)")
+    print("  poll         ✓  (always available — 5s latency)")
 
     if wsl:
         print("\nWSL note: inotify (watchdog + inotifywait) only works on the")

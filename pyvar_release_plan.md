@@ -1,9 +1,9 @@
 # pyvar.com — Full Release Plan
 ## Using Claude Code as Primary Development Accelerator
 
-**Version:** 1.0  
-**Date:** April 2026  
-**Target:** Public launch Q4 2026  
+**Version:** 1.0
+**Date:** April 2026
+**Target:** Public launch Q4 2026
 **Prepared by:** Fibtec Limited
 
 ---
@@ -53,17 +53,17 @@ Before any Claude Code session touches pyvar, the CLAUDE.md must be complete and
 
 **Session 1 — CLAUDE.md review:**
 ```
-Read CLAUDE.md in full. Then audit every file in engine/, schemas/, tasks/, and api/ 
-and tell me: (1) any existing code that violates the Numba JIT rules in section 3.1, 
-(2) any missing type hints on public functions, (3) any bare except clauses. 
+Read CLAUDE.md in full. Then audit every file in engine/, schemas/, tasks/, and api/
+and tell me: (1) any existing code that violates the Numba JIT rules in section 3.1,
+(2) any missing type hints on public functions, (3) any bare except clauses.
 List findings by file.
 ```
 
 **Session 2 — CI pipeline:**
 ```
-Read CLAUDE.md section 8 (git workflow). Then read .github/workflows/ci.yml. 
-Extend the CI workflow to: add a mypy --strict check on engine/ only, add a 
-pytest-benchmark baseline run that posts results as a PR comment, and add a 
+Read CLAUDE.md section 8 (git workflow). Then read .github/workflows/ci.yml.
+Extend the CI workflow to: add a mypy --strict check on engine/ only, add a
+pytest-benchmark baseline run that posts results as a PR comment, and add a
 cdk synth check that validates both dev and prod contexts.
 ```
 
@@ -107,25 +107,25 @@ The most substantial phase. Implement all 382 functions across 8 domains. Claude
 
 **Domain session pattern — use for each of 8 domains:**
 ```
-Read CLAUDE.md in full, paying particular attention to sections 3.1 (Numba rules), 
+Read CLAUDE.md in full, paying particular attention to sections 3.1 (Numba rules),
 4 (regulatory constraints), and 5 (testing rules).
 
 I am going to give you the function list for the [DOMAIN] domain. For each function:
 1. Implement it in engine/[module].py following the Numba JIT rules exactly
-2. Write a corresponding test in tests/test_[module].py that verifies numerical 
+2. Write a corresponding test in tests/test_[module].py that verifies numerical
    correctness (not just types)
 3. Add a Pydantic v2 schema in schemas/[domain].py
 
 Functions to implement:
 [paste relevant rows from pyvar_functions.csv]
 
-Start with the simplest function and work up to the most complex. Flag any function 
+Start with the simplest function and work up to the most complex. Flag any function
 where the regulatory threshold is ambiguous before implementing it.
 ```
 
 **Numba correctness audit — run after each domain session:**
 ```
-Read CLAUDE.md section 3.1 (Numba JIT rules). Then audit all @njit functions 
+Read CLAUDE.md section 3.1 (Numba JIT rules). Then audit all @njit functions
 added in the last session:
 1. Do any accept Python objects, dicts, or Pydantic models? (Rule 1)
 2. Do any use dynamic dispatch or non-float64 arrays? (Rule 2)
@@ -136,10 +136,10 @@ Show me the exact line for any violation found.
 
 **Regulatory threshold check:**
 ```
-For all functions marked [REGULATORY] in engine/ and schemas/, verify that: 
-(1) VaR confidence levels are validated in [0.90, 0.9999], 
-(2) Basel backtesting uses exactly 250 days, 
-(3) FRTB PAT thresholds match section 4.4 of CLAUDE.md exactly. 
+For all functions marked [REGULATORY] in engine/ and schemas/, verify that:
+(1) VaR confidence levels are validated in [0.90, 0.9999],
+(2) Basel backtesting uses exactly 250 days,
+(3) FRTB PAT thresholds match section 4.4 of CLAUDE.md exactly.
 Quote the relevant line of code for each check.
 ```
 
@@ -172,24 +172,24 @@ One Celery task and one FastAPI route pair per domain (compute + result endpoint
 Read CLAUDE.md sections 3.2 (Celery/SQS rules) and section 10 (Adding a new domain).
 
 For the [DOMAIN] domain, create:
-1. tasks/[domain]_task.py — Celery task wrapping the engine functions. Must use 
+1. tasks/[domain]_task.py — Celery task wrapping the engine functions. Must use
    bind=True, task_acks_late=True, worker_prefetch_multiplier=1
-2. api/routes/[domain].py — POST /[domain]/compute and GET /[domain]/result/{task_id} 
+2. api/routes/[domain].py — POST /[domain]/compute and GET /[domain]/result/{task_id}
    with JWT auth and tier enforcement
 3. Add the router to main.py
 
-Follow the exact same pattern as tasks/var_task.py and api/routes/var.py. 
+Follow the exact same pattern as tasks/var_task.py and api/routes/var.py.
 Do not add any business logic to the API layer — call the engine function only.
 ```
 
 **API test coverage session:**
 ```
-Read CLAUDE.md section 5 (testing rules). For all domain routes added this session, 
+Read CLAUDE.md section 5 (testing rules). For all domain routes added this session,
 write integration tests using httpx.AsyncClient with app=create_app().
 
-Every domain must test: (1) 202 on valid submit with mocked Celery, (2) 401 without JWT, 
-(3) 422 on invalid params, (4) 403 when n_simulations exceeds tier cap, 
-(5) 200 with SUCCESS and FAILURE states from mocked AsyncResult. 
+Every domain must test: (1) 202 on valid submit with mocked Celery, (2) 401 without JWT,
+(3) 422 on invalid params, (4) 403 when n_simulations exceeds tier cap,
+(5) 200 with SUCCESS and FAILURE states from mocked AsyncResult.
 Do not test the engine functions here — mock apply_async and AsyncResult.
 ```
 
@@ -235,21 +235,21 @@ cdk deploy pyvar-pipeline
 
 **CDK diff review before deploy:**
 ```
-Read CLAUDE.md sections 3.4 (AWS/CDK rules). Run cdk diff --context env=dev for all stacks. 
-Then tell me: (1) any changes that would cause downtime on an existing deployment, 
-(2) any security group rules that are too permissive (e.g. 0.0.0.0/0 on non-public ports), 
-(3) any missing VPC endpoint for the services used (SQS, ECR, Secrets Manager, S3 must 
+Read CLAUDE.md sections 3.4 (AWS/CDK rules). Run cdk diff --context env=dev for all stacks.
+Then tell me: (1) any changes that would cause downtime on an existing deployment,
+(2) any security group rules that are too permissive (e.g. 0.0.0.0/0 on non-public ports),
+(3) any missing VPC endpoint for the services used (SQS, ECR, Secrets Manager, S3 must
 all have endpoints), (4) whether IMDSv2 is enforced on all EC2 instances.
 ```
 
 **Post-deploy smoke test script:**
 ```
-Write a bash smoke test script scripts/smoke_test.sh that: 
-(1) curls /health and asserts 200, 
-(2) obtains a test JWT token using the create_access_token utility, 
-(3) POSTs to /api/v1/var/compute with a synthetic returns payload, 
-(4) polls /api/v1/var/result/{task_id} every 2 seconds until status=success or timeout 120s, 
-(5) asserts var_abs > 0 and cvar_abs > var_abs. 
+Write a bash smoke test script scripts/smoke_test.sh that:
+(1) curls /health and asserts 200,
+(2) obtains a test JWT token using the create_access_token utility,
+(3) POSTs to /api/v1/var/compute with a synthetic returns payload,
+(4) polls /api/v1/var/result/{task_id} every 2 seconds until status=success or timeout 120s,
+(5) asserts var_abs > 0 and cvar_abs > var_abs.
 Exit code 0 on pass, 1 on any failure. Use curl and jq only — no Python.
 ```
 
@@ -281,13 +281,13 @@ Systematic validation of numerical correctness against reference implementations
 
 **Numerical validation suite:**
 ```
-Read CLAUDE.md section 4 (regulatory constraints) in full. Write a validation module 
-tests/validation/test_reference_values.py that cross-validates pyvar outputs against 
+Read CLAUDE.md section 4 (regulatory constraints) in full. Write a validation module
+tests/validation/test_reference_values.py that cross-validates pyvar outputs against
 known reference values:
 
-1. Monte Carlo VaR at 99%, 1d, N=1,000,000, seed=42: compare to 
+1. Monte Carlo VaR at 99%, 1d, N=1,000,000, seed=42: compare to
    scipy.stats.norm.ppf(0.99) × sigma (within 0.5% tolerance)
-2. Black-Scholes call: S=100, K=100, T=1, r=0.05, sigma=0.2 → exact value 10.4506 
+2. Black-Scholes call: S=100, K=100, T=1, r=0.05, sigma=0.2 → exact value 10.4506
    (within 0.001%)
 3. IRB Foundation capital: PD=0.01, LGD=0.45, M=2.5 → verify against BIS BCBS d347 example
 4. IFRS 9 12-month ECL: PD=0.02, LGD=0.40, EAD=1,000,000 → £8,000 exactly
@@ -298,12 +298,12 @@ Each test must print the reference value, the pyvar value, and the % deviation.
 **Load test with Locust:**
 ```
 Write a Locust load test file locustfile.py that simulates pyvar.com usage:
-- 70% of virtual users: POST /var/compute (100k paths) → poll until success → 
+- 70% of virtual users: POST /var/compute (100k paths) → poll until success →
   record end-to-end latency
 - 20%: GET /api/v1/domains (catalogue browsing)
 - 10%: GET /api/v1/var/result/{old_task_id} (result retrieval from cache)
 
-Target: 100 concurrent users, 10 minute ramp-up. Assert p95 end-to-end latency 
+Target: 100 concurrent users, 10 minute ramp-up. Assert p95 end-to-end latency
 < 15s for the compute flow. Use a test JWT token injected via environment variable.
 ```
 
@@ -345,7 +345,7 @@ Write a Grafana dashboard JSON definition (to be imported into Grafana Cloud) th
 1. Row 1 — API health: request rate, error rate by status code, p50/p95/p99 latency
 2. Row 2 — Compute: active workers, SQS queue depth, computation duration histogram by domain
 3. Row 3 — Usage: unique users per day, function calls by domain (pie), tier distribution
-4. Row 4 — Cost proxy: estimated daily cost (EC2 Spot hours × £0.04/hr + S3 PUTs), 
+4. Row 4 — Cost proxy: estimated daily cost (EC2 Spot hours × £0.04/hr + S3 PUTs),
    simulations per pound
 
 Use CloudWatch as data source. Export as JSON dashboard definition.
@@ -398,7 +398,7 @@ Optimise before launch — not after. Three levers: Numba kernel efficiency (pro
 
 **Performance profiling session:**
 ```
-Read CLAUDE.md section 3.1 (Numba rules). Use pytest-benchmark to run the 10 most 
+Read CLAUDE.md section 3.1 (Numba rules). Use pytest-benchmark to run the 10 most
 compute-intensive functions with n_simulations=100_000. For any function taking > 5 seconds:
 1. Profile with cProfile to identify the bottleneck
 2. Check whether prange is used correctly (parallel, not sequential)
@@ -412,7 +412,7 @@ Show me the before/after benchmark for any change you make.
 **Cache strategy implementation:**
 ```
 Implement a result cache in api/routes/ as a cache_check decorator that:
-1. Before dispatching to Celery: check ElastiCache for cached result using 
+1. Before dispatching to Celery: check ElastiCache for cached result using
    SHA-256 of canonical JSON request params as cache key
 2. On cache hit: return 200 with the cached result immediately (not 202)
 3. On cache miss: dispatch to Celery, on completion write result to cache TTL=3600
@@ -449,10 +449,10 @@ The pyvar.com portal must be complete and live before GitHub launch. All 8 domai
 
 **Live API integration in portal:**
 ```
-The pyvar.com homepage has a terminal demo in index.html. Replace the static hardcoded 
+The pyvar.com homepage has a terminal demo in index.html. Replace the static hardcoded
 output with a live API call:
 1. On page load, call GET /health — show a green status dot if OK
-2. When user clicks 'Run demo': POST to /api/v1/var/compute with fixed demo params 
+2. When user clicks 'Run demo': POST to /api/v1/var/compute with fixed demo params
    (portfolio_value=1000000, n_simulations=10000, confidence_level=0.99, seed=42)
 3. Poll GET /result/{task_id} every 1.5s — show elapsed time in the terminal
 4. On success: type out the result values character-by-character (30ms per char)
@@ -465,12 +465,12 @@ Use vanilla JS only — no frameworks. The demo API key is injected via a meta t
 ```
 Build a client-side full-text search for pyvar.com that searches all 382 functions:
 1. Fetch /api/v1/domains on page load to get the full function catalogue
-2. Build a Fuse.js index with keys: ['function_name', 'domain', 'description'] 
+2. Build a Fuse.js index with keys: ['function_name', 'domain', 'description']
    and threshold 0.3
-3. Wire to the search input in the portal nav — results appear as a dropdown 
+3. Wire to the search input in the portal nav — results appear as a dropdown
    within 50ms of typing
 4. Each result shows: domain colour dot, function name, domain name
-5. Clicking a result navigates to the correct domain page and scrolls to + 
+5. Clicking a result navigates to the correct domain page and scrolls to +
    highlights that function card
 6. Pressing Escape dismisses the dropdown
 
@@ -521,14 +521,14 @@ Day +7:  Review usage metrics — identify most popular functions for v0.2.0 roa
 
 **CONTRIBUTING.md for open-source contributors:**
 ```
-Read CLAUDE.md in full — it is the source of truth for contribution rules. 
+Read CLAUDE.md in full — it is the source of truth for contribution rules.
 Write CONTRIBUTING.md that explains:
 1. How to add a new function: the 8-step process from CLAUDE.md section 10
 2. The Numba JIT rules (section 3.1) — explain WHY each rule exists
-3. The regulatory constraint rules (section 4) — emphasise that reg/* branches 
+3. The regulatory constraint rules (section 4) — emphasise that reg/* branches
    need review
 4. How to run the test suite locally (section 9)
-5. PR checklist: CLAUDE.md compliance, numerical test included, coverage maintained, 
+5. PR checklist: CLAUDE.md compliance, numerical test included, coverage maintained,
    no Bandit HIGH findings
 6. How to propose a new domain — link to GitHub Discussions
 
@@ -538,12 +538,12 @@ Tone: welcoming to quant developers and risk engineers.
 **GitHub launch prep:**
 ```
 Prepare the GitHub repository for public launch:
-1. Write a README.md that leads with "382 risk functions. One API. Open source." 
-   — covers quick start (pip install pyvar-client), 8 domains with function counts, 
+1. Write a README.md that leads with "382 risk functions. One API. Open source."
+   — covers quick start (pip install pyvar-client), 8 domains with function counts,
    tech stack, and links to pyvar.com
-2. Add GitHub topics: quantitative-finance, risk-management, var, monte-carlo, frtb, 
+2. Add GitHub topics: quantitative-finance, risk-management, var, monte-carlo, frtb,
    numba, fastapi, open-source
-3. Write a GitHub release body for v0.1.0: what's included, known limitations, 
+3. Write a GitHub release body for v0.1.0: what's included, known limitations,
    v0.2.0 roadmap
 4. Add .github/ISSUE_TEMPLATE/bug_report.md and feature_request.md
 5. Create 8 GitHub labels matching the 8 domains

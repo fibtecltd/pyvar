@@ -20,8 +20,8 @@ Reasoning:
 
 from __future__ import annotations
 
+import subprocess  # nosec B404
 import sys
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
@@ -30,7 +30,7 @@ ROOT = Path(__file__).parent.parent
 def run_alembic(*args: str) -> int:
     cmd = ["alembic", "-c", str(ROOT / "alembic.ini"), *args]
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=ROOT)
+    result = subprocess.run(cmd, cwd=ROOT)  # nosec B603
     return result.returncode
 
 

@@ -16,16 +16,19 @@ Reasoning:
 from __future__ import annotations
 
 import time
-import requests
+
 import numpy as np
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 from ingestion.fixtures import generate_gbm_returns
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 API_BASE = "http://localhost:8000/api/v1"
-DEV_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  # replace with real token in production
+DEV_TOKEN = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  # nosec B105 # replace with real token in production
+)
 
 HEADERS = {"Authorization": f"Bearer {DEV_TOKEN}"}
 
@@ -127,7 +130,7 @@ if submitted:
 # Poll for result
 if st.session_state.task_id and not st.session_state.result:
     with st.spinner("Computing…"):
-        for _ in range(60):     # timeout after 60 seconds
+        for _ in range(60):  # timeout after 60 seconds
             try:
                 r = requests.get(
                     f"{API_BASE}/var/result/{st.session_state.task_id}",
@@ -164,20 +167,22 @@ if st.session_state.result:
 
     # ── Loss distribution chart ───────────────────────────────────────────────
     loss_dist = np.array(r["loss_dist"])
-    loss_pct = loss_dist * 100       # convert to percentage for readability
+    loss_pct = loss_dist * 100  # convert to percentage for readability
 
     var_line = r["var_pct"] * 100
     cvar_line = r["cvar_pct"] * 100
 
     fig = go.Figure()
 
-    fig.add_trace(go.Histogram(
-        x=loss_pct,
-        nbinsx=120,
-        name="Loss distribution",
-        marker_color="#378ADD",
-        opacity=0.75,
-    ))
+    fig.add_trace(
+        go.Histogram(
+            x=loss_pct,
+            nbinsx=120,
+            name="Loss distribution",
+            marker_color="#378ADD",
+            opacity=0.75,
+        )
+    )
 
     fig.add_vline(
         x=var_line,
@@ -197,7 +202,7 @@ if st.session_state.result:
 
     fig.update_layout(
         title=f"Monte Carlo loss distribution · {r['n_simulations']:,} paths · "
-              f"{confidence_level*100:.0f}% confidence · {horizon_days}d horizon",
+        f"{confidence_level*100:.0f}% confidence · {horizon_days}d horizon",
         xaxis_title="Loss (% of portfolio)",
         yaxis_title="Frequency",
         template="plotly_white",

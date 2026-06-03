@@ -29,13 +29,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.middleware.auth import TokenPayload, get_current_user
 from api.responses import OrjsonResponse
-from schemas.var import (
-    JobResponse,
-    JobResultResponse,
-    JobStatus,
-    VaRRequest,
-    VaRResult,
-)
+from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
 from tasks.var_task import celery_app, compute_var_task
 
 logger = logging.getLogger(__name__)
@@ -43,6 +37,7 @@ router = APIRouter(prefix="/var", tags=["VaR"])
 
 
 # ── POST /var/compute ─────────────────────────────────────────────────────────
+
 
 @router.post(
     "/compute",
@@ -74,7 +69,7 @@ async def submit_var(
     # Dispatch to Celery — payload must be JSON-serialisable (list, not np.ndarray)
     task = compute_var_task.apply_async(
         kwargs={"payload": body.model_dump()},
-        task_id=None,     # auto-generate UUID
+        task_id=None,  # auto-generate UUID
     )
 
     logger.info(
@@ -89,6 +84,7 @@ async def submit_var(
 
 
 # ── GET /var/result/{task_id} ─────────────────────────────────────────────────
+
 
 @router.get(
     "/result/{task_id}",
@@ -110,7 +106,7 @@ async def get_var_result(
         "STARTED": JobStatus.STARTED,
         "SUCCESS": JobStatus.SUCCESS,
         "FAILURE": JobStatus.FAILURE,
-        "RETRY":   JobStatus.PENDING,
+        "RETRY": JobStatus.PENDING,
     }
     job_status = status_map.get(state, JobStatus.PENDING)
 
@@ -128,7 +124,7 @@ async def get_var_result(
         content=JobResultResponse(
             task_id=task_id,
             status=job_status,
-            result=result.model_dump() if result else None,
+            result=result if result else None,
             error=error,
         ).model_dump(),
     )

@@ -13,6 +13,7 @@ The table itself should be retained indefinitely for compliance.
 """
 
 from __future__ import annotations
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -28,7 +29,6 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "var_jobs",
-
         # Primary key — UUID for distributed uniqueness
         sa.Column(
             "id",
@@ -36,16 +36,12 @@ def upgrade() -> None:
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
-
         # Celery task ID — matches the Celery result backend key
         sa.Column("task_id", sa.String(64), nullable=False),
-
         # User who submitted the job (from JWT sub claim)
         sa.Column("user_id", sa.String(128), nullable=False),
-
         # Lifecycle status: pending | started | success | failure
         sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
-
         # Timestamps
         sa.Column(
             "created_at",
@@ -54,25 +50,20 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-
         # Error details (for failed jobs)
         sa.Column("error_message", sa.Text(), nullable=True),
-
         # Request parameters stored for audit and billing
         sa.Column("portfolio_value", sa.Float(), nullable=False),
         sa.Column("n_simulations", sa.Integer(), nullable=False),
         sa.Column("confidence_level", sa.Float(), nullable=False),
         sa.Column("horizon_days", sa.Integer(), nullable=False),
-
         # Scalar results (stored inline for queryability — no S3 fetch needed)
         sa.Column("var_pct", sa.Float(), nullable=True),
         sa.Column("var_abs", sa.Float(), nullable=True),
         sa.Column("cvar_pct", sa.Float(), nullable=True),
         sa.Column("cvar_abs", sa.Float(), nullable=True),
-
         # S3 key for the full Parquet result (loss distribution array)
         sa.Column("result_s3_key", sa.String(512), nullable=True),
-
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("task_id", name="uq_var_jobs_task_id"),
     )

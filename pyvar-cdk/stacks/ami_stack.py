@@ -20,16 +20,12 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import (
-    aws_imagebuilder as imagebuilder,
-    aws_iam as iam,
-    aws_sns as sns,
-    aws_s3_assets as assets,
-    Stack,
-)
+from aws_cdk import Stack
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_imagebuilder as imagebuilder
 from constructs import Construct
-from config import PyvarConfig
 
+from config import PyvarConfig
 
 # ── Numba warmup script baked into the AMI ───────────────────────────────────
 NUMBA_WARMUP_SCRIPT = """
@@ -123,27 +119,26 @@ class AmiStack(Stack):
 
         # ── IAM Role for Image Builder ─────────────────────────────────────────
         builder_role = iam.Role(
-            self, "ImageBuilderRole",
+            self,
+            "ImageBuilderRole",
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "EC2InstanceProfileForImageBuilder"
-                ),
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "AmazonSSMManagedInstanceCore"
-                ),
+                iam.ManagedPolicy.from_aws_managed_policy_name("EC2InstanceProfileForImageBuilder"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore"),
             ],
         )
 
         instance_profile = iam.CfnInstanceProfile(
-            self, "ImageBuilderInstanceProfile",
+            self,
+            "ImageBuilderInstanceProfile",
             roles=[builder_role.role_name],
             instance_profile_name=f"pyvar-{cfg.env_name}-image-builder",
         )
 
         # ── Build component: install pyvar + pre-compile Numba ─────────────────
         build_component = imagebuilder.CfnComponent(
-            self, "PyvarBuildComponent",
+            self,
+            "PyvarBuildComponent",
             name=f"pyvar-{cfg.env_name}-worker-setup",
             version="1.0.0",
             platform="Linux",
@@ -167,7 +162,8 @@ phases:
 
         # ── Recipe: Amazon Linux 2023 + pyvar component ────────────────────────
         recipe = imagebuilder.CfnImageRecipe(
-            self, "WorkerRecipe",
+            self,
+            "WorkerRecipe",
             name=f"pyvar-{cfg.env_name}-worker",
             version="1.0.0",
             parent_image=f"arn:aws:imagebuilder:{cfg.region}:aws:image/amazon-linux-2023-x86/x.x.x",
@@ -191,7 +187,8 @@ phases:
 
         # ── Distribution: share AMI within account only ────────────────────────
         distribution_config = imagebuilder.CfnDistributionConfiguration(
-            self, "WorkerDistribution",
+            self,
+            "WorkerDistribution",
             name=f"pyvar-{cfg.env_name}-worker-dist",
             distributions=[
                 imagebuilder.CfnDistributionConfiguration.DistributionProperty(
@@ -211,9 +208,10 @@ phases:
 
         # ── Infrastructure config: small instance for build ────────────────────
         infra_config = imagebuilder.CfnInfrastructureConfiguration(
-            self, "WorkerInfraConfig",
+            self,
+            "WorkerInfraConfig",
             name=f"pyvar-{cfg.env_name}-worker-infra",
-            instance_types=["c7i.large"],    # enough for pip install + Numba compile
+            instance_types=["c7i.large"],  # enough for pip install + Numba compile
             instance_profile_name=instance_profile.instance_profile_name or "",
             terminate_instance_on_failure=True,
             logging=imagebuilder.CfnInfrastructureConfiguration.LoggingProperty(
@@ -226,7 +224,8 @@ phases:
 
         # ── Image pipeline: triggered manually or via API ──────────────────────
         self.image_pipeline = imagebuilder.CfnImagePipeline(
-            self, "WorkerImagePipeline",
+            self,
+            "WorkerImagePipeline",
             name=f"pyvar-{cfg.env_name}-worker-pipeline",
             image_recipe_arn=recipe.attr_arn,
             infrastructure_configuration_arn=infra_config.attr_arn,
@@ -240,7 +239,8 @@ phases:
 
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(
-            self, "ImagePipelineArn",
+            self,
+            "ImagePipelineArn",
             value=self.image_pipeline.attr_arn,
             description="ARN for the worker AMI image pipeline — trigger after deploying new worker code",
         )

@@ -11,19 +11,19 @@ Reasoning:
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
-from datetime import date, timedelta
 
 
 def generate_gbm_returns(
     n_obs: int = 252,
-    mu: float = 0.0005,        # ~12.5% annualised drift
-    sigma: float = 0.012,      # ~19% annualised volatility (FTSE-like)
+    mu: float = 0.0005,  # ~12.5% annualised drift
+    sigma: float = 0.012,  # ~19% annualised volatility (FTSE-like)
     seed: int = 42,
 ) -> np.ndarray:
     """
@@ -37,7 +37,7 @@ def generate_gbm_returns(
 def generate_fixture_parquet(
     output_path: str | Path,
     instruments: list[str] | None = None,
-    n_obs: int = 504,          # 2 years of trading days
+    n_obs: int = 504,  # 2 years of trading days
     seed: int = 42,
 ) -> Path:
     """

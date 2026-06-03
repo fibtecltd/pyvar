@@ -22,8 +22,8 @@ import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-
 # ── Load returns from Parquet ─────────────────────────────────────────────────
+
 
 def load_returns(
     parquet_path: str | Path,
@@ -46,30 +46,21 @@ def load_returns(
         log_return:    Float64
         close_price:   Float64  (optional)
     """
-    query = (
-        pl.scan_parquet(parquet_path)
-        .filter(pl.col("instrument_id") == instrument_id)
-    )
+    query = pl.scan_parquet(parquet_path).filter(pl.col("instrument_id") == instrument_id)
 
     if start_date is not None:
         query = query.filter(pl.col(date_col) >= start_date)
     if end_date is not None:
         query = query.filter(pl.col(date_col) <= end_date)
 
-    df = (
-        query
-        .select([date_col, return_col])
-        .sort(date_col)
-        .collect()
-    )
+    df = query.select([date_col, return_col]).sort(date_col).collect()
 
     if df.is_empty():
         raise ValueError(
-            f"No returns found for instrument '{instrument_id}' "
-            f"in [{start_date}, {end_date}]."
+            f"No returns found for instrument '{instrument_id}' " f"in [{start_date}, {end_date}]."
         )
 
-    return df[return_col].to_numpy(allow_copy=False)   # zero-copy via Arrow
+    return df[return_col].to_numpy(allow_copy=False)  # zero-copy via Arrow
 
 
 def load_multi_instrument(
@@ -83,10 +74,7 @@ def load_multi_instrument(
     Returns a Polars DataFrame with columns: [date, instrument_id, log_return].
     Useful for portfolio-level aggregation before passing to the engine.
     """
-    query = (
-        pl.scan_parquet(parquet_path)
-        .filter(pl.col("instrument_id").is_in(instrument_ids))
-    )
+    query = pl.scan_parquet(parquet_path).filter(pl.col("instrument_id").is_in(instrument_ids))
 
     if start_date is not None:
         query = query.filter(pl.col("date") >= start_date)
@@ -97,6 +85,7 @@ def load_multi_instrument(
 
 
 # ── Write results to Parquet (PyArrow) ────────────────────────────────────────
+
 
 def write_result_parquet(
     result: dict,
@@ -114,33 +103,35 @@ def write_result_parquet(
     - Compression codec (snappy for speed, zstd for size)
     - Row group size (tune for downstream scan patterns)
     """
-    schema = pa.schema([
-        pa.field("task_id",           pa.string()),
-        pa.field("var_pct",           pa.float64()),
-        pa.field("var_abs",           pa.float64()),
-        pa.field("cvar_pct",          pa.float64()),
-        pa.field("cvar_abs",          pa.float64()),
-        pa.field("mu",                pa.float64()),
-        pa.field("sigma",             pa.float64()),
-        pa.field("n_simulations",     pa.int64()),
-        pa.field("confidence_level",  pa.float64()),
-        pa.field("horizon_days",      pa.int32()),
-        pa.field("loss_dist",         pa.list_(pa.float64())),
-    ])
+    schema = pa.schema(
+        [
+            pa.field("task_id", pa.string()),
+            pa.field("var_pct", pa.float64()),
+            pa.field("var_abs", pa.float64()),
+            pa.field("cvar_pct", pa.float64()),
+            pa.field("cvar_abs", pa.float64()),
+            pa.field("mu", pa.float64()),
+            pa.field("sigma", pa.float64()),
+            pa.field("n_simulations", pa.int64()),
+            pa.field("confidence_level", pa.float64()),
+            pa.field("horizon_days", pa.int32()),
+            pa.field("loss_dist", pa.list_(pa.float64())),
+        ]
+    )
 
     table = pa.table(
         {
-            "task_id":          [task_id],
-            "var_pct":          [result["var_pct"]],
-            "var_abs":          [result["var_abs"]],
-            "cvar_pct":         [result["cvar_pct"]],
-            "cvar_abs":         [result["cvar_abs"]],
-            "mu":               [result["mu"]],
-            "sigma":            [result["sigma"]],
-            "n_simulations":    [result["n_simulations"]],
+            "task_id": [task_id],
+            "var_pct": [result["var_pct"]],
+            "var_abs": [result["var_abs"]],
+            "cvar_pct": [result["cvar_pct"]],
+            "cvar_abs": [result["cvar_abs"]],
+            "mu": [result["mu"]],
+            "sigma": [result["sigma"]],
+            "n_simulations": [result["n_simulations"]],
             "confidence_level": [result["confidence_level"]],
-            "horizon_days":     [result["horizon_days"]],
-            "loss_dist":        [result["loss_dist"]],
+            "horizon_days": [result["horizon_days"]],
+            "loss_dist": [result["loss_dist"]],
         },
         schema=schema,
     )
@@ -148,6 +139,6 @@ def write_result_parquet(
     pq.write_table(
         table,
         output_path,
-        compression="snappy",        # fast read/write for hot results
+        compression="snappy",  # fast read/write for hot results
         row_group_size=1024,
     )

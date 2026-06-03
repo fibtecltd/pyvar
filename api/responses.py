@@ -26,11 +26,11 @@ class OrjsonResponse(JSONResponse):
     media_type = "application/json"
 
     def render(self, content: object) -> bytes:
-        return orjson.dumps(
+        return orjson.dumps(  # type: ignore[no-any-return]
             content,
             option=(
-                orjson.OPT_SERIALIZE_NUMPY   # numpy arrays → JSON arrays natively
-                | orjson.OPT_NON_STR_KEYS    # int/float dict keys allowed
-                | orjson.OPT_UTC_Z           # UTC datetimes as "Z" suffix
+                orjson.OPT_SERIALIZE_NUMPY  # numpy arrays → JSON arrays natively
+                | orjson.OPT_NON_STR_KEYS  # int/float dict keys allowed
+                | orjson.OPT_UTC_Z  # UTC datetimes as "Z" suffix
             ),
         )

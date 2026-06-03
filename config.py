@@ -5,6 +5,7 @@ Rationale: single source of truth; pydantic-settings validates types at startup.
 """
 
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
 
     # ── Application ────────────────────────────────────────────────────────────
     app_name: str = "pyvar"
-    app_env: str = "development"          # development | staging | production
+    app_env: str = "development"  # development | staging | production
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
 
@@ -24,13 +25,13 @@ class Settings(BaseSettings):
 
     # ── Redis (Celery broker + result backend + cache) ─────────────────────────
     redis_url: str = "redis://localhost:6379/0"
-    celery_result_ttl: int = 3600          # seconds — results cached for 1 hour
+    celery_result_ttl: int = 3600  # seconds — results cached for 1 hour
 
     # ── PostgreSQL (audit log, job metadata) ───────────────────────────────────
     postgres_dsn: str = "postgresql+asyncpg://postgres:pyvar@localhost:5432/pyvar"
 
     # ── S3 / MinIO (large Parquet result storage) ─────────────────────────────
-    s3_endpoint_url: str = "http://localhost:9000"   # set to None for real AWS
+    s3_endpoint_url: str = "http://localhost:9000"  # set to None for real AWS
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"
     s3_bucket: str = "pyvar-results"

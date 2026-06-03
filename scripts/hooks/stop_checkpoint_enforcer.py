@@ -20,17 +20,16 @@ from pathlib import Path
 WORKSPACE = Path("/workspace/pyvar")
 CHECKPOINT = WORKSPACE / "CHECKPOINT.md"
 
-RED   = "\033[31m"
+RED = "\033[31m"
 YELLOW = "\033[33m"
-GREEN  = "\033[32m"
-BOLD   = "\033[1m"
-RESET  = "\033[0m"
+GREEN = "\033[32m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 
 def get_uncommitted_engine_files() -> list[str]:
     result = subprocess.run(
-        ["git", "status", "--porcelain", "engine/"],
-        cwd=WORKSPACE, capture_output=True, text=True
+        ["git", "status", "--porcelain", "engine/"], cwd=WORKSPACE, capture_output=True, text=True
     )
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
@@ -38,11 +37,14 @@ def get_uncommitted_engine_files() -> list[str]:
 def get_failing_tests() -> list[str]:
     result = subprocess.run(
         ["python", "-m", "pytest", "tests/test_engine.py", "-x", "-q", "--tb=no"],
-        cwd=WORKSPACE, capture_output=True, text=True, timeout=120
+        cwd=WORKSPACE,
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     if result.returncode != 0:
         # Extract failing test names
-        failing = [l for l in result.stdout.splitlines() if "FAILED" in l]
+        failing = [ln for ln in result.stdout.splitlines() if "FAILED" in ln]
         return failing
     return []
 
@@ -76,8 +78,7 @@ def main() -> int:
         failing = get_failing_tests()
         if failing:
             issues.append(
-                f"{len(failing)} test(s) failing:\n"
-                + "\n".join(f"  {t}" for t in failing[:5])
+                f"{len(failing)} test(s) failing:\n" + "\n".join(f"  {t}" for t in failing[:5])
             )
     except subprocess.TimeoutExpired:
         warnings.append("pytest timed out — run manually before stopping.")
@@ -85,7 +86,10 @@ def main() -> int:
         pass
 
     if issues:
-        print(f"\n{BOLD}{RED}━━ Stop Hook: Blocked ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}", file=sys.stderr)
+        print(
+            f"\n{BOLD}{RED}━━ Stop Hook: Blocked ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}",
+            file=sys.stderr,
+        )
         for issue in issues:
             print(f"{RED}BLOCKED{RESET}  {issue}\n", file=sys.stderr)
         print(f"{BOLD}Resolve all issues before stopping.{RESET}\n", file=sys.stderr)

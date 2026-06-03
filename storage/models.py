@@ -49,12 +49,8 @@ class VaRJob(Base):
 
     # Job lifecycle
     status: Mapped[str] = mapped_column(String(16), default="pending")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Request parameters (stored for audit / billing)
@@ -72,9 +68,7 @@ class VaRJob(Base):
     # S3 path to the full Parquet result (loss distribution array)
     result_s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
-    __table_args__ = (
-        Index("ix_var_jobs_user_created", "user_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_var_jobs_user_created", "user_id", "created_at"),)
 
     def __repr__(self) -> str:
         return f"<VaRJob task_id={self.task_id} status={self.status}>"
