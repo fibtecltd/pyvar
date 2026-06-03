@@ -31,13 +31,13 @@ jobs:
         run: pip install black isort mypy ruff
 
       - name: Black (formatting)
-        run: black --check --line-length 100 pyvar/
+        run: black --check --line-length 100 .
 
       - name: isort (import order)
-        run: isort --check-only pyvar/
+        run: isort --check-only .
 
       - name: Ruff (fast linter)
-        run: ruff check pyvar/
+        run: ruff check .
 
   # ── 2. Security scan ──────────────────────────────────────────────────────
   security:
@@ -55,7 +55,7 @@ jobs:
       - name: Bandit security scan
         # -ll = report MEDIUM and HIGH severity only
         # Fail on HIGH findings; warn on MEDIUM
-        run: bandit -r pyvar/ -ll -x pyvar/tests/ --exit-zero
+        run: bandit -r . -ll -x tests/ --exit-zero
         # Remove --exit-zero once all MEDIUM findings are resolved
 
   # ── 3. Unit & integration tests ───────────────────────────────────────────
@@ -99,7 +99,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r pyvar/requirements.txt
+          pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov httpx
 
       - name: Run tests with coverage
@@ -110,7 +110,6 @@ jobs:
           JWT_SECRET: test-jwt-secret-not-for-production
           CELERY_BROKER_URL: redis://localhost:6379/0
         run: |
-          cd pyvar
           pytest -v \
             --cov=. \
             --cov-report=term-missing \
@@ -120,7 +119,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: pyvar/coverage.xml
+          files: coverage.xml
           flags: python-${{ matrix.python-version }}
 
   # ── 4. CDK synth check ────────────────────────────────────────────────────
@@ -170,8 +169,8 @@ jobs:
       - name: Build API image (no push)
         uses: docker/build-push-action@v5
         with:
-          context: pyvar/
-          file: pyvar/Dockerfile
+          context: .
+          file: Dockerfile
           push: false
           tags: pyvar-api:pr-${{ github.sha }}
           cache-from: type=gha
