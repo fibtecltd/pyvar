@@ -1,14 +1,14 @@
 name: pyvar CI
 
-# Runs on every PR and push to non-main branches.
-# The CodePipeline (triggered on main) is the CD path.
+# Runs on every PR and push to non-master branches.
+# The CodePipeline (triggered on master) is the CD path.
 # This workflow provides fast feedback on PRs.
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [master, develop]
   push:
-    branches-ignore: [main]
+    branches-ignore: [master]
 
 env:
   PYTHON_VERSION: "3.11"
