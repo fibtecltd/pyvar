@@ -174,7 +174,7 @@ def christoffersen_independence_test(breaches: np.ndarray) -> dict:  # type: ign
             return 0.0
         if prob <= 0.0 or prob >= 1.0:
             return 0.0
-        return count * np.log(prob)
+        return float(count * np.log(prob))
 
     log_alt = (
         _safe_pow_log(n00, 1 - pi01)
