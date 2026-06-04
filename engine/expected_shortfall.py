@@ -23,6 +23,9 @@ __all__ = [
     "monte_carlo_expected_shortfall",
     "cvar_decomposition_euler",
     "stressed_expected_shortfall",
+    "liquidity_adjusted_es",
+    "es_at_multiple_confidence_levels",
+    "expected_shortfall_contribution",
 ]
 
 
@@ -253,5 +256,137 @@ def stressed_expected_shortfall(
         "stressed_es_abs": round(float(es) * portfolio_value, 2),
         "stressed_var_pct": round(float(var), 8),
         "window_size": int(window.size),
+        "confidence_level": confidence_level,
+    }
+
+
+def liquidity_adjusted_es(
+    es_base: float,
+    partial_es: list[float],
+    liquidity_horizons: list[float],
+    base_horizon: float = 10.0,
+) -> dict:  # type: ignore[type-arg]
+    """Liquidity-adjusted Expected Shortfall (FRTB IMA, MAR33.12).
+
+    Scales the base-horizon ES up for risk factors that take longer than the
+    base liquidity horizon T to unwind::
+
+        ES = sqrt( ES_base^2 + Σ_{j>=2} ( ES_j * sqrt((LH_j − LH_{j-1}) / T) )^2 )
+
+    where ``ES_base`` is the whole-portfolio ES at horizon T, and ``ES_j`` is the
+    ES with respect to factors in liquidity bucket j and longer.
+
+    Args:
+        es_base: Whole-portfolio ES at the base horizon T.
+        partial_es: ``ES_j`` for buckets j = 2..K (length K-1).
+        liquidity_horizons: Liquidity horizons ``LH_1..LH_K`` (length K, with
+            ``LH_1 == base_horizon`` and non-decreasing).
+        base_horizon: Base liquidity horizon T in days (FRTB uses 10).
+
+    Returns:
+        Dict with ``liquidity_adjusted_es`` and the ``scaling_factor`` applied.
+
+    Raises:
+        ValueError: If ``partial_es`` length != ``len(liquidity_horizons) - 1``.
+    """
+    if len(partial_es) != len(liquidity_horizons) - 1:
+        raise ValueError("partial_es must have length len(liquidity_horizons) - 1")
+
+    acc = es_base * es_base
+    for j in range(1, len(liquidity_horizons)):
+        delta = (liquidity_horizons[j] - liquidity_horizons[j - 1]) / base_horizon
+        if delta < 0.0:
+            raise ValueError("liquidity_horizons must be non-decreasing")
+        term = partial_es[j - 1] * np.sqrt(delta)
+        acc += term * term
+    es_liq = float(np.sqrt(acc))
+    return {
+        "liquidity_adjusted_es": round(es_liq, 8),
+        "es_base": round(float(es_base), 8),
+        "scaling_factor": round(es_liq / es_base, 8) if es_base != 0.0 else 0.0,
+    }
+
+
+def es_at_multiple_confidence_levels(
+    returns: np.ndarray,
+    portfolio_value: float,
+    confidence_levels: tuple[float, ...] = (0.95, 0.975, 0.99),
+) -> dict:  # type: ignore[type-arg]
+    """Expected Shortfall evaluated at several confidence levels at once.
+
+    Useful for limit dashboards that report internal (95%), FRTB (97.5%) and
+    Basel (99%) ES side by side. ES is monotone non-decreasing in confidence.
+
+    Args:
+        returns: 1-D array of historical portfolio returns.
+        portfolio_value: Current portfolio value in base currency.
+        confidence_levels: Confidence levels (each in [0.90, 0.9999]).
+
+    Returns:
+        Dict with ``es`` (confidence-key -> ES%) and ``es_abs``.
+
+    Raises:
+        ValueError: If ``returns`` is empty.
+    """
+    returns = np.asarray(returns, dtype=np.float64)
+    if returns.size == 0:
+        raise ValueError("returns must be non-empty")
+    sorted_losses = np.sort(-returns)
+    es: dict[str, float] = {}
+    es_abs: dict[str, float] = {}
+    for cl in confidence_levels:
+        _, e = _tail_mean(sorted_losses, cl)
+        key = f"cl_{int(round(cl * 10000)):04d}"
+        es[key] = round(float(e), 8)
+        es_abs[key] = round(float(e) * portfolio_value, 2)
+    return {"es": es, "es_abs": es_abs}
+
+
+def expected_shortfall_contribution(
+    asset_returns: np.ndarray,
+    weights: np.ndarray,
+    portfolio_value: float,
+    confidence_level: float = 0.975,
+) -> dict:  # type: ignore[type-arg]
+    """Per-asset ES contribution by conditional expectation in the tail.
+
+    Each asset's ES contribution is its average loss across exactly the
+    scenarios where the *portfolio* breaches VaR. By construction the
+    contributions sum to total ES (the additive allocation FRTB expects).
+
+    Args:
+        asset_returns: ``(T, N)`` matrix of per-asset returns over T scenarios.
+        weights: Length-N portfolio weights.
+        portfolio_value: Current portfolio value in base currency.
+        confidence_level: ES confidence in [0.90, 0.9999].
+
+    Returns:
+        Dict with ``contribution`` (per-asset ES%), ``contribution_abs`` and the
+        total ``es_pct``.
+
+    Raises:
+        ValueError: If shapes are inconsistent or there are no scenarios.
+    """
+    a = np.asarray(asset_returns, dtype=np.float64)
+    w = np.asarray(weights, dtype=np.float64)
+    if a.ndim != 2 or a.shape[1] != w.size:
+        raise ValueError("asset_returns must be (T, N) matching weights length N")
+    if a.shape[0] == 0:
+        raise ValueError("asset_returns must contain at least one scenario")
+
+    port = a @ w
+    losses = -port
+    t = losses.size
+    idx = min(int(np.floor(confidence_level * t)), t - 1)
+    tail_idx = np.argsort(losses)[idx:]  # the largest losses (tail)
+    # Per-asset loss contribution in each tail scenario, averaged.
+    asset_losses = -(a[tail_idx, :] * w)  # shape (n_tail, N)
+    contribution = np.mean(asset_losses, axis=0)
+    es_pct = float(np.sum(contribution))
+    return {
+        "contribution": [round(float(c), 8) for c in contribution],
+        "contribution_abs": [round(float(c) * portfolio_value, 2) for c in contribution],
+        "es_pct": round(es_pct, 8),
+        "n_tail": int(tail_idx.size),
         "confidence_level": confidence_level,
     }
