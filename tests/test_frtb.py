@@ -9,10 +9,15 @@ import numpy as np
 import pytest
 
 from engine.frtb import (
+    extreme_value_theory_var,
+    frtb_ima_aggregate_capital_charge,
     frtb_ima_expected_shortfall,
+    frtb_ima_non_modellable_risk_factors,
+    frtb_ima_stressed_period_finder,
     frtb_sa_default_risk_charge,
     frtb_sa_residual_risk_addon,
     frtb_sa_sensitivity_based_method,
+    spectral_risk_measure,
 )
 
 # ── 60. FRTB SA Sensitivity-Based Method ──────────────────────────────────────
@@ -72,3 +77,86 @@ def test_ima_es_exceeds_var():
     r = frtb_ima_expected_shortfall(returns)
     assert r["es"] >= r["var"]
     assert r["confidence_level"] == 0.975
+
+
+# ── 64. FRTB IMA Stressed Period Finder ───────────────────────────────────────
+
+
+def test_stressed_period_finder_locates_high_vol_window():
+    rng = np.random.default_rng(1)
+    calm = rng.normal(0.0, 0.005, size=400)
+    stressed = rng.normal(0.0, 0.05, size=300)  # high-vol block
+    series = np.concatenate([calm, stressed])
+    r = frtb_ima_stressed_period_finder(series, window=250)
+    # The most stressful 250-day window should start inside the high-vol block.
+    assert r["stressed_window_start"] >= 400 - 250
+    assert r["stressed_es"] > 0
+
+
+def test_stressed_period_finder_too_short_raises():
+    with pytest.raises(ValueError):
+        frtb_ima_stressed_period_finder(np.zeros(100), window=250)
+
+
+# ── 65. FRTB IMA Non-Modellable Risk Factors ──────────────────────────────────
+
+
+def test_nmrf_ses_rho_extremes():
+    ises = np.array([3.0, 4.0])
+    euclid = frtb_ima_non_modellable_risk_factors(ises, rho=0.0)["ses"]
+    linear = frtb_ima_non_modellable_risk_factors(ises, rho=1.0)["ses"]
+    assert abs(euclid - 5.0) < 1e-8  # sqrt(9+16)
+    assert abs(linear - 7.0) < 1e-8  # 3+4
+    assert linear > euclid
+
+
+def test_nmrf_ses_bad_rho_raises():
+    with pytest.raises(ValueError):
+        frtb_ima_non_modellable_risk_factors(np.array([1.0]), rho=1.5)
+
+
+# ── 66. FRTB IMA Aggregate Capital Charge ─────────────────────────────────────
+
+
+def test_aggregate_capital_charge_is_sum():
+    r = frtb_ima_aggregate_capital_charge(imcc=100.0, ses=20.0, default_risk_charge=30.0)
+    assert abs(r["aggregate_capital_charge"] - 150.0) < 1e-8
+
+
+def test_aggregate_capital_charge_negative_raises():
+    with pytest.raises(ValueError):
+        frtb_ima_aggregate_capital_charge(imcc=-1.0, ses=0.0)
+
+
+# ── 67. Extreme Value Theory (EVT) VaR ────────────────────────────────────────
+
+
+def test_evt_var_exceeds_threshold_and_monotone_in_confidence():
+    rng = np.random.default_rng(2)
+    returns = rng.standard_t(df=4, size=5000) * 0.01  # fat-tailed
+    r99 = extreme_value_theory_var(returns, threshold_quantile=0.95, confidence_level=0.99)
+    r999 = extreme_value_theory_var(returns, threshold_quantile=0.95, confidence_level=0.999)
+    assert r99["evt_var"] >= r99["threshold"]
+    assert r999["evt_var"] > r99["evt_var"]
+
+
+def test_evt_var_bad_quantile_ordering_raises():
+    with pytest.raises(ValueError):
+        extreme_value_theory_var(np.random.default_rng(0).normal(size=1000), 0.99, 0.95)
+
+
+# ── 68. Spectral Risk Measure ─────────────────────────────────────────────────
+
+
+def test_spectral_risk_increases_with_risk_aversion_and_exceeds_mean():
+    rng = np.random.default_rng(3)
+    returns = rng.normal(0.0, 0.02, size=5000)
+    low = spectral_risk_measure(returns, risk_aversion=5.0)
+    high = spectral_risk_measure(returns, risk_aversion=50.0)
+    assert high["spectral_risk"] > low["spectral_risk"]  # more tail-weighting
+    assert low["spectral_risk"] >= low["mean_loss"]
+
+
+def test_spectral_risk_bad_aversion_raises():
+    with pytest.raises(ValueError):
+        spectral_risk_measure(np.array([0.01, -0.02]), risk_aversion=0.0)
