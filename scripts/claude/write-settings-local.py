@@ -24,9 +24,9 @@ import json
 import sys
 from pathlib import Path
 
-WORKSPACE = Path("/workspace/pyvar")
+WORKSPACE = Path(__file__).resolve().parent.parent.parent
 OUTPUT = WORKSPACE / ".claude" / "settings.local.json"
-HOOKS_DIR = "/workspace/pyvar/scripts/hooks"
+HOOKS_DIR = str(WORKSPACE / "scripts" / "hooks")
 
 
 def phase_hooks(phase: str, mode: str = "seq") -> dict:
