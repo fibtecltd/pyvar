@@ -1,44 +1,19 @@
 {
-  "_purpose": "pyvar.com \u2014 base settings, registers all 6 marketplaces.",
+  "_purpose": "pyvar.com base settings, registers marketplaces.",
   "_place_at": "pyvar/.claude/settings.json",
   "enabledPlugins": {},
   "extraKnownMarketplaces": {
     "python-backend-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "ruslan-korneev/claude-plugins"
-      }
+      "source": { "source": "github", "repo": "fibtecltd/python-backend-plugins" }
     },
     "claude-code-skills": {
-      "source": {
-        "source": "github",
-        "repo": "alirezarezvani/claude-skills"
-      }
+      "source": { "source": "github", "repo": "fibtecltd/claude-skills" }
     },
     "levnikolaevich-skills-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "levnikolaevich/claude-code-skills"
-      }
-    },
-    "K-Dense-AI-scientific-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "K-Dense-AI/scientific-agent-skills"
-      }
+      "source": { "source": "github", "repo": "levnikolaevich/claude-code-skills" }
     },
     "JoelLewis-finance-skills": {
-      "source": {
-        "source": "github",
-        "repo": "JoelLewis/finance_skills"
-      }
-    },
-    "pyvar-marketplace": {
-      "_note": "Local skills in .claude/skills/",
-      "source": {
-        "source": "github",
-        "repo": "fibtec/pyvar"
-      }
+      "source": { "source": "github", "repo": "JoelLewis/finance_skills" }
     }
   }
 }
