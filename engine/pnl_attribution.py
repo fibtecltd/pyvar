@@ -19,6 +19,11 @@ __all__ = [
     "greeks_based_pnl_explain",
     "pnl_attribution_test_frtb_pat",
     "theta_carry_attribution",
+    "gamma_pnl_attribution",
+    "vega_pnl_attribution",
+    "fx_pnl_attribution",
+    "rates_pnl_attribution",
+    "credit_pnl_attribution",
 ]
 
 
@@ -142,4 +147,130 @@ def theta_carry_attribution(
         "theta_pnl": round(float(theta_pnl), 8),
         "funding_cost": round(float(funding_cost), 8),
         "carry_pnl": round(float(theta_pnl) - float(funding_cost), 8),
+    }
+
+
+def gamma_pnl_attribution(gamma: float, spot_move: float) -> dict:  # type: ignore[type-arg]
+    """Gamma (convexity) P&L component: ``½ · Γ · dS²``.
+
+    Args:
+        gamma: Portfolio gamma (∂²V/∂S²).
+        spot_move: Realised underlying move dS.
+
+    Returns:
+        Dict with ``gamma_pnl``.
+    """
+    return {"gamma_pnl": round(0.5 * gamma * spot_move * spot_move, 8)}
+
+
+def vega_pnl_attribution(vega: float, vol_move: float) -> dict:  # type: ignore[type-arg]
+    """Vega P&L component: ``ν · dσ``.
+
+    Args:
+        vega: Portfolio vega (∂V/∂σ).
+        vol_move: Realised volatility move dσ.
+
+    Returns:
+        Dict with ``vega_pnl``.
+    """
+    return {"vega_pnl": round(vega * vol_move, 8)}
+
+
+def fx_pnl_attribution(
+    fx_deltas: np.ndarray,
+    fx_moves: np.ndarray,
+    currency_names: list[str] | None = None,
+) -> dict:  # type: ignore[type-arg]
+    """FX P&L attribution across currency pairs.
+
+    Total FX P&L = Σ fx_delta_i · dFX_i, additive across currencies.
+
+    Args:
+        fx_deltas: P&L per unit move of each FX rate.
+        fx_moves: Realised move in each FX rate.
+        currency_names: Optional labels; default ``ccy_0, ...``.
+
+    Returns:
+        Dict with ``total_fx_pnl`` and per-currency ``fx_pnl``.
+
+    Raises:
+        ValueError: If lengths mismatch.
+    """
+    d = np.asarray(fx_deltas, dtype=np.float64)
+    m = np.asarray(fx_moves, dtype=np.float64)
+    if d.size != m.size:
+        raise ValueError("fx_deltas and fx_moves must have the same length")
+    if currency_names is None:
+        currency_names = [f"ccy_{i}" for i in range(d.size)]
+    pnl = d * m
+    return {
+        "total_fx_pnl": round(float(np.sum(pnl)), 8),
+        "fx_pnl": {currency_names[i]: round(float(pnl[i]), 8) for i in range(d.size)},
+    }
+
+
+def rates_pnl_attribution(
+    key_rate_sensitivities: np.ndarray,
+    yield_moves_bp: np.ndarray,
+    tenor_names: list[str] | None = None,
+) -> dict:  # type: ignore[type-arg]
+    """Interest-rate P&L attribution by key-rate tenor.
+
+    Total rates P&L = Σ sensitivity_t · dyield_bp_t, where each sensitivity is
+    P&L per +1bp move at that tenor. Additive across the key-rate ladder.
+
+    Args:
+        key_rate_sensitivities: P&L per +1bp move at each tenor.
+        yield_moves_bp: Realised yield move (in basis points) at each tenor.
+        tenor_names: Optional labels; default ``tenor_0, ...``.
+
+    Returns:
+        Dict with ``total_rates_pnl`` and per-tenor ``rates_pnl``.
+
+    Raises:
+        ValueError: If lengths mismatch.
+    """
+    s = np.asarray(key_rate_sensitivities, dtype=np.float64)
+    m = np.asarray(yield_moves_bp, dtype=np.float64)
+    if s.size != m.size:
+        raise ValueError("sensitivities and yield_moves_bp must have the same length")
+    if tenor_names is None:
+        tenor_names = [f"tenor_{i}" for i in range(s.size)]
+    pnl = s * m
+    return {
+        "total_rates_pnl": round(float(np.sum(pnl)), 8),
+        "rates_pnl": {tenor_names[i]: round(float(pnl[i]), 8) for i in range(s.size)},
+    }
+
+
+def credit_pnl_attribution(
+    cs01_sensitivities: np.ndarray,
+    spread_moves_bp: np.ndarray,
+    name_labels: list[str] | None = None,
+) -> dict:  # type: ignore[type-arg]
+    """Credit P&L attribution by issuer / curve.
+
+    Total credit P&L = Σ cs01_i · dspread_bp_i, additive across credit names.
+
+    Args:
+        cs01_sensitivities: P&L per +1bp credit-spread move per name.
+        spread_moves_bp: Realised spread move (basis points) per name.
+        name_labels: Optional labels; default ``name_0, ...``.
+
+    Returns:
+        Dict with ``total_credit_pnl`` and per-name ``credit_pnl``.
+
+    Raises:
+        ValueError: If lengths mismatch.
+    """
+    c = np.asarray(cs01_sensitivities, dtype=np.float64)
+    m = np.asarray(spread_moves_bp, dtype=np.float64)
+    if c.size != m.size:
+        raise ValueError("cs01_sensitivities and spread_moves_bp must have the same length")
+    if name_labels is None:
+        name_labels = [f"name_{i}" for i in range(c.size)]
+    pnl = c * m
+    return {
+        "total_credit_pnl": round(float(np.sum(pnl)), 8),
+        "credit_pnl": {name_labels[i]: round(float(pnl[i]), 8) for i in range(c.size)},
     }

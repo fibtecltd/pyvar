@@ -9,9 +9,14 @@ import numpy as np
 import pytest
 
 from engine.pnl_attribution import (
+    credit_pnl_attribution,
+    fx_pnl_attribution,
+    gamma_pnl_attribution,
     greeks_based_pnl_explain,
     pnl_attribution_test_frtb_pat,
+    rates_pnl_attribution,
     theta_carry_attribution,
+    vega_pnl_attribution,
 )
 
 # ── 36. Greeks-based P&L Explain ──────────────────────────────────────────────
@@ -72,3 +77,53 @@ def test_theta_carry_nets_funding():
     r = theta_carry_attribution(theta=-5.0, time_step=2.0, funding_cost=3.0)
     assert abs(r["theta_pnl"] - (-10.0)) < 1e-9
     assert abs(r["carry_pnl"] - (-13.0)) < 1e-9
+
+
+# ── 39. Gamma P&L Attribution ─────────────────────────────────────────────────
+
+
+def test_gamma_pnl_quadratic_in_spot_move():
+    r1 = gamma_pnl_attribution(10.0, 0.5)
+    r2 = gamma_pnl_attribution(10.0, 1.0)
+    assert abs(r1["gamma_pnl"] - 0.5 * 10.0 * 0.25) < 1e-9
+    assert abs(r2["gamma_pnl"] - 4 * r1["gamma_pnl"]) < 1e-9  # 2x move → 4x gamma pnl
+
+
+# ── 40. Vega P&L Attribution ──────────────────────────────────────────────────
+
+
+def test_vega_pnl_linear_in_vol_move():
+    r = vega_pnl_attribution(50.0, 0.02)
+    assert abs(r["vega_pnl"] - 1.0) < 1e-9
+
+
+# ── 41. FX P&L Attribution ────────────────────────────────────────────────────
+
+
+def test_fx_pnl_additive():
+    d = np.array([1000.0, -2000.0])
+    m = np.array([0.01, -0.02])
+    r = fx_pnl_attribution(d, m, currency_names=["EURUSD", "GBPUSD"])
+    assert abs(sum(r["fx_pnl"].values()) - r["total_fx_pnl"]) < 1e-9
+
+
+# ── 42. Rates P&L Attribution ─────────────────────────────────────────────────
+
+
+def test_rates_pnl_additive():
+    s = np.array([-50.0, -120.0, -30.0])  # P&L per +1bp
+    moves = np.array([2.0, -1.0, 0.5])  # bp
+    r = rates_pnl_attribution(s, moves)
+    assert abs(sum(r["rates_pnl"].values()) - r["total_rates_pnl"]) < 1e-9
+
+
+# ── 43. Credit P&L Attribution ────────────────────────────────────────────────
+
+
+def test_credit_pnl_additive_and_mismatch_raises():
+    c = np.array([-80.0, -40.0])
+    moves = np.array([5.0, -3.0])
+    r = credit_pnl_attribution(c, moves)
+    assert abs(sum(r["credit_pnl"].values()) - r["total_credit_pnl"]) < 1e-9
+    with pytest.raises(ValueError):
+        credit_pnl_attribution(np.array([1.0]), np.array([1.0, 2.0]))
