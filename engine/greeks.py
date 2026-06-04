@@ -11,11 +11,17 @@ so CLAUDE.md §3.1 is satisfied trivially — there are no JIT kernels to constr
 from __future__ import annotations
 
 import numpy as np
+from scipy import stats
 
 __all__ = [
     "portfolio_delta_aggregated",
     "gamma_cross_gamma_matrix",
     "vega_surface_bucketed",
+    "dv01_pv01_bucketed",
+    "cs01_credit_spread",
+    "rho_interest_rate",
+    "theta_time_decay",
+    "charm_delta_decay",
 ]
 
 
@@ -133,3 +139,241 @@ def vega_surface_bucketed(
         "surface": surface.tolist(),
         "total_vega": round(float(np.sum(surface)), 8),
     }
+
+
+def _d1_d2(
+    spot: float, strike: float, rate: float, sigma: float, tau: float, div_yield: float
+) -> tuple[float, float, float]:
+    """Black-Scholes d1, d2 and √tau (shared by the option Greeks)."""
+    sqrt_t = np.sqrt(tau)
+    d1 = (np.log(spot / strike) + (rate - div_yield + 0.5 * sigma * sigma) * tau) / (sigma * sqrt_t)
+    d2 = d1 - sigma * sqrt_t
+    return float(d1), float(d2), float(sqrt_t)
+
+
+def dv01_pv01_bucketed(
+    cashflows: np.ndarray,
+    times: np.ndarray,
+    flat_yield: float,
+    bucket_indices: np.ndarray,
+    n_buckets: int,
+) -> dict:  # type: ignore[type-arg]
+    """Tenor-bucketed DV01 / PV01 of a fixed cashflow stream.
+
+    For continuously-discounted cashflows ``PV = Σ cf_k e^{-y t_k}`` the DV01 of
+    each cashflow (price change for a +1bp yield move) is
+    ``cf_k · t_k · e^{-y t_k} · 1e-4``. Cashflows are summed into tenor buckets;
+    the bucket DV01s sum exactly to the total.
+
+    Args:
+        cashflows: Cashflow amounts.
+        times: Cashflow times in years.
+        flat_yield: Flat continuously-compounded discount yield.
+        bucket_indices: Tenor bucket index per cashflow in ``[0, n_buckets)``.
+        n_buckets: Number of tenor buckets.
+
+    Returns:
+        Dict with ``dv01_buckets``, ``total_dv01``, ``total_pv01`` (equal to
+        ``total_dv01`` for a 1bp move) and ``pv``.
+
+    Raises:
+        ValueError: If lengths mismatch or bucket indices are out of range.
+    """
+    cf = np.asarray(cashflows, dtype=np.float64)
+    t = np.asarray(times, dtype=np.float64)
+    bi = np.asarray(bucket_indices, dtype=np.int64)
+    if not (cf.size == t.size == bi.size):
+        raise ValueError("cashflows, times, bucket_indices must be equal length")
+    if cf.size and (bi.min() < 0 or bi.max() >= n_buckets):
+        raise ValueError("bucket index out of range")
+
+    discount = np.exp(-flat_yield * t)
+    pv_k = cf * discount
+    dv01_k = cf * t * discount * 1e-4
+    buckets = np.zeros(n_buckets, dtype=np.float64)
+    for k in range(cf.size):
+        buckets[bi[k]] += dv01_k[k]
+    total_dv01 = float(np.sum(dv01_k))
+    return {
+        "dv01_buckets": [round(float(b), 8) for b in buckets],
+        "total_dv01": round(total_dv01, 8),
+        "total_pv01": round(total_dv01, 8),
+        "pv": round(float(np.sum(pv_k)), 6),
+    }
+
+
+def cs01_credit_spread(
+    cashflows: np.ndarray,
+    times: np.ndarray,
+    risk_free_rate: float,
+    credit_spread: float,
+) -> dict:  # type: ignore[type-arg]
+    """CS01 — sensitivity of a risky cashflow stream to a +1bp credit spread move.
+
+    Cashflows are discounted at ``r + s``; CS01 is
+    ``Σ cf_k · t_k · e^{-(r+s) t_k} · 1e-4`` — the price drop for a 1bp widening
+    of the credit spread.
+
+    Args:
+        cashflows: Cashflow amounts.
+        times: Cashflow times in years.
+        risk_free_rate: Continuously-compounded risk-free rate.
+        credit_spread: Continuously-compounded credit spread.
+
+    Returns:
+        Dict with ``cs01`` and the risky present value ``pv``.
+
+    Raises:
+        ValueError: If ``cashflows`` and ``times`` differ in length.
+    """
+    cf = np.asarray(cashflows, dtype=np.float64)
+    t = np.asarray(times, dtype=np.float64)
+    if cf.size != t.size:
+        raise ValueError("cashflows and times must have the same length")
+
+    discount = np.exp(-(risk_free_rate + credit_spread) * t)
+    cs01 = float(np.sum(cf * t * discount * 1e-4))
+    return {
+        "cs01": round(cs01, 8),
+        "pv": round(float(np.sum(cf * discount)), 6),
+    }
+
+
+def rho_interest_rate(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    option_type: str = "call",
+    div_yield: float = 0.0,
+) -> dict:  # type: ignore[type-arg]
+    """Black-Scholes Rho — option value sensitivity to the interest rate.
+
+    ``Rho_call = K τ e^{-rτ} N(d2)``; ``Rho_put = -K τ e^{-rτ} N(-d2)``.
+
+    Args:
+        spot: Underlying spot price.
+        strike: Strike price.
+        rate: Continuously-compounded risk-free rate.
+        sigma: Volatility (annualised).
+        tau: Time to maturity in years.
+        option_type: ``"call"`` or ``"put"``.
+        div_yield: Continuous dividend yield.
+
+    Returns:
+        Dict with ``rho`` (per unit rate, i.e. per 1.00 = 100%) and ``d2``.
+
+    Raises:
+        ValueError: If ``option_type`` is not call/put or inputs are non-positive.
+    """
+    if option_type not in ("call", "put"):
+        raise ValueError("option_type must be 'call' or 'put'")
+    if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
+        raise ValueError("spot, strike, sigma, tau must be positive")
+
+    _, d2, _ = _d1_d2(spot, strike, rate, sigma, tau, div_yield)
+    disc = np.exp(-rate * tau)
+    if option_type == "call":
+        rho = strike * tau * disc * float(stats.norm.cdf(d2))
+    else:
+        rho = -strike * tau * disc * float(stats.norm.cdf(-d2))
+    return {"rho": round(float(rho), 8), "d2": round(d2, 8)}
+
+
+def theta_time_decay(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    option_type: str = "call",
+    div_yield: float = 0.0,
+) -> dict:  # type: ignore[type-arg]
+    """Black-Scholes Theta — calendar time decay (∂V/∂calendar = −∂V/∂τ), per year.
+
+    Args:
+        spot: Underlying spot price.
+        strike: Strike price.
+        rate: Continuously-compounded risk-free rate.
+        sigma: Volatility (annualised).
+        tau: Time to maturity in years.
+        option_type: ``"call"`` or ``"put"``.
+        div_yield: Continuous dividend yield.
+
+    Returns:
+        Dict with ``theta`` (per year) and ``theta_per_day`` (theta / 365).
+
+    Raises:
+        ValueError: If ``option_type`` is invalid or inputs are non-positive.
+    """
+    if option_type not in ("call", "put"):
+        raise ValueError("option_type must be 'call' or 'put'")
+    if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
+        raise ValueError("spot, strike, sigma, tau must be positive")
+
+    d1, d2, sqrt_t = _d1_d2(spot, strike, rate, sigma, tau, div_yield)
+    nd1 = float(stats.norm.pdf(d1))
+    disc_r = np.exp(-rate * tau)
+    disc_q = np.exp(-div_yield * tau)
+    common = -(spot * disc_q * nd1 * sigma) / (2.0 * sqrt_t)
+    if option_type == "call":
+        theta = (
+            common
+            - rate * strike * disc_r * float(stats.norm.cdf(d2))
+            + div_yield * spot * disc_q * float(stats.norm.cdf(d1))
+        )
+    else:
+        theta = (
+            common
+            + rate * strike * disc_r * float(stats.norm.cdf(-d2))
+            - div_yield * spot * disc_q * float(stats.norm.cdf(-d1))
+        )
+    return {"theta": round(float(theta), 8), "theta_per_day": round(float(theta) / 365.0, 8)}
+
+
+def charm_delta_decay(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    option_type: str = "call",
+    div_yield: float = 0.0,
+) -> dict:  # type: ignore[type-arg]
+    """Charm — sensitivity of delta to time to maturity (∂Δ/∂τ).
+
+    Computed in the time-to-maturity convention so that a finite-difference of
+    delta with respect to τ reproduces this value.
+
+    Args:
+        spot: Underlying spot price.
+        strike: Strike price.
+        rate: Continuously-compounded risk-free rate.
+        sigma: Volatility (annualised).
+        tau: Time to maturity in years.
+        option_type: ``"call"`` or ``"put"``.
+        div_yield: Continuous dividend yield.
+
+    Returns:
+        Dict with ``charm`` (∂Δ/∂τ).
+
+    Raises:
+        ValueError: If ``option_type`` is invalid or inputs are non-positive.
+    """
+    if option_type not in ("call", "put"):
+        raise ValueError("option_type must be 'call' or 'put'")
+    if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
+        raise ValueError("spot, strike, sigma, tau must be positive")
+
+    d1, _, sqrt_t = _d1_d2(spot, strike, rate, sigma, tau, div_yield)
+    nd1 = float(stats.norm.pdf(d1))
+    disc_q = np.exp(-div_yield * tau)
+    a = np.log(spot / strike)
+    b = rate - div_yield + 0.5 * sigma * sigma
+    dd1_dtau = b / (sigma * sqrt_t) - (a + b * tau) / (2.0 * sigma * tau * sqrt_t)
+    if option_type == "call":
+        charm = -div_yield * disc_q * float(stats.norm.cdf(d1)) + disc_q * nd1 * dd1_dtau
+    else:
+        charm = div_yield * disc_q * float(stats.norm.cdf(-d1)) + disc_q * nd1 * dd1_dtau
+    return {"charm": round(float(charm), 8)}
