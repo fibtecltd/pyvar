@@ -9,10 +9,13 @@ import numpy as np
 import pytest
 
 from engine.backtesting import (
+    basel_capital_addon_multiplier,
     christoffersen_independence_test,
     combined_backtesting,
     kupiec_pof_test,
+    rolling_var_backtest,
     traffic_light_backtesting,
+    var_breach_cluster_analysis,
 )
 
 # ── 45. Traffic Light Backtesting (Basel) ─────────────────────────────────────
@@ -88,3 +91,47 @@ def test_combined_backtesting_is_sum_and_rejects_bad_model():
     r = combined_backtesting(b, confidence_level=0.99)
     assert abs(r["lr_cc"] - (r["lr_pof"] + r["lr_ind"])) < 1e-6
     assert r["reject"]
+
+
+# ── 49. Basel Capital Add-On Multiplier ───────────────────────────────────────
+
+
+def test_capital_multiplier_zones():
+    assert basel_capital_addon_multiplier(3)["multiplier"] == 3.0  # green
+    assert basel_capital_addon_multiplier(3)["zone"] == "green"
+    assert basel_capital_addon_multiplier(7)["multiplier"] == 3.65  # yellow schedule
+    assert basel_capital_addon_multiplier(12)["multiplier"] == 4.0  # red
+    assert basel_capital_addon_multiplier(12)["zone"] == "red"
+
+
+def test_capital_multiplier_negative_raises():
+    with pytest.raises(ValueError):
+        basel_capital_addon_multiplier(-1)
+
+
+# ── 50. Rolling VaR Backtest (250-day) ────────────────────────────────────────
+
+
+def test_rolling_var_backtest_breach_rate_near_alpha():
+    rng = np.random.default_rng(0)
+    returns = rng.normal(0.0, 0.01, size=1500)
+    r = rolling_var_backtest(returns, window=250, confidence_level=0.99)
+    # Well-specified model: breach rate should be in a small band around 1%.
+    assert 0.0 <= r["breach_rate_pct"] <= 4.0
+    assert r["window"] == 250
+
+
+def test_rolling_var_backtest_too_short_raises():
+    with pytest.raises(ValueError):
+        rolling_var_backtest(np.zeros(100), window=250)
+
+
+# ── 51. VaR Breach Cluster Analysis ───────────────────────────────────────────
+
+
+def test_breach_cluster_analysis_counts_runs():
+    b = np.array([0, 1, 1, 0, 0, 1, 0, 1, 1, 1])
+    r = var_breach_cluster_analysis(b)
+    assert r["n_breaches"] == 6
+    assert r["n_clusters"] == 3
+    assert r["max_cluster_length"] == 3

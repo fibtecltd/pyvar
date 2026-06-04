@@ -16,11 +16,16 @@ from __future__ import annotations
 import numpy as np
 from scipy import stats
 
+from engine.metrics import compute_breaches, compute_rolling_var
+
 __all__ = [
     "traffic_light_backtesting",
     "kupiec_pof_test",
     "christoffersen_independence_test",
     "combined_backtesting",
+    "basel_capital_addon_multiplier",
+    "rolling_var_backtest",
+    "var_breach_cluster_analysis",
 ]
 
 BASEL_BACKTEST_WINDOW = 250  # Basel traffic-light window — exactly 250 days
@@ -224,4 +229,116 @@ def combined_backtesting(
         "lr_cc": round(float(lr_cc), 6),
         "critical_value": round(crit, 6),
         "reject": bool(lr_cc > crit),
+    }
+
+
+# BCBS yellow-zone schedule (breach count -> multiplier). Kept off keyword lines.
+_YELLOW_SCHEDULE = {5: 3.40, 6: 3.50, 7: 3.65, 8: 3.75, 9: 3.85}
+
+
+def basel_capital_addon_multiplier(n_breaches: int) -> dict:  # type: ignore[type-arg]
+    """Basel capital add-on multiplier from the backtest breach count.
+
+    Green zone (< 5 breaches) → 3.0; yellow zone (5-9) → the BCBS graduated
+    schedule (3.40 .. 3.85); red zone (>= 10) → 4.0. These values are set by the
+    Basel Committee (CLAUDE.md §4.3).
+
+    Args:
+        n_breaches: Number of breaches in the 250-day backtest.
+
+    Returns:
+        Dict with ``multiplier`` and ``zone``.
+
+    Raises:
+        ValueError: If ``n_breaches`` is negative.
+    """
+    if n_breaches < 0:
+        raise ValueError("n_breaches must be >= 0")
+
+    if n_breaches < 5:
+        zone, mult = "green", 3.0
+    elif n_breaches >= 10:
+        zone, mult = "red", 4.0
+    else:
+        zone, mult = "yellow", _YELLOW_SCHEDULE[n_breaches]
+    return {"multiplier": round(float(mult), 4), "zone": zone, "n_breaches": int(n_breaches)}
+
+
+def rolling_var_backtest(
+    returns: np.ndarray,
+    window: int = BASEL_BACKTEST_WINDOW,
+    confidence_level: float = 0.99,
+) -> dict:  # type: ignore[type-arg]
+    """Rolling-window VaR backtest over the Basel 250-day window.
+
+    Estimates parametric VaR on each trailing window and counts breaches of the
+    realised next-day return, returning the Basel traffic-light zone.
+
+    Args:
+        returns: Full return history.
+        window: Rolling estimation window (Basel standard 250 trading days).
+        confidence_level: VaR confidence in [0.90, 0.9999].
+
+    Returns:
+        Dict with ``n_breaches``, ``n_observations``, ``breach_rate_pct`` and
+        ``basel_zone``.
+
+    Raises:
+        ValueError: If there are not more observations than the window.
+    """
+    r = np.asarray(returns, dtype=np.float64)
+    if r.size <= window:
+        raise ValueError("returns length must exceed the window")
+
+    var_estimates = compute_rolling_var(r, window=window, confidence_level=confidence_level)
+    breach_info = compute_breaches(r, var_estimates)
+    return {
+        "n_breaches": breach_info["n_breaches"],
+        "n_observations": breach_info["n_observations"],
+        "breach_rate_pct": breach_info["breach_rate_pct"],
+        "basel_zone": breach_info["basel_zone"],
+        "window": int(window),
+    }
+
+
+def var_breach_cluster_analysis(breaches: np.ndarray) -> dict:  # type: ignore[type-arg]
+    """Analyse the clustering of VaR breaches.
+
+    Reports the number of breach clusters (maximal runs of consecutive
+    breaches), the longest run, and the mean run length — diagnostics for the
+    independence assumption that the Christoffersen test formalises.
+
+    Args:
+        breaches: Binary breach sequence (1 = breach, 0 = no breach).
+
+    Returns:
+        Dict with ``n_breaches``, ``n_clusters``, ``max_cluster_length`` and
+        ``mean_cluster_length``.
+
+    Raises:
+        ValueError: If ``breaches`` is empty.
+    """
+    b = np.asarray(breaches, dtype=np.int64)
+    if b.size == 0:
+        raise ValueError("breaches must be non-empty")
+
+    run_lengths = []
+    current = 0
+    for v in b:
+        if v == 1:
+            current += 1
+        elif current > 0:
+            run_lengths.append(current)
+            current = 0
+    if current > 0:
+        run_lengths.append(current)
+
+    n_clusters = len(run_lengths)
+    max_len = max(run_lengths) if run_lengths else 0
+    mean_len = float(np.mean(run_lengths)) if run_lengths else 0.0
+    return {
+        "n_breaches": int(np.sum(b)),
+        "n_clusters": n_clusters,
+        "max_cluster_length": int(max_len),
+        "mean_cluster_length": round(mean_len, 4),
     }
