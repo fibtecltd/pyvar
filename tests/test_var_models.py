@@ -9,11 +9,16 @@ import numpy as np
 import pytest
 
 from engine.var_models import (
+    component_var,
     cornish_fisher_var,
     filtered_historical_simulation_var,
     historical_simulation_var,
+    incremental_var,
+    marginal_var,
     monte_carlo_var_parametric_normal,
     parametric_delta_normal_var,
+    var_by_risk_factor,
+    var_fan_chart,
 )
 
 
@@ -121,3 +126,63 @@ def test_cornish_fisher_fat_tails_increase_var(returns):
     base = cornish_fisher_var(returns, 1e6, skewness=0.0, excess_kurtosis=0.0)
     fat = cornish_fisher_var(returns, 1e6, skewness=0.0, excess_kurtosis=3.0)
     assert fat["var_pct"] > base["var_pct"]
+
+
+# ── 6. Component VaR (Euler Allocation) ───────────────────────────────────────
+
+
+def test_component_var_sums_to_total(cov_weights):
+    w, cov = cov_weights
+    r = component_var(w, cov, 1e6, confidence_level=0.99)
+    assert abs(sum(r["component"]) - r["var_pct"]) < 1e-8  # Euler additivity
+
+
+# ── 7. Marginal VaR ───────────────────────────────────────────────────────────
+
+
+def test_marginal_var_times_weight_equals_component(cov_weights):
+    w, cov = cov_weights
+    m = marginal_var(w, cov, confidence_level=0.99)
+    c = component_var(w, cov, 1e6, confidence_level=0.99)
+    recomposed = [w[i] * m["marginal"][i] for i in range(len(w))]
+    for i in range(len(w)):
+        assert abs(recomposed[i] - c["component"][i]) < 1e-8
+
+
+# ── 8. Incremental VaR ────────────────────────────────────────────────────────
+
+
+def test_incremental_var_single_asset_equals_full(cov_weights):
+    _, cov = cov_weights
+    # 1-asset portfolio: removing it leaves VaR 0, so incremental == full VaR
+    r = incremental_var(np.array([1.0]), np.array([[0.04]]), 0, 1e6)
+    assert abs(r["incremental_pct"] - r["var_full_pct"]) < 1e-12
+    assert abs(r["var_without_pct"]) < 1e-12
+
+
+def test_incremental_var_out_of_range_raises(cov_weights):
+    w, cov = cov_weights
+    with pytest.raises(ValueError):
+        incremental_var(w, cov, 99, 1e6)
+
+
+# ── 9. VaR by Risk Factor ─────────────────────────────────────────────────────
+
+
+def test_var_by_risk_factor_sums_to_total(cov_weights):
+    b, fcov = cov_weights
+    r = var_by_risk_factor(b, fcov, 1e6, confidence_level=0.99)
+    assert abs(sum(r["contributions"].values()) - r["var_pct"]) < 1e-8
+
+
+# ── 10. VaR Fan Chart (Percentile Bands) ──────────────────────────────────────
+
+
+def test_var_fan_chart_monotone_in_confidence_and_horizon(returns):
+    r = var_fan_chart(returns, 1e6, confidence_levels=(0.90, 0.99), horizon_days=10)
+    low = r["bands"]["cl_9000"]
+    high = r["bands"]["cl_9900"]
+    # Higher confidence dominates at every horizon
+    assert all(h >= lo for h, lo in zip(high, low))
+    # VaR widens with horizon
+    assert high[-1] > high[0]
