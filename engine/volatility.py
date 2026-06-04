@@ -23,6 +23,7 @@ __all__ = [
     "realised_volatility",
     "correlation_matrix_historical",
     "dcc_garch_dynamic_correlation",
+    "risk_factor_pca_decomposition",
 ]
 
 
@@ -400,4 +401,51 @@ def dcc_garch_dynamic_correlation(
         "dynamic_correlation": r_t.tolist(),
         "a": round(float(a), 8),
         "b": round(float(b), 8),
+    }
+
+
+def risk_factor_pca_decomposition(
+    returns_matrix: np.ndarray,
+    n_components: int | None = None,
+) -> dict:  # type: ignore[type-arg]
+    """Principal-component decomposition of the risk-factor covariance.
+
+    Eigen-decomposes the factor covariance matrix and orders components by
+    descending variance. The explained-variance ratios sum to 1 (over all
+    components) and the eigenvalues are non-negative (covariance is PSD).
+
+    Args:
+        returns_matrix: ``(T, N)`` matrix of T observations on N risk factors.
+        n_components: Number of leading components to return (all if None).
+
+    Returns:
+        Dict with ``eigenvalues``, ``explained_variance_ratio``,
+        ``cumulative_variance_ratio`` and ``loadings`` (columns = components).
+
+    Raises:
+        ValueError: If fewer than 2 observations / 1 factor, or n_components
+            is out of range.
+    """
+    a = np.asarray(returns_matrix, dtype=np.float64)
+    if a.ndim != 2 or a.shape[0] < 2 or a.shape[1] < 1:
+        raise ValueError("returns_matrix must be (T>=2, N>=1)")
+
+    cov = np.atleast_2d(np.cov(a, rowvar=False))
+    eigvals, eigvecs = np.linalg.eigh(cov)  # ascending, symmetric
+    order = np.argsort(eigvals)[::-1]
+    eigvals = np.clip(eigvals[order], 0.0, None)  # PSD: clip tiny negatives
+    eigvecs = eigvecs[:, order]
+
+    total = float(np.sum(eigvals))
+    evr = eigvals / total if total > 0.0 else np.zeros_like(eigvals)
+
+    k = eigvals.size if n_components is None else n_components
+    if not 1 <= k <= eigvals.size:
+        raise ValueError("n_components out of range")
+
+    return {
+        "eigenvalues": [round(float(v), 10) for v in eigvals[:k]],
+        "explained_variance_ratio": [round(float(v), 10) for v in evr[:k]],
+        "cumulative_variance_ratio": [round(float(v), 10) for v in np.cumsum(evr)[:k]],
+        "loadings": eigvecs[:, :k].tolist(),
     }

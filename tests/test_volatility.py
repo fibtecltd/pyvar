@@ -14,6 +14,7 @@ from engine.volatility import (
     garch_11_volatility_forecast,
     gjr_garch_asymmetric_model,
     realised_volatility,
+    risk_factor_pca_decomposition,
     volatility_surface_implied_vol,
 )
 
@@ -144,3 +145,24 @@ def test_dcc_reduces_to_constant_correlation_when_a_b_zero():
 def test_dcc_invalid_params_raise():
     with pytest.raises(ValueError):
         dcc_garch_dynamic_correlation(np.zeros((10, 2)), a=0.6, b=0.6)
+
+
+# ── 59. Risk Factor PCA Decomposition ─────────────────────────────────────────
+
+
+def test_pca_explained_variance_sums_to_one_and_descending():
+    rng = np.random.default_rng(7)
+    data = rng.normal(0, 1, size=(1000, 4))
+    r = risk_factor_pca_decomposition(data)
+    evr = r["explained_variance_ratio"]
+    assert abs(sum(evr) - 1.0) < 1e-8
+    eig = r["eigenvalues"]
+    assert all(eig[i] >= eig[i + 1] - 1e-12 for i in range(len(eig) - 1))
+    assert all(e >= -1e-12 for e in eig)
+
+
+def test_pca_bad_n_components_raises():
+    with pytest.raises(ValueError):
+        risk_factor_pca_decomposition(
+            np.random.default_rng(0).normal(size=(100, 3)), n_components=9
+        )
