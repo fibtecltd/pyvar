@@ -24,6 +24,7 @@ __all__ = [
     "fx_pnl_attribution",
     "rates_pnl_attribution",
     "credit_pnl_attribution",
+    "residual_pnl_unexplained",
 ]
 
 
@@ -273,4 +274,33 @@ def credit_pnl_attribution(
     return {
         "total_credit_pnl": round(float(np.sum(pnl)), 8),
         "credit_pnl": {name_labels[i]: round(float(pnl[i]), 8) for i in range(c.size)},
+    }
+
+
+def residual_pnl_unexplained(
+    actual_pnl: float,
+    explained_components: np.ndarray,
+) -> dict:  # type: ignore[type-arg]
+    """Unexplained (residual) P&L.
+
+    Residual = actual P&L − Σ explained components. The residual plus the sum of
+    explained components reconstructs the actual P&L exactly; a large residual
+    relative to actual P&L flags model incompleteness (an FRTB PAT concern).
+
+    Args:
+        actual_pnl: Observed (hypothetical) P&L for the period.
+        explained_components: The individual explained P&L components.
+
+    Returns:
+        Dict with ``explained_pnl``, ``residual_pnl`` and ``explained_ratio``
+        (fraction of actual P&L explained; 0.0 when actual P&L is zero).
+    """
+    comp = np.asarray(explained_components, dtype=np.float64)
+    explained = float(np.sum(comp))
+    residual = float(actual_pnl) - explained
+    ratio = explained / actual_pnl if actual_pnl != 0.0 else 0.0
+    return {
+        "explained_pnl": round(explained, 8),
+        "residual_pnl": round(residual, 8),
+        "explained_ratio": round(float(ratio), 8),
     }

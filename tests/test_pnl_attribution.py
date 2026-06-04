@@ -15,6 +15,7 @@ from engine.pnl_attribution import (
     greeks_based_pnl_explain,
     pnl_attribution_test_frtb_pat,
     rates_pnl_attribution,
+    residual_pnl_unexplained,
     theta_carry_attribution,
     vega_pnl_attribution,
 )
@@ -127,3 +128,14 @@ def test_credit_pnl_additive_and_mismatch_raises():
     assert abs(sum(r["credit_pnl"].values()) - r["total_credit_pnl"]) < 1e-9
     with pytest.raises(ValueError):
         credit_pnl_attribution(np.array([1.0]), np.array([1.0, 2.0]))
+
+
+# ── 44. Residual P&L (Unexplained) ────────────────────────────────────────────
+
+
+def test_residual_reconstructs_actual():
+    actual = 100.0
+    explained = np.array([60.0, 25.0, 10.0])
+    r = residual_pnl_unexplained(actual, explained)
+    assert abs(r["explained_pnl"] + r["residual_pnl"] - actual) < 1e-9
+    assert abs(r["residual_pnl"] - 5.0) < 1e-9
