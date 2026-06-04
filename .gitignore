@@ -8,3 +8,5 @@ DOMAIN_GATE_RESULT.md
 ADVERSARIAL_REPORT_*.md
 scripts/hooks/__pycache__/
 scripts/claude/__pycache__/
+.env
+.DS_Store
