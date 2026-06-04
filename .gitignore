@@ -10,3 +10,5 @@ scripts/hooks/__pycache__/
 scripts/claude/__pycache__/
 .env
 .DS_Store
+.coverage
+__pycache__/
