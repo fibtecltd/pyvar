@@ -7,7 +7,15 @@ the forecast to the long-run level, and positivity of conditional variance.
 import numpy as np
 import pytest
 
-from engine.volatility import garch_11_volatility_forecast, volatility_surface_implied_vol
+from engine.volatility import (
+    correlation_matrix_historical,
+    dcc_garch_dynamic_correlation,
+    egarch_volatility_model,
+    garch_11_volatility_forecast,
+    gjr_garch_asymmetric_model,
+    realised_volatility,
+    volatility_surface_implied_vol,
+)
 
 
 def _bs_call(S, K, r, sigma, tau):
@@ -55,3 +63,84 @@ def test_garch_forecast_mean_reverts_to_long_run():
 def test_garch_non_stationary_raises():
     with pytest.raises(ValueError):
         garch_11_volatility_forecast(np.random.default_rng(0).normal(size=100), alpha=0.5, beta=0.6)
+
+
+# ── 54. EGARCH Volatility Model ───────────────────────────────────────────────
+
+
+def test_egarch_positive_and_leverage_asymmetry():
+    rng = np.random.default_rng(2)
+    base = rng.normal(0.0, 0.02, size=500)
+    neg = base.copy()
+    pos = base.copy()
+    neg[-1] = -0.10  # large negative shock
+    pos[-1] = 0.10  # mirror positive shock
+    r_neg = egarch_volatility_model(neg, gamma=-0.1)
+    r_pos = egarch_volatility_model(pos, gamma=-0.1)
+    assert r_neg["current_vol"] > 0 and r_neg["forecast_vol"] > 0
+    # gamma < 0 => negative shock implies a higher next-period vol
+    assert r_neg["forecast_vol"] > r_pos["forecast_vol"]
+
+
+def test_egarch_non_stationary_raises():
+    with pytest.raises(ValueError):
+        egarch_volatility_model(np.random.default_rng(0).normal(size=100), beta=1.0)
+
+
+# ── 55. GJR-GARCH Asymmetric Model ────────────────────────────────────────────
+
+
+def test_gjr_garch_negative_shock_raises_vol_more():
+    rng = np.random.default_rng(3)
+    base = rng.normal(0.0, 0.02, size=500)
+    neg, pos = base.copy(), base.copy()
+    neg[-1], pos[-1] = -0.10, 0.10
+    r_neg = gjr_garch_asymmetric_model(neg, gamma=0.1)
+    r_pos = gjr_garch_asymmetric_model(pos, gamma=0.1)
+    assert r_neg["forecast_vol"] > r_pos["forecast_vol"]  # gamma>0 leverage
+
+
+def test_gjr_garch_non_stationary_raises():
+    with pytest.raises(ValueError):
+        gjr_garch_asymmetric_model(np.random.default_rng(0).normal(size=100), alpha=0.6, beta=0.6)
+
+
+# ── 56. Realised Volatility ───────────────────────────────────────────────────
+
+
+def test_realised_vol_annualisation_and_scaling():
+    rng = np.random.default_rng(4)
+    r = rng.normal(0.0, 0.01, size=78)
+    base = realised_volatility(r, annualisation_factor=252)
+    scaled = realised_volatility(2 * r, annualisation_factor=252)
+    assert abs(scaled["realised_vol"] - 2 * base["realised_vol"]) < 1e-10
+    assert abs(base["annualised_vol"] - base["realised_vol"] * np.sqrt(252)) < 1e-9
+
+
+# ── 57. Correlation Matrix (Historical) ───────────────────────────────────────
+
+
+def test_correlation_matrix_diagonal_and_symmetric():
+    rng = np.random.default_rng(5)
+    data = rng.normal(0, 1, size=(500, 3))
+    r = correlation_matrix_historical(data)
+    m = np.array(r["correlation"])
+    assert r["is_symmetric"]
+    assert np.allclose(np.diag(m), 1.0)
+
+
+# ── 58. DCC-GARCH Dynamic Correlation ─────────────────────────────────────────
+
+
+def test_dcc_reduces_to_constant_correlation_when_a_b_zero():
+    rng = np.random.default_rng(6)
+    data = rng.normal(0, 1, size=(800, 3))
+    r = dcc_garch_dynamic_correlation(data, a=0.0, b=0.0)
+    m = np.array(r["dynamic_correlation"])
+    z = (data - data.mean(0)) / data.std(0)
+    assert np.allclose(m, np.corrcoef(z, rowvar=False), atol=1e-8)
+
+
+def test_dcc_invalid_params_raise():
+    with pytest.raises(ValueError):
+        dcc_garch_dynamic_correlation(np.zeros((10, 2)), a=0.6, b=0.6)

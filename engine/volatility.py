@@ -18,6 +18,11 @@ from scipy import stats
 __all__ = [
     "volatility_surface_implied_vol",
     "garch_11_volatility_forecast",
+    "egarch_volatility_model",
+    "gjr_garch_asymmetric_model",
+    "realised_volatility",
+    "correlation_matrix_historical",
+    "dcc_garch_dynamic_correlation",
 ]
 
 
@@ -164,4 +169,235 @@ def garch_11_volatility_forecast(
         "long_run_vol": round(float(np.sqrt(long_run)), 8),
         "persistence": round(float(persistence), 8),
         "forecast_vol_path": [round(float(np.sqrt(v)), 8) for v in forecast_path],
+    }
+
+
+@njit(cache=True)
+def _egarch_filter(
+    residuals: np.ndarray, omega: float, alpha: float, gamma: float, beta: float
+) -> np.ndarray:
+    """EGARCH(1,1) log-variance recursion (returns the variance series)."""
+    n = residuals.shape[0]
+    log_var = np.empty(n, dtype=np.float64)
+    log_var[0] = omega / (1.0 - beta)
+    e_abs_z = np.sqrt(2.0 / np.pi)
+    for t in range(1, n):
+        sigma_prev = np.sqrt(np.exp(log_var[t - 1]))
+        z = residuals[t - 1] / sigma_prev if sigma_prev > 0.0 else 0.0
+        log_var[t] = omega + beta * log_var[t - 1] + alpha * (np.abs(z) - e_abs_z) + gamma * z
+    return np.exp(log_var)
+
+
+def egarch_volatility_model(
+    returns: np.ndarray,
+    omega: float = -0.1,
+    alpha: float = 0.1,
+    gamma: float = -0.05,
+    beta: float = 0.95,
+) -> dict:  # type: ignore[type-arg]
+    """EGARCH(1,1) asymmetric volatility model (Nelson 1991).
+
+    Models log-variance, so conditional variance is positive for any parameters.
+    The leverage term ``gamma`` makes negative shocks raise volatility more than
+    positive shocks of equal size (when ``gamma < 0``).
+
+    Args:
+        returns: 1-D return series (demeaned internally).
+        omega: Log-variance intercept.
+        alpha: Magnitude (|z|) coefficient.
+        gamma: Leverage coefficient (negative => negative shocks raise vol more).
+        beta: Log-variance persistence (|beta| < 1 for stationarity).
+
+    Returns:
+        Dict with ``current_vol`` and the one-step ``forecast_vol``.
+
+    Raises:
+        ValueError: If ``returns`` is too short or ``beta`` is non-stationary.
+    """
+    r = np.asarray(returns, dtype=np.float64)
+    if r.size < 2:
+        raise ValueError("returns must have at least 2 observations")
+    if abs(beta) >= 1.0:
+        raise ValueError("require |beta| < 1 for stationarity")
+
+    residuals = r - float(np.mean(r))
+    variance = _egarch_filter(residuals, omega, alpha, gamma, beta)
+    log_var_last = float(np.log(variance[-1]))
+    sigma_last = float(np.sqrt(variance[-1]))
+    z_last = residuals[-1] / sigma_last if sigma_last > 0.0 else 0.0
+    e_abs_z = np.sqrt(2.0 / np.pi)
+    log_var_next = omega + beta * log_var_last + alpha * (abs(z_last) - e_abs_z) + gamma * z_last
+    return {
+        "current_vol": round(sigma_last, 8),
+        "forecast_vol": round(float(np.sqrt(np.exp(log_var_next))), 8),
+    }
+
+
+@njit(cache=True)
+def _gjr_filter(
+    residuals: np.ndarray, omega: float, alpha: float, gamma: float, beta: float, long_run: float
+) -> np.ndarray:
+    """GJR-GARCH(1,1) conditional-variance recursion with a leverage indicator."""
+    n = residuals.shape[0]
+    variance = np.empty(n, dtype=np.float64)
+    variance[0] = long_run
+    for t in range(1, n):
+        prev = residuals[t - 1]
+        indicator = 1.0 if prev < 0.0 else 0.0
+        variance[t] = omega + (alpha + gamma * indicator) * prev * prev + beta * variance[t - 1]
+    return variance
+
+
+def gjr_garch_asymmetric_model(
+    returns: np.ndarray,
+    alpha: float = 0.03,
+    gamma: float = 0.08,
+    beta: float = 0.88,
+    omega: float | None = None,
+) -> dict:  # type: ignore[type-arg]
+    """GJR-GARCH(1,1) asymmetric volatility model (Glosten-Jagannathan-Runkle).
+
+    A leverage indicator adds ``gamma`` to the ARCH coefficient when the prior
+    shock was negative, so (for ``gamma > 0``) downside shocks raise volatility
+    more. The long-run variance is ``ω/(1 − α − β − γ/2)``.
+
+    Args:
+        returns: 1-D return series (demeaned internally).
+        alpha: Symmetric ARCH coefficient.
+        gamma: Asymmetry coefficient applied to negative shocks.
+        beta: GARCH persistence coefficient.
+        omega: Variance intercept; variance-targeted if None.
+
+    Returns:
+        Dict with ``current_vol``, ``long_run_vol``, ``persistence`` and the
+        one-step ``forecast_vol``.
+
+    Raises:
+        ValueError: If inputs are invalid or the process is non-stationary.
+    """
+    r = np.asarray(returns, dtype=np.float64)
+    if r.size < 2:
+        raise ValueError("returns must have at least 2 observations")
+    persistence = alpha + beta + 0.5 * gamma
+    if not 0.0 < persistence < 1.0:
+        raise ValueError("require 0 < alpha + beta + gamma/2 < 1 for stationarity")
+
+    residuals = r - float(np.mean(r))
+    sample_var = float(np.var(residuals))
+    omega_val = (1.0 - persistence) * sample_var if omega is None else float(omega)
+    long_run = omega_val / (1.0 - persistence)
+
+    variance = _gjr_filter(residuals, omega_val, alpha, gamma, beta, long_run)
+    prev = residuals[-1]
+    indicator = 1.0 if prev < 0.0 else 0.0
+    sigma2_next = omega_val + (alpha + gamma * indicator) * prev * prev + beta * variance[-1]
+    return {
+        "current_vol": round(float(np.sqrt(variance[-1])), 8),
+        "long_run_vol": round(float(np.sqrt(long_run)), 8),
+        "persistence": round(float(persistence), 8),
+        "forecast_vol": round(float(np.sqrt(sigma2_next)), 8),
+    }
+
+
+def realised_volatility(
+    returns: np.ndarray,
+    annualisation_factor: int = 252,
+) -> dict:  # type: ignore[type-arg]
+    """Realised volatility from a block of (typically high-frequency) returns.
+
+    Realised variance is the sum of squared returns; realised volatility is its
+    square root, and the annualised figure scales by ``sqrt(annualisation_factor)``.
+
+    Args:
+        returns: 1-D array of returns over the measurement block.
+        annualisation_factor: Periods per year for annualisation (e.g. 252).
+
+    Returns:
+        Dict with ``realised_variance``, ``realised_vol`` and ``annualised_vol``.
+
+    Raises:
+        ValueError: If ``returns`` is empty.
+    """
+    r = np.asarray(returns, dtype=np.float64)
+    if r.size == 0:
+        raise ValueError("returns must be non-empty")
+    realised_var = float(np.sum(r * r))
+    realised_vol = float(np.sqrt(realised_var))
+    annualised = realised_vol * np.sqrt(annualisation_factor)
+    return {
+        "realised_variance": round(realised_var, 10),
+        "realised_vol": round(realised_vol, 10),
+        "annualised_vol": round(float(annualised), 10),
+    }
+
+
+def correlation_matrix_historical(returns_matrix: np.ndarray) -> dict:  # type: ignore[type-arg]
+    """Historical (Pearson) correlation matrix of asset returns.
+
+    Args:
+        returns_matrix: ``(T, N)`` matrix of T observations on N assets.
+
+    Returns:
+        Dict with the ``correlation`` matrix, its ``is_symmetric`` flag and
+        ``n_assets``.
+
+    Raises:
+        ValueError: If fewer than 2 observations or 1 asset are supplied.
+    """
+    a = np.asarray(returns_matrix, dtype=np.float64)
+    if a.ndim != 2 or a.shape[0] < 2 or a.shape[1] < 1:
+        raise ValueError("returns_matrix must be (T>=2, N>=1)")
+    corr = np.corrcoef(a, rowvar=False)
+    corr = np.atleast_2d(corr)
+    return {
+        "correlation": corr.tolist(),
+        "is_symmetric": bool(np.allclose(corr, corr.T)),
+        "n_assets": int(a.shape[1]),
+    }
+
+
+def dcc_garch_dynamic_correlation(
+    returns_matrix: np.ndarray,
+    a: float = 0.02,
+    b: float = 0.95,
+) -> dict:  # type: ignore[type-arg]
+    """DCC-GARCH dynamic conditional correlation (Engle 2002), terminal R_T.
+
+    Standardises each series, then evolves the quasi-correlation
+    ``Q_t = (1−a−b) Q̄ + a z_{t-1} z_{t-1}' + b Q_{t-1}`` and normalises to a
+    correlation matrix. With ``a = b = 0`` it collapses to the constant
+    unconditional correlation Q̄.
+
+    Args:
+        returns_matrix: ``(T, N)`` matrix of T observations on N assets.
+        a: DCC news coefficient.
+        b: DCC persistence coefficient (require a + b < 1).
+
+    Returns:
+        Dict with the terminal ``dynamic_correlation`` matrix and ``a``, ``b``.
+
+    Raises:
+        ValueError: If shapes are invalid or ``a + b >= 1``.
+    """
+    x = np.asarray(returns_matrix, dtype=np.float64)
+    if x.ndim != 2 or x.shape[0] < 2 or x.shape[1] < 1:
+        raise ValueError("returns_matrix must be (T>=2, N>=1)")
+    if not 0.0 <= a + b < 1.0:
+        raise ValueError("require 0 <= a + b < 1")
+
+    std = np.std(x, axis=0)
+    std = np.where(std > 0.0, std, 1.0)
+    z = (x - np.mean(x, axis=0)) / std  # standardised residuals
+    q_bar = np.corrcoef(z, rowvar=False)
+    q_bar = np.atleast_2d(q_bar)
+    q = q_bar.copy()
+    for t in range(1, z.shape[0]):
+        outer = np.outer(z[t - 1], z[t - 1])
+        q = (1.0 - a - b) * q_bar + a * outer + b * q
+    d_inv = np.diag(1.0 / np.sqrt(np.diag(q)))
+    r_t = d_inv @ q @ d_inv
+    return {
+        "dynamic_correlation": r_t.tolist(),
+        "a": round(float(a), 8),
+        "b": round(float(b), 8),
     }
