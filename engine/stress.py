@@ -21,6 +21,8 @@ __all__ = [
     "reverse_stress_testing",
     "sensitivity_stress_profile",
     "sector_stress_scenario",
+    "macro_scenario_generator",
+    "contagion_stress_scenario",
 ]
 
 
@@ -204,4 +206,92 @@ def sector_stress_scenario(
     return {
         "total_pnl": round(float(np.sum(sector_pnl)), 4),
         "sector_pnl": {sector_names[i]: round(float(sector_pnl[i]), 4) for i in range(e.size)},
+    }
+
+
+def macro_scenario_generator(
+    factor_cov: np.ndarray,
+    n_scenarios: int = 10_000,
+    seed: int | None = 42,
+) -> dict:  # type: ignore[type-arg]
+    """Generate correlated macro factor scenarios via the Cholesky factor.
+
+    Draws standard-normal innovations in pure Python (CLAUDE.md §3.1 RULE 3) and
+    colours them with the Cholesky factor of the supplied covariance so the
+    generated scenarios reproduce the target factor correlation structure.
+
+    Args:
+        factor_cov: ``(F, F)`` macro-factor covariance matrix (SPD).
+        n_scenarios: Number of scenarios to generate.
+        seed: RNG seed for reproducibility (None = non-deterministic).
+
+    Returns:
+        Dict with the generated ``scenarios`` (list of F-vectors), the
+        ``sample_cov`` of the draws, and ``n_scenarios``.
+
+    Raises:
+        ValueError: If ``factor_cov`` is not square or not positive definite.
+    """
+    cov = np.asarray(factor_cov, dtype=np.float64)
+    if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
+        raise ValueError("factor_cov must be a square matrix")
+    try:
+        chol = np.linalg.cholesky(cov)
+    except np.linalg.LinAlgError as exc:
+        raise ValueError("factor_cov must be positive definite") from exc
+
+    rng = np.random.default_rng(seed)
+    innovations = rng.standard_normal(size=(n_scenarios, cov.shape[0]))  # pre-drawn
+    scenarios = innovations @ chol.T
+    sample_cov = np.cov(scenarios, rowvar=False)
+    return {
+        "scenarios": scenarios.tolist(),
+        "sample_cov": np.atleast_2d(sample_cov).tolist(),
+        "n_scenarios": int(n_scenarios),
+    }
+
+
+def contagion_stress_scenario(
+    initial_shock: np.ndarray,
+    contagion_matrix: np.ndarray,
+    rounds: int = 3,
+) -> dict:  # type: ignore[type-arg]
+    """Propagate an initial shock through a contagion (spillover) network.
+
+    Each round, the current shock spills to connected nodes via the contagion
+    matrix C; the cumulative shock is ``shock + C·shock + C²·shock + ...`` over
+    the requested rounds — a truncated Neumann series of the spillover operator.
+
+    Args:
+        initial_shock: Length-N initial shock per node/asset.
+        contagion_matrix: ``(N, N)`` spillover coefficients (C[i, j] = effect of
+            node j on node i).
+        rounds: Number of propagation rounds (``0`` returns the initial shock).
+
+    Returns:
+        Dict with the ``amplified_shock`` and the ``amplification_factor``
+        (L2 norm ratio vs the initial shock).
+
+    Raises:
+        ValueError: If shapes are inconsistent or ``rounds`` < 0.
+    """
+    x0 = np.asarray(initial_shock, dtype=np.float64)
+    c = np.asarray(contagion_matrix, dtype=np.float64)
+    if c.shape != (x0.size, x0.size):
+        raise ValueError("contagion_matrix must be (N, N) matching initial_shock")
+    if rounds < 0:
+        raise ValueError("rounds must be >= 0")
+
+    cumulative = x0.copy()
+    current = x0.copy()
+    for _ in range(rounds):
+        current = c @ current
+        cumulative = cumulative + current
+
+    initial_norm = float(np.linalg.norm(x0))
+    amp = float(np.linalg.norm(cumulative)) / initial_norm if initial_norm > 0.0 else 0.0
+    return {
+        "amplified_shock": [round(float(v), 8) for v in cumulative],
+        "amplification_factor": round(amp, 8),
+        "rounds": int(rounds),
     }

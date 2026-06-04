@@ -9,8 +9,10 @@ import numpy as np
 import pytest
 
 from engine.stress import (
+    contagion_stress_scenario,
     historical_scenario_replay,
     hypothetical_multi_factor_scenario,
+    macro_scenario_generator,
     reverse_stress_testing,
     sector_stress_scenario,
     sensitivity_stress_profile,
@@ -94,3 +96,41 @@ def test_sector_stress_total_is_additive():
     s = np.array([-0.03, 0.02, -0.01])
     r = sector_stress_scenario(e, s, sector_names=["equity", "rates", "credit"])
     assert abs(sum(r["sector_pnl"].values()) - r["total_pnl"]) < 1e-6
+
+
+# ── 24. Macro Scenario Generator ──────────────────────────────────────────────
+
+
+def test_macro_scenario_generator_reproduces_covariance(spd_cov):
+    r = macro_scenario_generator(spd_cov, n_scenarios=200_000, seed=1)
+    sample = np.array(r["sample_cov"])
+    assert np.allclose(sample, spd_cov, atol=0.15)  # large sample → close to target
+
+
+def test_macro_scenario_generator_deterministic(spd_cov):
+    r1 = macro_scenario_generator(spd_cov, n_scenarios=1000, seed=9)
+    r2 = macro_scenario_generator(spd_cov, n_scenarios=1000, seed=9)
+    assert r1["scenarios"] == r2["scenarios"]
+
+
+def test_macro_scenario_generator_non_psd_raises():
+    with pytest.raises(ValueError):
+        macro_scenario_generator(np.array([[1.0, 2.0], [2.0, 1.0]]), n_scenarios=10)
+
+
+# ── 25. Contagion Stress Scenario ─────────────────────────────────────────────
+
+
+def test_contagion_zero_rounds_returns_initial():
+    x0 = np.array([1.0, -2.0, 0.5])
+    c = np.array([[0.0, 0.1, 0.0], [0.2, 0.0, 0.1], [0.0, 0.3, 0.0]])
+    r = contagion_stress_scenario(x0, c, rounds=0)
+    assert np.allclose(r["amplified_shock"], x0)
+    assert abs(r["amplification_factor"] - 1.0) < 1e-9
+
+
+def test_contagion_amplifies_shock():
+    x0 = np.array([1.0, 1.0, 1.0])
+    c = np.array([[0.0, 0.2, 0.1], [0.2, 0.0, 0.2], [0.1, 0.2, 0.0]])
+    r = contagion_stress_scenario(x0, c, rounds=3)
+    assert r["amplification_factor"] > 1.0  # positive spillovers amplify
