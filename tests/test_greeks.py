@@ -16,7 +16,9 @@ from engine.greeks import (
     portfolio_delta_aggregated,
     rho_interest_rate,
     theta_time_decay,
+    vanna_delta_vega_cross,
     vega_surface_bucketed,
+    volga_vega_convexity,
 )
 
 
@@ -33,6 +35,12 @@ def _bs_delta(S, K, r, sigma, tau, opt="call", q=0.0):
     sqrt_t = np.sqrt(tau)
     d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * tau) / (sigma * sqrt_t)
     return np.exp(-q * tau) * (stats.norm.cdf(d1) if opt == "call" else stats.norm.cdf(d1) - 1.0)
+
+
+def _bs_vega(S, K, r, sigma, tau, q=0.0):
+    sqrt_t = np.sqrt(tau)
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma**2) * tau) / (sigma * sqrt_t)
+    return S * np.exp(-q * tau) * stats.norm.pdf(d1) * sqrt_t
 
 
 # ── 26. Portfolio Delta (Aggregated) ──────────────────────────────────────────
@@ -158,3 +166,23 @@ def test_charm_matches_finite_difference_of_delta():
     h = 1e-5
     fd = (_bs_delta(S, K, r, sig, tau + h) - _bs_delta(S, K, r, sig, tau - h)) / (2 * h)
     assert abs(charm_delta_decay(S, K, r, sig, tau)["charm"] - fd) < 1e-3
+
+
+# ── 34. Volga (Vega Convexity) ────────────────────────────────────────────────
+
+
+def test_volga_matches_finite_difference_of_vega():
+    S, K, r, sig, tau = 100.0, 110.0, 0.03, 0.2, 1.0
+    h = 1e-5
+    fd = (_bs_vega(S, K, r, sig + h, tau) - _bs_vega(S, K, r, sig - h, tau)) / (2 * h)
+    assert abs(volga_vega_convexity(S, K, r, sig, tau)["volga"] - fd) < 1e-2
+
+
+# ── 35. Vanna (Delta-Vega Cross) ──────────────────────────────────────────────
+
+
+def test_vanna_matches_finite_difference_of_vega_wrt_spot():
+    S, K, r, sig, tau = 100.0, 110.0, 0.03, 0.2, 1.0
+    h = 1e-3
+    fd = (_bs_vega(S + h, K, r, sig, tau) - _bs_vega(S - h, K, r, sig, tau)) / (2 * h)
+    assert abs(vanna_delta_vega_cross(S, K, r, sig, tau)["vanna"] - fd) < 1e-3

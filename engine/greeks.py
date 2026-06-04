@@ -22,6 +22,8 @@ __all__ = [
     "rho_interest_rate",
     "theta_time_decay",
     "charm_delta_decay",
+    "volga_vega_convexity",
+    "vanna_delta_vega_cross",
 ]
 
 
@@ -377,3 +379,74 @@ def charm_delta_decay(
     else:
         charm = div_yield * disc_q * float(stats.norm.cdf(-d1)) + disc_q * nd1 * dd1_dtau
     return {"charm": round(float(charm), 8)}
+
+
+def volga_vega_convexity(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    div_yield: float = 0.0,
+) -> dict:  # type: ignore[type-arg]
+    """Volga (vomma) — convexity of value in volatility (∂²V/∂σ² = ∂vega/∂σ).
+
+    ``Volga = vega · d1 · d2 / σ``. Identical for calls and puts. Positive volga
+    means the position is long volatility-of-volatility.
+
+    Args:
+        spot: Underlying spot price.
+        strike: Strike price.
+        rate: Continuously-compounded risk-free rate.
+        sigma: Volatility (annualised).
+        tau: Time to maturity in years.
+        div_yield: Continuous dividend yield.
+
+    Returns:
+        Dict with ``volga`` and the ``vega`` it was derived from.
+
+    Raises:
+        ValueError: If inputs are non-positive.
+    """
+    if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
+        raise ValueError("spot, strike, sigma, tau must be positive")
+
+    d1, d2, sqrt_t = _d1_d2(spot, strike, rate, sigma, tau, div_yield)
+    vega = spot * np.exp(-div_yield * tau) * float(stats.norm.pdf(d1)) * sqrt_t
+    volga = vega * d1 * d2 / sigma
+    return {"volga": round(float(volga), 8), "vega": round(float(vega), 8)}
+
+
+def vanna_delta_vega_cross(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    div_yield: float = 0.0,
+) -> dict:  # type: ignore[type-arg]
+    """Vanna — cross sensitivity ∂vega/∂S = ∂Δ/∂σ.
+
+    ``Vanna = −e^{-qτ} · φ(d1) · d2 / σ``. Identical for calls and puts. It
+    measures how delta drifts as volatility moves (and vice versa).
+
+    Args:
+        spot: Underlying spot price.
+        strike: Strike price.
+        rate: Continuously-compounded risk-free rate.
+        sigma: Volatility (annualised).
+        tau: Time to maturity in years.
+        div_yield: Continuous dividend yield.
+
+    Returns:
+        Dict with ``vanna``.
+
+    Raises:
+        ValueError: If inputs are non-positive.
+    """
+    if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
+        raise ValueError("spot, strike, sigma, tau must be positive")
+
+    d1, d2, _ = _d1_d2(spot, strike, rate, sigma, tau, div_yield)
+    vanna = -np.exp(-div_yield * tau) * float(stats.norm.pdf(d1)) * d2 / sigma
+    return {"vanna": round(float(vanna), 8)}
