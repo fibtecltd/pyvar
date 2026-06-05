@@ -60,7 +60,7 @@ setup_worktrees() {
 
         # Create branch from main if it doesn't exist
         if ! git -C "$PYVAR_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
-            git -C "$PYVAR_ROOT" branch "$branch" main
+            git -C "$PYVAR_ROOT" branch "$branch" master
         fi
 
         git -C "$PYVAR_ROOT" worktree add "$path" "$branch"
@@ -93,7 +93,7 @@ teardown_worktrees() {
         *) echo "[worktree] ERROR: unknown phase '$phase'"; return 1 ;;
     esac
 
-    echo "[worktree] Merging $phase worktrees into main ..."
+    echo "[worktree] Merging $phase worktrees into master ..."
 
     echo "$map" | while IFS=: read -r name branch desc; do
         [ -z "$name" ] && continue
@@ -112,12 +112,12 @@ teardown_worktrees() {
         fi
 
         if [ "$dry_run" = "--dry-run" ]; then
-            echo "[worktree]   [dry-run] would merge $branch into main"
+            echo "[worktree]   [dry-run] would merge $branch into master"
             continue
         fi
 
-        # Merge into main
-        git -C "$PYVAR_ROOT" checkout main
+        # Merge into master
+        git -C "$PYVAR_ROOT" checkout master
         if git -C "$PYVAR_ROOT" merge --no-ff "$branch" \
                 -m "merge($phase): $desc"; then
             echo "[worktree]   ✓ merged $branch"
