@@ -320,7 +320,7 @@ fi
 if [ "$MODE" = "agent" ] && [ $DRY_RUN -eq 0 ]; then
     echo ""
     echo "[pyvar-run] Agent Teams session complete."
-    echo "            Merge worktrees into main? [y/N]"
+    echo "            Merge worktrees into master? [y/N]"
     read -r answer </dev/tty
     case "$answer" in
         y|Y) teardown_worktrees "$PHASE" ;;

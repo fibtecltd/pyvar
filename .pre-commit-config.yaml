@@ -105,5 +105,5 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: no-commit-to-branch
-        args: [--branch=main]
+        args: [--branch=master]
         stages: [pre-commit]
