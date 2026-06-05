@@ -106,7 +106,7 @@ if [ -z "$PHASE" ]; then
     exit 1
 fi
 
-header "pyvar-run.sh · Phase ${PHASE^^}" "machine=$MACHINE  mode=$MODE  handoff=$HANDOFF_MODE"
+header "pyvar-run.sh · Phase $(echo "$PHASE" | tr '[:lower:]' '[:upper:]')" "machine=$MACHINE  mode=$MODE  handoff=$HANDOFF_MODE"
 
 # ── Step 1: Machine resource profile ─────────────────────────────
 echo "[1/6] Machine: $MACHINE"
