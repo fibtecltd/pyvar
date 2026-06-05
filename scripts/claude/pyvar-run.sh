@@ -53,6 +53,7 @@ SETUP_WT=0
 TEARDOWN_WT=0
 DRY_RUN=0
 EXTRA_ARGS=""
+SKIP_PERMS=""
 
 # ── Parse arguments ───────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -71,6 +72,7 @@ while [ $# -gt 0 ]; do
         --setup-worktrees)    SETUP_WT=1;    shift ;;
         --teardown-worktrees) TEARDOWN_WT=1; shift ;;
         --dry-run)     DRY_RUN=1;         shift ;;
+        --dangerously-skip-permissions) SKIP_PERMS="--dangerously-skip-permissions"; shift ;;
         --) shift; EXTRA_ARGS="$*"; break ;;
         *)  echo "Unknown argument: $1"; exit 1 ;;
     esac
@@ -229,7 +231,7 @@ SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm \
   --memory $CLAUDE_MEM \
   --memory-reservation ${CLAUDE_MEM%g}00m \
   -w $WORKDIR \
-  claude $CLAUDE_MODEL $RESUME"
+  claude $SKIP_PERMS $CLAUDE_MODEL $RESUME"
 
 # Append --print with handoff prompt if resuming from context exhaustion
 PRINT_FLAG=""
