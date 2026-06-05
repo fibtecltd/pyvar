@@ -16,7 +16,7 @@
 #   DOCKER_PLATFORM  --platform flag value for M4 cross-builds
 
 # Allow manual override via environment
-if [ -n "$PYVAR_MACHINE" ]; then
+if [ -n "${PYVAR_MACHINE:-}" ]; then
     MACHINE="$PYVAR_MACHINE"
 else
     ARCH=$(uname -m)
