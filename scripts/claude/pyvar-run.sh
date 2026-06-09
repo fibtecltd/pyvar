@@ -226,12 +226,12 @@ else
 fi
 
 # Build the base docker compose run command
-SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm \
+SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm -T \
   --cpus $CLAUDE_CPUS \
   --memory $CLAUDE_MEM \
   --memory-reservation ${CLAUDE_MEM%g}00m \
   -w $WORKDIR \
-  claude $SKIP_PERMS $CLAUDE_MODEL $RESUME"
+  claude $SKIP_PERMS --print $CLAUDE_MODEL $RESUME"
 
 # Append --print with handoff prompt if resuming from context exhaustion
 PRINT_FLAG=""
@@ -300,8 +300,8 @@ else
     # Save session state before starting (session ID captured after start)
     if [ -n "$FULL_PROMPT_FILE" ]; then
         # Inject prompt via --print for the first message
-        CLAUDE_PROMPT=$(cat "$FULL_PROMPT_FILE")
-        eval "$SESSION_CMD" <<< "$CLAUDE_PROMPT"
+        #CLAUDE_PROMPT=$(cat "$FULL_PROMPT_FILE")
+        eval "$SESSION_CMD" < "$FULL_PROMPT_FILE"
         rm -f "$FULL_PROMPT_FILE" "${PRINT_TMP:-}"
     else
         eval "$SESSION_CMD"
@@ -320,12 +320,7 @@ fi
 
 # Offer worktree merge after P2/P5 completes
 if [ "$MODE" = "agent" ] && [ $DRY_RUN -eq 0 ]; then
-    echo ""
-    echo "[pyvar-run] Agent Teams session complete."
-    echo "            Merge worktrees into master? [y/N]"
-    read -r answer </dev/tty
-    case "$answer" in
-        y|Y) teardown_worktrees "$PHASE" ;;
-        *) echo "           Skipped. Run: ./pyvar-run.sh $PHASE --teardown-worktrees" ;;
-    esac
+    echo "[pyvar-run] Agent Teams complete."
+    echo "            When all domain PRs are merged run:"
+    echo "            ./scripts/claude/pyvar-run.sh $PHASE --teardown-worktrees"
 fi
