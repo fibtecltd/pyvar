@@ -15,7 +15,7 @@ Your role is coordination only — you do not implement functions directly.
 
 ## Your tasks
 
-1. Verify the git state is clean on `main` branch before spawning teammates.
+1. Verify the git state is clean on `master` branch before spawning teammates.
    Run: `git status` — if there are uncommitted changes, stop and report.
 
 2. Spawn exactly 4 teammates with the following assignments.
@@ -78,9 +78,9 @@ Teammate results:
   drv-alm:        [N] functions, [M] tests passing
 
 Run: ./pyvar-run.sh p2 --teardown-worktrees
-to merge all branches into main.
+to merge all branches into master.
 ```
 
 Note: Market Risk (68 functions) was implemented in the single-agent validation
 session before Agent Teams was enabled. Its branch feat/p2-market-risk
-should already be merged into main.
+should already be merged into master.
