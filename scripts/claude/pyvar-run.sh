@@ -168,7 +168,7 @@ if [ -f "$PHASE_SCRIPT" ]; then
 
     # Toggle Agent Teams in settings.json
     if [ "$MODE" = "agent" ]; then
-        run bash "$PHASE_SCRIPT" "$PHASE" --at-only
+        run bash "$PHASE_SCRIPT" "$PHASE" --at-only || true
     fi
 else
     echo "[4/6] WARNING: pyvar-phase.sh not found at $PHASE_SCRIPT — skipping plugin config."
