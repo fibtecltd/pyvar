@@ -121,4 +121,25 @@ clear_exhausted_flag() {
     echo "[session] CONTEXT_EXHAUSTED.md cleared."
 }
 
+# Append all three to the end of session-manager.sh, before the export line:
+
+build_handoff_context() {
+    local exhausted="${PYVAR_WORKSPACE:-$HOME/projects/pyvar}/CONTEXT_EXHAUSTED.md"
+    [ -f "$exhausted" ] && cat "$exhausted" || echo ""
+}
+
+clear_exhausted_flag() {
+    rm -f "${PYVAR_WORKSPACE:-$HOME/projects/pyvar}/CONTEXT_EXHAUSTED.md"
+    echo "[session] CONTEXT_EXHAUSTED.md cleared."
+}
+
+build_checkpoint_context() {
+    local checkpoint="${PYVAR_WORKSPACE:-$HOME/projects/pyvar}/CHECKPOINT.md"
+    [ -f "$checkpoint" ] && cat "$checkpoint" || echo ""
+}
+
+get_session_id() {
+    get_session "$@"
+}
+
 export SESSION_DIR SESSION_LOG
