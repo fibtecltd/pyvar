@@ -220,7 +220,7 @@ fi
 
 # Choose Claude model
 if [ "$MODE" = "agent" ]; then
-    CLAUDE_MODEL="--model claude-opus-4-6"
+    CLAUDE_MODEL="--model claude-opus-4-8"
 else
     CLAUDE_MODEL=""
 fi
