@@ -103,4 +103,22 @@ auto_save_from_container() {
     fi
 }
 
+build_handoff_context() {
+    # Returns content of CONTEXT_EXHAUSTED.md if it exists, else empty string.
+    # Called by pyvar-run.sh to inject handoff context into the next session.
+    local exhausted_file="${PYVAR_WORKSPACE:-$HOME/projects/pyvar}/CONTEXT_EXHAUSTED.md"
+    if [ -f "$exhausted_file" ]; then
+        cat "$exhausted_file"
+    else
+        echo ""
+    fi
+}
+
+clear_exhausted_flag() {
+    # Removes CONTEXT_EXHAUSTED.md after its content has been injected.
+    local exhausted_file="${PYVAR_WORKSPACE:-$HOME/projects/pyvar}/CONTEXT_EXHAUSTED.md"
+    rm -f "$exhausted_file"
+    echo "[session] CONTEXT_EXHAUSTED.md cleared."
+}
+
 export SESSION_DIR SESSION_LOG
