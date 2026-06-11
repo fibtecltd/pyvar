@@ -8,8 +8,7 @@ They verify the pure numerical correctness of the engine.
 import numpy as np
 import pytest
 
-from engine.metrics import (compute_breaches, compute_cvar,
-                            compute_loss_percentiles)
+from engine.metrics import compute_breaches, compute_cvar, compute_loss_percentiles
 from engine.montecarlo import run_monte_carlo_var
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

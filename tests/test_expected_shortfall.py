@@ -8,14 +8,16 @@ total ES, and stressed ES exceeds calm-period ES.
 import numpy as np
 import pytest
 
-from engine.expected_shortfall import (conditional_var_es,
-                                       cvar_decomposition_euler,
-                                       es_at_multiple_confidence_levels,
-                                       expected_shortfall_contribution,
-                                       historical_expected_shortfall,
-                                       liquidity_adjusted_es,
-                                       monte_carlo_expected_shortfall,
-                                       stressed_expected_shortfall)
+from engine.expected_shortfall import (
+    conditional_var_es,
+    cvar_decomposition_euler,
+    es_at_multiple_confidence_levels,
+    expected_shortfall_contribution,
+    historical_expected_shortfall,
+    liquidity_adjusted_es,
+    monte_carlo_expected_shortfall,
+    stressed_expected_shortfall,
+)
 
 
 @pytest.fixture

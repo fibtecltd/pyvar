@@ -98,8 +98,7 @@ def _wait_watchdog(watch_dir: str, target_file: str) -> None:
     Latency: ~50ms (FSEvents/macOS), ~10ms (inotify/Linux).
     Install: pip install watchdog
     """
-    from watchdog.events import (FileCreatedEvent, FileModifiedEvent,
-                                 FileSystemEventHandler)
+    from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler
     from watchdog.observers import Observer
 
     target_path = os.path.join(os.path.abspath(watch_dir), target_file)
