@@ -1,129 +1,108 @@
 # P2 Agent Teams — Engine Implementation
 # Used by: pyvar-run.sh p2 --mode agent
-# Machine: M4 only
+# Machine: M4 only (Intel uses sequential mode)
 
-Do not ask for confirmation. Do not present options. The answers to any questions
-you might have are already provided below. Proceed immediately after reading.
-
----
-
-## Environment facts — read before doing anything
-
-- Python packages are pre-installed in this Docker container image. Do NOT create a
-  venv. Do NOT run pip install. `pytest`, `numpy`, `numba`, `scipy` all work as-is.
-- Working directory is `/workspace/pyvar` — the full pyvar repo is here.
-- Worktrees must live at `/workspace/pyvar-worktrees/` — that path is bind-mounted
-  from the host. Do not use relative `../` paths.
-- The answer to "sequential vs teams vs single domain" is: **teams**. Proceed.
+**Do not ask for confirmation. Do not present options. Execute the steps below immediately.**
 
 ---
 
-## Step 1 — Read context
+## Step 1 — Read required context
 
-Read @CLAUDE.md in full.
-Read @scripts/claude/templates/checkpoint-instructions.md.
-Read @pyvar_functions.csv — you will need it for domain function lists.
-
----
-
-## Step 2 — Fix the environment (do this first, no confirmation needed)
-
-```bash
-# Remove stale Mac worktree references
-git worktree prune
-
-# Confirm Market Risk baseline passes in this container
-pytest tests/test_var_models.py tests/test_expected_shortfall.py \
-       tests/test_backtesting.py tests/test_greeks.py \
-       tests/test_pnl_attribution.py tests/test_stress.py \
-       tests/test_volatility.py tests/test_frtb.py -q
-
-# Create fresh worktrees at container-accessible paths
-git worktree add /workspace/pyvar-worktrees/credit-risk feat/p2-credit-risk
-git worktree add /workspace/pyvar-worktrees/liquidity-ops feat/p2-liquidity-ops
-git worktree add /workspace/pyvar-worktrees/portfolio-reg feat/p2-portfolio-reg
-git worktree add /workspace/pyvar-worktrees/drv-alm feat/p2-drv-alm
-```
-
-If pytest fails, fix the failures before spawning teammates.
-If `git worktree add` fails because the branch already has a worktree,
-run `git worktree remove /workspace/pyvar-worktrees/<name> --force` first.
+Read @CLAUDE.md in full before doing anything else.
+Read Phase 2 section of @pyvar_release_plan.md.
+Read @scripts/claude/templates/checkpoint-instructions.md and follow it exactly throughout.
 
 ---
 
-## Step 3 — Spawn 4 subagents simultaneously
+## Step 2 — Verify git state
 
-You are the Agent Teams LEAD. Spawn all 4 now. Do not wait for one to finish
-before starting the next.
+Run `git status` in `/workspace/pyvar`.
+If there are uncommitted changes not in .gitignore, stop and report them.
+Market Risk (68 functions) must already be merged into `master` — verify with `git log --oneline -5`.
 
-**credit-risk**
+---
+
+## Step 3 — Spawn 4 domain subagents simultaneously
+
+You are the Agent Teams LEAD. Your role is coordination only — do not implement functions directly.
+Spawn all 4 teammates at the same time. Do not wait for one to complete before starting the next.
+
+**Teammate: credit-risk**
 - Worktree: `/workspace/pyvar-worktrees/credit-risk`
 - Branch: `feat/p2-credit-risk`
-- Scope: Credit Risk — 55 functions from @pyvar_functions.csv (DOMAIN = "Credit Risk")
+- Scope: Credit Risk — 55 functions
+- Filter: `@pyvar_functions.csv` where DOMAIN = "Credit Risk"
 
-**liquidity-ops**
+**Teammate: liquidity-ops**
 - Worktree: `/workspace/pyvar-worktrees/liquidity-ops`
 - Branch: `feat/p2-liquidity-ops`
-- Scope: Liquidity Risk (40) + Operational Risk (44) = 84 functions
+- Scope: Liquidity Risk (40 functions) + Operational Risk (44 functions) = 84 total
+- Filter: `@pyvar_functions.csv` where DOMAIN = "Liquidity Risk" OR "Operational Risk"
 
-**portfolio-reg**
+**Teammate: portfolio-reg**
 - Worktree: `/workspace/pyvar-worktrees/portfolio-reg`
 - Branch: `feat/p2-portfolio-reg`
-- Scope: Portfolio Analytics (50) + Regulatory & Compliance (30) = 80 functions
+- Scope: Portfolio Analytics (50 functions) + Regulatory & Compliance (30 functions) = 80 total
+- Filter: `@pyvar_functions.csv` where DOMAIN = "Portfolio Analytics" OR "Regulatory & Compliance"
 
-**drv-alm**
+**Teammate: drv-alm**
 - Worktree: `/workspace/pyvar-worktrees/drv-alm`
 - Branch: `feat/p2-drv-alm`
-- Scope: Derivatives & Pricing (62) + ALM & Balance Sheet (33) = 95 functions
+- Scope: Derivatives & Pricing (62 functions) + ALM & Balance Sheet (33 functions) = 95 total
+- Filter: `@pyvar_functions.csv` where DOMAIN = "Derivatives & Pricing" OR "ALM & Balance Sheet"
 
 ---
 
-## Step 4 — Instructions for every subagent
+## Step 4 — Instructions for each subagent
 
-Give each subagent these instructions (substitute domain, worktree, branch):
+Give every teammate these instructions (substitute their domain, worktree, branch):
 
-> You are a domain implementation subagent. Python is pre-installed — no venv needed.
+> Read @CLAUDE.md sections 3.1 (Numba rules), 4 (regulatory constraints), 5 (testing).
+> Read @scripts/claude/templates/checkpoint-instructions.md — follow checkpoint and
+> context exhaustion rules exactly.
 >
-> Read @CLAUDE.md sections 3.1 (Numba rules), 4 (regulatory), 5 (testing).
-> Read @scripts/claude/templates/checkpoint-instructions.md.
->
-> Work in your worktree only: `/workspace/pyvar-worktrees/[name]`
-> Read @pyvar_functions.csv — implement every function in your assigned domains.
+> Work exclusively in your assigned worktree: `/workspace/pyvar-worktrees/[name]`
+> Read `@pyvar_functions.csv` and implement all functions for your assigned domains.
 >
 > For each function:
-> - Implement in `engine/` following Numba rules (stateless @njit, float64, cache=True)
+> - Implement in `engine/` following all Numba rules (stateless @njit, float64, cache=True)
 > - Write a numerical correctness test — no mocking of engine code
 > - Run `pytest tests/test_[module].py -x -q` before committing
 >
-> After every 5 functions:
->   `git add -A && git commit -m "feat(p2-[domain]): implement [function]"`
->   Write `CHECKPOINT.md` with: done, next, git state.
+> Commit after every 5 functions:
+>   `git add -A && git commit -m "feat(p2-[domain]): implement [function_name]"`
 >
-> If context is running low: write `CONTEXT_EXHAUSTED.md` — do not stop abruptly.
-> Exit only when: all domain functions implemented, pytest passes, no Numba violations.
+> Write `CHECKPOINT.md` after every commit with: functions done, next function, git state.
+> Write `CONTEXT_EXHAUSTED.md` if context is running low — do not stop abruptly.
+>
+> Exit gate: all domain functions implemented, pytest passes, no Numba violations.
 
 ---
 
-## Step 5 — Monitor completion
+## Step 5 — Monitor and verify completion
 
-When a teammate completes, verify:
-- Function count matches @pyvar_functions.csv for their domain
+When a teammate reports completion, verify before marking the domain done:
+- Function count matches `pyvar_functions.csv` for their domain
 - `pytest` passes in their worktree
-- Zero Numba violations, zero regulatory violations
+- Zero Numba rule violations per CLAUDE.md §3.1
+- Zero regulatory violations per CLAUDE.md §4
+- `CHECKPOINT.md` reflects accurate final state
+
+If a teammate writes `SWITCH_TO_SEQUENTIAL.md`, log it and notify the operator.
 
 ---
 
 ## Step 6 — Final report
 
-When all 4 complete, write:
+When ALL 4 teammates report completion, write:
 
 ```
 ALL DOMAINS COMPLETE
-  credit-risk:   [N] functions, [M] tests
-  liquidity-ops: [N] functions, [M] tests
-  portfolio-reg: [N] functions, [M] tests
-  drv-alm:       [N] functions, [M] tests
-Total: 314 functions
+  credit-risk:   [N] functions, [M] tests passing
+  liquidity-ops: [N] functions, [M] tests passing
+  portfolio-reg: [N] functions, [M] tests passing
+  drv-alm:       [N] functions, [M] tests passing
 
-Next: ./scripts/claude/pyvar-run.sh p2 --teardown-worktrees
+Total: 314 functions across 4 domains.
+Run: ./scripts/claude/pyvar-run.sh p2 --teardown-worktrees
 ```
