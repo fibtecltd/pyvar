@@ -8,17 +8,14 @@ for perfectly-matched and badly-matched P&L series.
 import numpy as np
 import pytest
 
-from engine.pnl_attribution import (
-    credit_pnl_attribution,
-    fx_pnl_attribution,
-    gamma_pnl_attribution,
-    greeks_based_pnl_explain,
-    pnl_attribution_test_frtb_pat,
-    rates_pnl_attribution,
-    residual_pnl_unexplained,
-    theta_carry_attribution,
-    vega_pnl_attribution,
-)
+from engine.pnl_attribution import (credit_pnl_attribution, fx_pnl_attribution,
+                                    gamma_pnl_attribution,
+                                    greeks_based_pnl_explain,
+                                    pnl_attribution_test_frtb_pat,
+                                    rates_pnl_attribution,
+                                    residual_pnl_unexplained,
+                                    theta_carry_attribution,
+                                    vega_pnl_attribution)
 
 # ── 36. Greeks-based P&L Explain ──────────────────────────────────────────────
 

@@ -8,17 +8,15 @@ measures verified in the FRTB-tail test block.
 import numpy as np
 import pytest
 
-from engine.frtb import (
-    extreme_value_theory_var,
-    frtb_ima_aggregate_capital_charge,
-    frtb_ima_expected_shortfall,
-    frtb_ima_non_modellable_risk_factors,
-    frtb_ima_stressed_period_finder,
-    frtb_sa_default_risk_charge,
-    frtb_sa_residual_risk_addon,
-    frtb_sa_sensitivity_based_method,
-    spectral_risk_measure,
-)
+from engine.frtb import (extreme_value_theory_var,
+                         frtb_ima_aggregate_capital_charge,
+                         frtb_ima_expected_shortfall,
+                         frtb_ima_non_modellable_risk_factors,
+                         frtb_ima_stressed_period_finder,
+                         frtb_sa_default_risk_charge,
+                         frtb_sa_residual_risk_addon,
+                         frtb_sa_sensitivity_based_method,
+                         spectral_risk_measure)
 
 # ── 60. FRTB SA Sensitivity-Based Method ──────────────────────────────────────
 

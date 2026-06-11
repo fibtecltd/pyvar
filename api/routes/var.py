@@ -29,7 +29,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.middleware.auth import TokenPayload, get_current_user
 from api.responses import OrjsonResponse
-from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
+from schemas.var import (JobResponse, JobResultResponse, JobStatus, VaRRequest,
+                         VaRResult)
 from tasks.var_task import celery_app, compute_var_task
 
 logger = logging.getLogger(__name__)

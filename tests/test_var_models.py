@@ -8,18 +8,12 @@ with portfolio value, determinism, and analytic reductions.
 import numpy as np
 import pytest
 
-from engine.var_models import (
-    component_var,
-    cornish_fisher_var,
-    filtered_historical_simulation_var,
-    historical_simulation_var,
-    incremental_var,
-    marginal_var,
-    monte_carlo_var_parametric_normal,
-    parametric_delta_normal_var,
-    var_by_risk_factor,
-    var_fan_chart,
-)
+from engine.var_models import (component_var, cornish_fisher_var,
+                               filtered_historical_simulation_var,
+                               historical_simulation_var, incremental_var,
+                               marginal_var, monte_carlo_var_parametric_normal,
+                               parametric_delta_normal_var, var_by_risk_factor,
+                               var_fan_chart)
 
 
 @pytest.fixture

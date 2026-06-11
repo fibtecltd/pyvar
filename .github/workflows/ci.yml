@@ -99,6 +99,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install -r requirements-ci.txt
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov httpx
 

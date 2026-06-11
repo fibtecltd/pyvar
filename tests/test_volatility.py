@@ -7,16 +7,13 @@ the forecast to the long-run level, and positivity of conditional variance.
 import numpy as np
 import pytest
 
-from engine.volatility import (
-    correlation_matrix_historical,
-    dcc_garch_dynamic_correlation,
-    egarch_volatility_model,
-    garch_11_volatility_forecast,
-    gjr_garch_asymmetric_model,
-    realised_volatility,
-    risk_factor_pca_decomposition,
-    volatility_surface_implied_vol,
-)
+from engine.volatility import (correlation_matrix_historical,
+                               dcc_garch_dynamic_correlation,
+                               egarch_volatility_model,
+                               garch_11_volatility_forecast,
+                               gjr_garch_asymmetric_model, realised_volatility,
+                               risk_factor_pca_decomposition,
+                               volatility_surface_implied_vol)
 
 
 def _bs_call(S, K, r, sigma, tau):

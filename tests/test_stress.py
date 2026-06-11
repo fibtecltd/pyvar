@@ -8,15 +8,11 @@ profiles are linear in the swept factor, and sector P&L is additive.
 import numpy as np
 import pytest
 
-from engine.stress import (
-    contagion_stress_scenario,
-    historical_scenario_replay,
-    hypothetical_multi_factor_scenario,
-    macro_scenario_generator,
-    reverse_stress_testing,
-    sector_stress_scenario,
-    sensitivity_stress_profile,
-)
+from engine.stress import (contagion_stress_scenario,
+                           historical_scenario_replay,
+                           hypothetical_multi_factor_scenario,
+                           macro_scenario_generator, reverse_stress_testing,
+                           sector_stress_scenario, sensitivity_stress_profile)
 
 
 @pytest.fixture

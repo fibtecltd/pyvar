@@ -18,7 +18,8 @@ Reasoning:
 """
 
 from observability.setup import setup_logging, setup_sentry
-from tasks.var_task import celery_app  # noqa: F401 — imports registers all tasks
+from tasks.var_task import \
+    celery_app  # noqa: F401 — imports registers all tasks
 
 setup_logging()
 setup_sentry()
