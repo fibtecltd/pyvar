@@ -227,9 +227,6 @@ fi
 
 # Build the base docker compose run command
 SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm -T \
-  --cpus $CLAUDE_CPUS \
-  --memory $CLAUDE_MEM \
-  --memory-reservation ${CLAUDE_MEM%g}00m \
   -w $WORKDIR \
   claude $SKIP_PERMS --print $CLAUDE_MODEL $RESUME"
 
