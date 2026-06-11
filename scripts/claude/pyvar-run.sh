@@ -228,7 +228,7 @@ fi
 # Build the base docker compose run command
 SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm -T \
   -w $WORKDIR \
-  claude $SKIP_PERMS --print $CLAUDE_MODEL $RESUME"
+  claude $SKIP_PERMS $CLAUDE_MODEL $RESUME"
 
 # Append --print with handoff prompt if resuming from context exhaustion
 PRINT_FLAG=""

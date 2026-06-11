@@ -6,6 +6,17 @@
 # Each teammate gets the domain-template prompt with their specific domain.
 
 ---
+## Step 2 — Verify and fix git state
+
+Run `git worktree prune` to remove stale references.
+Run `git worktree list` — if any worktrees show missing or prunable, they are stale.
+Recreate all 4 worktrees fresh from current `master`:
+
+git worktree add /workspace/pyvar-worktrees/credit-risk feat/p2-credit-risk
+git worktree add /workspace/pyvar-worktrees/liquidity-ops feat/p2-liquidity-ops
+git worktree add /workspace/pyvar-worktrees/portfolio-reg feat/p2-portfolio-reg
+git worktree add /workspace/pyvar-worktrees/drv-alm feat/p2-drv-alm
+
 Read @CLAUDE.md in full before doing anything else.
 Read @pyvar_release_plan.md Phase 2 section.
 Read @scripts/claude/templates/checkpoint-instructions.md — follow these exactly.
