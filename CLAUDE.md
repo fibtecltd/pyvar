@@ -28,7 +28,18 @@ pyvar/
 │
 ├── engine/                    ← COMPUTE CORE — Numba JIT functions
 │   ├── montecarlo.py          ← Monte Carlo VaR engine (@njit parallel)
-│   └── metrics.py             ← Derived metrics (CVaR, backtesting, percentiles)
+│   ├── metrics.py             ← Derived metrics (CVaR, backtesting, percentiles)
+│   ├── liquidity_ratios.py    ← LCR, NSFR, ASF, RSF, HQLA L1/2A/2B
+│   ├── liquidity_cashflow.py  ← cash-flow ladders (30d/1y), gap, funding tenor (@njit)
+│   ├── liquidity_stress.py    ← stress scenarios, survival horizon, intraday, LiqVaR (@njit)
+│   ├── liquidity_funding.py   ← buffer, CFP, concentration, runoff, repo, encumbrance, LTP
+│   ├── liquidity_internal.py  ← ILAAP metric, risk appetite, EWI, scorecard, cross-ccy bridge
+│   ├── oprisk_lda.py          ← LDA: freq/severity fit, compound dist, MC OpVaR, AMA (@njit)
+│   ├── oprisk_capital.py      ← SMA, allocation, diversification, economic capital
+│   ├── oprisk_rcsa.py         ← RCSA scoring, control effectiveness, BEI/ICF, loss data
+│   ├── oprisk_kri.py          ← KRI library, breach detection, trend analysis
+│   ├── oprisk_scenario.py     ← scenario analysis, expert elicitation, severity/freq estimation
+│   └── oprisk_governance.py   ← cyber/conduct/model/IT/vendor/BCM, heat map, escalation
 │
 ├── schemas/                   ← Pydantic v2 request/response models
 │   └── var.py                 ← VaRRequest, VaRResult, JobResponse
