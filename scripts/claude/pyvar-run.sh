@@ -233,7 +233,7 @@ SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm -T \
 # Append --print with handoff prompt if resuming from context exhaustion
 PRINT_FLAG=""
 if [ -n "${HANDOFF:-}" ]; then
-    PRINT_TMP=$(mktemp /tmp/pyvar-prompt-XXXXXX.md)
+    PRINT_TMP=$(mktemp /tmp/pyvar-prompt-XXXXXX)
     {
         cat "$TEMPLATES_DIR/checkpoint-instructions.md"
         echo ""
