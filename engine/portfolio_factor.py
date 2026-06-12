@@ -73,8 +73,8 @@ def _gaussian_em_2state(returns: np.ndarray, n_iter: int) -> np.ndarray:
         sv1 = 0.0
         for i in range(n):
             x = returns[i]
-            p0 = pi0 / np.sqrt(2.0 * np.pi * var0) * np.exp(-(x - mu0) ** 2 / (2.0 * var0))
-            p1 = pi1 / np.sqrt(2.0 * np.pi * var1) * np.exp(-(x - mu1) ** 2 / (2.0 * var1))
+            p0 = pi0 / np.sqrt(2.0 * np.pi * var0) * np.exp(-((x - mu0) ** 2) / (2.0 * var0))
+            p1 = pi1 / np.sqrt(2.0 * np.pi * var1) * np.exp(-((x - mu1) ** 2) / (2.0 * var1))
             denom = p0 + p1
             if denom <= 0.0:
                 r0 = 0.5
@@ -89,8 +89,8 @@ def _gaussian_em_2state(returns: np.ndarray, n_iter: int) -> np.ndarray:
         mu1 = sm1 / s1 if s1 > 0.0 else mu1
         for i in range(n):
             x = returns[i]
-            p0 = pi0 / np.sqrt(2.0 * np.pi * var0) * np.exp(-(x - mu0) ** 2 / (2.0 * var0))
-            p1 = pi1 / np.sqrt(2.0 * np.pi * var1) * np.exp(-(x - mu1) ** 2 / (2.0 * var1))
+            p0 = pi0 / np.sqrt(2.0 * np.pi * var0) * np.exp(-((x - mu0) ** 2) / (2.0 * var0))
+            p1 = pi1 / np.sqrt(2.0 * np.pi * var1) * np.exp(-((x - mu1) ** 2) / (2.0 * var1))
             denom = p0 + p1
             if denom <= 0.0:
                 r0 = 0.5

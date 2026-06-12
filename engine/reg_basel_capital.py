@@ -362,16 +362,17 @@ def combined_buffer_requirement(
     Raises:
         ValueError: If any buffer ratio is negative.
     """
-    if min(
-        capital_conservation_buffer_ratio,
-        countercyclical_buffer_ratio,
-        systemic_buffer_ratio,
-    ) < 0.0:
+    if (
+        min(
+            capital_conservation_buffer_ratio,
+            countercyclical_buffer_ratio,
+            systemic_buffer_ratio,
+        )
+        < 0.0
+    ):
         raise ValueError("buffer ratios must be non-negative")
     cbr_ratio = (
-        capital_conservation_buffer_ratio
-        + countercyclical_buffer_ratio
-        + systemic_buffer_ratio
+        capital_conservation_buffer_ratio + countercyclical_buffer_ratio + systemic_buffer_ratio
     )
     result = {"combined_buffer_ratio": round(cbr_ratio, 8)}
     if risk_weighted_assets > 0.0:

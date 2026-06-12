@@ -15,13 +15,11 @@ from engine.reg_solvency import (
     ucits_kiid_risk_indicator,
 )
 
-
 # ── AIFMD ─────────────────────────────────────────────────────────────────────
 
 
 def test_aifmd_leverage_ratios():
-    r = aifmd_risk_metrics(gross_exposure=300.0, commitment_exposure=200.0,
-                           net_asset_value=100.0)
+    r = aifmd_risk_metrics(gross_exposure=300.0, commitment_exposure=200.0, net_asset_value=100.0)
     assert r["gross_leverage"] == 3.0
     assert r["commitment_leverage"] == 2.0
     assert r["substantially_leveraged"] is False  # 2x <= 3x
@@ -69,11 +67,13 @@ def test_srri_too_few_obs_raises():
 
 def test_scr_market_diversification_benefit():
     charges = np.array([100.0, 80.0, 60.0])
-    corr = np.array([
-        [1.0, 0.5, 0.25],
-        [0.5, 1.0, 0.25],
-        [0.25, 0.25, 1.0],
-    ])
+    corr = np.array(
+        [
+            [1.0, 0.5, 0.25],
+            [0.5, 1.0, 0.25],
+            [0.25, 0.25, 1.0],
+        ]
+    )
     r = solvency_ii_scr_market_risk(charges, corr)
     # Diversified SCR is below the simple sum (sub-additivity).
     assert r["scr_market"] < r["sum_of_charges"]

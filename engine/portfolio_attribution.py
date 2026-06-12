@@ -186,9 +186,7 @@ def sector_attribution(
     )
     keys = list(base["allocation"].keys())
     base["total_effect"] = {
-        k: round(
-            base["allocation"][k] + base["selection"][k] + base["interaction"][k], 10
-        )
+        k: round(base["allocation"][k] + base["selection"][k] + base["interaction"][k], 10)
         for k in keys
     }
     return base

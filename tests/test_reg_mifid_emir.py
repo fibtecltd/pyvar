@@ -6,7 +6,6 @@ threshold logic, EMIR margin + MTA, and SFTR validation.
 """
 
 import numpy as np
-import pytest
 
 from engine.reg_mifid_emir import (
     emir_clearing_obligation_check,
@@ -60,15 +59,15 @@ def test_txn_validator_flags_missing_and_bad_lei():
 
 
 def test_pre_trade_lis_waiver():
-    r = mifid_ii_pre_trade_transparency("equity", order_size=1e6,
-                                        large_in_scale_threshold=5e5)
+    r = mifid_ii_pre_trade_transparency("equity", order_size=1e6, large_in_scale_threshold=5e5)
     assert r["waiver"] == "large_in_scale"
     assert r["transparency_required"] is False
 
 
 def test_pre_trade_illiquid_waiver():
-    r = mifid_ii_pre_trade_transparency("bond", order_size=100.0,
-                                        large_in_scale_threshold=5e5, is_liquid=False)
+    r = mifid_ii_pre_trade_transparency(
+        "bond", order_size=100.0, large_in_scale_threshold=5e5, is_liquid=False
+    )
     assert r["waiver"] == "illiquid_instrument"
 
 
@@ -135,22 +134,29 @@ def test_emir_trade_report_valid():
 
 
 def test_emir_clearing_required_for_fc_above_threshold():
-    r = emir_clearing_obligation_check("interest_rate", notional=5e9,
-                                       counterparty_category="FC",
-                                       clearing_thresholds={"interest_rate": 3e9})
+    r = emir_clearing_obligation_check(
+        "interest_rate",
+        notional=5e9,
+        counterparty_category="FC",
+        clearing_thresholds={"interest_rate": 3e9},
+    )
     assert r["clearing_required"] is True
 
 
 def test_emir_clearing_not_required_for_nfc_minus():
-    r = emir_clearing_obligation_check("credit", notional=1e12,
-                                       counterparty_category="NFC-",
-                                       clearing_thresholds={"credit": 1e9})
+    r = emir_clearing_obligation_check(
+        "credit", notional=1e12, counterparty_category="NFC-", clearing_thresholds={"credit": 1e9}
+    )
     assert r["clearing_required"] is False
 
 
 def test_emir_margin_mta_suppresses_small_vm():
-    r = emir_margin_requirement(portfolio_value=1e6, initial_margin_rate=0.05,
-                                variation_margin=100.0, minimum_transfer_amount=500.0)
+    r = emir_margin_requirement(
+        portfolio_value=1e6,
+        initial_margin_rate=0.05,
+        variation_margin=100.0,
+        minimum_transfer_amount=500.0,
+    )
     assert r["initial_margin"] == 50000.0
     assert r["variation_margin_call"] == 0.0  # below MTA
 

@@ -15,7 +15,6 @@ from engine.reg_frtb import (
     frtb_trading_desk_aggregation,
 )
 
-
 # ── SA ────────────────────────────────────────────────────────────────────────
 
 
@@ -33,16 +32,18 @@ def test_sa_negative_component_raises():
 
 
 def test_ima_multiplier_floored_at_1_5():
-    r = frtb_ima_market_risk_capital(expected_shortfall=100.0, stressed_es_ratio=1.0,
-                                     multiplier=1.0)
+    r = frtb_ima_market_risk_capital(
+        expected_shortfall=100.0, stressed_es_ratio=1.0, multiplier=1.0
+    )
     assert r["multiplier"] == 1.5  # floored
     assert r["es_charge"] == 150.0
     assert r["es_confidence"] == 0.975
 
 
 def test_ima_capital_includes_ses_and_drc():
-    r = frtb_ima_market_risk_capital(100.0, 1.2, 2.0, non_modellable_ses=20.0,
-                                     default_risk_charge=10.0)
+    r = frtb_ima_market_risk_capital(
+        100.0, 1.2, 2.0, non_modellable_ses=20.0, default_risk_charge=10.0
+    )
     assert abs(r["es_charge"] - 2.0 * 100.0 * 1.2) < 1e-9
     assert abs(r["ima_capital"] - (240.0 + 20.0 + 10.0)) < 1e-9
 

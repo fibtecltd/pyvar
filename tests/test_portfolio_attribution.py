@@ -17,7 +17,6 @@ from engine.portfolio_attribution import (
     sector_attribution,
 )
 
-
 # ── Brinson ───────────────────────────────────────────────────────────────────
 
 
@@ -40,8 +39,9 @@ def test_brinson_zero_active_when_identical():
 
 def test_brinson_length_mismatch_raises():
     with pytest.raises(ValueError):
-        return_attribution_brinson(np.array([0.5]), np.array([0.5, 0.5]),
-                                   np.array([0.01]), np.array([0.01]))
+        return_attribution_brinson(
+            np.array([0.5]), np.array([0.5, 0.5]), np.array([0.01]), np.array([0.01])
+        )
 
 
 # ── Factor return attribution ─────────────────────────────────────────────────

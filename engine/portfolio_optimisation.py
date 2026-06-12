@@ -129,7 +129,7 @@ def mean_variance_optimisation(
     n = mu.size
 
     def neg_utility(w: np.ndarray) -> float:
-        return -(w @ mu - 0.5 * risk_aversion * (w @ cov @ w))
+        return float(-(w @ mu - 0.5 * risk_aversion * (w @ cov @ w)))
 
     bounds = [(-1.0, 1.0) if allow_short else (0.0, 1.0)] * n
     constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1.0},)
@@ -177,6 +177,7 @@ def minimum_variance_portfolio(
         inv = np.linalg.pinv(cov)
         w = inv @ ones / float(ones @ inv @ ones)
     else:
+
         def port_var(w: np.ndarray) -> float:
             return float(w @ cov @ w)
 
@@ -459,7 +460,7 @@ def robust_portfolio_optimisation(
     worst_mu = mu - uncertainty * np.sqrt(np.clip(np.diag(cov), 0.0, None))
 
     def neg_utility(w: np.ndarray) -> float:
-        return -(w @ worst_mu - 0.5 * risk_aversion * (w @ cov @ w))
+        return float(-(w @ worst_mu - 0.5 * risk_aversion * (w @ cov @ w)))
 
     res = minimize(
         neg_utility,

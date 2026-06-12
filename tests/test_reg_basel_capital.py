@@ -24,7 +24,6 @@ from engine.reg_basel_capital import (
     srep_capital_add_on,
 )
 
-
 # ── Capital ratios ────────────────────────────────────────────────────────────
 
 
@@ -97,8 +96,9 @@ def test_icaap_aggregates_and_flags_adequacy():
 
 
 def test_srep_addon_tscr():
-    r = srep_capital_add_on(pillar1_requirement=80.0, pillar2a_addon_ratio=0.02,
-                            risk_weighted_assets=1000.0)
+    r = srep_capital_add_on(
+        pillar1_requirement=80.0, pillar2a_addon_ratio=0.02, risk_weighted_assets=1000.0
+    )
     assert r["pillar2a_capital"] == 20.0
     assert r["total_srep_requirement"] == 100.0
 

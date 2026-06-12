@@ -17,7 +17,6 @@ from engine.portfolio_factor import (
     regime_detection_hmm,
 )
 
-
 # ── Fama-French / Carhart regressions ─────────────────────────────────────────
 
 
@@ -91,12 +90,14 @@ def test_clustering_recovers_two_groups():
     rng = np.random.default_rng(7)
     g1 = rng.normal(0, 1, size=500)
     g2 = rng.normal(0, 1, size=500)
-    m = np.column_stack([
-        g1 + rng.normal(0, 0.01, 500),
-        g1 + rng.normal(0, 0.01, 500),
-        g2 + rng.normal(0, 0.01, 500),
-        g2 + rng.normal(0, 0.01, 500),
-    ])
+    m = np.column_stack(
+        [
+            g1 + rng.normal(0, 0.01, 500),
+            g1 + rng.normal(0, 0.01, 500),
+            g2 + rng.normal(0, 0.01, 500),
+            g2 + rng.normal(0, 0.01, 500),
+        ]
+    )
     r = correlation_clustering(m, n_clusters=2)
     labels = r["labels"]
     assert labels[0] == labels[1]
