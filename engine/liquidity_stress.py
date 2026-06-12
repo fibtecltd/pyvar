@@ -13,6 +13,7 @@ arrays only.
 from __future__ import annotations
 
 import numpy as np
+from typing import Any
 from numba import njit, prange
 from scipy import stats
 
@@ -53,7 +54,7 @@ def _apply_runoff(
     runoff_rates: np.ndarray,
 ) -> np.ndarray:
     """Outflow per category = balance * run-off rate (pure NumPy helper)."""
-    return balances * runoff_rates
+    return np.asarray(balances * runoff_rates, dtype=np.float64)
 
 
 def liquidity_stress_scenario(
@@ -305,7 +306,9 @@ def intraday_liquidity_monitor(
         "max_usage": round(max_usage, 2),
         "min_balance": round(min_balance, 2),
         "net_debit_peak": round(net_debit_peak, 2),
-        "closing_balance": round(float(balance_path[-1]) if balance_path.size else opening_balance, 2),
+        "closing_balance": round(
+            float(balance_path[-1]) if balance_path.size else opening_balance, 2
+        ),
     }
 
 
@@ -355,7 +358,7 @@ def intraday_liquidity_stress_test(
 
 
 def ilaap_stress_testing_framework(
-    scenarios: dict,
+    scenarios: dict[str, Any],
 ) -> dict:  # type: ignore[type-arg]
     """ILAAP stress-testing framework aggregator.
 

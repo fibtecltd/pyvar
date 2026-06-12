@@ -113,9 +113,7 @@ def test_repo_multiplier_below_one_raises():
 
 
 def test_fx_liquidity_net_position():
-    r = fx_liquidity_risk_by_currency(
-        {"USD": 100.0, "EUR": 50.0}, {"USD": 150.0, "EUR": 20.0}
-    )
+    r = fx_liquidity_risk_by_currency({"USD": 100.0, "EUR": 50.0}, {"USD": 150.0, "EUR": 20.0})
     assert r["net_by_ccy"]["USD"] == -50.0
     assert r["net_by_ccy"]["EUR"] == 30.0
     assert r["largest_short_ccy"] == "USD"

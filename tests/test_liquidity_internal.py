@@ -68,7 +68,9 @@ def test_ewi_normal():
 
 def test_central_bank_eligibility():
     r = central_bank_facility_eligibility(
-        np.array([5, 2, 4]), min_rating=4, asset_values=np.array([100.0, 100.0, 100.0]),
+        np.array([5, 2, 4]),
+        min_rating=4,
+        asset_values=np.array([100.0, 100.0, 100.0]),
         cb_haircuts=np.array([0.1, 0.1, 0.2]),
     )
     # ratings 5 and 4 eligible: 90 + 80 = 170
@@ -78,9 +80,7 @@ def test_central_bank_eligibility():
 
 def test_central_bank_invalid_haircut_raises():
     with pytest.raises(ValueError):
-        central_bank_facility_eligibility(
-            np.array([5]), 4, np.array([100.0]), np.array([1.5])
-        )
+        central_bank_facility_eligibility(np.array([5]), 4, np.array([100.0]), np.array([1.5]))
 
 
 def test_contingent_liquidity_expected():

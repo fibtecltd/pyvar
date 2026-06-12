@@ -53,9 +53,7 @@ def test_expert_elicitation_consensus():
 
 
 def test_expert_elicitation_weighted():
-    r = scenario_expert_elicitation_model(
-        np.array([100.0, 200.0]), np.array([3.0, 1.0])
-    )
+    r = scenario_expert_elicitation_model(np.array([100.0, 200.0]), np.array([3.0, 1.0]))
     assert r["consensus"] == 125.0  # (300 + 200) / 4
 
 

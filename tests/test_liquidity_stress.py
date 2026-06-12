@@ -17,9 +17,7 @@ from engine.liquidity_stress import (
 
 
 def test_generic_stress_outflow():
-    r = liquidity_stress_scenario(
-        np.array([1000.0, 500.0]), np.array([0.10, 0.50]), hqla=400.0
-    )
+    r = liquidity_stress_scenario(np.array([1000.0, 500.0]), np.array([0.10, 0.50]), hqla=400.0)
     assert r["stressed_outflow"] == 350.0  # 100 + 250
     assert r["survives"] is True
 
@@ -36,9 +34,7 @@ def test_idiosyncratic_full_wholesale_runoff():
 
 
 def test_market_wide_haircut_reduces_hqla():
-    r = market_wide_stress_scenario(
-        np.array([100.0, 100.0]), np.array([0.0, 0.20]), outflow=150.0
-    )
+    r = market_wide_stress_scenario(np.array([100.0, 100.0]), np.array([0.0, 0.20]), outflow=150.0)
     assert r["stressed_hqla"] == 180.0  # 100 + 80
     assert r["survives"] is True
 

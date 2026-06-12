@@ -162,7 +162,9 @@ def liquidity_gap_analysis(
         raise ValueError("array length must match number of buckets")
 
     gap = _cumulative_gap(assets, liabilities)
-    ratio = np.where(liabilities != 0.0, assets / np.where(liabilities != 0.0, liabilities, 1.0), np.inf)
+    ratio = np.where(
+        liabilities != 0.0, assets / np.where(liabilities != 0.0, liabilities, 1.0), np.inf
+    )
     return {
         "buckets": list(buckets),
         "periodic_gap": [round(float(x), 2) for x in gap[0]],

@@ -12,8 +12,18 @@ from engine.oprisk_kri import (
 
 def test_kri_library_registry():
     defs = [
-        {"name": "failed_trades", "amber_threshold": 5, "red_threshold": 10, "direction": "higher_breach"},
-        {"name": "staffing", "amber_threshold": 0.9, "red_threshold": 0.8, "direction": "lower_breach"},
+        {
+            "name": "failed_trades",
+            "amber_threshold": 5,
+            "red_threshold": 10,
+            "direction": "higher_breach",
+        },
+        {
+            "name": "staffing",
+            "amber_threshold": 0.9,
+            "red_threshold": 0.8,
+            "direction": "lower_breach",
+        },
     ]
     r = key_risk_indicator_kri_library(defs)
     assert r["num_kris"] == 2

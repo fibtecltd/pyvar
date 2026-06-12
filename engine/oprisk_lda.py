@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import numpy as np
 from numba import njit
-from scipy import stats
 
 __all__ = [
     "frequency_distribution_fitting",
@@ -291,8 +290,12 @@ def loss_distribution_approach_lda(
     freq = frequency_distribution_fitting(annual_event_counts)
     sev = severity_distribution_fitting(loss_amounts)
     cap = monte_carlo_oprisk_capital(
-        freq["lambda"], sev["mu"], sev["sigma"],
-        confidence_level=confidence_level, n_years=n_years, seed=seed,
+        freq["lambda"],
+        sev["mu"],
+        sev["sigma"],
+        confidence_level=confidence_level,
+        n_years=n_years,
+        seed=seed,
     )
     return {
         "frequency": freq,
@@ -335,8 +338,11 @@ def advanced_measurement_approach_ama(
         ValueError: If inputs are invalid (propagated).
     """
     lda = loss_distribution_approach_lda(
-        annual_event_counts, loss_amounts,
-        confidence_level=confidence_level, n_years=n_years, seed=seed,
+        annual_event_counts,
+        loss_amounts,
+        confidence_level=confidence_level,
+        n_years=n_years,
+        seed=seed,
     )
     opvar = lda["opvar"]
     el = lda["expected_loss"]

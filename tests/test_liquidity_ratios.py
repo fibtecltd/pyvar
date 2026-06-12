@@ -51,9 +51,7 @@ def test_lcr_negative_raises():
 
 
 def test_asf_weighted_sum():
-    r = available_stable_funding_asf_calc(
-        np.array([100.0, 200.0]), np.array([1.0, 0.5])
-    )
+    r = available_stable_funding_asf_calc(np.array([100.0, 200.0]), np.array([1.0, 0.5]))
     assert r["asf"] == 200.0  # 100*1 + 200*0.5
 
 
@@ -63,9 +61,7 @@ def test_asf_factor_out_of_range_raises():
 
 
 def test_rsf_weighted_sum():
-    r = required_stable_funding_rsf_calc(
-        np.array([100.0, 100.0]), np.array([0.05, 0.85])
-    )
+    r = required_stable_funding_rsf_calc(np.array([100.0, 100.0]), np.array([0.05, 0.85]))
     assert r["rsf"] == 90.0  # 5 + 85
 
 
