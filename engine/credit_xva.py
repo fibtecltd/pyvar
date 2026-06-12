@@ -215,7 +215,7 @@ def funding_valuation_adjustment_fva(
         if surv.shape != epe.shape:
             raise ValueError("survival_probability must match exposure shape")
 
-    dt = np.diff(np.concatenate(([0.0], t)))
+    dt: np.ndarray = np.diff(np.concatenate((np.array([0.0], dtype=np.float64), t)))
     fva = funding_spread * float(np.sum(epe * df * surv * dt))
     return {
         "fva": round(fva, 6),
@@ -256,7 +256,7 @@ def capital_valuation_adjustment_kva(
     if np.any(cap < 0.0):
         raise ValueError("capital_profile must be non-negative")
 
-    dt = np.diff(np.concatenate(([0.0], t)))
+    dt: np.ndarray = np.diff(np.concatenate((np.array([0.0], dtype=np.float64), t)))
     kva = cost_of_capital * float(np.sum(cap * df * dt))
     return {
         "kva": round(kva, 6),
@@ -298,7 +298,7 @@ def margin_valuation_adjustment_mva(
     if np.any(im < 0.0):
         raise ValueError("initial_margin_profile must be non-negative")
 
-    dt = np.diff(np.concatenate(([0.0], t)))
+    dt: np.ndarray = np.diff(np.concatenate((np.array([0.0], dtype=np.float64), t)))
     mva = margin_funding_spread * float(np.sum(im * df * dt))
     return {
         "mva": round(mva, 6),

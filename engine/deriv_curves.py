@@ -108,7 +108,9 @@ def nelson_siegel_svensson_curve(
         tt = np.where(t <= 0, 1e-8, t)
         f1 = (1.0 - np.exp(-tt / ta1)) / (tt / ta1)
         f2 = (1.0 - np.exp(-tt / ta2)) / (tt / ta2)
-        return b0 + b1 * f1 + b2 * (f1 - np.exp(-tt / ta1)) + b3 * (f2 - np.exp(-tt / ta2))
+        return np.asarray(
+            b0 + b1 * f1 + b2 * (f1 - np.exp(-tt / ta1)) + b3 * (f2 - np.exp(-tt / ta2))
+        )
 
     def resid(p: np.ndarray) -> np.ndarray:
         return nss(p) - y

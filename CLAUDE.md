@@ -227,6 +227,106 @@ RULE 4: Coverage target is 80% minimum before any release.
   Run: pytest --cov=. --cov-report=term-missing
 ```
 
+## 5a. Mandatory coding rules — enforced by pre-commit hooks
+
+These rules apply to every Python file in `engine/`, `api/`, `tasks/`, and `schemas/`.
+Violations will block commits. Apply them during implementation, not after.
+
+### Variable naming (ruff E741)
+**Never** use single-letter variable names `l`, `O`, or `I` — they are visually
+indistinguishable from `1`, `0`, and `1` respectively.
+
+```python
+# WRONG
+l = np.asarray(lgd, dtype=np.float64)
+
+# CORRECT
+lgd_arr = np.asarray(lgd, dtype=np.float64)
+liab    = np.asarray(bucket_liabilities, dtype=np.float64)
+```
+
+### Return type annotations and numpy scalar returns (mypy no-any-return)
+Any `@njit` function or numpy expression returning a declared `float`, `complex`,
+or `np.ndarray` return type **must** be explicitly cast:
+
+```python
+# WRONG — numpy scalar is typed Any by mypy
+def _my_kernel(...) -> float:
+    return values[0]
+
+# CORRECT
+def _my_kernel(...) -> float:
+    return float(values[0])
+
+# WRONG — np.sqrt returns Any in strict mode
+def _semi_deviation(...) -> float:
+    return np.sqrt(acc / n)
+
+# CORRECT
+def _semi_deviation(...) -> float:
+    return float(np.sqrt(acc / n))
+
+# WRONG — complex return
+def _cf_heston(...) -> complex:
+    return np.exp(c_term + d_term * v0 + 1j * u * np.log(spot))
+
+# CORRECT
+def _cf_heston(...) -> complex:
+    return complex(np.exp(c_term + d_term * v0 + 1j * u * np.log(spot)))
+```
+
+### dict type annotations (mypy type-arg)
+Never use bare `dict` in type annotations. Always specify key/value types:
+
+```python
+# WRONG
+def my_function(data: dict) -> dict:
+
+# CORRECT — if types are known
+def my_function(data: dict[str, float]) -> dict[str, Any]:
+
+# ACCEPTABLE — when dict is genuinely heterogeneous
+def my_function(data: dict) -> dict:  # type: ignore[type-arg]
+```
+
+### np.concatenate with mixed list and array (mypy arg-type)
+`np.concatenate` requires all inputs to be arrays. Never mix a Python list
+with a numpy array in the same tuple argument:
+
+```python
+# WRONG — mypy cannot infer type of ([0.0], arr)
+surv_prev = np.concatenate(([0.0], surv[:-1]))
+
+# CORRECT
+surv_prev: np.ndarray = np.concatenate(
+    (np.array([0.0], dtype=np.float64), surv[:-1])
+)
+```
+
+### dict.get as max/min key (mypy arg-type)
+`dict.get` is overloaded and mypy cannot resolve it as a key function.
+Use an explicit lambda:
+
+```python
+# WRONG
+best = max(scores, key=scores.get)
+
+# CORRECT
+best = max(scores, key=lambda k: scores[k])
+```
+
+### Unused variable suppression
+If a variable is computed but genuinely unused (e.g. an intermediate step
+preserved for clarity), prefix it with `_` to suppress ruff F841:
+
+```python
+# WRONG — ruff F841
+lam = math.sqrt(mu * mu + 2.0 * rate / sigma**2)  # unused
+
+# CORRECT
+_lam = math.sqrt(mu * mu + 2.0 * rate / sigma**2)  # noqa: unused-intentional
+```
+
 ---
 
 ## 6. Code style

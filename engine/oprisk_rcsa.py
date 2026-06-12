@@ -49,7 +49,7 @@ def _rag_from_score(score: float) -> str:
 
 
 def rcsa_risk_identification(
-    risk_register: list[dict],
+    risk_register: list[dict],  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Validate and summarise an RCSA risk register.
 
@@ -297,7 +297,7 @@ def loss_event_classification_basel(
 
 
 def loss_data_collection_framework(
-    loss_events: list[dict],
+    loss_events: list[dict],  # type: ignore[type-arg]
     reporting_threshold: float,
 ) -> dict:  # type: ignore[type-arg]
     """Internal loss-data collection above a reporting threshold.

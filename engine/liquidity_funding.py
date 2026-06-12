@@ -71,8 +71,8 @@ def liquidity_buffer_sizing(
 
 
 def contingency_funding_plan_trigger(
-    metrics: dict,
-    thresholds: dict,
+    metrics: dict,  # type: ignore[type-arg]
+    thresholds: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Evaluate Contingency Funding Plan (CFP) activation triggers.
 
@@ -339,8 +339,8 @@ def repo_market_stress_haircut(
 
 
 def fx_liquidity_risk_by_currency(
-    inflows_by_ccy: dict,
-    outflows_by_ccy: dict,
+    inflows_by_ccy: dict,  # type: ignore[type-arg]
+    outflows_by_ccy: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """FX liquidity risk — net position per significant currency.
 
@@ -380,7 +380,7 @@ def fx_liquidity_risk_by_currency(
 
 
 def intragroup_liquidity_flow(
-    entity_positions: dict,
+    entity_positions: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Intragroup liquidity flow netting.
 

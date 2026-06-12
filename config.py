@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"
     s3_bucket: str = "pyvar-results"
-    s3_region: str = "us-east-1"
+    s3_region: str = "eu-west-1"
 
     # ── Monte Carlo defaults ───────────────────────────────────────────────────
     default_n_simulations: int = 100_000

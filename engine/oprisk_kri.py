@@ -20,7 +20,7 @@ __all__ = [
 
 
 def key_risk_indicator_kri_library(
-    kri_definitions: list[dict],
+    kri_definitions: list[dict],  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Validate and index a KRI library.
 
@@ -39,7 +39,7 @@ def key_risk_indicator_kri_library(
     """
     if not kri_definitions:
         raise ValueError("kri_definitions must be non-empty")
-    registry: dict[str, dict] = {}
+    registry: dict[str, dict] = {}  # type: ignore[type-arg]
     for kri in kri_definitions:
         for key in ("name", "amber_threshold", "red_threshold", "direction"):
             if key not in kri:
