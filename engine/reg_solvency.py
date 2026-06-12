@@ -41,7 +41,7 @@ def _scr_aggregate(sub_modules: np.ndarray, corr: np.ndarray) -> float:
     for i in range(n):
         for j in range(n):
             acc += sub_modules[i] * corr[i, j] * sub_modules[j]
-    return np.sqrt(acc) if acc > 0.0 else 0.0
+    return float(np.sqrt(acc)) if acc > 0.0 else 0.0
 
 
 def aifmd_risk_metrics(

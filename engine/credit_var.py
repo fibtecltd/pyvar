@@ -146,7 +146,7 @@ def credit_var_monte_carlo(
 
     n = p.size
     if np.isscalar(asset_correlation):
-        rho = np.full(n, np.float64(asset_correlation), dtype=np.float64)
+        rho = np.full(n, float(asset_correlation), dtype=np.float64)  # type: ignore[arg-type]
     else:
         rho = np.asarray(asset_correlation, dtype=np.float64)
         if rho.shape != p.shape:

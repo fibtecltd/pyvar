@@ -109,9 +109,9 @@ def liquidity_risk_appetite_threshold(
 
 
 def early_warning_indicator_liquidity(
-    indicators: dict,
-    thresholds: dict,
-    directions: dict | None = None,
+    indicators: dict,  # type: ignore[type-arg]
+    thresholds: dict,  # type: ignore[type-arg]
+    directions: dict | None = None,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Liquidity early-warning indicator (EWI) dashboard.
 

@@ -128,7 +128,7 @@ def esg_score_integration(
 
     total_w = float(np.sum(w))
     port_score = float(np.sum(w * esg) / total_w) if total_w != 0.0 else 0.0
-    result: dict = {"portfolio_esg_score": round(port_score, 8)}
+    result: dict = {"portfolio_esg_score": round(port_score, 8)}  # type: ignore[type-arg]
 
     if min_esg_score is not None and cov_matrix is not None:
         cov = np.asarray(cov_matrix, dtype=np.float64)

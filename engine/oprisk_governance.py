@@ -294,7 +294,7 @@ def business_continuity_risk_score(
 
 
 def near_miss_capture_framework(
-    events: list[dict],
+    events: list[dict],  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Summarise captured near-miss events.
 
@@ -331,7 +331,7 @@ def near_miss_capture_framework(
 
 
 def root_cause_analysis_template(
-    causal_factors: dict,
+    causal_factors: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Aggregate root-cause contributions into a normalised attribution.
 
@@ -357,7 +357,7 @@ def root_cause_analysis_template(
     if total <= 0:
         raise ValueError("causal weights must sum to a positive value")
     attribution = {k: round(float(v) / total, 6) for k, v in causal_factors.items()}
-    primary = max(attribution, key=attribution.get)
+    primary = max(attribution, key=lambda k: attribution[k])
     return {
         "attribution": attribution,
         "primary_cause": primary,
@@ -415,7 +415,7 @@ def risk_appetite_statement_oprisk(
 
 def escalation_threshold_calculation(
     loss_amount: float,
-    thresholds: dict,
+    thresholds: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """Determine the escalation level for a loss against tiered thresholds.
 
@@ -440,7 +440,7 @@ def escalation_threshold_calculation(
     triggered = {lvl: thr for lvl, thr in thresholds.items() if loss_amount >= thr}
     if not triggered:
         return {"escalation_level": None, "threshold": 0.0}
-    level = max(triggered, key=triggered.get)
+    level = max(triggered, key=lambda k: triggered[k])
     return {"escalation_level": level, "threshold": round(float(triggered[level]), 2)}
 
 

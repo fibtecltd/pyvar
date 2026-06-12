@@ -80,7 +80,7 @@ def _crr_binomial(
     """Cox-Ross-Rubinstein binomial tree value (backward induction)."""
     dt = tau / n_steps
     u = math.exp(sigma * math.sqrt(dt))
-    _d = 1.0 / u
+    d = 1.0 / u
     disc = math.exp(-rate * dt)
     p = (math.exp((rate - div_yield) * dt) - d) / (u - d)
 
@@ -123,7 +123,7 @@ def _trinomial(
     dt = tau / n_steps
     dx = sigma * math.sqrt(3.0 * dt)
     u = math.exp(dx)
-    d = 1.0 / u
+    _d = 1.0 / u
     disc = math.exp(-rate * dt)
     nu = rate - div_yield - 0.5 * sigma * sigma
     pu = 0.5 * ((sigma * sigma * dt + nu * nu * dt * dt) / (dx * dx) + nu * dt / dx)

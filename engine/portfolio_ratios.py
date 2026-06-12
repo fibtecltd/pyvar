@@ -66,7 +66,7 @@ def _downside_deviation(x: np.ndarray, target: float) -> float:
         d = x[i] - target
         if d < 0.0:
             acc += d * d
-    return np.sqrt(acc / n) if n > 0 else 0.0
+    return float(np.sqrt(acc / n)) if n > 0 else 0.0
 
 
 @njit(cache=True)
@@ -85,7 +85,7 @@ def _ulcer_index_kernel(equity: np.ndarray) -> float:
         else:
             dd = 0.0
         acc += dd * dd
-    return np.sqrt(acc / n)
+    return float(np.sqrt(acc / n))
 
 
 # ── Public functions ──────────────────────────────────────────────────────────

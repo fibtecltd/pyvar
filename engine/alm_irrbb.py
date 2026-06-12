@@ -291,7 +291,7 @@ def static_gap_analysis(
         raise ValueError("arrays must match length")
     gap = a - liab
     total_liab = float(np.sum(liab))
-    ratio = float(np.sum(a) / total_l) if total_l != 0 else float("inf")
+    ratio = float(np.sum(a) / total_liab) if total_liab != 0 else float("inf")
     return {
         "gap": [round(float(g), 6) for g in gap],
         "cumulative_gap": [round(float(c), 6) for c in np.cumsum(gap)],
@@ -325,7 +325,7 @@ def dynamic_gap_analysis(
         ValueError: If array lengths are inconsistent.
     """
     a = np.asarray(bucket_assets, dtype=np.float64)
-    l = np.asarray(bucket_liabilities, dtype=np.float64)
+    liab = np.asarray(bucket_liabilities, dtype=np.float64)
     ag = np.asarray(asset_growth, dtype=np.float64)
     lg = np.asarray(liability_growth, dtype=np.float64)
     if not (a.size == liab.size == ag.size == lg.size):
@@ -334,7 +334,7 @@ def dynamic_gap_analysis(
     path = []
     for p in range(1, n_periods + 1):
         a_p = a * (1.0 + ag) ** p
-        l_p = l * (1.0 + lg) ** p
+        l_p = liab * (1.0 + lg) ** p
         path.append(round(float(np.sum(a_p - l_p)), 6))
     return {"projected_total_gap": path}
 

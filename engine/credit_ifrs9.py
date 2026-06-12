@@ -171,19 +171,19 @@ def ifrs_9_lifetime_ecl_stage_2_3(
         ValueError: If shapes mismatch, values out of range, or stage invalid.
     """
     mpd = np.asarray(marginal_pd, dtype=np.float64).ravel()
-    l = np.asarray(lgd, dtype=np.float64).ravel()
+    lgd_arr = np.asarray(lgd, dtype=np.float64).ravel()
     e = np.asarray(ead, dtype=np.float64).ravel()
     df = np.asarray(discount_factors, dtype=np.float64).ravel()
-    if not (mpd.shape == l.shape == e.shape == df.shape) or mpd.size == 0:
+    if not (mpd.shape == lgd_arr.shape == e.shape == df.shape) or mpd.size == 0:
         raise ValueError("all profile arrays must share the same non-empty shape")
-    if np.any((mpd < 0.0) | (mpd > 1.0)) or np.any((l < 0.0) | (l > 1.0)):
+    if np.any((mpd < 0.0) | (mpd > 1.0)) or np.any((lgd_arr < 0.0) | (lgd_arr > 1.0)):
         raise ValueError("marginal_pd and lgd must lie in [0, 1]")
     if np.any((df <= 0.0) | (df > 1.0)):
         raise ValueError("discount_factors must lie in (0, 1]")
     if stage not in (2, 3):
         raise ValueError("stage must be 2 or 3")
 
-    ecl = _lifetime_ecl(mpd, l, e, df)
+    ecl = _lifetime_ecl(mpd, lgd_arr, e, df)
     return {
         "ecl": round(float(ecl), 6),
         "cumulative_pd": round(float(np.sum(mpd)), 10),
@@ -418,20 +418,20 @@ def credit_stress_testing(
         ValueError: If shapes mismatch, values out of range, or shocks < 1.
     """
     p = np.asarray(pd, dtype=np.float64).ravel()
-    l = np.asarray(lgd, dtype=np.float64).ravel()
+    lgd_arr = np.asarray(lgd, dtype=np.float64).ravel()
     e = np.asarray(ead, dtype=np.float64).ravel()
-    if not (p.shape == l.shape == e.shape) or p.size == 0:
+    if not (p.shape == lgd_arr.shape == e.shape) or p.size == 0:
         raise ValueError("pd, lgd, ead must share the same non-empty shape")
-    if np.any((p < 0.0) | (p > 1.0)) or np.any((l < 0.0) | (l > 1.0)):
+    if np.any((p < 0.0) | (p > 1.0)) or np.any((lgd_arr < 0.0) | (lgd_arr > 1.0)):
         raise ValueError("pd and lgd must lie in [0, 1]")
     if np.any(e < 0.0):
         raise ValueError("ead must be non-negative")
     if pd_shock_multiplier < 1.0 or lgd_shock_multiplier < 1.0:
         raise ValueError("shock multipliers must be >= 1 (stress is adverse)")
 
-    baseline = float(np.sum(p * l * e))
+    baseline = float(np.sum(p * lgd_arr * e))
     p_stress = np.clip(p * pd_shock_multiplier, 0.0, 1.0)
-    l_stress = np.clip(l * lgd_shock_multiplier, 0.0, 1.0)
+    l_stress = np.clip(lgd_arr * lgd_shock_multiplier, 0.0, 1.0)
     stressed = float(np.sum(p_stress * l_stress * e))
     ratio = stressed / baseline if baseline > 0.0 else 1.0
     return {

@@ -96,8 +96,10 @@ def credit_spread_curve_bootstrap(
     cumulative_hazard_t = s / lgd * t  # lambda(t)*t with lambda = spread/LGD
     survival = np.exp(-cumulative_hazard_t)
     # Piecewise (forward) hazard between consecutive tenors.
-    prev_t = np.concatenate(([0.0], t[:-1]))
-    prev_ch = np.concatenate(([0.0], cumulative_hazard_t[:-1]))
+    prev_t: np.ndarray = np.concatenate((np.array([0.0], dtype=np.float64), t[:-1]))
+    prev_ch: np.ndarray = np.concatenate(
+        (np.array([0.0], dtype=np.float64), cumulative_hazard_t[:-1])
+    )
     dt = t - prev_t
     fwd_hazard = np.where(dt > 0.0, (cumulative_hazard_t - prev_ch) / dt, 0.0)
     return {
