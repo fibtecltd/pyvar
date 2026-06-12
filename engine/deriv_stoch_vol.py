@@ -51,13 +51,11 @@ def _heston_char(
     d = np.sqrt(xi**2 + sigma**2 * (1j * u + u**2))
     g = (xi - d) / (xi + d)
     exp_dt = np.exp(-d * tau)
-    c_term = (
-        rate * 1j * u * tau
-        + (kappa * theta / sigma**2)
-        * ((xi - d) * tau - 2.0 * np.log((1.0 - g * exp_dt) / (1.0 - g)))
+    c_term = rate * 1j * u * tau + (kappa * theta / sigma**2) * (
+        (xi - d) * tau - 2.0 * np.log((1.0 - g * exp_dt) / (1.0 - g))
     )
     d_term = ((xi - d) / sigma**2) * ((1.0 - exp_dt) / (1.0 - g * exp_dt))
-    return np.exp(c_term + d_term * v0 + 1j * u * np.log(spot))
+    return complex(np.exp(c_term + d_term * v0 + 1j * u * np.log(spot)))
 
 
 def heston_stochastic_volatility_model(
@@ -172,11 +170,15 @@ def sabr_volatility_model(
     if abs(forward - strike) < 1e-12:  # ATM
         fk_beta = forward**one_beta
         term1 = alpha / fk_beta
-        term2 = 1.0 + (
-            (one_beta**2 / 24.0) * (alpha**2 / fk_beta**2)
-            + (rho * beta * nu * alpha) / (4.0 * fk_beta)
-            + ((2.0 - 3.0 * rho**2) / 24.0) * nu**2
-        ) * tau
+        term2 = (
+            1.0
+            + (
+                (one_beta**2 / 24.0) * (alpha**2 / fk_beta**2)
+                + (rho * beta * nu * alpha) / (4.0 * fk_beta)
+                + ((2.0 - 3.0 * rho**2) / 24.0) * nu**2
+            )
+            * tau
+        )
         vol = term1 * term2
     else:
         log_fk = math.log(forward / strike)
@@ -184,15 +186,17 @@ def sabr_volatility_model(
         z = (nu / alpha) * fk_beta * log_fk
         x_z = math.log((math.sqrt(1.0 - 2.0 * rho * z + z**2) + z - rho) / (1.0 - rho))
         denom = fk_beta * (
-            1.0
-            + (one_beta**2 / 24.0) * log_fk**2
-            + (one_beta**4 / 1920.0) * log_fk**4
+            1.0 + (one_beta**2 / 24.0) * log_fk**2 + (one_beta**4 / 1920.0) * log_fk**4
         )
-        factor = 1.0 + (
-            (one_beta**2 / 24.0) * (alpha**2 / fk_beta**2)
-            + (rho * beta * nu * alpha) / (4.0 * fk_beta)
-            + ((2.0 - 3.0 * rho**2) / 24.0) * nu**2
-        ) * tau
+        factor = (
+            1.0
+            + (
+                (one_beta**2 / 24.0) * (alpha**2 / fk_beta**2)
+                + (rho * beta * nu * alpha) / (4.0 * fk_beta)
+                + ((2.0 - 3.0 * rho**2) / 24.0) * nu**2
+            )
+            * tau
+        )
         vol = (alpha / denom) * (z / x_z) * factor
     return {"implied_vol": round(float(vol), 8)}
 
@@ -244,9 +248,7 @@ def local_volatility_dupire_model(
             dk_dn = k[j] - k[j - 1]
             dc_dt = (c[i + 1, j] - c[i, j]) / dt
             dc_dk = (c[i, j + 1] - c[i, j - 1]) / (dk_up + dk_dn)
-            d2c_dk2 = (
-                c[i, j + 1] - 2.0 * c[i, j] + c[i, j - 1]
-            ) / (0.5 * (dk_up + dk_dn)) ** 2
+            d2c_dk2 = (c[i, j + 1] - 2.0 * c[i, j] + c[i, j - 1]) / (0.5 * (dk_up + dk_dn)) ** 2
             numer = dc_dt + rate * k[j] * dc_dk
             denom = 0.5 * k[j] ** 2 * d2c_dk2
             var = numer / denom if denom > 1e-12 else 0.0
@@ -292,7 +294,9 @@ def _rbergomi_paths(
             t_now = (step + 1) * dt
             # approximate Volterra variance via power-law weighted increment
             wv += (t_now ** (hurst - 0.5)) * z_v[p, step] * math.sqrt(dt)
-            var = xi * math.exp(eta * math.sqrt(2.0 * hurst) * wv - 0.5 * eta * eta * (t_now ** (2.0 * hurst)))
+            var = xi * math.exp(
+                eta * math.sqrt(2.0 * hurst) * wv - 0.5 * eta * eta * (t_now ** (2.0 * hurst))
+            )
             vol = math.sqrt(var if var > 0.0 else 1e-12)
             dw = rho * z_v[p, step] + math.sqrt(1.0 - rho * rho) * z_s[p, step]
             log_s += (rate - 0.5 * var) * dt + vol * math.sqrt(dt) * dw
@@ -357,8 +361,18 @@ def rough_volatility_rbergomi_model(
     z_v = rng.standard_normal((int(n_simulations), int(n_steps))).astype(np.float64)
     z_s = rng.standard_normal((int(n_simulations), int(n_steps))).astype(np.float64)
     payoffs = _rbergomi_paths(
-        spot, strike, rate, tau, xi, eta, hurst, rho, z_v, z_s,
-        int(n_steps), option_type == "call",
+        spot,
+        strike,
+        rate,
+        tau,
+        xi,
+        eta,
+        hurst,
+        rho,
+        z_v,
+        z_s,
+        int(n_steps),
+        option_type == "call",
     )
     price = float(np.mean(payoffs))
     se = float(np.std(payoffs) / math.sqrt(n_simulations))
@@ -522,8 +536,10 @@ def _sample_inverse_gaussian(
     """Sample an inverse-Gaussian(mu, lambda) via Michael-Schucany-Haas."""
     nu = rng.standard_normal(size)
     y = nu * nu
-    x = mu + (mu**2 * y) / (2.0 * lam) - (mu / (2.0 * lam)) * np.sqrt(
-        4.0 * mu * lam * y + mu**2 * y**2
+    x = (
+        mu
+        + (mu**2 * y) / (2.0 * lam)
+        - (mu / (2.0 * lam)) * np.sqrt(4.0 * mu * lam * y + mu**2 * y**2)
     )
     u = rng.random(size)
     out = np.where(u <= mu / (mu + x), x, mu**2 / x)

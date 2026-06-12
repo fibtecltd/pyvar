@@ -135,9 +135,7 @@ def structural_hedge_optimisation(
     def resid(x: np.ndarray) -> np.ndarray:
         return np.array([float(np.dot(d, x)) - target_dollar_dur])
 
-    sol = optimize.lsq_linear(
-        d.reshape(1, -1), np.array([target_dollar_dur]), bounds=(0.0, cap)
-    )
+    sol = optimize.lsq_linear(d.reshape(1, -1), np.array([target_dollar_dur]), bounds=(0.0, cap))
     notionals = sol.x
     achieved_dollar = float(np.dot(d, notionals))
     achieved_dur = achieved_dollar / equity_notional
@@ -227,7 +225,7 @@ def balance_sheet_projection_model(
     nii = assets * asset_yield - liabs * liability_cost
     return {
         "assets": [round(float(a), 4) for a in assets],
-        "liabilities": [round(float(l), 4) for l in liabs],
+        "liabilities": [round(float(lb), 4) for lb in liabs],
         "equity": [round(float(e), 4) for e in equity],
         "nii": [round(float(n), 4) for n in nii],
     }

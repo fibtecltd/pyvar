@@ -74,7 +74,9 @@ def digital_option_pricer(
         raise ValueError("spot, strike, sigma, tau must be positive")
 
     sqrt_t = math.sqrt(tau)
-    d2 = (math.log(spot / strike) + (rate - div_yield - 0.5 * sigma * sigma) * tau) / (sigma * sqrt_t)
+    d2 = (math.log(spot / strike) + (rate - div_yield - 0.5 * sigma * sigma) * tau) / (
+        sigma * sqrt_t
+    )
     disc = math.exp(-rate * tau)
     if option_type == "call":
         price = payout * disc * float(stats.norm.cdf(d2))
@@ -134,7 +136,7 @@ def barrier_option_pricer(
     is_down = barrier_type.startswith("down")
     eta = 1.0 if is_down else -1.0
     mu = (rate - div_yield - 0.5 * sigma * sigma) / (sigma * sigma)
-    lam = math.sqrt(mu * mu + 2.0 * rate / (sigma * sigma))
+    _lam = math.sqrt(mu * mu + 2.0 * rate / (sigma * sigma))
     sqrt_t = math.sqrt(tau)
     disc_q = math.exp(-div_yield * tau)
     disc_r = math.exp(-rate * tau)
@@ -144,19 +146,32 @@ def barrier_option_pricer(
 
     x1 = math.log(spot / strike) / (sigma * sqrt_t) + (1.0 + mu) * sigma * sqrt_t
     x2 = math.log(spot / barrier) / (sigma * sqrt_t) + (1.0 + mu) * sigma * sqrt_t
-    y1 = math.log(barrier * barrier / (spot * strike)) / (sigma * sqrt_t) + (1.0 + mu) * sigma * sqrt_t
+    y1 = (
+        math.log(barrier * barrier / (spot * strike)) / (sigma * sqrt_t)
+        + (1.0 + mu) * sigma * sqrt_t
+    )
     y2 = math.log(barrier / spot) / (sigma * sqrt_t) + (1.0 + mu) * sigma * sqrt_t
 
-    a = phi * spot * disc_q * _cnd(phi * x1) - phi * strike * disc_r * _cnd(phi * x1 - phi * sigma * sqrt_t)
-    b = phi * spot * disc_q * _cnd(phi * x2) - phi * strike * disc_r * _cnd(phi * x2 - phi * sigma * sqrt_t)
-    c = phi * spot * disc_q * (barrier / spot) ** (2.0 * (mu + 1.0)) * _cnd(eta * y1) - phi * strike * disc_r * (
-        barrier / spot
-    ) ** (2.0 * mu) * _cnd(eta * y1 - eta * sigma * sqrt_t)
-    d = phi * spot * disc_q * (barrier / spot) ** (2.0 * (mu + 1.0)) * _cnd(eta * y2) - phi * strike * disc_r * (
-        barrier / spot
-    ) ** (2.0 * mu) * _cnd(eta * y2 - eta * sigma * sqrt_t)
+    a = phi * spot * disc_q * _cnd(phi * x1) - phi * strike * disc_r * _cnd(
+        phi * x1 - phi * sigma * sqrt_t
+    )
+    b = phi * spot * disc_q * _cnd(phi * x2) - phi * strike * disc_r * _cnd(
+        phi * x2 - phi * sigma * sqrt_t
+    )
+    c = phi * spot * disc_q * (barrier / spot) ** (2.0 * (mu + 1.0)) * _cnd(
+        eta * y1
+    ) - phi * strike * disc_r * (barrier / spot) ** (2.0 * mu) * _cnd(
+        eta * y1 - eta * sigma * sqrt_t
+    )
+    d = phi * spot * disc_q * (barrier / spot) ** (2.0 * (mu + 1.0)) * _cnd(
+        eta * y2
+    ) - phi * strike * disc_r * (barrier / spot) ** (2.0 * mu) * _cnd(
+        eta * y2 - eta * sigma * sqrt_t
+    )
 
-    vanilla = black_scholes_european_option(spot, strike, rate, sigma, tau, option_type, div_yield)["price"]
+    vanilla = black_scholes_european_option(spot, strike, rate, sigma, tau, option_type, div_yield)[
+        "price"
+    ]
     strike_gt_barrier = strike > barrier
 
     # Knock-in closed forms (Haug tables); knock-out by in-out parity.
@@ -226,12 +241,18 @@ def _gbm_path_stats(
 
 
 def _simulate_path_stats(
-    spot: float, rate: float, div_yield: float, sigma: float, tau: float,
-    n_steps: int, n_sims: int, seed: int,
+    spot: float,
+    rate: float,
+    div_yield: float,
+    sigma: float,
+    tau: float,
+    n_steps: int,
+    n_sims: int,
+    seed: int,
 ) -> np.ndarray:
     rng = np.random.default_rng(seed)
     normals = rng.standard_normal((int(n_sims), int(n_steps))).astype(np.float64)
-    return _gbm_path_stats(spot, rate, div_yield, sigma, tau, normals)
+    return np.asarray(_gbm_path_stats(spot, rate, div_yield, sigma, tau, normals))
 
 
 def asian_option_pricer(
@@ -278,7 +299,9 @@ def asian_option_pricer(
     if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
         raise ValueError("spot, strike, sigma, tau must be positive")
 
-    stats_arr = _simulate_path_stats(spot, rate, div_yield, sigma, tau, n_steps, n_simulations, seed)
+    stats_arr = _simulate_path_stats(
+        spot, rate, div_yield, sigma, tau, n_steps, n_simulations, seed
+    )
     avg = stats_arr[:, 1]
     if option_type == "call":
         payoff = np.maximum(avg - strike, 0.0)
@@ -336,12 +359,18 @@ def lookback_option_pricer(
     if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
         raise ValueError("spot, strike, sigma, tau must be positive")
 
-    stats_arr = _simulate_path_stats(spot, rate, div_yield, sigma, tau, n_steps, n_simulations, seed)
+    stats_arr = _simulate_path_stats(
+        spot, rate, div_yield, sigma, tau, n_steps, n_simulations, seed
+    )
     st, smin, smax = stats_arr[:, 0], stats_arr[:, 2], stats_arr[:, 3]
     if strike_type == "floating":
         payoff = (st - smin) if option_type == "call" else (smax - st)
     else:
-        payoff = np.maximum(smax - strike, 0.0) if option_type == "call" else np.maximum(strike - smin, 0.0)
+        payoff = (
+            np.maximum(smax - strike, 0.0)
+            if option_type == "call"
+            else np.maximum(strike - smin, 0.0)
+        )
     disc = math.exp(-rate * tau)
     disc_payoff = disc * np.asarray(payoff, dtype=np.float64)
     price = float(np.mean(disc_payoff))
@@ -372,7 +401,11 @@ def _gbm_full_paths(
 
 
 def _lsm_price(
-    paths: np.ndarray, strike: float, rate: float, dt: float, is_call: bool,
+    paths: np.ndarray,
+    strike: float,
+    rate: float,
+    dt: float,
+    is_call: bool,
     exercise_mask: np.ndarray,
 ) -> float:
     """Longstaff-Schwartz backward induction on a price matrix.
@@ -545,13 +578,18 @@ def _multi_asset_terminals(
 
 
 def _correlated_terminals(
-    spots: np.ndarray, rate: float, sigmas: np.ndarray, tau: float,
-    corr: np.ndarray, n_sims: int, seed: int,
+    spots: np.ndarray,
+    rate: float,
+    sigmas: np.ndarray,
+    tau: float,
+    corr: np.ndarray,
+    n_sims: int,
+    seed: int,
 ) -> np.ndarray:
     chol = np.linalg.cholesky(corr).astype(np.float64)
     rng = np.random.default_rng(seed)
     normals = rng.standard_normal((int(n_sims), spots.size)).astype(np.float64)
-    return _multi_asset_terminals(spots, rate, sigmas, tau, chol, normals)
+    return np.asarray(_multi_asset_terminals(spots, rate, sigmas, tau, chol, normals))
 
 
 def rainbow_option_pricer(
@@ -603,7 +641,9 @@ def rainbow_option_pricer(
 
     terminals = _correlated_terminals(s, rate, v, tau, corr, n_simulations, seed)
     ref = np.max(terminals, axis=1) if rainbow_type == "best-of" else np.min(terminals, axis=1)
-    payoff = np.maximum(ref - strike, 0.0) if option_type == "call" else np.maximum(strike - ref, 0.0)
+    payoff = (
+        np.maximum(ref - strike, 0.0) if option_type == "call" else np.maximum(strike - ref, 0.0)
+    )
     disc_payoff = math.exp(-rate * tau) * payoff
     price = float(np.mean(disc_payoff))
     se = float(np.std(disc_payoff) / math.sqrt(n_simulations))
@@ -658,7 +698,11 @@ def basket_option_pricer(
 
     terminals = _correlated_terminals(s, rate, v, tau, corr, n_simulations, seed)
     basket = terminals @ w
-    payoff = np.maximum(basket - strike, 0.0) if option_type == "call" else np.maximum(strike - basket, 0.0)
+    payoff = (
+        np.maximum(basket - strike, 0.0)
+        if option_type == "call"
+        else np.maximum(strike - basket, 0.0)
+    )
     disc_payoff = math.exp(-rate * tau) * payoff
     price = float(np.mean(disc_payoff))
     se = float(np.std(disc_payoff) / math.sqrt(n_simulations))
@@ -778,14 +822,20 @@ def compound_option_pricer(
     s_mid = spot * np.exp(drift + vol * z)
     # value the underlying option at the compound expiry for each path
     sqrt_r = math.sqrt(tau_resid)
-    d1 = (np.log(s_mid / strike_underlying) + (rate - div_yield + 0.5 * sigma**2) * tau_resid) / (sigma * sqrt_r)
+    d1 = (np.log(s_mid / strike_underlying) + (rate - div_yield + 0.5 * sigma**2) * tau_resid) / (
+        sigma * sqrt_r
+    )
     d2 = d1 - sigma * sqrt_r
     disc_r = math.exp(-rate * tau_resid)
     disc_q = math.exp(-div_yield * tau_resid)
     if under_type == "call":
-        under_val = s_mid * disc_q * stats.norm.cdf(d1) - strike_underlying * disc_r * stats.norm.cdf(d2)
+        under_val = s_mid * disc_q * stats.norm.cdf(
+            d1
+        ) - strike_underlying * disc_r * stats.norm.cdf(d2)
     else:
-        under_val = strike_underlying * disc_r * stats.norm.cdf(-d2) - s_mid * disc_q * stats.norm.cdf(-d1)
+        under_val = strike_underlying * disc_r * stats.norm.cdf(
+            -d2
+        ) - s_mid * disc_q * stats.norm.cdf(-d1)
     if outer_is_call:
         payoff = np.maximum(under_val - strike_compound, 0.0)
     else:
@@ -832,12 +882,18 @@ def chooser_option_pricer(
     if tau_expiry <= tau_choose:
         raise ValueError("tau_expiry must exceed tau_choose")
 
-    call = black_scholes_european_option(spot, strike, rate, sigma, tau_expiry, "call", div_yield)["price"]
+    call = black_scholes_european_option(spot, strike, rate, sigma, tau_expiry, "call", div_yield)[
+        "price"
+    ]
     # Rubinstein simple chooser: C(T2) + P with maturity t1 on strike discounted
     k_disc = strike * math.exp(-(rate - div_yield) * (tau_expiry - tau_choose))
-    put_part = black_scholes_european_option(spot, k_disc, rate, sigma, tau_choose, "put", div_yield)["price"]
+    put_part = black_scholes_european_option(
+        spot, k_disc, rate, sigma, tau_choose, "put", div_yield
+    )["price"]
     price = call + put_part
-    put_full = black_scholes_european_option(spot, strike, rate, sigma, tau_expiry, "put", div_yield)["price"]
+    put_full = black_scholes_european_option(
+        spot, strike, rate, sigma, tau_expiry, "put", div_yield
+    )["price"]
     return {
         "price": round(float(price), 8),
         "call_value": round(float(call), 8),

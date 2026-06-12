@@ -19,7 +19,9 @@ from engine.alm_duration import (
 
 
 def test_macaulay_zero_coupon_equals_time():
-    d = macaulay_duration_balance_sheet(np.array([100.0]), np.array([5.0]), 0.03)["macaulay_duration"]
+    d = macaulay_duration_balance_sheet(np.array([100.0]), np.array([5.0]), 0.03)[
+        "macaulay_duration"
+    ]
     assert d == pytest.approx(5.0, abs=1e-8)
 
 
@@ -55,7 +57,9 @@ def test_nii_sensitivity_positive_gap_gains_when_rates_rise():
 
 
 def test_nii_baseline_arithmetic():
-    r = nii_simulation_baseline(np.array([1000.0]), np.array([0.05]), np.array([800.0]), np.array([0.02]))
+    r = nii_simulation_baseline(
+        np.array([1000.0]), np.array([0.05]), np.array([800.0]), np.array([0.02])
+    )
     assert r["nii"] == pytest.approx(50.0 - 16.0)
 
 

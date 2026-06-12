@@ -99,8 +99,14 @@ def test_asset_swap_spread_runs():
 
 def test_oas_reprices_callable():
     fair = oas_option_adjusted_spread(
-        market_price=95.0, face_value=100.0, coupon_rate=0.05, short_rate=0.05,
-        rate_vol=0.15, maturity=10.0, call_price=101.0, frequency=2,
+        market_price=95.0,
+        face_value=100.0,
+        coupon_rate=0.05,
+        short_rate=0.05,
+        rate_vol=0.15,
+        maturity=10.0,
+        call_price=101.0,
+        frequency=2,
     )
     assert -0.05 < fair["oas"] < 0.1
 

@@ -19,9 +19,13 @@ from engine.alm_nii_eve import (
 def test_stress_nii_asset_sensitive_gains_when_rates_rise():
     # assets reprice fully (beta 1), liabilities lag (beta 0.5)
     r = nii_simulation_stress(
-        np.array([1000.0]), np.array([0.04]),
-        np.array([800.0]), np.array([0.01]),
-        rate_shock=0.01, asset_beta=1.0, liability_beta=0.5,
+        np.array([1000.0]),
+        np.array([0.04]),
+        np.array([800.0]),
+        np.array([0.01]),
+        rate_shock=0.01,
+        asset_beta=1.0,
+        liability_beta=0.5,
     )
     assert r["delta_nii"] > 0
     assert r["delta_nii"] == pytest.approx(1000.0 * 0.01 - 800.0 * 0.005)
@@ -29,9 +33,12 @@ def test_stress_nii_asset_sensitive_gains_when_rates_rise():
 
 def test_eve_equals_pv_assets_minus_liabilities():
     r = economic_value_of_equity_eve(
-        np.array([1050.0]), np.array([1.0]),
-        np.array([1020.0]), np.array([1.0]),
-        np.array([0.05]), np.array([0.03]),
+        np.array([1050.0]),
+        np.array([1.0]),
+        np.array([1020.0]),
+        np.array([1.0]),
+        np.array([0.05]),
+        np.array([0.03]),
     )
     assert r["eve"] == pytest.approx(r["pv_assets"] - r["pv_liabilities"], abs=1e-9)
 
@@ -64,8 +71,12 @@ def test_liquidity_adjusted_carry_drag():
 def test_invalid_inputs_raise():
     with pytest.raises(ValueError):
         economic_value_of_equity_eve(
-            np.array([1.0, 2.0]), np.array([1.0]), np.array([1.0]),
-            np.array([1.0]), np.array([0.05]), np.array([0.03]),
+            np.array([1.0, 2.0]),
+            np.array([1.0]),
+            np.array([1.0]),
+            np.array([1.0]),
+            np.array([0.05]),
+            np.array([0.03]),
         )
     with pytest.raises(ValueError):
         liquidity_adjusted_nii(1000.0, -1.0, 0.02, 0.025, 0.005)

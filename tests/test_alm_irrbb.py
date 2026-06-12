@@ -87,7 +87,9 @@ def test_dynamic_gap_path_length():
 
 
 def test_basis_risk_sign():
-    res = basis_risk_irrbb(np.array([1000.0]), np.array([0.01]), np.array([800.0]), np.array([0.005]))
+    res = basis_risk_irrbb(
+        np.array([1000.0]), np.array([0.01]), np.array([800.0]), np.array([0.005])
+    )
     assert res["basis_risk_nii"] == pytest.approx(1000.0 * 0.01 - 800.0 * 0.005)
 
 

@@ -64,7 +64,8 @@ def nii_simulation_stress(
 
     baseline = float(np.sum(ab * ar) - np.sum(lb * lr))
     stressed = float(
-        np.sum(ab * (ar + asset_beta * rate_shock)) - np.sum(lb * (lr + liability_beta * rate_shock))
+        np.sum(ab * (ar + asset_beta * rate_shock))
+        - np.sum(lb * (lr + liability_beta * rate_shock))
     )
     return {
         "stressed_nii": round(stressed, 6),

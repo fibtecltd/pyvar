@@ -80,7 +80,7 @@ def _crr_binomial(
     """Cox-Ross-Rubinstein binomial tree value (backward induction)."""
     dt = tau / n_steps
     u = math.exp(sigma * math.sqrt(dt))
-    d = 1.0 / u
+    _d = 1.0 / u
     disc = math.exp(-rate * dt)
     p = (math.exp((rate - div_yield) * dt) - d) / (u - d)
 
@@ -104,7 +104,7 @@ def _crr_binomial(
                 values[i] = exercise if exercise > cont else cont
             else:
                 values[i] = cont
-    return values[0]
+    return float(values[0])
 
 
 @njit(cache=True)
@@ -156,7 +156,7 @@ def _trinomial(
                 values[j] = exercise if exercise > cont else cont
             else:
                 values[j] = cont
-    return values[0]
+    return float(values[0])
 
 
 @njit(cache=True, parallel=True)
@@ -240,14 +240,20 @@ def black_scholes_european_option(
         return {"price": round(float(price), 8), "d1": 0.0, "d2": 0.0}
 
     sqrt_t = math.sqrt(tau)
-    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * sigma * sigma) * tau) / (sigma * sqrt_t)
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * sigma * sigma) * tau) / (
+        sigma * sqrt_t
+    )
     d2 = d1 - sigma * sqrt_t
     disc_r = math.exp(-rate * tau)
     disc_q = math.exp(-div_yield * tau)
     if is_call:
-        price = spot * disc_q * float(stats.norm.cdf(d1)) - strike * disc_r * float(stats.norm.cdf(d2))
+        price = spot * disc_q * float(stats.norm.cdf(d1)) - strike * disc_r * float(
+            stats.norm.cdf(d2)
+        )
     else:
-        price = strike * disc_r * float(stats.norm.cdf(-d2)) - spot * disc_q * float(stats.norm.cdf(-d1))
+        price = strike * disc_r * float(stats.norm.cdf(-d2)) - spot * disc_q * float(
+            stats.norm.cdf(-d1)
+        )
     return {"price": round(float(price), 8), "d1": round(d1, 8), "d2": round(d2, 8)}
 
 
@@ -286,7 +292,9 @@ def black_scholes_greeks(
         raise ValueError("spot, strike, sigma, tau must be positive")
 
     sqrt_t = math.sqrt(tau)
-    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * sigma * sigma) * tau) / (sigma * sqrt_t)
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * sigma * sigma) * tau) / (
+        sigma * sqrt_t
+    )
     d2 = d1 - sigma * sqrt_t
     disc_r = math.exp(-rate * tau)
     disc_q = math.exp(-div_yield * tau)
@@ -362,8 +370,15 @@ def binomial_tree_option_pricer(
         raise ValueError("n_steps must be >= 1")
 
     price = _crr_binomial(
-        spot, strike, rate, div_yield, sigma, tau, int(n_steps),
-        option_type == "call", style == "american",
+        spot,
+        strike,
+        rate,
+        div_yield,
+        sigma,
+        tau,
+        int(n_steps),
+        option_type == "call",
+        style == "american",
     )
     return {"price": round(float(price), 8), "n_steps": int(n_steps), "style": style}
 
@@ -411,8 +426,15 @@ def trinomial_tree_option_pricer(
         raise ValueError("n_steps must be >= 1")
 
     price = _trinomial(
-        spot, strike, rate, div_yield, sigma, tau, int(n_steps),
-        option_type == "call", style == "american",
+        spot,
+        strike,
+        rate,
+        div_yield,
+        sigma,
+        tau,
+        int(n_steps),
+        option_type == "call",
+        style == "american",
     )
     return {"price": round(float(price), 8), "n_steps": int(n_steps), "style": style}
 

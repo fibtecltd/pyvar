@@ -25,8 +25,9 @@ __all__ = [
 
 
 @njit(cache=True, parallel=True)
-def _vasicek_paths(r0: float, kappa: float, theta: float, sigma: float, tau: float,
-                   normals: np.ndarray) -> np.ndarray:
+def _vasicek_paths(
+    r0: float, kappa: float, theta: float, sigma: float, tau: float, normals: np.ndarray
+) -> np.ndarray:
     """Terminal short rates for Vasicek from pre-drawn normals."""
     n_paths, n_steps = normals.shape
     dt = tau / n_steps
@@ -76,8 +77,7 @@ def vasicek_interest_rate_model(
 
     b = (1.0 - math.exp(-kappa * maturity)) / kappa
     a = math.exp(
-        (theta - sigma**2 / (2.0 * kappa**2)) * (b - maturity)
-        - (sigma**2 * b**2) / (4.0 * kappa)
+        (theta - sigma**2 / (2.0 * kappa**2)) * (b - maturity) - (sigma**2 * b**2) / (4.0 * kappa)
     )
     bond_price = a * math.exp(-b * r0)
 
@@ -93,8 +93,9 @@ def vasicek_interest_rate_model(
 
 
 @njit(cache=True, parallel=True)
-def _cir_paths(r0: float, kappa: float, theta: float, sigma: float, tau: float,
-               normals: np.ndarray) -> np.ndarray:
+def _cir_paths(
+    r0: float, kappa: float, theta: float, sigma: float, tau: float, normals: np.ndarray
+) -> np.ndarray:
     """Terminal short rates for CIR (full-truncation Euler) from normals."""
     n_paths, n_steps = normals.shape
     dt = tau / n_steps
@@ -146,9 +147,9 @@ def cox_ingersoll_ross_model(
     gamma = math.sqrt(kappa**2 + 2.0 * sigma**2)
     denom = (gamma + kappa) * (math.exp(gamma * maturity) - 1.0) + 2.0 * gamma
     b = 2.0 * (math.exp(gamma * maturity) - 1.0) / denom
-    a = (
-        2.0 * gamma * math.exp((kappa + gamma) * maturity / 2.0) / denom
-    ) ** (2.0 * kappa * theta / sigma**2)
+    a = (2.0 * gamma * math.exp((kappa + gamma) * maturity / 2.0) / denom) ** (
+        2.0 * kappa * theta / sigma**2
+    )
     bond_price = a * math.exp(-b * r0)
 
     rng = np.random.default_rng(seed)
@@ -227,7 +228,9 @@ def _lmm_terminal_rates(
                 drift = 0.0
                 for j in range(i + 1):
                     drift += (tenor * f[j] * vols[j] * vols[i]) / (1.0 + tenor * f[j])
-                f[i] = f[i] * math.exp((drift - 0.5 * vols[i] * vols[i]) * dt + vols[i] * sqdt * normals[p, step, i])
+                f[i] = f[i] * math.exp(
+                    (drift - 0.5 * vols[i] * vols[i]) * dt + vols[i] * sqdt * normals[p, step, i]
+                )
         for i in range(n_rates):
             out[p, i] = f[i]
     return out

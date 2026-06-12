@@ -183,7 +183,9 @@ def irrbb_internal_model(
         raise ValueError("rate_scenarios must be (n_scenarios, n_buckets)")
 
     base_eve = _eve_under_curve(cf, t, r0)
-    deltas = np.array([_eve_under_curve(cf, t, r0 + scen[i]) - base_eve for i in range(scen.shape[0])])
+    deltas = np.array(
+        [_eve_under_curve(cf, t, r0 + scen[i]) - base_eve for i in range(scen.shape[0])]
+    )
     worst_99 = float(np.percentile(deltas, 1.0))
     return {
         "base_eve": round(base_eve, 6),
@@ -213,10 +215,10 @@ def repricing_gap_analysis(
         ValueError: If the two arrays differ in length.
     """
     a = np.asarray(bucket_assets, dtype=np.float64)
-    l = np.asarray(bucket_liabilities, dtype=np.float64)
-    if a.size != l.size:
+    liab = np.asarray(bucket_liabilities, dtype=np.float64)
+    if a.size != liab.size:
         raise ValueError("bucket_assets and bucket_liabilities must match length")
-    gap = a - l
+    gap = a - liab
     cumulative = np.cumsum(gap)
     if bucket_labels is None:
         bucket_labels = [f"bucket_{i}" for i in range(a.size)]
@@ -284,11 +286,11 @@ def static_gap_analysis(
         ValueError: If the arrays differ in length.
     """
     a = np.asarray(bucket_assets, dtype=np.float64)
-    l = np.asarray(bucket_liabilities, dtype=np.float64)
-    if a.size != l.size:
+    liab = np.asarray(bucket_liabilities, dtype=np.float64)
+    if a.size != liab.size:
         raise ValueError("arrays must match length")
-    gap = a - l
-    total_l = float(np.sum(l))
+    gap = a - liab
+    total_liab = float(np.sum(liab))
     ratio = float(np.sum(a) / total_l) if total_l != 0 else float("inf")
     return {
         "gap": [round(float(g), 6) for g in gap],
@@ -326,7 +328,7 @@ def dynamic_gap_analysis(
     l = np.asarray(bucket_liabilities, dtype=np.float64)
     ag = np.asarray(asset_growth, dtype=np.float64)
     lg = np.asarray(liability_growth, dtype=np.float64)
-    if not (a.size == l.size == ag.size == lg.size):
+    if not (a.size == liab.size == ag.size == lg.size):
         raise ValueError("all arrays must match length")
 
     path = []

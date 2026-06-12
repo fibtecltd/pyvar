@@ -191,12 +191,16 @@ def credit_default_swap_cds_pricer(
     tau = 1.0 / frequency
     df = np.exp(-discount_rate * times)
     surv = np.exp(-hazard_rate * times)
-    surv_prev = np.concatenate(([1.0], surv[:-1]))
+    surv_prev: np.ndarray = np.concatenate((np.array([1.0], dtype=np.float64), surv[:-1]))
 
     premium_leg = spread * tau * float(np.sum(df * surv)) * notional
     protection_leg = (1.0 - recovery_rate) * float(np.sum(df * (surv_prev - surv))) * notional
     annuity = tau * float(np.sum(df * surv))
-    par_spread = (1.0 - recovery_rate) * float(np.sum(df * (surv_prev - surv))) / annuity if annuity > 0 else 0.0
+    par_spread = (
+        (1.0 - recovery_rate) * float(np.sum(df * (surv_prev - surv))) / annuity
+        if annuity > 0
+        else 0.0
+    )
     value = protection_leg - premium_leg  # buyer of protection
     return {
         "value": round(float(value), 6),
@@ -239,7 +243,9 @@ def equity_swap_pricer(
     return {"value": round(float(value), 6)}
 
 
-def _black_option(forward: float, strike: float, vol: float, tau: float, df: float, is_call: bool) -> float:
+def _black_option(
+    forward: float, strike: float, vol: float, tau: float, df: float, is_call: bool
+) -> float:
     """Black-76 undiscounted-forward option value times discount factor."""
     if vol <= 0 or tau <= 0:
         intrinsic = max(forward - strike, 0.0) if is_call else max(strike - forward, 0.0)
@@ -287,8 +293,10 @@ def caplet_floorlet_pricer_black(
         raise ValueError("option_type must be 'caplet' or 'floorlet'")
     if forward_rate <= 0 or strike <= 0:
         raise ValueError("forward_rate and strike must be positive")
-    price = notional * accrual * _black_option(
-        forward_rate, strike, vol, expiry, discount_factor, option_type == "caplet"
+    price = (
+        notional
+        * accrual
+        * _black_option(forward_rate, strike, vol, expiry, discount_factor, option_type == "caplet")
     )
     return {"price": round(float(price), 6)}
 
@@ -334,8 +342,14 @@ def cap_floor_pricer(
     leg = "caplet" if option_type == "cap" else "floorlet"
     prices = [
         caplet_floorlet_pricer_black(
-            notional, float(fwd[i]), strike, float(v[i]), float(exp[i]),
-            float(tau[i]), float(df[i]), leg,
+            notional,
+            float(fwd[i]),
+            strike,
+            float(v[i]),
+            float(exp[i]),
+            float(tau[i]),
+            float(df[i]),
+            leg,
         )["price"]
         for i in range(fwd.size)
     ]
@@ -375,8 +389,10 @@ def swaption_pricer_black(
         raise ValueError("option_type must be 'payer' or 'receiver'")
     if forward_swap_rate <= 0 or strike <= 0:
         raise ValueError("forward_swap_rate and strike must be positive")
-    price = notional * annuity * _black_option(
-        forward_swap_rate, strike, vol, expiry, 1.0, option_type == "payer"
+    price = (
+        notional
+        * annuity
+        * _black_option(forward_swap_rate, strike, vol, expiry, 1.0, option_type == "payer")
     )
     return {"price": round(float(price), 6)}
 
@@ -416,6 +432,10 @@ def swaption_pricer_sabr(
     Raises:
         ValueError: If inputs are invalid.
     """
-    sabr_vol = sabr_volatility_model(forward_swap_rate, strike, expiry, alpha, beta, rho, nu)["implied_vol"]
-    res = swaption_pricer_black(notional, forward_swap_rate, strike, sabr_vol, expiry, annuity, option_type)
+    sabr_vol = sabr_volatility_model(forward_swap_rate, strike, expiry, alpha, beta, rho, nu)[
+        "implied_vol"
+    ]
+    res = swaption_pricer_black(
+        notional, forward_swap_rate, strike, sabr_vol, expiry, annuity, option_type
+    )
     return {"price": res["price"], "sabr_vol": round(float(sabr_vol), 8)}

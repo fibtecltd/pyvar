@@ -227,7 +227,7 @@ def _bond_option_tree(
                 values[j] = strike if cont > strike else cont
             else:  # puttable
                 values[j] = strike if strike > cont else cont
-    return values[0]
+    return float(values[0])
 
 
 def callable_bond_pricer(
@@ -267,9 +267,7 @@ def callable_bond_pricer(
     callable_val = _bond_option_tree(
         face_value, coupon, n_steps, dt, short_rate, rate_vol, call_price, True
     )
-    straight = _bond_option_tree(
-        face_value, coupon, n_steps, dt, short_rate, rate_vol, 1e18, True
-    )
+    straight = _bond_option_tree(face_value, coupon, n_steps, dt, short_rate, rate_vol, 1e18, True)
     return {"price": round(float(callable_val), 6), "straight_price": round(float(straight), 6)}
 
 
@@ -351,7 +349,9 @@ def convertible_bond_pricer(
     if conversion_ratio < 0 or stock_price < 0:
         raise ValueError("conversion_ratio and stock_price must be non-negative")
 
-    bond_floor = bond_pricer_fixed_coupon(face_value, coupon_rate, yield_rate, maturity, frequency)["price"]
+    bond_floor = bond_pricer_fixed_coupon(face_value, coupon_rate, yield_rate, maturity, frequency)[
+        "price"
+    ]
     conversion_value = conversion_ratio * stock_price
     price = max(bond_floor, conversion_value)
     return {

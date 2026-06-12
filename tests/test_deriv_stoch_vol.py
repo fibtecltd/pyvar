@@ -40,13 +40,19 @@ def test_heston_price_positive():
 
 
 def test_sabr_atm_positive_and_reasonable():
-    v = sabr_volatility_model(0.03, 0.03, 1.0, alpha=0.02, beta=0.5, rho=-0.3, nu=0.4)["implied_vol"]
+    v = sabr_volatility_model(0.03, 0.03, 1.0, alpha=0.02, beta=0.5, rho=-0.3, nu=0.4)[
+        "implied_vol"
+    ]
     assert v > 0
 
 
 def test_sabr_smile_shape():
-    base = sabr_volatility_model(100.0, 100.0, 1.0, alpha=0.2, beta=1.0, rho=-0.3, nu=0.5)["implied_vol"]
-    wing = sabr_volatility_model(100.0, 80.0, 1.0, alpha=0.2, beta=1.0, rho=-0.3, nu=0.5)["implied_vol"]
+    base = sabr_volatility_model(100.0, 100.0, 1.0, alpha=0.2, beta=1.0, rho=-0.3, nu=0.5)[
+        "implied_vol"
+    ]
+    wing = sabr_volatility_model(100.0, 80.0, 1.0, alpha=0.2, beta=1.0, rho=-0.3, nu=0.5)[
+        "implied_vol"
+    ]
     assert wing > base  # negative rho lifts downside strikes
 
 
@@ -71,8 +77,12 @@ def test_rbergomi_price_positive_and_deterministic():
 
 
 def test_variance_gamma_put_call_parity():
-    c = variance_gamma_model(100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="call", seed=3)["price"]
-    p = variance_gamma_model(100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="put", seed=3)["price"]
+    c = variance_gamma_model(
+        100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="call", seed=3
+    )["price"]
+    p = variance_gamma_model(
+        100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="put", seed=3
+    )["price"]
     parity = 100.0 - 100.0 * math.exp(-0.03 * 1.0)
     assert (c - p) == pytest.approx(parity, abs=0.2)
 
@@ -83,7 +93,9 @@ def test_nig_price_positive():
 
 
 def test_displaced_diffusion_reduces_to_bs():
-    dd = displaced_diffusion_model(100.0, 100.0, 0.05, 0.2, 1.0, displacement=0.0, option_type="call")["price"]
+    dd = displaced_diffusion_model(
+        100.0, 100.0, 0.05, 0.2, 1.0, displacement=0.0, option_type="call"
+    )["price"]
     bs = black_scholes_european_option(100.0, 100.0, 0.05, 0.2, 1.0, "call")["price"]
     assert dd == pytest.approx(bs, abs=1e-8)
 

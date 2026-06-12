@@ -196,7 +196,7 @@ def dv01_pvbp(
     price = _price_from_yield(cf, t, yield_rate, frequency)
     p_up = _price_from_yield(cf, t, yield_rate + 0.5 * bp, frequency)
     p_dn = _price_from_yield(cf, t, yield_rate - 0.5 * bp, frequency)
-    dv01 = (p_dn - p_up)  # price drop per +1bp, reported positive
+    dv01 = p_dn - p_up  # price drop per +1bp, reported positive
     return {"dv01": round(float(dv01), 8), "price": round(price, 6)}
 
 
@@ -352,7 +352,10 @@ def asset_swap_spread(
     pv_bond = float(np.sum(cf * df))
     annuity = float(np.sum(df)) / frequency  # PV of 1 per annum
     asw = (pv_bond - face_value) / (annuity * face_value)
-    return {"asset_swap_spread": round(float(asw), 10), "asset_swap_spread_bps": round(float(asw) * 1e4, 4)}
+    return {
+        "asset_swap_spread": round(float(asw), 10),
+        "asset_swap_spread_bps": round(float(asw) * 1e4, 4),
+    }
 
 
 def oas_option_adjusted_spread(
@@ -396,7 +399,7 @@ def oas_option_adjusted_spread(
         p = callable_bond_pricer(
             face_value, coupon_rate, short_rate + s, rate_vol, maturity, call_price, frequency
         )["price"]
-        return p - market_price
+        return float(p) - market_price
 
     oas = optimize.brentq(f, -0.2, 0.5, maxiter=200, xtol=1e-10)
     return {"oas": round(float(oas), 10), "oas_bps": round(float(oas) * 1e4, 4)}

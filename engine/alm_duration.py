@@ -22,7 +22,9 @@ __all__ = [
 ]
 
 
-def _pv_weighted_duration(cashflows: np.ndarray, times: np.ndarray, rate: float) -> tuple[float, float]:
+def _pv_weighted_duration(
+    cashflows: np.ndarray, times: np.ndarray, rate: float
+) -> tuple[float, float]:
     """Return (price, Macaulay duration) for continuously-discounted cashflows."""
     df = np.exp(-rate * times)
     pv = cashflows * df

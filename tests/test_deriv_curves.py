@@ -23,6 +23,7 @@ def test_nelson_siegel_recovers_synthetic():
     t = np.array([0.25, 0.5, 1, 2, 3, 5, 7, 10])
     # build yields from known NS params
     from engine.deriv_curves import _ns_yield
+
     y = _ns_yield(t, 0.04, -0.02, 0.01, 1.5)
     fit = nelson_siegel_curve_fit(t, y)
     assert fit["rmse"] < 1e-4

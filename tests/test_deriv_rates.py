@@ -71,7 +71,9 @@ def test_swaption_payer_positive_and_parity():
 
 
 def test_sabr_swaption_positive():
-    r = swaption_pricer_sabr(1e6, 0.03, 0.035, 1.0, 4.0, alpha=0.02, beta=0.5, rho=-0.2, nu=0.4, option_type="payer")
+    r = swaption_pricer_sabr(
+        1e6, 0.03, 0.035, 1.0, 4.0, alpha=0.02, beta=0.5, rho=-0.2, nu=0.4, option_type="payer"
+    )
     assert r["price"] >= 0
     assert r["sabr_vol"] > 0
 

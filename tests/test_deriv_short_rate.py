@@ -33,7 +33,9 @@ def test_cir_nonneg_and_feller():
 
 
 def test_hull_white_matches_vasicek():
-    hw = hull_white_short_rate_model(0.03, 0.5, 0.01, 5.0, theta_const=0.04, n_simulations=20_000, seed=3)
+    hw = hull_white_short_rate_model(
+        0.03, 0.5, 0.01, 5.0, theta_const=0.04, n_simulations=20_000, seed=3
+    )
     vas = vasicek_interest_rate_model(0.03, 0.5, 0.04, 0.01, 5.0, n_simulations=20_000, seed=3)
     assert hw["bond_price"] == pytest.approx(vas["bond_price"], abs=1e-9)
 

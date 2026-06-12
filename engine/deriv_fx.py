@@ -95,12 +95,18 @@ def fx_option_pricer_garman_kohlhagen(
         raise ValueError("spot, strike, sigma, tau must be positive")
 
     sqrt_t = math.sqrt(tau)
-    d1 = (math.log(spot / strike) + (rate_domestic - rate_foreign + 0.5 * sigma * sigma) * tau) / (sigma * sqrt_t)
+    d1 = (math.log(spot / strike) + (rate_domestic - rate_foreign + 0.5 * sigma * sigma) * tau) / (
+        sigma * sqrt_t
+    )
     d2 = d1 - sigma * sqrt_t
     disc_d = math.exp(-rate_domestic * tau)
     disc_f = math.exp(-rate_foreign * tau)
     if option_type == "call":
-        price = spot * disc_f * float(stats.norm.cdf(d1)) - strike * disc_d * float(stats.norm.cdf(d2))
+        price = spot * disc_f * float(stats.norm.cdf(d1)) - strike * disc_d * float(
+            stats.norm.cdf(d2)
+        )
     else:
-        price = strike * disc_d * float(stats.norm.cdf(-d2)) - spot * disc_f * float(stats.norm.cdf(-d1))
+        price = strike * disc_d * float(stats.norm.cdf(-d2)) - spot * disc_f * float(
+            stats.norm.cdf(-d1)
+        )
     return {"price": round(float(price) * notional, 8), "d1": round(d1, 8), "d2": round(d2, 8)}

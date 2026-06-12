@@ -7,7 +7,6 @@ determinism, and Monte Carlo convergence to closed form.
 
 import math
 
-import numpy as np
 import pytest
 
 from engine.deriv_options_vanilla import (
@@ -69,21 +68,31 @@ def test_trinomial_converges_to_bs():
 
 
 def test_american_geq_european_put():
-    eu = binomial_tree_option_pricer(S, K, R, SIG, T, n_steps=500, option_type="put", style="european")["price"]
-    am = binomial_tree_option_pricer(S, K, R, SIG, T, n_steps=500, option_type="put", style="american")["price"]
+    eu = binomial_tree_option_pricer(
+        S, K, R, SIG, T, n_steps=500, option_type="put", style="european"
+    )["price"]
+    am = binomial_tree_option_pricer(
+        S, K, R, SIG, T, n_steps=500, option_type="put", style="american"
+    )["price"]
     assert am >= eu - 1e-9
 
 
 def test_american_call_no_dividend_equals_european():
     # American call on a non-dividend stock = European call
-    eu = binomial_tree_option_pricer(S, K, R, SIG, T, n_steps=600, option_type="call", style="european")["price"]
-    am = binomial_tree_option_pricer(S, K, R, SIG, T, n_steps=600, option_type="call", style="american")["price"]
+    eu = binomial_tree_option_pricer(
+        S, K, R, SIG, T, n_steps=600, option_type="call", style="european"
+    )["price"]
+    am = binomial_tree_option_pricer(
+        S, K, R, SIG, T, n_steps=600, option_type="call", style="american"
+    )["price"]
     assert am == pytest.approx(eu, abs=1e-2)
 
 
 def test_monte_carlo_converges_to_bs():
     bs = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]
-    mc = monte_carlo_option_pricer(S, K, R, SIG, T, n_simulations=200_000, option_type="call", seed=1)["price"]
+    mc = monte_carlo_option_pricer(
+        S, K, R, SIG, T, n_simulations=200_000, option_type="call", seed=1
+    )["price"]
     assert mc == pytest.approx(bs, abs=0.1)
 
 
