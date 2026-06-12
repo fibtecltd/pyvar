@@ -44,9 +44,7 @@ def test_sa_ccr_alpha_scaling():
 
 
 def test_sa_ccr_multiplier_below_one_when_overcollateralised():
-    r = standardised_approach_ccr_sa_ccr(
-        mark_to_market=0.0, collateral=80.0, add_on_aggregate=50.0
-    )
+    r = standardised_approach_ccr_sa_ccr(mark_to_market=0.0, collateral=80.0, add_on_aggregate=50.0)
     assert r["multiplier"] < 1.0
     assert r["replacement_cost"] == 0.0
 
@@ -54,8 +52,12 @@ def test_sa_ccr_multiplier_below_one_when_overcollateralised():
 def test_pfe_exceeds_ee_and_grows_with_horizon():
     t = np.array([0.25, 0.5, 1.0, 2.0])
     r = potential_future_exposure_pfe(
-        initial_value=0.0, volatility=0.2, time_steps=t, quantile=0.95,
-        n_paths=20_000, seed=5,
+        initial_value=0.0,
+        volatility=0.2,
+        time_steps=t,
+        quantile=0.95,
+        n_paths=20_000,
+        seed=5,
     )
     for ee, pfe in zip(r["ee"], r["pfe"]):
         assert pfe >= ee - 1e-9

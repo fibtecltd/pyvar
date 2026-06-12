@@ -92,13 +92,21 @@ def test_migration_empty_row_is_identity():
 
 def test_scorecard_pdo_doubles_odds():
     base = retail_scorecard_pd_model(
-        np.array([1.0]), np.array([0.0]), base_points=600.0, pdo=50.0,
-        base_score=600.0, base_odds=50.0,
+        np.array([1.0]),
+        np.array([0.0]),
+        base_points=600.0,
+        pdo=50.0,
+        base_score=600.0,
+        base_odds=50.0,
     )
     # +50 points should double the odds.
     plus = retail_scorecard_pd_model(
-        np.array([1.0]), np.array([50.0]), base_points=600.0, pdo=50.0,
-        base_score=600.0, base_odds=50.0,
+        np.array([1.0]),
+        np.array([50.0]),
+        base_points=600.0,
+        pdo=50.0,
+        base_score=600.0,
+        base_odds=50.0,
     )
     assert abs(plus["odds"] - 2.0 * base["odds"]) < 1e-6
 
@@ -121,7 +129,8 @@ def test_sovereign_score_monotone_in_debt():
 
 def test_sector_lift_and_riskiest():
     r = sector_default_rate_analysis(
-        np.array([1.0, 10.0]), np.array([100.0, 100.0]),
+        np.array([1.0, 10.0]),
+        np.array([100.0, 100.0]),
         sector_names=["tech", "retail"],
     )
     assert r["riskiest_sector"] == "retail"

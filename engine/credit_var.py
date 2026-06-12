@@ -135,9 +135,9 @@ def credit_var_monte_carlo(
         ValueError: If array shapes mismatch or parameters are out of range.
     """
     p = np.asarray(pd, dtype=np.float64)
-    l = np.asarray(lgd, dtype=np.float64)
+    lgd_arr = np.asarray(lgd, dtype=np.float64)
     e = np.asarray(ead, dtype=np.float64)
-    if not (p.shape == l.shape == e.shape) or p.size == 0:
+    if not (p.shape == lgd_arr.shape == e.shape) or p.size == 0:
         raise ValueError("pd, lgd, ead must share the same non-empty shape")
     if np.any((p <= 0.0) | (p >= 1.0)):
         raise ValueError("pd must lie in (0, 1)")
@@ -146,7 +146,7 @@ def credit_var_monte_carlo(
 
     n = p.size
     if np.isscalar(asset_correlation):
-        rho = np.full(n, float(asset_correlation), dtype=np.float64)
+        rho = np.full(n, np.float64(asset_correlation), dtype=np.float64)
     else:
         rho = np.asarray(asset_correlation, dtype=np.float64)
         if rho.shape != p.shape:
@@ -162,9 +162,7 @@ def credit_var_monte_carlo(
     systematic = rng.standard_normal(n_simulations).astype(np.float64)
     idiosyncratic = rng.standard_normal((n_simulations, n)).astype(np.float64)
 
-    losses = _simulate_portfolio_losses(
-        p, l, e, sqrt_rho, threshold, systematic, idiosyncratic
-    )
+    losses = _simulate_portfolio_losses(p, lgd_arr, e, sqrt_rho, threshold, systematic, idiosyncratic)
     sorted_losses = np.sort(losses)
     var, es = _var_es_from_sorted(sorted_losses, confidence_level)
     el = float(np.mean(losses))
@@ -315,10 +313,9 @@ def kmv_merton_distance_to_default(
         raise ValueError("horizon must be positive")
 
     mu = risk_free_rate if asset_drift is None else asset_drift
-    dd = (
-        np.log(asset_value / debt_face_value)
-        + (mu - 0.5 * asset_volatility**2) * horizon
-    ) / (asset_volatility * np.sqrt(horizon))
+    dd = (np.log(asset_value / debt_face_value) + (mu - 0.5 * asset_volatility**2) * horizon) / (
+        asset_volatility * np.sqrt(horizon)
+    )
     pd = float(stats.norm.cdf(-dd))
     return {
         "distance_to_default": round(float(dd), 10),
@@ -367,9 +364,7 @@ def default_correlation_matrix(
             rho_a = min(max(a[i, j], -0.999999), 0.999999)
             mean = np.zeros(2)
             cov = np.array([[1.0, rho_a], [rho_a, 1.0]])
-            joint = float(
-                stats.multivariate_normal(mean=mean, cov=cov).cdf([thr[i], thr[j]])
-            )
+            joint = float(stats.multivariate_normal(mean=mean, cov=cov).cdf([thr[i], thr[j]]))
             rho_d = (joint - p[i] * p[j]) / (denom[i] * denom[j])
             out[i, j] = rho_d
             out[j, i] = rho_d

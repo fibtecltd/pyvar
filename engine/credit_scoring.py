@@ -50,9 +50,7 @@ def _sigmoid(z: np.ndarray) -> np.ndarray:
 
 
 @njit(cache=True)
-def _count_migrations(
-    from_rating: np.ndarray, to_rating: np.ndarray, n_states: int
-) -> np.ndarray:
+def _count_migrations(from_rating: np.ndarray, to_rating: np.ndarray, n_states: int) -> np.ndarray:
     """Count transitions into an ``(n_states, n_states)`` integer matrix."""
     counts = np.zeros((n_states, n_states), dtype=np.float64)
     for k in range(from_rating.shape[0]):
@@ -219,9 +217,7 @@ def machine_learning_pd_calibration(
     if scores.shape != y.shape or scores.size == 0:
         raise ValueError("raw_scores and defaults must match and be non-empty")
 
-    fit = logistic_regression_pd_model(
-        scores.reshape(-1, 1), y, max_iter=max_iter, tol=tol
-    )
+    fit = logistic_regression_pd_model(scores.reshape(-1, 1), y, max_iter=max_iter, tol=tol)
     intercept, slope = fit["coefficients"][0], fit["coefficients"][1]
     calibrated = np.asarray(fit["fitted_pd"], dtype=np.float64)
     brier = float(np.mean((calibrated - y) ** 2))
@@ -356,7 +352,9 @@ def ratings_migration_matrix(
             matrix[i] = 0.0
             matrix[i, i] = 1.0
     return {
-        "matrix": [[round(float(matrix[i, j]), 10) for j in range(n_states)] for i in range(n_states)],
+        "matrix": [
+            [round(float(matrix[i, j]), 10) for j in range(n_states)] for i in range(n_states)
+        ],
         "n_states": int(n_states),
     }
 

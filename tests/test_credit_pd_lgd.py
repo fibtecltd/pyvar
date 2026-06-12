@@ -10,8 +10,8 @@ import pytest
 
 from engine.credit_pd_lgd import (
     downturn_lgd_adjustment,
-    exposure_at_default_ead_calculator,
     expected_loss_el_computation,
+    exposure_at_default_ead_calculator,
     loss_given_default_lgd_model,
     probability_of_default_pd_estimation,
     recovery_rate_estimation,
@@ -57,7 +57,9 @@ def test_lgd_workout_costs_increase_lgd():
 
 
 def test_ead_ccf_formula():
-    r = exposure_at_default_ead_calculator(drawn=100.0, undrawn=200.0, credit_conversion_factor=0.75)
+    r = exposure_at_default_ead_calculator(
+        drawn=100.0, undrawn=200.0, credit_conversion_factor=0.75
+    )
     assert abs(r["ead"] - 250.0) < 1e-12
 
 

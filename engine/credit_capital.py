@@ -50,19 +50,17 @@ def _basel_correlation(pd: float) -> float:
     """
     denom = 1.0 - np.exp(-50.0)
     w = (1.0 - np.exp(-50.0 * pd)) / denom
-    return 0.12 * w + 0.24 * (1.0 - w)
+    return float(0.12 * w + 0.24 * (1.0 - w))
 
 
 @njit(cache=True)
 def _maturity_b(pd: float) -> float:
     """Maturity-adjustment slope b(PD) (CRE31.6)."""
     val = 0.11852 - 0.05478 * np.log(pd)
-    return val * val
+    return float(val * val)
 
 
-def _capital_k(
-    pd: float, lgd: float, maturity: float, correlation: float
-) -> tuple[float, float]:
+def _capital_k(pd: float, lgd: float, maturity: float, correlation: float) -> tuple[float, float]:
     """Core IRB conditional-expected-loss capital requirement K.
 
     Returns ``(K, maturity_adjustment)``. Kept in pure Python because it relies

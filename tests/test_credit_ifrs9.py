@@ -108,4 +108,6 @@ def test_stress_increases_el():
 
 def test_stress_rejects_relief_multiplier():
     with pytest.raises(ValueError):
-        credit_stress_testing(np.array([0.02]), np.array([0.4]), np.array([1.0]), pd_shock_multiplier=0.8)
+        credit_stress_testing(
+            np.array([0.02]), np.array([0.4]), np.array([1.0]), pd_shock_multiplier=0.8
+        )

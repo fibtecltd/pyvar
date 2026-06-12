@@ -62,9 +62,7 @@ def _expected_loss(pd: float, lgd: float, ead: float) -> float:
 
 
 @njit(cache=True)
-def _unexpected_loss_vec(
-    pd: np.ndarray, lgd: np.ndarray, ead: np.ndarray
-) -> np.ndarray:
+def _unexpected_loss_vec(pd: np.ndarray, lgd: np.ndarray, ead: np.ndarray) -> np.ndarray:
     """Stand-alone unexpected loss per exposure.
 
     Treats default as a Bernoulli event so the loss variance for a single
@@ -267,16 +265,16 @@ def unexpected_loss_ul_computation(
         ValueError: If shapes mismatch or values are out of range.
     """
     p = np.asarray(pd, dtype=np.float64)
-    l = np.asarray(lgd, dtype=np.float64)
+    lgd_arr = np.asarray(lgd, dtype=np.float64)
     e = np.asarray(ead, dtype=np.float64)
-    if not (p.shape == l.shape == e.shape) or p.size == 0:
+    if not (p.shape == lgd_arr.shape == e.shape) or p.size == 0:
         raise ValueError("pd, lgd, ead must share the same non-empty shape")
-    if np.any((p < 0.0) | (p > 1.0)) or np.any((l < 0.0) | (l > 1.0)):
+    if np.any((p < 0.0) | (p > 1.0)) or np.any((lgd_arr < 0.0) | (lgd_arr > 1.0)):
         raise ValueError("pd and lgd must lie in [0, 1]")
     if np.any(e < 0.0):
         raise ValueError("ead must be non-negative")
 
-    ul = _unexpected_loss_vec(p, l, e)
+    ul = _unexpected_loss_vec(p, lgd_arr, e)
     return {
         "ul": [round(float(u), 6) for u in ul],
         "ul_sum": round(float(np.sum(ul)), 6),

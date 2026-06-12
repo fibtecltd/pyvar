@@ -46,8 +46,13 @@ def test_mc_converges_to_vasicek_for_large_homogeneous():
     n = 1500
     pd_val, lgd_val, rho = 0.02, 0.45, 0.15
     mc = credit_var_monte_carlo(
-        np.full(n, pd_val), np.full(n, lgd_val), np.full(n, 1.0 / n),
-        rho, 0.99, n_simulations=40_000, seed=11,
+        np.full(n, pd_val),
+        np.full(n, lgd_val),
+        np.full(n, 1.0 / n),
+        rho,
+        0.99,
+        n_simulations=40_000,
+        seed=11,
     )
     ana = credit_var_analytical_vasicek(pd_val, lgd_val, 1.0, rho, 0.99)
     assert abs(mc["var"] - ana["var"]) < 0.02  # loss-rate units
@@ -68,8 +73,13 @@ def test_vasicek_zero_correlation_equals_el_scaled():
 def test_creditmetrics_matches_mc_engine():
     n = 50
     r = creditmetrics_portfolio_model(
-        np.full(n, 1e5), np.full(n, 0.02), np.full(n, 0.45),
-        0.2, 0.99, n_simulations=10_000, seed=3,
+        np.full(n, 1e5),
+        np.full(n, 0.02),
+        np.full(n, 0.45),
+        0.2,
+        0.99,
+        n_simulations=10_000,
+        seed=3,
     )
     assert r["cvar"] >= r["var"] >= r["el"] >= 0.0
 
