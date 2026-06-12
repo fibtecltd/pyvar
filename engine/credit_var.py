@@ -162,7 +162,9 @@ def credit_var_monte_carlo(
     systematic = rng.standard_normal(n_simulations).astype(np.float64)
     idiosyncratic = rng.standard_normal((n_simulations, n)).astype(np.float64)
 
-    losses = _simulate_portfolio_losses(p, lgd_arr, e, sqrt_rho, threshold, systematic, idiosyncratic)
+    losses = _simulate_portfolio_losses(
+        p, lgd_arr, e, sqrt_rho, threshold, systematic, idiosyncratic
+    )
     sorted_losses = np.sort(losses)
     var, es = _var_es_from_sorted(sorted_losses, confidence_level)
     el = float(np.mean(losses))
