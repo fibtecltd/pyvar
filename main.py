@@ -21,6 +21,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.responses import OrjsonResponse
+from api.routes.alm import router as alm_router
+from api.routes.credit_risk import router as credit_risk_router
+from api.routes.derivatives import router as derivatives_router
+from api.routes.liquidity import router as liquidity_router
+from api.routes.market_risk import router as market_risk_router
+from api.routes.operational import router as operational_router
+from api.routes.portfolio import router as portfolio_router
+from api.routes.regulatory import router as regulatory_router
 from api.routes.var import router as var_router
 from config import get_settings
 from observability.setup import setup_observability
@@ -72,6 +80,17 @@ def create_app() -> FastAPI:
 
     # ── Routes ──────────────────────────────────────────────────────────────
     app.include_router(var_router, prefix=cfg.api_v1_prefix)
+    for domain_router in (
+        market_risk_router,
+        credit_risk_router,
+        liquidity_router,
+        operational_router,
+        portfolio_router,
+        regulatory_router,
+        derivatives_router,
+        alm_router,
+    ):
+        app.include_router(domain_router, prefix=cfg.api_v1_prefix)
 
     # ── Health check ────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"], include_in_schema=False)
