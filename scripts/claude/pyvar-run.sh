@@ -208,12 +208,8 @@ echo "[6/6] Launching Claude Code session ..."
 echo ""
 
 # Select prompt file for this phase+mode
-if [ "$MODE" = "agent" ]; then
-    case "$PHASE" in
-        p2) PROMPT_FILE="$PROMPTS_DIR/p2-lead-prompt.md" ;;
-        p5) PROMPT_FILE="$PROMPTS_DIR/p5-lead-prompt.md" ;;
-        *)  PROMPT_FILE="" ;;
-    esac
+if [ -f "$PROMPTS_DIR/${PHASE}-lead-prompt.md" ]; then
+    PROMPT_FILE="$PROMPTS_DIR/${PHASE}-lead-prompt.md"
 else
     PROMPT_FILE=""
 fi
