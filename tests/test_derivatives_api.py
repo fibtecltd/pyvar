@@ -39,9 +39,9 @@ def _domain_routes(app) -> list[str]:
     prefix = f"/api/v1/{DOMAIN}/"
     return sorted(
         {
-            r.path
+            getattr(r, "path", "")
             for r in app.routes
-            if r.path.startswith(prefix) and "POST" in getattr(r, "methods", set())
+            if getattr(r, "path", "").startswith(prefix) and "POST" in getattr(r, "methods", set())
         }
     )
 
