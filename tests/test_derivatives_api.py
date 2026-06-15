@@ -37,11 +37,12 @@ def headers():
 
 def _domain_routes(app) -> list[str]:
     prefix = f"/api/v1/{DOMAIN}/"
+    spec = app.openapi()
     return sorted(
         {
-            getattr(r, "path", "")
-            for r in app.routes
-            if getattr(r, "path", "").startswith(prefix) and "POST" in getattr(r, "methods", set())
+            path
+            for path, methods in spec.get("paths", {}).items()
+            if path.startswith(prefix) and "post" in methods
         }
     )
 
