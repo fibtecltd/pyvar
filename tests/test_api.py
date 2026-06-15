@@ -113,7 +113,7 @@ async def test_submit_var_returns_202(app, free_token, valid_payload):
 async def test_submit_var_requires_auth(app, valid_payload):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/v1/var/compute", json=valid_payload)
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
