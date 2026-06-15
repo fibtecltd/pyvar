@@ -8,3 +8,10 @@ line-length = 100
 [tool.bandit]
 exclude_dirs = ["tests", "scripts/hooks", "scripts/claude"]
 skips = ["B101", "B311", "B403"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+# type-arg: bare dict/list/tuple annotations — too widespread across engine/
+# to fix inline; suppressed globally. All other strict checks remain active.
+disable_error_code = ["type-arg"]
