@@ -16,7 +16,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -76,21 +76,6 @@ class VaRRequest(BaseModel):
         if any(not math.isfinite(r) for r in v):
             raise ValueError("Returns series contains NaN or infinite values.")
         return v
-
-    @model_validator(mode="after")
-    def cap_simulations_to_data_size(self) -> VaRRequest:
-        """
-        Ensure n_simulations is meaningful relative to the returns history.
-        A simulation count far exceeding the historical sample doesn't add
-        statistical value — flag it rather than silently run.
-        """
-        if self.n_simulations > 100 * len(self.returns):
-            raise ValueError(
-                f"n_simulations ({self.n_simulations}) is more than 100x the "
-                f"length of the returns history ({len(self.returns)}). "
-                "Reduce n_simulations or provide a longer history."
-            )
-        return self
 
 
 # ── Response ───────────────────────────────────────────────────────────────────
