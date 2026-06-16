@@ -39,19 +39,12 @@ Read @pyvar_release_plan.md Phase 4 section.
 
 ## Step 1a — Bootstrap missing tools
 
-Before checking credentials, ensure the AWS CLI is available:
-
 ```bash
-# Install awscli if not already present
-if ! command -v aws &>/dev/null && ! python3 -c "import awscli" 2>/dev/null; then
-    pip install awscli --break-system-packages 2>/dev/null \
-    || pip install awscli --target /tmp/awslibs \
-    && export PATH="/tmp/awslibs/bin:$PATH" \
-    && export PYTHONPATH="/tmp/awslibs:${PYTHONPATH:-}"
-fi
-
-# Verify
-aws --version || python3 -m awscli --version
+# Deterministic: install if missing, verify immediately after
+python3 -c "import awscli, boto3" 2>/dev/null \
+    || pip install awscli boto3 --break-system-packages
+python3 -c "import awscli, boto3; print('awscli OK')"
+aws --version 2>/dev/null || python3 -m awscli --version
 ```
 
 Do not stop if `pip install` is needed — just run it and continue.
@@ -86,6 +79,17 @@ Report on exactly four items before proceeding to deploy:
 
 If any of items 2–4 are present: fix the CDK stack before deploying.
 If item 1 is present: report it but proceed if it is expected for a first deployment.
+
+---
+
+## Step 3a — Pre-deploy adversarial review (mandatory gate)
+
+Run `cdk synth --context env=dev --quiet` first to generate templates in `cdk.out/`.
+Then read @scripts/adversarial/p4_pre_deploy_validator.md and execute the full review.
+Write `/workspace/pyvar/P4_ADVERSARIAL_REVIEW.md`.
+
+**Do not proceed to Step 4 until VERDICT = DEPLOY APPROVED.**
+If blocked: fix the CDK code, re-synth, re-review.
 
 ---
 
@@ -213,6 +217,15 @@ If `scripts/smoke_test.sh` does not exist, write it now per the spec in
 
 ---
 
+## Step 9a — Post-deploy adversarial validation
+
+Read @scripts/adversarial/p4_post_deploy_validator.md and execute the live checks.
+Write `/workspace/pyvar/P4_ADVERSARIAL_POST_DEPLOY.md`.
+
+**Do not proceed to Step 10 until VERDICT = P5 CLEARED.**
+
+---
+
 ## Step 10 — Deploy CI/CD pipeline stack
 
 ```bash
@@ -249,6 +262,8 @@ P4 COMPLETE — AWS dev environment deployed
   Pipeline stack:  ✅ / ❌
 
 Smoke test:  PASS / FAIL
+Pre-deploy review:  APPROVED (N critical / M warnings)
+Post-deploy review: CLEARED / N findings
 AMI cold start: [N]s (target < 30s)
 API URL: [url]
 
