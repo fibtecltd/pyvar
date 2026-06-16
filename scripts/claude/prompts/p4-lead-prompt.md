@@ -18,6 +18,18 @@ Do not ask for confirmation. Do not present options. Execute the steps below imm
 
 ---
 
+## If AWS credentials are unavailable at session start
+
+Do not ask which option to take. Proceed automatically with:
+1. Review all CDK stacks against CLAUDE.md §3.4 rules
+2. Run `cdk synth` for all stacks and report synthesis errors
+3. Write `scripts/smoke_test.sh` per Phase 4 spec (curl + jq only, exit 0/1)
+4. Commit all outputs to current branch
+
+Then write CHECKPOINT.md noting that Steps 4–12 require credentials and rebuild.
+
+---
+
 ## Step 1 — Read context
 
 Read @CLAUDE.md section 3.4 (AWS/CDK rules).
@@ -25,21 +37,37 @@ Read @pyvar_release_plan.md Phase 4 section.
 
 ---
 
+## Step 1a — Bootstrap missing tools
+
+Before checking credentials, ensure the AWS CLI is available:
+
+```bash
+# Install awscli if not already present
+if ! command -v aws &>/dev/null && ! python3 -c "import awscli" 2>/dev/null; then
+    pip install awscli --break-system-packages 2>/dev/null \
+    || pip install awscli --target /tmp/awslibs \
+    && export PATH="/tmp/awslibs/bin:$PATH" \
+    && export PYTHONPATH="/tmp/awslibs:${PYTHONPATH:-}"
+fi
+
+# Verify
+aws --version || python3 -m awscli --version
+```
+
+Do not stop if `pip install` is needed — just run it and continue.
+
+---
+
 ## Step 2 — Verify prerequisites
 
 ```bash
-# AWS access
-aws sts get-caller-identity
-
-# CDK version
-cdk --version
-
-# Target account and region
-aws configure get region
+aws sts get-caller-identity 2>&1 || \
+  python3 -m awscli sts get-caller-identity 2>&1
 ```
 
-If `aws sts get-caller-identity` fails: stop immediately and report the error.
-Do not proceed without confirmed AWS access.
+If this returns an account ID: proceed to Step 3.
+If it returns a credentials error (not a CLI error): stop and report.
+If the CLI is missing despite Step 1a: run `pip install awscli --break-system-packages` and retry once.
 
 ---
 
