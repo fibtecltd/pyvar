@@ -15,3 +15,22 @@ ignore_missing_imports = true
 # type-arg: bare dict/list/tuple annotations — too widespread across engine/
 # to fix inline; suppressed globally. All other strict checks remain active.
 disable_error_code = ["type-arg"]
+
+[tool.coverage.run]
+omit = [
+    # Auto-generated thin route wrappers — logic is tested via engine tests
+    "api/routes/alm.py",
+    "api/routes/credit_risk.py",
+    "api/routes/derivatives.py",
+    "api/routes/liquidity.py",
+    "api/routes/market_risk.py",
+    "api/routes/operational.py",
+    "api/routes/portfolio.py",
+    "api/routes/regulatory.py",
+    # Infrastructure files requiring live services (S3, DB, Celery, Streamlit)
+    "ui/*",
+    "worker.py",
+    "storage/s3.py",
+    "storage/models.py",
+    "ingestion/loader.py",
+]

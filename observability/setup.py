@@ -138,6 +138,46 @@ def setup_logging() -> None:
 # ── FastAPI instrumentation ───────────────────────────────────────────────────
 
 
+def _patch_pfi_routing() -> None:
+    """Patch prometheus_fastapi_instrumentator to handle _IncludedRouter objects.
+
+    FastAPI adds _IncludedRouter objects to app.routes for mounted sub-routers.
+    These lack a .path attribute, so the PFI routing module crashes with
+    AttributeError when it tries to resolve route names for metrics labels.
+    """
+    try:
+        import prometheus_fastapi_instrumentator.routing as _pfi_routing
+        from starlette.routing import Match
+
+        def _safe_get_route_name(
+            scope: dict,  # type: ignore[type-arg]
+            routes: list,  # type: ignore[type-arg]
+            route_name: str | None = None,
+        ) -> str | None:
+            for route in routes:
+                match, child_scope = route.matches(scope)
+                if match == Match.FULL:
+                    path = getattr(route, "path", None)
+                    if path is not None:
+                        return path
+                    sub_routes = getattr(route, "routes", [])
+                    if sub_routes:
+                        result = _safe_get_route_name(child_scope, sub_routes, route_name)
+                        if result is not None:
+                            return result
+                elif match == Match.PARTIAL:
+                    sub_routes = getattr(route, "routes", [])
+                    if sub_routes:
+                        result = _safe_get_route_name(child_scope, sub_routes, route_name)
+                        if result is not None:
+                            return result
+            return route_name
+
+        _pfi_routing._get_route_name = _safe_get_route_name
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def setup_observability(app: Any) -> None:
     """
     Wire up all observability components to the FastAPI app.
@@ -145,6 +185,7 @@ def setup_observability(app: Any) -> None:
     """
     setup_logging()
     setup_sentry()
+    _patch_pfi_routing()
 
     Instrumentator(
         should_group_status_codes=True,
