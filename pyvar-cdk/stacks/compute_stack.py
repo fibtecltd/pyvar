@@ -168,30 +168,30 @@ class ComputeStack(Stack):
                     spot_max_price=cfg.worker_spot_max_price,
                     spot_allocation_strategy=autoscaling.SpotAllocationStrategy.PRICE_CAPACITY_OPTIMIZED,
                 ),
-                launch_template=autoscaling.LaunchTemplateOverrides(
-                    launch_template=launch_template,
-                ),
+                # The base launch template must be an ILaunchTemplate, not a
+                # LaunchTemplateOverrides. Instance-type overrides are unused here
+                # (the launch template already fixes the instance type).
+                launch_template=launch_template,
             ),
             min_capacity=cfg.worker_min_capacity,
             max_capacity=cfg.worker_max_capacity,
             desired_capacity=0,  # start with 0; SQS scaling takes over
             # Health check: if instance fails 2 consecutive EC2 status checks, replace it
             health_check=autoscaling.HealthCheck.ec2(grace=Duration.seconds(120)),
-            # Warm pool: pre-initialise stopped instances so scale-out is faster (~30s vs ~90s)
-            # Warm pool costs ~30% of running instance price while stopped
-            warm_pool=(
-                autoscaling.WarmPool(
-                    min_size=1,
-                    pool_state=autoscaling.PoolState.STOPPED,
-                )
-                if cfg.env_name == "prod"
-                else None
-            ),
             update_policy=autoscaling.UpdatePolicy.rolling_update(
                 max_batch_size=2,
                 min_instances_in_service=0,
             ),
         )
+
+        # Warm pool: pre-initialise stopped instances so scale-out is faster (~30s vs ~90s).
+        # Warm pool costs ~30% of running instance price while stopped — prod only.
+        # NOTE: warm pools are attached via add_warm_pool(), not an ASG constructor kwarg.
+        if cfg.env_name == "prod":
+            self.asg.add_warm_pool(
+                min_size=1,
+                pool_state=autoscaling.PoolState.STOPPED,
+            )
 
         # Lifecycle hook: give workers 60s to drain before termination
         # Celery's task_acks_late=True means in-flight tasks return to queue if killed
@@ -213,20 +213,22 @@ class ComputeStack(Stack):
         )
 
         # scale_on_metric with EXACT_CAPACITY:
-        # - 0 messages  → 0 workers  (scale to zero)
-        # - 1-5 msgs    → 1 worker
-        # - 6-20 msgs   → 3 workers
-        # - 21-50 msgs  → 6 workers
-        # - 51+ msgs    → 12 workers
+        # - 0 messages   → 0 workers  (scale to zero — the single no-change band)
+        # - 0-5 msgs     → 1 worker
+        # - 5-20 msgs    → 3 workers
+        # - 20-50 msgs   → 6 workers
+        # - 50+ msgs     → 12 workers
+        # Boundaries must be CONTIGUOUS (shared upper/lower edges). Non-contiguous
+        # bands create one "no-change" gap per boundary, and CDK permits at most one.
         self.asg.scale_on_metric(
             "ScaleOnQueueDepth",
             metric=queue_depth_metric,
             scaling_steps=[
                 autoscaling.ScalingInterval(upper=0, change=0),
-                autoscaling.ScalingInterval(lower=1, upper=5, change=1),
-                autoscaling.ScalingInterval(lower=6, upper=20, change=3),
-                autoscaling.ScalingInterval(lower=21, upper=50, change=6),
-                autoscaling.ScalingInterval(lower=51, change=min(12, cfg.worker_max_capacity)),
+                autoscaling.ScalingInterval(lower=0, upper=5, change=1),
+                autoscaling.ScalingInterval(lower=5, upper=20, change=3),
+                autoscaling.ScalingInterval(lower=20, upper=50, change=6),
+                autoscaling.ScalingInterval(lower=50, change=min(12, cfg.worker_max_capacity)),
             ],
             adjustment_type=autoscaling.AdjustmentType.EXACT_CAPACITY,
             cooldown=Duration.minutes(2),  # fast scale-out
