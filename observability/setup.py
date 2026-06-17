@@ -159,7 +159,7 @@ def _patch_pfi_routing() -> None:
                 if match == Match.FULL:
                     path = getattr(route, "path", None)
                     if path is not None:
-                        return path
+                        return str(path)
                     sub_routes = getattr(route, "routes", [])
                     if sub_routes:
                         result = _safe_get_route_name(child_scope, sub_routes, route_name)
@@ -174,7 +174,7 @@ def _patch_pfi_routing() -> None:
             return route_name
 
         _pfi_routing._get_route_name = _safe_get_route_name
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 # nosec B110
         pass
 
 
