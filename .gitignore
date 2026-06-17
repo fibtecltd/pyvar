@@ -12,3 +12,5 @@ scripts/claude/__pycache__/
 .DS_Store
 .coverage
 __pycache__/
+pyvar-cdk/cdk.out/
+pyvar-cdk/_local_constructs_shadow_BAK/

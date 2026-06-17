@@ -25,8 +25,8 @@ from __future__ import annotations
 import aws_cdk as cdk
 from aws_cdk import Stack
 from aws_cdk import aws_codebuild as cb
+from aws_cdk import aws_codepipeline_actions as cpa
 from aws_cdk import aws_codestarnotifications as notifications
-from aws_cdk import aws_secretsmanager as sm
 from aws_cdk import aws_sns as sns
 from aws_cdk import aws_sns_subscriptions as subs
 from aws_cdk import pipelines
@@ -45,14 +45,14 @@ class PipelineStack(Stack):
         #   aws secretsmanager create-secret \
         #     --name pyvar/github-token \
         #     --secret-string "ghp_xxxxxxxxxxxxxxxxxxxx"
-        github_token = sm.SecretValue.secrets_manager("pyvar/github-token")
+        github_token = cdk.SecretValue.secrets_manager("pyvar/github-token")
 
         # ── Source ────────────────────────────────────────────────────────────
         source = pipelines.CodePipelineSource.git_hub(
             repo_string="fibtec-limited/pyvar",  # replace with your org/repo
             branch="main",
             authentication=github_token,
-            trigger=pipelines.GitHubTrigger.WEBHOOK,  # triggers on push to main
+            trigger=cpa.GitHubTrigger.WEBHOOK,  # triggers on push to main
         )
 
         # ── Synth step (CDK synth + unit tests) ───────────────────────────────

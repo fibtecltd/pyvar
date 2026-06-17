@@ -165,6 +165,23 @@ class ApiStack(Stack):
         )
 
         # ── ALB + Fargate Service ──────────────────────────────────────────────
+        # Build the ALB explicitly with the network-stack ALB security group so
+        # that NO new (api-stack-owned) load-balancer SG is created. If we let the
+        # pattern auto-create the LB SG, CDK adds an ingress rule onto the network-
+        # owned task SG (sgs.api) that references the api-owned LB SG — producing a
+        # network -> api dependency and a synth-time DependencyCycle (api already
+        # depends on network via the VPC and SGs). Reusing sgs.alb keeps every
+        # SG-to-SG rule inside the network stack.
+        alb = elbv2.ApplicationLoadBalancer(
+            self,
+            "Alb",
+            vpc=vpc,
+            internet_facing=True,
+            security_group=sgs.alb,
+            load_balancer_name=f"pyvar-{cfg.env_name}-alb",
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+        )
+
         fargate_service = ecs_patterns.ApplicationLoadBalancedFargateService(
             self,
             "ApiService",
@@ -174,9 +191,8 @@ class ApiStack(Stack):
             desired_count=cfg.api_min_tasks,
             security_groups=[sgs.api],
             task_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            load_balancer_name=f"pyvar-{cfg.env_name}-alb",
-            public_load_balancer=True,
-            open_listener=False,  # we attach sgs.alb manually
+            load_balancer=alb,
+            open_listener=False,  # ingress is governed by sgs.alb (network stack)
             listener_port=443,
             protocol=elbv2.ApplicationProtocol.HTTP,  # HTTPS requires certificate_arn
             target_protocol=elbv2.ApplicationProtocol.HTTP,
@@ -208,7 +224,7 @@ class ApiStack(Stack):
             healthy_threshold_count=2,
             unhealthy_threshold_count=3,
         )
-        fargate_service.target_group.enable_stickiness_for_origin_header_v2(Duration.hours(1))
+        fargate_service.target_group.enable_cookie_stickiness(Duration.hours(1))
 
         # ── Auto-scaling on CPU ───────────────────────────────────────────────
         scaling = fargate_service.service.auto_scale_task_count(
