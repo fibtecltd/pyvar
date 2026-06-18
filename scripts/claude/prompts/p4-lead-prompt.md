@@ -96,8 +96,8 @@ If blocked: fix the CDK code, re-synth, re-review.
 ## Step 4 — Bootstrap CDK
 
 ```bash
-# eu-west-2 — primary region
-cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-2
+# eu-west-1 — primary region
+cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/eu-west-1
 
 # us-east-1 — required for CloudFront WAF
 cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
@@ -131,12 +131,12 @@ cdk deploy pyvar-dev-edge    --require-approval never
 aws secretsmanager create-secret \
     --name pyvar-dev/JWT_SECRET \
     --secret-string "$(openssl rand -hex 32)" \
-    --region eu-west-2
+    --region eu-west-1
 
 # Confirm DB credentials secret exists (created by data stack)
 aws secretsmanager describe-secret \
     --secret-id pyvar-dev/db-credentials \
-    --region eu-west-2
+    --region eu-west-1
 ```
 
 ---
@@ -150,7 +150,7 @@ DB_HOST=$(aws cloudformation describe-stacks \
     --stack-name pyvar-dev-data \
     --query "Stacks[0].Outputs[?OutputKey=='AuroraEndpoint'].OutputValue" \
     --output text \
-    --region eu-west-2)
+    --region eu-west-1)
 
 echo "DB_HOST=$DB_HOST"
 python scripts/db.py upgrade
@@ -164,7 +164,7 @@ python scripts/db.py upgrade
 # Start CodeBuild project that bakes the Numba-precompiled AMI
 aws codebuild start-build \
     --project-name pyvar-ami-baker \
-    --region eu-west-2
+    --region eu-west-1
 
 # Poll until complete (up to 30 min)
 aws codebuild batch-get-builds \
@@ -172,10 +172,10 @@ aws codebuild batch-get-builds \
         --project-name pyvar-ami-baker \
         --sort-order DESCENDING \
         --query 'ids[0]' --output text \
-        --region eu-west-2) \
+        --region eu-west-1) \
     --query 'builds[0].buildStatus' \
     --output text \
-    --region eu-west-2
+    --region eu-west-1
 ```
 
 Verify the latest AMI in the launch template has `numba-cache=precompiled` tag.
@@ -192,7 +192,7 @@ API_URL=$(aws cloudformation describe-stacks \
     --stack-name pyvar-dev-api \
     --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
     --output text \
-    --region eu-west-2)
+    --region eu-west-1)
 
 echo "API_URL=$API_URL"
 
@@ -243,7 +243,7 @@ Verify self-mutation: the pipeline should run once and show a self-update stage.
 aws cloudwatch put-dashboard \
     --dashboard-name pyvar-dev-overview \
     --dashboard-body file:///workspace/pyvar/pyvar-cdk/dashboards/overview.json \
-    --region eu-west-2 2>/dev/null || \
+    --region eu-west-1 2>/dev/null || \
     echo "Dashboard JSON not found — skip, create manually in console."
 ```
 

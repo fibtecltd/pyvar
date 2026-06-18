@@ -146,10 +146,10 @@ jobs:
 
       - name: CDK synth (dev, no deploy)
         env:
-          AWS_DEFAULT_REGION: eu-west-2
+          AWS_DEFAULT_REGION: eu-west-1
           # Dummy account for synth — no actual AWS calls
           CDK_DEFAULT_ACCOUNT: "123456789012"
-          CDK_DEFAULT_REGION: eu-west-2
+          CDK_DEFAULT_REGION: eu-west-1
         run: |
           cd pyvar-cdk
           cdk synth \

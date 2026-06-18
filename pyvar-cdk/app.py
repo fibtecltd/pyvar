@@ -3,7 +3,7 @@ app.py — Updated CDK application entry point with pipeline and AMI stacks.
 
 Deploy order:
   1. Bootstrap (once per account/region):
-       cdk bootstrap aws://ACCOUNT/eu-west-2 aws://ACCOUNT/us-east-1
+       cdk bootstrap aws://ACCOUNT/eu-west-1 aws://ACCOUNT/us-east-1
 
   2. Deploy pipeline (self-manages everything after this):
        cdk deploy pyvar-pipeline --context account=ACCOUNT

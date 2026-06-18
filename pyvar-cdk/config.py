@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 class PyvarConfig:
     env_name: str
     account: str
-    region: str = "eu-west-2"  # London — closest to UK financial market data
+    region: str = "eu-west-1"  # Dublin — closest to EU financial market data
 
     # ── Domain ────────────────────────────────────────────────────────────────
     domain_name: str = "pyvar.com"
