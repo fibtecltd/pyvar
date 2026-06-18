@@ -2,7 +2,7 @@
 #
 # Deploy:
 #   pip install -r requirements.txt
-#   cdk bootstrap aws://ACCOUNT/eu-west-2 aws://ACCOUNT/us-east-1
+#   cdk bootstrap aws://ACCOUNT/eu-west-1 aws://ACCOUNT/us-east-1
 #   cdk deploy --context env=dev --all
 #
 # Per-environment:
