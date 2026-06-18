@@ -151,6 +151,7 @@ class ComputeStack(Stack):
                 )
             ],
             require_imdsv2=True,  # security: block IMDSv1 credential theft
+            http_put_response_hop_limit=1,  # defense-in-depth: 1 hop prevents container SSRF reaching IMDS
             nitro_enclave_enabled=False,
         )
 
