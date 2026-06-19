@@ -149,7 +149,7 @@ python scripts/db.py sql              # print SQL without applying
 ```bash
 cd pyvar-cdk
 pip install -r requirements.txt && npm install -g aws-cdk
-cdk bootstrap aws://ACCOUNT/eu-west-2
+cdk bootstrap aws://ACCOUNT/eu-west-1
 cdk bootstrap aws://ACCOUNT/us-east-1
 cdk deploy pyvar-pipeline --context account=ACCOUNT
 # Push to main — pipeline handles all future deploys
