@@ -256,7 +256,14 @@ class PyvarDeployStage(cdk.Stage):
             data=data,
             env=env_primary,
         )
-        edge = EdgeStack(self, f"{prefix}-edge", cfg=cfg, alb_dns=api.alb_dns_name, env=env_edge)
+        edge = EdgeStack(
+            self,
+            f"{prefix}-edge",
+            cfg=cfg,
+            alb_dns=api.alb_dns_name,
+            origin_verify_secret=api.origin_verify_secret,
+            env=env_edge,
+        )
 
         data.add_dependency(network)
         queue.add_dependency(network)
