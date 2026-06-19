@@ -228,6 +228,10 @@ Write `/workspace/pyvar/P4_ADVERSARIAL_POST_DEPLOY.md`.
 
 ## Step 10 — Deploy CI/CD pipeline stack
 
+**SKIP for now if no production AWS account exists yet.** The pipeline stack
+deploys a Dev→Prod promotion pipeline; without a real prod account this stage
+cannot synthesize. Revisit once a prod account is provisioned.
+
 ```bash
 cd /workspace/pyvar/pyvar-cdk
 cdk deploy pyvar-pipeline --require-approval never

@@ -69,7 +69,7 @@ class PyvarConfig:
 
     @classmethod
     def for_env(cls, env_name: str, account: str = "") -> "PyvarConfig":
-        base = dict(env_name=env_name, account=account or "123456789012")
+        base = dict(env_name=env_name, account=account or "347228921290")
         overrides = {
             "dev": dict(
                 vpc_nat_gateways=1,
