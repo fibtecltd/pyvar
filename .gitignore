@@ -14,3 +14,4 @@ scripts/claude/__pycache__/
 __pycache__/
 pyvar-cdk/cdk.out/
 pyvar-cdk/_local_constructs_shadow_BAK/
+pyvar-cdk/cdk.context.json
