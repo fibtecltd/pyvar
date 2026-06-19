@@ -16,6 +16,11 @@ Reasoning:
   rate limiting (100 req/5min per IP to prevent API key stuffing).
 - Route53 alias record points to CloudFront — no separate DNS TTL
   management needed.
+- X-Origin-Verify header is a Secrets Manager-generated value, shared
+  with api_stack.py via direct cross-region construct reference (same
+  mechanism CDK uses for alb_dns). The ALB enforces it via a listener
+  rule — see api_stack.py — so a direct hit to the ALB without the
+  header is rejected, closing the WAF-bypass gap.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ from aws_cdk import aws_cloudfront as cf
 from aws_cdk import aws_cloudfront_origins as origins
 from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
+from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_wafv2 as waf
 from constructs import Construct
 
@@ -41,6 +47,7 @@ class EdgeStack(Stack):
         *,
         cfg: PyvarConfig,
         alb_dns: str,
+        origin_verify_secret: secretsmanager.Secret,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -119,12 +126,10 @@ class EdgeStack(Stack):
         alb_origin = origins.HttpOrigin(
             alb_dns,
             protocol_policy=cf.OriginProtocolPolicy.HTTP_ONLY,
-            http_port=80,
+            http_port=443,
             origin_id="AlbOrigin",
             custom_headers={
-                # Secret header — ALB security group only accepts requests with this header
-                # (in production: use an ALB listener rule that blocks requests without it)
-                "X-Origin-Verify": f"pyvar-{cfg.env_name}-cf-secret",
+                "X-Origin-Verify": origin_verify_secret.secret_value.unsafe_unwrap(),
             },
         )
 
