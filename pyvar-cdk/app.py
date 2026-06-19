@@ -114,6 +114,7 @@ edge = EdgeStack(
     f"{prefix}-edge",
     cfg=cfg,
     alb_dns=api.alb_dns_name,
+    origin_verify_secret=api.origin_verify_secret,
     env=env_edge,
     description="pyvar: CloudFront + WAF + Route53 (us-east-1)",
 )

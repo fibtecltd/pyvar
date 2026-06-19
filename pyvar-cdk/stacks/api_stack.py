@@ -18,6 +18,11 @@ Reasoning:
   without over-provisioning.
 - The ECR lifecycle policy deletes untagged images older than 30 days
   to prevent runaway storage costs from CI/CD pipelines.
+- The ALB listener default-denies direct access and only forwards
+  requests carrying the X-Origin-Verify secret header, so the
+  WAF/CloudFront edge cannot be bypassed by hitting the ALB directly.
+  The secret is exposed as self.origin_verify_secret for EdgeStack
+  (cross-region, same mechanism as self.alb_dns_name).
 """
 
 from __future__ import annotations
@@ -225,6 +230,47 @@ class ApiStack(Stack):
             unhealthy_threshold_count=3,
         )
         fargate_service.target_group.enable_cookie_stickiness(Duration.hours(1))
+
+        # ── Origin-verify secret + listener enforcement ────────────────────────
+        # SEC-1 fix: this secret (not a hardcoded literal) is read by CloudFront
+        # as a custom origin header (see edge_stack.py) and enforced here at the
+        # ALB listener, so a direct request to the ALB — bypassing CloudFront/WAF
+        # entirely — is rejected with 403 unless it carries the correct header.
+        origin_verify_secret = cdk.aws_secretsmanager.Secret(
+            self,
+            "OriginVerifySecret",
+            secret_name=f"pyvar/{cfg.env_name}/cf-origin-verify",
+            generate_secret_string=cdk.aws_secretsmanager.SecretStringGenerator(
+                exclude_punctuation=True,
+                password_length=32,
+            ),
+        )
+        # Exposed for EdgeStack — same cross-region mechanism as self.alb_dns_name
+        self.origin_verify_secret = origin_verify_secret
+
+        listener = fargate_service.listener
+
+        # Default: reject any request not carrying the correct header
+        listener.add_action(
+            "DefaultDenyDirectAccess",
+            action=elbv2.ListenerAction.fixed_response(
+                status_code=403,
+                content_type="text/plain",
+                message_body="Forbidden",
+            ),
+        )
+        # Only CloudFront (which sets the header) reaches the service
+        listener.add_action(
+            "OriginVerifyAllow",
+            priority=1,
+            conditions=[
+                elbv2.ListenerCondition.http_header(
+                    "X-Origin-Verify",
+                    [origin_verify_secret.secret_value.unsafe_unwrap()],
+                ),
+            ],
+            action=elbv2.ListenerAction.forward([fargate_service.target_group]),
+        )
 
         # ── Auto-scaling on CPU ───────────────────────────────────────────────
         scaling = fargate_service.service.auto_scale_task_count(
