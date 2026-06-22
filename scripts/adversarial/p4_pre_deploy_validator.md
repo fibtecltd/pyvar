@@ -44,11 +44,11 @@ Severity: **CRITICAL** — blocks deploy
 ### EP-1: Required VPC endpoints present
 Verify an `AWS::EC2::VPCEndpoint` resource exists for each:
 - S3 (type: Gateway)
-- `com.amazonaws.eu-west-2.sqs` (type: Interface)
-- `com.amazonaws.eu-west-2.ecr.api` (type: Interface)
-- `com.amazonaws.eu-west-2.ecr.dkr` (type: Interface)
-- `com.amazonaws.eu-west-2.secretsmanager` (type: Interface)
-- `com.amazonaws.eu-west-2.logs` (type: Interface)
+- `com.amazonaws.eu-west-1.sqs` (type: Interface)
+- `com.amazonaws.eu-west-1.ecr.api` (type: Interface)
+- `com.amazonaws.eu-west-1.ecr.dkr` (type: Interface)
+- `com.amazonaws.eu-west-1.secretsmanager` (type: Interface)
+- `com.amazonaws.eu-west-1.logs` (type: Interface)
 
 Missing endpoint = traffic exits VPC = data egress charges + security exposure.
 
@@ -98,6 +98,26 @@ Every resource must have at minimum:
 Missing tags = cost allocation failure.
 
 Severity: **WARNING**
+
+### DATA-1: Aurora engine version available in deployment region
+Search every `AWS::RDS::DBCluster` resource for the `EngineVersion` property.
+Confirm the specified Aurora PostgreSQL minor version is currently available in
+the target region (eu-west-1). AWS retires minor versions without notice — a
+retired version is valid JSON in the template but fails at the EC2/RDS API,
+causing a stack rollback that `cdk synth` cannot catch.
+
+To verify available versions before approving deploy:
+```bash
+aws rds describe-db-engine-versions \
+    --engine aurora-postgresql \
+    --region eu-west-1 \
+    --query 'DBEngineVersions[*].EngineVersion' \
+    --output table
+```
+
+Flag any `EngineVersion` value not present in the above output.
+
+Severity: **CRITICAL** — blocks deploy
 
 ---
 

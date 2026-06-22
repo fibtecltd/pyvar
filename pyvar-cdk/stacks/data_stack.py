@@ -66,7 +66,7 @@ class DataStack(Stack):
             self,
             "Aurora",
             engine=rds.DatabaseClusterEngine.aurora_postgres(
-                version=rds.AuroraPostgresEngineVersion.VER_16_1,
+                version=rds.AuroraPostgresEngineVersion.VER_16_6,
             ),
             credentials=rds.Credentials.from_secret(self.db_secret),
             default_database_name="pyvar",
