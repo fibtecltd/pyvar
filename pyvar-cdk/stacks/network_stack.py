@@ -126,7 +126,7 @@ class NetworkStack(Stack):
             self,
             "SgAlb",
             vpc=self.vpc,
-            description="pyvar ALB — public HTTPS ingress",
+            description="pyvar ALB - public HTTPS ingress",
             allow_all_outbound=False,
         )
         sg_alb.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(443), "HTTPS from internet")

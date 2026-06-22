@@ -32,6 +32,15 @@ Severity: **CRITICAL** — blocks deploy
 
 Severity: **CRITICAL** — blocks deploy
 
+### SG-3: No non-ASCII characters in SecurityGroup GroupDescription
+Search every `AWS::EC2::SecurityGroup` resource for `GroupDescription` values
+containing characters outside the ASCII printable range (U+0020–U+007E).
+Common culprits: em-dash (—), en-dash (–), curly quotes (" "), ellipsis (…).
+These are valid in the synthesised JSON template but are rejected by the EC2
+API at deploy time, causing a stack rollback that only `cdk synth` cannot catch.
+
+Severity: **CRITICAL** — blocks deploy
+
 ### EP-1: Required VPC endpoints present
 Verify an `AWS::EC2::VPCEndpoint` resource exists for each:
 - S3 (type: Gateway)
