@@ -89,6 +89,25 @@ All secrets must resolve to `{{resolve:secretsmanager:...}}` or `{{resolve:ssm-s
 
 Severity: **CRITICAL** — blocks deploy
 
+### SEC-2: Cross-region secrets are replicated to all consuming regions
+For every `{{resolve:secretsmanager:...}}` reference in a stack deployed outside
+eu-west-1 (e.g. edge stack in us-east-1), confirm the secret has a replica in
+that region. Secrets Manager dynamic references are region-local — a eu-west-1
+secret cannot be resolved by a us-east-1 stack.
+
+Check replication status:
+```bash
+aws secretsmanager describe-secret \
+    --secret-id pyvar/{env}/cf-origin-verify \
+    --query 'ReplicationStatus' \
+    --region eu-west-1
+```
+
+Flag any secret consumed cross-region that shows `ReplicationStatus: null`
+or has no entry for the consuming region.
+
+Severity: **CRITICAL** — blocks deploy
+
 ### TAG-1: Required tags on all taggable resources
 Every resource must have at minimum:
 - `Project: pyvar`
