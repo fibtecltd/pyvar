@@ -5,7 +5,9 @@ Rationale: single source of truth; pydantic-settings validates types at startup.
 """
 
 from functools import lru_cache
+from urllib.parse import quote
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,6 +32,17 @@ class Settings(BaseSettings):
     # ── PostgreSQL (audit log, job metadata) ───────────────────────────────────
     postgres_dsn: str = "postgresql+asyncpg://postgres:pyvar@localhost:5432/pyvar"
 
+    # DB connection components, injected individually from Secrets Manager on AWS
+    # (DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD). ECS cannot compose a
+    # multi-field DSN from a single secret key, so the app assembles it: when all
+    # five are present, postgres_dsn is built from them (see _assemble_postgres_dsn).
+    # Left unset for local dev, where postgres_dsn (above / .env) is used directly.
+    db_host: str | None = None
+    db_port: int | None = None
+    db_name: str | None = None
+    db_user: str | None = None
+    db_password: str | None = None
+
     # ── S3 / MinIO (large Parquet result storage) ─────────────────────────────
     s3_endpoint_url: str = "http://localhost:9000"  # set to None for real AWS
     s3_access_key: str = "minioadmin"
@@ -46,6 +59,35 @@ class Settings(BaseSettings):
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
     log_level: str = "INFO"
+
+    @model_validator(mode="after")
+    def _assemble_postgres_dsn(self) -> "Settings":
+        """Build postgres_dsn from individually-injected DB_* components.
+
+        On AWS the ECS task receives DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
+        as separate Secrets Manager fields. When all five are present they take
+        precedence and postgres_dsn is composed from them (user/password are
+        URL-encoded). When any is missing, postgres_dsn keeps its default/.env
+        value, preserving the local-dev workflow.
+
+        Returns:
+            Settings: this instance, with postgres_dsn populated when applicable.
+        """
+        components = (
+            self.db_host,
+            self.db_port,
+            self.db_name,
+            self.db_user,
+            self.db_password,
+        )
+        if all(component is not None for component in components):
+            user = quote(str(self.db_user), safe="")
+            password = quote(str(self.db_password), safe="")
+            self.postgres_dsn = (
+                f"postgresql+asyncpg://{user}:{password}"
+                f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            )
+        return self
 
 
 @lru_cache

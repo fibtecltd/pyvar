@@ -60,25 +60,15 @@ class ApiStack(Stack):
         super().__init__(scope, id, **kwargs)
 
         # ── ECR Repository ─────────────────────────────────────────────────────
-        self.ecr_repo = ecr.Repository(
+        # Referenced (not created) by this stack. The repo is provisioned and
+        # populated out-of-band before the app stack deploys (CI/CD pipeline or
+        # manual push), and is RETAIN'd across stack lifecycles — so a fixed-name
+        # create would collide with the existing repo on any stack recreate.
+        # Lifecycle rules / scan-on-push are managed on the repo itself, not here.
+        self.ecr_repo = ecr.Repository.from_repository_name(
             self,
             "ApiRepo",
-            repository_name=f"pyvar-{cfg.env_name}-api",
-            image_scan_on_push=True,  # free ECR image scanning
-            lifecycle_rules=[
-                ecr.LifecycleRule(
-                    description="Remove untagged images after 30 days",
-                    tag_status=ecr.TagStatus.UNTAGGED,
-                    max_image_age=Duration.days(30),
-                ),
-                ecr.LifecycleRule(
-                    description="Keep last 10 tagged releases",
-                    tag_status=ecr.TagStatus.TAGGED,
-                    tag_prefix_list=["v"],
-                    max_image_count=10,
-                ),
-            ],
-            removal_policy=cdk.RemovalPolicy.RETAIN,
+            f"pyvar-{cfg.env_name}-api",
         )
 
         # ── ECS Cluster ────────────────────────────────────────────────────────
@@ -122,6 +112,20 @@ class ApiStack(Stack):
         )
         data.db_secret.grant_read(execution_role)
 
+        # JWT signing secret — CDK-managed (auto-generated), same pattern as the
+        # cf-origin-verify secret below. Created here (not imported by name) so the
+        # secret actually exists; injected into the API task at start.
+        jwt_secret = cdk.aws_secretsmanager.Secret(
+            self,
+            "JwtSecret",
+            secret_name=f"pyvar/{cfg.env_name}/jwt-secret",
+            generate_secret_string=cdk.aws_secretsmanager.SecretStringGenerator(
+                exclude_punctuation=True,
+                password_length=64,
+            ),
+        )
+        jwt_secret.grant_read(execution_role)
+
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
             self,
@@ -149,15 +153,16 @@ class ApiStack(Stack):
                 "S3_BUCKET": data.result_bucket.bucket_name,
             },
             secrets={
-                # Secrets Manager values injected at task start (not in image)
-                "POSTGRES_DSN": ecs.Secret.from_secrets_manager(
-                    data.db_secret, "connection_string"
-                ),
-                "JWT_SECRET": ecs.Secret.from_secrets_manager(
-                    cdk.aws_secretsmanager.Secret.from_secret_name_v2(
-                        self, "JwtSecret", f"pyvar/{cfg.env_name}/jwt-secret"
-                    )
-                ),
+                # Secrets Manager values injected at task start (not in image).
+                # DB credentials are injected as individual fields from the Aurora
+                # secret; the app assembles POSTGRES_DSN from them (see config.py).
+                # ECS cannot compose a multi-field DSN from one secret key.
+                "DB_HOST": ecs.Secret.from_secrets_manager(data.db_secret, "host"),
+                "DB_PORT": ecs.Secret.from_secrets_manager(data.db_secret, "port"),
+                "DB_NAME": ecs.Secret.from_secrets_manager(data.db_secret, "dbname"),
+                "DB_USER": ecs.Secret.from_secrets_manager(data.db_secret, "username"),
+                "DB_PASSWORD": ecs.Secret.from_secrets_manager(data.db_secret, "password"),
+                "JWT_SECRET": ecs.Secret.from_secrets_manager(jwt_secret),
             },
             health_check=ecs.HealthCheck(
                 command=["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],

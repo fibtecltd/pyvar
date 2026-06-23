@@ -68,18 +68,18 @@ class EdgeStack(Stack):
             rules=[
                 # AWS Managed: Core rule set (OWASP Top 10 mitigations)
                 waf.CfnWebACL.RuleProperty(
-                    name="AWSManagedRulesCoreRuleSet",
+                    name="AWSManagedRulesCommonRuleSet",
                     priority=10,
                     override_action=waf.CfnWebACL.OverrideActionProperty(none={}),
                     statement=waf.CfnWebACL.StatementProperty(
                         managed_rule_group_statement=waf.CfnWebACL.ManagedRuleGroupStatementProperty(
-                            name="AWSManagedRulesCoreRuleSet",
+                            name="AWSManagedRulesCommonRuleSet",
                             vendor_name="AWS",
                         )
                     ),
                     visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
                         cloud_watch_metrics_enabled=True,
-                        metric_name="CoreRuleSet",
+                        metric_name="CommonRuleSet",
                         sampled_requests_enabled=True,
                     ),
                 ),
