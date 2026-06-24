@@ -5,7 +5,6 @@ CHECKPOINT.md
 CONTEXT_EXHAUSTED.md
 SWITCH_TO_SEQUENTIAL.md
 DOMAIN_GATE_RESULT.md
-*ADVERSARIAL*.md
 scripts/hooks/__pycache__/
 scripts/claude/__pycache__/
 .env
