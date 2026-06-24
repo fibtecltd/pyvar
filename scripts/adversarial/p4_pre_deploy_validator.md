@@ -138,6 +138,69 @@ Flag any `EngineVersion` value not present in the above output.
 
 Severity: **CRITICAL** — blocks deploy
 
+### IMAGE-1: ECR image exists and matches Fargate task architecture
+Before deploying any stack containing an ECS service, confirm the ECR
+repository contains an image tagged with the expected tag (default: latest)
+AND that the image manifest includes a linux/amd64 entry (Fargate X86_64
+default). An arm64-only image (common when built on Apple Silicon without
+--platform linux/amd64) causes CannotPullContainerError at task startup.
+
+```bash
+# Confirm image exists
+aws ecr describe-images \
+    --repository-name pyvar-{env}-api \
+    --image-ids imageTag=latest \
+    --region eu-west-1
+
+# Confirm amd64 manifest present
+aws ecr batch-get-image \
+    --repository-name pyvar-{env}-api \
+    --image-ids imageTag=latest \
+    --query 'images[0].imageManifest' \
+    --output text --region eu-west-1 | python3 -m json.tool | grep architecture
+```
+
+Flag if the repo is empty or if no `linux/amd64` entry exists in the manifest.
+
+Severity: **CRITICAL** — ECS tasks cannot start
+
+### WAF-2: WAF managed rule group names are valid
+Search every `AWS::WAFv2::WebACL` resource for `ManagedRuleGroupStatement` entries.
+Confirm each `Name` value exists in the actual AWS managed rule group list for the
+stack's region. Common mistake: `AWSManagedRulesCoreRuleSet` does not exist —
+the correct name is `AWSManagedRulesCommonRuleSet`.
+
+```bash
+aws wafv2 list-available-managed-rule-groups \
+    --scope CLOUDFRONT \
+    --region us-east-1 \
+    --query 'ManagedRuleGroups[*].Name' \
+    --output table
+```
+
+Flag any `Name` in the template not present in the above output.
+
+Severity: **CRITICAL** — WAF stack fails to create
+
+### ACCOUNT-1: Account is enabled for all services used
+Verify the AWS account has no pending verification gates for services used in
+the deployment. Known account-level gates:
+- **CloudFront:** new accounts require explicit verification before creating
+  distributions. Test: `aws cloudfront list-distributions --region us-east-1`
+  (a 403 AccessDenied with "account must be verified" indicates the gate).
+- **Route53:** no gate but confirm hosted zone exists if `cfg.hosted_zone_id` is set.
+
+```bash
+aws cloudfront list-distributions \
+    --query 'DistributionList.Quantity' \
+    --output text
+```
+
+A `403 AccessDenied` response means the account is not yet verified for CloudFront.
+Contact AWS Support before attempting edge stack deploy.
+
+Severity: **CRITICAL** — edge stack cannot deploy
+
 ---
 
 ## Output format
