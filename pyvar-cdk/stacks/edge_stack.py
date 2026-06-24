@@ -122,6 +122,17 @@ class EdgeStack(Stack):
         )
 
         # ── CloudFront Distribution ────────────────────────────────────────────
+        # Resolve the origin-verify secret from us-east-1 (this stack's region) by
+        # NAME. api_stack replicates pyvar/<env>/cf-origin-verify into us-east-1;
+        # resolving by name emits {{resolve:secretsmanager:<name>:...}} which
+        # Secrets Manager resolves in-region against the replica. (A name->ARN
+        # lookup via from_secret_name_v2 builds a suffix-less ARN that Secrets
+        # Manager cannot resolve; a eu-west-1 ARN is not resolvable cross-region.)
+        # origin_verify_secret is retained to express the cross-stack deploy order.
+        origin_verify_value = cdk.SecretValue.secrets_manager(
+            f"pyvar/{cfg.env_name}/cf-origin-verify"
+        ).unsafe_unwrap()
+
         # ALB as HTTP origin (CloudFront handles TLS termination at edge)
         alb_origin = origins.HttpOrigin(
             alb_dns,
@@ -129,7 +140,7 @@ class EdgeStack(Stack):
             http_port=443,
             origin_id="AlbOrigin",
             custom_headers={
-                "X-Origin-Verify": origin_verify_secret.secret_value.unsafe_unwrap(),
+                "X-Origin-Verify": origin_verify_value,
             },
         )
 

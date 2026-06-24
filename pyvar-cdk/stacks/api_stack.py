@@ -249,6 +249,11 @@ class ApiStack(Stack):
                 exclude_punctuation=True,
                 password_length=32,
             ),
+            # Replicate to us-east-1 so the EdgeStack (CloudFront, us-east-1) can
+            # resolve the SAME value for the X-Origin-Verify header. Secrets Manager
+            # dynamic references are region-local, so a single-region secret here is
+            # unresolvable from the edge stack.
+            replica_regions=[cdk.aws_secretsmanager.ReplicaRegion(region="us-east-1")],
         )
         # Exposed for EdgeStack — same cross-region mechanism as self.alb_dns_name
         self.origin_verify_secret = origin_verify_secret
