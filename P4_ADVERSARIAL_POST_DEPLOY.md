@@ -221,3 +221,52 @@ Zero CRITICAL/WARNING live findings. The application tier is healthy and the reg
 WAF is live and actively filtering on the ALB. The CloudFront edge (`pyvar-dev-edge`)
 remains deferred pending AWS account verification; deploying it later is additive and
 does not block P5 through this fallback.
+
+---
+
+## Edge Deploy (CloudFront + WAF) — pyvar-dev-edge [FINAL]
+
+**Date: 2026-06-26**
+
+AWS confirmed CloudFront account verification is resolved, so `pyvar-dev-edge`
+(CloudFront + WAFv2 + Route53) was deployed — completing the full 6-stack P4 set.
+The three edge fixes that make this work were already on master: WAF managed rule
+group name `AWSManagedRulesCommonRuleSet` (#8), `cf-origin-verify` us-east-1
+replica (#9a), and name-based secret resolve via `SecretValue.secrets_manager` (#9b).
+
+### Stack status
+- Stack: `pyvar-dev-edge` (us-east-1) — **CREATE_COMPLETE** (301s).
+- CloudFront distribution: `E1966GF3O9PSF7` — domain `d1mqqddh8gu2qi.cloudfront.net` — **Status Deployed, Enabled**.
+- CLOUDFRONT-scope WebACL: `pyvar-dev-waf` —
+  `arn:aws:wafv2:us-east-1:347228921290:global/webacl/pyvar-dev-waf/a2bd3085-cff9-4166-81b8-ec8578b9e2e1`
+
+### Post-deploy validator results (edge)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Live-WAF (CloudFront — validator's original intent) | ✅ PASS | Distribution `WebACLId` non-empty = CLOUDFRONT WebACL `pyvar-dev-waf` (us-east-1); distribution `Deployed`. |
+| E2E via CloudFront | ✅ PASS | `GET /health` → **200** `{"status":"ok",...}` (CF injects `X-Origin-Verify` → ALB forwards); `GET /docs` → **200**. |
+| WAF filtering at edge | ✅ PASS | `<script>` payload via CloudFront → **403** (CLOUDFRONT WebACL blocks); clean request → 200. |
+| Auth via CloudFront | ✅ PASS | Domain POST without JWT → **401**. |
+| Viewer protocol | ✅ PASS | `http://` → **301** redirect to HTTPS (`REDIRECT_TO_HTTPS`). |
+| Origin not bypassable | ✅ PASS | Direct ALB without `X-Origin-Verify` → **403**. |
+
+Infrastructure checks (Live-SG, Live-EP, Live-IMDSv2, Live-ECS, SECRET-1) are
+unchanged from the ALB-WAF run above — all still PASS.
+
+### Defense in depth
+Two WAFs are now active with the same rule set: the **CLOUDFRONT**-scope
+`pyvar-dev-waf` on the distribution (edge), and the **REGIONAL** `pyvar-dev-alb-waf`
+on the ALB (origin). Direct-to-ALB traffic is additionally gated by the
+`X-Origin-Verify` secret (403 without it), so the edge cannot be bypassed.
+
+### Findings
+- **CRITICAL: none.**
+- **WARNING: none.**
+
+### Final P4 state: ALL 6 APPLICATION STACKS DEPLOYED
+`network`, `data`, `queue`, `compute`, `api`, `edge` — all CREATE_COMPLETE, plus the
+`pyvar-dev-alb-waf` regional WAF. The public entry point is the CloudFront
+distribution `d1mqqddh8gu2qi.cloudfront.net` (HTTPS, WAF-protected).
+
+### VERDICT: **P5 CLEARED** — full edge stack live, end-to-end verified.
