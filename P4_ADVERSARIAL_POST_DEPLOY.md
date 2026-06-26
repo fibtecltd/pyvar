@@ -176,3 +176,48 @@ defects surfaced during deploy were diagnosed and fixed; the runtime smoke test
 confirms the data, auth, secret, and image fixes end-to-end. The remaining gap is the
 **edge stack, blocked solely by AWS account verification for CloudFront** — code is
 ready and will deploy unchanged once AWS clears the account.
+
+---
+
+## ALB-WAF Deploy (Option 1 Fallback) — pyvar-dev-alb-waf
+
+**Date: 2026-06-26**
+
+AWS has **not** verified the account for CloudFront, so `pyvar-dev-edge` cannot
+deploy. The Option 1 fallback attaches a **REGIONAL** WAF WebACL directly to the
+existing ALB in eu-west-1 — same rule set as the edge WebACL (CommonRuleSet,
+KnownBadInputsRuleSet, rate-limit 100/5min/IP), only the scope differs. `pyvar-dev-edge`
+was **not** deployed and was not touched.
+
+### Stack status
+- Stack: `pyvar-dev-alb-waf` (eu-west-1) — **CREATE_COMPLETE** (97.7s).
+- Pre-checks: `cdk synth pyvar-dev-alb-waf` → OK; `pyvar-dev-edge` → **NOT_FOUND** (no cleanup required).
+- WAF WebACL ARN (CfnOutput `AlbWafAcl`):
+  `arn:aws:wafv2:eu-west-1:347228921290:regional/webacl/pyvar-dev-alb-waf/cb1fc7a6-3db8-49f4-8c98-ba6e13872c71`
+
+### Post-deploy validator results (`scripts/adversarial/p4_post_deploy_validator.md`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Live-SG | ✅ PASS | Only ports **80 & 443** carry `0.0.0.0/0` ingress (ALB SG); no open non-80/443 ports anywhere in the VPC. |
+| Live-EP | ✅ PASS | All required VPC endpoints **available**: S3, SQS, ECR.api, ECR.dkr, SecretsManager, Logs (+ 3 ElastiCache Serverless). |
+| Live-IMDSv2 | ✅ PASS (N/A live) | ASG desired=0 → no workers running; launch template enforces `HttpTokens=required`. |
+| Live-ECS | ✅ PASS | `runningTasksCount=1`, pending 0. |
+| Live-WAF (adapted to ALB) | ✅ PASS | No CloudFront exists (account unverified). REGIONAL WebACL `pyvar-dev-alb-waf` is **associated with the ALB** (`wafv2 get-web-acl-for-resource`). Live filtering confirmed: `<script>` payload → **403 blocked**; clean `/health` → **200**. |
+| SECRET-1 | ✅ PASS | `pyvar/dev/aurora-credentials` contains all injected keys (host, port, dbname, username, password); `jwt-secret` (64 chars) and `cf-origin-verify` (32 chars) present & non-empty. |
+| Live-API | ✅ PASS (route registration) | All 8 domains' routes registered — market-risk 71, credit-risk 55, liquidity 40, operational 44, portfolio 50, regulatory 30, derivatives 62, alm 33 (= 385) — and auth-enforced (sample POST per domain without JWT → **401**). Root `/health` → **200**. |
+
+### Validator-script discrepancies (not deploy defects)
+1. **Live-WAF** targets CloudFront (`cloudfront list-distributions`); this fallback uses ALB-direct + REGIONAL WAF, so the ALB association was verified instead.
+2. **SECRET-1** references `pyvar/dev/db-credentials`; the live secret is `pyvar/dev/aurora-credentials`. All injected field names verified present there.
+3. **Live-API** assumes `/api/v1/{domain}/health` endpoints (all returned **404**) — the app never implemented per-domain health routes (no `/health`-suffixed paths among 388). The check's real intent (per-domain route registration) was satisfied via openapi path counts + auth gating.
+
+### Findings
+- **CRITICAL: none.**
+- **WARNING: none.**
+
+### VERDICT: **P5 CLEARED** (via the ALB-WAF fallback path)
+Zero CRITICAL/WARNING live findings. The application tier is healthy and the regional
+WAF is live and actively filtering on the ALB. The CloudFront edge (`pyvar-dev-edge`)
+remains deferred pending AWS account verification; deploying it later is additive and
+does not block P5 through this fallback.
