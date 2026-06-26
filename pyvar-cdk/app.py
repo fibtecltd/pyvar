@@ -15,6 +15,7 @@ Deploy order:
 """
 
 import aws_cdk as cdk
+from stacks.alb_waf_stack import AlbWafStack
 from stacks.ami_stack import AmiStack
 from stacks.api_stack import ApiStack
 from stacks.compute_stack import ComputeStack
@@ -119,6 +120,15 @@ edge = EdgeStack(
     description="pyvar: CloudFront + WAF + Route53 (us-east-1)",
 )
 
+alb_waf = AlbWafStack(
+    app,
+    f"{prefix}-alb-waf",
+    cfg=cfg,
+    alb=api.alb,
+    env=env_primary,
+    description="pyvar: Regional WAF on ALB — Option 1 fallback (no CloudFront)",
+)
+
 # Dependency declarations
 data.add_dependency(network)
 queue.add_dependency(network)
@@ -127,6 +137,7 @@ compute.add_dependency(queue)
 api.add_dependency(data)
 api.add_dependency(queue)
 edge.add_dependency(api)
+alb_waf.add_dependency(api)
 
 cdk.Tags.of(app).add("Project", "pyvar")
 cdk.Tags.of(app).add("Environment", env_name)
