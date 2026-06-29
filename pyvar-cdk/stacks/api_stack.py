@@ -207,6 +207,7 @@ class ApiStack(Stack):
             protocol=elbv2.ApplicationProtocol.HTTP,  # HTTPS requires certificate_arn
             target_protocol=elbv2.ApplicationProtocol.HTTP,
             health_check_grace_period=Duration.seconds(60),
+            min_healthy_percent=100,  # W4: zero-downtime rolling deploys
             deployment_controller=ecs.DeploymentController(
                 type=ecs.DeploymentControllerType.ECS,
             ),
