@@ -65,15 +65,38 @@ aws ecs describe-clusters \
 `runningTasksCount >= 1` confirms capacity reservation worked.
 `runningTasksCount == 0` means cold start is unmitigated.
 
-### Live-WAF: Confirm WAF associated with CloudFront
+### Live-WAF: Confirm WAF is associated — CLOUDFRONT edge and/or REGIONAL ALB
+
+Run both checks; at least one WAF association must be active.
 
 ```bash
+# 1. CLOUDFRONT-scope WAF (pyvar-dev-edge / EdgeStack)
+#    WebACLId must be non-empty for every distribution.
+#    If no distributions exist the account is not yet verified for CloudFront — skip to check 2.
 aws cloudfront list-distributions \
     --query 'DistributionList.Items[*].{Domain:DomainName,WAF:WebACLId}' \
     --output table
+
+# 2. REGIONAL WAF associated with the ALB (pyvar-dev-alb-waf fallback)
+#    Substitute the live ALB ARN from the api stack output or:
+ALB_ARN=$(aws elbv2 describe-load-balancers \
+    --names pyvar-dev-alb \
+    --query 'LoadBalancers[0].LoadBalancerArn' \
+    --output text --region eu-west-1)
+
+aws wafv2 get-web-acl-for-resource \
+    --resource-arn "${ALB_ARN}" \
+    --scope REGIONAL \
+    --region eu-west-1 \
+    --query 'WebACL.{Name:Name,ARN:ARN}' \
+    --output json
 ```
 
-`WAF` column must be non-empty. Empty = no protection.
+**Pass criteria (either is sufficient; both is defence-in-depth):**
+- CloudFront check: `WAF` column non-empty for all distributions.
+- ALB check: `get-web-acl-for-resource` returns a `WebACL` object (not `WAFNonexistentItemException`).
+
+Empty CloudFront `WAF` = no edge protection. `WAFNonexistentItemException` on ALB check = no regional protection. Both empty = CRITICAL.
 
 ### SECRET-1: ECS secret field references resolve at runtime
 
@@ -84,8 +107,9 @@ synth time and only surfaces when tasks attempt to initialize.
 
 ```bash
 # Aurora DB secret — confirm all injected field names exist
+# Correct secret name is pyvar/dev/aurora-credentials (not db-credentials).
 aws secretsmanager get-secret-value \
-    --secret-id pyvar/dev/db-credentials \
+    --secret-id pyvar/dev/aurora-credentials \
     --query SecretString --output text \
     --region eu-west-1 | python3 -m json.tool
 
@@ -107,18 +131,47 @@ live secret JSON, and any secret that returns `ResourceNotFoundException`.
 
 Severity: **CRITICAL** — ECS tasks cannot start
 
-### Live-API: Verify all 8 domain health endpoints
+### Live-API: Verify all 8 domain route registrations and auth gating
+
+The app does not expose per-domain `/health` routes. Verify route registration
+via the OpenAPI spec and auth enforcement via a sample unauthenticated request.
 
 ```bash
+# Step 1 — Fetch the OpenAPI spec and count paths per domain prefix.
+# All 8 domains must appear with a non-zero path count.
+# Expected totals (from P4 smoke test): market-risk 71, credit-risk 55,
+#   liquidity 40, operational 44, portfolio 50, regulatory 30, derivatives 62, alm 33.
+curl -s "${API_URL}/openapi.json" \
+    -H "X-Origin-Verify: ${ORIGIN_VERIFY_SECRET}" \
+  | python3 - <<'PY'
+import json, sys
+spec = json.load(sys.stdin)
+domains = ["market-risk","credit-risk","liquidity","operational",
+           "portfolio","regulatory","derivatives","alm"]
+paths = spec.get("paths", {})
+for d in domains:
+    count = sum(1 for p in paths if f"/api/v1/{d}/" in p or p.startswith(f"/api/v1/{d}"))
+    status = "OK" if count > 0 else "MISSING"
+    print(f"{d:20s}  paths={count:3d}  {status}")
+PY
+
+# Step 2 — Confirm auth is enforced on a sample endpoint per domain.
+# Every POST without a JWT must return 401 (not 200, 404, or 500).
 for domain in market-risk credit-risk liquidity operational portfolio regulatory derivatives alm; do
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-        "${API_URL}/api/v1/${domain}/health" \
-        -H "Authorization: Bearer ${TEST_TOKEN}")
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        "${API_URL}/api/v1/${domain}/compute" \
+        -H "X-Origin-Verify: ${ORIGIN_VERIFY_SECRET}" \
+        -H "Content-Type: application/json" \
+        -d '{}')
     echo "${domain}: ${STATUS}"
 done
 ```
 
-All must return 200. Any non-200 means the route registration failed for that domain.
+**Pass criteria:**
+- Step 1: every domain shows `paths > 0`. Any `MISSING` = route registration failure.
+- Step 2: every domain returns `401` (not `200`, `404`, `422`, or `5xx`).
+  `404` means the route was not registered. `5xx` means auth middleware is broken.
+  `401` confirms both route presence and auth enforcement.
 
 ---
 
