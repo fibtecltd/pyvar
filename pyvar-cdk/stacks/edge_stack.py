@@ -133,11 +133,16 @@ class EdgeStack(Stack):
             f"pyvar/{cfg.env_name}/cf-origin-verify"
         ).unsafe_unwrap()
 
-        # ALB as HTTP origin (CloudFront handles TLS termination at edge)
+        # ALB as HTTP origin on port 80 (CloudFront handles TLS termination at edge).
+        # Port 80 is used — not 443 — because CloudFront verifies origin certs against
+        # the ALB DNS hostname, which is not covered by the pyvar.com ACM certificate
+        # on the HTTPS:443 listener.  Traffic stays on the AWS backbone (not public
+        # internet).  The ALB's HTTP:80 listener enforces the X-Origin-Verify header,
+        # providing the same bypass-prevention as before.
         alb_origin = origins.HttpOrigin(
             alb_dns,
             protocol_policy=cf.OriginProtocolPolicy.HTTP_ONLY,
-            http_port=443,
+            http_port=80,
             origin_id="AlbOrigin",
             custom_headers={
                 "X-Origin-Verify": origin_verify_value,

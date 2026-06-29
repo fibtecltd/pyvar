@@ -18,17 +18,23 @@ Reasoning:
   without over-provisioning.
 - The ECR lifecycle policy deletes untagged images older than 30 days
   to prevent runaway storage costs from CI/CD pipelines.
-- The ALB listener default-denies direct access and only forwards
-  requests carrying the X-Origin-Verify secret header, so the
-  WAF/CloudFront edge cannot be bypassed by hitting the ALB directly.
-  The secret is exposed as self.origin_verify_secret for EdgeStack
-  (cross-region, same mechanism as self.alb_dns_name).
+- Two ALB listeners:
+    • HTTPS:443 — ACM cert for pyvar.com; TLS termination for direct clients.
+      Default-denies all traffic (403) since CloudFront, not browsers, is the
+      intended entry point. Keeps the ALB cert valid and prevents plaintext
+      direct access.
+    • HTTP:80 — CloudFront origin path. CloudFront sends HTTP on port 80 with
+      the X-Origin-Verify secret header; requests without the header get 403.
+      HTTP_ONLY on port 80 avoids the CloudFront↔ALB cert-hostname mismatch
+      (CloudFront uses the ALB DNS name, which is not in the pyvar.com cert).
+  The origin-verify secret is exposed as self.origin_verify_secret for EdgeStack.
 """
 
 from __future__ import annotations
 
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack
+from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
 from aws_cdk import aws_ecs as ecs
@@ -174,6 +180,28 @@ class ApiStack(Stack):
             stop_timeout=Duration.seconds(30),  # graceful shutdown window
         )
 
+        # ── ACM Certificate ───────────────────────────────────────────────────
+        # DNS-validated TLS certificate for pyvar.com (HTTPS:443 on the ALB).
+        # On first deploy CloudFormation blocks here until the CNAME record(s)
+        # are added to the pyvar.com DNS zone. After "cdk deploy" starts,
+        # retrieve the required records with:
+        #
+        #   aws acm describe-certificate \
+        #     --certificate-arn <CfnOutput: AlbCertificateArn> \
+        #     --region eu-west-1 \
+        #     --query "Certificate.DomainValidationOptions[*].{Name:ResourceRecord.Name,Value:ResourceRecord.Value}"
+        #
+        # Note: CloudFront connects to the ALB via HTTP on port 80 (not this
+        # HTTPS listener) because CloudFront cert-verification uses the ALB DNS
+        # hostname which is not in this certificate. See module docstring.
+        alb_certificate = acm.Certificate(
+            self,
+            "AlbCertificate",
+            domain_name="pyvar.com",
+            subject_alternative_names=["www.pyvar.com"],
+            validation=acm.CertificateValidation.from_dns(),
+        )
+
         # ── ALB + Fargate Service ──────────────────────────────────────────────
         # Build the ALB explicitly with the network-stack ALB security group so
         # that NO new (api-stack-owned) load-balancer SG is created. If we let the
@@ -204,7 +232,8 @@ class ApiStack(Stack):
             load_balancer=alb,
             open_listener=False,  # ingress is governed by sgs.alb (network stack)
             listener_port=443,
-            protocol=elbv2.ApplicationProtocol.HTTP,  # HTTPS requires certificate_arn
+            protocol=elbv2.ApplicationProtocol.HTTPS,
+            certificate=alb_certificate,
             target_protocol=elbv2.ApplicationProtocol.HTTP,
             health_check_grace_period=Duration.seconds(60),
             min_healthy_percent=100,  # W4: zero-downtime rolling deploys
@@ -283,6 +312,35 @@ class ApiStack(Stack):
             action=elbv2.ListenerAction.forward([fargate_service.target_group]),
         )
 
+        # ── HTTP:80 listener — CloudFront origin path ──────────────────────────
+        # CloudFront connects to the ALB via HTTP on port 80 (not HTTPS:443)
+        # because CloudFront verifies origin certs against the ALB DNS hostname,
+        # which is not in the pyvar.com ACM certificate.  HTTP on port 80 keeps
+        # the connection within the AWS backbone (not public internet) while
+        # avoiding the hostname/cert mismatch.  The origin-verify header provides
+        # the same bypass-prevention as on the HTTPS listener.
+        http_listener = alb.add_listener(
+            "HttpCfListener",
+            port=80,
+            open=False,  # port 80 already open on sgs.alb in network_stack
+            default_action=elbv2.ListenerAction.fixed_response(
+                status_code=403,
+                content_type="text/plain",
+                message_body="Forbidden",
+            ),
+        )
+        http_listener.add_action(
+            "OriginVerifyAllowHttp",
+            priority=1,
+            conditions=[
+                elbv2.ListenerCondition.http_header(
+                    "X-Origin-Verify",
+                    [origin_verify_secret.secret_value.unsafe_unwrap()],
+                ),
+            ],
+            action=elbv2.ListenerAction.forward([fargate_service.target_group]),
+        )
+
         # ── Auto-scaling on CPU ───────────────────────────────────────────────
         scaling = fargate_service.service.auto_scale_task_count(
             min_capacity=cfg.api_min_tasks,
@@ -310,3 +368,13 @@ class ApiStack(Stack):
         cdk.CfnOutput(self, "AlbDnsName", value=self.alb_dns_name)
         cdk.CfnOutput(self, "EcrRepoUri", value=self.ecr_repo.repository_uri)
         cdk.CfnOutput(self, "ClusterName", value=cluster.cluster_name)
+        cdk.CfnOutput(
+            self,
+            "AlbCertificateArn",
+            value=alb_certificate.certificate_arn,
+            description=(
+                "ACM certificate ARN — after deploy starts, run: "
+                "aws acm describe-certificate --certificate-arn <arn> --region eu-west-1 "
+                "--query \"Certificate.DomainValidationOptions[*].{Name:ResourceRecord.Name,Value:ResourceRecord.Value}\""
+            ),
+        )
