@@ -28,7 +28,6 @@ from __future__ import annotations
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack
 from aws_cdk import aws_autoscaling as autoscaling
-from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_sqs as sqs
@@ -203,37 +202,27 @@ class ComputeStack(Stack):
             default_result=autoscaling.DefaultResult.CONTINUE,
         )
 
-        # ── Step scaling on SQS queue depth ───────────────────────────────────
-        # Queue depth metric: ApproximateNumberOfMessagesVisible
-        queue_depth_metric = cloudwatch.Metric(
-            namespace="AWS/SQS",
-            metric_name="ApproximateNumberOfMessagesVisible",
-            dimensions_map={"QueueName": var_queue.queue_name},
-            period=Duration.minutes(1),
-            statistic="Average",
-        )
-
-        # scale_on_metric with EXACT_CAPACITY:
-        # - 0 messages   → 0 workers  (scale to zero — the single no-change band)
-        # - 0-5 msgs     → 1 worker
-        # - 5-20 msgs    → 3 workers
-        # - 20-50 msgs   → 6 workers
-        # - 50+ msgs     → 12 workers
-        # Boundaries must be CONTIGUOUS (shared upper/lower edges). Non-contiguous
-        # bands create one "no-change" gap per boundary, and CDK permits at most one.
-        self.asg.scale_on_metric(
+        # ── Target-tracking on SQS queue depth (W2 fix) ───────────────────────
+        # Target tracking continuously adjusts capacity to keep ≤5 messages per
+        # worker, removing the step-scaling cooldown interaction that produced W2.
+        # With min_capacity=0, ASG scales to zero when the queue is empty.
+        autoscaling.TargetTrackingScalingPolicy(
+            self,
             "ScaleOnQueueDepth",
-            metric=queue_depth_metric,
-            scaling_steps=[
-                autoscaling.ScalingInterval(upper=0, change=0),
-                autoscaling.ScalingInterval(lower=0, upper=5, change=1),
-                autoscaling.ScalingInterval(lower=5, upper=20, change=3),
-                autoscaling.ScalingInterval(lower=20, upper=50, change=6),
-                autoscaling.ScalingInterval(lower=50, change=min(12, cfg.worker_max_capacity)),
-            ],
-            adjustment_type=autoscaling.AdjustmentType.EXACT_CAPACITY,
-            cooldown=Duration.minutes(2),  # fast scale-out
-            estimated_instance_warmup=Duration.seconds(90),  # time for instance to be ready
+            auto_scaling_group=self.asg,
+            target_value=5.0,
+            customized_metric=autoscaling.CfnScalingPolicy.CustomizedMetricSpecificationProperty(
+                metric_name="ApproximateNumberOfMessagesVisible",
+                namespace="AWS/SQS",
+                statistic="Average",
+                dimensions=[
+                    autoscaling.CfnScalingPolicy.MetricDimensionProperty(
+                        name="QueueName",
+                        value=var_queue.queue_name,
+                    )
+                ],
+            ),
+            estimated_instance_warmup=Duration.seconds(90),
         )
 
         # ── Outputs ───────────────────────────────────────────────────────────

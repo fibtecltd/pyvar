@@ -25,6 +25,7 @@ from __future__ import annotations
 import aws_cdk as cdk
 from aws_cdk import Stack
 from aws_cdk import aws_codebuild as cb
+from aws_cdk import aws_codepipeline as codepipeline
 from aws_cdk import aws_codepipeline_actions as cpa
 from aws_cdk import aws_codestarnotifications as notifications
 from aws_cdk import aws_sns as sns
@@ -91,6 +92,7 @@ class PipelineStack(Stack):
             synth=synth,
             docker_enabled_for_synth=True,
             docker_enabled_for_self_mutation=True,
+            pipeline_type=codepipeline.PipelineType.V2,  # W6: V2 removes daily execution limit
             # Use SMALL build image — sufficient for synth + tests
             # Switch to BUILD_GENERAL1_MEDIUM if tests start timing out
             code_build_defaults=pipelines.CodeBuildOptions(
