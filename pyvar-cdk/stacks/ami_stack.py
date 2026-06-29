@@ -214,6 +214,11 @@ phases:
             instance_types=["c7i.large"],  # enough for pip install + Numba compile
             instance_profile_name=instance_profile.instance_profile_name or "",
             terminate_instance_on_failure=True,
+            # IMDSv2 required — prevents SSRF-to-metadata attacks on build instances
+            instance_metadata_options=imagebuilder.CfnInfrastructureConfiguration.InstanceMetadataOptionsProperty(
+                http_tokens="required",
+                http_put_response_hop_limit=1,
+            ),
             logging=imagebuilder.CfnInfrastructureConfiguration.LoggingProperty(
                 s3_logs=imagebuilder.CfnInfrastructureConfiguration.S3LogsProperty(
                     s3_bucket_name=f"pyvar-{cfg.env_name}-build-logs-{self.account}",
