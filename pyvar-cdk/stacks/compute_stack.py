@@ -28,6 +28,7 @@ from __future__ import annotations
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack
 from aws_cdk import aws_autoscaling as autoscaling
+from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_sqs as sqs
@@ -55,7 +56,7 @@ class ComputeStack(Stack):
     ):
         super().__init__(scope, id, **kwargs)
 
-        # ── IAM Role for EC2 workers ───────────────────────────────────────────
+        # ── IAM Role for EC2 workers ─────────────────────────────────────────────
         worker_role = iam.Role(
             self,
             "WorkerRole",
@@ -202,28 +203,25 @@ class ComputeStack(Stack):
             default_result=autoscaling.DefaultResult.CONTINUE,
         )
 
-        # ── Target-tracking on SQS queue depth (W2 fix) ───────────────────────
+        # ── Target-tracking on SQS queue depth (W2 fix) ─────────────────────────
         # Target tracking continuously adjusts capacity to keep ≤5 messages per
         # worker, removing the step-scaling cooldown interaction that produced W2.
         # With min_capacity=0, ASG scales to zero when the queue is empty.
+        queue_depth_metric = cloudwatch.Metric(
+            namespace="AWS/SQS",
+            metric_name="ApproximateNumberOfMessagesVisible",
+            dimensions_map={"QueueName": var_queue.queue_name},
+            period=Duration.minutes(1),
+            statistic="Average",
+        )
         autoscaling.TargetTrackingScalingPolicy(
             self,
             "ScaleOnQueueDepth",
             auto_scaling_group=self.asg,
             target_value=5.0,
-            customized_metric=autoscaling.CfnScalingPolicy.CustomizedMetricSpecificationProperty(
-                metric_name="ApproximateNumberOfMessagesVisible",
-                namespace="AWS/SQS",
-                statistic="Average",
-                dimensions=[
-                    autoscaling.CfnScalingPolicy.MetricDimensionProperty(
-                        name="QueueName",
-                        value=var_queue.queue_name,
-                    )
-                ],
-            ),
+            custom_metric=queue_depth_metric,
             estimated_instance_warmup=Duration.seconds(90),
         )
 
-        # ── Outputs ───────────────────────────────────────────────────────────
+        # ── Outputs ───────────────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "AsgName", value=self.asg.auto_scaling_group_name)
