@@ -16,7 +16,7 @@
     "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true,
     "@aws-cdk/aws-rds:lowercaseDbIdentifier": true,
     "@aws-cdk/core:stackRelativeExports": true,
-    "@aws-cdk/core:defaultCrossStackReferences": "both",
+    "@aws-cdk/core:defaultCrossStackReferences": "weak",
     "@aws-cdk/aws-ec2:restrictDefaultSecurityGroup": true,
     "@aws-cdk/aws-ecs:arnFormatIncludesClusterName": true
   }
