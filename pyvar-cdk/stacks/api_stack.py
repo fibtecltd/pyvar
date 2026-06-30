@@ -375,6 +375,6 @@ class ApiStack(Stack):
             description=(
                 "ACM certificate ARN — after deploy starts, run: "
                 "aws acm describe-certificate --certificate-arn <arn> --region eu-west-1 "
-                "--query \"Certificate.DomainValidationOptions[*].{Name:ResourceRecord.Name,Value:ResourceRecord.Value}\""
+                '--query "Certificate.DomainValidationOptions[*].{Name:ResourceRecord.Name,Value:ResourceRecord.Value}"'
             ),
         )
