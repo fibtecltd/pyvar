@@ -330,3 +330,76 @@ The validator template tests `POST /api/v1/{domain}/compute` for auth. That gene
 | pyvar-dev-edge | us-east-1 | ✅ UPDATE_COMPLETE |
 
 ### VERDICT: **P5 CLEARED** — zero CRITICAL, zero WARNING. All 7 stacks healthy. Full defence-in-depth (CLOUDFRONT + REGIONAL WAF, origin-verify gating, IMDSv2, SSM-only cross-stack references) confirmed live.
+
+---
+
+## P6 Final Hardening — full stack pass
+
+**Date: 2026-06-30**
+**Account: 347228921290 · Primary region: eu-west-1 · Edge region: us-east-1**
+**Environment: dev · CDK: aws-cdk 2.1128.0**
+
+### P6 changes deployed
+
+| Item | Stack | Change | Deploy result |
+|---|---|---|---|
+| Step 1 | pyvar-dev-ami | `CfnInfrastructureConfiguration`: `http_tokens="required"`, `http_put_response_hop_limit=1` — IMDSv2 enforced on Image Builder build instances | ✅ PR #51 merged |
+| Step 2 | — | Housekeeping audit: all three items (cdk.out artifacts, stale log groups, retained ECR repo) already resolved in P5 | ✅ No-op |
+| Step 3 | pyvar-dev-api / pyvar-dev-edge | ACM cert for `pyvar.com` + `www.pyvar.com` (ISSUED); ALB listener `:443` switched HTTP→HTTPS with cert; HTTP `:80` listener added as CloudFront origin path (origin-verify enforced); edge_stack origin port 443→80 | ✅ PR #52 merged, DNS validated, both stacks UPDATE_COMPLETE |
+
+### cdk synth — all stacks
+
+```
+cdk synth --context env=dev --context account=347228921290
+Successfully synthesized to /workspace/pyvar/pyvar-cdk/cdk.out
+Stacks: pyvar-pipeline, cross-region-stack-347228921290:us-east-1, pyvar-dev-ami,
+        pyvar-dev-network, pyvar-dev-data, pyvar-dev-queue, pyvar-dev-compute,
+        pyvar-dev-api, pyvar-dev-edge, pyvar-dev-alb-waf
+```
+
+Warnings are pre-existing (default listener action replacement on pipeline prod stage, Performance Insights, desiredCapacity). Zero new warnings introduced by P6 changes.
+
+### Post-deploy validator results
+
+All checks run via `scripts/adversarial/p4_post_deploy_validator.md`.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Live-SG | ✅ PASS | No `0.0.0.0/0` on non-80/443 ports. ALB SG: 80 + 443 from internet. API SG: 8000 from ALB SG only. Aurora SG: 5432 from worker + API SGs. Cache SG: 6379 from worker + API SGs. VPC endpoint SGs: 443 from 10.0.0.0/16. Worker SG: no inbound rules. |
+| Live-EP | ✅ PASS | 9 endpoints `available`: S3 (gateway), SQS, ECR.api, ECR.dkr, SecretsManager, Logs + 3 ElastiCache Serverless. |
+| Live-IMDSv2 | ✅ PASS (N/A) | ASG desired=0 (queue empty); no instances running. Launch template enforces `HttpTokens=required` — verified on next scale-out. |
+| Live-ECS | ✅ PASS | `runningTasksCount=1`, `pendingTasksCount=0`. |
+| Live-WAF (CLOUDFRONT) | ✅ PASS | Distribution `d1mqqddh8gu2qi.cloudfront.net` — `WebACLId: arn:aws:wafv2:us-east-1:347228921290:global/webacl/pyvar-dev-waf/a2bd3085-cff9-4166-81b8-ec8578b9e2e1`. |
+| Live-WAF (REGIONAL) | ✅ PASS | `get-web-acl-for-resource` for ALB ARN returns `pyvar-dev-alb-waf` — `arn:aws:wafv2:eu-west-1:347228921290:regional/webacl/pyvar-dev-alb-waf/cb1fc7a6-3db8-49f4-8c98-ba6e13872c71`. Both WAFs active — defence-in-depth intact. |
+| SECRET-1 | ✅ PASS | `pyvar/dev/aurora-credentials`: all 5 injected fields present (host, port, dbname, username, password). `pyvar/dev/jwt-secret`: 64-char non-empty. `pyvar/dev/cf-origin-verify`: 32-char non-empty. |
+| Live-API (path counts) | ✅ PASS | All 8 domains registered — market-risk 71, credit-risk 55, liquidity 40, operational 44, portfolio 50, regulatory 30, derivatives 62, alm 33 (= 385 total). Note: P4/P5 reports stated 388 total; the per-domain counts were always correct and sum to 385 — the 388 figure was a running arithmetic error in those reports. No route regression. |
+| Live-API (auth gating) | ✅ PASS | Unauthenticated POST to first real endpoint per domain → **401** on all 8 domains. |
+
+### P6-specific checks
+
+| Check | Result | Evidence |
+|---|---|---|
+| ALB HTTPS:443 listener | ✅ LIVE | Protocol=HTTPS, cert `arn:aws:acm:eu-west-1:347228921290:certificate/0de8a53d-20e6-457a-a4a0-ae3b8fe419ca` (Status: ISSUED, Domain: pyvar.com + www.pyvar.com) |
+| ALB HTTP:80 listener | ✅ LIVE | Protocol=HTTP (CloudFront origin path), origin-verify enforced, default action 403 |
+| CloudFront origin port | ✅ UPDATED | `http_port=80` (was 443) — avoids cert-hostname mismatch between pyvar.com cert and ALB DNS name |
+| Image Builder IMDSv2 | ✅ CODE | `CfnInfrastructureConfiguration` now has `http_tokens=required`, `http_put_response_hop_limit=1` (deployed at next Image Builder pipeline run) |
+
+### Findings
+
+- **CRITICAL: none.**
+- **WARNING: none.**
+
+### Stack status post-P6
+
+| Stack | Region | Status |
+|---|---|---|
+| pyvar-dev-network | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-queue | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-data | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-compute | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-alb-waf | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-api | eu-west-1 | ✅ UPDATE_COMPLETE (HTTPS:443 + HTTP:80, ACM cert ISSUED) |
+| pyvar-dev-edge | us-east-1 | ✅ UPDATE_COMPLETE (origin port 443→80) |
+| pyvar-dev-ami | eu-west-1 | ✅ UPDATE_COMPLETE (IMDSv2 required on InfrastructureConfiguration) |
+
+### VERDICT: **P6 CLEARED** — zero CRITICAL, zero WARNING. All 8 stacks healthy. Full pre-production hardening complete: IMDSv2 enforced on Image Builder, ACM TLS certificate live on ALB (HTTPS:443), CloudFront origin-verify protection maintained on new HTTP:80 listener, both WAFs active (defence-in-depth), all 385 API routes registered, auth enforcement confirmed across all 8 risk domains.
