@@ -112,8 +112,15 @@ teardown_worktrees() {
         fi
 
         if [ "$dry_run" = "--dry-run" ]; then
-            echo "[worktree]   [dry-run] would merge $branch into master"
+            echo "[worktree]   [dry-run] would push $branch and merge into master"
             continue
+        fi
+
+        # Push branch to remote before merging (so PR can be opened/reviewed)
+        if git -C "$PYVAR_ROOT" push origin "$branch" 2>/dev/null; then
+            echo "[worktree]   ✓ pushed $branch to origin"
+        else
+            echo "[worktree]   ⚠ push failed for $branch — may already be on remote or no network"
         fi
 
         # Merge into master
