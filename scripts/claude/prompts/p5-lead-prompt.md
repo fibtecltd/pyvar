@@ -187,5 +187,5 @@ Open a GitHub issue for each blocker — P5 remainder cannot start until all
 issues are resolved.
 
 ```
-Next: ~/claude-docker/scripts/pyvar-run.sh p5 --teardown-worktrees
+Next: ~/projects/pyvar/scripts/claude/pyvar-run.sh p5 --teardown-worktrees
 ```
