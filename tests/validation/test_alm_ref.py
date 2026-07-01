@@ -70,8 +70,8 @@ from engine.alm_ftp import (
 )
 
 # Tolerances
-TOL_ARITH = 1e-5      # 0.001% for closed-form duration/PV/gap arithmetic
-TOL_SIM = 1e-3        # 0.1% for simulation / projection
+TOL_ARITH = 1e-5  # 0.001% for closed-form duration/PV/gap arithmetic
+TOL_SIM = 1e-3  # 0.1% for simulation / projection
 SIX_SHOCK_NAMES = {
     "parallel_up",
     "parallel_down",
@@ -221,8 +221,9 @@ def test_nii_simulation_baseline_closed_form():
 
 def test_nii_simulation_baseline_mismatch():
     with pytest.raises(ValueError):
-        nii_simulation_baseline(np.array([1.0]), np.array([0.1, 0.2]),
-                                np.array([1.0]), np.array([0.1]))
+        nii_simulation_baseline(
+            np.array([1.0]), np.array([0.1, 0.2]), np.array([1.0]), np.array([0.1])
+        )
 
 
 # ======================================================================
@@ -250,8 +251,9 @@ def test_nii_simulation_stress_closed_form():
 
 def test_nii_simulation_stress_mismatch():
     with pytest.raises(ValueError):
-        nii_simulation_stress(np.array([1.0, 2.0]), np.array([0.1]),
-                              np.array([1.0]), np.array([0.1]), 0.01)
+        nii_simulation_stress(
+            np.array([1.0, 2.0]), np.array([0.1]), np.array([1.0]), np.array([0.1]), 0.01
+        )
 
 
 def test_eve_closed_form():
@@ -272,13 +274,23 @@ def test_eve_closed_form():
 
 def test_eve_length_mismatch():
     with pytest.raises(ValueError):
-        economic_value_of_equity_eve(np.array([1.0]), np.array([1.0, 2.0]),
-                                     np.array([1.0]), np.array([1.0]),
-                                     np.array([0.03]), np.array([0.03]))
+        economic_value_of_equity_eve(
+            np.array([1.0]),
+            np.array([1.0, 2.0]),
+            np.array([1.0]),
+            np.array([1.0]),
+            np.array([0.03]),
+            np.array([0.03]),
+        )
     with pytest.raises(ValueError):
-        economic_value_of_equity_eve(np.array([1.0]), np.array([1.0]),
-                                     np.array([1.0]), np.array([1.0, 2.0]),
-                                     np.array([0.03]), np.array([0.03]))
+        economic_value_of_equity_eve(
+            np.array([1.0]),
+            np.array([1.0]),
+            np.array([1.0]),
+            np.array([1.0, 2.0]),
+            np.array([0.03]),
+            np.array([0.03]),
+        )
 
 
 def test_eve_sensitivity_sign_and_ref():
@@ -291,8 +303,9 @@ def test_eve_sensitivity_sign_and_ref():
     t = np.array([1.0, 5.0, 10.0])
     r0 = np.array([0.02, 0.025, 0.03])
     par_bps, short_bps, long_bps = 200.0, 300.0, 150.0
-    out = eve_sensitivity_analysis(cf, t, r0, parallel_bps=par_bps,
-                                   short_bps=short_bps, long_bps=long_bps)
+    out = eve_sensitivity_analysis(
+        cf, t, r0, parallel_bps=par_bps, short_bps=short_bps, long_bps=long_bps
+    )
     base_ref = float(np.sum(cf * np.exp(-r0 * t)))
     assert _rel(out["base_eve"], base_ref) < TOL_ARITH
     # Independent reconstruction of the six shocks and dEVE
@@ -311,8 +324,7 @@ def test_eve_sensitivity_sign_and_ref():
 
 def test_eve_sensitivity_mismatch():
     with pytest.raises(ValueError):
-        eve_sensitivity_analysis(np.array([1.0, 2.0]), np.array([1.0]),
-                                 np.array([0.03]))
+        eve_sensitivity_analysis(np.array([1.0, 2.0]), np.array([1.0]), np.array([0.03]))
 
 
 def test_liquidity_adjusted_nii_closed_form():
@@ -340,10 +352,10 @@ def test_irrbb_exactly_six_shocks_zero_tolerance():
     """[REGULATORY] BCBS d368 §115: EXACTLY six scenarios, exact names. ZERO tol."""
     t = np.array([0.25, 1.0, 5.0, 10.0])
     shocks = irrbb_six_standard_rate_shocks(t, 200.0, 300.0, 150.0)
-    assert len(shocks) == 6                       # exactly six — zero tolerance
+    assert len(shocks) == 6  # exactly six — zero tolerance
     assert set(shocks.keys()) == SIX_SHOCK_NAMES  # exact names — zero tolerance
     for name in SIX_SHOCK_NAMES:
-        assert len(shocks[name]) == t.size        # per-tenor shape
+        assert len(shocks[name]) == t.size  # per-tenor shape
 
 
 def test_irrbb_six_shocks_construction_ref():
@@ -364,13 +376,11 @@ def test_irrbb_six_shocks_construction_ref():
     np.testing.assert_allclose(shocks["parallel_down"], np.full(t.size, -par), rtol=TOL_ARITH)
     np.testing.assert_allclose(shocks["short_up"], s_short, rtol=TOL_ARITH)
     np.testing.assert_allclose(shocks["short_down"], -s_short, rtol=TOL_ARITH)
-    np.testing.assert_allclose(shocks["steepener"], -0.65 * s_short + 0.90 * s_long,
-                               rtol=TOL_ARITH)
-    np.testing.assert_allclose(shocks["flattener"], 0.80 * s_short - 0.60 * s_long,
-                               rtol=TOL_ARITH)
+    np.testing.assert_allclose(shocks["steepener"], -0.65 * s_short + 0.90 * s_long, rtol=TOL_ARITH)
+    np.testing.assert_allclose(shocks["flattener"], 0.80 * s_short - 0.60 * s_long, rtol=TOL_ARITH)
     # Sign property: steepener lowers short end, raises long end
-    assert shocks["steepener"][0] < 0        # short tenor down
-    assert shocks["steepener"][-1] > 0       # long tenor up
+    assert shocks["steepener"][0] < 0  # short tenor down
+    assert shocks["steepener"][-1] > 0  # long tenor up
     # Flattener: raises short end, lowers long end
     assert shocks["flattener"][0] > 0
     assert shocks["flattener"][-1] < 0
@@ -415,8 +425,7 @@ def test_irrbb_standardised_framework_ref():
 
 def test_irrbb_standardised_mismatch():
     with pytest.raises(ValueError):
-        irrbb_standardised_framework(np.array([1.0]), np.array([1.0, 2.0]),
-                                     np.array([0.02]))
+        irrbb_standardised_framework(np.array([1.0]), np.array([1.0, 2.0]), np.array([0.02]))
 
 
 def test_irrbb_internal_model_ref():
@@ -429,13 +438,13 @@ def test_irrbb_internal_model_ref():
     out = irrbb_internal_model(cf, t, r0, scen)
     base_ref = float(np.sum(cf * np.exp(-r0 * t)))
     deltas_ref = np.array(
-        [float(np.sum(cf * np.exp(-(r0 + scen[i]) * t))) - base_ref
-         for i in range(scen.shape[0])]
+        [float(np.sum(cf * np.exp(-(r0 + scen[i]) * t))) - base_ref for i in range(scen.shape[0])]
     )
     assert _rel(out["base_eve"], base_ref) < TOL_ARITH
     assert _rel(out["mean_delta_eve"], float(np.mean(deltas_ref))) < TOL_SIM
-    assert out["worst_case_99"] == pytest.approx(float(np.percentile(deltas_ref, 1.0)),
-                                                 abs=abs(base_ref) * TOL_SIM)
+    assert out["worst_case_99"] == pytest.approx(
+        float(np.percentile(deltas_ref, 1.0)), abs=abs(base_ref) * TOL_SIM
+    )
     # Determinism: same seed => identical result
     scen2 = np.random.default_rng(12345).normal(0.0, 0.005, size=(2000, 2))
     out2 = irrbb_internal_model(cf, t, r0, scen2)
@@ -444,12 +453,17 @@ def test_irrbb_internal_model_ref():
 
 def test_irrbb_internal_model_bad_shape():
     with pytest.raises(ValueError):
-        irrbb_internal_model(np.array([1.0, 2.0]), np.array([1.0, 2.0]),
-                             np.array([0.02, 0.03]), np.array([0.01, 0.02]))  # 1D
+        irrbb_internal_model(
+            np.array([1.0, 2.0]),
+            np.array([1.0, 2.0]),
+            np.array([0.02, 0.03]),
+            np.array([0.01, 0.02]),
+        )  # 1D
     with pytest.raises(ValueError):
         # cf/t/r0 length mismatch branch
-        irrbb_internal_model(np.array([1.0]), np.array([1.0, 2.0]),
-                             np.array([0.02, 0.03]), np.zeros((5, 1)))
+        irrbb_internal_model(
+            np.array([1.0]), np.array([1.0, 2.0]), np.array([0.02, 0.03]), np.zeros((5, 1))
+        )
 
 
 def test_repricing_gap_analysis_closed_form():
@@ -494,11 +508,13 @@ def test_repricing_maturity_profile_ref():
 
 def test_repricing_maturity_profile_invalid():
     with pytest.raises(ValueError):
-        repricing_maturity_profile(np.array([1.0]), np.array([1.0, 2.0]), 2,
-                                   np.array([0.0, 1.0, 2.0]))
+        repricing_maturity_profile(
+            np.array([1.0]), np.array([1.0, 2.0]), 2, np.array([0.0, 1.0, 2.0])
+        )
     with pytest.raises(ValueError):
-        repricing_maturity_profile(np.array([1.0]), np.array([1.0]), 2,
-                                   np.array([0.0, 1.0]))  # wrong edges length
+        repricing_maturity_profile(
+            np.array([1.0]), np.array([1.0]), 2, np.array([0.0, 1.0])
+        )  # wrong edges length
 
 
 def test_static_gap_analysis_closed_form():
@@ -536,8 +552,9 @@ def test_dynamic_gap_analysis_closed_form():
 
 def test_dynamic_gap_mismatch():
     with pytest.raises(ValueError):
-        dynamic_gap_analysis(np.array([1.0]), np.array([1.0]),
-                             np.array([0.1, 0.2]), np.array([0.1]), 2)
+        dynamic_gap_analysis(
+            np.array([1.0]), np.array([1.0]), np.array([0.1, 0.2]), np.array([0.1]), 2
+        )
 
 
 def test_basis_risk_irrbb_closed_form():
@@ -553,8 +570,7 @@ def test_basis_risk_irrbb_closed_form():
 
 def test_basis_risk_mismatch():
     with pytest.raises(ValueError):
-        basis_risk_irrbb(np.array([1.0, 2.0]), np.array([0.1]),
-                         np.array([1.0]), np.array([0.1]))
+        basis_risk_irrbb(np.array([1.0, 2.0]), np.array([0.1]), np.array([1.0]), np.array([0.1]))
 
 
 def test_option_risk_irrbb_closed_form():
@@ -582,9 +598,9 @@ def test_pipeline_risk_closed_form():
 
 def test_pipeline_risk_invalid():
     with pytest.raises(ValueError):
-        pipeline_risk_measurement(1.0, 1.5, 0.25, 0.1)   # pull-through > 1
+        pipeline_risk_measurement(1.0, 1.5, 0.25, 0.1)  # pull-through > 1
     with pytest.raises(ValueError):
-        pipeline_risk_measurement(1.0, 0.5, -0.1, 0.1)   # negative lock
+        pipeline_risk_measurement(1.0, 0.5, -0.1, 0.1)  # negative lock
 
 
 def test_irrbb_capital_outlier_ref():
@@ -626,8 +642,9 @@ def test_asset_liability_mismatch_index_ref():
 
 def test_almmi_mismatch():
     with pytest.raises(ValueError):
-        asset_liability_mismatch_index(np.array([1.0]), np.array([1.0, 2.0]),
-                                       np.array([1.0]), np.array([1.0]))
+        asset_liability_mismatch_index(
+            np.array([1.0]), np.array([1.0, 2.0]), np.array([1.0]), np.array([1.0])
+        )
 
 
 # ======================================================================
@@ -655,13 +672,13 @@ def test_cpr_smm_conversion_closed_form():
 
 def test_cpr_smm_invalid():
     with pytest.raises(ValueError):
-        loan_prepayment_rate_cpr()                    # neither
+        loan_prepayment_rate_cpr()  # neither
     with pytest.raises(ValueError):
-        loan_prepayment_rate_cpr(smm=0.1, cpr=0.1)    # both
+        loan_prepayment_rate_cpr(smm=0.1, cpr=0.1)  # both
     with pytest.raises(ValueError):
-        loan_prepayment_rate_cpr(smm=1.0)             # smm out of range
+        loan_prepayment_rate_cpr(smm=1.0)  # smm out of range
     with pytest.raises(ValueError):
-        loan_prepayment_rate_cpr(cpr=1.0)             # cpr out of range branch
+        loan_prepayment_rate_cpr(cpr=1.0)  # cpr out of range branch
 
 
 def test_prepayment_model_mortgages_ref():
@@ -849,7 +866,7 @@ def test_structural_hedge_optimisation_ref():
     n* = target_dollar/d exactly (unconstrained interior solution).
     """
     equity, target_dur = 1_000_000.0, 3.0
-    d = np.array([6.0])            # single 6y instrument
+    d = np.array([6.0])  # single 6y instrument
     cap = np.array([1_000_000.0])  # cap high enough
     target_dollar = equity * target_dur
     n_star_ref = target_dollar / d[0]
@@ -885,8 +902,9 @@ def test_alm_stress_test_ref():
     # Independent worst-case via shock reconstruction
     base = float(np.sum(cf * np.exp(-r0 * t)))
     shocks = irrbb_six_standard_rate_shocks(t, 200.0, 300.0, 150.0)
-    deltas = [float(np.sum(cf * np.exp(-(r0 + np.asarray(sh)) * t))) - base
-              for sh in shocks.values()]
+    deltas = [
+        float(np.sum(cf * np.exp(-(r0 + np.asarray(sh)) * t))) - base for sh in shocks.values()
+    ]
     worst_ref = min(deltas)
     ratio_ref = abs(min(worst_ref, 0.0)) / tier1
     assert out["worst_case_eve"] == pytest.approx(worst_ref, abs=1e-3)
