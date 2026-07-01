@@ -23,8 +23,6 @@ threshold and on the 40%/15% HQLA caps.
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 import pytest
 from scipy import stats
