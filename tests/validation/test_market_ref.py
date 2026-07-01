@@ -26,24 +26,14 @@ import numpy as np
 import pytest
 from scipy import stats
 
-# ── Engine imports (direct, no HTTP) ─────────────────────────────────────────
-from engine.montecarlo import run_monte_carlo_var
-from engine.metrics import (
-    compute_breaches,
-    compute_cvar,
-    compute_loss_percentiles,
-    compute_rolling_var,
-)
-from engine.var_models import (
-    component_var,
-    cornish_fisher_var,
-    filtered_historical_simulation_var,
-    historical_simulation_var,
-    incremental_var,
-    marginal_var,
-    parametric_delta_normal_var,
-    var_by_risk_factor,
-    var_fan_chart,
+from engine.backtesting import (
+    basel_capital_addon_multiplier,
+    christoffersen_independence_test,
+    combined_backtesting,
+    kupiec_pof_test,
+    rolling_var_backtest,
+    traffic_light_backtesting,
+    var_breach_cluster_analysis,
 )
 from engine.expected_shortfall import (
     conditional_var_es,
@@ -55,14 +45,16 @@ from engine.expected_shortfall import (
     monte_carlo_expected_shortfall,
     stressed_expected_shortfall,
 )
-from engine.stress import (
-    contagion_stress_scenario,
-    historical_scenario_replay,
-    hypothetical_multi_factor_scenario,
-    macro_scenario_generator,
-    reverse_stress_testing,
-    sector_stress_scenario,
-    sensitivity_stress_profile,
+from engine.frtb import (
+    extreme_value_theory_var,
+    frtb_ima_aggregate_capital_charge,
+    frtb_ima_expected_shortfall,
+    frtb_ima_non_modellable_risk_factors,
+    frtb_ima_stressed_period_finder,
+    frtb_sa_default_risk_charge,
+    frtb_sa_residual_risk_addon,
+    frtb_sa_sensitivity_based_method,
+    spectral_risk_measure,
 )
 from engine.greeks import (
     charm_delta_decay,
@@ -76,6 +68,15 @@ from engine.greeks import (
     vega_surface_bucketed,
     volga_vega_convexity,
 )
+from engine.metrics import (
+    compute_breaches,
+    compute_cvar,
+    compute_loss_percentiles,
+    compute_rolling_var,
+)
+
+# ── Engine imports (direct, no HTTP) ─────────────────────────────────────────
+from engine.montecarlo import run_monte_carlo_var
 from engine.pnl_attribution import (
     credit_pnl_attribution,
     fx_pnl_attribution,
@@ -87,14 +88,31 @@ from engine.pnl_attribution import (
     theta_carry_attribution,
     vega_pnl_attribution,
 )
-from engine.backtesting import (
-    basel_capital_addon_multiplier,
-    christoffersen_independence_test,
-    combined_backtesting,
-    kupiec_pof_test,
-    rolling_var_backtest,
-    traffic_light_backtesting,
-    var_breach_cluster_analysis,
+from engine.reg_frtb import (
+    frtb_ima_market_risk_capital,
+    frtb_pl_attribution_test,
+    frtb_sa_market_risk_capital,
+    frtb_trading_desk_aggregation,
+)
+from engine.stress import (
+    contagion_stress_scenario,
+    historical_scenario_replay,
+    hypothetical_multi_factor_scenario,
+    macro_scenario_generator,
+    reverse_stress_testing,
+    sector_stress_scenario,
+    sensitivity_stress_profile,
+)
+from engine.var_models import (
+    component_var,
+    cornish_fisher_var,
+    filtered_historical_simulation_var,
+    historical_simulation_var,
+    incremental_var,
+    marginal_var,
+    parametric_delta_normal_var,
+    var_by_risk_factor,
+    var_fan_chart,
 )
 from engine.volatility import (
     correlation_matrix_historical,
@@ -105,23 +123,6 @@ from engine.volatility import (
     realised_volatility,
     risk_factor_pca_decomposition,
     volatility_surface_implied_vol,
-)
-from engine.frtb import (
-    extreme_value_theory_var,
-    frtb_ima_aggregate_capital_charge,
-    frtb_ima_expected_shortfall,
-    frtb_ima_non_modellable_risk_factors,
-    frtb_ima_stressed_period_finder,
-    frtb_sa_default_risk_charge,
-    frtb_sa_residual_risk_addon,
-    frtb_sa_sensitivity_based_method,
-    spectral_risk_measure,
-)
-from engine.reg_frtb import (
-    frtb_ima_market_risk_capital,
-    frtb_pl_attribution_test,
-    frtb_sa_market_risk_capital,
-    frtb_trading_desk_aggregation,
 )
 
 
