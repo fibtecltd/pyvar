@@ -14,7 +14,7 @@ toggle_at() {
     [ $DRY_RUN -eq 0 ] && python3 -c "
 import json; f='$settings'
 s=json.load(open(f)); s.setdefault('env',{})['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS']='1'
-json.dump(s,open(f,'w'),indent=2)" && echo "  🤝 Agent Teams ON  (restart: claude --dangerously-skip-permissions --model claude-opus-4-6)"
+json.dump(s,open(f,'w'),indent=2)" && echo "  🤝 Agent Teams ON  (restart: claude --dangerously-skip-permissions --model claude-opus-4-8)"
     [ $DRY_RUN -eq 1 ] && echo "[dry-run] Enable Agent Teams"
   else
     [ $DRY_RUN -eq 0 ] && python3 -c "
@@ -169,5 +169,5 @@ echo ""
 echo "✓ P5 done: 24 enabled | 24 disabled | 2 never"
 echo "  13 original | 2 wshobson | 9 zip-new | AT: ⚠️  CONDITIONAL"
 echo "  Local SKILL.md files: always active (no toggle needed)"
-echo "  Start: claude --dangerously-skip-permissions --model claude-opus-4-6"
+echo "  Start: claude --dangerously-skip-permissions --model claude-opus-4-8"
 echo ""
