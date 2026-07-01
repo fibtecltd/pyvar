@@ -216,7 +216,9 @@ def test_monte_carlo_oprisk_capital_matches_independent_quantile():
 
 def test_monte_carlo_oprisk_capital_opvar_monotone_in_confidence():
     """OpVaR must increase with confidence level (property test)."""
-    base = dict(frequency_lambda=10.0, severity_mu=9.0, severity_sigma=1.0, n_years=100_000, seed=42)
+    base = dict(
+        frequency_lambda=10.0, severity_mu=9.0, severity_sigma=1.0, n_years=100_000, seed=42
+    )
     v95 = monte_carlo_oprisk_capital(confidence_level=0.95, **base)["opvar"]
     v99 = monte_carlo_oprisk_capital(confidence_level=0.99, **base)["opvar"]
     v999 = monte_carlo_oprisk_capital(confidence_level=0.999, **base)["opvar"]
@@ -253,8 +255,7 @@ def test_operational_var_opvar_monotone_and_errors():
     rng = np.random.default_rng(5)
     losses = rng.gamma(2.0, 1e5, size=10_000)
     assert (
-        operational_var_opvar(losses, 0.95)["opvar"]
-        <= operational_var_opvar(losses, 0.99)["opvar"]
+        operational_var_opvar(losses, 0.95)["opvar"] <= operational_var_opvar(losses, 0.99)["opvar"]
     )
     with pytest.raises(ValueError):
         operational_var_opvar(np.array([]), 0.99)
@@ -941,7 +942,9 @@ def test_conduct_risk_metric_composite_index():
 
     Reference: independent hand-calc, no published reference.
     """
-    out = conduct_risk_metric(complaints=50.0, customers=10_000.0, redress_paid=50_000.0, revenue=1_000_000.0)
+    out = conduct_risk_metric(
+        complaints=50.0, customers=10_000.0, redress_paid=50_000.0, revenue=1_000_000.0
+    )
     cpk = 50.0 / 10_000.0 * 1000.0  # 5.0
     rr = 50_000.0 / 1_000_000.0  # 0.05
     index = min(cpk, 50.0) + min(rr * 500.0, 50.0)  # 5 + 25 = 30
@@ -989,7 +992,9 @@ def test_third_party_vendor_risk_weighted():
 
     Reference: independent hand-calc, no published reference.
     """
-    out = third_party_vendor_risk(criticality=5, financial_health=0.5, concentration=0.8, substitutability=0.2)
+    out = third_party_vendor_risk(
+        criticality=5, financial_health=0.5, concentration=0.8, substitutability=0.2
+    )
     ref = (5 / 5.0) * 30.0 + (1 - 0.5) * 30.0 + 0.8 * 20.0 + (1 - 0.2) * 20.0
     assert out["vendor_risk_score"] == pytest.approx(ref, rel=1e-6)
     assert out["rating"] == ("green" if ref <= 30 else "amber" if ref <= 60 else "red")
