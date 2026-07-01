@@ -432,8 +432,7 @@ def test_liqvar_cross_validated_against_scipy():
     # [cross-validated (scipy), not regulator-sourced]. LiqVaR quantile of
     # base*(1+vol*Z) equals base*(1+vol*z_alpha) analytically. MC must agree.
     base, vol, cl = 1000.0, 0.20, 0.99
-    res = liquidity_var_liqvar(base, vol, confidence_level=cl,
-                               n_simulations=200_000, seed=42)
+    res = liquidity_var_liqvar(base, vol, confidence_level=cl, n_simulations=200_000, seed=42)
     z = float(stats.norm.ppf(cl))
     analytic_ref = base * (1.0 + vol * z)  # independent scipy closed form
     assert res["liqvar_analytic"] == pytest.approx(analytic_ref, rel=REL)
@@ -441,8 +440,7 @@ def test_liqvar_cross_validated_against_scipy():
     assert res["liqvar"] == pytest.approx(analytic_ref, rel=1e-2)
     assert res["liqvar"] > 0.0
     # Determinism: same seed -> same simulated result.
-    res_again = liquidity_var_liqvar(base, vol, confidence_level=cl,
-                                     n_simulations=200_000, seed=42)
+    res_again = liquidity_var_liqvar(base, vol, confidence_level=cl, n_simulations=200_000, seed=42)
     assert res_again["liqvar"] == res["liqvar"]
     with pytest.raises(ValueError):
         liquidity_var_liqvar(base, -0.1)
@@ -681,9 +679,7 @@ def test_early_warning_indicator_signal():
     assert res["num_triggered"] == 4
     assert res["signal"] == "alert"  # >2 triggers
     # Watch case (1 trigger).
-    watch = early_warning_indicator_liquidity(
-        {"lcr": 0.9}, {"lcr": 1.0}, {"lcr": "lower_breach"}
-    )
+    watch = early_warning_indicator_liquidity({"lcr": 0.9}, {"lcr": 1.0}, {"lcr": "lower_breach"})
     assert watch["signal"] == "watch"
     with pytest.raises(ValueError):
         early_warning_indicator_liquidity({}, {})
