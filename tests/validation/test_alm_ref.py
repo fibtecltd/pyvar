@@ -24,6 +24,13 @@ import math
 import numpy as np
 import pytest
 
+from engine.alm_behavioural import (
+    behavioural_modelling_nmds,
+    core_deposit_duration,
+    loan_prepayment_rate_cpr,
+    non_maturity_deposit_stability,
+    prepayment_model_mortgages,
+)
 from engine.alm_duration import (
     convexity_gap,
     duration_gap_analysis,
@@ -33,11 +40,12 @@ from engine.alm_duration import (
     nii_sensitivity_rate_shock,
     nii_simulation_baseline,
 )
-from engine.alm_nii_eve import (
-    economic_value_of_equity_eve,
-    eve_sensitivity_analysis,
-    liquidity_adjusted_nii,
-    nii_simulation_stress,
+from engine.alm_ftp import (
+    alm_stress_test,
+    balance_sheet_projection_model,
+    ftp_curve_construction,
+    funds_transfer_pricing_ftp,
+    structural_hedge_optimisation,
 )
 from engine.alm_irrbb import (
     asset_liability_mismatch_index,
@@ -54,19 +62,11 @@ from engine.alm_irrbb import (
     repricing_maturity_profile,
     static_gap_analysis,
 )
-from engine.alm_behavioural import (
-    behavioural_modelling_nmds,
-    core_deposit_duration,
-    loan_prepayment_rate_cpr,
-    non_maturity_deposit_stability,
-    prepayment_model_mortgages,
-)
-from engine.alm_ftp import (
-    alm_stress_test,
-    balance_sheet_projection_model,
-    ftp_curve_construction,
-    funds_transfer_pricing_ftp,
-    structural_hedge_optimisation,
+from engine.alm_nii_eve import (
+    economic_value_of_equity_eve,
+    eve_sensitivity_analysis,
+    liquidity_adjusted_nii,
+    nii_simulation_stress,
 )
 
 # Tolerances
