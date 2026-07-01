@@ -385,15 +385,11 @@ class TestCountercyclicalCapitalBuffer:
 
     def test_ccyb_rejects_mismatched_arrays(self) -> None:
         with pytest.raises(ValueError):
-            countercyclical_capital_buffer(
-                np.array([1.0, 2.0]), np.array([0.01]), 1000.0
-            )
+            countercyclical_capital_buffer(np.array([1.0, 2.0]), np.array([0.01]), 1000.0)
 
     def test_ccyb_rejects_nonpositive_rwa(self) -> None:
         with pytest.raises(ValueError):
-            countercyclical_capital_buffer(
-                np.array([1.0]), np.array([0.01]), 0.0
-            )
+            countercyclical_capital_buffer(np.array([1.0]), np.array([0.01]), 0.0)
 
 
 class TestCRR2LargeExposureLimit:
@@ -509,9 +505,7 @@ class TestMiFIDPreTradeTransparency:
 
     def test_illiquid_waiver(self) -> None:
         # Below LIS but illiquid → illiquid_instrument waiver.
-        out = mifid_ii_pre_trade_transparency(
-            "bond", 100_000.0, 500_000.0, is_liquid=False
-        )
+        out = mifid_ii_pre_trade_transparency("bond", 100_000.0, 500_000.0, is_liquid=False)
         assert out["waiver"] == "illiquid_instrument"
         assert out["transparency_required"] is False
 
@@ -539,9 +533,7 @@ class TestMiFIDPostTradeTransparency:
         assert out["deferral_eligible"] is True
 
     def test_deferred_by_illiquidity(self) -> None:
-        out = mifid_ii_post_trade_transparency(
-            10_000.0, 1_000_000.0, is_liquid=False
-        )
+        out = mifid_ii_post_trade_transparency(10_000.0, 1_000_000.0, is_liquid=False)
         assert out["publication"] == "deferred"
 
     def test_real_time(self) -> None:
@@ -573,9 +565,7 @@ class TestMiFIDBestExecutionMetric:
         # bps = 150 / 30350 * 1e4.
         expected_bps = 150.0 / 30350.0 * 1e4
         out = mifid_ii_best_execution_metric(executed, benchmark, qty, side=1)
-        assert out["price_improvement_bps"] == pytest.approx(
-            expected_bps, abs=1e-4
-        )
+        assert out["price_improvement_bps"] == pytest.approx(expected_bps, abs=1e-4)
         # Both fills improved → fill_rate 1.0.
         assert out["fill_rate"] == pytest.approx(1.0, abs=RATIO_TOL)
         assert out["n_fills"] == 2
@@ -607,9 +597,7 @@ class TestMiFIDBestExecutionMetric:
 
     def test_rejects_mismatched_arrays(self) -> None:
         with pytest.raises(ValueError):
-            mifid_ii_best_execution_metric(
-                np.array([1.0, 2.0]), np.array([1.0]), np.array([1.0])
-            )
+            mifid_ii_best_execution_metric(np.array([1.0, 2.0]), np.array([1.0]), np.array([1.0]))
 
 
 class TestMiFIDAlgorithmDocumentation:
@@ -642,9 +630,7 @@ class TestMiFIDAlgorithmDocumentation:
         out = mifid_ii_algorithm_documentation(docs)
         assert out["valid"] is False
         assert len(out["errors"]) == 2
-        assert out["report"]["completeness"] == pytest.approx(
-            1.0 - 2.0 / 6.0, abs=1e-4
-        )
+        assert out["report"]["completeness"] == pytest.approx(1.0 - 2.0 / 6.0, abs=1e-4)
 
 
 class TestEMIRTradeRepositoryReport:
@@ -712,9 +698,7 @@ class TestEMIRClearingObligation:
         assert out["threshold"] == pytest.approx(3_000_000_000.0, abs=1e-2)
 
     def test_nfc_plus_below_threshold(self) -> None:
-        out = emir_clearing_obligation_check(
-            "credit", 500_000_000.0, "NFC+", self.THRESHOLDS
-        )
+        out = emir_clearing_obligation_check("credit", 500_000_000.0, "NFC+", self.THRESHOLDS)
         assert out["clearing_required"] is False
 
     def test_nfc_minus_exempt(self) -> None:
@@ -726,15 +710,11 @@ class TestEMIRClearingObligation:
 
     def test_rejects_unknown_category(self) -> None:
         with pytest.raises(ValueError):
-            emir_clearing_obligation_check(
-                "credit", 1.0, "XX", self.THRESHOLDS
-            )
+            emir_clearing_obligation_check("credit", 1.0, "XX", self.THRESHOLDS)
 
     def test_rejects_negative_notional(self) -> None:
         with pytest.raises(ValueError):
-            emir_clearing_obligation_check(
-                "credit", -1.0, "FC", self.THRESHOLDS
-            )
+            emir_clearing_obligation_check("credit", -1.0, "FC", self.THRESHOLDS)
 
 
 class TestEMIRMarginRequirement:
@@ -906,9 +886,7 @@ class TestSolvencyIISCRMarketRisk:
         out = solvency_ii_scr_market_risk(s, corr)
         assert out["scr_market"] == pytest.approx(ref_scr, abs=1e-4)
         assert out["sum_of_charges"] == pytest.approx(150.0, abs=1e-4)
-        assert out["diversification_benefit"] == pytest.approx(
-            150.0 - ref_scr, abs=1e-4
-        )
+        assert out["diversification_benefit"] == pytest.approx(150.0 - ref_scr, abs=1e-4)
 
     def test_scr_matches_numpy_quadratic_form(self) -> None:
         # Cross-validated (numpy): sqrt(s @ C @ s).
@@ -935,9 +913,7 @@ class TestSolvencyIISCRMarketRisk:
 
     def test_rejects_bad_matrix_shape(self) -> None:
         with pytest.raises(ValueError):
-            solvency_ii_scr_market_risk(
-                np.array([1.0, 2.0]), np.array([[1.0]])
-            )
+            solvency_ii_scr_market_risk(np.array([1.0, 2.0]), np.array([[1.0]]))
 
     def test_rejects_bad_names_length(self) -> None:
         # Art. 164: sub_module labels must match the number of charges.
@@ -949,9 +925,7 @@ class TestSolvencyIISCRMarketRisk:
     def test_accepts_matching_names(self) -> None:
         s = np.array([100.0, 50.0], dtype=np.float64)
         corr = np.array([[1.0, 0.5], [0.5, 1.0]], dtype=np.float64)
-        out = solvency_ii_scr_market_risk(
-            s, corr, sub_module_names=["interest_rate", "equity"]
-        )
+        out = solvency_ii_scr_market_risk(s, corr, sub_module_names=["interest_rate", "equity"])
         assert out["scr_market"] == pytest.approx(math.sqrt(17500.0), abs=1e-4)
 
 
@@ -992,12 +966,8 @@ class TestSolvencyIISCRCreditRisk:
 
     def test_rejects_pd_out_of_range(self) -> None:
         with pytest.raises(ValueError):
-            solvency_ii_scr_credit_risk(
-                np.array([1.0]), np.array([0.5]), np.array([1.5])
-            )
+            solvency_ii_scr_credit_risk(np.array([1.0]), np.array([0.5]), np.array([1.5]))
 
     def test_rejects_mismatched_arrays(self) -> None:
         with pytest.raises(ValueError):
-            solvency_ii_scr_credit_risk(
-                np.array([1.0, 2.0]), np.array([0.5]), np.array([0.1])
-            )
+            solvency_ii_scr_credit_risk(np.array([1.0, 2.0]), np.array([0.5]), np.array([0.1]))
