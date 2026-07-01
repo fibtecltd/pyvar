@@ -427,8 +427,16 @@ def test_rainbow_bounds():
     assert worst >= 0.0
     # best-of of a single asset == vanilla (limiting case)
     single = rainbow_option_pricer(
-        np.array([100.0]), 100, R, np.array([0.2]), T, np.array([[1.0]]), 80_000, "call",
-        "best-of", seed=61,
+        np.array([100.0]),
+        100,
+        R,
+        np.array([0.2]),
+        T,
+        np.array([[1.0]]),
+        80_000,
+        "call",
+        "best-of",
+        seed=61,
     )["price"]
     vanilla = black_scholes_european_option(100, 100, R, 0.2, T, "call")["price"]
     assert abs(single - vanilla) / vanilla < 0.02
@@ -436,11 +444,13 @@ def test_rainbow_bounds():
 
 def test_rainbow_invalid():
     with pytest.raises(ValueError):
-        rainbow_option_pricer(np.array([100.0]), 100, R, np.array([0.2]), T, np.array([[1.0]]),
-                              rainbow_type="bad")
+        rainbow_option_pricer(
+            np.array([100.0]), 100, R, np.array([0.2]), T, np.array([[1.0]]), rainbow_type="bad"
+        )
     with pytest.raises(ValueError):
-        rainbow_option_pricer(np.array([100.0, 100.0]), 100, R, np.array([0.2]), T,
-                              np.array([[1.0]]))
+        rainbow_option_pricer(
+            np.array([100.0, 100.0]), 100, R, np.array([0.2]), T, np.array([[1.0]])
+        )
 
 
 def test_basket_le_weighted_singles():
@@ -452,19 +462,30 @@ def test_basket_le_weighted_singles():
     basket = basket_option_pricer(spots, weights, 100, R, sigs, T, corr, 80_000, "call", seed=71)[
         "price"
     ]
-    singles = 0.5 * black_scholes_european_option(100, 100, R, 0.2, T, "call")["price"] + \
-        0.5 * black_scholes_european_option(100, 100, R, 0.25, T, "call")["price"]
+    singles = (
+        0.5 * black_scholes_european_option(100, 100, R, 0.2, T, "call")["price"]
+        + 0.5 * black_scholes_european_option(100, 100, R, 0.25, T, "call")["price"]
+    )
     assert basket >= 0.0
     assert basket <= singles + 0.1
 
 
 def test_basket_invalid():
     with pytest.raises(ValueError):
-        basket_option_pricer(np.array([100.0]), np.array([1.0]), 100, R, np.array([0.2]), T,
-                             np.array([[1.0]]), option_type="bad")
+        basket_option_pricer(
+            np.array([100.0]),
+            np.array([1.0]),
+            100,
+            R,
+            np.array([0.2]),
+            T,
+            np.array([[1.0]]),
+            option_type="bad",
+        )
     with pytest.raises(ValueError):
-        basket_option_pricer(np.array([100.0, 100.0]), np.array([1.0]), 100, R, np.array([0.2]),
-                             T, np.array([[1.0]]))
+        basket_option_pricer(
+            np.array([100.0, 100.0]), np.array([1.0]), 100, R, np.array([0.2]), T, np.array([[1.0]])
+        )
 
 
 def test_spread_margrabe_limit():
@@ -585,9 +606,7 @@ def test_dupire_constant_vol_surface():
     sigma_true = 0.2
     strikes = np.array([80.0, 90.0, 100.0, 110.0, 120.0])
     mats = np.array([0.5, 1.0, 1.5])
-    surf = np.array(
-        [[bs_ref(100.0, kk, R, sigma_true, tt, True) for kk in strikes] for tt in mats]
-    )
+    surf = np.array([[bs_ref(100.0, kk, R, sigma_true, tt, True) for kk in strikes] for tt in mats])
     res = local_volatility_dupire_model(strikes, mats, surf, R, 100.0)
     loc = np.array(res["local_vol"])
     interior = loc[loc > 0]
@@ -598,11 +617,13 @@ def test_dupire_constant_vol_surface():
 
 def test_dupire_invalid():
     with pytest.raises(ValueError):
-        local_volatility_dupire_model(np.array([90.0, 100.0]), np.array([1.0]),
-                                      np.zeros((1, 2)), R, 100)  # <3 strikes
+        local_volatility_dupire_model(
+            np.array([90.0, 100.0]), np.array([1.0]), np.zeros((1, 2)), R, 100
+        )  # <3 strikes
     with pytest.raises(ValueError):
-        local_volatility_dupire_model(np.array([80.0, 100.0, 120.0]), np.array([1.0, 2.0]),
-                                      np.zeros((3, 3)), R, 100)  # shape mismatch
+        local_volatility_dupire_model(
+            np.array([80.0, 100.0, 120.0]), np.array([1.0, 2.0]), np.zeros((3, 3)), R, 100
+        )  # shape mismatch
 
 
 def test_rbergomi_sanity_and_determinism():
@@ -627,8 +648,9 @@ def test_rbergomi_invalid():
 def test_variance_gamma_converges_to_bs_limit():
     # LIMITING CASE: nu -> 0, theta=0 => VG -> Black-Scholes(sigma)
     ref = bs_ref(S, K, R, 0.2, T, True)
-    px = variance_gamma_model(S, K, R, T, sigma=0.2, theta=0.0, nu=0.003,
-                              n_simulations=200_000, seed=7)["price"]
+    px = variance_gamma_model(
+        S, K, R, T, sigma=0.2, theta=0.0, nu=0.003, n_simulations=200_000, seed=7
+    )["price"]
     assert abs(px - ref) / ref < 0.03
 
 
@@ -1080,8 +1102,9 @@ def test_irs_par_rate_zero_value():
 
 def test_irs_invalid():
     with pytest.raises(ValueError):
-        interest_rate_swap_irs_pricer(1e6, 0.05, np.array([0.03]), np.array([0.97, 0.94]),
-                                      np.array([1.0]))
+        interest_rate_swap_irs_pricer(
+            1e6, 0.05, np.array([0.03]), np.array([0.97, 0.94]), np.array([1.0])
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1104,8 +1127,9 @@ def test_xccy_swap_hand_calc():
 
 def test_xccy_invalid():
     with pytest.raises(ValueError):
-        cross_currency_swap_pricer(1e6, 9e5, 0.03, 0.02, np.array([0.98]),
-                                   np.array([0.99, 0.97]), np.array([1.0]), 1.1)
+        cross_currency_swap_pricer(
+            1e6, 9e5, 0.03, 0.02, np.array([0.98]), np.array([0.99, 0.97]), np.array([1.0]), 1.1
+        )
 
 
 def test_ois_single_period_hand_calc():
@@ -1192,8 +1216,16 @@ def test_cap_is_sum_of_caplets():
     dfs = np.array([0.985, 0.97, 0.955])
     res = cap_floor_pricer(1e6, fwd, 0.03, vols, exps, accs, dfs, "cap")
     ref = sum(
-        caplet_floorlet_pricer_black(1e6, float(fwd[i]), 0.03, float(vols[i]), float(exps[i]),
-                                     float(accs[i]), float(dfs[i]), "caplet")["price"]
+        caplet_floorlet_pricer_black(
+            1e6,
+            float(fwd[i]),
+            0.03,
+            float(vols[i]),
+            float(exps[i]),
+            float(accs[i]),
+            float(dfs[i]),
+            "caplet",
+        )["price"]
         for i in range(3)
     )
     assert abs(res["price"] - ref) < 1e-4
@@ -1201,11 +1233,27 @@ def test_cap_is_sum_of_caplets():
 
 def test_cap_floor_invalid():
     with pytest.raises(ValueError):
-        cap_floor_pricer(1e6, np.array([0.03]), 0.03, np.array([0.2]), np.array([1.0]),
-                         np.array([0.5]), np.array([0.97]), "bad")
+        cap_floor_pricer(
+            1e6,
+            np.array([0.03]),
+            0.03,
+            np.array([0.2]),
+            np.array([1.0]),
+            np.array([0.5]),
+            np.array([0.97]),
+            "bad",
+        )
     with pytest.raises(ValueError):
-        cap_floor_pricer(1e6, np.array([0.03, 0.03]), 0.03, np.array([0.2]), np.array([1.0]),
-                         np.array([0.5]), np.array([0.97]), "cap")
+        cap_floor_pricer(
+            1e6,
+            np.array([0.03, 0.03]),
+            0.03,
+            np.array([0.2]),
+            np.array([1.0]),
+            np.array([0.5]),
+            np.array([0.97]),
+            "cap",
+        )
 
 
 def test_swaption_black_hand_calc():
@@ -1353,10 +1401,12 @@ def test_garman_kohlhagen_equals_bs_with_two_rates():
 
 def test_gk_notional_scaling():
     # independent: absolute price scales linearly with notional
-    base = fx_option_pricer_garman_kohlhagen(1.25, 1.20, 0.04, 0.01, 0.15, 1.0, "call",
-                                             notional=1.0)["price"]
-    scaled = fx_option_pricer_garman_kohlhagen(1.25, 1.20, 0.04, 0.01, 0.15, 1.0, "call",
-                                               notional=1_000_000)["price"]
+    base = fx_option_pricer_garman_kohlhagen(
+        1.25, 1.20, 0.04, 0.01, 0.15, 1.0, "call", notional=1.0
+    )["price"]
+    scaled = fx_option_pricer_garman_kohlhagen(
+        1.25, 1.20, 0.04, 0.01, 0.15, 1.0, "call", notional=1_000_000
+    )["price"]
     assert abs(scaled - base * 1_000_000) < 1e-2
 
 
