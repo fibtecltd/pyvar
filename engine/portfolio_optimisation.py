@@ -59,7 +59,7 @@ def _risk_parity_objective(weights: np.ndarray, cov: np.ndarray) -> float:
     return obj
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────────────────────────
 
 
 def _portfolio_stats(
@@ -94,7 +94,7 @@ def _validate(mean_returns: np.ndarray, cov_matrix: np.ndarray) -> tuple[np.ndar
     return mu, cov
 
 
-# ── Public functions ──────────────────────────────────────────────────────────
+# ── Public functions ─────────────────────────────────────────────────────────────
 
 
 def mean_variance_optimisation(
@@ -177,9 +177,15 @@ def minimum_variance_portfolio(
         inv = np.linalg.pinv(cov)
         w = inv @ ones / float(ones @ inv @ ones)
     else:
+        # Scale cov so the objective is O(1): argmin w'Σw = argmin w'(sΣ)w for s>0.
+        # Without scaling, per-period Σ ~1e-4 keeps gradients below SLSQP's ftol
+        # and the solver declares convergence at the equal-weight seed after 1 step.
+        cov_mag = float(np.max(np.abs(cov)))
+        cov_scale = 1.0 / cov_mag if cov_mag > 0.0 else 1.0
+        cov_s = cov * cov_scale
 
         def port_var(w: np.ndarray) -> float:
-            return float(w @ cov @ w)
+            return float(w @ cov_s @ w)
 
         bounds = [(0.0, 1.0)] * n
         constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1.0},)
@@ -262,13 +268,20 @@ def risk_parity_portfolio(
     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
         raise ValueError("cov_matrix must be square")
     n = cov.shape[0]
-    cov_c = np.ascontiguousarray(cov)
     mu = np.zeros(n) if mean_returns is None else np.asarray(mean_returns, dtype=np.float64)
+
+    # Scale cov so risk contributions are O(1): ERC weights are invariant under
+    # positive scaling of Σ (rc[i] = w[i]*(sΣw)[i] = s*w[i]*(Σw)[i], so pairwise
+    # equality is preserved). Without scaling, per-period Σ ~1e-4 makes squared RC
+    # differences ~1e-10, causing SLSQP to stall at the equal-weight seed.
+    cov_mag = float(np.max(np.abs(cov)))
+    cov_scale = 1.0 / cov_mag if cov_mag > 0.0 else 1.0
+    cov_s = np.ascontiguousarray(cov * cov_scale)
 
     bounds = [(1e-6, 1.0)] * n
     constraints = ({"type": "eq", "fun": lambda w: np.sum(w) - 1.0},)
     res = minimize(
-        lambda w: _risk_parity_objective(w, cov_c),
+        lambda w: _risk_parity_objective(w, cov_s),
         np.full(n, 1.0 / n),
         method="SLSQP",
         bounds=bounds,
@@ -276,7 +289,7 @@ def risk_parity_portfolio(
         options={"maxiter": 1000, "ftol": 1e-12},
     )
     w = res.x / np.sum(res.x)
-    cw = cov @ w
+    cw = cov @ w  # unscaled for reporting
     rc = w * cw
     out = _portfolio_stats(w, mu, cov, risk_free, periods_per_year)
     out["risk_contributions"] = [round(float(x), 10) for x in rc]
