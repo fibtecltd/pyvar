@@ -216,6 +216,8 @@ def phase_env(phase: str, mode: str = "seq") -> dict:
     # Agent Teams env var — add for P2/P5 on M4 in agent mode
     if phase in ("p2", "p5") and mode == "agent":
         env["CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"] = "1"
+    if phase == "p5":
+        env["NUMBA_DISABLE_JIT"] = "1"
 
     return env
 
