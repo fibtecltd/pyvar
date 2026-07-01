@@ -1140,7 +1140,7 @@ def test_ois_single_period_hand_calc():
     assert abs(overnight_index_swap_ois(1e6, 0.03, 0.03, 0.25, 0.99)["value"]) < 1e-9
 
 
-def test_ois_invalid():
+def test_ois_swap_invalid():
     with pytest.raises(ValueError):
         overnight_index_swap_ois(1e6, 0.03, 0.031, 0.0, 0.99)
 
