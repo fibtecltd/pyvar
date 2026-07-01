@@ -384,7 +384,7 @@ def test_component_var_euler_additivity():
     cov = np.array([[0.04, 0.006, 0.0], [0.006, 0.09, 0.01], [0.0, 0.01, 0.16]])
     cl = 0.99
     res = component_var(w, cov, 1e6, confidence_level=cl)
-    total = z = stats.norm.ppf(cl) * math.sqrt(float(w @ cov @ w))
+    total = stats.norm.ppf(cl) * math.sqrt(float(w @ cov @ w))
     assert sum(res["component"]) == pytest.approx(total, rel=1e-6)
     assert res["var_pct"] == pytest.approx(total, rel=1e-6)
 
