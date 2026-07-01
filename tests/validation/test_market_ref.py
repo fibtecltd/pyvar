@@ -145,8 +145,9 @@ def test_run_monte_carlo_var_vs_parametric_normal():
     mu = float(np.mean(returns))
     sigma = float(np.std(returns))
     cl = 0.99
-    res = run_monte_carlo_var(returns, 1_000_000.0, confidence_level=cl,
-                              horizon_days=1, n_simulations=400_000, seed=42)
+    res = run_monte_carlo_var(
+        returns, 1_000_000.0, confidence_level=cl, horizon_days=1, n_simulations=400_000, seed=42
+    )
     z = stats.norm.ppf(cl)
     # 1-day path: cumulative = mu + sigma*shock  ⇒ loss quantile = z*sigma - mu
     expected_var_pct = z * sigma - mu
@@ -164,8 +165,9 @@ def test_run_monte_carlo_var_es_closed_form():
     mu = float(np.mean(returns))
     sigma = float(np.std(returns))
     cl = 0.975
-    res = run_monte_carlo_var(returns, 1e6, confidence_level=cl, horizon_days=1,
-                              n_simulations=500_000, seed=123)
+    res = run_monte_carlo_var(
+        returns, 1e6, confidence_level=cl, horizon_days=1, n_simulations=500_000, seed=123
+    )
     z = stats.norm.ppf(cl)
     expected_es = sigma * stats.norm.pdf(z) / (1 - cl) - mu
     assert res["cvar_pct"] == pytest.approx(expected_es, rel=8e-3)
@@ -184,10 +186,12 @@ def test_run_monte_carlo_var_determinism_and_scaling():
 def test_run_monte_carlo_var_confidence_monotone():
     """99% VaR > 95% VaR (monotone in confidence)."""
     returns = gbm_returns()
-    v95 = run_monte_carlo_var(returns, 1e6, confidence_level=0.95, seed=1,
-                              n_simulations=100_000)["var_pct"]
-    v99 = run_monte_carlo_var(returns, 1e6, confidence_level=0.99, seed=1,
-                              n_simulations=100_000)["var_pct"]
+    v95 = run_monte_carlo_var(returns, 1e6, confidence_level=0.95, seed=1, n_simulations=100_000)[
+        "var_pct"
+    ]
+    v99 = run_monte_carlo_var(returns, 1e6, confidence_level=0.99, seed=1, n_simulations=100_000)[
+        "var_pct"
+    ]
     assert v99 > v95
 
 
@@ -225,7 +229,7 @@ def test_compute_rolling_var_parametric_gaussian():
     rv = compute_rolling_var(returns, window=window, confidence_level=cl)
     assert np.isnan(rv[window - 1])  # first window is NaN
     i = 400
-    w = returns[i - window:i]
+    w = returns[i - window : i]
     z = stats.norm.ppf(cl)
     expected = -(np.mean(w) - z * np.std(w))
     assert rv[i] == pytest.approx(expected, rel=1e-6)
@@ -239,7 +243,7 @@ def test_compute_breaches_basel_zones():
     var_est = np.full(n, 0.02)
     # Construct exactly 7 breaches (losses > 0.02) → yellow.
     actual = np.full(n, -0.01)  # loss 0.01 < 0.02, no breach
-    actual[:7] = -0.05          # loss 0.05 > 0.02 → breach
+    actual[:7] = -0.05  # loss 0.05 > 0.02 → breach
     out = compute_breaches(actual, var_est)
     assert out["n_breaches"] == 7
     assert out["basel_zone"] == "yellow"
@@ -278,8 +282,7 @@ def test_filtered_historical_simulation_var_ewma_reference():
     returns = gbm_returns(n=500)
     lam = 0.94
     cl = 0.99
-    res = filtered_historical_simulation_var(returns, 1e6, confidence_level=cl,
-                                             lambda_decay=lam)
+    res = filtered_historical_simulation_var(returns, 1e6, confidence_level=cl, lambda_decay=lam)
     # Independent EWMA variance recursion (matches engine convention).
     n = returns.size
     var = np.empty(n)
@@ -331,8 +334,7 @@ def test_cornish_fisher_var_reduces_to_normal():
     mu = float(np.mean(returns))
     sigma = float(np.std(returns))
     cl = 0.99
-    res = cornish_fisher_var(returns, 1e6, confidence_level=cl,
-                             skewness=0.0, excess_kurtosis=0.0)
+    res = cornish_fisher_var(returns, 1e6, confidence_level=cl, skewness=0.0, excess_kurtosis=0.0)
     z = stats.norm.ppf(cl)
     expected = z * sigma - mu
     assert res["var_pct"] == pytest.approx(expected, rel=1e-6)
@@ -346,11 +348,9 @@ def test_cornish_fisher_var_expansion_formula():
     mu, sigma = float(np.mean(returns)), float(np.std(returns))
     cl = 0.99
     s, k = 0.5, 2.0
-    res = cornish_fisher_var(returns, 1e6, confidence_level=cl,
-                             skewness=s, excess_kurtosis=k)
+    res = cornish_fisher_var(returns, 1e6, confidence_level=cl, skewness=s, excess_kurtosis=k)
     z = stats.norm.ppf(cl)
-    z_cf = (z + (z**2 - 1) / 6 * s + (z**3 - 3*z) / 24 * k
-            - (2*z**3 - 5*z) / 36 * s**2)
+    z_cf = z + (z**2 - 1) / 6 * s + (z**3 - 3 * z) / 24 * k - (2 * z**3 - 5 * z) / 36 * s**2
     assert res["z_cf"] == pytest.approx(z_cf, rel=1e-6)
     assert res["var_pct"] == pytest.approx(z_cf * sigma - mu, rel=1e-6)
 
@@ -368,7 +368,8 @@ def test_marginal_var_gradient():
     assert np.allclose(res["marginal"], expected, rtol=1e-6)
     # Finite-difference cross-check on asset 0.
     eps = 1e-6
-    wp = w.copy(); wp[0] += eps
+    wp = w.copy()
+    wp[0] += eps
     var_p = z * math.sqrt(float(wp @ cov @ wp))
     var_0 = z * sigma_p
     fd = (var_p - var_0) / eps
@@ -396,7 +397,8 @@ def test_incremental_var_exact():
     z = stats.norm.ppf(cl)
     res = incremental_var(w, cov, 1, 1e6, confidence_level=cl)
     var_full = z * math.sqrt(float(w @ cov @ w))
-    w0 = w.copy(); w0[1] = 0.0
+    w0 = w.copy()
+    w0[1] = 0.0
     var_without = z * math.sqrt(float(w0 @ cov @ w0))
     assert res["incremental_pct"] == pytest.approx(var_full - var_without, rel=1e-6)
 
@@ -407,8 +409,7 @@ def test_var_by_risk_factor_euler():
     b = np.array([1.2, -0.5])
     cov = np.array([[0.05, 0.01], [0.01, 0.03]])
     cl = 0.99
-    res = var_by_risk_factor(b, cov, 1e6, confidence_level=cl,
-                             factor_names=["equity", "rates"])
+    res = var_by_risk_factor(b, cov, 1e6, confidence_level=cl, factor_names=["equity", "rates"])
     total = stats.norm.ppf(cl) * math.sqrt(float(b @ cov @ b))
     assert sum(res["contributions"].values()) == pytest.approx(total, rel=1e-6)
     assert res["var_pct"] == pytest.approx(total, rel=1e-6)
@@ -458,8 +459,9 @@ def test_monte_carlo_expected_shortfall_gaussian():
     returns = gbm_returns()
     mu, sigma = float(np.mean(returns)), float(np.std(returns))
     cl = 0.975
-    res = monte_carlo_expected_shortfall(returns, 1e6, confidence_level=cl,
-                                         n_simulations=500_000, seed=42)
+    res = monte_carlo_expected_shortfall(
+        returns, 1e6, confidence_level=cl, n_simulations=500_000, seed=42
+    )
     z = stats.norm.ppf(cl)
     expected = sigma * stats.norm.pdf(z) / (1 - cl) - mu
     assert res["es_pct"] == pytest.approx(expected, rel=8e-3)
@@ -513,8 +515,7 @@ def test_liquidity_adjusted_es_frtb_formula():
 def test_es_at_multiple_confidence_levels_monotone():
     """ES is non-decreasing in confidence. Reference: independent tail means."""
     returns = gbm_returns()
-    res = es_at_multiple_confidence_levels(returns, 1e6,
-                                           confidence_levels=(0.95, 0.975, 0.99))
+    res = es_at_multiple_confidence_levels(returns, 1e6, confidence_levels=(0.95, 0.975, 0.99))
     losses = np.sort(-returns)
     for cl, key in [(0.95, "cl_9500"), (0.975, "cl_9750"), (0.99, "cl_9900")]:
         idx = int(np.floor(cl * losses.size))
@@ -619,7 +620,8 @@ def test_contagion_stress_scenario_neumann_series():
         cum = cum + cur
     assert np.allclose(res["amplified_shock"], cum, rtol=1e-6)
     assert res["amplification_factor"] == pytest.approx(
-        np.linalg.norm(cum) / np.linalg.norm(x0), rel=1e-6)
+        np.linalg.norm(cum) / np.linalg.norm(x0), rel=1e-6
+    )
 
 
 # =============================================================================
@@ -763,10 +765,18 @@ def test_greeks_based_pnl_explain_taylor():
     """Predicted P&L = Δ·dS + ½Γ·dS² + ν·dσ + Θ·dt + ρ·dr. Reference: hand
     Taylor sum."""
     res = greeks_based_pnl_explain(
-        delta=10.0, gamma=2.0, vega=5.0, theta=-1.0, rho=3.0,
-        spot_move=0.5, vol_move=0.02, time_step=1.0, rate_move=0.001,
-        actual_pnl=6.2)
-    predicted = 10*0.5 + 0.5*2.0*0.5**2 + 5.0*0.02 + (-1.0)*1.0 + 3.0*0.001
+        delta=10.0,
+        gamma=2.0,
+        vega=5.0,
+        theta=-1.0,
+        rho=3.0,
+        spot_move=0.5,
+        vol_move=0.02,
+        time_step=1.0,
+        rate_move=0.001,
+        actual_pnl=6.2,
+    )
+    predicted = 10 * 0.5 + 0.5 * 2.0 * 0.5**2 + 5.0 * 0.02 + (-1.0) * 1.0 + 3.0 * 0.001
     assert res["predicted_pnl"] == pytest.approx(predicted, rel=1e-6)
     assert res["unexplained"] == pytest.approx(6.2 - predicted, rel=1e-6)
 
@@ -879,8 +889,11 @@ def test_kupiec_pof_test_chi_squared():
     res = kupiec_pof_test(x, n, confidence_level=cl)
     p = 1 - cl
     pi = x / n
-    lr = -2 * ((n - x) * math.log(1 - p) + x * math.log(p)
-               - ((n - x) * math.log(1 - pi) + x * math.log(pi)))
+    lr = -2 * (
+        (n - x) * math.log(1 - p)
+        + x * math.log(p)
+        - ((n - x) * math.log(1 - pi) + x * math.log(pi))
+    )
     assert res["lr_pof"] == pytest.approx(lr, abs=1e-6)
     assert res["critical_value"] == pytest.approx(stats.chi2.ppf(0.95, 1), rel=1e-6)
     # 3 breaches in 250 at 99% is close to expected 2.5 → do not reject.
@@ -999,8 +1012,7 @@ def test_egarch_volatility_model_leverage():
     implementation. Reference: hand-coded EGARCH filter last-step forecast."""
     returns = gbm_returns(n=800)
     omega, alpha, gamma, beta = -0.1, 0.1, -0.05, 0.95
-    res = egarch_volatility_model(returns, omega=omega, alpha=alpha,
-                                  gamma=gamma, beta=beta)
+    res = egarch_volatility_model(returns, omega=omega, alpha=alpha, gamma=gamma, beta=beta)
     assert res["current_vol"] > 0 and res["forecast_vol"] > 0
     # Independent one-step forecast from the recursion.
     r = returns - np.mean(returns)
@@ -1098,11 +1110,12 @@ def test_frtb_sa_sensitivity_based_method_formula():
     for bkt in buckets:
         ws = np.array(bkt)
         sum_sq = float(np.sum(ws**2))
-        cross = float(np.sum(ws)**2 - sum_sq)
+        cross = float(np.sum(ws) ** 2 - sum_sq)
         kb_list.append(math.sqrt(sum_sq + rho * cross))
         sb_list.append(float(np.sum(ws)))
-    kb = np.array(kb_list); sb = np.array(sb_list)
-    cross_b = float(np.sum(sb)**2 - np.sum(sb**2))
+    kb = np.array(kb_list)
+    sb = np.array(sb_list)
+    cross_b = float(np.sum(sb) ** 2 - np.sum(sb**2))
     charge = math.sqrt(float(np.sum(kb**2)) + gamma * cross_b)
     assert res["risk_charge"] == pytest.approx(charge, rel=1e-6)
     assert np.allclose(res["kb"], kb_list, rtol=1e-6)
@@ -1157,7 +1170,7 @@ def test_frtb_ima_stressed_period_finder_250():
     res = frtb_ima_stressed_period_finder(returns, window=window, confidence_level=cl)
     best_start, best_es = 0, -np.inf
     for start in range(returns.size - window + 1):
-        losses = np.sort(-returns[start:start + window])
+        losses = np.sort(-returns[start : start + window])
         idx = min(int(np.floor(cl * window)), window - 1)
         es = float(np.mean(losses[idx:]))
         if es > best_es:
@@ -1177,7 +1190,7 @@ def test_frtb_ima_non_modellable_risk_factors_formula():
     assert res1["ses"] == pytest.approx(7.0, rel=1e-6)  # 3+4 linear
     rho = 0.5
     resm = frtb_ima_non_modellable_risk_factors(ises, rho=rho)
-    expected = math.sqrt((rho * 7.0)**2 + (1 - rho**2) * 25.0)
+    expected = math.sqrt((rho * 7.0) ** 2 + (1 - rho**2) * 25.0)
     assert resm["ses"] == pytest.approx(expected, rel=1e-6)
 
 
@@ -1204,7 +1217,7 @@ def test_extreme_value_theory_var_gpd():
     if abs(xi) < 1e-8:
         evt = u - beta * math.log(ratio)
     else:
-        evt = u + (beta / xi) * (ratio**(-xi) - 1)
+        evt = u + (beta / xi) * (ratio ** (-xi) - 1)
     assert res["evt_var"] == pytest.approx(evt, rel=REL)
     assert res["threshold"] == pytest.approx(u, rel=REL)
     assert res["evt_var"] > res["threshold"]  # tail VaR above threshold
@@ -1241,8 +1254,9 @@ def test_frtb_sa_market_risk_capital_sum():
 def test_frtb_ima_market_risk_capital_multiplier_floor():
     """IMA capital = max(mult,1.5)*ES*stressed_ratio + SES + DRC (BCBS d457 §189).
     Multiplier floored at 1.5. Reference: hand-coded formula + floor."""
-    res = frtb_ima_market_risk_capital(100.0, 1.2, multiplier=1.0,
-                                       non_modellable_ses=10.0, default_risk_charge=5.0)
+    res = frtb_ima_market_risk_capital(
+        100.0, 1.2, multiplier=1.0, non_modellable_ses=10.0, default_risk_charge=5.0
+    )
     applied = max(1.0, 1.5)  # floored to 1.5
     es_charge = applied * 100.0 * 1.2
     assert res["multiplier"] == pytest.approx(1.5, rel=1e-6)
@@ -1276,8 +1290,8 @@ def test_frtb_trading_desk_aggregation_reference():
     eligible = np.array([1, 0, 1])
     res = frtb_trading_desk_aggregation(sa, ima, eligible)
     mask = eligible.astype(bool)
-    ima_total = float(np.sum(ima[mask]))   # 80 + 120
-    sa_total = float(np.sum(sa[~mask]))    # 200
+    ima_total = float(np.sum(ima[mask]))  # 80 + 120
+    sa_total = float(np.sum(sa[~mask]))  # 200
     assert res["ima_capital"] == pytest.approx(ima_total, rel=1e-6)
     assert res["sa_capital"] == pytest.approx(sa_total, rel=1e-6)
     assert res["total_capital"] == pytest.approx(ima_total + sa_total, rel=1e-6)
@@ -1367,8 +1381,7 @@ def test_stress_and_es_input_validation():
     with pytest.raises(ValueError):
         conditional_var_es(np.array([]), 1e6)
     with pytest.raises(ValueError):
-        reverse_stress_testing(np.array([1.0, 1.0]),
-                               np.array([[0.04, 0.0], [0.0, 0.09]]), -5.0)
+        reverse_stress_testing(np.array([1.0, 1.0]), np.array([[0.04, 0.0], [0.0, 0.09]]), -5.0)
     with pytest.raises(ValueError):
         macro_scenario_generator(np.array([[1.0, 2.0], [2.0, 1.0]]))  # not PD
     with pytest.raises(ValueError):
