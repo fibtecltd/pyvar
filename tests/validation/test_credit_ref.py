@@ -113,8 +113,8 @@ from engine.credit_ifrs9 import (
 )
 
 # Tolerances
-REL_ANALYTIC = 1e-5   # 0.001 %
-REL_SIM = 1e-3        # 0.1 %
+REL_ANALYTIC = 1e-5  # 0.001 %
+REL_SIM = 1e-3  # 0.1 %
 
 
 # ── Reference helpers (independent of engine) ────────────────────────────────
@@ -187,7 +187,9 @@ def test_loss_given_default_lgd_model():
 
 def test_exposure_at_default_ead_calculator():
     """closed-form: EAD = drawn + CCF * undrawn. Ref: Basel F-IRB CCF (CRE32)."""
-    res = exposure_at_default_ead_calculator(drawn=500.0, undrawn=200.0, credit_conversion_factor=0.75)
+    res = exposure_at_default_ead_calculator(
+        drawn=500.0, undrawn=200.0, credit_conversion_factor=0.75
+    )
     assert res["ead"] == pytest.approx(500.0 + 0.75 * 200.0, rel=REL_ANALYTIC)
 
 
@@ -294,7 +296,9 @@ def test_irb_advanced_approach_capital():
 
 def test_basel_standardised_approach_rwa():
     """regulatory: SA RWA = (EAD - CRM) * RW; capital = 8% RWA. Ref: BCBS CRE20."""
-    res = basel_standardised_approach_rwa(ead=1_000_000.0, risk_weight=1.0, credit_risk_mitigation=200_000.0)
+    res = basel_standardised_approach_rwa(
+        ead=1_000_000.0, risk_weight=1.0, credit_risk_mitigation=200_000.0
+    )
     net = 1_000_000.0 - 200_000.0
     assert res["rwa"] == pytest.approx(net * 1.0, rel=REL_ANALYTIC)
     assert res["capital_required"] == pytest.approx(net * 1.0 * 0.08, rel=REL_ANALYTIC)
@@ -306,10 +310,14 @@ def test_maturity_adjustment_basel_irb():
     res = maturity_adjustment_basel_irb(0.02, 3.5)
     b_ref = (0.11852 - 0.05478 * math.log(0.02)) ** 2
     assert res["b"] == pytest.approx(b_ref, rel=REL_ANALYTIC)
-    assert res["maturity_adjustment"] == pytest.approx(_basel_maturity_adj_ref(0.02, 3.5), rel=REL_ANALYTIC)
+    assert res["maturity_adjustment"] == pytest.approx(
+        _basel_maturity_adj_ref(0.02, 3.5), rel=REL_ANALYTIC
+    )
     # At M=2.5 the numerator (1+(M-2.5)b) collapses to 1, so MA = 1/(1-1.5b) > 1.
     res_25 = maturity_adjustment_basel_irb(0.02, 2.5)
-    assert res_25["maturity_adjustment"] == pytest.approx(1.0 / (1.0 - 1.5 * b_ref), rel=REL_ANALYTIC)
+    assert res_25["maturity_adjustment"] == pytest.approx(
+        1.0 / (1.0 - 1.5 * b_ref), rel=REL_ANALYTIC
+    )
     # MA increases with maturity (longer M -> higher charge)
     assert res["maturity_adjustment"] > res_25["maturity_adjustment"]
 
@@ -350,7 +358,9 @@ def test_credit_var_analytical_vasicek():
     # property: VaR > 0, UL = VaR - EL >= 0, 99.9% > 95%
     assert res["var"] > 0.0
     assert res["ul"] >= 0.0
-    res_95 = credit_var_analytical_vasicek(pd, lgd, ead, asset_correlation=rho, confidence_level=0.95)
+    res_95 = credit_var_analytical_vasicek(
+        pd, lgd, ead, asset_correlation=rho, confidence_level=0.95
+    )
     assert res["var"] > res_95["var"]
 
 
@@ -367,8 +377,9 @@ def test_credit_var_monte_carlo():
     lgd = np.full(n, 0.45)
     ead = np.full(n, 1000.0)
     rho = 0.15
-    res = credit_var_monte_carlo(pd, lgd, ead, asset_correlation=rho,
-                                 confidence_level=0.99, n_simulations=60_000, seed=7)
+    res = credit_var_monte_carlo(
+        pd, lgd, ead, asset_correlation=rho, confidence_level=0.99, n_simulations=60_000, seed=7
+    )
     # independent Vasicek reference loss for the same params
     cond = (stats.norm.ppf(0.02) + math.sqrt(rho) * stats.norm.ppf(0.99)) / math.sqrt(1.0 - rho)
     var_rate_ref = 0.45 * float(stats.norm.cdf(cond))
@@ -381,8 +392,9 @@ def test_credit_var_monte_carlo():
     assert res["var"] > 0.0
     assert res["el"] == pytest.approx(0.02 * 0.45 * n * 1000.0, rel=0.05)
     # determinism: same seed -> identical
-    res2 = credit_var_monte_carlo(pd, lgd, ead, asset_correlation=rho,
-                                  confidence_level=0.99, n_simulations=60_000, seed=7)
+    res2 = credit_var_monte_carlo(
+        pd, lgd, ead, asset_correlation=rho, confidence_level=0.99, n_simulations=60_000, seed=7
+    )
     assert res["var"] == res2["var"]
 
 
@@ -396,8 +408,15 @@ def test_creditmetrics_portfolio_model():
     pd = np.full(n, 0.03)
     lgd = np.full(n, 0.5)
     rho = 0.20
-    res = creditmetrics_portfolio_model(exposures, pd, lgd, asset_correlation=rho,
-                                        confidence_level=0.99, n_simulations=60_000, seed=11)
+    res = creditmetrics_portfolio_model(
+        exposures,
+        pd,
+        lgd,
+        asset_correlation=rho,
+        confidence_level=0.99,
+        n_simulations=60_000,
+        seed=11,
+    )
     cond = (stats.norm.ppf(0.03) + math.sqrt(rho) * stats.norm.ppf(0.99)) / math.sqrt(1.0 - rho)
     var_ref = 0.5 * float(stats.norm.cdf(cond)) * n * 1000.0
     assert res["var"] == pytest.approx(var_ref, rel=0.06)
@@ -429,7 +448,9 @@ def test_default_correlation_matrix():
     asset = np.array([[1.0, rho_a], [rho_a, 1.0]])
     res = default_correlation_matrix(pd, asset)
     thr = stats.norm.ppf(pd)
-    joint = float(stats.multivariate_normal(mean=[0, 0], cov=[[1, rho_a], [rho_a, 1]]).cdf([thr[0], thr[1]]))
+    joint = float(
+        stats.multivariate_normal(mean=[0, 0], cov=[[1, rho_a], [rho_a, 1]]).cdf([thr[0], thr[1]])
+    )
     denom = math.sqrt(pd[0] * (1 - pd[0]) * pd[1] * (1 - pd[1]))
     rho_d_ref = (joint - pd[0] * pd[1]) / denom
     assert res["matrix"][0][1] == pytest.approx(rho_d_ref, rel=1e-4)
@@ -606,9 +627,14 @@ def test_sovereign_credit_risk_assessment():
 
     independent hand-calc, no published reference (bespoke sovereign score).
     """
-    args = dict(debt_to_gdp=0.6, fiscal_balance_pct=-0.03, current_account_pct=0.01,
-                fx_reserves_months=6.0, governance_score=0.7)
-    raw = (-40.0 * 0.6 + 200.0 * (-0.03) + 100.0 * 0.01 + 3.0 * 6.0 + 40.0 * 0.7)
+    args = dict(
+        debt_to_gdp=0.6,
+        fiscal_balance_pct=-0.03,
+        current_account_pct=0.01,
+        fx_reserves_months=6.0,
+        governance_score=0.7,
+    )
+    raw = -40.0 * 0.6 + 200.0 * (-0.03) + 100.0 * 0.01 + 3.0 * 6.0 + 40.0 * 0.7
     score_ref = float(np.clip(50.0 + raw, 0.0, 100.0))
     pd_ref = 1.0 / (1.0 + math.exp((score_ref - 30.0) / 12.0))
     res = sovereign_credit_risk_assessment(**args)
@@ -616,7 +642,11 @@ def test_sovereign_credit_risk_assessment():
     assert res["pd"] == pytest.approx(pd_ref, rel=REL_ANALYTIC)
     assert 0.0 <= res["credit_score"] <= 100.0
     assert 0.0 <= res["pd"] <= 1.0
-    rating_ref = "investment_grade" if score_ref >= 60 else ("speculative" if score_ref >= 40 else "high_risk")
+    rating_ref = (
+        "investment_grade"
+        if score_ref >= 60
+        else ("speculative" if score_ref >= 40 else "high_risk")
+    )
     assert res["rating"] == rating_ref
 
 
@@ -950,23 +980,24 @@ def test_ifrs_9_stage_classification_pd_threshold():
     assert ifrs_9_stage_classification_pd_threshold(0.01, 0.01, days_past_due=90)["stage"] == 3
     assert ifrs_9_stage_classification_pd_threshold(0.01, 0.01, days_past_due=89)["stage"] != 3
     # relative trigger: PD_current >= 2 * PD_orig  (boundary exact)
-    r_bound = ifrs_9_stage_classification_pd_threshold(0.04, 0.02, days_past_due=0,
-                                                       sicr_relative_threshold=2.0)
+    r_bound = ifrs_9_stage_classification_pd_threshold(
+        0.04, 0.02, days_past_due=0, sicr_relative_threshold=2.0
+    )
     assert r_bound["stage"] == 2 and r_bound["reason"] == "relative_pd"
     # just below relative boundary and below absolute -> Stage 1
-    below = ifrs_9_stage_classification_pd_threshold(0.0399, 0.02, days_past_due=0,
-                                                     sicr_relative_threshold=2.0,
-                                                     sicr_absolute_threshold=0.5)
+    below = ifrs_9_stage_classification_pd_threshold(
+        0.0399, 0.02, days_past_due=0, sicr_relative_threshold=2.0, sicr_absolute_threshold=0.5
+    )
     assert below["stage"] == 1
     # absolute trigger: increase clearly above 0.02, relative disabled.
-    abs_b = ifrs_9_stage_classification_pd_threshold(0.05, 0.01, days_past_due=0,
-                                                     sicr_relative_threshold=99.0,
-                                                     sicr_absolute_threshold=0.02)
+    abs_b = ifrs_9_stage_classification_pd_threshold(
+        0.05, 0.01, days_past_due=0, sicr_relative_threshold=99.0, sicr_absolute_threshold=0.02
+    )
     assert abs_b["stage"] == 2 and abs_b["reason"] == "absolute_pd"
     # absolute increase clearly below 0.02 (and relative disabled) -> Stage 1.
-    abs_below = ifrs_9_stage_classification_pd_threshold(0.02, 0.01, days_past_due=0,
-                                                         sicr_relative_threshold=99.0,
-                                                         sicr_absolute_threshold=0.02)
+    abs_below = ifrs_9_stage_classification_pd_threshold(
+        0.02, 0.01, days_past_due=0, sicr_relative_threshold=99.0, sicr_absolute_threshold=0.02
+    )
     assert abs_below["stage"] == 1
 
 
@@ -1109,32 +1140,33 @@ def test_credit_stress_testing():
 def test_pd_lgd_validation_guards():
     """Contract: out-of-range PD/LGD/EAD and mismatched shapes must raise."""
     with pytest.raises(ValueError):
-        expected_loss_el_computation(1.5, 0.4, 1000.0)          # PD > 1
+        expected_loss_el_computation(1.5, 0.4, 1000.0)  # PD > 1
     with pytest.raises(ValueError):
-        expected_loss_el_computation(0.02, -0.1, 1000.0)        # LGD < 0
+        expected_loss_el_computation(0.02, -0.1, 1000.0)  # LGD < 0
     with pytest.raises(ValueError):
-        expected_loss_el_computation(0.02, 0.4, -1.0)           # EAD < 0
+        expected_loss_el_computation(0.02, 0.4, -1.0)  # EAD < 0
     with pytest.raises(ValueError):
         probability_of_default_pd_estimation(np.array([1.0]), np.array([1.0, 2.0]))
     with pytest.raises(ValueError):
         loss_given_default_lgd_model(np.array([1.0]), np.array([0.0]))  # EAD <= 0
     with pytest.raises(ValueError):
-        exposure_at_default_ead_calculator(-1.0, 100.0)         # negative drawn
+        exposure_at_default_ead_calculator(-1.0, 100.0)  # negative drawn
     with pytest.raises(ValueError):
         unexpected_loss_ul_computation(np.array([1.2]), np.array([0.4]), np.array([1.0]))
     with pytest.raises(ValueError):
-        recovery_rate_estimation(np.array([1.0]), np.array([1.0]),
-                                 discount_factors=np.array([2.0]))  # DF > 1
+        recovery_rate_estimation(
+            np.array([1.0]), np.array([1.0]), discount_factors=np.array([2.0])
+        )  # DF > 1
     with pytest.raises(ValueError):
-        downturn_lgd_adjustment(0.4, downturn_multiplier=0.5)   # multiplier < 1
+        downturn_lgd_adjustment(0.4, downturn_multiplier=0.5)  # multiplier < 1
 
 
 def test_capital_validation_guards():
     """Contract: IRB / SA parameter bounds must raise (BCBS d347 domain)."""
     with pytest.raises(ValueError):
-        irb_advanced_approach_capital(0.0, 0.45, 1000.0)        # PD not in (0,1]
+        irb_advanced_approach_capital(0.0, 0.45, 1000.0)  # PD not in (0,1]
     with pytest.raises(ValueError):
-        irb_advanced_approach_capital(0.02, 1.5, 1000.0)        # LGD > 1
+        irb_advanced_approach_capital(0.02, 1.5, 1000.0)  # LGD > 1
     with pytest.raises(ValueError):
         irb_advanced_approach_capital(0.02, 0.45, 1000.0, maturity=0.0)
     with pytest.raises(ValueError):
@@ -1158,20 +1190,21 @@ def test_var_validation_and_array_correlation():
     lgd = np.full(n, 0.45)
     ead = np.full(n, 1000.0)
     rho_arr = np.full(n, 0.15)
-    res = credit_var_monte_carlo(pd, lgd, ead, asset_correlation=rho_arr,
-                                 confidence_level=0.99, n_simulations=40_000, seed=5)
+    res = credit_var_monte_carlo(
+        pd, lgd, ead, asset_correlation=rho_arr, confidence_level=0.99, n_simulations=40_000, seed=5
+    )
     assert res["var"] > 0.0 and res["cvar"] >= res["var"]
     # guards
     with pytest.raises(ValueError):
-        credit_var_monte_carlo(pd, lgd, ead, confidence_level=0.5)   # below bound
+        credit_var_monte_carlo(pd, lgd, ead, confidence_level=0.5)  # below bound
     with pytest.raises(ValueError):
-        credit_var_monte_carlo(np.array([1.0]), lgd, ead)            # PD not in (0,1)
+        credit_var_monte_carlo(np.array([1.0]), lgd, ead)  # PD not in (0,1)
     with pytest.raises(ValueError):
-        credit_var_analytical_vasicek(0.02, 1.5, 1000.0)            # LGD > 1
+        credit_var_analytical_vasicek(0.02, 1.5, 1000.0)  # LGD > 1
     with pytest.raises(ValueError):
-        kmv_merton_distance_to_default(-1.0, 100.0, 0.2)           # V <= 0
+        kmv_merton_distance_to_default(-1.0, 100.0, 0.2)  # V <= 0
     with pytest.raises(ValueError):
-        credit_concentration_risk_hhi(np.array([0.0, 0.0]))        # sum zero
+        credit_concentration_risk_hhi(np.array([0.0, 0.0]))  # sum zero
 
 
 def test_scoring_validation_and_empty_migration_row():
@@ -1184,11 +1217,11 @@ def test_scoring_validation_and_empty_migration_row():
     res = ratings_migration_matrix(np.array([0, 0]), np.array([0, 1]), n_states=2)
     assert res["matrix"][1] == [pytest.approx(0.0), pytest.approx(1.0)]
     with pytest.raises(ValueError):
-        altman_z_score_credit_scoring(1, 1, 1, 1, 1, 0.0, 1.0)     # TA <= 0
+        altman_z_score_credit_scoring(1, 1, 1, 1, 1, 0.0, 1.0)  # TA <= 0
     with pytest.raises(ValueError):
         logistic_regression_pd_model(np.array([[1.0]]), np.array([2.0]))  # non-binary
     with pytest.raises(ValueError):
-        through_the_cycle_pd_adjustment(0.0, 0.02)                 # PD not in (0,1)
+        through_the_cycle_pd_adjustment(0.0, 0.02)  # PD not in (0,1)
     with pytest.raises(ValueError):
         corporate_credit_scoring_model(np.array([1.5]), np.array([1.0]))  # score>1
     with pytest.raises(ValueError):
@@ -1200,9 +1233,9 @@ def test_scoring_validation_and_empty_migration_row():
 def test_ccr_validation_guards():
     """Contract: CCR exposure / SA-CCR / haircut parameter bounds must raise."""
     with pytest.raises(ValueError):
-        counterparty_credit_risk_ccr_exposure(100.0, -1.0)         # add_on < 0
+        counterparty_credit_risk_ccr_exposure(100.0, -1.0)  # add_on < 0
     with pytest.raises(ValueError):
-        current_exposure_method_cem(50.0, 1000.0, 1.5)             # factor > 1
+        current_exposure_method_cem(50.0, 1000.0, 1.5)  # factor > 1
     with pytest.raises(ValueError):
         standardised_approach_ccr_sa_ccr(0.0, 0.0, 100.0, alpha=0.0)
     with pytest.raises(ValueError):
@@ -1212,7 +1245,7 @@ def test_ccr_validation_guards():
     with pytest.raises(ValueError):
         effective_epe_regulatory(np.array([1.0, 2.0]), np.array([1.0, 1.0]))  # not incr
     with pytest.raises(ValueError):
-        collateral_haircut_calculation(-1.0, 0.1)                  # collateral < 0
+        collateral_haircut_calculation(-1.0, 0.1)  # collateral < 0
 
 
 def test_xva_validation_guards():
@@ -1232,7 +1265,7 @@ def test_xva_validation_guards():
     with pytest.raises(ValueError):
         xva_aggregation(cva=float("nan"))
     with pytest.raises(ValueError):
-        wrong_way_risk_adjustment(100.0, 1.5)                      # corr out of range
+        wrong_way_risk_adjustment(100.0, 1.5)  # corr out of range
 
 
 def test_cds_validation_guards():
@@ -1242,28 +1275,32 @@ def test_cds_validation_guards():
     with pytest.raises(ValueError):
         credit_spread_curve_bootstrap(np.array([1.0]), np.array([0.01]), recovery_rate=1.0)
     with pytest.raises(ValueError):
-        cds_pricing_isda_standard(np.array([1.0]), np.array([1.0]),
-                                  np.array([2.0]), 0.03, 0.02)      # DF > 1
+        cds_pricing_isda_standard(
+            np.array([1.0]), np.array([1.0]), np.array([2.0]), 0.03, 0.02
+        )  # DF > 1
     with pytest.raises(ValueError):
-        cds_spread_to_pd_conversion(0.01, 0.0)                     # maturity <= 0
+        cds_spread_to_pd_conversion(0.01, 0.0)  # maturity <= 0
 
 
 def test_ifrs9_validation_guards():
     """Contract: IFRS 9 PD/LGD/DF bounds and stage domain must raise."""
     with pytest.raises(ValueError):
-        ifrs_9_stage_classification_pd_threshold(1.5, 0.01)        # PD > 1
+        ifrs_9_stage_classification_pd_threshold(1.5, 0.01)  # PD > 1
     with pytest.raises(ValueError):
         ifrs_9_12_month_ecl_stage_1(0.01, 0.45, 1000.0, discount_factor=2.0)
     with pytest.raises(ValueError):
-        ifrs_9_lifetime_ecl_stage_2_3(np.array([0.01]), np.array([0.4]),
-                                      np.array([1.0]), np.array([0.9]), stage=5)
+        ifrs_9_lifetime_ecl_stage_2_3(
+            np.array([0.01]), np.array([0.4]), np.array([1.0]), np.array([0.9]), stage=5
+        )
     with pytest.raises(ValueError):
         ifrs_9_scenario_weighted_ecl(np.array([1.0]), np.array([0.0]))  # weights sum 0
     with pytest.raises(ValueError):
         macroeconomic_overlays_ecl(-1.0, np.array([0.1]), np.array([0.1]))
     with pytest.raises(ValueError):
-        credit_portfolio_optimisation(np.array([0.1, 0.1]), np.array([0.0, 0.0]),
-                                      max_weight=0.1)              # cannot fill 1
+        credit_portfolio_optimisation(
+            np.array([0.1, 0.1]), np.array([0.0, 0.0]), max_weight=0.1
+        )  # cannot fill 1
     with pytest.raises(ValueError):
-        credit_stress_testing(np.array([0.02]), np.array([0.4]), np.array([1.0]),
-                              pd_shock_multiplier=0.5)             # shock < 1
+        credit_stress_testing(
+            np.array([0.02]), np.array([0.4]), np.array([1.0]), pd_shock_multiplier=0.5
+        )  # shock < 1
