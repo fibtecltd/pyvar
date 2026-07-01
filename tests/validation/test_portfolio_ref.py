@@ -93,7 +93,7 @@ REL_RATIO = 1e-5  # pure algebraic formulas: 0.001%
 REL_OPT = 1e-3  # optimisation / simulation: 0.1%
 
 
-# ── Shared fixtures ──────────────────────────────────────────────────────────
+# ── Shared fixtures ───────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture(scope="module")
@@ -128,9 +128,9 @@ def mu3() -> np.ndarray:
     return np.array([0.0008, 0.0005, 0.0011], dtype=np.float64)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_ratios.py  (closed-form references)
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_sharpe_ratio_closed_form(returns_ab):
@@ -266,9 +266,9 @@ def test_omega_ratio_infinite_when_no_losses():
     assert out["omega"] == float("inf")
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_drawdown.py  (closed-form references)
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def _equity_from_returns(r: np.ndarray) -> np.ndarray:
@@ -338,9 +338,9 @@ def test_conditional_drawdown_at_risk_closed_form(returns_ab):
     assert out["cdar"] >= out["dar"]  # CDaR >= DaR property
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_optimisation.py
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_minimum_variance_closed_form(cov3):
@@ -355,19 +355,6 @@ def test_minimum_variance_closed_form(cov3):
     assert got.sum() == pytest.approx(1.0, rel=REL_RATIO)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DISCREPANCY: minimum_variance_portfolio(allow_short=False) returns the "
-        "equal-weight SLSQP seed [1/3,1/3,1/3] (var 1.961e-4) for small-magnitude "
-        "covariance matrices — SLSQP declares convergence after 1 iteration "
-        "(variance-only gradient < default ftol). True long-only min-variance for "
-        "cov3 is the closed form Σ⁻¹1/(1'Σ⁻¹1) = [0.308,0.544,0.148] (var 1.634e-4), "
-        "which is long-only feasible (all weights positive). "
-        "NB mean_variance_optimisation reaches this optimum correctly (the extra "
-        "return-term gradient breaks the stall)."
-    ),
-)
 def test_minimum_variance_le_equal_weight_variance(cov3):
     # Property (reference): the long-only global minimum-variance portfolio must
     # have variance <= equal-weight variance, and match the closed-form optimum
@@ -452,17 +439,6 @@ def test_mean_variance_recovers_min_variance_high_aversion(cov3, mu3):
     assert np.array(out["weights"]) == pytest.approx(ref_w, rel=REL_OPT, abs=1e-3)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DISCREPANCY: risk_parity_portfolio returns the equal-weight SLSQP seed "
-        "[1/3,1/3,1/3] for small-magnitude covariance, giving UNequal risk "
-        "contributions ~[0.244,0.229,0.527]. True ERC weights are "
-        "~[0.354,0.401,0.245] (contributions 1/3 each). SLSQP stalls at the seed "
-        "(objective gradient < default ftol). Reference: multi-start SLSQP on the "
-        "all-pairs risk-contribution objective."
-    ),
-)
 def test_risk_parity_equal_risk_contribution(cov3):
     # Reference: at the ERC solution each asset contributes equally to variance,
     # so normalised risk contributions must all equal 1/n.
@@ -567,9 +543,9 @@ def test_factor_based_optimisation_target_exposure():
     assert np.array(out["weights"]).sum() == pytest.approx(1.0, rel=REL_RATIO, abs=1e-6)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_risk.py
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_portfolio_beta_closed_form(returns_ab):
@@ -738,9 +714,9 @@ def test_monte_carlo_simulation_determinism_and_scale(mu3, cov3):
     assert a["var_abs"] == pytest.approx(approx_var, rel=0.15)
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_attribution.py
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_brinson_attribution_reconciles():
@@ -827,9 +803,9 @@ def test_factor_exposure_barra_closed_form():
     assert out["dominant_factor"] == dominant
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_factor.py  (OLS cross-validated / hand-calc)
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def _ols_reference(y: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, float, float]:
@@ -941,9 +917,9 @@ def test_regime_detection_hmm_hand_calc(rng):
     assert out["variances"] == out2["variances"]
 
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 # portfolio_esg.py  (hand-calc references)
-# ═════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def test_rebalancing_optimiser_hand_calc():
