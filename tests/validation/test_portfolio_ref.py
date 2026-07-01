@@ -89,8 +89,8 @@ from engine.portfolio_risk import (
     transaction_cost_analysis,
 )
 
-REL_RATIO = 1e-5      # pure algebraic formulas: 0.001%
-REL_OPT = 1e-3        # optimisation / simulation: 0.1%
+REL_RATIO = 1e-5  # pure algebraic formulas: 0.001%
+REL_OPT = 1e-3  # optimisation / simulation: 0.1%
 
 
 # ── Shared fixtures ──────────────────────────────────────────────────────────
@@ -699,7 +699,9 @@ def test_liquidity_adjusted_var_closed_form(cov3):
     liq = 0.5 * np.sum(np.abs(w) * spreads)
     ref_lvar = market_var + liq
 
-    out = liquidity_adjusted_portfolio_var(w, cov3, spreads, pv, confidence_level=conf, horizon_days=horizon)
+    out = liquidity_adjusted_portfolio_var(
+        w, cov3, spreads, pv, confidence_level=conf, horizon_days=horizon
+    )
     assert out["market_var_pct"] == pytest.approx(market_var, rel=REL_RATIO)
     assert out["liquidity_cost_pct"] == pytest.approx(liq, rel=REL_RATIO)
     assert out["lvar_pct"] == pytest.approx(ref_lvar, rel=REL_RATIO)
