@@ -39,7 +39,7 @@ case "$MACHINE" in
         # Claude container gets 4 CPUs / 5 GB:
         #   Agent Teams lead spawns up to 4 sub-agents, each sharing
         #   this allocation. 4 CPUs / 4 agents = 1 core per agent.
-        #   Memory: ~1.2 GB per agent for Opus 4.6 context + claude binary.
+        #   Memory: ~1.2 GB per agent for Opus 4.8 context + claude binary.
         #
         # Worker gets 4 CPUs / 4 GB:
         #   Monte Carlo at 100k paths with prange uses all available cores.
@@ -64,7 +64,7 @@ case "$MACHINE" in
         # Available: ~10 GB, ~3 usable cores.
         #
         # AGENT TEAMS NOT VIABLE:
-        #   Opus 4.6 × 4 parallel instances on 4 logical cores =
+        #   Opus 4.8 × 4 parallel instances on 4 logical cores =
         #   severe thrashing. Each agent response takes 3-5× longer.
         #   Sequential is faster in practice on this hardware.
         #

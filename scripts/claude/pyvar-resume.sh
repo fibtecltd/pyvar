@@ -79,7 +79,7 @@ run_session() {
 
     # M4 uses Opus for Agent Teams phases; other phases use default
     local model=""
-    case "$phase" in p2|p5) [ "$AGENT_TEAMS_OK" -eq 1 ] && model="--model claude-opus-4-6" ;; esac
+    case "$phase" in p2|p5) [ "$AGENT_TEAMS_OK" -eq 1 ] && model="--model claude-opus-4-8" ;; esac
 
     local cmd
     cmd="docker compose -f \"$COMPOSE_FILE\" run --rm \
@@ -225,7 +225,7 @@ case "$ACTION" in
         [ -n "$WORKTREE" ] && WORKDIR="/workspace/../pyvar-worktrees/$WORKTREE"
 
         local model=""
-        case "$PHASE" in p2|p5) [ "$AGENT_TEAMS_OK" -eq 1 ] && model="--model claude-opus-4-6" ;; esac
+        case "$PHASE" in p2|p5) [ "$AGENT_TEAMS_OK" -eq 1 ] && model="--model claude-opus-4-8" ;; esac
 
         CMD="docker compose -f \"$COMPOSE_FILE\" run --rm \
   --cpus $CLAUDE_CPUS \
