@@ -25,17 +25,6 @@ import numpy as np
 import pytest
 from scipy import stats
 
-# ── credit_pd_lgd ────────────────────────────────────────────────────────────
-from engine.credit_pd_lgd import (
-    downturn_lgd_adjustment,
-    exposure_at_default_ead_calculator,
-    expected_loss_el_computation,
-    loss_given_default_lgd_model,
-    probability_of_default_pd_estimation,
-    recovery_rate_estimation,
-    unexpected_loss_ul_computation,
-)
-
 # ── credit_capital ───────────────────────────────────────────────────────────
 from engine.credit_capital import (
     basel_standardised_approach_rwa,
@@ -43,30 +32,6 @@ from engine.credit_capital import (
     irb_foundation_approach_capital,
     maturity_adjustment_basel_irb,
     sme_correlation_factor_basel,
-)
-
-# ── credit_var ───────────────────────────────────────────────────────────────
-from engine.credit_var import (
-    credit_concentration_risk_hhi,
-    credit_var_analytical_vasicek,
-    credit_var_monte_carlo,
-    creditmetrics_portfolio_model,
-    default_correlation_matrix,
-    kmv_merton_distance_to_default,
-)
-
-# ── credit_scoring ───────────────────────────────────────────────────────────
-from engine.credit_scoring import (
-    altman_z_score_credit_scoring,
-    corporate_credit_scoring_model,
-    logistic_regression_pd_model,
-    machine_learning_pd_calibration,
-    point_in_time_pd_estimation,
-    ratings_migration_matrix,
-    retail_scorecard_pd_model,
-    sector_default_rate_analysis,
-    sovereign_credit_risk_assessment,
-    through_the_cycle_pd_adjustment,
 )
 
 # ── credit_ccr ───────────────────────────────────────────────────────────────
@@ -78,18 +43,6 @@ from engine.credit_ccr import (
     expected_positive_exposure_epe,
     potential_future_exposure_pfe,
     standardised_approach_ccr_sa_ccr,
-)
-
-# ── credit_xva ───────────────────────────────────────────────────────────────
-from engine.credit_xva import (
-    capital_valuation_adjustment_kva,
-    credit_valuation_adjustment_cva,
-    cva_sensitivity_cva_greeks,
-    debt_valuation_adjustment_dva,
-    funding_valuation_adjustment_fva,
-    margin_valuation_adjustment_mva,
-    wrong_way_risk_adjustment,
-    xva_aggregation,
 )
 
 # ── credit_cds ───────────────────────────────────────────────────────────────
@@ -110,6 +63,53 @@ from engine.credit_ifrs9 import (
     ifrs_9_stage_classification_pd_threshold,
     ifrs_9_staging_criteria_assessment,
     macroeconomic_overlays_ecl,
+)
+
+# ── credit_pd_lgd ────────────────────────────────────────────────────────────
+from engine.credit_pd_lgd import (
+    downturn_lgd_adjustment,
+    expected_loss_el_computation,
+    exposure_at_default_ead_calculator,
+    loss_given_default_lgd_model,
+    probability_of_default_pd_estimation,
+    recovery_rate_estimation,
+    unexpected_loss_ul_computation,
+)
+
+# ── credit_scoring ───────────────────────────────────────────────────────────
+from engine.credit_scoring import (
+    altman_z_score_credit_scoring,
+    corporate_credit_scoring_model,
+    logistic_regression_pd_model,
+    machine_learning_pd_calibration,
+    point_in_time_pd_estimation,
+    ratings_migration_matrix,
+    retail_scorecard_pd_model,
+    sector_default_rate_analysis,
+    sovereign_credit_risk_assessment,
+    through_the_cycle_pd_adjustment,
+)
+
+# ── credit_var ───────────────────────────────────────────────────────────────
+from engine.credit_var import (
+    credit_concentration_risk_hhi,
+    credit_var_analytical_vasicek,
+    credit_var_monte_carlo,
+    creditmetrics_portfolio_model,
+    default_correlation_matrix,
+    kmv_merton_distance_to_default,
+)
+
+# ── credit_xva ───────────────────────────────────────────────────────────────
+from engine.credit_xva import (
+    capital_valuation_adjustment_kva,
+    credit_valuation_adjustment_cva,
+    cva_sensitivity_cva_greeks,
+    debt_valuation_adjustment_dva,
+    funding_valuation_adjustment_fva,
+    margin_valuation_adjustment_mva,
+    wrong_way_risk_adjustment,
+    xva_aggregation,
 )
 
 # Tolerances
