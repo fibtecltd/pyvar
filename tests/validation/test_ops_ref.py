@@ -368,7 +368,7 @@ def test_sma_ilm_formula_bcbs_d424():
     bi = 10e9  # bucket 2 so ILM applies
     lc = 2e9
     out = basel_standardised_measurement_sma(bi, loss_component=lc, use_ilm=True)
-    b1, b2 = 1e9, 30e9
+    b1, _b2 = 1e9, 30e9
     bic_ref = 0.12 * b1 + 0.15 * (bi - b1)
     ilm_ref = math.log(math.e - 1.0 + (lc / bic_ref) ** 0.8)
     assert out["bic"] == pytest.approx(bic_ref, rel=1e-9)
