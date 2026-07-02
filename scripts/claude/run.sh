@@ -115,7 +115,11 @@ fi
 # ── Step 1 — Generate settings.local.json ─────────────────────────
 if [ $SKIP_SETUP -eq 0 ]; then
     echo "[$PHASE] Step 1 — Generating settings.local.json (phase=$PHASE mode=$MODE) ..."
-    run python3 "$SCRIPT_DIR/write-settings-local.py" "$PHASE" ${MODE:+--mode "$MODE"}
+    # Resolve auto → agent before passing to write-settings-local.py
+    # (write-settings-local.py only understands "agent" or "seq", not "auto")
+    RESOLVED_MODE="$MODE"
+    [ "$MODE" = "auto" ] && RESOLVED_MODE="agent"
+    run python3 "$SCRIPT_DIR/write-settings-local.py" "$PHASE" --mode "$RESOLVED_MODE"
     echo ""
 
     # ── Step 2 — Set up worktrees (only for worktree phases) ──────
