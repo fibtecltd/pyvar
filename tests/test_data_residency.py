@@ -38,8 +38,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _CDK_DIR = _REPO_ROOT / "pyvar-cdk"
 _STACKS = _CDK_DIR / "stacks"
 
-HOME_REGION = "eu-west-1"          # Dublin — intended EU data-residency home
-EDGE_REGION = "us-east-1"          # CloudFront/WAF only — metadata & routing
+HOME_REGION = "eu-west-1"  # Dublin — intended EU data-residency home
+EDGE_REGION = "us-east-1"  # CloudFront/WAF only — metadata & routing
 
 
 def _read(path: Path) -> str:
@@ -63,7 +63,9 @@ def _app_stack_env_region() -> str | None:
     """
     app_text = _read(_CDK_DIR / "app.py")
     # env_primary must be built from cfg.region (not a hardcoded edge region)
-    if not re.search(r"env_primary\s*=\s*cdk\.Environment\([^)]*region\s*=\s*cfg\.region", app_text, re.S):
+    if not re.search(
+        r"env_primary\s*=\s*cdk\.Environment\([^)]*region\s*=\s*cfg\.region", app_text, re.S
+    ):
         return None
     cfg_text = _app_config_text()
     m = re.search(r"region:\s*str\s*=\s*[\"']([\w-]+)[\"']", cfg_text)
@@ -86,9 +88,9 @@ def test_check1_s3_bucket_region_eu_west_1():
     """
     data_text = _read(_STACKS / "data_stack.py")
     assert "s3.Bucket(" in data_text, "S3 result bucket not found in data_stack.py"
-    assert "pyvar-{cfg.env_name}-results-" in data_text or "results-" in data_text, (
-        "result bucket naming pattern not found"
-    )
+    assert (
+        "pyvar-{cfg.env_name}-results-" in data_text or "results-" in data_text
+    ), "result bucket naming pattern not found"
     region = _app_stack_env_region()
     print(f"[check1] S3 result bucket (DataStack) region = {region}")
     assert region == HOME_REGION, (
@@ -142,9 +144,9 @@ def test_check3_elasticache_region_eu_west_1():
     assert "PRIVATE_ISOLATED" in data_text, "ElastiCache must live in isolated subnets"
     region = _app_stack_env_region()
     print(f"[check3] ElastiCache (DataStack) region = {region}; subnets = PRIVATE_ISOLATED")
-    assert region == HOME_REGION, (
-        f"BLOCKER: ElastiCache region is {region!r}, expected {HOME_REGION!r} (GDPR Art.44)."
-    )
+    assert (
+        region == HOME_REGION
+    ), f"BLOCKER: ElastiCache region is {region!r}, expected {HOME_REGION!r} (GDPR Art.44)."
     print("[check3] ElastiCache: eu-west-1, isolated subnets")
 
 
@@ -164,9 +166,9 @@ def test_check4_sqs_region_eu_west_1():
     assert "var-jobs.fifo" in queue_text, "expected pyvar var-jobs FIFO queue"
     # Confirm QueueStack is bound to env_primary in app.py
     app_text = _read(_CDK_DIR / "app.py")
-    assert re.search(r"QueueStack\([^)]*env\s*=\s*env_primary", app_text, re.S), (
-        "QueueStack must be deployed with env_primary (eu-west-1)"
-    )
+    assert re.search(
+        r"QueueStack\([^)]*env\s*=\s*env_primary", app_text, re.S
+    ), "QueueStack must be deployed with env_primary (eu-west-1)"
     region = _app_stack_env_region()
     print(f"[check4] SQS FIFO queue (QueueStack) region = {region}")
     assert region == HOME_REGION, (
@@ -195,12 +197,12 @@ def test_check5_cloudfront_metadata_only_no_data_at_edge():
     app_text = _read(_CDK_DIR / "app.py")
 
     # EdgeStack is intentionally us-east-1
-    assert re.search(r"env_edge\s*=\s*cdk\.Environment\([^)]*region\s*=\s*[\"']us-east-1[\"']", app_text, re.S), (
-        "EdgeStack edge region must be pinned to us-east-1 (CLAUDE.md §3.4)"
-    )
-    assert re.search(r"EdgeStack\([^)]*env\s*=\s*env_edge", app_text, re.S), (
-        "EdgeStack must be deployed with env_edge"
-    )
+    assert re.search(
+        r"env_edge\s*=\s*cdk\.Environment\([^)]*region\s*=\s*[\"']us-east-1[\"']", app_text, re.S
+    ), "EdgeStack edge region must be pinned to us-east-1 (CLAUDE.md §3.4)"
+    assert re.search(
+        r"EdgeStack\([^)]*env\s*=\s*env_edge", app_text, re.S
+    ), "EdgeStack must be deployed with env_edge"
 
     # No S3 origin at the edge (would make data resident in us-east-1)
     s3_origin = re.search(r"S3Origin|S3BucketOrigin|origins\.S3", edge_text)
@@ -220,11 +222,13 @@ def test_check5_cloudfront_metadata_only_no_data_at_edge():
     )
 
     # The one and only origin is the eu-west-1 ALB (pass-through, no residency)
-    assert "origins.HttpOrigin" in edge_text and "alb_dns" in edge_text, (
-        "expected the sole CloudFront origin to be the eu-west-1 ALB (HttpOrigin)"
+    assert (
+        "origins.HttpOrigin" in edge_text and "alb_dns" in edge_text
+    ), "expected the sole CloudFront origin to be the eu-west-1 ALB (HttpOrigin)"
+    print(
+        "[check5] CloudFront @ us-east-1: no S3 origin, no Lambda@Edge; "
+        "sole origin = eu-west-1 ALB (pass-through, routing only)"
     )
-    print("[check5] CloudFront @ us-east-1: no S3 origin, no Lambda@Edge; "
-          "sole origin = eu-west-1 ALB (pass-through, routing only)")
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +253,9 @@ def test_check6_secrets_home_region_and_edge_replica_is_routing_only():
     api_text = _read(_STACKS / "api_stack.py")
 
     # Home-region secrets present
-    assert "pyvar/{cfg.env_name}/aurora-credentials" in data_text, "aurora-credentials secret missing"
+    assert (
+        "pyvar/{cfg.env_name}/aurora-credentials" in data_text
+    ), "aurora-credentials secret missing"
     assert "pyvar/{cfg.env_name}/jwt-secret" in api_text, "jwt-secret missing"
     assert "pyvar/{cfg.env_name}/cf-origin-verify" in api_text, "cf-origin-verify secret missing"
 
@@ -273,15 +279,17 @@ def test_check6_secrets_home_region_and_edge_replica_is_routing_only():
         "BLOCKER: the us-east-1 replica is not the OriginVerifySecret — a data-bearing "
         "secret may be replicating to us-east-1."
     )
-    assert "generate_secret_string" in ov_block.group(0) or "SecretStringGenerator" in api_text, (
-        "cf-origin-verify must be a generated routing token, not injected customer data"
-    )
+    assert (
+        "generate_secret_string" in ov_block.group(0) or "SecretStringGenerator" in api_text
+    ), "cf-origin-verify must be a generated routing token, not injected customer data"
     # Aurora credentials must NOT be replicated out of region
-    assert "replica_regions" not in data_text, (
-        "BLOCKER: aurora-credentials (DB access to EU customer data) must not replicate cross-region"
+    assert (
+        "replica_regions" not in data_text
+    ), "BLOCKER: aurora-credentials (DB access to EU customer data) must not replicate cross-region"
+    print(
+        "[check6] Secrets: pyvar/* in eu-west-1; only cf-origin-verify (generated "
+        "routing token) replicates to us-east-1 — no PII/financial data."
     )
-    print("[check6] Secrets: pyvar/* in eu-west-1; only cf-origin-verify (generated "
-          "routing token) replicates to us-east-1 — no PII/financial data.")
 
 
 # ---------------------------------------------------------------------------
@@ -335,8 +343,10 @@ def test_check7_no_external_data_egress_from_app_code():
         "BLOCKER: outbound HTTP client library imported in the compute/API/task layer — "
         f"potential customer-data egress path(s): {offenders}"
     )
-    print("[check7] No HTTP client libs and no data-bearing external endpoints "
-          "in engine/api/tasks — customer data does not leave AWS in-region services.")
+    print(
+        "[check7] No HTTP client libs and no data-bearing external endpoints "
+        "in engine/api/tasks — customer data does not leave AWS in-region services."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -375,5 +385,7 @@ def test_check8_vpc_endpoints_keep_aws_traffic_in_vpc():
 
     # Data tier is fully isolated (no internet route) — reinforces no-IGW-for-data.
     assert "PRIVATE_ISOLATED" in net_text, "data tier must use PRIVATE_ISOLATED subnets"
-    print("[check8] All AWS service traffic (S3/SQS/ECR/SecretsManager/Logs) stays "
-          "in-VPC via endpoints; data tier in isolated subnets — no IGW path.")
+    print(
+        "[check8] All AWS service traffic (S3/SQS/ECR/SecretsManager/Logs) stays "
+        "in-VPC via endpoints; data tier in isolated subnets — no IGW path."
+    )
