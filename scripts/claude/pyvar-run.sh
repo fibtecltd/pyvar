@@ -58,7 +58,7 @@ SKIP_PERMS=""
 # ── Parse arguments ───────────────────────────────────────────────
 while [ $# -gt 0 ]; do
     case "$1" in
-        p[1-9]|sessions) PHASE="$1"; shift ;;
+        p[1-9]|p5b|sessions) PHASE="$1"; shift ;;
         --resume)
             RESUME_FLAG="--resume"
             if [ -n "${2:-}" ] && [[ "${2:-}" != --* ]]; then
@@ -119,7 +119,7 @@ echo "      Agent Teams viable: $AGENT_TEAMS_OK"
 # ── Step 2: Resolve mode ──────────────────────────────────────────
 if [ "$MODE" = "auto" ]; then
     case "$PHASE" in
-        p2|p5)
+        p2|p5|p5b)
             if [ "$AGENT_TEAMS_OK" -eq 1 ]; then
                 MODE="agent"
             else
