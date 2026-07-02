@@ -58,7 +58,7 @@ def phase_hooks(phase: str, mode: str = "seq") -> dict:
     subagent_stop_hooks = []
 
     # ── P2 / P5: engine write hooks ───────────────────────────────────────────
-    if phase in ("p2", "p5"):
+    if phase in ("p2", "p5", "p5b"):
         post_tool_use_shared += [
             {
                 "matcher": "Write|Edit",
@@ -213,10 +213,10 @@ def phase_env(phase: str, mode: str = "seq") -> dict:
     """
     env: dict = {}
 
-    # Agent Teams env var — add for P2/P5 on M4 in agent mode
-    if phase in ("p2", "p5") and mode == "agent":
+    # Agent Teams env var — add for P2/P5/P5b on M4 in agent mode
+    if phase in ("p2", "p5", "p5b") and mode == "agent":
         env["CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"] = "1"
-    if phase == "p5":
+    if phase in ("p5", "p5b"):
         env["NUMBA_DISABLE_JIT"] = "1"
 
     return env

@@ -5,6 +5,7 @@
 #
 # P2 domains → 4 worktrees (2 domains per teammate)
 # P5 domains → 8 worktrees (1 domain per validation teammate)
+# P5b domains → 3 worktrees (remainder testing: backtesting+frtb, load+security, residency)
 
 PYVAR_ROOT="${PYVAR_WORKSPACE:-$HOME/projects/pyvar}"
 WORKTREE_BASE="${PYVAR_ROOT}/../pyvar-worktrees"
@@ -30,6 +31,15 @@ val-derivatives:feat/p5-val-derivatives:Derivatives validation
 val-alm:feat/p5-val-alm:ALM validation
 "
 
+# ── P5b worktree map ───────────────────────────────────────────────
+# Remainder testing after P5a coverage + cross-validation complete.
+# Cold start and chaos tests run sequentially after these 3 agents.
+P5B_WORKTREES="
+test-backtesting:feat/p5b-backtesting:Basel backtesting + FRTB PAT
+test-load-security:feat/p5b-load-security:Load test + bandit security scan
+test-residency:feat/p5b-residency:Data residency audit
+"
+
 # ── setup_worktrees ────────────────────────────────────────────────
 # Creates git worktrees for the given phase.
 # Usage: setup_worktrees p2 | setup_worktrees p5
@@ -40,6 +50,7 @@ setup_worktrees() {
     case "$phase" in
         p2) map="$P2_WORKTREES" ;;
         p5) map="$P5_WORKTREES" ;;
+        p5b) map="$P5B_WORKTREES" ;;
         *)
             echo "[worktree] ERROR: phase '$phase' has no worktree map."
             return 1
@@ -90,6 +101,7 @@ teardown_worktrees() {
     case "$phase" in
         p2) map="$P2_WORKTREES" ;;
         p5) map="$P5_WORKTREES" ;;
+        p5b) map="$P5B_WORKTREES" ;;
         *) echo "[worktree] ERROR: unknown phase '$phase'"; return 1 ;;
     esac
 
@@ -152,6 +164,7 @@ switch_to_sequential() {
     case "$phase" in
         p2) map="$P2_WORKTREES" ;;
         p5) map="$P5_WORKTREES" ;;
+        p5b) map="$P5B_WORKTREES" ;;
         *) echo "[worktree] ERROR: unknown phase '$phase'"; return 1 ;;
     esac
 
