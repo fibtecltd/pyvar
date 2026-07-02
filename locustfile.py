@@ -312,9 +312,7 @@ class UnauthenticatedUser(HttpUser):
                 # 401 is the contract; 403 accepted if the edge blocks first.
                 resp.success()
             else:
-                resp.failure(
-                    f"expected 401 for unauthenticated compute, got {resp.status_code}"
-                )
+                resp.failure(f"expected 401 for unauthenticated compute, got {resp.status_code}")
 
 
 # ── Validation: oversized n_simulations -> MUST be rejected with 422 ─────────
@@ -345,9 +343,7 @@ class FreeTierCapUser(HttpUser):
             if resp.status_code == 422:
                 resp.success()
             else:
-                resp.failure(
-                    f"expected 422 for oversized n_simulations, got {resp.status_code}"
-                )
+                resp.failure(f"expected 422 for oversized n_simulations, got {resp.status_code}")
 
 
 # Suppress an unused-import style warning for uuid if a fresh id is ever needed.
