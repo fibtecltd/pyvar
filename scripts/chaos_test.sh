@@ -76,7 +76,7 @@ sqs_attr() {  # arg1 = attribute name
 # ── 1. submit long job ──────────────────────────────────────────────────────────
 echo "-- submitting long job (n_simulations=${N_SIMS}) ..."
 task_id="$(curl -s -X POST "${ENDPOINT}/api/v1/var/compute" "${auth[@]}" \
-  -d "{\"n_simulations\": ${N_SIMS}, \"confidence_level\": 0.99, \"horizon_days\": 10, \"portfolio_value\": 1000000}" \
+  -d "{\"n_simulations\": ${N_SIMS}, \"confidence_level\": 0.99, \"horizon_days\": 10, \"portfolio_value\": 1000000, \"returns\": [-0.012, 0.008, -0.005, 0.015, -0.003, 0.011, -0.007, 0.004, -0.009, 0.013, -0.002, 0.006, -0.014, 0.009, -0.001, 0.007, -0.011, 0.003, -0.006, 0.012, -0.004, 0.008, -0.010, 0.005, -0.008, 0.014, -0.003, 0.009, -0.006, 0.011]}" \
   | jq -r '.task_id // .id // empty')"
 [ -n "${task_id}" ] || { echo "FATAL: no task_id returned"; exit 1; }
 echo "-- task_id=${task_id}"
