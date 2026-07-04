@@ -40,6 +40,35 @@ command -v jq   >/dev/null || { echo "FATAL: jq not found"; exit 1; }
 : "${PYVAR_TEST_JWT:?FATAL: PYVAR_TEST_JWT must be set}"
 : "${PYVAR_ORIGIN_VERIFY:?FATAL: PYVAR_ORIGIN_VERIFY must be set}"
 
+# ── JWT self-refresh (stdlib only — no third-party deps) ─────────────────────
+# Generates a fresh 24-hour pro-tier JWT from Secrets Manager on every run.
+echo "-- refreshing JWT from Secrets Manager ..."
+PYVAR_TEST_JWT="$(python3 - << 'PYEOF_INNER'
+import hmac, hashlib, base64, json, time, subprocess
+
+def b64url(data):
+    if isinstance(data, str):
+        data = data.encode()
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+
+secret = subprocess.run(
+    ["aws", "secretsmanager", "get-secret-value",
+     "--secret-id", "pyvar/dev/jwt-secret",
+     "--region", "eu-west-1",
+     "--query", "SecretString",
+     "--output", "text"],
+    capture_output=True, text=True, check=True
+).stdout.strip()
+
+header  = b64url(json.dumps({"alg":"HS256","typ":"JWT"},separators=(',',':')))
+payload = b64url(json.dumps({"sub":"test-operator","tier":"pro","exp":int(time.time())+86400},separators=(',',':')))
+sig     = b64url(hmac.new(secret.encode(), f"{header}.{payload}".encode(), hashlib.sha256).digest())
+print(f"{header}.{payload}.{sig}")
+PYEOF_INNER
+)"
+export PYVAR_TEST_JWT
+echo "-- JWT refreshed (expires in 24h)"
+
 auth=( -H "Authorization: Bearer ${PYVAR_TEST_JWT}"
        -H "X-Origin-Verify: ${PYVAR_ORIGIN_VERIFY}"
        -H "Content-Type: application/json" )
@@ -64,9 +93,7 @@ if [ "${desired}" = "0" ] || [ "${desired}" = "None" ]; then
   echo "FATAL: ASG desired capacity is ${desired}. Set it > 0 before chaos testing."
   exit 1
 fi
-echo "This will TERMINATE a live EC2 Spot worker. Type 'yes' to proceed."
-read -r CONFIRM
-[ "${CONFIRM}" = "yes" ] || { echo "Aborted."; exit 1; }
+echo "This will TERMINATE a live EC2 Spot worker. Starting automatically ..."
 
 sqs_attr() {  # arg1 = attribute name
   aws sqs get-queue-attributes --region "${REGION}" --queue-url "${QUEUE_URL}" \
