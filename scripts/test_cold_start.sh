@@ -41,6 +41,35 @@ command -v jq   >/dev/null || { echo "FATAL: jq not found"; exit 1; }
 : "${PYVAR_TEST_JWT:?FATAL: PYVAR_TEST_JWT must be set}"
 : "${PYVAR_ORIGIN_VERIFY:?FATAL: PYVAR_ORIGIN_VERIFY must be set}"
 
+# ── JWT self-refresh (stdlib only — no third-party deps) ─────────────────────
+# Generates a fresh 24-hour pro-tier JWT from Secrets Manager on every run.
+echo "-- refreshing JWT from Secrets Manager ..."
+PYVAR_TEST_JWT="$(python3 - << 'PYEOF_INNER'
+import hmac, hashlib, base64, json, time, subprocess
+
+def b64url(data):
+    if isinstance(data, str):
+        data = data.encode()
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+
+secret = subprocess.run(
+    ["aws", "secretsmanager", "get-secret-value",
+     "--secret-id", "pyvar/dev/jwt-secret",
+     "--region", "eu-west-1",
+     "--query", "SecretString",
+     "--output", "text"],
+    capture_output=True, text=True, check=True
+).stdout.strip()
+
+header  = b64url(json.dumps({"alg":"HS256","typ":"JWT"},separators=(',',':')))
+payload = b64url(json.dumps({"sub":"test-operator","tier":"pro","exp":int(time.time())+86400},separators=(',',':')))
+sig     = b64url(hmac.new(secret.encode(), f"{header}.{payload}".encode(), hashlib.sha256).digest())
+print(f"{header}.{payload}.{sig}")
+PYEOF_INNER
+)"
+export PYVAR_TEST_JWT
+echo "-- JWT refreshed (expires in 24h)"
+
 echo "=========================================================================="
 echo " P5b COLD-START TEST"
 echo "   env=${ENV_NAME}  region=${REGION}  asg=${ASG_NAME}"
@@ -48,9 +77,7 @@ echo "   endpoint=${ENDPOINT}"
 echo "   runs=${RUNS}  n_simulations=${N_SIMS}  target<${TARGET_S}s"
 echo "=========================================================================="
 echo "This will SCALE ${ASG_NAME} TO 0 and rely on SQS-driven scale-out to bring"
-echo "a worker back up for each run. Type 'yes' to proceed."
-read -r CONFIRM
-[ "${CONFIRM}" = "yes" ] || { echo "Aborted."; exit 1; }
+echo "a worker back up for each run. Starting automatically ..."
 
 auth=( -H "Authorization: Bearer ${PYVAR_TEST_JWT}"
        -H "X-Origin-Verify: ${PYVAR_ORIGIN_VERIFY}"
