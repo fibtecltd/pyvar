@@ -157,7 +157,7 @@ class ApiStack(Stack):
                 "SQS_QUEUE_NAME": f"pyvar-{cfg.env_name}-var-jobs.fifo",
                 "AWS_REGION": cfg.region,
                 "S3_BUCKET": data.result_bucket.bucket_name,
-                "CELERY_RESULT_BACKEND": f"rediss://{data.cache.attr_endpoint_address}:6379/0",
+                "CELERY_RESULT_BACKEND": f"rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).
