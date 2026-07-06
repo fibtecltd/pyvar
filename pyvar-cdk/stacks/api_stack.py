@@ -95,6 +95,25 @@ class ApiStack(Stack):
             role_name=f"pyvar-{cfg.env_name}-api-task-role",
         )
         var_queue.grant_send_messages(task_role)  # dispatch VaR jobs
+        # Celery SQS broker requires additional queue operations beyond SendMessage:
+        # ListQueues (queue discovery), ReceiveMessage + DeleteMessage + ChangeMessageVisibility
+        # (result backend polling). grant_send_messages only covers SendMessage.
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "sqs:ListQueues",
+                    "sqs:ReceiveMessage",
+                    "sqs:DeleteMessage",
+                    "sqs:ChangeMessageVisibility",
+                    "sqs:GetQueueAttributes",
+                    "sqs:GetQueueUrl",
+                ],
+                resources=[
+                    var_queue.queue_arn,
+                    f"arn:aws:sqs:{self.region}:{self.account}:*",  # ListQueues is account-level
+                ],
+            )
+        )
         data.result_bucket.grant_read(task_role)  # presigned URL generation
         data.db_secret.grant_read(task_role)
         task_role.add_to_policy(
