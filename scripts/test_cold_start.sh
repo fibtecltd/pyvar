@@ -89,6 +89,15 @@ current_instance_count() {
 }
 
 scale_to_zero() {
+  # Purge stale messages so target tracking doesn't fight scale-to-zero.
+  # SQS FIFO purge has a 60s cooldown — failure is non-fatal (|| true).
+  local queue_url
+  queue_url="$(aws sqs get-queue-url --region "${REGION}"       --queue-name "pyvar-${ENV_NAME}-var-jobs.fifo"       --query QueueUrl --output text 2>/dev/null || echo "")"
+  if [ -n "${queue_url}" ]; then
+    echo "-- purging SQS queue to clear stale messages ..."
+    aws sqs purge-queue --region "${REGION}" --queue-url "${queue_url}" 2>/dev/null || true
+    sleep 5
+  fi
   echo "-- scaling ${ASG_NAME} desired=0 ..."
   aws autoscaling update-auto-scaling-group \
       --region "${REGION}" --auto-scaling-group-name "${ASG_NAME}" \
