@@ -96,7 +96,8 @@ scale_to_zero() {
   if [ -n "${queue_url}" ]; then
     echo "-- purging SQS queue to clear stale messages ..."
     aws sqs purge-queue --region "${REGION}" --queue-url "${queue_url}" 2>/dev/null || true
-    sleep 5
+    echo "-- waiting 65s for SQS purge cooldown ..."
+    sleep 65
   fi
   echo "-- scaling ${ASG_NAME} desired=0 ..."
   aws autoscaling update-auto-scaling-group \
