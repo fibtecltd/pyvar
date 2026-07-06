@@ -218,7 +218,7 @@ class ComputeStack(Stack):
             self,
             "ScaleOnQueueDepth",
             auto_scaling_group=self.asg,
-            target_value=5.0,
+            target_value=1.0,
             custom_metric=queue_depth_metric,
             estimated_instance_warmup=Duration.seconds(90),
         )

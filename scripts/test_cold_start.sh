@@ -32,7 +32,7 @@ TARGET_S="${COLD_TARGET_S:-45}"
 ASG_NAME="pyvar-${ENV_NAME}-workers"
 N_SIMS=10000
 POLL_INTERVAL=2          # seconds between result polls
-MAX_WAIT_S=180           # per-run safety cap while waiting for first result
+MAX_WAIT_S=600           # per-run safety cap — cold start needs up to 10min for Spot boot + Numba warmup
 
 # ── sanity ────────────────────────────────────────────────────────────────────
 command -v aws  >/dev/null || { echo "FATAL: aws CLI not found"; exit 1; }
@@ -40,7 +40,6 @@ command -v curl >/dev/null || { echo "FATAL: curl not found"; exit 1; }
 command -v jq   >/dev/null || { echo "FATAL: jq not found"; exit 1; }
 : "${PYVAR_TEST_JWT:?FATAL: PYVAR_TEST_JWT must be set}"
 : "${PYVAR_ORIGIN_VERIFY:?FATAL: PYVAR_ORIGIN_VERIFY must be set}"
-
 # ── JWT self-refresh (stdlib only — no third-party deps) ─────────────────────
 # Generates a fresh 24-hour pro-tier JWT from Secrets Manager on every run.
 echo "-- refreshing JWT from Secrets Manager ..."
@@ -48,8 +47,7 @@ PYVAR_TEST_JWT="$(python3 - << 'PYEOF_INNER'
 import hmac, hashlib, base64, json, time, subprocess
 
 def b64url(data):
-    if isinstance(data, str):
-        data = data.encode()
+    if isinstance(data, str): data = data.encode()
     return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
 
 secret = subprocess.run(
@@ -117,7 +115,7 @@ poll_until_result() {
   local task_id="$1" start now status waited
   start="$(date +%s)"
   while :; do
-    status="$(curl -s "${ENDPOINT}/api/v1/var/result/${task_id}" "${auth[@]}" | jq -r '.status // "unknown"')"
+    status="$(curl -s "${ENDPOINT}/api/v1/var/result/${task_id}" "${auth[@]}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")"
     now="$(date +%s)"; waited=$((now-start))
     if [ "${status}" = "SUCCESS" ] || [ "${status}" = "success" ] || [ "${status}" = "completed" ]; then
       echo "${waited}"; return 0
