@@ -36,10 +36,12 @@ class PyvarConfig:
     api_image_tag: str = "latest"
 
     # ── EC2 Spot ASG (Celery workers) ─────────────────────────────────────────
-    worker_instance_type: str = "c7i.xlarge"  # 4 vCPU, 8GB — compute-optimised
+    worker_instance_type: str = (
+        "c5.xlarge"  # 4 vCPU, 8GB — compute-optimised, better Spot availability
+    )
     worker_min_capacity: int = 0  # scale to zero when idle
     worker_max_capacity: int = 20
-    worker_spot_max_price: str = "0.12"  # on-demand is ~$0.18/hr — cap at 50%
+    worker_spot_max_price: str = "0.11"  # on-demand ~$0.17/hr — cap at ~65%, above c5.xlarge market
 
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause
