@@ -18,6 +18,7 @@ Reasoning:
 from __future__ import annotations
 
 import logging
+import os
 
 from celery import Celery, Task
 
@@ -27,11 +28,14 @@ cfg = get_settings()
 logger = logging.getLogger(__name__)
 
 # ── Celery app ────────────────────────────────────────────────────────────────
+# Broker and backend are read from environment variables so ECS task definitions
+# can inject the correct SQS/ElastiCache endpoints without changing code.
+# Falls back to cfg.redis_url (localhost:6379) for local dev.
 
 celery_app = Celery(
     "pyvar",
-    broker=cfg.redis_url,
-    backend=cfg.redis_url,
+    broker=os.environ.get("CELERY_BROKER_URL", cfg.redis_url),
+    backend=os.environ.get("CELERY_RESULT_BACKEND", cfg.redis_url),
 )
 
 celery_app.conf.update(
