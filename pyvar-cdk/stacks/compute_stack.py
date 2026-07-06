@@ -113,8 +113,7 @@ class ComputeStack(Stack):
             "export DB_PASS=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['password'])\")",
             # Configure Celery to use SQS broker
             "export CELERY_BROKER_URL=sqs://",
-            f"export CELERY_RESULT_BACKEND=redis://$(aws ssm get-parameter "
-            f"--name /pyvar/{cfg.env_name}/cache-endpoint --query Parameter.Value --output text):6379/0",
+            f"export CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
             f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
             # Install Celery as a systemd service
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
