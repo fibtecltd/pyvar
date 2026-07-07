@@ -100,9 +100,15 @@ class ComputeStack(Stack):
             "yum update -y",
             "yum install -y python3.11 python3.11-pip",
             "alternatives --set python3 /usr/bin/python3.11",
-            # Pull application wheel from S3 (version baked into AMI in production)
-            f"aws s3 cp s3://pyvar-{cfg.env_name}-deploy/pyvar-latest.tar.gz /opt/pyvar.tar.gz",
-            "mkdir -p /opt/pyvar && tar -xzf /opt/pyvar.tar.gz -C /opt/pyvar",
+            # Clone pyvar from GitHub and install dependencies.
+            # Hypothesis B (dev): replaces S3 artifact — always in sync with master.
+            # TODO (P6/P7 Hypothesis C): replace with pre-baked AMI via Image Builder
+            #   to eliminate runtime install and reduce cold-start from ~5min to ~20s.
+            "yum install -y git",
+            "GH_TOKEN=$(aws secretsmanager get-secret-value "
+            f"--secret-id pyvar/github-token --region {cfg.region} "
+            "--query SecretString --output text)",
+            "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
             "pip3 install -r /opt/pyvar/requirements.txt",
             # Pull secrets from Secrets Manager and export as env vars
             f"export AWS_REGION={cfg.region}",
@@ -115,10 +121,22 @@ class ComputeStack(Stack):
             "export CELERY_BROKER_URL=sqs://",
             f"export CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
             f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
+            f"export AWS_DEFAULT_REGION={cfg.region}",
+            # Write env vars to EnvironmentFile so systemd service inherits them.
+            # plain "export VAR=val" in user data only affects the bash process;
+            # systemctl start spawns a new process that does not inherit exports.
+            "mkdir -p /opt/pyvar",
+            "cat > /opt/pyvar/celery.env << 'ENVEOF'\n"
+            "CELERY_BROKER_URL=sqs://\n"
+            f"CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE\n"
+            f"SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo\n"
+            f"AWS_DEFAULT_REGION={cfg.region}\n"
+            "ENVEOF",
             # Install Celery as a systemd service
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
             "[Service]\nType=forking\nWorkingDirectory=/opt/pyvar\n"
+            "EnvironmentFile=/opt/pyvar/celery.env\n"
             "ExecStart=/usr/bin/python3 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
             "[Install]\nWantedBy=multi-user.target\nEOF",
