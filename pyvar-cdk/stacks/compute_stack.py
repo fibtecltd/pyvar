@@ -77,6 +77,11 @@ class ComputeStack(Stack):
 
         # Secrets Manager — read DB credentials and JWT secret
         data.db_secret.grant_read(worker_role)
+        # GitHub token — needed by Hypothesis B (git clone) to pull pyvar source
+        # TODO: remove when Hypothesis C (AMI bake) replaces git clone
+        cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "GithubTokenSecret", "pyvar/github-token"
+        ).grant_read(worker_role)
 
         # CloudWatch — publish custom metrics (computation duration, sim count)
         worker_role.add_to_policy(
