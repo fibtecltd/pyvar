@@ -99,7 +99,8 @@ class ComputeStack(Stack):
             # System dependencies
             "yum update -y",
             "yum install -y python3.11 python3.11-pip git",
-            "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 2>/dev/null || true",
+            # Do NOT change system python3 — aws CLI and yum depend on python3.9
+            # Use python3.11 and pip3.11 explicitly throughout
             # Clone pyvar from GitHub and install dependencies.
             # Hypothesis B (dev): replaces S3 artifact — always in sync with master.
             # TODO (P6/P7 Hypothesis C): replace with pre-baked AMI via Image Builder
@@ -108,7 +109,7 @@ class ComputeStack(Stack):
             f"--secret-id pyvar/github-token --region {cfg.region} "
             "--query SecretString --output text)",
             "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
-            "pip3 install -r /opt/pyvar/requirements.txt",
+            "pip3.11 install -r /opt/pyvar/requirements.txt",
             # Pull secrets from Secrets Manager and export as env vars
             f"export AWS_REGION={cfg.region}",
             "SECRET=$(aws secretsmanager get-secret-value "
@@ -136,7 +137,7 @@ class ComputeStack(Stack):
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
             "[Service]\nType=forking\nWorkingDirectory=/opt/pyvar\n"
             "EnvironmentFile=/opt/pyvar/celery.env\n"
-            "ExecStart=/usr/bin/python3 worker.py\n"
+            "ExecStart=/usr/bin/python3.11 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
             "[Install]\nWantedBy=multi-user.target\nEOF",
             "systemctl daemon-reload",
