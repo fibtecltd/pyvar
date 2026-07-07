@@ -155,24 +155,30 @@ class ComputeStack(Stack):
         )
 
         # ── Auto Scaling Group ────────────────────────────────────────────────
+        # Spot vs on-demand controlled by cfg.worker_use_spot (Option B).
+        # Set worker_use_spot=False in config.py for guaranteed on-demand capacity.
+        # Set worker_instance_type in config.py to switch instance family (Option C).
+        _asg_kwargs: dict = {}
+        if cfg.worker_use_spot:
+            _asg_kwargs["mixed_instances_policy"] = autoscaling.MixedInstancesPolicy(
+                instances_distribution=autoscaling.InstancesDistribution(
+                    on_demand_percentage_above_base_capacity=0,  # 100% Spot
+                    spot_max_price=cfg.worker_spot_max_price,
+                    spot_allocation_strategy=autoscaling.SpotAllocationStrategy.PRICE_CAPACITY_OPTIMIZED,
+                ),
+                launch_template=launch_template,
+            )
+        else:
+            # On-demand only — guaranteed capacity, no Spot interruptions
+            _asg_kwargs["launch_template"] = launch_template
+
         self.asg = autoscaling.AutoScalingGroup(
             self,
             "WorkerAsg",
             auto_scaling_group_name=f"pyvar-{cfg.env_name}-workers",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
-            # Use MixedInstancesPolicy for Spot with capacity-optimised allocation
-            mixed_instances_policy=autoscaling.MixedInstancesPolicy(
-                instances_distribution=autoscaling.InstancesDistribution(
-                    on_demand_percentage_above_base_capacity=0,  # 100% Spot
-                    spot_max_price=cfg.worker_spot_max_price,
-                    spot_allocation_strategy=autoscaling.SpotAllocationStrategy.PRICE_CAPACITY_OPTIMIZED,
-                ),
-                # The base launch template must be an ILaunchTemplate, not a
-                # LaunchTemplateOverrides. Instance-type overrides are unused here
-                # (the launch template already fixes the instance type).
-                launch_template=launch_template,
-            ),
+            **_asg_kwargs,
             min_capacity=cfg.worker_min_capacity,
             max_capacity=cfg.worker_max_capacity,
             desired_capacity=0,  # start with 0; SQS scaling takes over

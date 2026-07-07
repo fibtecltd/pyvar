@@ -42,6 +42,9 @@ class PyvarConfig:
     worker_min_capacity: int = 0  # scale to zero when idle
     worker_max_capacity: int = 20
     worker_spot_max_price: str = "0.11"  # on-demand ~$0.17/hr — cap at ~65%, above c5.xlarge market
+    worker_use_spot: bool = (
+        True  # False = on-demand only (Option B: guaranteed capacity, higher cost)
+    )
 
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause
@@ -81,6 +84,8 @@ class PyvarConfig:
                 aurora_min_acu=0.5,
                 aurora_max_acu=2.0,
                 result_retention_days=14,
+                # Option B: set worker_use_spot=False for guaranteed on-demand capacity
+                # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
             ),
             "staging": dict(
                 api_min_tasks=2,

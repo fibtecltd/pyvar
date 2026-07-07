@@ -13,14 +13,16 @@
 #   PYVAR_TEST_JWT        JWT bearer token for the dev tenant
 #   PYVAR_ORIGIN_VERIFY   X-Origin-Verify header value for the CloudFront origin
 # Optional overrides:
-#   PYVAR_ENV     (default: dev)
-#   AWS_REGION    (default: eu-west-1)
-#   PYVAR_ENDPOINT(default: https://d1mqqddh8gu2qi.cloudfront.net)
-#   COLD_RUNS     (default: 3)
-#   COLD_TARGET_S (default: 45)
+#   PYVAR_ENV       (default: dev)
+#   AWS_REGION      (default: eu-west-1)
+#   PYVAR_ENDPOINT  (default: https://d1mqqddh8gu2qi.cloudfront.net)
+#   COLD_RUNS       (default: 3)
+#   COLD_TARGET_S   (default: 45)
+#   WORKER_USE_SPOT (default: true) — set to "false" to switch ASG to on-demand
+#                   WARNING: switching to on-demand does NOT update CDK state.
+#                   Run cdk deploy pyvar-dev-compute after the test to restore.
 #
-# This script mutates live infrastructure (scales the worker ASG to 0). It will
-# NOT run until you type "yes" at the confirmation prompt.
+# This script mutates live infrastructure (scales the worker ASG to 0).
 
 set -euo pipefail
 
@@ -30,6 +32,7 @@ ENDPOINT="${PYVAR_ENDPOINT:-https://d1mqqddh8gu2qi.cloudfront.net}"
 RUNS="${COLD_RUNS:-3}"
 TARGET_S="${COLD_TARGET_S:-45}"
 ASG_NAME="pyvar-${ENV_NAME}-workers"
+WORKER_USE_SPOT="${WORKER_USE_SPOT:-true}"  # false = on-demand (Hypothesis B)
 N_SIMS=10000
 POLL_INTERVAL=2          # seconds between result polls
 MAX_WAIT_S=600           # per-run safety cap — cold start needs up to 10min for Spot boot + Numba warmup
@@ -72,7 +75,7 @@ echo "==========================================================================
 echo " P5b COLD-START TEST"
 echo "   env=${ENV_NAME}  region=${REGION}  asg=${ASG_NAME}"
 echo "   endpoint=${ENDPOINT}"
-echo "   runs=${RUNS}  n_simulations=${N_SIMS}  target<${TARGET_S}s"
+echo "   runs=${RUNS}  n_simulations=${N_SIMS}  target<${TARGET_S}s  spot=${WORKER_USE_SPOT}"
 echo "=========================================================================="
 echo "This will SCALE ${ASG_NAME} TO 0 and rely on SQS-driven scale-out to bring"
 echo "a worker back up for each run. Starting automatically ..."
@@ -89,10 +92,22 @@ current_instance_count() {
 }
 
 scale_to_zero() {
-  # Purge stale messages so target tracking doesn't fight scale-to-zero.
+  # ── Option B: switch ASG to on-demand if WORKER_USE_SPOT=false ─────────────
+  if [ "${WORKER_USE_SPOT}" = "false" ]; then
+    echo "-- switching ASG to on-demand (WORKER_USE_SPOT=false) ..."
+    aws autoscaling update-auto-scaling-group \
+      --region "${REGION}" \
+      --auto-scaling-group-name "${ASG_NAME}" \
+      --mixed-instances-policy '{"InstancesDistribution":{"OnDemandPercentageAboveBaseCapacity":100,"SpotMaxPrice":""}}' \
+      2>/dev/null || true
+    echo "   NOTE: run cdk deploy pyvar-dev-compute after test to restore CDK state"
+  fi
+  # ── Purge stale messages so target tracking doesn't fight scale-to-zero ─────
   # SQS FIFO purge has a 60s cooldown — failure is non-fatal (|| true).
   local queue_url
-  queue_url="$(aws sqs get-queue-url --region "${REGION}"       --queue-name "pyvar-${ENV_NAME}-var-jobs.fifo"       --query QueueUrl --output text 2>/dev/null || echo "")"
+  queue_url="$(aws sqs get-queue-url --region "${REGION}" \
+      --queue-name "pyvar-${ENV_NAME}-var-jobs.fifo" \
+      --query QueueUrl --output text 2>/dev/null || echo "")"
   if [ -n "${queue_url}" ]; then
     echo "-- purging SQS queue to clear stale messages ..."
     aws sqs purge-queue --region "${REGION}" --queue-url "${queue_url}" 2>/dev/null || true
