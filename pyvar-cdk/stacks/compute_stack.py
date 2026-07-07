@@ -116,7 +116,7 @@ class ComputeStack(Stack):
             "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
             "pip3.11 install -r /opt/pyvar/requirements.txt",
             # Pull secrets from Secrets Manager and export as env vars
-            f"export AWS_REGION={cfg.region}",
+            f"export AWS_DEFAULT_REGION={cfg.region}",
             "SECRET=$(aws secretsmanager get-secret-value "
             f"--secret-id pyvar/{cfg.env_name}/aurora-credentials "
             "--query SecretString --output text)",
