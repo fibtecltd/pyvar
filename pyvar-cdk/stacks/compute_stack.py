@@ -98,13 +98,12 @@ class ComputeStack(Stack):
             "set -euo pipefail",
             # System dependencies
             "yum update -y",
-            "yum install -y python3.11 python3.11-pip",
+            "yum install -y python3.11 python3.11-pip git",
             "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 2>/dev/null || true",
             # Clone pyvar from GitHub and install dependencies.
             # Hypothesis B (dev): replaces S3 artifact — always in sync with master.
             # TODO (P6/P7 Hypothesis C): replace with pre-baked AMI via Image Builder
             #   to eliminate runtime install and reduce cold-start from ~5min to ~20s.
-            "yum install -y git",
             "GH_TOKEN=$(aws secretsmanager get-secret-value "
             f"--secret-id pyvar/github-token --region {cfg.region} "
             "--query SecretString --output text)",
