@@ -99,7 +99,7 @@ class ComputeStack(Stack):
             # System dependencies
             "yum update -y",
             "yum install -y python3.11 python3.11-pip",
-            "alternatives --set python3 /usr/bin/python3.11",
+            "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 2>/dev/null || true",
             # Clone pyvar from GitHub and install dependencies.
             # Hypothesis B (dev): replaces S3 artifact — always in sync with master.
             # TODO (P6/P7 Hypothesis C): replace with pre-baked AMI via Image Builder
