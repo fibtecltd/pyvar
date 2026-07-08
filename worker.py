@@ -17,6 +17,8 @@ Reasoning:
   so worker errors are also captured and logged.
 """
 
+import os
+
 from observability.setup import setup_logging, setup_sentry
 from tasks.var_task import celery_app  # noqa: F401 — imports registers all tasks
 
@@ -29,6 +31,6 @@ if __name__ == "__main__":
             "worker",
             "--loglevel=info",
             "--concurrency=4",
-            "--queues=default",
+            f"--queues={os.environ.get('SQS_QUEUE_NAME', 'celery')}",
         ]
     )
