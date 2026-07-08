@@ -148,7 +148,7 @@ class ComputeStack(Stack):
             # Install Celery as a systemd service
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
-            "[Service]\nType=forking\nWorkingDirectory=/opt/pyvar\n"
+            "[Service]\\nType=simple\\nWorkingDirectory=/opt/pyvar\\n"
             "EnvironmentFile=/opt/pyvar/celery.env\n"
             "ExecStart=/usr/bin/python3.11 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
