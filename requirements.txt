@@ -51,3 +51,4 @@ black>=24.4.0
 isort>=5.13.0
 pyarrow>=15.0.0
 awscli>=1.32.0
+pycurl>=7.45.0
