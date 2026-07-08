@@ -141,6 +141,7 @@ class ComputeStack(Stack):
             "mkdir -p /opt/pyvar",
             "cat > /opt/pyvar/celery.env << 'ENVEOF'\n"
             "CELERY_BROKER_URL=sqs://\n"
+            f"CELERY_WORKER_POOL=prefork\n"
             f"CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE\n"
             f"SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo\n"
             f"AWS_DEFAULT_REGION={cfg.region}\n"
