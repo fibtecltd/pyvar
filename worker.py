@@ -32,5 +32,6 @@ if __name__ == "__main__":
             "--loglevel=info",
             "--concurrency=4",
             f"--queues={os.environ.get('SQS_QUEUE_NAME', 'celery')}",
+            "--pool=prefork",
         ]
     )
