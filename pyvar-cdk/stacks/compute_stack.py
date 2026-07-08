@@ -123,6 +123,7 @@ class ComputeStack(Stack):
             "--query SecretString --output text)",
             "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
             "yum install -y libcurl-devel",
+            "pip3.11 install -r /opt/pyvar/requirements-heavy.txt",
             "pip3.11 install -r /opt/pyvar/requirements.txt",
             # Pull secrets from Secrets Manager and export as env vars
             f"export AWS_DEFAULT_REGION={cfg.region}",
