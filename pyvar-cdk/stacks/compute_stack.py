@@ -70,6 +70,14 @@ class ComputeStack(Stack):
 
         # SQS — poll jobs from main queue, send to DLQ on failure
         var_queue.grant_consume_messages(worker_role)
+        # sqs:ListQueues is required by Celery's SQS transport on startup
+        # (grant_consume_messages does not include it)
+        worker_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["sqs:ListQueues"],
+                resources=[f"arn:aws:sqs:{self.region}:{self.account}:*"],
+            )
+        )
         dlq.grant_send_messages(worker_role)
 
         # S3 — write Parquet simulation results
