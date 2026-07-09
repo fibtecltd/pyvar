@@ -48,8 +48,10 @@ pip3 install prometheus-fastapi-instrumentator sentry-sdk structlog
 
 echo "=== Pyvar AMI build: pre-compiling Numba JIT cache ==="
 
-# Run a minimal warmup to trigger Numba compilation and write the cache
-python3 -c "
+# Write warmup to a real .py file so Numba cache=True has a file path to
+# derive the cache location from. python3 -c "..." has no __file__ and
+# raises: RuntimeError: no locator available for file '<string>'
+cat > /tmp/numba_warmup.py << 'WARMEOF'
 import numpy as np
 from numba import njit, prange
 
@@ -64,7 +66,6 @@ def _warmup_kernel(returns, shocks, horizon):
     for i in range(n):
         sigma += (returns[i] - mu) ** 2
     sigma = (sigma / n) ** 0.5
-
     n_sims = shocks.shape[0]
     pnl = np.zeros(n_sims)
     for i in prange(n_sims):
@@ -74,14 +75,14 @@ def _warmup_kernel(returns, shocks, horizon):
         pnl[i] = c
     return pnl
 
-# Trigger compilation
 rng = np.random.default_rng(42)
 returns = rng.normal(0.0005, 0.012, 252)
 shocks = rng.standard_normal((1000, 1))
 result = _warmup_kernel(returns, shocks, 1)
 print(f'Numba warmup complete. VaR estimate: {-np.percentile(result, 1):.4f}')
-print('Cache written to ~/.cache/numba/')
-"
+print('Cache written to /tmp/numba_cache/')
+WARMEOF
+NUMBA_CACHE_DIR=/tmp/numba_cache python3 /tmp/numba_warmup.py
 
 echo "=== Pyvar AMI build: configuring systemd service ==="
 cat > /etc/systemd/system/celery-worker.service << 'UNIT'
