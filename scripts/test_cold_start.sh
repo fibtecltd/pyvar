@@ -35,7 +35,7 @@ ASG_NAME="pyvar-${ENV_NAME}-workers"
 WORKER_USE_SPOT="${WORKER_USE_SPOT:-true}"  # false = on-demand (Hypothesis B)
 N_SIMS=10000
 POLL_INTERVAL=2          # seconds between result polls
-MAX_WAIT_S=600           # per-run safety cap — cold start needs up to 10min for Spot boot + Numba warmup
+MAX_WAIT_S=1800          # per-run safety cap — cold start includes git clone + requirements-heavy install (~15-20min)
 
 # ── sanity ────────────────────────────────────────────────────────────────────
 command -v aws  >/dev/null || { echo "FATAL: aws CLI not found"; exit 1; }
