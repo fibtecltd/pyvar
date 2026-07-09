@@ -46,6 +46,11 @@ class PyvarConfig:
     worker_use_spot: bool = (
         True  # False = on-demand only (Option B: guaranteed capacity, higher cost)
     )
+    # Hypothesis C: pre-baked worker AMI (pyvar-dev-ami Image Builder pipeline).
+    # When set, ComputeStack uses this AMI and skips the runtime pip install —
+    # dependencies + Numba cache are already baked, so cold start drops to <90s.
+    # Empty string = Hypothesis B (stock AL2023 + git clone + pip install at boot).
+    worker_ami_id: str = ""
 
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause

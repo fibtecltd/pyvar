@@ -103,72 +103,99 @@ class ComputeStack(Stack):
         # ── EC2 Launch Template ────────────────────────────────────────────────
         instance_type = ec2.InstanceType(cfg.worker_instance_type)
 
-        # UserData: install pyvar worker and start Celery via systemd
-        # In production: replace with a pre-baked AMI to cut startup from ~90s to ~20s
-        user_data = ec2.UserData.for_linux()
-        user_data.add_commands(
-            "#!/bin/bash",
-            "set -euo pipefail",
-            # System dependencies
-            "yum update -y",
-            "yum install -y python3.11 python3.11-pip git",
-            # Do NOT change system python3 — aws CLI and yum depend on python3.9
-            # Use python3.11 and pip3.11 explicitly throughout
-            # Clone pyvar from GitHub and install dependencies.
-            # Hypothesis B (dev): replaces S3 artifact — always in sync with master.
-            # TODO (P6/P7 Hypothesis C): replace with pre-baked AMI via Image Builder
-            #   to eliminate runtime install and reduce cold-start from ~5min to ~20s.
-            "GH_TOKEN=$(aws secretsmanager get-secret-value "
-            f"--secret-id pyvar/github-token --region {cfg.region} "
-            "--query SecretString --output text)",
-            "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
-            "yum install -y libcurl-devel",
-            "pip3.11 install -r /opt/pyvar/requirements-heavy.txt",
-            "pip3.11 install -r /opt/pyvar/requirements.txt",
-            # Pull secrets from Secrets Manager and export as env vars
-            f"export AWS_DEFAULT_REGION={cfg.region}",
-            "SECRET=$(aws secretsmanager get-secret-value "
-            f"--secret-id pyvar/{cfg.env_name}/aurora-credentials "
-            "--query SecretString --output text)",
-            "export DB_HOST=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['host'])\")",
-            "export DB_PASS=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['password'])\")",
-            # Configure Celery to use SQS broker
-            "export CELERY_BROKER_URL=sqs://",
-            f"export CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
-            f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
-            f"export AWS_DEFAULT_REGION={cfg.region}",
-            # Write env vars to EnvironmentFile so systemd service inherits them.
-            # plain "export VAR=val" in user data only affects the bash process;
-            # systemctl start spawns a new process that does not inherit exports.
-            "mkdir -p /opt/pyvar",
+        # Shared systemd fragments used by both Hypothesis B and C paths.
+        # plain "export VAR=val" in user data only affects the bash process;
+        # systemctl start spawns a new process that does not inherit exports.
+        celery_env_block = (
+            "mkdir -p /opt/pyvar\n"
             "cat > /opt/pyvar/celery.env << 'ENVEOF'\n"
             "CELERY_BROKER_URL=sqs://\n"
-            f"CELERY_WORKER_POOL=prefork\n"
+            "CELERY_WORKER_POOL=prefork\n"
             f"CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE\n"
             f"SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo\n"
             f"AWS_DEFAULT_REGION={cfg.region}\n"
-            "ENVEOF",
-            # Install Celery as a systemd service
+            "ENVEOF"
+        )
+        celery_unit_block = (
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
             "[Service]\nType=simple\nWorkingDirectory=/opt/pyvar\n"
             "EnvironmentFile=/opt/pyvar/celery.env\n"
             "ExecStart=/usr/bin/python3.11 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
-            "[Install]\nWantedBy=multi-user.target\nEOF",
-            "systemctl daemon-reload",
-            "systemctl enable celery-worker",
-            "systemctl start celery-worker",
+            "[Install]\nWantedBy=multi-user.target\nEOF"
         )
+
+        user_data = ec2.UserData.for_linux()
+
+        if cfg.worker_ami_id:
+            # Hypothesis C: pre-baked AMI — dependencies + Numba cache already on disk.
+            # UserData only clones the latest pyvar source and wires up systemd.
+            # Cold start: ~25s (OS boot + git clone + service start).
+            machine_image: ec2.IMachineImage = ec2.MachineImage.generic_linux(
+                {cfg.region: cfg.worker_ami_id}
+            )
+            user_data.add_commands(
+                "#!/bin/bash",
+                "set -euo pipefail",
+                f"export AWS_DEFAULT_REGION={cfg.region}",
+                "GH_TOKEN=$(aws secretsmanager get-secret-value "
+                f"--secret-id pyvar/github-token --region {cfg.region} "
+                "--query SecretString --output text)",
+                "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
+                celery_env_block,
+                celery_unit_block,
+                "systemctl daemon-reload",
+                "systemctl enable celery-worker",
+                "systemctl start celery-worker",
+            )
+        else:
+            # Hypothesis B: stock AL2023 — runtime pip install at boot.
+            # Cold start: ~5min (yum + pip + git clone).
+            # TODO: replace with Hypothesis C once AMI pipeline (P6/P7) is ready.
+            machine_image = ec2.MachineImage.latest_amazon_linux2023(
+                cpu_type=ec2.AmazonLinuxCpuType.X86_64,
+            )
+            user_data.add_commands(
+                "#!/bin/bash",
+                "set -euo pipefail",
+                # System dependencies
+                "yum update -y",
+                "yum install -y python3.11 python3.11-pip git",
+                # Do NOT change system python3 — aws CLI and yum depend on python3.9
+                # Use python3.11 and pip3.11 explicitly throughout
+                "GH_TOKEN=$(aws secretsmanager get-secret-value "
+                f"--secret-id pyvar/github-token --region {cfg.region} "
+                "--query SecretString --output text)",
+                "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
+                "yum install -y libcurl-devel",
+                "pip3.11 install -r /opt/pyvar/requirements-heavy.txt",
+                "pip3.11 install -r /opt/pyvar/requirements.txt",
+                # Pull secrets from Secrets Manager and export as env vars
+                f"export AWS_DEFAULT_REGION={cfg.region}",
+                "SECRET=$(aws secretsmanager get-secret-value "
+                f"--secret-id pyvar/{cfg.env_name}/aurora-credentials "
+                "--query SecretString --output text)",
+                "export DB_HOST=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['host'])\")",
+                "export DB_PASS=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['password'])\")",
+                # Configure Celery to use SQS broker
+                "export CELERY_BROKER_URL=sqs://",
+                f"export CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
+                f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
+                f"export AWS_DEFAULT_REGION={cfg.region}",
+                celery_env_block,
+                celery_unit_block,
+                "systemctl daemon-reload",
+                "systemctl enable celery-worker",
+                "systemctl start celery-worker",
+            )
 
         launch_template = ec2.LaunchTemplate(
             self,
             "WorkerLaunchTemplate",
             launch_template_name=f"pyvar-{cfg.env_name}-worker",
             instance_type=instance_type,
-            machine_image=ec2.MachineImage.latest_amazon_linux2023(
-                cpu_type=ec2.AmazonLinuxCpuType.X86_64,
-            ),
+            machine_image=machine_image,
             role=worker_role,
             security_group=sgs.worker,
             user_data=user_data,

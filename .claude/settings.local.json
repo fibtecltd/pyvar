@@ -10,26 +10,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'FILE=\"${CLAUDE_TOOL_INPUT_FILE_PATH:-}\"; if [[ \"$FILE\" =~ /api/|/schemas/ ]] && [ -f \"$FILE\" ]; then python3 /Users/riccardofei/projects/pyvar/scripts/hooks/check_regulatory.py \"$FILE\"; fi'"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'FILE=\"${CLAUDE_TOOL_INPUT_FILE_PATH:-}\"; if [[ \"$FILE\" == */api/routes/*.py ]] && [ -f \"$FILE\" ]; then cd /workspace/pyvar && python -c \"from main import create_app; app=create_app(); print(f\\\"[pyvar-hook] API OK: {len(app.routes)} routes\\\")\" 2>&1 | tail -2; fi'"
-          }
-        ]
-      }
     ]
   }
 }
