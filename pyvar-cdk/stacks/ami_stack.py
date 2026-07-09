@@ -19,6 +19,8 @@ Reasoning:
 
 from __future__ import annotations
 
+import hashlib
+
 import aws_cdk as cdk
 from aws_cdk import Stack
 from aws_cdk import aws_iam as iam
@@ -136,12 +138,19 @@ class AmiStack(Stack):
             instance_profile_name=f"pyvar-{cfg.env_name}-image-builder",
         )
 
+        # ── Auto-versioning: hash component content so version bumps automatically
+        # whenever the script changes. No manual version bumps needed.
+        _component_hash = hashlib.md5(
+            NUMBA_WARMUP_SCRIPT.encode(), usedforsecurity=False
+        ).hexdigest()[:6]
+        component_version = f"1.0.{int(_component_hash, 16) % 10000}"
+
         # ── Build component: install pyvar + pre-compile Numba ─────────────────
         build_component = imagebuilder.CfnComponent(
             self,
             "PyvarBuildComponent",
             name=f"pyvar-{cfg.env_name}-worker-setup",
-            version="1.0.0",
+            version=component_version,
             platform="Linux",
             description="Installs pyvar dependencies and pre-compiles Numba JIT cache",
             data=f"""
@@ -166,7 +175,7 @@ phases:
             self,
             "WorkerRecipe",
             name=f"pyvar-{cfg.env_name}-worker",
-            version="1.0.0",
+            version=component_version,
             parent_image=f"arn:aws:imagebuilder:{cfg.region}:aws:image/amazon-linux-2023-x86/x.x.x",
             components=[
                 imagebuilder.CfnImageRecipe.ComponentConfigurationProperty(
