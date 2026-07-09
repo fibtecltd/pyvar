@@ -229,11 +229,17 @@ phases:
                 http_tokens="required",
                 http_put_response_hop_limit=1,
             ),
-            logging=imagebuilder.CfnInfrastructureConfiguration.LoggingProperty(
-                s3_logs=imagebuilder.CfnInfrastructureConfiguration.S3LogsProperty(
-                    s3_bucket_name=f"pyvar-{cfg.env_name}-build-logs-{self.account}",
-                    s3_key_prefix="image-builder/",
-                )
+            **(
+                {
+                    "logging": imagebuilder.CfnInfrastructureConfiguration.LoggingProperty(
+                        s3_logs=imagebuilder.CfnInfrastructureConfiguration.S3LogsProperty(
+                            s3_bucket_name=f"pyvar-{cfg.env_name}-build-logs-{self.account}",
+                            s3_key_prefix="image-builder/",
+                        )
+                    )
+                }
+                if cfg.ami_s3_logging
+                else {}
             ),
         )
 

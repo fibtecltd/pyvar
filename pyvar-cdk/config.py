@@ -42,6 +42,7 @@ class PyvarConfig:
     worker_min_capacity: int = 0  # scale to zero when idle
     worker_max_capacity: int = 20
     worker_spot_max_price: str = "0.11"  # on-demand ~$0.17/hr — cap at ~65%, above c5.xlarge market
+    ami_s3_logging: bool = False  # enable once pyvar-{env}-build-logs S3 bucket exists (P7)
     worker_use_spot: bool = (
         True  # False = on-demand only (Option B: guaranteed capacity, higher cost)
     )
