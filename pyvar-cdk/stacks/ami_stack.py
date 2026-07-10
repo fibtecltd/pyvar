@@ -96,6 +96,8 @@ Wants=cloud-final.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/pyvar
+EnvironmentFile=/opt/pyvar/celery.env
+EnvironmentFile=-/opt/pyvar/secrets.env
 ExecStartPre=/opt/pyvar/scripts/fetch-config.sh
 ExecStart=/usr/bin/python3 worker.py
 Restart=always

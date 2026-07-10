@@ -114,13 +114,21 @@ class ComputeStack(Stack):
             f"CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE\n"
             f"SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo\n"
             f"AWS_DEFAULT_REGION={cfg.region}\n"
+            f"PYVAR_ENV_NAME={cfg.env_name}\n"
             "ENVEOF"
         )
+        # EnvironmentFile=-/opt/pyvar/secrets.env: '-' prefix makes it optional so
+        # systemd doesn't fail on first reload before ExecStartPre has written it.
+        # UserData calls fetch-config.sh directly before systemctl start to ensure
+        # the file exists for the first boot (systemd loads EnvironmentFile before
+        # running ExecStartPre, so on first start it must already be present).
         celery_unit_block = (
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
             "[Service]\nType=simple\nWorkingDirectory=/opt/pyvar\n"
             "EnvironmentFile=/opt/pyvar/celery.env\n"
+            "EnvironmentFile=-/opt/pyvar/secrets.env\n"
+            "ExecStartPre=/opt/pyvar/scripts/fetch-config.sh\n"
             "ExecStart=/usr/bin/python3.11 worker.py\n"
             "Restart=always\nRestartSec=10\n\n"
             "[Install]\nWantedBy=multi-user.target\nEOF"
@@ -139,11 +147,16 @@ class ComputeStack(Stack):
                 "#!/bin/bash",
                 "set -euo pipefail",
                 f"export AWS_DEFAULT_REGION={cfg.region}",
+                f"export PYVAR_ENV_NAME={cfg.env_name}",
                 "GH_TOKEN=$(aws secretsmanager get-secret-value "
                 f"--secret-id pyvar/github-token --region {cfg.region} "
                 "--query SecretString --output text)",
                 "git clone https://x-access-token:${GH_TOKEN}@github.com/fibtecltd/pyvar.git /opt/pyvar",
+                "chmod +x /opt/pyvar/scripts/fetch-config.sh",
                 celery_env_block,
+                # Populate secrets.env before systemctl start — systemd loads
+                # EnvironmentFile before ExecStartPre so the file must exist on first boot.
+                "/opt/pyvar/scripts/fetch-config.sh",
                 celery_unit_block,
                 "systemctl daemon-reload",
                 "systemctl enable celery-worker",
@@ -171,19 +184,13 @@ class ComputeStack(Stack):
                 "yum install -y libcurl-devel",
                 "pip3.11 install -r /opt/pyvar/requirements-heavy.txt",
                 "pip3.11 install -r /opt/pyvar/requirements.txt",
-                # Pull secrets from Secrets Manager and export as env vars
                 f"export AWS_DEFAULT_REGION={cfg.region}",
-                "SECRET=$(aws secretsmanager get-secret-value "
-                f"--secret-id pyvar/{cfg.env_name}/aurora-credentials "
-                "--query SecretString --output text)",
-                "export DB_HOST=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['host'])\")",
-                "export DB_PASS=$(echo $SECRET | python3 -c \"import sys,json; print(json.load(sys.stdin)['password'])\")",
-                # Configure Celery to use SQS broker
-                "export CELERY_BROKER_URL=sqs://",
-                f"export CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
-                f"export SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo",
-                f"export AWS_DEFAULT_REGION={cfg.region}",
+                f"export PYVAR_ENV_NAME={cfg.env_name}",
+                "chmod +x /opt/pyvar/scripts/fetch-config.sh",
                 celery_env_block,
+                # Populate secrets.env before systemctl start — systemd loads
+                # EnvironmentFile before ExecStartPre so the file must exist on first boot.
+                "/opt/pyvar/scripts/fetch-config.sh",
                 celery_unit_block,
                 "systemctl daemon-reload",
                 "systemctl enable celery-worker",
