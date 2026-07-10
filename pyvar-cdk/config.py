@@ -42,15 +42,13 @@ class PyvarConfig:
     worker_min_capacity: int = 0  # scale to zero when idle
     worker_max_capacity: int = 20
     worker_spot_max_price: str = "0.11"  # on-demand ~$0.17/hr — cap at ~65%, above c5.xlarge market
-    ami_s3_logging: bool = False  # enable once pyvar-{env}-build-logs S3 bucket exists (P7)
     worker_use_spot: bool = (
         True  # False = on-demand only (Option B: guaranteed capacity, higher cost)
     )
-    # Hypothesis C: pre-baked worker AMI (pyvar-dev-ami Image Builder pipeline).
-    # When set, ComputeStack uses this AMI and skips the runtime pip install —
-    # dependencies + Numba cache are already baked, so cold start drops to <90s.
-    # Empty string = Hypothesis B (stock AL2023 + git clone + pip install at boot).
-    worker_ami_id: str = ""
+    worker_ami_id: str = (
+        ""  # empty = Hypothesis B (stock AL2023); set once AMI pipeline (P6) produces an AMI
+    )
+    ami_s3_logging: bool = False  # gate until pyvar-{env}-build-logs bucket exists (P7)
 
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause

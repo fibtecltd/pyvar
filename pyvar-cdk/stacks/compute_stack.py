@@ -18,9 +18,10 @@ Reasoning:
 - UserData installs the pyvar worker from a pre-built S3 wheel and starts
   the Celery systemd service. In production, bake an AMI with dependencies
   pre-installed to reduce startup time from ~90s to ~20s.
-- Step scaling uses EXACT_CAPACITY (set workers to N) not CHANGE_IN_CAPACITY
-  (add/remove N). EXACT_CAPACITY is more predictable for queue-depth scaling
-  because it avoids overshoot when demand drops suddenly.
+- Target-tracking scaling (not step scaling) holds queue depth at
+  target_value messages per worker, continuously adjusting capacity —
+  replaced the earlier step-scaling approach (W2 fix) which overshot
+  on sudden demand drops.
 """
 
 from __future__ import annotations
@@ -114,14 +115,15 @@ class ComputeStack(Stack):
             f"CELERY_RESULT_BACKEND=rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE\n"
             f"SQS_QUEUE_NAME=pyvar-{cfg.env_name}-var-jobs.fifo\n"
             f"AWS_DEFAULT_REGION={cfg.region}\n"
+            "NUMBA_CACHE_DIR=/opt/numba_cache\n"
             f"PYVAR_ENV_NAME={cfg.env_name}\n"
             "ENVEOF"
         )
         # EnvironmentFile=-/opt/pyvar/secrets.env: '-' prefix makes it optional so
         # systemd doesn't fail on first reload before ExecStartPre has written it.
-        # UserData calls fetch-config.sh directly before systemctl start to ensure
-        # the file exists for the first boot (systemd loads EnvironmentFile before
-        # running ExecStartPre, so on first start it must already be present).
+        # UserData also calls fetch-config.sh directly before systemctl start, since
+        # systemd loads EnvironmentFile before running ExecStartPre — the file must
+        # already exist on first boot.
         celery_unit_block = (
             "cat > /etc/systemd/system/celery-worker.service << 'EOF'\n"
             "[Unit]\nDescription=pyvar Celery Worker\nAfter=network.target\n\n"
@@ -291,9 +293,32 @@ class ComputeStack(Stack):
             self,
             "ScaleOnQueueDepth",
             auto_scaling_group=self.asg,
-            target_value=1.0,
+            target_value=5.0,
             custom_metric=queue_depth_metric,
             estimated_instance_warmup=Duration.seconds(90),
+        )
+
+        # ── Step-scaling zero→one kickstart ─────────────────────────────────────
+        # Target tracking cannot scale out from 0 capacity — the backlog-per-instance
+        # ratio is undefined/never evaluated when there are 0 running instances,
+        # regardless of target_value. This is a documented AWS limitation, not a
+        # tuning problem. This step policy handles just the 0→1 transition; target
+        # tracking above takes over for all scaling once at least 1 instance is up.
+        # EXACT_CAPACITY is idempotent (always sets to a fixed value rather than
+        # incrementing), so repeated alarm breaches during a sustained burst can't
+        # compound into runaway scale-out the way CHANGE_IN_CAPACITY could.
+        # If both policies propose conflicting capacities in the same evaluation,
+        # AWS resolves it by taking the larger scale-out / less aggressive scale-in
+        # — so this can never fight target tracking's own decisions once running.
+        self.asg.scale_on_metric(
+            "ScaleFromZero",
+            metric=queue_depth_metric,
+            scaling_steps=[
+                autoscaling.ScalingInterval(upper=1, change=0),
+                autoscaling.ScalingInterval(lower=1, change=1),
+            ],
+            adjustment_type=autoscaling.AdjustmentType.EXACT_CAPACITY,
+            cooldown=Duration.minutes(2),
         )
 
         # ── Outputs ───────────────────────────────────────────────────────────────────
