@@ -45,8 +45,11 @@ class PyvarConfig:
     worker_use_spot: bool = (
         True  # False = on-demand only (Option B: guaranteed capacity, higher cost)
     )
-    worker_ami_id: str = (
-        ""  # empty = Hypothesis B (stock AL2023); set once AMI pipeline (P6) produces an AMI
+    worker_ami_id: str = "ami-053d838c9735b7a03"  # Hypothesis C — baked AMI (P6), version 1.0.251
+    worker_use_baked_ami: bool = (
+        False  # False = Hypothesis B (stock AL2023, runtime pip install).
+        # True = Hypothesis C — dynamically looks up the latest pyvar-{env}-worker-*
+        # AMI produced by the Image Builder pipeline. No AMI ID to maintain here.
     )
     ami_s3_logging: bool = False  # gate until pyvar-{env}-build-logs bucket exists (P7)
 
@@ -88,6 +91,7 @@ class PyvarConfig:
                 aurora_min_acu=0.5,
                 aurora_max_acu=2.0,
                 result_retention_days=14,
+                worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
             ),

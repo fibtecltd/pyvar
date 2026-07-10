@@ -138,12 +138,20 @@ class ComputeStack(Stack):
 
         user_data = ec2.UserData.for_linux()
 
-        if cfg.worker_ami_id:
+        if cfg.worker_use_baked_ami:
             # Hypothesis C: pre-baked AMI — dependencies + Numba cache already on disk.
             # UserData only clones the latest pyvar source and wires up systemd.
             # Cold start: ~25s (OS boot + git clone + service start).
-            machine_image: ec2.IMachineImage = ec2.MachineImage.generic_linux(
-                {cfg.region: cfg.worker_ami_id}
+            # AMI is looked up dynamically by name pattern rather than a hardcoded
+            # ID — every cdk deploy picks up whichever AMI the Image Builder
+            # pipeline most recently produced, no manual config.py edit needed.
+            # CAVEAT: CDK caches lookup results in cdk.context.json. After a new
+            # AMI bake, clear the stale entry before deploying:
+            #   cdk context --clear
+            # or remove just the ami-lookup key from cdk.context.json.
+            machine_image: ec2.IMachineImage = ec2.MachineImage.lookup(
+                name=f"pyvar-{cfg.env_name}-worker-*",
+                owners=[self.account],
             )
             user_data.add_commands(
                 "#!/bin/bash",
