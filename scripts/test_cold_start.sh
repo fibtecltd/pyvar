@@ -6,7 +6,7 @@
 # worker fleet starts from ZERO instances (the cold path: SQS-triggered ASG
 # scale-out + EC2 Spot boot + Numba warmup + compute).
 #
-# Target: < 45s (job submission -> first result), reported as min/max/avg over 3 runs.
+# Target: < 20s (job submission -> first result), reported as min/max/avg over 3 runs.
 #
 # PREREQUISITES (must be set in the environment):
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN   (read+ASG+SQS)
@@ -17,7 +17,7 @@
 #   AWS_REGION      (default: eu-west-1)
 #   PYVAR_ENDPOINT  (default: https://d1mqqddh8gu2qi.cloudfront.net)
 #   COLD_RUNS       (default: 3)
-#   COLD_TARGET_S   (default: 45)
+#   COLD_TARGET_S   (default: 20)
 #   WORKER_USE_SPOT (default: true) — set to "false" to switch ASG to on-demand
 #                   WARNING: switching to on-demand does NOT update CDK state.
 #                   Run cdk deploy pyvar-dev-compute after the test to restore.
@@ -30,7 +30,7 @@ ENV_NAME="${PYVAR_ENV:-dev}"
 REGION="${AWS_REGION:-eu-west-1}"
 ENDPOINT="${PYVAR_ENDPOINT:-https://d1mqqddh8gu2qi.cloudfront.net}"
 RUNS="${COLD_RUNS:-3}"
-TARGET_S="${COLD_TARGET_S:-45}"
+TARGET_S="${COLD_TARGET_S:-20}"
 ASG_NAME="pyvar-${ENV_NAME}-workers"
 WORKER_USE_SPOT="${WORKER_USE_SPOT:-true}"  # false = on-demand (Hypothesis B)
 N_SIMS=10000
