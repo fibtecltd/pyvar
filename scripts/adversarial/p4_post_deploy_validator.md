@@ -177,7 +177,7 @@ done
 
 ## Output format
 
-Write `/workspace/pyvar/P4_ADVERSARIAL_POST_DEPLOY.md`:
+Write `/workspace/pyvar/docs/P4_ADVERSARIAL_POST_DEPLOY.md`:
 
 ```markdown
 # P4 Post-Deploy Adversarial Validation

@@ -72,7 +72,7 @@ If the test still times out:
 
 The test PASSES when at least 1 of 3 runs shows a numeric result < COLD_TARGET_S.
 Update COLD_TARGET_S from 45 to a realistic value based on measured results.
-Document the measured cold-start time in P4_ADVERSARIAL_POST_DEPLOY.md.
+Document the measured cold-start time in docs/P4_ADVERSARIAL_POST_DEPLOY.md.
 
 Branch: fix/p6-cold-start-target
 Commit: "fix(p5b): update COLD_TARGET_S to measured value with baked AMI"
@@ -191,7 +191,7 @@ Then rebuild: docker compose build (in ~/claude-docker)
 
 After all P6 changes are deployed:
 1. Run the post-deploy validator: scripts/adversarial/p4_post_deploy_validator.md
-2. Append results to P4_ADVERSARIAL_POST_DEPLOY.md:
+2. Append results to docs/P4_ADVERSARIAL_POST_DEPLOY.md:
    "## P6 Observability & AMI — full stack pass"
    covering: all stack statuses, AMI ID, cold-start measured time,
    CloudWatch dashboard URL, validator results.
@@ -211,7 +211,7 @@ All of the following must be true before declaring P6 complete:
 - [ ] asyncio_mode warning resolved
 - [ ] SSM plugin in claude-docker
 - [ ] Post-deploy validator: 0 CRITICAL / 0 WARNING
-- [ ] P4_ADVERSARIAL_POST_DEPLOY.md updated
+- [ ] docs/P4_ADVERSARIAL_POST_DEPLOY.md updated
 
 ## P6 carry-forward to P7 (do not attempt in this session)
 - DNSSEC activation on Aruba (tracked since P4)

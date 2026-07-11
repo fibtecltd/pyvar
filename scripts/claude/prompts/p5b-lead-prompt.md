@@ -26,7 +26,7 @@ you might have are already provided below. Proceed immediately after reading.
 Read @CLAUDE.md in full, especially sections 4 (regulatory constraints) and 5
 (testing rules).
 Read @scripts/claude/templates/checkpoint-instructions.md.
-Read @P5A_BLOCKERS.md — confirm portfolio SLSQP fix is merged before proceeding.
+Read @docs/P5A_BLOCKERS.md — confirm portfolio SLSQP fix is merged before proceeding.
 
 ---
 

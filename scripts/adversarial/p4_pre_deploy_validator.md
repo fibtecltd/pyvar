@@ -205,7 +205,7 @@ Severity: **CRITICAL** — edge stack cannot deploy
 
 ## Output format
 
-Write `/workspace/pyvar/P4_ADVERSARIAL_REVIEW.md`:
+Write `/workspace/pyvar/docs/P4_ADVERSARIAL_REVIEW.md`:
 
 ```markdown
 # P4 Pre-Deploy Adversarial Review
