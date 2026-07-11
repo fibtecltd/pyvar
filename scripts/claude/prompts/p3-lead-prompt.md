@@ -25,7 +25,7 @@ Read @CLAUDE.md in full, especially:
 - Section 5 (testing — integration tests required)
 - Section 5a (coding quality rules — dict[str,Any], float() casts, no l/O/I vars)
 
-Read @pyvar_release_plan.md Phase 3 section.
+Read @docs/pyvar_release_plan.md Phase 3 section.
 Read @pyvar_functions.csv — this is the complete function registry.
 Read @api/routes/var.py — existing route as the reference pattern.
 Read @schemas/var.py — existing schema as the reference pattern.

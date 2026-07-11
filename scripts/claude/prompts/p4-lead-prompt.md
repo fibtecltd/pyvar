@@ -33,7 +33,7 @@ Then write CHECKPOINT.md noting that Steps 4–12 require credentials and rebuil
 ## Step 1 — Read context
 
 Read @CLAUDE.md section 3.4 (AWS/CDK rules).
-Read @pyvar_release_plan.md Phase 4 section.
+Read @docs/pyvar_release_plan.md Phase 4 section.
 
 ---
 
@@ -86,7 +86,7 @@ If item 1 is present: report it but proceed if it is expected for a first deploy
 
 Run `cdk synth --context env=dev --quiet` first to generate templates in `cdk.out/`.
 Then read @scripts/adversarial/p4_pre_deploy_validator.md and execute the full review.
-Write `/workspace/pyvar/P4_ADVERSARIAL_REVIEW.md`.
+Write `/workspace/pyvar/docs/P4_ADVERSARIAL_REVIEW.md`.
 
 **Do not proceed to Step 4 until VERDICT = DEPLOY APPROVED.**
 If blocked: fix the CDK code, re-synth, re-review.
@@ -213,14 +213,14 @@ bash scripts/smoke_test.sh "$API_URL"
 ```
 
 If `scripts/smoke_test.sh` does not exist, write it now per the spec in
-@pyvar_release_plan.md Phase 4 (curl + jq only, no Python, exit 0/1).
+@docs/pyvar_release_plan.md Phase 4 (curl + jq only, no Python, exit 0/1).
 
 ---
 
 ## Step 9a — Post-deploy adversarial validation
 
 Read @scripts/adversarial/p4_post_deploy_validator.md and execute the live checks.
-Write `/workspace/pyvar/P4_ADVERSARIAL_POST_DEPLOY.md`.
+Write `/workspace/pyvar/docs/P4_ADVERSARIAL_POST_DEPLOY.md`.
 
 **Do not proceed to Step 10 until VERDICT = P5 CLEARED.**
 

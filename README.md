@@ -54,6 +54,14 @@ pyvar/
 │   ├── pyvar_market_risk.html
 │   └── pyvar_architecture.html
 │
+├── docs/                       ← project notes, release plans, adversarial reviews
+│   ├── ENVIRONMENT_NOTES.md
+│   ├── P4_ADVERSARIAL_REVIEW.md
+│   ├── P4_ADVERSARIAL_POST_DEPLOY.md
+│   ├── P5A_BLOCKERS.md
+│   ├── pyvar_notes.md
+│   └── pyvar_release_plan.md
+│
 └── pyvar-cdk/                  ← AWS CDK infrastructure
     └── stacks/
         ├── network_stack.py    ← VPC, subnets, SGs, VPC endpoints
