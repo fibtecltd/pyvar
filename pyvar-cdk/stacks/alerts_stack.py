@@ -132,8 +132,7 @@ class AlertsStack(Stack):
             "Api5xxAlarm",
             alarm_name=f"pyvar-{cfg.env_name}-api-5xx",
             alarm_description=(
-                "More than 10 target 5xx responses in 5 minutes — API errors "
-                "reaching clients"
+                "More than 10 target 5xx responses in 5 minutes — API errors " "reaching clients"
             ),
             metric=errors_5xx,
             threshold=10,
@@ -261,7 +260,7 @@ class AlertsStack(Stack):
             description=(
                 "SNS topic for all pyvar alerts. No subscriptions are created by "
                 "CDK — subscribe endpoints manually, e.g.: aws sns subscribe "
-                f"--topic-arn <this> --protocol email --notification-endpoint "
+                "--topic-arn <this> --protocol email --notification-endpoint "
                 "ops@example.com --region " + cfg.region
             ),
         )
