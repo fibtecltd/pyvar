@@ -16,6 +16,7 @@ Deploy order:
 
 import aws_cdk as cdk
 from stacks.alb_waf_stack import AlbWafStack
+from stacks.alerts_stack import AlertsStack
 from stacks.ami_stack import AmiStack
 from stacks.api_stack import ApiStack
 from stacks.compute_stack import ComputeStack
@@ -129,6 +130,15 @@ alb_waf = AlbWafStack(
     description="pyvar: Regional WAF on ALB — Option 1 fallback (no CloudFront)",
 )
 
+alerts = AlertsStack(
+    app,
+    f"{prefix}-alerts",
+    cfg=cfg,
+    api=api,
+    env=env_primary,
+    description="pyvar: SNS alerts topic + CloudWatch alarms + monthly cost budget",
+)
+
 # Dependency declarations
 data.add_dependency(network)
 queue.add_dependency(network)
@@ -138,6 +148,7 @@ api.add_dependency(data)
 api.add_dependency(queue)
 edge.add_dependency(api)
 alb_waf.add_dependency(api)
+alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 
 cdk.Tags.of(app).add("Project", "pyvar")
 cdk.Tags.of(app).add("Environment", env_name)

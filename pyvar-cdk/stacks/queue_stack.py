@@ -67,12 +67,25 @@ class QueueStack(Stack):
         )
 
         # ── CloudWatch alarms ─────────────────────────────────────────────────
-        # Ops SNS topic for alarm notifications
+        # Ops SNS topic for alarm notifications (DLQ alarm below).
         ops_topic = sns.Topic(
             self,
             "OpsTopic",
             topic_name=f"pyvar-{cfg.env_name}-ops-alerts",
             display_name=f"pyvar {cfg.env_name} ops alerts",
+        )
+
+        # Central alerts topic — OWNED by alerts_stack (P6). Referenced here by its
+        # deterministic ARN, NOT via a cross-stack object/Fn::ImportValue: api_stack
+        # depends on this queue (queue ARN) and alerts_stack depends on api_stack
+        # (ALB), so importing the alerts topic here would close a CloudFormation
+        # dependency cycle (alerts -> api -> queue -> alerts). A by-ARN reference
+        # carries no dependency edge, so it is safe. alerts_stack pins the topic
+        # name to exactly this value; keep them in sync.
+        alerts_topic = sns.Topic.from_topic_arn(
+            self,
+            "AlertsTopicImported",
+            self.format_arn(service="sns", resource=f"pyvar-{cfg.env_name}-alerts"),
         )
 
         # DLQ depth alarm — any message in DLQ = a job has failed permanently
@@ -90,7 +103,10 @@ class QueueStack(Stack):
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
         ).add_alarm_action(cw_actions.SnsAction(ops_topic))
 
-        # Queue age alarm — jobs sitting in queue for > 5 minutes = workers are stuck
+        # Queue age alarm — jobs sitting in queue for > 5 minutes = workers are stuck.
+        # Config unchanged (threshold 300s, 2x 1-min periods, NOT_BREACHING on
+        # missing data); its action is now the central P6 alerts topic instead of
+        # the local ops_topic, per the P6 alerting consolidation. Not recreated.
         cloudwatch.Alarm(
             self,
             "QueueAgeAlarm",
@@ -103,7 +119,7 @@ class QueueStack(Stack):
             threshold=300,  # 5 minutes in seconds
             evaluation_periods=2,
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
-        ).add_alarm_action(cw_actions.SnsAction(ops_topic))
+        ).add_alarm_action(cw_actions.SnsAction(alerts_topic))
 
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "VarQueueUrl", value=self.var_queue.queue_url)
