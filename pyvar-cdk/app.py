@@ -135,6 +135,7 @@ alerts = AlertsStack(
     f"{prefix}-alerts",
     cfg=cfg,
     api=api,
+    compute=compute,
     env=env_primary,
     description="pyvar: SNS alerts topic + CloudWatch alarms + monthly cost budget",
 )
@@ -149,6 +150,7 @@ api.add_dependency(queue)
 edge.add_dependency(api)
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
+alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm
 
 cdk.Tags.of(app).add("Project", "pyvar")
 cdk.Tags.of(app).add("Environment", env_name)

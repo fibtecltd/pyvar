@@ -32,6 +32,7 @@ from aws_cdk import aws_autoscaling as autoscaling
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_logs as logs
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 from stacks.data_stack import DataStack
@@ -101,6 +102,56 @@ class ComputeStack(Stack):
             )
         )
 
+        # ── CloudWatch Logs — worker log group ─────────────────────────────────
+        # EC2/Celery workers previously logged to journald only, which is invisible
+        # to CloudWatch. Ship the Celery service's stdout/stderr here via the
+        # CloudWatch agent (configured in UserData below) so operational alarms —
+        # e.g. the worker-error metric filter — have a data source. Retention
+        # matches the API log group (30 days). These are operational logs, not the
+        # regulatory audit trail (that is the VaRJob table), so DESTROY on stack
+        # removal is fine and avoids orphaned log groups.
+        worker_log_group_name = f"/pyvar/{cfg.env_name}/worker"
+        self.worker_log_group = logs.LogGroup(
+            self,
+            "WorkerLogGroup",
+            log_group_name=worker_log_group_name,
+            retention=logs.RetentionDays.ONE_MONTH,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+        )
+        # The agent creates the per-instance log stream and puts events; the group
+        # itself is CDK-managed. grant_write covers CreateLogStream + PutLogEvents;
+        # add the describe/create-group calls the agent makes on startup. Scoped to
+        # this log group only.
+        self.worker_log_group.grant_write(worker_role)
+        worker_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["logs:CreateLogGroup", "logs:DescribeLogStreams"],
+                resources=[
+                    self.worker_log_group.log_group_arn,
+                    f"{self.worker_log_group.log_group_arn}:*",
+                ],
+            )
+        )
+
+        # ── Worker error metric filter ─────────────────────────────────────────
+        # Count ERROR/CRITICAL lines in the worker logs. alerts_stack (P6) builds
+        # the alarm that pages on this metric; exposing the metric (not just the
+        # log group) keeps the namespace/name an implementation detail of this
+        # stack. default_value=0 emits a zero data point in periods that have logs
+        # but no matches, so the alarm evaluates cleanly while workers are healthy.
+        worker_error_filter = self.worker_log_group.add_metric_filter(
+            "WorkerErrorFilter",
+            filter_pattern=logs.FilterPattern.any_term("ERROR", "CRITICAL"),
+            metric_namespace="pyvar",
+            metric_name=f"worker-errors-{cfg.env_name}",
+            metric_value="1",
+            default_value=0,
+        )
+        self.worker_error_metric = worker_error_filter.metric(
+            statistic="Sum",
+            period=Duration.minutes(5),
+        )
+
         # ── EC2 Launch Template ────────────────────────────────────────────────
         instance_type = ec2.InstanceType(cfg.worker_instance_type)
 
@@ -132,8 +183,50 @@ class ComputeStack(Stack):
             "EnvironmentFile=-/opt/pyvar/secrets.env\n"
             "ExecStartPre=/opt/pyvar/scripts/fetch-config.sh\n"
             "ExecStart=/usr/bin/python3.11 worker.py\n"
+            # Ship stdout+stderr to a file the CloudWatch agent tails — journald
+            # alone is not forwarded to CloudWatch. /var/log/pyvar is created by
+            # cloudwatch_agent_block below, before the service starts.
+            "StandardOutput=append:/var/log/pyvar/worker.log\n"
+            "StandardError=append:/var/log/pyvar/worker.log\n"
             "Restart=always\nRestartSec=10\n\n"
             "[Install]\nWantedBy=multi-user.target\nEOF"
+        )
+
+        # CloudWatch agent: tail the worker log file into the CloudWatch log group.
+        # Config is written inline (no SSM parameter dependency). {instance_id} is
+        # substituted by the agent at runtime to give each worker its own stream.
+        cloudwatch_agent_block = (
+            "mkdir -p /var/log/pyvar\n"
+            "mkdir -p /opt/aws/amazon-cloudwatch-agent/etc\n"
+            "cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+            " << 'CWEOF'\n"
+            "{\n"
+            '  "agent": {"run_as_user": "root"},\n'
+            '  "logs": {\n'
+            '    "logs_collected": {\n'
+            '      "files": {\n'
+            '        "collect_list": [\n'
+            "          {\n"
+            '            "file_path": "/var/log/pyvar/worker.log",\n'
+            f'            "log_group_name": "{worker_log_group_name}",\n'
+            '            "log_stream_name": "{instance_id}",\n'
+            '            "timezone": "UTC"\n'
+            "          }\n"
+            "        ]\n"
+            "      }\n"
+            "    }\n"
+            "  }\n"
+            "}\n"
+            "CWEOF"
+        )
+        # Install the agent if the AMI doesn't already ship it (baked AMIs should),
+        # then load the config and start it. Idempotent across both boot paths.
+        cloudwatch_agent_start = (
+            "command -v amazon-cloudwatch-agent-ctl >/dev/null 2>&1 || "
+            "dnf install -y amazon-cloudwatch-agent\n"
+            "/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl "
+            "-a fetch-config -m ec2 -s "
+            "-c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
         )
 
         user_data = ec2.UserData.for_linux()
@@ -168,6 +261,8 @@ class ComputeStack(Stack):
                 # EnvironmentFile before ExecStartPre so the file must exist on first boot.
                 "/opt/pyvar/scripts/fetch-config.sh",
                 celery_unit_block,
+                cloudwatch_agent_block,
+                cloudwatch_agent_start,
                 "systemctl daemon-reload",
                 "systemctl enable celery-worker",
                 "systemctl start celery-worker",
@@ -202,6 +297,8 @@ class ComputeStack(Stack):
                 # EnvironmentFile before ExecStartPre so the file must exist on first boot.
                 "/opt/pyvar/scripts/fetch-config.sh",
                 celery_unit_block,
+                cloudwatch_agent_block,
+                cloudwatch_agent_start,
                 "systemctl daemon-reload",
                 "systemctl enable celery-worker",
                 "systemctl start celery-worker",
@@ -331,3 +428,4 @@ class ComputeStack(Stack):
 
         # ── Outputs ───────────────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "AsgName", value=self.asg.auto_scaling_group_name)
+        cdk.CfnOutput(self, "WorkerLogGroupName", value=self.worker_log_group.log_group_name)
