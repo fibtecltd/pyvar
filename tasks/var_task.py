@@ -27,6 +27,51 @@ from config import get_settings
 cfg = get_settings()
 logger = logging.getLogger(__name__)
 
+# ── Interim job metrics (Path B) ───────────────────────────────────────────────
+# CloudWatch is the INTERIM destination for job success/failure counts so P6 does
+# not ship with zero observability. The proper Grafana Cloud / Amazon Managed
+# Prometheus pipeline is a separate task before P9 launch — this is not the final
+# architecture. Metrics land in the "pyvar" namespace, which worker_role's
+# cloudwatch:PutMetricData grant is already scoped to (compute_stack.py).
+_JOB_METRIC_NAMESPACE = "pyvar"
+_cw_client = None  # lazily created; creation needs a region (set on workers via env)
+
+
+def _emit_job_metric(metric_name: str, dimensions: list[dict[str, str]]) -> None:
+    """Emit a single-count CloudWatch metric for job accounting.
+
+    Best-effort and fully isolated: a CloudWatch outage or missing credentials
+    (e.g. local docker-compose dev) must NEVER fail or slow a VaR computation, so
+    every error — including lazy client creation — is swallowed with a warning.
+
+    Args:
+        metric_name: Metric name within the pyvar namespace (e.g. "JobCount").
+        dimensions: CloudWatch dimension list, e.g. [{"Name": "TaskName", ...}].
+    """
+    global _cw_client
+    try:
+        if _cw_client is None:
+            import boto3
+
+            _cw_client = boto3.client("cloudwatch")
+        _cw_client.put_metric_data(
+            Namespace=_JOB_METRIC_NAMESPACE,
+            MetricData=[
+                {
+                    "MetricName": metric_name,
+                    "Dimensions": dimensions,
+                    "Value": 1.0,
+                    "Unit": "Count",
+                }
+            ],
+        )
+    except Exception:  # noqa: BLE001 — metric emission must never break the task
+        logger.warning(
+            "Failed to emit CloudWatch job metric",
+            extra={"metric": metric_name},
+        )
+
+
 # ── Celery app ────────────────────────────────────────────────────────────────
 # Broker and backend are read from environment variables so ECS task definitions
 # can inject the correct SQS/ElastiCache endpoints without changing code.
@@ -82,6 +127,11 @@ def compute_var_task(self: Task, payload: dict) -> dict:
     task_id = self.request.id
     logger.info("Starting VaR computation", extra={"task_id": task_id})
 
+    # VaRRequest carries no Domain field and tier lives only in the API-layer JWT
+    # (not propagated into the task payload), so we dimension by TaskName only.
+    # See the PR notes for why Domain/Tier are omitted.
+    job_dimensions = [{"Name": "TaskName", "Value": self.name}]
+
     try:
         returns = np.array(payload["returns"], dtype=np.float64)
 
@@ -102,8 +152,16 @@ def compute_var_task(self: Task, payload: dict) -> dict:
                 "n_sims": result["n_simulations"],
             },
         )
+        # Completed successfully — count the job.
+        _emit_job_metric("JobCount", job_dimensions)
         return result
 
     except Exception as exc:
         logger.exception("VaR computation failed", extra={"task_id": task_id})
+        # Count the job (every outcome) and record the error. NOTE: this runs on
+        # each failed attempt, so with retries a single job can emit more than one
+        # JobCount/JobErrors (i.e. these count attempts, not distinct jobs). Kept
+        # simple deliberately; terminal-only counting is a possible refinement.
+        _emit_job_metric("JobCount", job_dimensions)
+        _emit_job_metric("JobErrors", job_dimensions)
         raise self.retry(exc=exc) if self.request.retries < self.max_retries else exc

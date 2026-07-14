@@ -15,15 +15,13 @@ Reasoning:
   same cross-stack reference alb_waf_stack and alerts_stack already use.
 
 Gaps (reported, not fabricated):
-- Widget 6 (job success rate) needs custom CloudWatch metrics JobCount/JobErrors
-  in the "pyvar" namespace. api_stack and compute_stack GRANT cloudwatch:
-  PutMetricData (scoped to that namespace), but NO application code publishes to
-  it — custom metrics currently go to Prometheus (observability/setup.py), not
-  CloudWatch. So the metric has no data source yet. Rather than add a graph that
-  is permanently blank, widget 6 is a text placeholder describing the gap; see
-  the TextWidget below. Closing it means emitting the metrics from the Celery
-  task path (tasks/var_task.py / worker.py) via boto3 put_metric_data, or an
-  EMF/CloudWatch bridge from the existing Prometheus counters.
+- Widget 6 (job counts) reads custom CloudWatch metrics pyvar/JobCount and
+  pyvar/JobErrors, now emitted from the Celery task path (tasks/var_task.py) via
+  boto3 put_metric_data. This is the INTERIM job-observability measure per Path B
+  — CloudWatch stands in so P6 does not ship with zero observability. It is NOT
+  the final architecture: the proper Grafana Cloud / Amazon Managed Prometheus
+  pipeline is a dedicated task before P9 launch. (Earlier this widget was a
+  placeholder because no code published these metrics.)
 - Widget 8 (monthly cost to date) is specified as Cost Explorer -> Lambda ->
   CloudWatch: a scheduled Lambda calling ce:GetCostAndUsage and publishing a
   custom metric the dashboard reads. That Lambda (code, role with ce:*, an
@@ -156,24 +154,38 @@ class ObservabilityStack(Stack):
             region=self.region,
         )
 
-        # ── (6) Job success rate — GAP (custom metric not emitted yet) ───────────
-        # See module docstring: no code publishes pyvar/JobCount|JobErrors. A blank
-        # graph would be misleading, so this is a placeholder until the metrics are
-        # emitted from the Celery task path.
-        w_jobs = cloudwatch.TextWidget(
-            markdown=(
-                "### Job success rate — NOT WIRED YET\n"
-                "Needs custom CloudWatch metrics **`pyvar/JobCount`** and "
-                "**`pyvar/JobErrors`**, which no code currently emits (custom "
-                "metrics go to Prometheus today, not CloudWatch).\n\n"
-                "**To enable:** publish these from `tasks/var_task.py` / `worker.py` "
-                "via `boto3` `put_metric_data` (IAM `cloudwatch:PutMetricData` is "
-                "already granted, scoped to the `pyvar` namespace), then replace "
-                "this widget with a `success rate = (JobCount - JobErrors)/JobCount` "
-                "graph."
-            ),
+        # ── (6) Job counts — INTERIM CloudWatch metrics (Path B) ─────────────────
+        # tasks/var_task.py emits pyvar/JobCount (every completion) and
+        # pyvar/JobErrors (on exception), dimensioned by TaskName. This is the
+        # INTERIM job-observability measure per Path B — NOT the final architecture.
+        # The proper Grafana Cloud / Amazon Managed Prometheus pipeline (per the
+        # release plan, "dashboards ready before launch — not retrofitted") is a
+        # dedicated task before P9 launch. TaskName is pinned to the VaR task's
+        # registered Celery name (renaming it would also break API dispatch, so it
+        # is stable). Future refinements, kept out to stay simple: a SEARCH
+        # expression to aggregate across task types, and a computed
+        # (JobCount-JobErrors)/JobCount success-rate percentage.
+        job_task_name = "pyvar.tasks.compute_var"  # == compute_var_task registered name
+        job_count = cloudwatch.Metric(
+            namespace="pyvar",
+            metric_name="JobCount",
+            dimensions_map={"TaskName": job_task_name},
+            statistic="Sum",
+            period=period_5m,
+        )
+        job_errors = cloudwatch.Metric(
+            namespace="pyvar",
+            metric_name="JobErrors",
+            dimensions_map={"TaskName": job_task_name},
+            statistic="Sum",
+            period=period_5m,
+        )
+        w_jobs = cloudwatch.GraphWidget(
+            title="Job counts — JobCount / JobErrors (interim, Path B)",
+            left=[job_count, job_errors],
             width=12,
             height=6,
+            region=self.region,
         )
 
         # ── (7) ElastiCache hits / misses ────────────────────────────────────────
