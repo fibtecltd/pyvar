@@ -23,6 +23,7 @@ from stacks.compute_stack import ComputeStack
 from stacks.data_stack import DataStack
 from stacks.edge_stack import EdgeStack
 from stacks.network_stack import NetworkStack
+from stacks.observability_stack import ObservabilityStack
 from stacks.pipeline_stack import PipelineStack
 from stacks.queue_stack import QueueStack
 
@@ -140,6 +141,15 @@ alerts = AlertsStack(
     description="pyvar: SNS alerts topic + CloudWatch alarms + monthly cost budget",
 )
 
+observability = ObservabilityStack(
+    app,
+    f"{prefix}-observability",
+    cfg=cfg,
+    api=api,
+    env=env_primary,
+    description="pyvar: CloudWatch operational dashboard (pyvar-{env}-overview)",
+)
+
 # Dependency declarations
 data.add_dependency(network)
 queue.add_dependency(network)
@@ -151,6 +161,7 @@ edge.add_dependency(api)
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm
+observability.add_dependency(api)  # references api.alb for dashboard ALB widgets
 
 cdk.Tags.of(app).add("Project", "pyvar")
 cdk.Tags.of(app).add("Environment", env_name)
