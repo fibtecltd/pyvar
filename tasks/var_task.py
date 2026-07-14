@@ -71,6 +71,7 @@ def _emit_job_metric(metric_name: str, dimensions: list[dict[str, str]]) -> None
             extra={"metric": metric_name},
         )
 
+
 # ── Celery app ────────────────────────────────────────────────────────────────
 # Broker and backend are read from environment variables so ECS task definitions
 # can inject the correct SQS/ElastiCache endpoints without changing code.
