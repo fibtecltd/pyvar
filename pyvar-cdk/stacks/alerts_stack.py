@@ -22,17 +22,13 @@ Reasoning:
   has to be hardcoded. Unlike CloudWatch alarms, Budgets needs an explicit SNS
   resource-policy grant to publish — added via the topic policy below.
 
-Worker-error alarm — GAP (not created):
-- A worker log-based error alarm (metric filter matching "ERROR"/"CRITICAL" on
-  the worker log group) was in scope, but it CANNOT be created yet: the
-  EC2/Celery workers in compute_stack write to journald only. There is no
-  CloudWatch Logs group for them — compute_stack.py has no LogGroup, awslogs
-  driver, or CloudWatch-agent configuration. Creating the metric filter first
-  requires shipping worker logs to CloudWatch, e.g. installing the CloudWatch
-  agent (or an awslogs pipeline) in the worker UserData and pointing it at a log
-  group such as /pyvar/{env}/worker. This is a separate compute_stack change and
-  is tracked as a follow-up (see the PR description). The scaffold below is left
-  commented so it can be enabled once that log group exists.
+Worker-error alarm:
+- compute_stack now ships the EC2/Celery worker stdout/stderr to a CloudWatch
+  log group (/pyvar/{env}/worker) via the CloudWatch agent, and owns an
+  ERROR/CRITICAL metric filter on it, exposed as compute.worker_error_metric.
+  The worker-error alarm below pages when that metric exceeds 5 in 5 minutes.
+  (Earlier revisions could not create this alarm because the workers logged to
+  journald only, with no CloudWatch log group to attach a metric filter to.)
 """
 
 from __future__ import annotations
@@ -46,14 +42,17 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_sns as sns
 from constructs import Construct
 from stacks.api_stack import ApiStack
+from stacks.compute_stack import ComputeStack
 
 from config import PyvarConfig
 
-# £150/month cost cap for the environment. Kept as a module constant so the
-# budget figure is discoverable in one place rather than buried in the tree.
-MONTHLY_BUDGET_GBP = 150
-BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% (£120)
-BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed £150
+# Monthly cost cap for the environment. Kept as a module constant so the budget
+# figure is discoverable in one place rather than buried in the tree. Denominated
+# in USD: AWS Budgets rejects other units in this account (billing currency USD),
+# so this stands in for the intended ~£150/month cap.
+MONTHLY_BUDGET_USD = 250
+BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% ($200)
+BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed $250
 
 
 class AlertsStack(Stack):
@@ -65,6 +64,9 @@ class AlertsStack(Stack):
         cfg: Per-environment pyvar configuration.
         api: The API stack, referenced for its Application Load Balancer
             (``api.alb``) so latency and 5xx alarms can target it.
+        compute: The compute stack, referenced for its worker error metric
+            (``compute.worker_error_metric``) so the worker-error alarm can
+            target it.
     """
 
     def __init__(
@@ -74,6 +76,7 @@ class AlertsStack(Stack):
         *,
         cfg: PyvarConfig,
         api: ApiStack,
+        compute: ComputeStack,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -141,36 +144,26 @@ class AlertsStack(Stack):
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
         ).add_alarm_action(cw_actions.SnsAction(self.topic))
 
-        # ── (c) Worker error alarm — NOT CREATED (log group missing) ────────────
-        # See the module docstring: EC2/Celery workers log to journald only, so
-        # there is no CloudWatch Logs group to attach a metric filter to. Once
-        # compute_stack ships worker logs to CloudWatch (log group e.g.
-        # /pyvar/{env}/worker), enable the block below. Kept commented rather
-        # than silently omitted so the gap is visible in code review.
-        #
-        # from aws_cdk import aws_logs as logs
-        # worker_log_group = logs.LogGroup.from_log_group_name(
-        #     self, "WorkerLogGroup", f"/pyvar/{cfg.env_name}/worker"
-        # )
-        # worker_errors = worker_log_group.add_metric_filter(
-        #     "WorkerErrorFilter",
-        #     filter_pattern=logs.FilterPattern.any_term("ERROR", "CRITICAL"),
-        #     metric_namespace="pyvar",
-        #     metric_name=f"pyvar-{cfg.env_name}-worker-errors",
-        #     metric_value="1",
-        #     default_value=0,
-        # )
-        # cloudwatch.Alarm(
-        #     self,
-        #     "WorkerErrorAlarm",
-        #     alarm_name=f"pyvar-{cfg.env_name}-worker-errors",
-        #     alarm_description="More than 5 worker ERROR/CRITICAL log lines in 5 minutes",
-        #     metric=worker_errors.metric(statistic="Sum", period=Duration.minutes(5)),
-        #     threshold=5,
-        #     comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-        #     evaluation_periods=1,
-        #     treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
-        # ).add_alarm_action(cw_actions.SnsAction(self.topic))
+        # ── (c) Worker error alarm — > 5 ERROR/CRITICAL log lines in 5 minutes ──
+        # The worker log group and its ERROR/CRITICAL metric filter are owned by
+        # compute_stack (workers now ship logs to CloudWatch via the CloudWatch
+        # agent). compute.worker_error_metric is a plain namespace/name metric —
+        # no CloudFormation token — so referencing it here adds no cross-stack
+        # import; app.py declares an explicit dependency for deploy ordering.
+        cloudwatch.Alarm(
+            self,
+            "WorkerErrorAlarm",
+            alarm_name=f"pyvar-{cfg.env_name}-worker-errors",
+            alarm_description=(
+                "More than 5 worker ERROR/CRITICAL log lines in 5 minutes — "
+                "workers are failing to process jobs"
+            ),
+            metric=compute.worker_error_metric,
+            threshold=5,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+            evaluation_periods=1,
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+        ).add_alarm_action(cw_actions.SnsAction(self.topic))
 
         # ── (d) Queue-age alarm — owned by queue_stack, NOT recreated here ──────
         # The pyvar-{env}-queue-age alarm already exists (P4) in queue_stack and
@@ -207,7 +200,7 @@ class AlertsStack(Stack):
             ),
         )
 
-        # ── AWS Budgets: £150/month, alert at 80% ACTUAL and 100% FORECASTED ────
+        # ── AWS Budgets: $250/month, alert at 80% ACTUAL and 100% FORECASTED ────
         # Both notifications publish to the SNS topic (no hardcoded email — add
         # subscribers manually to the topic post-deploy). Budget creation validates
         # the topic policy, so it must run after the topic policy exists.
@@ -223,12 +216,12 @@ class AlertsStack(Stack):
                 budget_type="COST",
                 time_unit="MONTHLY",
                 budget_limit=budgets.CfnBudget.SpendProperty(
-                    amount=MONTHLY_BUDGET_GBP,
-                    unit="GBP",
+                    amount=MONTHLY_BUDGET_USD,
+                    unit="USD",
                 ),
             ),
             notifications_with_subscribers=[
-                # ACTUAL spend crosses 80% (£120)
+                # ACTUAL spend crosses 80% ($200)
                 budgets.CfnBudget.NotificationWithSubscribersProperty(
                     notification=budgets.CfnBudget.NotificationProperty(
                         notification_type="ACTUAL",
@@ -238,7 +231,7 @@ class AlertsStack(Stack):
                     ),
                     subscribers=[sns_subscriber],
                 ),
-                # FORECAST to exceed 100% (£150) by month end
+                # FORECAST to exceed 100% ($250) by month end
                 budgets.CfnBudget.NotificationWithSubscribersProperty(
                     notification=budgets.CfnBudget.NotificationProperty(
                         notification_type="FORECASTED",
