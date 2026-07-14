@@ -46,11 +46,13 @@ from stacks.compute_stack import ComputeStack
 
 from config import PyvarConfig
 
-# £150/month cost cap for the environment. Kept as a module constant so the
-# budget figure is discoverable in one place rather than buried in the tree.
-MONTHLY_BUDGET_GBP = 150
-BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% (£120)
-BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed £150
+# Monthly cost cap for the environment. Kept as a module constant so the budget
+# figure is discoverable in one place rather than buried in the tree. Denominated
+# in USD: AWS Budgets rejects other units in this account (billing currency USD),
+# so this stands in for the intended ~£150/month cap.
+MONTHLY_BUDGET_USD = 250
+BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% ($200)
+BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed $250
 
 
 class AlertsStack(Stack):
@@ -198,7 +200,7 @@ class AlertsStack(Stack):
             ),
         )
 
-        # ── AWS Budgets: £150/month, alert at 80% ACTUAL and 100% FORECASTED ────
+        # ── AWS Budgets: $250/month, alert at 80% ACTUAL and 100% FORECASTED ────
         # Both notifications publish to the SNS topic (no hardcoded email — add
         # subscribers manually to the topic post-deploy). Budget creation validates
         # the topic policy, so it must run after the topic policy exists.
@@ -214,12 +216,12 @@ class AlertsStack(Stack):
                 budget_type="COST",
                 time_unit="MONTHLY",
                 budget_limit=budgets.CfnBudget.SpendProperty(
-                    amount=MONTHLY_BUDGET_GBP,
-                    unit="GBP",
+                    amount=MONTHLY_BUDGET_USD,
+                    unit="USD",
                 ),
             ),
             notifications_with_subscribers=[
-                # ACTUAL spend crosses 80% (£120)
+                # ACTUAL spend crosses 80% ($200)
                 budgets.CfnBudget.NotificationWithSubscribersProperty(
                     notification=budgets.CfnBudget.NotificationProperty(
                         notification_type="ACTUAL",
@@ -229,7 +231,7 @@ class AlertsStack(Stack):
                     ),
                     subscribers=[sns_subscriber],
                 ),
-                # FORECAST to exceed 100% (£150) by month end
+                # FORECAST to exceed 100% ($250) by month end
                 budgets.CfnBudget.NotificationWithSubscribersProperty(
                     notification=budgets.CfnBudget.NotificationProperty(
                         notification_type="FORECASTED",
