@@ -54,7 +54,7 @@ def _parse_path(path: str) -> tuple[str, str]:
     /api/v1/market-risk/expected-shortfall -> ("market-risk", "expected-shortfall")
     /api/v1/var/compute                     -> ("var", "compute")
     """
-    rel = path[len(cfg.api_v1_prefix):].strip("/")
+    rel = path[len(cfg.api_v1_prefix) :].strip("/")
     parts = [p for p in rel.split("/") if p]
     if not parts:
         return "unknown", "unknown"
