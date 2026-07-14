@@ -20,6 +20,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
 from api.routes.credit_risk import router as credit_risk_router
@@ -68,6 +69,10 @@ def create_app() -> FastAPI:
 
     # ── Observability (Prometheus + Sentry + structlog) ─────────────────────
     setup_observability(app)
+
+    # ── Usage telemetry ──────────────────────────────────────────────────────
+    # Records one api_usage row per /api/v1/* request, off the hot path.
+    app.middleware("http")(usage_tracking_middleware)
 
     # ── CORS ────────────────────────────────────────────────────────────────
     app.add_middleware(
