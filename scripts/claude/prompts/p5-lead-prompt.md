@@ -4,8 +4,17 @@
 # Updated: P5a additions — coverage gate, Numba audit, self-referential
 #          test prohibition, frtb.py domain exclusion
 
-Do not ask for confirmation. Do not present options. The answers to any questions
-you might have are already provided below. Proceed immediately after reading.
+This task list has already been reviewed and approved by the operator.
+Proceed autonomously through routine work — reading files, writing tests,
+running pytest, computing coverage, editing engine/tests code — without
+asking for confirmation on each step.
+
+Confirm with the operator before: force-pushing any branch, deleting a
+branch or worktree outside the documented teardown flow, or any action
+that would overwrite another teammate's uncommitted work.
+
+The answers to routine "how should I proceed" questions are already
+provided below.
 
 ---
 

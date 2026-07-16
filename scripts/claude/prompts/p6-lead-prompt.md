@@ -3,8 +3,17 @@
 # Machine: M4, sequential mode (no Agent Teams — tasks are sequential/dependent)
 # Prerequisite: P5b complete, master clean
 
-Do not ask for confirmation. Do not present options. The answers to any questions
-you might have are already provided below. Proceed immediately after reading.
+This task list has already been reviewed and approved by the operator.
+Proceed autonomously through routine work — reading files, writing code,
+running local tests, profiling, benchmarking — without asking for
+confirmation on each step.
+
+Confirm with the operator before: forcing/terminating EC2 instances,
+changing IAM policy or grants in any *_stack.py, running cdk deploy, or
+pushing/merging branches.
+
+The answers to routine "how should I proceed" questions are already
+provided below.
 
 ---
 
