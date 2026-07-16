@@ -403,3 +403,142 @@ All checks run via `scripts/adversarial/p4_post_deploy_validator.md`.
 | pyvar-dev-ami | eu-west-1 | ✅ UPDATE_COMPLETE (IMDSv2 required on InfrastructureConfiguration) |
 
 ### VERDICT: **P6 CLEARED** — zero CRITICAL, zero WARNING. All 8 stacks healthy. Full pre-production hardening complete: IMDSv2 enforced on Image Builder, ACM TLS certificate live on ALB (HTTPS:443), CloudFront origin-verify protection maintained on new HTTP:80 listener, both WAFs active (defence-in-depth), all 385 API routes registered, auth enforcement confirmed across all 8 risk domains.
+
+---
+
+## P6 Observability & AMI — full stack pass
+
+**Date: 2026-07-15**
+**Account: 347228921290 · Primary region: eu-west-1 · Edge region: us-east-1**
+**Environment: dev · CDK: aws-cdk 2.1128.0**
+
+All checks run live against AWS (`aws sts get-caller-identity` confirms
+`pyvar-cdk-deployer` in account 347228921290) via
+`scripts/adversarial/p4_post_deploy_validator.md`, plus targeted checks for the
+P6 observability/AMI items below.
+
+### Stack status — all 9 application stacks
+
+| Stack | Region | Status |
+|---|---|---|
+| pyvar-dev-network | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-data | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-queue | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-compute | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-alb-waf | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-api | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-edge | us-east-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-ami | eu-west-1 | ✅ UPDATE_COMPLETE |
+| pyvar-dev-alerts | eu-west-1 | ✅ CREATE_COMPLETE |
+| pyvar-dev-observability | eu-west-1 | ✅ UPDATE_COMPLETE |
+
+### AMI
+
+| Item | Result |
+|---|---|
+| AMI ID | `ami-053d838c9735b7a03` — `describe-images` confirms `State: available`, Name `pyvar-dev-worker-2026-07-10T03-14-10.669Z`. Matches `pyvar-cdk/config.py:48` (`worker_ami_id`, "Hypothesis C — baked AMI (P6), version 1.0.251"). |
+| Launch template reference | ASG `pyvar-dev-workers` → `MixedInstancesPolicy.LaunchTemplate` `pyvar-dev-worker` version 19 → `ImageId = ami-053d838c9735b7a03`. Live, not just synth. |
+| Cold-start measured time | **avg 3s** (min 0s, max 6s), target <45s — **not re-measured live this run**. Sourced from `ami-cold-start-retrospective.md` (bake-and-test session 2026-07-09→07-10, `scripts/test_cold_start.sh`). The worker ASG is currently `desired=0` (queue empty); getting a *fresh* number would require forcibly scaling the ASG from zero, a live-infra-mutating action out of scope for a read-only validator pass. Treat "avg 3s" as the last-known-good figure, not a result of today's run. |
+
+### CloudWatch dashboard
+
+| Item | Result |
+|---|---|
+| Dashboard | `pyvar-dev-overview` — `list-dashboards` + `get-dashboard` confirm it exists, 8 widgets. |
+| URL | `https://eu-west-1.console.aws.amazon.com/cloudwatch/home?region=eu-west-1#dashboards:name=pyvar-dev-overview` |
+| Widget content | 7 live widgets (ALB request rate, ALB 5xx, ALB p95 latency, SQS depth, ASG in-service count, ElastiCache hits/misses, JobCount/JobErrors) + 1 documented follow-up text widget ("Monthly cost to date" — intentionally not built; budget alarm covers it in the meantime). No orphaned metric references found. |
+| JobCount/JobErrors data path | Emitted by `tasks/var_task.py` (`put_metric_data`, namespace matches widget query) — this runs on the EC2 worker, which git-clones `master` fresh on every boot (`compute_stack.py`) even under the baked-AMI path, so this metric path reflects current code once a worker next scales up. Not stale. |
+
+### SNS topics + alarms
+
+| Item | Result |
+|---|---|
+| Topics | `pyvar-dev-alerts` and `pyvar-dev-ops-alerts`, both eu-west-1. Both have one **confirmed** (not pending) email subscription each — `list-subscriptions-by-topic` returns a real `SubscriptionArn`, not `PendingConfirmation`. |
+| Alarms → `pyvar-dev-alerts` | `pyvar-dev-api-5xx`, `pyvar-dev-api-latency-p95`, `pyvar-dev-queue-age`, `pyvar-dev-worker-errors` — all `State: OK`. |
+| Alarms → `pyvar-dev-ops-alerts` | `pyvar-dev-dlq-depth` — `State: OK`. |
+| Other alarms | Target-tracking scaling alarms (ECS CPU/request-count, ASG queue-depth, ASG scale-from-zero) — these route to autoscaling policies, not SNS, by design; several show `INSUFFICIENT_DATA`/`ALARM` because the environment is currently idle (ASG desired=0, ECS running below its scale-up threshold). Expected, not a finding. |
+| AWS Budget referenced by dashboard | `pyvar-dev-monthly` ($250 USD) confirmed via `describe-budgets` — exists, matches the dashboard's fallback text widget. |
+
+### `api_usage` table status
+
+| Item | Result |
+|---|---|
+| Schema | **Provisioned.** Per issue #119, migrations `0001`–`0003` (including `0003_api_usage`) were applied manually against `pyvar-dev` Aurora this cycle — the table now exists. |
+| **Write path — CRITICAL** | **The usage-tracking middleware that populates this table is not running in the live environment.** The `pyvar-dev-api` ECS service has a single deployment, created `2026-07-06T12:12:24Z`, running task-definition `pyvar-dev-api:5` with container image digest `sha256:9e0dcf6a…`. That digest is the **most recent image ever pushed** to `pyvar-dev-api` (`:latest`, pushed `2026-07-06T12:10:28Z`). The feature that adds `api/middleware/usage.py`, the `main.py` wiring, and `storage/session.py` (PR #117, merged `2026-07-14T17:59:03Z` — 8 days **after** that image was built) has therefore never been built into an image or deployed. No CodePipeline exists in the account (`list-pipelines` → empty) to have done this automatically. |
+| Evidence | `ecs describe-services` → one `PRIMARY` deployment, `createdAt=2026-07-06`. `ecr describe-images` → newest pushed digest = the digest currently running; no image postdates it. `git log` on `api/middleware/usage.py`/`main.py`/`storage/session.py` → all from `2026-07-14`. `codepipeline list-pipelines` → `{"pipelines": []}`. |
+| Consequence | Live smoke traffic generated during this run (8 authenticated-domain POSTs) will **not** appear in `api_usage` — the weekly analytics queries in `observability/queries.sql` will return zero rows against a real, schema-correct, but empty table. This reads as "feature shipped" from the git history and CDK stack list alone; it is not shipped from the running container's point of view. |
+| Not affected | `tasks/var_task.py` (JobCount/JobErrors) changed in the same window but runs on EC2 workers, which pull `master` via `git clone` at every boot regardless of AMI bake — so that half of the P6 observability work **is** live-current, unlike the ECS-container-based half. |
+| Relation to tracked issues | Distinct from #118 (`var_jobs` never written) and #119 (no automated migration step) — this is the same *class* of gap (no CI/CD path from merge → running artifact) applied to the API container image rather than the schema. Not fixed as part of this validator run per instruction; flagged for the same remediation track as #119 (an automated build/deploy step is missing, not just an automated migration step). |
+
+### Post-deploy validator results (`scripts/adversarial/p4_post_deploy_validator.md`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Live-SG | ✅ PASS | `describe-security-groups` on `vpc-097b3c05ec5e1b42c`: only `SgAlb` carries `0.0.0.0/0`, on 80 (HTTP redirect) and 443 (HTTPS). Every other SG is scoped to a specific source SG (API←ALB, Aurora/Cache←worker+API, VPC-endpoint SGs←10.0.0.0/16) or has no ingress rules (worker). |
+| Live-EP | ✅ PASS | 9 endpoints `available`: S3, SQS, ECR.api, ECR.dkr, SecretsManager, Logs, + 3 ElastiCache Serverless. |
+| Live-IMDSv2 | ✅ PASS (N/A live) | No running EC2 instances (ASG desired=0, queue empty) — nothing to sample directly. Launch template `pyvar-dev-worker` v19 enforces `HttpTokens=required`; will apply on next scale-out. |
+| Live-ECS | ✅ PASS | `runningTasksCount=1`, `pendingTasksCount=0`. |
+| Live-WAF (CLOUDFRONT) | ✅ PASS | Distribution `d1mqqddh8gu2qi.cloudfront.net`, `Status=Deployed`, `Enabled=true`, `WebACLId` = `pyvar-dev-waf` (us-east-1). |
+| Live-WAF (REGIONAL) | ✅ PASS | `get-web-acl-for-resource` for the live ALB ARN returns `pyvar-dev-alb-waf` (eu-west-1). Both WAFs active — defence-in-depth intact. |
+| SECRET-1 | ✅ PASS | `pyvar/dev/aurora-credentials`: keys present = `host, port, dbname, username, password` (+ `engine`, `dbClusterIdentifier`) — all 5 fields the app injects exist. `pyvar/dev/jwt-secret`: 64 chars, non-empty. `pyvar/dev/cf-origin-verify`: 32 chars, non-empty. |
+| Live-API (path counts) | ✅ PASS | Fetched `/openapi.json` live via CloudFront: market-risk 71, credit-risk 55, liquidity 40, operational 44, portfolio 50, regulatory 30, derivatives 62, alm 33 = **385 total**. Matches the P6 baseline exactly — no route regression. |
+| Live-API (auth gating) | ✅ PASS | Unauthenticated `POST` to the first real endpoint per domain (sourced from `/openapi.json`, not the generic `/compute` template stub) → **401** on all 8 domains. |
+| Origin-verify bypass | ✅ PASS | Direct `GET` to the ALB DNS name for `/health` with no `X-Origin-Verify` header → **403**. CloudFront cannot be bypassed. |
+
+### Findings
+
+**CRITICAL**
+1. **`api_usage` write path not live** — see table above. The `pyvar-dev-api` ECS container has not been rebuilt/redeployed since 2026-07-06; the usage-tracking middleware merged 2026-07-14 is not executing. Fix: build and push a new `pyvar-dev-api` image containing current `master`, then `aws ecs update-service --force-new-deployment` (or stand up the CI/CD path tracked under #119's remediation). Re-run this validator afterward and confirm via a fresh image-digest / commit-date comparison, not just a stack-status check.
+
+**WARNING:** none beyond the CRITICAL above.
+
+### VERDICT: **P6 OBSERVABILITY & AMI — BLOCKED (1 CRITICAL)**
+
+Infrastructure is fully healthy: all 9 stacks `*_COMPLETE`, AMI live and correctly referenced, CloudWatch dashboard and both SNS-backed alarm sets live and subscribed, both WAFs active, secrets consistent, all 385 routes registered and auth-enforced. **However, the specific feature this task set out to validate — `api_usage` telemetry — is not actually running in production.** The schema exists (via manual migration, per #119) but the code that writes to it was never deployed to the live container, because no build/deploy step exists to carry an app-code merge into a running ECS task. This is exactly the class of drift the P4 adversarial process exists to catch: git history, CDK `describe-stacks`, and the CDK-level "UPDATE_COMPLETE" all say this shipped; the running container says it didn't. Do not report the P6 observability feature as live until a new image is built, pushed, and deployed, and this validator is re-run against the new deployment.
+
+---
+
+## Remediation — stale `pyvar-dev-api` image (CRITICAL, resolved)
+
+**Date: 2026-07-16**
+
+### What was tried and blocked
+An in-session fix was attempted via a temporary CodeBuild project (no local Docker
+daemon is available in the automation environment). `codebuild:StartBuild` failed
+with `AccountLimitExceededException: Cannot have more than 0 builds in queue for the
+account`, reproducible at every compute size. **This account has never had a
+successful CodeBuild build** (no CodeBuild projects existed before this session,
+and `pyvar-pipeline` — the only stack that would have created one — has never been
+deployed). This is the same *class* of AWS account-level restriction as the
+CloudFront verification block from the original P4 deploy (§3, failure #10) — not a
+code or CDK defect. The temporary CodeBuild project, its IAM role, and the uploaded
+source archive were all deleted; no residue left in the account.
+
+### Actual fix
+The image was built and pushed from an operator machine with Docker instead:
+
+```bash
+docker build --platform linux/amd64 --target runtime \
+  -t 347228921290.dkr.ecr.eu-west-1.amazonaws.com/pyvar-dev-api:latest \
+  -t 347228921290.dkr.ecr.eu-west-1.amazonaws.com/pyvar-dev-api:bd78478 \
+  .
+docker push 347228921290.dkr.ecr.eu-west-1.amazonaws.com/pyvar-dev-api:latest
+docker push 347228921290.dkr.ecr.eu-west-1.amazonaws.com/pyvar-dev-api:bd78478
+```
+
+then `aws ecs update-service --cluster pyvar-dev --service pyvar-dev-api --force-new-deployment`.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| New image pushed | `2026-07-16T07:29:09Z`, tags `latest` + `bd78478` (commit `bd7847887d1110a5d4879c1a723a5c901030880c` — includes PR #117 usage-tracking middleware). Manifest confirmed `linux/amd64`. |
+| ECS deployment | `force-new-deployment` → old task `d45f19e9…` drained/stopped, new task `07da7e8a…` started, target group re-registered, service reached steady state (`rolloutState: COMPLETED`, `failedTasks: 0`). |
+| Running image digest | Task `07da7e8a…` → `sha256:82470eb0…`, matches the freshly pushed `:latest` digest exactly. |
+| App health | `GET /health` via CloudFront → **200**. Container logs: clean `Application startup complete` on both uvicorn workers, no exceptions (confirms Numba warmup in the new image still succeeds). |
+| Route/auth regression check | All 8 domains still 401 unauthenticated, domain-scoped path count still **385** (raw `/openapi.json` total 388 — same `/metrics`+legacy-`/var` delta as before, not a regression). `ECS Running=1/Pending=0` unchanged. |
+| `api_usage` write path | Sent a tracked `POST /api/v1/market-risk/historical_simulation_var` (→ 401) through the new container. No `"api_usage write failed"` warning appeared in the task's CloudWatch logs afterward. **Caveat: this is the best signal available without direct DB access** (no ECS Exec, no bastion) — it confirms the absence of a write error, not a row count in Aurora. Recommend a follow-up with DB access (e.g. temporarily enable ECS Exec, or query via `observability/queries.sql` from a worker) to positively confirm row counts before relying on the weekly usage analytics. |
+
+### Updated verdict
+
+**RESOLVED for the container-staleness finding.** The `pyvar-dev-api` service is now running code current with `master` @ `bd78478`, including the `api_usage` middleware. The underlying root cause — **no CI/CD path from a merged commit to a running ECS task** — is not fixed by this one-off redeploy and will recur on the next merge. That gap tracks with #119's finding (no automated migration step) under the same missing piece: an automated build-and-deploy pipeline. Recommend resolving `pyvar-pipeline` deployment (currently blocked by the same CodeBuild account restriction hit above) as a prerequisite, or documenting a manual "rebuild+push+force-new-deployment after every merge touching `api/`, `main.py`, `storage/`, `config.py`" step in the runbook until it is.
