@@ -13,6 +13,10 @@
 #   ./scripts/claude/run.sh <phase>                    full run, auto mode
 #   ./scripts/claude/run.sh <phase> --mode agent       force Agent Teams
 #   ./scripts/claude/run.sh <phase> --mode seq         force sequential
+#   ./scripts/claude/run.sh <phase> --model <name>     override Claude model
+#                                                       (e.g. claude-sonnet-5)
+#                                                       takes precedence over
+#                                                       the mode-based default
 #   ./scripts/claude/run.sh <phase> --dry-run          preview only
 #   ./scripts/claude/run.sh <phase> --skip-setup       skip steps 1+2
 #   ./scripts/claude/run.sh <phase> --teardown-only    run step 4 only
@@ -40,6 +44,7 @@ WORKTREE_PHASES="p2 p5 p5b"
 # ── Parse arguments ───────────────────────────────────────────────
 PHASE=""
 MODE="auto"
+MODEL=""
 HANDOFF="hybrid"
 DRY_RUN=0
 SKIP_SETUP=0
@@ -52,6 +57,8 @@ while [ $# -gt 0 ]; do
             PHASE="$1"; shift ;;
         --mode)
             MODE="$2"; shift 2 ;;
+        --model)
+            MODEL="$2"; shift 2 ;;
         --handoff)
             HANDOFF="$2"; shift 2 ;;
         --dry-run)
@@ -64,7 +71,7 @@ while [ $# -gt 0 ]; do
             RESUME_FLAG="--resume"; shift ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: $0 <phase> [--mode agent|seq] [--handoff auto|hybrid]"
+            echo "Usage: $0 <phase> [--mode agent|seq] [--model <name>] [--handoff auto|hybrid]"
             echo "           [--dry-run] [--skip-setup] [--teardown-only] [--resume]"
             exit 1 ;;
     esac
@@ -99,7 +106,7 @@ header() {
 }
 
 PHASE_UPPER="$(echo "$PHASE" | tr '[:lower:]' '[:upper:]')"
-header "run.sh · Phase $PHASE_UPPER" "mode=$MODE  handoff=$HANDOFF  worktrees=$(has_worktrees && echo yes || echo no)"
+header "run.sh · Phase $PHASE_UPPER" "mode=$MODE  model=${MODEL:-default}  handoff=$HANDOFF  worktrees=$(has_worktrees && echo yes || echo no)"
 
 # ── Teardown only ─────────────────────────────────────────────────
 if [ $TEARDOWN_ONLY -eq 1 ]; then
@@ -146,6 +153,7 @@ fi
 echo ""
 
 PYVAR_RUN_ARGS="$PHASE --mode $MODE --handoff $HANDOFF"
+[ -n "$MODEL" ]       && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --model $MODEL"
 [ -n "$RESUME_FLAG" ] && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS $RESUME_FLAG"
 [ $DRY_RUN -eq 1 ]   && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --dry-run"
 
