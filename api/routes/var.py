@@ -29,6 +29,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.middleware.auth import TokenPayload, get_current_user
 from api.responses import OrjsonResponse
+from api.routes.caching import cache_check, write_result_to_cache
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
 from tasks.var_task import celery_app, compute_var_task
 
@@ -46,9 +47,11 @@ router = APIRouter(prefix="/var", tags=["VaR"])
     summary="Submit a Monte Carlo VaR computation",
     description=(
         "Dispatches a VaR computation job to the Celery worker pool. "
-        "Returns a task_id immediately. Poll GET /var/result/{task_id} for results."
+        "Returns a task_id immediately. Poll GET /var/result/{task_id} for results. "
+        "Identical requests (same params) may return 200 with a cached result instead."
     ),
 )
+@cache_check(domain="var")
 async def submit_var(
     request: Request,
     body: VaRRequest,
@@ -116,6 +119,9 @@ async def get_var_result(
     if state == "SUCCESS":
         raw = async_result.result
         result = VaRResult(**raw)
+        payload = (async_result.kwargs or {}).get("payload")
+        if isinstance(payload, dict):
+            await write_result_to_cache("var", payload, raw)
 
     elif state == "FAILURE":
         error = str(async_result.result)

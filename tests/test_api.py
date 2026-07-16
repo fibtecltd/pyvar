@@ -173,6 +173,73 @@ async def test_pro_tier_allows_larger_simulations(app, pro_token, valid_payload)
     assert resp.status_code == 202
 
 
+# ── ElastiCache result caching ────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_submit_var_cache_hit_returns_200(app, free_token, valid_payload):
+    """A cached result short-circuits Celery entirely and returns 200, not 202."""
+    with (
+        patch("api.routes.caching._cache_get", return_value=MOCK_VAR_RESULT),
+        patch("api.routes.var.compute_var_task.apply_async") as mock_apply_async,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute",
+                json=valid_payload,
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "success"
+    assert body["result"]["var_abs"] == 28_000.0
+    mock_apply_async.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_submit_var_cache_miss_dispatches_celery(app, free_token, valid_payload):
+    """A cache miss falls through to the normal 202 + task_id Celery dispatch."""
+    mock_task = MagicMock()
+    mock_task.id = "cache-miss-task-uuid"
+
+    with (
+        patch("api.routes.caching._cache_get", return_value=None),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute",
+                json=valid_payload,
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 202
+    assert resp.json()["task_id"] == "cache-miss-task-uuid"
+
+
+@pytest.mark.asyncio
+async def test_get_result_success_writes_to_cache(app, free_token, valid_payload):
+    """On SUCCESS, the result is written to cache keyed on the original dispatch payload."""
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = MOCK_VAR_RESULT
+    mock_async_result.kwargs = {"payload": valid_payload}
+
+    with (
+        patch("api.routes.var.AsyncResult", return_value=mock_async_result),
+        patch("api.routes.caching._cache_set") as mock_cache_set,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/api/v1/var/result/test-task-uuid-1234",
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 200
+    mock_cache_set.assert_awaited_once_with("var", valid_payload, MOCK_VAR_RESULT)
+
+
 # ── GET /var/result/{task_id} ─────────────────────────────────────────────────
 
 
