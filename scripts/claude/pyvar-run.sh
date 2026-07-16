@@ -15,6 +15,9 @@
 #   ./pyvar-run.sh <phase> --resume <id>      resume specific session
 #   ./pyvar-run.sh <phase> --mode agent       force Agent Teams (M4 only)
 #   ./pyvar-run.sh <phase> --mode seq         force sequential
+#   ./pyvar-run.sh <phase> --model <name>     override Claude model
+#                                              (e.g. claude-sonnet-5, claude-opus-4-8)
+#                                              takes precedence over mode-based default
 #   ./pyvar-run.sh <phase> --handoff auto     Option A — auto restart
 #   ./pyvar-run.sh <phase> --handoff hybrid   Option C — confirm restart
 #   ./pyvar-run.sh <phase> --worktree <name>  run in specific worktree
@@ -54,6 +57,7 @@ TEARDOWN_WT=0
 DRY_RUN=0
 EXTRA_ARGS=""
 SKIP_PERMS=""
+MODEL_OVERRIDE=""
 
 # ── Parse arguments ───────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -66,6 +70,7 @@ while [ $# -gt 0 ]; do
             fi
             shift ;;
         --mode)        MODE="$2";         shift 2 ;;
+        --model)       MODEL_OVERRIDE="$2"; shift 2 ;;
         --handoff)     HANDOFF_MODE="$2"; shift 2 ;;
         --worktree)    WORKTREE_NAME="$2"; shift 2 ;;
         --machine)     PYVAR_MACHINE="$2"; . "$LIB_DIR/detect-machine.sh"; shift 2 ;;
@@ -215,7 +220,12 @@ else
 fi
 
 # Choose Claude model
-if [ "$MODE" = "agent" ]; then
+# --model on the command line always wins. Otherwise: agent mode forces
+# Opus (Agent Teams requires it); sequential mode uses Claude Code's own
+# default (no flag passed) unless overridden.
+if [ -n "$MODEL_OVERRIDE" ]; then
+    CLAUDE_MODEL="--model $MODEL_OVERRIDE"
+elif [ "$MODE" = "agent" ]; then
     CLAUDE_MODEL="--model claude-opus-4-8"
 else
     CLAUDE_MODEL=""
