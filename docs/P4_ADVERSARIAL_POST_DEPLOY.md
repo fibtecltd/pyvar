@@ -574,3 +574,143 @@ target is **unchanged** by this — this is monitoring headroom, not a
 revision of the cost target itself, and the underlying gap (unconfirmed
 credit durability) still needs a Billing Console check to close out
 properly.
+
+---
+
+## P7 Cost & Performance Optimisation — full stack pass
+
+**Date: 2026-07-17T17:22:14Z**
+
+### Benchmark results (before/after)
+
+**Task 1 — Numba kernel profiling.** No optimisation needed; the first
+pass (PR #125) had a methodology bug (measured disk-cache-warm, not
+true-cold — the machine's `~/.cache/numba/` already held compiled
+artifacts from earlier sessions), corrected in PR #128. Corrected true
+cold-compile numbers, 10 hottest Monte Carlo/simulation functions at
+`n_simulations=100_000`:
+
+| Function | true_cold (s) | warm (s) |
+|---|---|---|
+| `run_monte_carlo_var` (parallel kernel) | 1.08 | 0.007 |
+| `american_option_lsm` | 0.33 | 0.24 |
+| `rough_volatility_rbergomi_model` | 0.33 | 0.07 |
+| **Aggregate, all 10** | **2.47** | **0.46** |
+
+Aggregate true-cold (2.47s) lines up with CLAUDE.md §11's documented "~2s
+Numba first-call compilation" figure — a useful cross-validation. Both
+figures are far under the 5s profiling trigger and 10s exit-gate target.
+Separately, worst-case schema-max params (`n_simulations=1_000_000`,
+`horizon_days=250`, used for the Task 4 SQS visibility-timeout review) were
+measured at 3.72s cold / 2.13s warm — also far under the 60s timeout.
+
+**Task 3 — Celery concurrency.** Benchmarked concurrency 1/2/4 on a real
+forced `c5.xlarge` Spot instance (10 VaR jobs, `n_simulations=100_000`,
+submitted through the actual API):
+
+| Concurrency | Total wall-clock (10 jobs) | Peak CPU | Memory delta |
+|---|---|---|---|
+| 1 | 5.76s | ~21% | +108 MB |
+| 2 | 4.28s | ~16% | +107 MB |
+| 4 | 4.25s | ~84% | +248 MB |
+
+1→2 gave a real ~26% improvement; 2→4 gave none (within noise) while CPU
+contention jumped ~5x — each worker's Numba `parallel=True` kernels
+already saturate all vCPUs per task. `CELERY_CONCURRENCY=2` was set in
+`compute_stack.py` and **is confirmed live**: the ASG's launch template
+(`lt-02fc39618b61d8190`, version 20 = `LatestVersionNumber`) has
+`CELERY_CONCURRENCY=2` baked into its `UserData`. Workers pull fresh
+source and env config on every boot (no container image involved), so
+this change needed no separate rebuild step — unlike the API/ECS finding
+below.
+
+### Cache hit rate — cannot measure yet, for two independent reasons
+
+**Reason 1 (expected):** CloudFront's Additional Metrics
+(`CfnMonitoringSubscription`, PR #133) were only enabled today. `CacheHitRate`
+needs traffic to accumulate after enablement before it reports anything
+meaningful — this is normal ramp-up, not a defect.
+
+**Reason 2 (a live finding, not just "too new"):** the `Cache-Control` fix
+itself (PR #132, `api/routes/var.py`) is **merged to `master` but not
+running in the deployed API container**. Checked directly:
+
+| Check | Result |
+|---|---|
+| Running task | `07da7e8a97d441d19285081d5b30b5da`, started **2026-07-16T08:29:20Z** |
+| Running image | `pyvar-dev-api:latest` @ `sha256:82470eb0…` |
+| Commit baked into that image | `bd78478` (**"Merge pull request #120"**) |
+
+`bd78478` predates PR #121, #122, #123 (already merged before this P7
+session started) and every P7 PR (#125 through #137) — none of this
+session's application-code changes are live: not the `Cache-Control`
+header fix, not the ElastiCache `cache_check` decorator (PR #126), none
+of it. This is the **exact same class of gap** already documented above
+(the `api_usage` middleware staleness finding, 2026-07-16) recurring
+exactly as that finding's own "Updated verdict" predicted: *"will recur
+on the next merge"* — because there is still no CI/CD path from a merged
+commit to a running ECS task (#119).
+
+**This does not block the P7 Task 6 fix from being correct** — the code
+change itself is right, tested, and reviewed — but **the CDN is still
+serving zero cache hits in production today**, because the origin
+container has never been rebuilt since 2026-07-16. Measuring real
+cache-hit-rate data requires, in order: (1) rebuild + push the API image
+from current `master`, (2) `aws ecs update-service --force-new-deployment`,
+(3) let real traffic accumulate against the new container. None of this
+was done in this pass — flagging for a decision rather than doing a
+Docker rebuild unprompted, same as the constraint noted in the 2026-07-16
+remediation above (no local Docker daemon in this environment; that
+remediation used an operator machine).
+
+### Cost review summary
+
+See `docs/p7-cost-review.md` in full. Headline: the `pyvar-dev-monthly`
+budget's `HEALTHY` status was masking a **-$75.88 credit** offsetting
+~34% of gross usage; extrapolated gross usage projects to ~$390-410/month.
+Budget raised 250 → 400 (previous section, this file) to track the gross
+run-rate rather than the currently-credited net. Top 3 gross drivers: VPC
+interface endpoints across 2 AZs in dev (~$87/mo, genuine inefficiency,
+~$38/mo recoverable via 1-AZ dev endpoints — not implemented, flagged as
+follow-up), ElastiCache Serverless (~$59/mo, ~4.5x the ~$13/mo target,
+flagged for a provisioned-node evaluation), NAT Gateway (~$35/mo,
+already near-optimal — `config.py` already chose 1 NAT GW for dev
+deliberately).
+
+### Validator results (standard P4 live-infra checks, re-run for this pass)
+
+| Check | Result |
+|---|---|
+| Live-SG | ✅ PASS — no `0.0.0.0/0` rules on non-80/443 ports |
+| Live-EP | ✅ PASS — all 9 VPC endpoints `available` (5 interface + 1 S3 gateway + 3 ElastiCache-managed) |
+| Live-IMDSv2 | ✅ PASS — launch template `MetadataOptions.HttpTokens: required` (no instances currently running, `desired=0` steady state — checked the template default instead) |
+| Live-ECS | ✅ PASS — `runningTasksCount: 1`, `pendingTasksCount: 0` |
+| Live-WAF | ✅ PASS — both CloudFront (`pyvar-dev-waf`) and ALB regional (`pyvar-dev-alb-waf`) WAFs active (defence-in-depth, both present) |
+| SECRET-1 | ✅ PASS — all `ecs.Secret.from_secrets_manager` field references (`host`, `port`, `dbname`, `username`, `password`) resolve against the live `aurora-credentials` secret; `jwt-secret` and `cf-origin-verify` both non-empty |
+| Live-API (routes) | ✅ PASS — all 8 domains present with exact expected path counts (market-risk 71, credit-risk 55, liquidity 40, operational 44, portfolio 50, regulatory 30, derivatives 62, alm 33 — 388 total) |
+| Live-API (auth gating) | ✅ PASS — unauthenticated `POST` to the first real endpoint per domain (sourced from `/openapi.json`, not the generic `/compute` stub — that returns 404 by design, only `var` uses that suffix) → **401** on all 8 domains |
+| Origin-verify bypass | ✅ PASS — direct `GET` to the ALB DNS name for `/health` with no `X-Origin-Verify` header → **403** |
+
+### Findings
+
+**CRITICAL:** none new. The ECS image-staleness gap surfacing again this
+pass is a **recurrence of the already-tracked #119 root cause**, not a
+new defect — see "Cache hit rate" above.
+
+**WARNING**
+1. API container running `bd78478` (pre-dates this entire P7 session) — none of PR #125-#137's application-code changes are live. Infra-only changes (CDK-deployed: S3 tiering, CloudFront cache policy/monitoring, budget, worker UserData) are live; anything requiring an API/ECS image rebuild is not. Needs a decision: rebuild+redeploy now (repeat the 2026-07-16 manual-Docker-build workaround), or accept and batch with other pending API changes.
+2. VPC endpoints across 2 AZs in dev (~$38/month recoverable) and ElastiCache Serverless cost vs. target — both flagged in `docs/p7-cost-review.md`, neither implemented.
+3. `write_result_to_s3()` dead code (#130) — the S3 Intelligent-Tiering fix (PR #131) is correct but inert until this is addressed.
+4. `4xxErrorRate` spike (#134, Priority: Low) — needs triage, likely test traffic.
+5. AWS credit durability (`docs/p7-cost-review.md`) — needs a Billing Console check, not resolvable via CLI.
+
+### VERDICT: **P7 CLEARED, WITH ONE CARRIED-FORWARD WARNING REQUIRING A DECISION**
+
+All standard live-infrastructure checks pass cleanly — no drift, no
+misconfiguration, no missing associations. Every P7 task's own exit
+criteria are met or explicitly and honestly reported as unmeasurable
+(cache hit rate) rather than fabricated. The one item that needs a human
+decision, not further automated checking, is whether to force a
+same-day API container rebuild so this session's application-code fixes
+(Cache-Control, ElastiCache caching) actually take effect — CDK-level
+infrastructure changes are confirmed live; ECS application code is not.
