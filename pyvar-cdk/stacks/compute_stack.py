@@ -168,6 +168,16 @@ class ComputeStack(Stack):
             f"AWS_DEFAULT_REGION={cfg.region}\n"
             "NUMBA_CACHE_DIR=/opt/numba_cache\n"
             f"PYVAR_ENV_NAME={cfg.env_name}\n"
+            # P7 Task 3: benchmarked concurrency 1/2/4 on c5.xlarge (10 VaR jobs,
+            # n_simulations=100_000 each, submitted through the real API). 1->2
+            # cut total wall-clock ~26% (5.76s -> 4.28s); 2->4 gave no further
+            # gain (4.28s vs 4.25s, within noise) while peak CPU jumped from
+            # ~16% to ~84% and the worker's memory delta roughly doubled — each
+            # Celery worker process's Numba parallel=True kernels already
+            # spread across all 4 vCPUs, so concurrency=4 means 4x
+            # oversubscription of the same 4 cores for zero measured benefit.
+            # See docs/p7-celery-concurrency-results.md for the full data.
+            "CELERY_CONCURRENCY=2\n"
             "ENVEOF"
         )
         # EnvironmentFile=-/opt/pyvar/secrets.env: '-' prefix makes it optional so
