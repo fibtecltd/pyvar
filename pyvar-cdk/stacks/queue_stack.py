@@ -11,7 +11,9 @@ Reasoning:
 - visibility_timeout must EXCEED the maximum simulation runtime.
   If a worker holds a message beyond the timeout, SQS makes it visible
   again and another worker picks it up (double execution). Set to 60s —
-  well above the ~10s for a 100k-path Monte Carlo on c7i.xlarge.
+  measured (P7 Task 4) at the true schema maximum (n_simulations=1_000_000,
+  horizon_days=250) on the actual c5.xlarge worker: 2.13s warm, 3.72s cold
+  (first task on a fresh worker, includes JIT compile) — ~16x margin.
 - DLQ captures messages that fail 3+ times. CloudWatch alarm on the
   DLQ depth triggers a PagerDuty/SNS notification to the ops team.
 - A separate high-priority queue (future) could be added for enterprise
