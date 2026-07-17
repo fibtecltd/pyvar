@@ -204,6 +204,25 @@ class EdgeStack(Stack):
             log_includes_cookies=False,
         )
 
+        # P7 Task 6: without this, CloudFront's "Additional metrics" (CacheHitRate,
+        # OriginLatency, and per-status-code error rate breakdowns — up to 8 metrics)
+        # never reach CloudWatch at all, regardless of traffic volume. Billed as
+        # CloudWatch custom metrics (~$0.30/metric/month, us-east-1) — up to ~$2.40/
+        # month for this distribution. Needed to actually measure the release plan's
+        # >60% cache-hit-rate target now that api/routes/var.py sets Cache-Control.
+        cf.CfnMonitoringSubscription(
+            self,
+            "MonitoringSubscription",
+            distribution_id=self.distribution.distribution_id,
+            monitoring_subscription=cf.CfnMonitoringSubscription.MonitoringSubscriptionProperty(
+                realtime_metrics_subscription_config=(
+                    cf.CfnMonitoringSubscription.RealtimeMetricsSubscriptionConfigProperty(
+                        realtime_metrics_subscription_status="Enabled",
+                    )
+                ),
+            ),
+        )
+
         # ── Route53 (optional — only if hosted_zone_id is configured) ─────────
         if cfg.hosted_zone_id:
             zone = route53.HostedZone.from_hosted_zone_attributes(
