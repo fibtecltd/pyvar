@@ -79,7 +79,7 @@ async def _cache_get(domain: str, params: dict[str, Any]) -> dict[str, Any] | No
     try:
         raw = await client.get(_cache_key(domain, params))
     except Exception:  # noqa: BLE001 — best-effort, never fail the request
-        logger.warning("Cache read failed", extra={"domain": domain})
+        logger.exception("Cache read failed", extra={"domain": domain})
         return None
     return json.loads(raw) if raw is not None else None  # type: ignore[no-any-return]
 
@@ -95,7 +95,7 @@ async def _cache_set(domain: str, params: dict[str, Any], result: dict[str, Any]
             ex=cfg.celery_result_ttl,
         )
     except Exception:  # noqa: BLE001 — best-effort, never fail the request
-        logger.warning("Cache write failed", extra={"domain": domain})
+        logger.exception("Cache write failed", extra={"domain": domain})
 
 
 def cache_check(domain: str) -> Callable[[F], F]:
