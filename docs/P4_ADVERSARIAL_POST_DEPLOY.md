@@ -542,3 +542,35 @@ then `aws ecs update-service --cluster pyvar-dev --service pyvar-dev-api --force
 ### Updated verdict
 
 **RESOLVED for the container-staleness finding.** The `pyvar-dev-api` service is now running code current with `master` @ `bd78478`, including the `api_usage` middleware. The underlying root cause — **no CI/CD path from a merged commit to a running ECS task** — is not fixed by this one-off redeploy and will recur on the next merge. That gap tracks with #119's finding (no automated migration step) under the same missing piece: an automated build-and-deploy pipeline. Recommend resolving `pyvar-pipeline` deployment (currently blocked by the same CodeBuild account restriction hit above) as a prerequisite, or documenting a manual "rebuild+push+force-new-deployment after every merge touching `api/`, `main.py`, `storage/`, `config.py`" step in the runbook until it is.
+
+---
+
+## `pyvar-dev-monthly` budget raised $250 → $400 (P7 Task 7 follow-up)
+
+**Date: 2026-07-17**
+
+`docs/p7-cost-review.md` (P7 Task 7) found that the AWS Budget's `HEALTHY`
+status was misleading: Cost Explorer's `RECORD_TYPE` breakdown showed a
+**-$75.88 credit** currently offsetting ~34% of gross usage this period,
+and the credit's recurrence/expiry could not be confirmed via CLI (needs
+a Billing Console check). Extrapolating **gross** usage (not the
+credited net) projected to ~$390-410/month against the previous $250
+limit.
+
+`MONTHLY_BUDGET_USD` in `alerts_stack.py` was raised **250 → 400**,
+deployed to `pyvar-dev-alerts` via `cdk deploy` (explicit user
+confirmation) and verified live (`aws budgets describe-budgets` →
+`BudgetLimit.Amount: 400.0`). Both alert thresholds are percentage-based
+(`80%`/`100%` of the limit) and rescaled automatically to **$320
+actual / $400 forecasted** — no separate threshold edit was needed.
+
+**This sizes the budget to the gross-cost run-rate, not the currently
+credited net** — i.e. it does not assume the -$75.88 credit persists.
+If the credit turns out to be recurring, $400 leaves comfortable headroom
+above the true ~$174-176/month net spend; if the credit expires, $400
+still tracks the ~$390-410/month gross projection reasonably tightly
+rather than silently absorbing it. The original ~£150/month release-plan
+target is **unchanged** by this — this is monitoring headroom, not a
+revision of the cost target itself, and the underlying gap (unconfirmed
+credit durability) still needs a Billing Console check to close out
+properly.
