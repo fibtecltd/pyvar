@@ -141,6 +141,26 @@ class DataStack(Stack):
                 )
             ],
             lifecycle_rules=[
+                # P7 Task 5 fix: intelligent_tiering_configurations above only
+                # governs the OPTIONAL archive/deep-archive sub-tiers for
+                # objects already stored under the INTELLIGENT_TIERING storage
+                # class — it does not itself move anything there. Without this
+                # transition, put_object's default STANDARD storage class was
+                # never migrated and the archive config above had no effect on
+                # any object. transition_after=days(0) moves objects in on
+                # first access-pattern evaluation; S3's automatic 30-day
+                # Frequent->Infrequent Access move (unconfigurable, built into
+                # the storage class itself) then applies as intended.
+                s3.LifecycleRule(
+                    id="TransitionToIntelligentTiering",
+                    enabled=True,
+                    transitions=[
+                        s3.Transition(
+                            storage_class=s3.StorageClass.INTELLIGENT_TIERING,
+                            transition_after=Duration.days(0),
+                        )
+                    ],
+                ),
                 s3.LifecycleRule(
                     id="ExpireOldResults",
                     expiration=Duration.days(cfg.result_retention_days),
