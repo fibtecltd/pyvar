@@ -126,6 +126,12 @@ async def get_var_result(
     elif state == "FAILURE":
         error = str(async_result.result)
 
+    # CloudFront's ApiCachePolicy (edge_stack.py) clamps TTL using this header —
+    # min_ttl=0/max_ttl=3600 — so PENDING/STARTED/FAILURE are never cached
+    # (a still-running or failed job may change on the next poll) and only an
+    # immutable SUCCESS result is eligible to be served from the edge cache.
+    cache_control = "public, max-age=3600" if job_status == JobStatus.SUCCESS else "no-store"
+
     return OrjsonResponse(
         content=JobResultResponse(
             task_id=task_id,
@@ -133,4 +139,5 @@ async def get_var_result(
             result=result if result else None,
             error=error,
         ).model_dump(),
+        headers={"Cache-Control": cache_control},
     )
