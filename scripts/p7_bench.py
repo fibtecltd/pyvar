@@ -31,9 +31,7 @@ import os
 import tempfile
 
 _FRESH_CACHE_DIR = tempfile.mkdtemp(prefix="p7_bench_numba_cache_")
-os.environ["NUMBA_CACHE_DIR"] = (
-    _FRESH_CACHE_DIR  # must precede any numba-touching import
-)
+os.environ["NUMBA_CACHE_DIR"] = _FRESH_CACHE_DIR  # must precede any numba-touching import
 
 import time  # noqa: E402
 
@@ -61,9 +59,7 @@ CASES = [
     (
         "Market Risk",
         "run_monte_carlo_var",
-        lambda: run_monte_carlo_var(
-            RETURNS, portfolio_value=1_000_000.0, n_simulations=100_000
-        ),
+        lambda: run_monte_carlo_var(RETURNS, portfolio_value=1_000_000.0, n_simulations=100_000),
     ),
     (
         "Market Risk",
@@ -75,9 +71,7 @@ CASES = [
     (
         "Derivatives",
         "rough_volatility_rbergomi_model",
-        lambda: rough_volatility_rbergomi_model(
-            100.0, 100.0, 0.02, 1.0, n_simulations=100_000
-        ),
+        lambda: rough_volatility_rbergomi_model(100.0, 100.0, 0.02, 1.0, n_simulations=100_000),
     ),
     (
         "Derivatives",
@@ -87,16 +81,12 @@ CASES = [
     (
         "Derivatives",
         "asian_option_pricer",
-        lambda: asian_option_pricer(
-            100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000
-        ),
+        lambda: asian_option_pricer(100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000),
     ),
     (
         "Derivatives",
         "lookback_option_pricer",
-        lambda: lookback_option_pricer(
-            100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000
-        ),
+        lambda: lookback_option_pricer(100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000),
     ),
     (
         "Derivatives",
@@ -128,9 +118,7 @@ CASES = [
     (
         "Derivatives",
         "american_option_lsm",
-        lambda: american_option_lsm(
-            100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000
-        ),
+        lambda: american_option_lsm(100.0, 100.0, 0.02, 0.2, 1.0, n_simulations=100_000),
     ),
     (
         "Operational Risk",
@@ -172,9 +160,7 @@ def main() -> None:
         flag = "  <-- >5s" if warm > 5.0 else ""
         print(f"{domain:<18} {name:<32} {true_cold:>13.3f} {warm:>10.3f}{flag}")
 
-    print(
-        f"{'':<18} {'TOTAL (sum of all 10)':<32} {total_cold:>13.3f} {total_warm:>10.3f}"
-    )
+    print(f"{'':<18} {'TOTAL (sum of all 10)':<32} {total_cold:>13.3f} {total_warm:>10.3f}")
 
 
 if __name__ == "__main__":
