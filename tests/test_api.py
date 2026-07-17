@@ -261,6 +261,9 @@ async def test_get_result_success(app, free_token):
     assert body["status"] == "success"
     assert body["result"]["var_abs"] == 28_000.0
     assert body["result"]["cvar_pct"] > body["result"]["var_pct"]
+    # CloudFront's ApiCachePolicy (edge_stack.py) clamps TTL from this header —
+    # a SUCCESS result is immutable, so it must be edge-cacheable.
+    assert resp.headers["cache-control"] == "public, max-age=3600"
 
 
 @pytest.mark.asyncio
@@ -278,6 +281,9 @@ async def test_get_result_pending(app, free_token):
     assert resp.status_code == 200
     assert resp.json()["status"] == "pending"
     assert resp.json()["result"] is None
+    # A still-running job must never be cached at the edge — it changes on
+    # the next poll.
+    assert resp.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.asyncio
@@ -294,6 +300,7 @@ async def test_get_result_failure(app, free_token):
             )
 
     assert resp.status_code == 200
+    assert resp.headers["cache-control"] == "no-store"
     body = resp.json()
     assert body["status"] == "failure"
     assert body["error"] is not None
