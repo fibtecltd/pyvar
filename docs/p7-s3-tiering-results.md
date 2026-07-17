@@ -68,6 +68,13 @@ change well beyond "verify Intelligent-Tiering config." Cannot verify actual
 transition behaviour (0 objects to observe), but the configuration is now
 confirmed correct for whenever objects do land there.
 
+Filed as **[#130](https://github.com/fibtecltd/pyvar/issues/130)** —
+"`write_result_to_s3()` is dead code — results never persisted to S3, only
+Redis," labelled `infrastructure` (a gap, not a bug: a designed feature
+that was never wired in, nothing is currently broken). The issue notes that
+this session's tiering fix (above) is correct but will remain inert — 0
+objects to tier — until #130 is addressed.
+
 ## Summary
 
 | Check | Result |
