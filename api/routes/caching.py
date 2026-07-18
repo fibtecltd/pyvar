@@ -28,9 +28,9 @@ import hashlib
 import json
 import logging
 import os
-import ssl
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
+from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 from pydantic import BaseModel
 
@@ -48,8 +48,26 @@ F = TypeVar("F", bound=Callable[..., Awaitable[OrjsonResponse]])
 
 
 def _redis_url() -> str:
-    """Same connection string Celery uses for CELERY_RESULT_BACKEND — reused, not duplicated."""
-    return os.environ.get("CELERY_RESULT_BACKEND", cfg.redis_url)
+    """Same connection string Celery uses for CELERY_RESULT_BACKEND — reused, not duplicated.
+
+    CELERY_RESULT_BACKEND's ssl_cert_reqs=CERT_NONE query param is written in
+    Kombu's convention (kombu.utils.url.parse_ssl_cert_reqs accepts both
+    "CERT_NONE" and "none"). redis.asyncio.from_url() does not coerce
+    ssl_cert_reqs at all, and — despite kwargs normally overriding URL values —
+    its own docs and code confirm querystring values win over explicit kwargs
+    for from_url(), so passing the real enum as a kwarg is silently clobbered
+    by this uppercase string. Rewriting the query param itself is the only
+    fix: SSLConnection's CERT_REQS dict is lowercase-only ("none"/"optional"/
+    "required"), so the uppercase string otherwise reaches it unchanged and
+    raises RedisError("Invalid SSL Certificate Requirements Flag: CERT_NONE").
+    """
+    raw = os.environ.get("CELERY_RESULT_BACKEND", cfg.redis_url)
+    parsed = urlsplit(raw)
+    query = parse_qs(parsed.query)
+    if "ssl_cert_reqs" in query:
+        query["ssl_cert_reqs"] = [query["ssl_cert_reqs"][0].lower().removeprefix("cert_")]
+        parsed = parsed._replace(query=urlencode(query, doseq=True))
+    return urlunsplit(parsed)
 
 
 def _get_redis_client() -> Any:
@@ -59,20 +77,7 @@ def _get_redis_client() -> Any:
         try:
             import redis.asyncio as aioredis
 
-            url = _redis_url()
-            kwargs: dict[str, Any] = {"decode_responses": True}
-            if url.startswith("rediss://"):
-                # CELERY_RESULT_BACKEND's ssl_cert_reqs=CERT_NONE query param is in
-                # Kombu's convention (kombu.utils.url.parse_ssl_cert_reqs accepts
-                # both cases). redis-py's own from_url() parser does not coerce
-                # ssl_cert_reqs at all, so the uppercase string reaches
-                # SSLConnection unchanged, whose CERT_REQS dict is lowercase-only
-                # ("none"/"optional"/"required") and rejects it with
-                # RedisError("Invalid SSL Certificate Requirements Flag: CERT_NONE").
-                # Pass the real enum explicitly instead — kwargs override URL query
-                # params in from_url().
-                kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
-            _redis_client = aioredis.from_url(url, **kwargs)
+            _redis_client = aioredis.from_url(_redis_url(), decode_responses=True)
         except Exception:  # noqa: BLE001 — cache must never block a request
             logger.warning("Redis cache client unavailable — caching disabled for this call")
             return None
