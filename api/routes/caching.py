@@ -28,6 +28,7 @@ import hashlib
 import json
 import logging
 import os
+import ssl
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
@@ -58,7 +59,20 @@ def _get_redis_client() -> Any:
         try:
             import redis.asyncio as aioredis
 
-            _redis_client = aioredis.from_url(_redis_url(), decode_responses=True)
+            url = _redis_url()
+            kwargs: dict[str, Any] = {"decode_responses": True}
+            if url.startswith("rediss://"):
+                # CELERY_RESULT_BACKEND's ssl_cert_reqs=CERT_NONE query param is in
+                # Kombu's convention (kombu.utils.url.parse_ssl_cert_reqs accepts
+                # both cases). redis-py's own from_url() parser does not coerce
+                # ssl_cert_reqs at all, so the uppercase string reaches
+                # SSLConnection unchanged, whose CERT_REQS dict is lowercase-only
+                # ("none"/"optional"/"required") and rejects it with
+                # RedisError("Invalid SSL Certificate Requirements Flag: CERT_NONE").
+                # Pass the real enum explicitly instead — kwargs override URL query
+                # params in from_url().
+                kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+            _redis_client = aioredis.from_url(url, **kwargs)
         except Exception:  # noqa: BLE001 — cache must never block a request
             logger.warning("Redis cache client unavailable — caching disabled for this call")
             return None
