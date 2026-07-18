@@ -90,7 +90,18 @@ repos:
         pass_filenames: true
         verbose: true
 
-  # ── 8. File hygiene ────────────────────────────────────────
+  # ── 8. Shell script executable bit ─────────────────────────
+  - repo: local
+    hooks:
+      - id: ensure-sh-executable
+        name: Ensure .sh scripts are executable (+x)
+        language: python
+        entry: python scripts/hooks/check_sh_executable.py
+        files: \.sh$
+        pass_filenames: true
+        verbose: true
+
+  # ── 9. File hygiene ────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
