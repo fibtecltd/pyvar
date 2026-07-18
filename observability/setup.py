@@ -107,6 +107,12 @@ def setup_logging() -> None:
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
+        # Without this, logger.exception()/exc_info=True renders as a bare
+        # repr of the exception + a non-serialisable traceback object (e.g.
+        # "server:RedisError", "<traceback object at 0x...>") instead of the
+        # actual message and formatted stack — the real cause is invisible
+        # in CloudWatch no matter how descriptive the raised exception is.
+        structlog.processors.format_exc_info,
     ]
 
     if cfg.app_env == "development":
