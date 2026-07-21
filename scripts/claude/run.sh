@@ -17,6 +17,17 @@
 #                                                       (e.g. claude-sonnet-5)
 #                                                       takes precedence over
 #                                                       the mode-based default
+#   ./scripts/claude/run.sh <phase> --resume --message "<text>"
+#   ./scripts/claude/run.sh <phase> --resume --message-file <path>
+#                                                       resume the last session for
+#                                                       <phase> and inject a custom
+#                                                       reply instead of re-pasting the
+#                                                       original lead prompt — use this
+#                                                       to answer a decision-gate question
+#                                                       a paused/ended session raised.
+#                                                       --message-file wins if both given.
+#                                                       Without either, --resume opens
+#                                                       with no injected prompt.
 #   ./scripts/claude/run.sh <phase> --dry-run          preview only
 #   ./scripts/claude/run.sh <phase> --skip-setup       skip steps 1+2
 #   ./scripts/claude/run.sh <phase> --teardown-only    run step 4 only
@@ -45,6 +56,8 @@ WORKTREE_PHASES="p2 p5 p5b"
 PHASE=""
 MODE="auto"
 MODEL=""
+MESSAGE=""
+MESSAGE_FILE=""
 HANDOFF="hybrid"
 DRY_RUN=0
 SKIP_SETUP=0
@@ -59,6 +72,10 @@ while [ $# -gt 0 ]; do
             MODE="$2"; shift 2 ;;
         --model)
             MODEL="$2"; shift 2 ;;
+        --message)
+            MESSAGE="$2"; shift 2 ;;
+        --message-file)
+            MESSAGE_FILE="$2"; shift 2 ;;
         --handoff)
             HANDOFF="$2"; shift 2 ;;
         --dry-run)
@@ -72,7 +89,8 @@ while [ $# -gt 0 ]; do
         *)
             echo "Unknown argument: $1"
             echo "Usage: $0 <phase> [--mode agent|seq] [--model <name>] [--handoff auto|hybrid]"
-            echo "           [--dry-run] [--skip-setup] [--teardown-only] [--resume]"
+            echo "           [--resume [--message <text>|--message-file <path>]]"
+            echo "           [--dry-run] [--skip-setup] [--teardown-only]"
             exit 1 ;;
     esac
 done
@@ -107,6 +125,15 @@ header() {
 
 PHASE_UPPER="$(echo "$PHASE" | tr '[:lower:]' '[:upper:]')"
 header "run.sh · Phase $PHASE_UPPER" "mode=$MODE  model=${MODEL:-default}  handoff=$HANDOFF  worktrees=$(has_worktrees && echo yes || echo no)"
+
+# Convert an inline --message into a temp file so pyvar-run.sh only needs
+# to handle one code path (--message-file). --message-file, if also
+# given, takes precedence over --message.
+if [ -n "$MESSAGE" ] && [ -z "$MESSAGE_FILE" ]; then
+    MESSAGE_TMP="$(mktemp /tmp/pyvar-run-message-XXXXXX.md)"
+    printf '%s\n' "$MESSAGE" > "$MESSAGE_TMP"
+    MESSAGE_FILE="$MESSAGE_TMP"
+fi
 
 # ── Teardown only ─────────────────────────────────────────────────
 if [ $TEARDOWN_ONLY -eq 1 ]; then
@@ -153,7 +180,8 @@ fi
 echo ""
 
 PYVAR_RUN_ARGS="$PHASE --mode $MODE --handoff $HANDOFF"
-[ -n "$MODEL" ]       && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --model $MODEL"
+[ -n "$MODEL" ]        && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --model $MODEL"
+[ -n "$MESSAGE_FILE" ] && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --message-file $MESSAGE_FILE"
 [ -n "$RESUME_FLAG" ] && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS $RESUME_FLAG"
 [ $DRY_RUN -eq 1 ]   && PYVAR_RUN_ARGS="$PYVAR_RUN_ARGS --dry-run"
 

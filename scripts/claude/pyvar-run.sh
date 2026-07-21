@@ -18,6 +18,13 @@
 #   ./pyvar-run.sh <phase> --model <name>     override Claude model
 #                                              (e.g. claude-sonnet-5, claude-opus-4-8)
 #                                              takes precedence over mode-based default
+#   ./pyvar-run.sh <phase> --resume --message-file <path>
+#                                              resume last session and inject a custom
+#                                              reply from <path> instead of the original
+#                                              lead prompt (e.g. answering a decision-gate
+#                                              question). Without --message-file, --resume
+#                                              opens the session with no injected prompt —
+#                                              reply interactively instead.
 #   ./pyvar-run.sh <phase> --handoff auto     Option A — auto restart
 #   ./pyvar-run.sh <phase> --handoff hybrid   Option C — confirm restart
 #   ./pyvar-run.sh <phase> --worktree <name>  run in specific worktree
@@ -58,6 +65,7 @@ DRY_RUN=0
 EXTRA_ARGS=""
 SKIP_PERMS=""
 MODEL_OVERRIDE=""
+MESSAGE_FILE=""
 
 # ── Parse arguments ───────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -71,6 +79,7 @@ while [ $# -gt 0 ]; do
             shift ;;
         --mode)        MODE="$2";         shift 2 ;;
         --model)       MODEL_OVERRIDE="$2"; shift 2 ;;
+        --message-file) MESSAGE_FILE="$2"; shift 2 ;;
         --handoff)     HANDOFF_MODE="$2"; shift 2 ;;
         --worktree)    WORKTREE_NAME="$2"; shift 2 ;;
         --machine)     PYVAR_MACHINE="$2"; . "$LIB_DIR/detect-machine.sh"; shift 2 ;;
@@ -238,7 +247,16 @@ SESSION_CMD="docker compose -f \"$COMPOSE_FILE\" run --rm -T \
 
 # Append --print with handoff prompt if resuming from context exhaustion
 PRINT_FLAG=""
-if [ -n "${HANDOFF:-}" ]; then
+DELETE_PROMPT_AFTER=0
+if [ -n "$MESSAGE_FILE" ]; then
+    # Explicit custom message always wins — used to reply into a resumed
+    # session (e.g. answering a decision-gate question) rather than
+    # re-injecting the original lead prompt. Operator-owned file — do not
+    # delete it after use.
+    [ -f "$MESSAGE_FILE" ] || { echo "ERROR: --message-file '$MESSAGE_FILE' not found"; exit 1; }
+    echo "      Using custom message: $MESSAGE_FILE"
+    FULL_PROMPT_FILE="$MESSAGE_FILE"
+elif [ -n "${HANDOFF:-}" ]; then
     rm -f /tmp/pyvar-prompt-*.md /tmp/pyvar-prompt-* 2>/dev/null || true
     PRINT_TMP=$(mktemp /tmp/pyvar-prompt-XXXXXX)
     {
@@ -254,6 +272,17 @@ if [ -n "${HANDOFF:-}" ]; then
     } > "$PRINT_TMP"
     PRINT_FLAG="--print \"$(cat "$PRINT_TMP" | head -50)...\""
     FULL_PROMPT_FILE="$PRINT_TMP"
+    DELETE_PROMPT_AFTER=1
+elif [ -n "$RESUME_FLAG" ]; then
+    # Resuming an existing session with no explicit --message-file and no
+    # context-exhaustion handoff: do NOT re-inject the original lead
+    # prompt — that would silently re-paste the full task list into an
+    # already-progressed conversation. Resume with no piped stdin; the
+    # operator continues interactively once the session opens, or should
+    # pass --message-file to reply with a specific follow-up.
+    echo "      Resuming with no injected prompt — reply interactively,"
+    echo "      or re-run with --message-file <path> to inject a reply."
+    FULL_PROMPT_FILE=""
 elif [ -n "$PROMPT_FILE" ] && [ -f "$PROMPT_FILE" ]; then
     rm -f /tmp/pyvar-prompt-*.md /tmp/pyvar-prompt-* 2>/dev/null || true
     PRINT_TMP=$(mktemp /tmp/pyvar-prompt-XXXXXX.md)
@@ -271,6 +300,7 @@ elif [ -n "$PROMPT_FILE" ] && [ -f "$PROMPT_FILE" ]; then
         cat "$PROMPT_FILE"
     } > "$PRINT_TMP"
     FULL_PROMPT_FILE="$PRINT_TMP"
+    DELETE_PROMPT_AFTER=1
 else
     FULL_PROMPT_FILE=""
 fi
@@ -307,7 +337,9 @@ else
         # Inject prompt via --print for the first message
         #CLAUDE_PROMPT=$(cat "$FULL_PROMPT_FILE")
         eval "$SESSION_CMD" < "$FULL_PROMPT_FILE"
-        rm -f "$FULL_PROMPT_FILE" "${PRINT_TMP:-}"
+        if [ "$DELETE_PROMPT_AFTER" -eq 1 ]; then
+            rm -f "$FULL_PROMPT_FILE" "${PRINT_TMP:-}"
+        fi
     else
         eval "$SESSION_CMD"
     fi
