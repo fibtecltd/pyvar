@@ -21,6 +21,20 @@ Reasoning:
   mechanism CDK uses for alb_dns). The ALB enforces it via a listener
   rule — see api_stack.py — so a direct hit to the ALB without the
   header is rejected, closing the WAF-bypass gap.
+- /public/* behavior (P8 Task 1/2): a second origin serving status.json and
+  demo-result.json, written on a schedule by public_data_stack.py's Lambda.
+  THIS stack — not public_data_stack.py — owns the bucket the Lambda writes
+  into, even though the Lambda "belongs" to that stack. Origin Access Control
+  requires a bucket policy that references the CloudFront distribution's ID,
+  and the distribution requires the bucket as an origin — a genuine mutual
+  reference that only resolves within a single stack (CloudFormation can
+  order same-stack resources either way; it cannot order two stacks each
+  waiting on the other). Owning the bucket here and handing it to
+  PublicDataStack (which only needs write access for its Lambda, not the
+  OAC/distribution coupling) breaks the cycle. CORS is open
+  (CORS_ALLOW_ALL_ORIGINS) because this data is intentionally public and
+  non-sensitive, and the portal may eventually be hosted on a different
+  origin than this API's CloudFront distribution.
 """
 
 from __future__ import annotations
@@ -31,6 +45,7 @@ from aws_cdk import aws_cloudfront as cf
 from aws_cdk import aws_cloudfront_origins as origins
 from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
+from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_wafv2 as waf
 from constructs import Construct
@@ -168,6 +183,36 @@ class EdgeStack(Stack):
             ),
         )
 
+        # Public data bucket + origin (status.json / demo-result.json — P8
+        # Task 1/2). Owned here (not by public_data_stack.py, which owns the
+        # Lambda that writes into it) — see module docstring for why. Stays
+        # fully private (BLOCK_ALL); OAC is the current recommended
+        # replacement for the legacy Origin Access Identity.
+        self.public_data_bucket = s3.Bucket(
+            self,
+            "PublicDataBucket",
+            bucket_name=f"pyvar-{cfg.env_name}-public-{self.account}",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            enforce_ssl=True,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+        )
+        public_data_origin = origins.S3BucketOrigin.with_origin_access_control(
+            self.public_data_bucket,
+            origin_id="PublicDataOrigin",
+        )
+        public_data_cache_policy = cf.CachePolicy(
+            self,
+            "PublicDataCachePolicy",
+            cache_policy_name=f"pyvar-{cfg.env_name}-public-data-cache",
+            default_ttl=cdk.Duration.seconds(60),
+            min_ttl=cdk.Duration.seconds(0),
+            max_ttl=cdk.Duration.minutes(5),
+            enable_accept_encoding_brotli=True,
+            enable_accept_encoding_gzip=True,
+        )
+
         self.distribution = cf.Distribution(
             self,
             "Distribution",
@@ -198,6 +243,15 @@ class EdgeStack(Stack):
                     viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                     cache_policy=cf.CachePolicy.CACHING_OPTIMIZED,
                     allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
+                ),
+                # status.json / demo-result.json: short-TTL, open CORS — see
+                # module docstring. Data is intentionally public, non-sensitive.
+                "/public/*": cf.BehaviorOptions(
+                    origin=public_data_origin,
+                    viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    cache_policy=public_data_cache_policy,
+                    allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
+                    response_headers_policy=cf.ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS,
                 ),
             },
             enable_logging=True,
@@ -242,3 +296,4 @@ class EdgeStack(Stack):
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "CloudFrontDomain", value=self.distribution.distribution_domain_name)
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
+        cdk.CfnOutput(self, "PublicDataBucketName", value=self.public_data_bucket.bucket_name)

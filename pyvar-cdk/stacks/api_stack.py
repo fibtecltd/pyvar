@@ -28,6 +28,9 @@ Reasoning:
       HTTP_ONLY on port 80 avoids the CloudFront↔ALB cert-hostname mismatch
       (CloudFront uses the ALB DNS name, which is not in the pyvar.com cert).
   The origin-verify secret is exposed as self.origin_verify_secret for EdgeStack.
+  The JWT signing secret is exposed as self.jwt_secret for PublicDataStack's
+  Lambda (P8 Task 1/2), which mints a short-lived internal service token to
+  call this API the same way any other client would.
 """
 
 from __future__ import annotations
@@ -148,8 +151,16 @@ class ApiStack(Stack):
                 exclude_punctuation=True,
                 password_length=64,
             ),
+            # Replicated to us-east-1 for the same reason as origin_verify_secret
+            # below: PublicDataStack's Lambda (P8 Task 1/2) lives in us-east-1
+            # alongside EdgeStack (to keep the CloudFront/S3-OAC pairing
+            # single-region) and mints a service JWT to call this API — it
+            # resolves this secret BY NAME, not by cross-region construct
+            # reference, same rationale as the origin-verify secret's docstring.
+            replica_regions=[cdk.aws_secretsmanager.ReplicaRegion(region="us-east-1")],
         )
         jwt_secret.grant_read(execution_role)
+        self.jwt_secret = jwt_secret
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(

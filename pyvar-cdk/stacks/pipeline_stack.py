@@ -226,6 +226,7 @@ class PyvarDeployStage(cdk.Stage):
         from stacks.data_stack import DataStack
         from stacks.edge_stack import EdgeStack
         from stacks.network_stack import NetworkStack
+        from stacks.public_data_stack import PublicDataStack
         from stacks.queue_stack import QueueStack
 
         prefix = f"pyvar-{cfg.env_name}"
@@ -266,6 +267,14 @@ class PyvarDeployStage(cdk.Stage):
             origin_verify_secret=api.origin_verify_secret,
             env=env_edge,
         )
+        public_data = PublicDataStack(
+            self,
+            f"{prefix}-public-data",
+            cfg=cfg,
+            alb_dns_name=api.alb_dns_name,
+            public_data_bucket=edge.public_data_bucket,
+            env=env_edge,
+        )
 
         data.add_dependency(network)
         queue.add_dependency(network)
@@ -274,3 +283,5 @@ class PyvarDeployStage(cdk.Stage):
         api.add_dependency(data)
         api.add_dependency(queue)
         edge.add_dependency(api)
+        public_data.add_dependency(edge)
+        public_data.add_dependency(api)
