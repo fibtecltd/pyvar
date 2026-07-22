@@ -130,7 +130,9 @@ async def test_register_already_verified_is_noop(app):
 
     with patch_sessionmaker(session), patch("api.routes.auth.send_verification_email") as mock_send:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/api/v1/auth/register", json={"email": "verified@example.com"})
+            resp = await client.post(
+                "/api/v1/auth/register", json={"email": "verified@example.com"}
+            )
 
     assert resp.status_code == 202
     mock_send.assert_not_called()

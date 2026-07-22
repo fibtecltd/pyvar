@@ -50,7 +50,9 @@ def _read_object(key: str) -> bytes:
 
 async def _serve_public_json(key: str) -> Response:
     body = await run_in_threadpool(_read_object, key)
-    return Response(content=body, media_type="application/json", headers={"Cache-Control": "public, max-age=60"})
+    return Response(
+        content=body, media_type="application/json", headers={"Cache-Control": "public, max-age=60"}
+    )
 
 
 @router.get("/public/status.json", include_in_schema=False)

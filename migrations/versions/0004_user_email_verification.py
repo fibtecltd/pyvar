@@ -35,7 +35,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("email", sa.String(255), nullable=False))
+    # nullable=True (not False): this is an ALTER TABLE on an existing table,
+    # not a CREATE TABLE. A NOT NULL column with no server_default fails
+    # outright if the table already has any rows. Every row created via
+    # api/routes/auth.py's register() always sets email (schemas.auth.
+    # RegisterRequest requires it), so the "email is required" invariant is
+    # enforced at the application layer instead of the DB layer here.
+    op.add_column("users", sa.Column("email", sa.String(255), nullable=True))
     op.add_column(
         "users",
         sa.Column("email_verified", sa.Boolean(), nullable=False, server_default=sa.false()),

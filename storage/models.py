@@ -98,7 +98,11 @@ class User(Base):
     total_jobs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_simulations: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
 
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    # nullable=True at the DB layer to match the 0004 migration (an ALTER TABLE
+    # on an existing table can't safely add a NOT NULL column with no default).
+    # "email is required" is enforced at the application layer instead —
+    # schemas.auth.RegisterRequest requires it, and register() always sets it.
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     verification_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     verification_sent_at: Mapped[datetime | None] = mapped_column(
