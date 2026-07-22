@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -71,6 +71,46 @@ class ApiUsage(Base):
 
     def __repr__(self) -> str:
         return f"<ApiUsage {self.domain}/{self.function_name} status={self.status}>"
+
+
+class User(Base):
+    """Registered account — the users table from 0002_users_and_tier, plus the
+    email-verification columns added in 0004_user_email_verification (P8 Task 3).
+
+    external_id is documented (0002) as "the 'sub' claim in the JWT — external
+    identity provider ID", but no external identity provider exists yet:
+    api/routes/auth.py generates a fresh UUID as external_id at registration
+    time and embeds it as the JWT 'sub' claim once email_verified is set.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    external_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    tier: Mapped[str] = mapped_column(String(16), nullable=False, default="free")
+    api_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    total_jobs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_simulations: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+
+    # nullable=True at the DB layer to match the 0004 migration (an ALTER TABLE
+    # on an existing table can't safely add a NOT NULL column with no default).
+    # "email is required" is enforced at the application layer instead —
+    # schemas.auth.RegisterRequest requires it, and register() always sets it.
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    verification_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    verification_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    def __repr__(self) -> str:
+        return f"<User email={self.email} tier={self.tier} verified={self.email_verified}>"
 
 
 class VaRJob(Base):
