@@ -126,7 +126,9 @@ def _api_request(
     req.add_header("Authorization", f"Bearer {token}")
     if data is not None:
         req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310 (fixed, hardcoded API domain)
+    with urllib.request.urlopen(
+        req, timeout=15
+    ) as resp:  # noqa: S310 (fixed, hardcoded API domain)
         return json.loads(resp.read())
 
 
