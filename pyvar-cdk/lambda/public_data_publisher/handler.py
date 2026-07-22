@@ -14,12 +14,13 @@ Reasoning:
   byte-for-byte compatible with python-jose's HS256 output, since JWT
   verification only re-hashes the received "header.payload" string, never the
   original claim dict.
-- Calls hit the ALB directly (HTTP:80 + X-Origin-Verify), not through
-  CloudFront: CloudFront's new /public/* behavior depends on this stack's
-  bucket (see edge_stack.py), so routing the Lambda's own outbound calls
-  through CloudFront would create a stack dependency cycle. Going straight to
-  the ALB is the same origin CloudFront itself targets, using the same
-  bypass-prevention header it already relies on (see api_stack.py).
+- Calls hit the public CloudFront domain — the exact same call a browser
+  makes — not the ALB directly. There's no longer a reason to bypass
+  CloudFront (this Lambda lives in eu-west-1, same region as everything else,
+  see public_data_stack.py's module docstring for why), so this needs nothing
+  beyond the JWT: no origin-verify header, no ALB DNS. The domain is
+  hardcoded the same way portal/pyvar.js and config.py already do; swap once
+  pyvar.com DNS (P8 Task 7) is wired up.
 - Compute workers scale to zero (worker_min_capacity=0, config.py). A demo
   refresh can therefore hit a cold Spot ASG scale-up (~1-3 min) if no worker
   is currently running. This is accepted deliberately: the schedule is 15
@@ -46,15 +47,14 @@ import boto3
 
 ENV_NAME = os.environ["ENV_NAME"]
 PUBLIC_BUCKET = os.environ["PUBLIC_BUCKET"]
-ALB_DNS_NAME = os.environ["ALB_DNS_NAME"]
-ALARMS_REGION = os.environ["ALARMS_REGION"]
-JWT_SECRET_NAME = os.environ["JWT_SECRET_NAME"]
-ORIGIN_VERIFY_SECRET_NAME = os.environ["ORIGIN_VERIFY_SECRET_NAME"]
+JWT_SECRET_ARN = os.environ["JWT_SECRET_ARN"]
 
-secretsmanager = boto3.client("secretsmanager")  # secrets are replicated into this Lambda's own region
-# Alarms live wherever the ALB lives (cfg.region, e.g. eu-west-1), which is
-# not necessarily this Lambda's own region (us-east-1) — pin explicitly.
-cloudwatch = boto3.client("cloudwatch", region_name=ALARMS_REGION)
+# See module docstring — same dev CloudFront domain hardcoded in
+# portal/pyvar.js and config.py's public_base_url.
+API_BASE_URL = "https://d1mqqddh8gu2qi.cloudfront.net"
+
+secretsmanager = boto3.client("secretsmanager")
+cloudwatch = boto3.client("cloudwatch")  # alarms live in this Lambda's own region
 s3 = boto3.client("s3")
 
 ALARM_NAMES = [
@@ -110,25 +110,23 @@ def _sign_service_jwt(secret: str) -> str:
     return f"{header}.{payload}.{_b64url(signature)}"
 
 
-def _get_secret(secret_name: str) -> str:
-    return secretsmanager.get_secret_value(SecretId=secret_name)["SecretString"]
+def _get_secret(secret_arn: str) -> str:
+    return secretsmanager.get_secret_value(SecretId=secret_arn)["SecretString"]
 
 
-def _alb_request(
+def _api_request(
     method: str,
     path: str,
     token: str,
-    origin_verify: str,
     body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    url = f"http://{ALB_DNS_NAME}{path}"
+    url = f"{API_BASE_URL}{path}"
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("Authorization", f"Bearer {token}")
-    req.add_header("X-Origin-Verify", origin_verify)
     if data is not None:
         req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310 (internal ALB, not user input)
+    with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310 (fixed, hardcoded API domain)
         return json.loads(resp.read())
 
 
@@ -159,18 +157,18 @@ def publish_status() -> dict[str, Any]:
     return status
 
 
-def publish_demo_result(jwt_secret: str, origin_verify: str) -> dict[str, Any] | None:
+def publish_demo_result(jwt_secret: str) -> dict[str, Any] | None:
     token = _sign_service_jwt(jwt_secret)
     started = time.monotonic()
 
-    submit = _alb_request("POST", "/api/v1/var/compute", token, origin_verify, DEMO_PAYLOAD)
+    submit = _api_request("POST", "/api/v1/var/compute", token, DEMO_PAYLOAD)
     task_id = submit["task_id"]
 
     deadline = time.monotonic() + POLL_TIMEOUT_SECONDS
     result_body = None
     while time.monotonic() < deadline:
         time.sleep(POLL_INTERVAL_SECONDS)
-        polled = _alb_request("GET", f"/api/v1/var/result/{task_id}", token, origin_verify)
+        polled = _api_request("GET", f"/api/v1/var/result/{task_id}", token)
         if polled["status"] == "success":
             result_body = polled["result"]
             break
@@ -214,9 +212,8 @@ def handler(event, context):  # noqa: ANN001, ANN201 — Lambda entrypoint signa
 
     demo = None
     try:
-        jwt_secret = _get_secret(JWT_SECRET_NAME)
-        origin_verify = _get_secret(ORIGIN_VERIFY_SECRET_NAME)
-        demo = publish_demo_result(jwt_secret, origin_verify)
+        jwt_secret = _get_secret(JWT_SECRET_ARN)
+        demo = publish_demo_result(jwt_secret)
     except (urllib.error.URLError, KeyError, OSError) as exc:
         # Best-effort: a failed demo refresh must never fail the whole
         # invocation — status.json (the operationally important artifact)

@@ -29,6 +29,7 @@ from api.routes.liquidity import router as liquidity_router
 from api.routes.market_risk import router as market_risk_router
 from api.routes.operational import router as operational_router
 from api.routes.portfolio import router as portfolio_router
+from api.routes.public_data import router as public_data_router
 from api.routes.regulatory import router as regulatory_router
 from api.routes.var import router as var_router
 from config import get_settings
@@ -96,6 +97,9 @@ def create_app() -> FastAPI:
         alm_router,
     ):
         app.include_router(domain_router, prefix=cfg.api_v1_prefix)
+
+    # No prefix — matches portal/pyvar.js's `${API_BASE}/public/...` fetches.
+    app.include_router(public_data_router)
 
     # ── Health check ────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"], include_in_schema=False)

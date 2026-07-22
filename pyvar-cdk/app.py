@@ -127,10 +127,11 @@ public_data = PublicDataStack(
     app,
     f"{prefix}-public-data",
     cfg=cfg,
-    alb_dns_name=api.alb_dns_name,
-    public_data_bucket=edge.public_data_bucket,
-    # us-east-1, alongside edge — see public_data_stack.py module docstring.
-    env=env_edge,
+    jwt_secret=api.jwt_secret,
+    # eu-west-1, alongside api/data/compute — see public_data_stack.py
+    # module docstring (data residency: no S3 origin/replica may sit in
+    # the us-east-1 edge region).
+    env=env_primary,
     description="pyvar: status.json + demo-result.json publisher (P8 Task 1/2)",
 )
 
@@ -170,8 +171,7 @@ compute.add_dependency(queue)
 api.add_dependency(data)
 api.add_dependency(queue)
 edge.add_dependency(api)
-public_data.add_dependency(edge)  # references edge.public_data_bucket
-public_data.add_dependency(api)  # references api.alb_dns_name (string) + jwt/origin-verify secret replicas
+public_data.add_dependency(api)  # references api.jwt_secret
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm

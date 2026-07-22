@@ -271,9 +271,8 @@ class PyvarDeployStage(cdk.Stage):
             self,
             f"{prefix}-public-data",
             cfg=cfg,
-            alb_dns_name=api.alb_dns_name,
-            public_data_bucket=edge.public_data_bucket,
-            env=env_edge,
+            jwt_secret=api.jwt_secret,
+            env=env_primary,
         )
 
         data.add_dependency(network)
@@ -283,5 +282,4 @@ class PyvarDeployStage(cdk.Stage):
         api.add_dependency(data)
         api.add_dependency(queue)
         edge.add_dependency(api)
-        public_data.add_dependency(edge)
         public_data.add_dependency(api)

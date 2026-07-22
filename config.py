@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     s3_bucket: str = "pyvar-results"
     s3_region: str = "eu-west-1"
 
+    # Separate small bucket for status.json / demo-result.json (P8 Task 1/2),
+    # written by pyvar-cdk/stacks/public_data_stack.py's scheduled Lambda and
+    # served by api/routes/public_data.py — deliberately not the same bucket
+    # as s3_bucket above (different lifecycle: regenerable, no retention).
+    public_data_bucket: str = "pyvar-public"
+
     # ── Monte Carlo defaults ───────────────────────────────────────────────────
     default_n_simulations: int = 100_000
     default_confidence_level: float = 0.99

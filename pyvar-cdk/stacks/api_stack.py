@@ -127,6 +127,22 @@ class ApiStack(Stack):
             )
         )
 
+        # Public data bucket (status.json / demo-result.json — P8 Task 1/2).
+        # Referenced by DETERMINISTIC NAME, not a live construct reference:
+        # public_data_stack.py depends on THIS stack (for jwt_secret, below) —
+        # if this stack also depended on public_data_stack.py's bucket
+        # construct, that would be a cycle. Both stacks independently compute
+        # the identical name from cfg.env_name + self.account, the same
+        # avoid-a-cycle-via-deterministic-naming pattern alerts_stack.py
+        # already uses for the queue-age alarm.
+        public_data_bucket_name = f"pyvar-{cfg.env_name}-public-{self.account}"
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                resources=[f"arn:aws:s3:::{public_data_bucket_name}/public/*"],
+            )
+        )
+
         # Execution role: allows ECS to pull image and write logs
         execution_role = iam.Role(
             self,
@@ -142,7 +158,12 @@ class ApiStack(Stack):
 
         # JWT signing secret — CDK-managed (auto-generated), same pattern as the
         # cf-origin-verify secret below. Created here (not imported by name) so the
-        # secret actually exists; injected into the API task at start.
+        # secret actually exists; injected into the API task at start. Stays
+        # eu-west-1-only — no us-east-1 replica (unlike cf-origin-verify) —
+        # per tests/test_data_residency.py check6: only a routing-only token may
+        # cross the region boundary, not the JWT signing secret. PublicDataStack
+        # lives in eu-west-1 alongside this stack for the same reason, and reads
+        # this secret via a normal same-region grant, not a replica.
         jwt_secret = cdk.aws_secretsmanager.Secret(
             self,
             "JwtSecret",
@@ -151,13 +172,6 @@ class ApiStack(Stack):
                 exclude_punctuation=True,
                 password_length=64,
             ),
-            # Replicated to us-east-1 for the same reason as origin_verify_secret
-            # below: PublicDataStack's Lambda (P8 Task 1/2) lives in us-east-1
-            # alongside EdgeStack (to keep the CloudFront/S3-OAC pairing
-            # single-region) and mints a service JWT to call this API — it
-            # resolves this secret BY NAME, not by cross-region construct
-            # reference, same rationale as the origin-verify secret's docstring.
-            replica_regions=[cdk.aws_secretsmanager.ReplicaRegion(region="us-east-1")],
         )
         jwt_secret.grant_read(execution_role)
         self.jwt_secret = jwt_secret
@@ -187,6 +201,7 @@ class ApiStack(Stack):
                 "SQS_QUEUE_NAME": f"pyvar-{cfg.env_name}-var-jobs.fifo",
                 "AWS_REGION": cfg.region,
                 "S3_BUCKET": data.result_bucket.bucket_name,
+                "PUBLIC_DATA_BUCKET": public_data_bucket_name,
                 "CELERY_RESULT_BACKEND": f"rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
             },
             secrets={
