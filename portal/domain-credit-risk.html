@@ -69,14 +69,9 @@
         <div class="eyebrow">Function library</div>
         <h2 class="h2">55 credit risk <em>functions</em></h2>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats">
-        <div class="cat-pill act" data-cat="all">All · 55</div>
-        <div class="cat-pill" data-cat="pd">PD / LGD / EAD</div>
-        <div class="cat-pill" data-cat="irb">IRB Capital</div>
-        <div class="cat-pill" data-cat="ccr">Counterparty (CCR)</div>
-        <div class="cat-pill" data-cat="xva">CVA / XVA</div>
-        <div class="cat-pill" data-cat="ifrs9">IFRS 9 ECL</div>
-        <div class="cat-pill" data-cat="scoring">Scoring &amp; Portfolio</div>
+      <div class="fn-filter-row">
+        <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
+        <span class="fn-count" id="countLbl">Showing all 55 functions</span>
       </div>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
@@ -142,92 +137,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const FUNCTIONS = [
-  {cat:"pd",name:"Probability of Default (PD) Estimation",desc:"Statistical PD estimation from historical default rates, credit scores and financial ratios."},
-  {cat:"pd",name:"Loss Given Default (LGD) Model",desc:"LGD estimation using workout and market LGD approaches, recovery rate distributions."},
-  {cat:"pd",name:"Exposure at Default (EAD) Calculator",desc:"EAD computation for drawn and undrawn credit facilities using credit conversion factors."},
-  {cat:"pd",name:"Expected Loss (EL) Computation",desc:"EL = PD × LGD × EAD. Aggregated across portfolios with correlation adjustments."},
-  {cat:"pd",name:"Unexpected Loss (UL) Computation",desc:"Portfolio UL using Vasicek single-factor model and asset correlation assumptions."},
-  {cat:"pd",name:"Through-the-Cycle PD Adjustment",desc:"Converts point-in-time PD to through-the-cycle PD for regulatory capital using long-run averages."},
-  {cat:"pd",name:"Point-in-Time PD Estimation",desc:"PD estimation conditional on current economic conditions using macroeconomic factor models."},
-  {cat:"pd",name:"Ratings Migration Matrix",desc:"Transition probability matrices from historical credit rating changes. Includes generator matrix."},
-  {cat:"pd",name:"Default Correlation Matrix",desc:"Pairwise default correlations estimated from equity returns via Merton framework."},
-  {cat:"pd",name:"Retail Scorecard PD Model",desc:"Logistic regression scorecard for retail PD with application and behavioural score integration."},
-  {cat:"pd",name:"Corporate Credit Scoring Model",desc:"Multivariate credit scoring for corporates using financial statement ratios and qualitative factors."},
-  {cat:"pd",name:"Sovereign Credit Risk Assessment",desc:"Sovereign PD estimation using macroeconomic indicators, CDS spreads and ratings models."},
-  {cat:"pd",name:"Sector Default Rate Analysis",desc:"Historical and forward-looking default rates by sector, geography and rating cohort."},
-  {cat:"pd",name:"Downturn LGD Adjustment",desc:"Regulatory downturn LGD adjustment per Basel IRB requirements for economic downturn periods."},
-  {cat:"pd",name:"Recovery Rate Estimation",desc:"Recovery rate distributions by seniority, collateral type and jurisdiction."},
-  {cat:"irb",name:"IRB Foundation Approach Capital",desc:"Basel IRB Foundation RWA and capital requirement using supervisory LGD estimates."},
-  {cat:"irb",name:"IRB Advanced Approach Capital",desc:"Basel IRB Advanced RWA using own PD, LGD, EAD estimates and maturity adjustments."},
-  {cat:"irb",name:"Basel Standardised Approach RWA",desc:"Credit RWA under Basel Standardised Approach using external ratings and risk weights."},
-  {cat:"irb",name:"Maturity Adjustment (Basel IRB)",desc:"M adjustment factor for corporate, bank and sovereign exposures under IRB."},
-  {cat:"irb",name:"SME Correlation Factor (Basel)",desc:"Reduced asset correlation for SME exposures with turnover-based adjustment."},
-  {cat:"irb",name:"Credit Concentration Risk (HHI)",desc:"Herfindahl-Hirschman Index for credit portfolio concentration by obligor, sector and geography."},
-  {cat:"irb",name:"Credit VaR (Monte Carlo)",desc:"Portfolio credit VaR via correlated default simulation using Gaussian copula."},
-  {cat:"irb",name:"Credit VaR (Analytical Vasicek)",desc:"Closed-form credit VaR under single-factor Vasicek model for homogeneous portfolios."},
-  {cat:"irb",name:"CreditMetrics Portfolio Model",desc:"CreditMetrics multi-step migration-based credit VaR for bond and loan portfolios."},
-  {cat:"irb",name:"KMV / Merton Distance-to-Default",desc:"Structural credit model — asset value and volatility implied from equity using Merton framework."},
-  {cat:"irb",name:"Altman Z-Score Credit Scoring",desc:"Classic and modified Altman Z-Score for distress prediction in public and private companies."},
-  {cat:"irb",name:"Credit Stress Testing",desc:"Stressed PD, LGD and EL under macro scenarios (base, adverse, severely adverse)."},
-  {cat:"ccr",name:"Counterparty Credit Risk (CCR) Exposure",desc:"Gross and net CCR exposure aggregated across netting sets and collateral agreements."},
-  {cat:"ccr",name:"Current Exposure Method (CEM)",desc:"Legacy CEM CCR add-on computation. Retained for back-compatibility with older portfolios."},
-  {cat:"ccr",name:"Standardised Approach CCR (SA-CCR)",desc:"SA-CCR per CRR2: replacement cost, PFE add-on, delta and maturity factor."},
-  {cat:"ccr",name:"Potential Future Exposure (PFE)",desc:"PFE profile at multiple confidence levels using Monte Carlo simulation of market factors."},
-  {cat:"ccr",name:"Expected Positive Exposure (EPE)",desc:"Time-averaged expected exposure profile for regulatory CCR capital computation."},
-  {cat:"ccr",name:"Effective EPE (Regulatory)",desc:"Effective EPE per Basel III using non-decreasing exposure constraint for capital calculation."},
-  {cat:"ccr",name:"Collateral Haircut Calculation",desc:"Standard supervisory and own-estimate haircuts for collateral in netting set EAD computation."},
-  {cat:"ccr",name:"Wrong-Way Risk Adjustment",desc:"General and specific wrong-way risk adjustments to PFE and EPE profiles."},
-  {cat:"ccr",name:"CDS Pricing (ISDA Standard)",desc:"CDS mark-to-market under ISDA standard model with upfront and running spread conventions."},
-  {cat:"ccr",name:"Credit Spread Curve Bootstrap",desc:"Bootstraps survival probability curve from CDS spreads at standard tenors."},
-  {cat:"ccr",name:"Credit Default Swap VaR",desc:"VaR of CDS position using spread DV01 and spread volatility."},
-  {cat:"xva",name:"Credit Valuation Adjustment (CVA)",desc:"CVA via EPE × PD × LGD integration over exposure profile. Unilateral and bilateral."},
-  {cat:"xva",name:"Debt Valuation Adjustment (DVA)",desc:"DVA using own ENE profile and own credit spread/PD. Regulatory and accounting treatment."},
-  {cat:"xva",name:"Funding Valuation Adjustment (FVA)",desc:"FVA using asymmetric funding costs on uncollateralised derivative portfolios."},
-  {cat:"xva",name:"Capital Valuation Adjustment (KVA)",desc:"KVA measuring the cost of holding regulatory capital against derivative exposures."},
-  {cat:"xva",name:"Margin Valuation Adjustment (MVA)",desc:"MVA computing the funding cost of initial margin posted over the life of the trade."},
-  {cat:"xva",name:"XVA Aggregation",desc:"Consistent aggregation of all XVA components with overlap and double-counting controls."},
-  {cat:"xva",name:"CVA Sensitivity (CVA Greeks)",desc:"CVA delta, gamma, vega and CS01 for hedging and risk management of the CVA portfolio."},
-  {cat:"ifrs9",name:"IFRS 9 Stage Classification (PD Threshold)",desc:"Significant increase in credit risk (SICR) assessment for IFRS 9 stage allocation."},
-  {cat:"ifrs9",name:"IFRS 9 Lifetime ECL (Stage 2/3)",desc:"Lifetime expected credit loss for Stage 2 and Stage 3 exposures with macro overlays."},
-  {cat:"ifrs9",name:"IFRS 9 12-Month ECL (Stage 1)",desc:"12-month ECL for Stage 1 performing exposures using point-in-time PD estimates."},
-  {cat:"ifrs9",name:"IFRS 9 Scenario-Weighted ECL",desc:"Probability-weighted ECL across base, upside and downside economic scenarios."},
-  {cat:"ifrs9",name:"Macroeconomic Overlays (ECL)",desc:"Macroeconomic factor model linking GDP, unemployment and house prices to PD/LGD."},
-  {cat:"ifrs9",name:"IFRS 9 Staging Criteria Assessment",desc:"Automated SICR trigger detection and manual override framework for staging decisions."},
-  {cat:"scoring",name:"Machine Learning PD Calibration",desc:"Gradient boosting and random forest PD models with isotonic regression calibration."},
-  {cat:"scoring",name:"Logistic Regression PD Model",desc:"Logistic regression scorecard with WoE binning, IV selection and calibration."},
-  {cat:"scoring",name:"Credit Portfolio Optimisation",desc:"Markowitz-style credit portfolio optimisation balancing yield against credit risk."},
-  {cat:"scoring",name:"Sector Default Rate Analysis",desc:"Historical and forward-looking default rates by GICS sector, rating and geography."},
-];
-
-const CATS = {
-  all:"All", pd:"PD / LGD / EAD", irb:"IRB Capital",
-  ccr:"Counterparty (CCR)", xva:"CVA / XVA",
-  ifrs9:"IFRS 9 ECL", scoring:"Scoring & Portfolio"
-};
-
-let currentCat = 'all';
-function render() {
-  const items = currentCat === 'all' ? FUNCTIONS : FUNCTIONS.filter(f => f.cat === currentCat);
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.02}s">
-      <div class="fn-cat">${CATS[f.cat]||f.cat}</div>
-      <div class="fn-name">${f.name}</div>
-      <div class="fn-desc">${f.desc}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  currentCat = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('credit-risk');
 initReveal(); initNav();
 </script>
 </body>

@@ -67,7 +67,7 @@
         <h2 class="h2">33 ALM <em>functions</em></h2>
         <p class="fn-count" id="countLbl">Showing all 33 functions</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="duration">Duration & Convexity</div><div class="cat-pill" data-cat="nii">NII Analysis</div><div class="cat-pill" data-cat="eve">EVE / IRRBB</div><div class="cat-pill" data-cat="gap">Gap Analysis</div><div class="cat-pill" data-cat="behaviour">Behavioural</div><div class="cat-pill" data-cat="funding">FTP & Funding</div></div>
+      <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
   </div>
@@ -114,29 +114,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const ALL_FNS = [{"name": "Duration Gap Analysis", "cat": "duration"}, {"name": "Macaulay Duration (Balance Sheet)", "cat": "nii"}, {"name": "Modified Duration (Balance Sheet)", "cat": "eve"}, {"name": "Effective Duration (ALM)", "cat": "gap"}, {"name": "Convexity Gap", "cat": "behaviour"}, {"name": "NII Sensitivity (Rate Shock)", "cat": "funding"}, {"name": "NII Simulation (Baseline)", "cat": "duration"}, {"name": "NII Simulation (Stress)", "cat": "nii"}, {"name": "Economic Value of Equity (EVE)", "cat": "eve"}, {"name": "EVE Sensitivity Analysis", "cat": "gap"}, {"name": "IRRBB Standardised Framework", "cat": "behaviour"}, {"name": "IRRBB Internal Model", "cat": "funding"}, {"name": "IRRBB Six Standard Rate Shocks", "cat": "duration"}, {"name": "Repricing Gap Analysis", "cat": "nii"}, {"name": "Repricing Maturity Profile", "cat": "eve"}, {"name": "Static Gap Analysis", "cat": "gap"}, {"name": "Dynamic Gap Analysis", "cat": "behaviour"}, {"name": "Basis Risk (IRRBB)", "cat": "funding"}, {"name": "Option Risk (IRRBB)", "cat": "duration"}, {"name": "Pipeline Risk Measurement", "cat": "nii"}, {"name": "Prepayment Model (Mortgages)", "cat": "eve"}, {"name": "Behavioural Modelling (NMDs)", "cat": "gap"}, {"name": "Non-Maturity Deposit Stability", "cat": "behaviour"}, {"name": "Core Deposit Duration", "cat": "funding"}, {"name": "Loan Prepayment Rate (CPR)", "cat": "duration"}, {"name": "Liquidity-Adjusted NII", "cat": "nii"}, {"name": "Funds Transfer Pricing (FTP)", "cat": "eve"}, {"name": "FTP Curve Construction", "cat": "gap"}, {"name": "Asset-Liability Mismatch Index", "cat": "behaviour"}, {"name": "Interest Rate Risk Capital (IRRBB)", "cat": "funding"}, {"name": "Structural Hedge Optimisation", "cat": "duration"}, {"name": "ALM Stress Test", "cat": "nii"}, {"name": "Balance Sheet Projection Model", "cat": "eve"}];
-let cur = 'all';
-
-function render() {
-  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
-  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.015}s">
-      <div class="fn-name">${f.name}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  cur = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('alm');
 initReveal(); initNav();
 </script>
 </body>

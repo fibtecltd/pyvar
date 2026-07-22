@@ -67,7 +67,7 @@
         <h2 class="h2">62 Derivatives <em>functions</em></h2>
         <p class="fn-count" id="countLbl">Showing all 62 functions</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="equity">Equity Options</div><div class="cat-pill" data-cat="exotic">Exotic Options</div><div class="cat-pill" data-cat="fixed">Fixed Income</div><div class="cat-pill" data-cat="rates">Rates Models</div><div class="cat-pill" data-cat="curve">Yield Curves</div><div class="cat-pill" data-cat="fx">FX Derivatives</div></div>
+      <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
   </div>
@@ -114,29 +114,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const ALL_FNS = [{"name": "Black-Scholes European Option", "cat": "equity"}, {"name": "Black-Scholes Greeks", "cat": "exotic"}, {"name": "Binomial Tree Option Pricer", "cat": "fixed"}, {"name": "Trinomial Tree Option Pricer", "cat": "rates"}, {"name": "Monte Carlo Option Pricer", "cat": "curve"}, {"name": "Heston Stochastic Volatility Model", "cat": "fx"}, {"name": "SABR Volatility Model", "cat": "equity"}, {"name": "Local Volatility (Dupire) Model", "cat": "exotic"}, {"name": "Rough Volatility (rBergomi) Model", "cat": "fixed"}, {"name": "Variance Gamma Model", "cat": "rates"}, {"name": "Normal Inverse Gaussian Model", "cat": "curve"}, {"name": "Displaced Diffusion Model", "cat": "fx"}, {"name": "Digital Option Pricer", "cat": "equity"}, {"name": "Barrier Option Pricer", "cat": "exotic"}, {"name": "Asian Option Pricer", "cat": "fixed"}, {"name": "Lookback Option Pricer", "cat": "rates"}, {"name": "American Option (LSM)", "cat": "curve"}, {"name": "Bermudan Option Pricer", "cat": "fx"}, {"name": "Rainbow Option Pricer", "cat": "equity"}, {"name": "Basket Option Pricer", "cat": "exotic"}, {"name": "Spread Option (Kirk Approximation)", "cat": "fixed"}, {"name": "Compound Option Pricer", "cat": "rates"}, {"name": "Chooser Option Pricer", "cat": "curve"}, {"name": "Bond Pricer (Fixed Coupon)", "cat": "fx"}, {"name": "Bond Pricer (Floating Rate)", "cat": "equity"}, {"name": "Zero Coupon Bond Pricer", "cat": "exotic"}, {"name": "Inflation-Linked Bond Pricer", "cat": "fixed"}, {"name": "Callable Bond Pricer", "cat": "rates"}, {"name": "Puttable Bond Pricer", "cat": "curve"}, {"name": "Convertible Bond Pricer", "cat": "fx"}, {"name": "Duration (Macaulay)", "cat": "equity"}, {"name": "Modified Duration", "cat": "exotic"}, {"name": "Effective Duration", "cat": "fixed"}, {"name": "Convexity", "cat": "rates"}, {"name": "DV01 / PVBP", "cat": "curve"}, {"name": "Yield to Maturity", "cat": "fx"}, {"name": "Yield to Call", "cat": "equity"}, {"name": "Asset Swap Spread", "cat": "exotic"}, {"name": "Z-Spread Calculator", "cat": "fixed"}, {"name": "OAS (Option-Adjusted Spread)", "cat": "rates"}, {"name": "Nelson-Siegel Curve Fit", "cat": "curve"}, {"name": "Nelson-Siegel-Svensson Curve", "cat": "fx"}, {"name": "Bootstrap Yield Curve", "cat": "equity"}, {"name": "Swap Rate Curve", "cat": "exotic"}, {"name": "OIS Curve (SONIA / SOFR)", "cat": "fixed"}, {"name": "Forward Rate Agreement (FRA)", "cat": "rates"}, {"name": "Interest Rate Swap (IRS) Pricer", "cat": "curve"}, {"name": "Cross-Currency Swap Pricer", "cat": "fx"}, {"name": "Overnight Index Swap (OIS)", "cat": "equity"}, {"name": "Total Return Swap (TRS)", "cat": "exotic"}, {"name": "Credit Default Swap (CDS) Pricer", "cat": "fixed"}, {"name": "Equity Swap Pricer", "cat": "rates"}, {"name": "Caplet / Floorlet Pricer (Black)", "cat": "curve"}, {"name": "Cap / Floor Pricer", "cat": "fx"}, {"name": "Swaption Pricer (Black)", "cat": "equity"}, {"name": "Swaption Pricer (SABR)", "cat": "exotic"}, {"name": "LMM / BGM Rate Model", "cat": "fixed"}, {"name": "Hull-White Short Rate Model", "cat": "rates"}, {"name": "Cox-Ingersoll-Ross Model", "cat": "curve"}, {"name": "Vasicek Interest Rate Model", "cat": "fx"}, {"name": "FX Forward Pricer", "cat": "equity"}, {"name": "FX Option Pricer (Garman-Kohlhagen)", "cat": "exotic"}];
-let cur = 'all';
-
-function render() {
-  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
-  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.015}s">
-      <div class="fn-name">${f.name}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  cur = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('derivatives');
 initReveal(); initNav();
 </script>
 </body>

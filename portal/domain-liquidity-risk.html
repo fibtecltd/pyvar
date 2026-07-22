@@ -67,7 +67,7 @@
         <h2 class="h2">40 Liquidity Risk <em>functions</em></h2>
         <p class="fn-count" id="countLbl">Showing all 40 functions</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="lcr">LCR / NSFR</div><div class="cat-pill" data-cat="intraday">Intraday</div><div class="cat-pill" data-cat="stress">Stress Scenarios</div><div class="cat-pill" data-cat="buffer">Buffer & Funding</div><div class="cat-pill" data-cat="ilaap">ILAAP Framework</div><div class="cat-pill" data-cat="other">Analytics</div></div>
+      <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
   </div>
@@ -114,29 +114,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const ALL_FNS = [{"name": "Liquidity Coverage Ratio (LCR)", "cat": "lcr"}, {"name": "Net Stable Funding Ratio (NSFR)", "cat": "intraday"}, {"name": "Intraday Liquidity Monitor", "cat": "stress"}, {"name": "Intraday Liquidity Stress Test", "cat": "buffer"}, {"name": "Available Stable Funding (ASF) Calc", "cat": "ilaap"}, {"name": "Required Stable Funding (RSF) Calc", "cat": "other"}, {"name": "HQLA Level 1 Asset Classifier", "cat": "lcr"}, {"name": "HQLA Level 2A Asset Classifier", "cat": "intraday"}, {"name": "HQLA Level 2B Asset Classifier", "cat": "stress"}, {"name": "Cash Flow Ladder (30-day)", "cat": "buffer"}, {"name": "Cash Flow Ladder (1-year)", "cat": "ilaap"}, {"name": "Liquidity Stress Scenario", "cat": "other"}, {"name": "Idiosyncratic Stress Scenario", "cat": "lcr"}, {"name": "Market-Wide Stress Scenario", "cat": "intraday"}, {"name": "Combined Stress Scenario", "cat": "stress"}, {"name": "Survival Horizon Calculator", "cat": "buffer"}, {"name": "Liquidity Buffer Sizing", "cat": "ilaap"}, {"name": "Contingency Funding Plan Trigger", "cat": "other"}, {"name": "Wholesale Funding Concentration", "cat": "lcr"}, {"name": "Retail Deposit Runoff Rate", "cat": "intraday"}, {"name": "Secured Funding Rollover Risk", "cat": "stress"}, {"name": "Asset Encumbrance Ratio", "cat": "buffer"}, {"name": "Collateral Availability Analysis", "cat": "ilaap"}, {"name": "Repo Market Stress Haircut", "cat": "other"}, {"name": "FX Liquidity Risk by Currency", "cat": "lcr"}, {"name": "Intragroup Liquidity Flow", "cat": "intraday"}, {"name": "Funding Cost Analysis", "cat": "stress"}, {"name": "Liquidity Transfer Pricing", "cat": "buffer"}, {"name": "ILAAP Internal Liquidity Metric", "cat": "ilaap"}, {"name": "ILAAP Stress Testing Framework", "cat": "other"}, {"name": "Liquidity Risk Appetite Threshold", "cat": "lcr"}, {"name": "Early Warning Indicator (Liquidity)", "cat": "intraday"}, {"name": "Central Bank Facility Eligibility", "cat": "stress"}, {"name": "Liquidity Gap Analysis", "cat": "buffer"}, {"name": "Contingent Liquidity Risk", "cat": "ilaap"}, {"name": "Liquidity VaR (LiqVaR)", "cat": "other"}, {"name": "Funding Tenor Analysis", "cat": "lcr"}, {"name": "Liquidity Scorecard Aggregation", "cat": "intraday"}, {"name": "Deposit Stability Classification", "cat": "stress"}, {"name": "Cross-Currency Liquidity Bridge", "cat": "buffer"}];
-let cur = 'all';
-
-function render() {
-  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
-  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.015}s">
-      <div class="fn-name">${f.name}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  cur = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('liquidity');
 initReveal(); initNav();
 </script>
 </body>

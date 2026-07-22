@@ -230,6 +230,10 @@ async function renderDashboard() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Verification failed');
 
+    // Also stored for the "Try it" panels (P8 Task 5) on domain pages, so a
+    // visitor who verified once doesn't have to re-paste their key per function.
+    localStorage.setItem('pyvar_jwt', data.access_token);
+
     card.innerHTML = '<div class="dash-title">You\'re verified</div>'
       + '<div class="dash-body">Here\'s your API key (JWT), ' + data.tier + ' tier. It\'s shown once — copy it now.</div>'
       + '<div class="dash-token" id="dashToken"></div>'
@@ -366,6 +370,181 @@ function initSearch() {
       close();
     }
   });
+}
+
+// ── Domain function grid + "Try it" panel (P8 Task 5) ─────────────────────
+// One shared renderer for all 8 domain pages, reading portal/functions.json
+// — replaces each page's own hardcoded FUNCTIONS/ALL_FNS array. Those arrays
+// had drifted badly (domain-market-risk.html was showing credit-risk's
+// content verbatim — #152 — and domain-alm.html's had no descriptions and
+// scrambled category tags); rendering every domain from the one generated,
+// code-derived source fixes that as a side effect and gives every page a
+// working "Try it" panel and working search-result anchors (Task 4's
+// results link to {domain_page}#{function_name} — this renderer is what
+// gives each fn-card that id).
+async function initDomainGrid(domainSlug) {
+  const grid = document.getElementById('fnGrid');
+  if (!grid) return;
+
+  const all = await fetch('functions.json').then(r => r.json());
+  const items = all.filter(f => f.domain === domainSlug);
+  const countLbl = document.getElementById('countLbl');
+  const filterInput = document.getElementById('fnFilter');
+
+  function render(filterText) {
+    const q = (filterText || '').trim().toLowerCase();
+    const shown = q
+      ? items.filter(f => f.display_name.toLowerCase().includes(q) || (f.summary || '').toLowerCase().includes(q))
+      : items;
+    if (countLbl) {
+      countLbl.textContent = q
+        ? `Showing ${shown.length} of ${items.length} functions`
+        : `Showing all ${items.length} functions`;
+    }
+    grid.innerHTML = shown.map((f, i) => `
+      <div class="fn-card" id="${f.name}" data-fn="${f.name}" style="animation-delay:${i * 0.02}s">
+        <div class="fn-name">${f.display_name}</div>
+        <div class="fn-desc">${f.summary}</div>
+        <div class="fn-try">Try it →</div>
+      </div>
+    `).join('');
+  }
+
+  render('');
+  if (filterInput) filterInput.addEventListener('input', () => render(filterInput.value));
+
+  grid.addEventListener('click', e => {
+    const card = e.target.closest('.fn-card');
+    if (!card) return;
+    const fn = items.find(f => f.name === card.dataset.fn);
+    if (fn) openTryItPanel(fn);
+  });
+
+  // Deep-link from a search result: index.html search -> domain_page#function_name
+  if (window.location.hash) {
+    const fn = items.find(f => f.name === window.location.hash.slice(1));
+    if (fn) {
+      setTimeout(() => {
+        const el = document.getElementById(fn.name);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        openTryItPanel(fn);
+      }, 150);
+    }
+  }
+}
+
+function _tryitFieldHtml(p) {
+  const label = `${p.name}${p.required ? ' *' : ''}`;
+  const attr = `data-param="${p.name}"`;
+  if (p.type === 'boolean') {
+    return `<label class="tryit-field"><span>${label}</span><input type="checkbox" ${attr} ${p.default ? 'checked' : ''}/></label>`;
+  }
+  if (p.type === 'integer' || p.type === 'number') {
+    const bounds = [
+      p.minimum != null ? `min="${p.minimum}"` : '',
+      p.maximum != null ? `max="${p.maximum}"` : '',
+      p.type === 'integer' ? 'step="1"' : 'step="any"',
+    ].join(' ');
+    const value = p.default != null ? p.default : '';
+    return `<label class="tryit-field"><span>${label}</span><input type="number" ${bounds} ${attr} value="${value}"/></label>`;
+  }
+  if (p.type === 'array' || p.type === 'object') {
+    const placeholder = p.type === 'array' ? 'e.g. [0.01, -0.02, 0.015]' : 'e.g. {"key": 1.0}';
+    return `<label class="tryit-field tryit-field-wide"><span>${label}</span><textarea ${attr} placeholder="${placeholder}" rows="3"></textarea></label>`;
+  }
+  const value = p.default != null ? p.default : '';
+  return `<label class="tryit-field"><span>${label}</span><input type="text" ${attr} value="${value}"/></label>`;
+}
+
+function closeTryItPanel() {
+  const panel = document.getElementById('tryitPanel');
+  if (panel) panel.classList.remove('open');
+}
+
+function openTryItPanel(fn) {
+  let panel = document.getElementById('tryitPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'tryitPanel';
+    panel.className = 'tryit-overlay';
+    document.body.appendChild(panel);
+    panel.addEventListener('click', e => { if (e.target === panel) closeTryItPanel(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && panel.classList.contains('open')) closeTryItPanel();
+    });
+  }
+
+  const storedToken = localStorage.getItem('pyvar_jwt') || '';
+  panel.innerHTML = `
+    <div class="tryit-card" style="--rc:${fn.domain_color}">
+      <div class="tryit-header">
+        <div>
+          <div class="tryit-domain">${fn.domain_label}</div>
+          <div class="tryit-title">${fn.display_name}</div>
+        </div>
+        <button type="button" class="tryit-close" id="tryitClose">Esc</button>
+      </div>
+      <div class="tryit-desc">${fn.summary}${fn.description ? ' — ' + fn.description.replace(/\n/g, ' ') : ''}</div>
+      <div class="tryit-jwt-row">
+        <input type="text" id="tryitJwt" class="tryit-jwt-input" placeholder="Paste your API key (JWT)…" value="${storedToken}"/>
+        <a href="index.html#get-api-key" class="tryit-jwt-link">Get a free key →</a>
+      </div>
+      <form id="tryitForm" class="tryit-form">
+        ${fn.params.map(_tryitFieldHtml).join('')}
+        <button type="submit" class="btn-green tryit-submit">Run →</button>
+      </form>
+      <div id="tryitResult" class="tryit-result"></div>
+    </div>
+  `;
+  panel.classList.add('open');
+  document.getElementById('tryitClose').addEventListener('click', closeTryItPanel);
+  document.getElementById('tryitForm').addEventListener('submit', e => _submitTryIt(e, fn));
+}
+
+async function _submitTryIt(e, fn) {
+  e.preventDefault();
+  const resultEl = document.getElementById('tryitResult');
+  const token = document.getElementById('tryitJwt').value.trim();
+  if (!token) {
+    resultEl.innerHTML = '<div class="tryit-error">Paste an API key above, or <a href="index.html#get-api-key">get one free</a>.</div>';
+    return;
+  }
+  localStorage.setItem('pyvar_jwt', token);
+
+  const body = {};
+  let parseError = '';
+  for (const p of fn.params) {
+    const field = document.querySelector(`[data-param="${p.name}"]`);
+    if (!field) continue;
+    if (p.type === 'boolean') { body[p.name] = field.checked; continue; }
+    const raw = field.value.trim();
+    if (!raw) continue;
+    if (p.type === 'number' || p.type === 'integer') { body[p.name] = Number(raw); continue; }
+    if (p.type === 'array' || p.type === 'object') {
+      try { body[p.name] = JSON.parse(raw); }
+      catch (err) { parseError = `Invalid JSON in "${p.name}".`; break; }
+      continue;
+    }
+    body[p.name] = raw;
+  }
+  if (parseError) {
+    resultEl.innerHTML = `<div class="tryit-error">${parseError}</div>`;
+    return;
+  }
+
+  resultEl.innerHTML = '<div class="tryit-pending">Running…</div>';
+  try {
+    const res = await fetch(`${API_BASE}${fn.path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    resultEl.innerHTML = `<pre class="tryit-json">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (err) {
+    resultEl.innerHTML = `<div class="tryit-error">${(err && err.message) || 'Request failed.'}</div>`;
+  }
 }
 
 function initReveal() {
