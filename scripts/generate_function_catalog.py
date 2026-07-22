@@ -36,6 +36,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -103,6 +104,47 @@ def _extract_params(request_schema: dict[str, Any]) -> list[dict[str, Any]]:
     return params
 
 
+def _harvest_acronym_casing(catalog: list[dict[str, Any]]) -> dict[str, str]:
+    """Derive correct acronym casing (VaR, PD, RCSA, ...) from the engine
+    docstrings themselves, restricted to tokens that actually appear in a
+    function name — rather than a hand-guessed, hardcoded list that would
+    go stale as functions are added. See module docstring.
+
+    A word counts as an acronym candidate if it has >=2 uppercase letters
+    (catches both ALL-CAPS like "PD" and mixed like "VaR"/"CreditMetrics").
+    All-uppercase candidates longer than 6 characters are dropped — those
+    are almost always a normal English word written in caps for emphasis
+    in prose (e.g. "REGULATORY"), not a genuine short acronym; mixed-case
+    candidates (VaR, OpVaR, CreditMetrics, MiFID, ...) are kept at any
+    length since accidental all-caps emphasis is always fully uppercase.
+    """
+    name_tokens = {tok.lower() for f in catalog for tok in f["name"].split("_")}
+
+    text = "\n".join(f.get("summary", "") + "\n" + f.get("description", "") for f in catalog)
+    votes: dict[str, dict[str, int]] = {}
+    for word in re.findall(r"[A-Za-z][A-Za-z0-9]*", text):
+        if sum(1 for c in word if c.isupper()) < 2:
+            continue
+        is_all_upper = word == word.upper()
+        if is_all_upper and len(word) > 6:
+            continue
+        key = word.lower()
+        if key not in name_tokens:
+            continue
+        votes.setdefault(key, {})
+        votes[key][word] = votes[key].get(word, 0) + 1
+
+    return {key: max(casings, key=casings.get) for key, casings in votes.items()}
+
+
+def _display_name(function_name: str, acronym_casing: dict[str, str]) -> str:
+    words = []
+    for token in function_name.split("_"):
+        cased = acronym_casing.get(token.lower())
+        words.append(cased if cased else token.capitalize())
+    return " ".join(words)
+
+
 def _engine_docstring(module: Any, function_name: str) -> tuple[str, str]:
     """Returns (one-line summary, full description) from the _e_<name> engine alias."""
     engine_fn = getattr(module, f"_e_{function_name}", None)
@@ -165,13 +207,17 @@ def generate() -> list[dict[str, Any]]:
                 "domain_page": domain_meta["page"],
                 "domain_color": domain_meta["color"],
                 "name": function_name,
-                "display_name": post_op.get("summary", function_name),
+                "display_name": "",  # filled in below, once acronym casing is known
                 "path": path,
                 "summary": summary or post_op.get("summary", function_name),
                 "description": description,
                 "params": params,
             }
         )
+
+    acronym_casing = _harvest_acronym_casing(catalog)
+    for fn in catalog:
+        fn["display_name"] = _display_name(fn["name"], acronym_casing)
 
     catalog.sort(key=lambda f: (f["domain"], f["name"]))
 
