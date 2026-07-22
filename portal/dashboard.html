@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Get your API key — pyvar.com</title>
+<meta name="robots" content="noindex"/>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+.dash-wrap{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:140px 0 72px}
+.dash-card{max-width:520px;width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:32px;margin:0 auto}
+.dash-title{font-family:var(--sans);font-size:22px;font-weight:600;color:var(--text);margin-bottom:10px}
+.dash-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.dash-body a{color:var(--green)}
+.dash-token{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--green);word-break:break-all;margin-bottom:14px}
+.dash-copy{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:2px;transition:all .15s;display:inline-block}
+.dash-copy:hover{border-color:var(--green);color:var(--green)}
+.dash-error{color:var(--red)}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('home'))</script>
+
+<section class="dash-wrap">
+  <div class="container">
+    <div class="dash-card" id="dashCard">
+      <div class="dash-title">Verifying your email…</div>
+      <div class="dash-body">One moment.</div>
+    </div>
+  </div>
+</section>
+
+<script>document.write(buildFooter())</script>
+<script>renderDashboard();</script>
+</body>
+</html>

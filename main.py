@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
+from api.routes.auth import router as auth_router
 from api.routes.credit_risk import router as credit_risk_router
 from api.routes.derivatives import router as derivatives_router
 from api.routes.liquidity import router as liquidity_router
@@ -85,6 +86,7 @@ def create_app() -> FastAPI:
     )
 
     # ── Routes ──────────────────────────────────────────────────────────────
+    app.include_router(auth_router, prefix=cfg.api_v1_prefix)
     app.include_router(var_router, prefix=cfg.api_v1_prefix)
     for domain_router in (
         market_risk_router,

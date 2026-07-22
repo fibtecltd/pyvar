@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 60
+    # Email verification link (api/routes/auth.py) expires after this long —
+    # separate from jwt_expiry_minutes, which governs the *issued* token once
+    # verification succeeds, not the one-time link itself.
+    verification_token_expiry_minutes: int = 1440  # 24h
+
+    # Base URL this API is reachable at — used only to log a human-readable
+    # verification link (see api/routes/auth.py's send_verification_email
+    # stub; no real email transport exists yet, see #149). Dev CloudFront
+    # domain by default, matching scripts/test_cold_start.sh.
+    public_base_url: str = "https://d1mqqddh8gu2qi.cloudfront.net"
 
     # ── Redis (Celery broker + result backend + cache) ─────────────────────────
     redis_url: str = "redis://localhost:6379/0"
