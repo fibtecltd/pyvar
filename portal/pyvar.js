@@ -31,6 +31,7 @@ function buildNav(active = 'home') {
       ${links.map(l=>`<a href="${l.href}"${l.ext?' target="_blank"':''}${l.id===active?' class="active"':''}>${l.label}</a>`).join('')}
     </div>
     <div class="nav-right">
+      <button type="button" class="nav-search-btn" id="navSearchBtn" aria-haspopup="dialog">Search <kbd>/</kbd></button>
       <span class="nav-version">v0.1.0-beta</span>
       <a href="https://fibtec.co.uk" target="_blank" class="nav-gh" title="Built by Fibtec Limited">by fibtec.co.uk</a>
       <a href="index.html#get-api-key" class="nav-cta">Get API key</a>
@@ -246,6 +247,127 @@ async function renderDashboard() {
   }
 }
 
+// ── Search (P8 Task 4) ─────────────────────────────────────────────────────
+// Fuse.js + portal/functions.json (scripts/generate_function_catalog.py) —
+// one shared data source across all 385 functions, no per-function HTML.
+// Both fuse.min.js and functions.json are loaded lazily, on first open, so
+// pages where a visitor never searches never pay for either fetch.
+let _searchState = null; // { fuse, functions } once loaded, else null
+
+function _loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = resolve;
+    el.onerror = () => reject(new Error(`failed to load ${src}`));
+    document.head.appendChild(el);
+  });
+}
+
+async function _ensureSearchIndex() {
+  if (_searchState) return _searchState;
+  const [, functions] = await Promise.all([
+    typeof Fuse === 'undefined' ? _loadScript('vendor/fuse.min.js') : Promise.resolve(),
+    fetch('functions.json').then(r => r.json()),
+  ]);
+  // description is deliberately excluded: it's long prose, and fuzzy-matching
+  // short queries against it tanks precision (e.g. "var" matched 347/385
+  // functions in testing). display_name/summary/domain give tighter, still
+  // well under the 50ms target (measured 1-8ms locally over all 385 records).
+  const fuse = new Fuse(functions, {
+    keys: [
+      { name: 'display_name', weight: 0.5 },
+      { name: 'summary', weight: 0.3 },
+      { name: 'domain_label', weight: 0.2 },
+    ],
+    threshold: 0.3,
+    ignoreLocation: true,
+    minMatchCharLength: 2,
+  });
+  _searchState = { fuse, functions };
+  return _searchState;
+}
+
+function _renderSearchResults(matches) {
+  const el = document.getElementById('searchResults');
+  if (!matches.length) {
+    el.innerHTML = '<div class="search-empty">No functions match.</div>';
+    return;
+  }
+  el.innerHTML = matches.slice(0, 30).map(({ item }) => `
+    <a class="search-result" style="--rc:${item.domain_color}" href="${item.domain_page}#${item.name}">
+      <div class="search-result-top">
+        <span class="search-result-domain">${item.domain_label}</span>
+        <span class="search-result-name">${item.display_name}</span>
+      </div>
+      <div class="search-result-summary">${item.summary}</div>
+    </a>
+  `).join('');
+}
+
+function initSearch() {
+  const btn = document.getElementById('navSearchBtn');
+  if (!btn) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'search-overlay';
+  overlay.id = 'searchOverlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Search functions');
+  overlay.innerHTML = `
+    <div class="search-panel">
+      <div class="search-input-row">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search 385 functions across 8 domains…" autocomplete="off"/>
+        <button type="button" class="search-close" id="searchClose" aria-label="Close search">Esc</button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById('searchInput');
+  const closeBtn = document.getElementById('searchClose');
+
+  async function open() {
+    overlay.classList.add('open');
+    input.value = '';
+    document.getElementById('searchResults').innerHTML = '';
+    input.focus();
+    await _ensureSearchIndex(); // pre-warm — first keystroke shouldn't pay fetch latency
+  }
+  function close() {
+    overlay.classList.remove('open');
+    btn.focus();
+  }
+
+  btn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  input.addEventListener('input', async () => {
+    const query = input.value.trim();
+    if (!query) {
+      document.getElementById('searchResults').innerHTML = '';
+      return;
+    }
+    const { fuse } = await _ensureSearchIndex();
+    const results = fuse.search(query);
+    _renderSearchResults(results);
+  });
+
+  document.addEventListener('keydown', e => {
+    const isOpen = overlay.classList.contains('open');
+    const typingElsewhere = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && document.activeElement !== input;
+    if (!isOpen && e.key === '/' && !typingElsewhere) {
+      e.preventDefault();
+      open();
+    } else if (isOpen && e.key === 'Escape') {
+      close();
+    }
+  });
+}
+
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
@@ -263,5 +385,5 @@ function initNav() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initReveal(); initNav(); initStatusIndicator(); initTerminalDemo();
+  initReveal(); initNav(); initStatusIndicator(); initTerminalDemo(); initSearch();
 });
