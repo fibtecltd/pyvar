@@ -31,7 +31,7 @@ cfg = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def _get_s3_client() -> Any:
+def get_s3_client() -> Any:
     """Build boto3 S3 client. Points to MinIO in dev, real AWS in production."""
     kwargs = {
         "region_name": cfg.s3_region,
@@ -94,7 +94,7 @@ def write_result_to_s3(result: dict, task_id: str) -> str:
     pq.write_table(table, buffer, compression="snappy")
     buffer.seek(0)
 
-    client = _get_s3_client()
+    client = get_s3_client()
     client.put_object(
         Bucket=cfg.s3_bucket,
         Key=s3_key,
@@ -112,7 +112,7 @@ def generate_presigned_url(s3_key: str, expiry_seconds: int = 3600) -> str:
     directly from S3 without routing through the API.
     Useful for large loss distributions that would bloat the API response.
     """
-    client = _get_s3_client()
+    client = get_s3_client()
     try:
         url = client.generate_presigned_url(
             "get_object",

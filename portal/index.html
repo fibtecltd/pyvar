@@ -123,16 +123,18 @@
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">portfolio_value</span>=<span class="t-val">1_000_000</span>,</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">returns</span>=returns,</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">confidence</span>=<span class="t-val">0.99</span>,</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">n_simulations</span>=<span class="t-val">100_000</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">n_simulations</span>=<span class="t-val" data-demo="n_simulations">1_000</span></div>
           <div>)</div>
           <br/>
+          <!-- Illustrative example by default; hydrated with a real, periodically-refreshed
+               compute result from /public/demo-result.json when it loads (portal/pyvar.js). -->
           <div class="t-section"># ── Result ──────────────────────────</div>
           <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.var_abs)</span></div>
-          <div><span class="t-ok">28200.0</span>  <span class="t-section"># £28,200 (99% VaR)</span></div>
+          <div><span class="t-ok" data-demo="var_abs">28200.0</span>  <span class="t-section" data-demo="var_note"># £28,200 (99% VaR)</span></div>
           <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.cvar_abs)</span></div>
-          <div><span class="t-ok">35100.0</span>  <span class="t-section"># £35,100 (CVaR/ES)</span></div>
+          <div><span class="t-ok" data-demo="cvar_abs">35100.0</span>  <span class="t-section" data-demo="cvar_note"># £35,100 (CVaR/ES)</span></div>
           <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.runtime_ms)</span></div>
-          <div><span class="t-ok">2341</span>  <span class="t-section"># 100k paths · 2.3s</span></div>
+          <div><span class="t-ok" data-demo="runtime_ms">2341</span>  <span class="t-section" data-demo="runtime_note"># 1k paths · 2.3s</span></div>
         </div>
       </div>
     </div>

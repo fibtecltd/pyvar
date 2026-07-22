@@ -28,6 +28,9 @@ Reasoning:
       HTTP_ONLY on port 80 avoids the CloudFront↔ALB cert-hostname mismatch
       (CloudFront uses the ALB DNS name, which is not in the pyvar.com cert).
   The origin-verify secret is exposed as self.origin_verify_secret for EdgeStack.
+  The JWT signing secret is exposed as self.jwt_secret for PublicDataStack's
+  Lambda (P8 Task 1/2), which mints a short-lived internal service token to
+  call this API the same way any other client would.
 """
 
 from __future__ import annotations
@@ -124,6 +127,22 @@ class ApiStack(Stack):
             )
         )
 
+        # Public data bucket (status.json / demo-result.json — P8 Task 1/2).
+        # Referenced by DETERMINISTIC NAME, not a live construct reference:
+        # public_data_stack.py depends on THIS stack (for jwt_secret, below) —
+        # if this stack also depended on public_data_stack.py's bucket
+        # construct, that would be a cycle. Both stacks independently compute
+        # the identical name from cfg.env_name + self.account, the same
+        # avoid-a-cycle-via-deterministic-naming pattern alerts_stack.py
+        # already uses for the queue-age alarm.
+        public_data_bucket_name = f"pyvar-{cfg.env_name}-public-{self.account}"
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                resources=[f"arn:aws:s3:::{public_data_bucket_name}/public/*"],
+            )
+        )
+
         # Execution role: allows ECS to pull image and write logs
         execution_role = iam.Role(
             self,
@@ -139,7 +158,12 @@ class ApiStack(Stack):
 
         # JWT signing secret — CDK-managed (auto-generated), same pattern as the
         # cf-origin-verify secret below. Created here (not imported by name) so the
-        # secret actually exists; injected into the API task at start.
+        # secret actually exists; injected into the API task at start. Stays
+        # eu-west-1-only — no us-east-1 replica (unlike cf-origin-verify) —
+        # per tests/test_data_residency.py check6: only a routing-only token may
+        # cross the region boundary, not the JWT signing secret. PublicDataStack
+        # lives in eu-west-1 alongside this stack for the same reason, and reads
+        # this secret via a normal same-region grant, not a replica.
         jwt_secret = cdk.aws_secretsmanager.Secret(
             self,
             "JwtSecret",
@@ -150,6 +174,7 @@ class ApiStack(Stack):
             ),
         )
         jwt_secret.grant_read(execution_role)
+        self.jwt_secret = jwt_secret
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
@@ -176,6 +201,7 @@ class ApiStack(Stack):
                 "SQS_QUEUE_NAME": f"pyvar-{cfg.env_name}-var-jobs.fifo",
                 "AWS_REGION": cfg.region,
                 "S3_BUCKET": data.result_bucket.bucket_name,
+                "PUBLIC_DATA_BUCKET": public_data_bucket_name,
                 "CELERY_RESULT_BACKEND": f"rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
             },
             secrets={

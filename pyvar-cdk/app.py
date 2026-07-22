@@ -25,6 +25,7 @@ from stacks.edge_stack import EdgeStack
 from stacks.network_stack import NetworkStack
 from stacks.observability_stack import ObservabilityStack
 from stacks.pipeline_stack import PipelineStack
+from stacks.public_data_stack import PublicDataStack
 from stacks.queue_stack import QueueStack
 
 from config import PyvarConfig
@@ -122,6 +123,18 @@ edge = EdgeStack(
     description="pyvar: CloudFront + WAF + Route53 (us-east-1)",
 )
 
+public_data = PublicDataStack(
+    app,
+    f"{prefix}-public-data",
+    cfg=cfg,
+    jwt_secret=api.jwt_secret,
+    # eu-west-1, alongside api/data/compute — see public_data_stack.py
+    # module docstring (data residency: no S3 origin/replica may sit in
+    # the us-east-1 edge region).
+    env=env_primary,
+    description="pyvar: status.json + demo-result.json publisher (P8 Task 1/2)",
+)
+
 alb_waf = AlbWafStack(
     app,
     f"{prefix}-alb-waf",
@@ -158,6 +171,7 @@ compute.add_dependency(queue)
 api.add_dependency(data)
 api.add_dependency(queue)
 edge.add_dependency(api)
+public_data.add_dependency(api)  # references api.jwt_secret
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm

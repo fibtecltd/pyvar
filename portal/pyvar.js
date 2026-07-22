@@ -104,6 +104,71 @@ function buildFooter() {
   </footer>`;
 }
 
+// ── Homepage: live status + terminal demo (P8 Task 1/2) ──────────────────
+// Both status.json and demo-result.json are written every ~15min by a
+// scheduled Lambda (pyvar-cdk/stacks/public_data_stack.py), not computed
+// live per page visit — see that stack's module docstring for why (compute
+// workers scale to zero; a real live call on every homepage load would
+// mean visitors routinely wait on a cold Spot ASG scale-up). The dev
+// CloudFront domain is hardcoded here the same way scripts/test_cold_start.sh
+// and scripts/chaos_test.sh already do; swap once pyvar.com DNS (P8 Task 7)
+// is wired up.
+const PUBLIC_DATA_BASE = 'https://d1mqqddh8gu2qi.cloudfront.net/public';
+
+function fmtGBP(n) {
+  return '£' + Math.round(n).toLocaleString('en-GB');
+}
+
+async function initStatusIndicator() {
+  const pill = document.querySelector('.status-pill');
+  if (!pill) return;
+  const labels = { operational: 'All systems operational', degraded: 'Degraded performance', down: 'Service disruption' };
+  const colors = { operational: 'status-green', degraded: 'status-amber', down: 'status-red' };
+  try {
+    const res = await fetch(`${PUBLIC_DATA_BASE}/status.json`, { cache: 'no-store' });
+    if (!res.ok) return; // leave the static default pill in place
+    const data = await res.json();
+    pill.classList.remove('status-green', 'status-amber', 'status-red');
+    pill.classList.add(colors[data.status] || 'status-green');
+    pill.textContent = labels[data.status] || labels.operational;
+  } catch (e) {
+    // Offline / pre-deploy / CORS — static default already shown, nothing to do.
+  }
+}
+
+async function initTerminalDemo() {
+  const body = document.querySelector('.terminal-body');
+  if (!body) return;
+  const nSimEl = body.querySelector('[data-demo="n_simulations"]');
+  const varEl = body.querySelector('[data-demo="var_abs"]');
+  const varNoteEl = body.querySelector('[data-demo="var_note"]');
+  const cvarEl = body.querySelector('[data-demo="cvar_abs"]');
+  const cvarNoteEl = body.querySelector('[data-demo="cvar_note"]');
+  const runtimeEl = body.querySelector('[data-demo="runtime_ms"]');
+  const runtimeNoteEl = body.querySelector('[data-demo="runtime_note"]');
+  if (!varEl) return; // not the homepage terminal — nothing to hydrate
+
+  try {
+    const res = await fetch(`${PUBLIC_DATA_BASE}/demo-result.json`, { cache: 'no-store' });
+    if (!res.ok) return; // leave the static illustrative example in place
+    const data = await res.json();
+    const nSim = data.request.n_simulations;
+    const confidencePct = Math.round(data.request.confidence_level * 100);
+
+    if (nSimEl) nSimEl.textContent = nSim.toLocaleString('en-GB');
+    varEl.textContent = data.result.var_abs.toFixed(1);
+    if (varNoteEl) varNoteEl.textContent = `# ${fmtGBP(data.result.var_abs)} (${confidencePct}% VaR)`;
+    cvarEl.textContent = data.result.cvar_abs.toFixed(1);
+    if (cvarNoteEl) cvarNoteEl.textContent = `# ${fmtGBP(data.result.cvar_abs)} (CVaR/ES)`;
+    if (runtimeEl) runtimeEl.textContent = data.runtime_ms;
+    if (runtimeNoteEl) {
+      runtimeNoteEl.textContent = `# ${nSim.toLocaleString('en-GB')} paths · ${(data.runtime_ms / 1000).toFixed(1)}s`;
+    }
+  } catch (e) {
+    // Offline / pre-deploy / CORS — static illustrative example already shown.
+  }
+}
+
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
@@ -120,4 +185,6 @@ function initNav() {
   }, { passive: true });
 }
 
-document.addEventListener('DOMContentLoaded', () => { initReveal(); initNav(); });
+document.addEventListener('DOMContentLoaded', () => {
+  initReveal(); initNav(); initStatusIndicator(); initTerminalDemo();
+});
