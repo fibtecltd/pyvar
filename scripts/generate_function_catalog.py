@@ -53,11 +53,31 @@ sys.path.insert(0, str(REPO_ROOT))
 DOMAINS: dict[str, dict[str, str]] = {
     "market-risk": {"label": "Market Risk", "page": "domain-market-risk.html", "color": "#00d97e"},
     "credit-risk": {"label": "Credit Risk", "page": "domain-credit-risk.html", "color": "#c8a44a"},
-    "liquidity": {"label": "Liquidity Risk", "page": "domain-liquidity-risk.html", "color": "#1a9e72"},
-    "operational": {"label": "Operational Risk", "page": "domain-operational-risk.html", "color": "#c44a3a"},
-    "portfolio": {"label": "Portfolio Analytics", "page": "domain-portfolio-analytics.html", "color": "#7060d4"},
-    "regulatory": {"label": "Regulatory & Compliance", "page": "domain-regulatory.html", "color": "#4a9e22"},
-    "derivatives": {"label": "Derivatives & Pricing", "page": "domain-derivatives.html", "color": "#c47a2a"},
+    "liquidity": {
+        "label": "Liquidity Risk",
+        "page": "domain-liquidity-risk.html",
+        "color": "#1a9e72",
+    },
+    "operational": {
+        "label": "Operational Risk",
+        "page": "domain-operational-risk.html",
+        "color": "#c44a3a",
+    },
+    "portfolio": {
+        "label": "Portfolio Analytics",
+        "page": "domain-portfolio-analytics.html",
+        "color": "#7060d4",
+    },
+    "regulatory": {
+        "label": "Regulatory & Compliance",
+        "page": "domain-regulatory.html",
+        "color": "#4a9e22",
+    },
+    "derivatives": {
+        "label": "Derivatives & Pricing",
+        "page": "domain-derivatives.html",
+        "color": "#c47a2a",
+    },
     "alm": {"label": "ALM & Balance Sheet", "page": "domain-alm.html", "color": "#6a7a8a"},
 }
 
@@ -174,7 +194,9 @@ def generate() -> list[dict[str, Any]]:
     schema = app.openapi()
     components = schema.get("components", {}).get("schemas", {})
 
-    modules = {tag: importlib.import_module(f"api.routes.{mod}") for tag, mod in DOMAIN_MODULES.items()}
+    modules = {
+        tag: importlib.import_module(f"api.routes.{mod}") for tag, mod in DOMAIN_MODULES.items()
+    }
 
     catalog: list[dict[str, Any]] = []
     unresolved_engine_alias: list[str] = []

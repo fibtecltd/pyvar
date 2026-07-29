@@ -433,6 +433,18 @@ async function initDomainGrid(domainSlug) {
   }
 }
 
+// API responses and error details can echo back untrusted request input
+// (e.g. a Pydantic validation message quoting the invalid value submitted) —
+// escape before inserting via innerHTML so it can never be parsed as markup.
+function _escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function _tryitFieldHtml(p) {
   const label = `${p.name}${p.required ? ' *' : ''}`;
   const attr = `data-param="${p.name}"`;
@@ -541,9 +553,9 @@ async function _submitTryIt(e, fn) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    resultEl.innerHTML = `<pre class="tryit-json">${JSON.stringify(data, null, 2)}</pre>`;
+    resultEl.innerHTML = `<pre class="tryit-json">${_escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
   } catch (err) {
-    resultEl.innerHTML = `<div class="tryit-error">${(err && err.message) || 'Request failed.'}</div>`;
+    resultEl.innerHTML = `<div class="tryit-error">${_escapeHtml((err && err.message) || 'Request failed.')}</div>`;
   }
 }
 
