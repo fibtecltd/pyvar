@@ -28,7 +28,14 @@ jobs:
           cache: pip
 
       - name: Install lint tools
-        run: pip install black isort mypy ruff
+        # Pinned: an unpinned `pip install` floats to whatever's newest on
+        # PyPI, so a new release (e.g. ruff 0.16.0 enabling new default
+        # rules) can retroactively fail CI on already-merged code with no
+        # PR having changed anything — as happened on 2026-07-29. Versions
+        # below are the last confirmed-clean set against this repo. Bump
+        # deliberately (and fix/triage whatever it newly flags) rather than
+        # letting CI drift silently.
+        run: pip install black==26.5.1 isort==8.0.1 mypy==2.3.0 ruff==0.15.22
 
       - name: Black (formatting)
         run: black --check --line-length 100 .
