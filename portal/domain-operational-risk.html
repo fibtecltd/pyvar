@@ -67,7 +67,7 @@
         <h2 class="h2">44 Operational Risk <em>functions</em></h2>
         <p class="fn-count" id="countLbl">Showing all 44 functions</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="lda">Loss Data / LDA</div><div class="cat-pill" data-cat="rcsa">RCSA</div><div class="cat-pill" data-cat="kri">KRI</div><div class="cat-pill" data-cat="scenario">Scenario Analysis</div><div class="cat-pill" data-cat="capital">Capital Models</div><div class="cat-pill" data-cat="other">Reporting</div></div>
+      <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
   </div>
@@ -114,29 +114,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const ALL_FNS = [{"name": "Loss Distribution Approach (LDA)", "cat": "lda"}, {"name": "Advanced Measurement Approach (AMA)", "cat": "rcsa"}, {"name": "Basel Standardised Measurement (SMA)", "cat": "kri"}, {"name": "Operational VaR (OpVaR)", "cat": "scenario"}, {"name": "Loss Data Collection Framework", "cat": "capital"}, {"name": "External Loss Data Integration", "cat": "other"}, {"name": "RCSA Risk Identification", "cat": "lda"}, {"name": "RCSA Inherent Risk Scoring", "cat": "rcsa"}, {"name": "RCSA Residual Risk Scoring", "cat": "kri"}, {"name": "RCSA Control Effectiveness", "cat": "scenario"}, {"name": "Key Risk Indicator (KRI) Library", "cat": "capital"}, {"name": "KRI Threshold Breach Detection", "cat": "other"}, {"name": "KRI Trend Analysis", "cat": "lda"}, {"name": "Scenario Analysis (OpRisk)", "cat": "rcsa"}, {"name": "Scenario Expert Elicitation Model", "cat": "kri"}, {"name": "Scenario Severity Estimation", "cat": "scenario"}, {"name": "Scenario Frequency Estimation", "cat": "capital"}, {"name": "Business Environment Factor (BEI)", "cat": "other"}, {"name": "Internal Control Factor (ICF)", "cat": "lda"}, {"name": "Severity Distribution Fitting", "cat": "rcsa"}, {"name": "Frequency Distribution Fitting", "cat": "kri"}, {"name": "Compound Loss Distribution", "cat": "scenario"}, {"name": "Monte Carlo OpRisk Capital", "cat": "capital"}, {"name": "OpRisk Capital Allocation", "cat": "other"}, {"name": "Cyber Risk Loss Estimation", "cat": "lda"}, {"name": "Conduct Risk Metric", "cat": "rcsa"}, {"name": "Model Risk Assessment", "cat": "kri"}, {"name": "IT Risk Scoring", "cat": "scenario"}, {"name": "Third-Party / Vendor Risk", "cat": "capital"}, {"name": "Business Continuity Risk Score", "cat": "other"}, {"name": "Insurance Offset Calculation", "cat": "lda"}, {"name": "Loss Event Classification (Basel)", "cat": "rcsa"}, {"name": "Near-Miss Capture Framework", "cat": "kri"}, {"name": "Root Cause Analysis Template", "cat": "scenario"}, {"name": "Risk Appetite Statement (OpRisk)", "cat": "capital"}, {"name": "Control Testing Effectiveness", "cat": "other"}, {"name": "Escalation Threshold Calculation", "cat": "lda"}, {"name": "OpRisk Heat Map Generator", "cat": "rcsa"}, {"name": "Regulatory Compliance Score", "cat": "kri"}, {"name": "Audit Finding Risk Scorer", "cat": "scenario"}, {"name": "Tail Risk Scenario (OpRisk)", "cat": "capital"}, {"name": "OpRisk Stress Testing", "cat": "other"}, {"name": "Diversification Benefit (OpRisk)", "cat": "lda"}, {"name": "OpRisk Economic Capital", "cat": "rcsa"}];
-let cur = 'all';
-
-function render() {
-  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
-  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.015}s">
-      <div class="fn-name">${f.name}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  cur = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('operational');
 initReveal(); initNav();
 </script>
 </body>

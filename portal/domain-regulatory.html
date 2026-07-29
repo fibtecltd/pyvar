@@ -67,7 +67,7 @@
         <h2 class="h2">30 Regulatory <em>functions</em></h2>
         <p class="fn-count" id="countLbl">Showing all 30 functions</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="cats"><div class="cat-pill act" data-cat="all">All</div><div class="cat-pill" data-cat="basel">Basel III / IV</div><div class="cat-pill" data-cat="frtb">FRTB</div><div class="cat-pill" data-cat="mifid">MiFID II</div><div class="cat-pill" data-cat="emir">EMIR / SFTR</div><div class="cat-pill" data-cat="icaap">ICAAP / SREP</div><div class="cat-pill" data-cat="other">Other Frameworks</div></div>
+      <input type="text" id="fnFilter" class="fn-filter-input" placeholder="Filter functions…"/>
     </div>
     <div class="fn-grid reveal" id="fnGrid"></div>
   </div>
@@ -114,29 +114,7 @@
 
 <script>document.write(buildFooter())</script>
 <script>
-const ALL_FNS = [{"name": "Basel III Common Equity Tier 1 (CET1)", "cat": "basel"}, {"name": "Basel III Tier 1 Capital Ratio", "cat": "frtb"}, {"name": "Basel III Total Capital Ratio", "cat": "mifid"}, {"name": "Basel III Leverage Ratio", "cat": "emir"}, {"name": "Basel IV Output Floor", "cat": "icaap"}, {"name": "ICAAP Capital Assessment", "cat": "other"}, {"name": "SREP Capital Add-On", "cat": "basel"}, {"name": "Pillar 2A Capital Calculation", "cat": "frtb"}, {"name": "Pillar 2B Stress Buffer", "cat": "mifid"}, {"name": "Combined Buffer Requirement", "cat": "emir"}, {"name": "FRTB SA Market Risk Capital", "cat": "icaap"}, {"name": "FRTB IMA Market Risk Capital", "cat": "other"}, {"name": "FRTB P&L Attribution Test", "cat": "basel"}, {"name": "FRTB Trading Desk Aggregation", "cat": "frtb"}, {"name": "MiFID II Transaction Report Validator", "cat": "mifid"}, {"name": "MiFID II Pre-Trade Transparency", "cat": "emir"}, {"name": "MiFID II Post-Trade Transparency", "cat": "icaap"}, {"name": "MiFID II Best Execution Metric", "cat": "other"}, {"name": "MiFID II Algorithm Documentation", "cat": "basel"}, {"name": "EMIR Trade Repository Report", "cat": "frtb"}, {"name": "EMIR Clearing Obligation Check", "cat": "mifid"}, {"name": "EMIR Margin Requirement", "cat": "emir"}, {"name": "SFTR Securities Finance Report", "cat": "icaap"}, {"name": "AIFMD Risk Metrics", "cat": "other"}, {"name": "UCITS KIID Risk Indicator", "cat": "basel"}, {"name": "Solvency II SCR Market Risk", "cat": "frtb"}, {"name": "Solvency II SCR Credit Risk", "cat": "mifid"}, {"name": "CRR2 Large Exposure Limit", "cat": "emir"}, {"name": "Capital Conservation Buffer", "cat": "icaap"}, {"name": "Countercyclical Capital Buffer", "cat": "other"}];
-let cur = 'all';
-
-function render() {
-  const items = cur === 'all' ? ALL_FNS : ALL_FNS.filter(f => f.cat === cur);
-  document.getElementById('countLbl').textContent = `Showing ${items.length} of ${ALL_FNS.length} functions`;
-  document.getElementById('fnGrid').innerHTML = items.map((f,i) =>
-    `<div class="fn-card" style="animation-delay:${i*0.015}s">
-      <div class="fn-name">${f.name}</div>
-    </div>`
-  ).join('');
-}
-
-document.getElementById('cats').addEventListener('click', e => {
-  const pill = e.target.closest('[data-cat]');
-  if (!pill) return;
-  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('act'));
-  pill.classList.add('act');
-  cur = pill.dataset.cat;
-  render();
-});
-
-render();
+initDomainGrid('regulatory');
 initReveal(); initNav();
 </script>
 </body>
