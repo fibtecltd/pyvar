@@ -22,11 +22,7 @@ import json
 from pathlib import Path
 
 HANDLER_PATH = (
-    Path(__file__).parent.parent
-    / "pyvar-cdk"
-    / "lambda"
-    / "public_data_publisher"
-    / "handler.py"
+    Path(__file__).parent.parent / "pyvar-cdk" / "lambda" / "public_data_publisher" / "handler.py"
 )
 
 

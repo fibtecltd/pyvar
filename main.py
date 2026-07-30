@@ -110,15 +110,11 @@ def create_app() -> FastAPI:
         derivatives_router,
         alm_router,
     ):
-        app.include_router(
-            domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit
-        )
+        app.include_router(domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit)
 
     # No prefix — matches portal/pyvar.js's `${API_BASE}/public/...` fetches.
     # Unauthenticated, so a separate per-IP (not per-user) limit.
-    app.include_router(
-        public_data_router, dependencies=[Depends(enforce_public_rate_limit)]
-    )
+    app.include_router(public_data_router, dependencies=[Depends(enforce_public_rate_limit)])
 
     # ── Health check ────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"], include_in_schema=False)
