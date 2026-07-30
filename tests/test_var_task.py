@@ -1,7 +1,7 @@
 """
 tests/test_var_task.py — Unit tests for the var_jobs completion audit write
 (issue #118, Celery-side half of the write path — see api/routes/var.py for
-the submission-side INSERT).
+the submission-side INSERT) and the large-result S3 offload (#130).
 
 Reasoning:
 - _write_terminal_audit is exercised directly against a fake sync Session
@@ -17,6 +17,9 @@ Reasoning:
   NOT write a terminal audit status, only the final success/failure does —
   the guarantee that keeps Celery retries (same task_id, up to max_retries)
   from producing duplicate or flapping audit rows.
+- write_result_to_s3 (storage/s3.py) is mocked at its tasks.var_task import
+  site — never a real S3/MinIO call, same never-hit-a-real-backing-service
+  rule.
 """
 
 from __future__ import annotations
@@ -26,7 +29,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from celery.exceptions import Retry
 
+from config import get_settings
 from tasks.var_task import _write_terminal_audit, compute_var_task
+
+cfg = get_settings()
 
 # ── Fakes ──────────────────────────────────────────────────────────────────────
 
@@ -99,6 +105,12 @@ MOCK_RESULT = {
     "confidence_level": 0.99,
     "horizon_days": 1,
 }
+
+# n_simulations sits exactly at cfg.s3_result_offload_threshold — MOCK_RESULT
+# above therefore stays inline (the offload check is strictly-greater-than;
+# see tasks/var_task.py), and LARGE_MOCK_RESULT below is deliberately one
+# above it to exercise the S3 offload path (#130).
+LARGE_MOCK_RESULT = {**MOCK_RESULT, "n_simulations": cfg.s3_result_offload_threshold + 1}
 
 PAYLOAD = {"returns": [0.001] * 30, "portfolio_value": 1_000_000.0, "n_simulations": 1000}
 
@@ -198,3 +210,64 @@ def test_compute_var_task_terminal_failure_writes_audit():
 
     assert len(fake_session.executed) == 1
     mock_self.retry.assert_not_called()
+
+
+# ── S3 large-result offload (#130) ──────────────────────────────────────────
+
+
+def test_compute_var_task_small_result_stays_inline():
+    """At/below the threshold, no S3 write happens and loss_dist is untouched."""
+    fake_session = FakeSyncSession()
+    mock_self = make_mock_self()
+
+    with (
+        patch_sync_sessionmaker(fake_session),
+        patch("engine.montecarlo.run_monte_carlo_var", return_value=MOCK_RESULT),
+        patch("tasks.var_task._emit_job_metric"),
+        patch("tasks.var_task.write_result_to_s3") as mock_write_s3,
+    ):
+        result = raw_task_run(mock_self, payload=PAYLOAD)
+
+    mock_write_s3.assert_not_called()
+    assert result["loss_dist"] == [0.0]
+    assert "s3_key" not in result
+
+
+def test_compute_var_task_large_result_writes_to_s3_and_strips_loss_dist():
+    """Above the threshold, the full result (incl. loss_dist) is written to
+    S3, and the dict returned through Celery's result backend has loss_dist
+    replaced with an empty list and s3_key set to the returned key."""
+    fake_session = FakeSyncSession()
+    mock_self = make_mock_self()
+
+    with (
+        patch_sync_sessionmaker(fake_session),
+        patch("engine.montecarlo.run_monte_carlo_var", return_value=dict(LARGE_MOCK_RESULT)),
+        patch("tasks.var_task._emit_job_metric"),
+        patch("tasks.var_task.write_result_to_s3", return_value="results/task-x/task-x.parquet"),
+    ):
+        result = raw_task_run(mock_self, payload=PAYLOAD)
+
+    assert result["s3_key"] == "results/task-x/task-x.parquet"
+    assert result["loss_dist"] == []
+    # The completion audit write (#118) still only ever persists scalar
+    # fields — unaffected by loss_dist/s3_key either way.
+    assert len(fake_session.executed) == 1
+
+
+def test_compute_var_task_s3_offload_failure_falls_back_to_inline():
+    """An S3 outage on the (best-effort) offload write must not fail an
+    already-successful computation — loss_dist stays inline instead."""
+    fake_session = FakeSyncSession()
+    mock_self = make_mock_self()
+
+    with (
+        patch_sync_sessionmaker(fake_session),
+        patch("engine.montecarlo.run_monte_carlo_var", return_value=dict(LARGE_MOCK_RESULT)),
+        patch("tasks.var_task._emit_job_metric"),
+        patch("tasks.var_task.write_result_to_s3", side_effect=RuntimeError("simulated S3 outage")),
+    ):
+        result = raw_task_run(mock_self, payload=PAYLOAD)  # must not raise
+
+    assert "s3_key" not in result
+    assert result["loss_dist"] == LARGE_MOCK_RESULT["loss_dist"]

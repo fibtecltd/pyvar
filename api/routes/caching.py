@@ -39,6 +39,7 @@ from api.responses import OrjsonResponse
 from config import get_settings
 from schemas.var import JobResultResponse, JobStatus, VaRResult
 from storage.redis_client import redis_url
+from storage.s3 import hydrate_presigned_url
 from tasks.var_task import _emit_job_metric
 
 cfg = get_settings()
@@ -116,11 +117,14 @@ def cache_check(domain: str) -> Callable[[F], F]:
             cached = await _cache_get(domain, params)
             if cached is not None:
                 _emit_job_metric("CacheHit", [{"Name": "Domain", "Value": domain}])
+                # #130: cached results carry s3_key but never a baked-in
+                # presigned_url (see write_result_to_cache's caller) — attach
+                # a fresh one here, same as the live GET /var/result path.
                 return OrjsonResponse(
                     content=JobResultResponse(
                         task_id="cached",
                         status=JobStatus.SUCCESS,
-                        result=VaRResult(**cached),
+                        result=VaRResult(**hydrate_presigned_url(cached)),
                     ).model_dump(),
                     status_code=200,
                 )

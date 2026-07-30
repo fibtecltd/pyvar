@@ -28,6 +28,7 @@ from sqlalchemy import CursorResult, update
 
 from config import get_settings
 from storage.models import VaRJob
+from storage.s3 import write_result_to_s3
 from storage.session import get_sync_sessionmaker
 
 cfg = get_settings()
@@ -233,7 +234,7 @@ def compute_var_task(self: Task, payload: dict) -> dict:
             portfolio_value=payload["portfolio_value"],
             confidence_level=payload.get("confidence_level", 0.99),
             horizon_days=payload.get("horizon_days", 1),
-            n_simulations=payload.get("n_simulations", 100_000),
+            n_simulations=payload.get("n_simulations", cfg.default_n_simulations),
             seed=payload.get("seed", 42),
         )
 
@@ -245,6 +246,25 @@ def compute_var_task(self: Task, payload: dict) -> dict:
                 "n_sims": result["n_simulations"],
             },
         )
+
+        # Large-result S3 offload (#130): above the threshold, persist the
+        # full result (incl. loss_dist) to S3 and strip loss_dist from what
+        # goes back through Celery's Redis result backend — storage/s3.py's
+        # own docstring flags inlining a multi-MB array there as wasteful and
+        # slow. Best-effort: an S3 outage must not fail an already-successful
+        # computation, so on failure this just falls back to the original,
+        # always-worked inline behavior.
+        if result["n_simulations"] > cfg.s3_result_offload_threshold:
+            try:
+                result["s3_key"] = write_result_to_s3(result, task_id)
+                result["loss_dist"] = []
+            except Exception:  # noqa: BLE001 — fall back to inline, see above
+                logger.warning(
+                    "S3 result offload failed — returning loss_dist inline instead",
+                    extra={"task_id": task_id},
+                    exc_info=True,
+                )
+
         # Completed successfully — count the job.
         _emit_job_metric("JobCount", job_dimensions)
         # var_jobs is the compliance record of the job's terminal outcome —

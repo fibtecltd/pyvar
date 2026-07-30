@@ -123,3 +123,19 @@ def generate_presigned_url(s3_key: str, expiry_seconds: int = 3600) -> str:
     except ClientError as exc:
         logger.exception("Failed to generate presigned URL", extra={"s3_key": s3_key})
         raise exc
+
+
+def hydrate_presigned_url(result: dict[str, Any]) -> dict[str, Any]:
+    """If result carries an s3_key (large-simulation offload, #130), attach a
+    fresh presigned URL for it.
+
+    Called at every point a completed VaR result reaches a client — GET
+    /var/result/{task_id} (api/routes/var.py) and the cache-hit path
+    (api/routes/caching.py) — rather than baking a URL in once at compute
+    time, so it's never stale regardless of how long after completion it's
+    fetched. A no-op (returns result unchanged) when s3_key isn't present,
+    i.e. every job at or below cfg.s3_result_offload_threshold.
+    """
+    if result.get("s3_key"):
+        return {**result, "presigned_url": generate_presigned_url(result["s3_key"])}
+    return result

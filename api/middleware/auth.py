@@ -37,11 +37,11 @@ class TokenPayload:
         # api/middleware/rate_limit.py, both exempt from the compute quota.
         self.tier = tier  # free | pro | enterprise | internal
         self.max_simulations = {
-            "free": 100_000,
-            "pro": 500_000,
-            "enterprise": 1_000_000,
-            "internal": 1_000_000,
-        }.get(tier, 100_000)
+            "free": 10_000,
+            "pro": 100_000,
+            "enterprise": 500_000,
+            "internal": 500_000,
+        }.get(tier, 10_000)
 
 
 async def get_current_user(

@@ -76,10 +76,27 @@ class Settings(BaseSettings):
     public_data_bucket: str = "pyvar-public"
 
     # ── Monte Carlo defaults ───────────────────────────────────────────────────
-    default_n_simulations: int = 100_000
+    # default_n_simulations must never exceed the lowest tier cap
+    # (api/middleware/auth.py's "free": 10_000) — it's the value used when a
+    # request omits n_simulations entirely, for every tier, so a free-tier
+    # user who doesn't specify it must never get an automatic 403.
+    # max_n_simulations mirrors the highest tier cap ("enterprise"/"internal":
+    # 500_000) — schemas/var.py's VaRRequest.n_simulations reads both of these
+    # directly rather than hardcoding its own copies.
+    default_n_simulations: int = 10_000
     default_confidence_level: float = 0.99
     default_horizon_days: int = 1
-    max_n_simulations: int = 1_000_000
+    max_n_simulations: int = 500_000
+
+    # ── S3 large-result offload (#130) ──────────────────────────────────────
+    # Above this many simulations, tasks/var_task.py writes the full result to
+    # S3 (storage/s3.py::write_result_to_s3) as Parquet and strips loss_dist
+    # from the inline/Celery-cached result, returning a presigned URL instead
+    # (api/routes/var.py, api/routes/caching.py). At/below this threshold,
+    # behavior is unchanged from before #130 — loss_dist inline, no S3 write.
+    # Set equal to the free-tier simulation cap: every free-tier request stays
+    # inline; only pro/enterprise jobs can ever be large enough to offload.
+    s3_result_offload_threshold: int = 10_000
 
     # ── Rate limiting (#146) ────────────────────────────────────────────────────
     # Account-wide daily quota across ALL /api/v1 compute endpoints (var + the 8

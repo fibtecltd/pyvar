@@ -251,7 +251,7 @@ async def test_submit_too_few_returns(app, free_token, valid_payload):
 
 @pytest.mark.asyncio
 async def test_free_tier_simulation_cap(app, free_token, valid_payload):
-    """Free tier allows max 100k simulations — request 200k should be rejected."""
+    """Free tier allows max 10k simulations — request 200k should be rejected."""
     valid_payload["n_simulations"] = 200_000
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post(
@@ -265,8 +265,8 @@ async def test_free_tier_simulation_cap(app, free_token, valid_payload):
 
 @pytest.mark.asyncio
 async def test_pro_tier_allows_larger_simulations(app, pro_token, valid_payload):
-    """Pro tier allows up to 500k simulations."""
-    valid_payload["n_simulations"] = 200_000
+    """Pro tier allows up to 100k simulations — more than free's 10k cap."""
+    valid_payload["n_simulations"] = 50_000
     mock_task = MagicMock()
     mock_task.id = "pro-task-uuid-5678"
 
@@ -345,6 +345,37 @@ async def test_submit_var_cache_hit_returns_200(app, free_token, valid_payload):
 
 
 @pytest.mark.asyncio
+async def test_submit_var_cache_hit_with_s3_offload_includes_presigned_url(
+    app, free_token, valid_payload
+):
+    """#130: a cache hit for a large-simulation result carries s3_key —
+    hydrate_presigned_url must be called on the cache-hit path too, not just
+    the live GET /var/result path, so a cached large result never comes back
+    with a stale/missing presigned_url."""
+    large_result = {**MOCK_VAR_RESULT, "loss_dist": [], "s3_key": "results/xyz/xyz.parquet"}
+    with (
+        patch("api.routes.caching._cache_get", return_value=large_result),
+        patch("api.routes.var.compute_var_task.apply_async"),
+        patch(
+            "api.routes.caching.hydrate_presigned_url",
+            return_value={**large_result, "presigned_url": "https://s3.example.com/signed"},
+        ) as mock_hydrate,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute",
+                json=valid_payload,
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["result"]["s3_key"] == "results/xyz/xyz.parquet"
+    assert body["result"]["presigned_url"] == "https://s3.example.com/signed"
+    mock_hydrate.assert_called_once_with(large_result)
+
+
+@pytest.mark.asyncio
 async def test_submit_var_cache_miss_dispatches_celery(app, free_token, valid_payload):
     """A cache miss falls through to the normal 202 + task_id Celery dispatch."""
     mock_task = MagicMock()
@@ -409,9 +440,44 @@ async def test_get_result_success(app, free_token):
     assert body["status"] == "success"
     assert body["result"]["var_abs"] == 28_000.0
     assert body["result"]["cvar_pct"] > body["result"]["var_pct"]
+    assert body["result"]["s3_key"] is None
+    assert body["result"]["presigned_url"] is None
     # CloudFront's ApiCachePolicy (edge_stack.py) clamps TTL from this header —
     # a SUCCESS result is immutable, so it must be edge-cacheable.
     assert resp.headers["cache-control"] == "public, max-age=3600"
+
+
+@pytest.mark.asyncio
+async def test_get_result_success_with_s3_offload_includes_presigned_url(app, free_token):
+    """#130: when the Celery result carries an s3_key (large simulation),
+    the response includes a freshly-generated presigned_url and empty
+    loss_dist — hydrate_presigned_url is mocked at its api.routes.var import
+    site, never a real boto3/S3 call."""
+    large_result = {**MOCK_VAR_RESULT, "loss_dist": [], "s3_key": "results/abc/abc.parquet"}
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = large_result
+    mock_async_result.kwargs = {}
+
+    with (
+        patch("api.routes.var.AsyncResult", return_value=mock_async_result),
+        patch(
+            "api.routes.var.hydrate_presigned_url",
+            return_value={**large_result, "presigned_url": "https://s3.example.com/signed"},
+        ) as mock_hydrate,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/api/v1/var/result/large-task-id",
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["result"]["s3_key"] == "results/abc/abc.parquet"
+    assert body["result"]["presigned_url"] == "https://s3.example.com/signed"
+    assert body["result"]["loss_dist"] == []
+    mock_hydrate.assert_called_once_with(large_result)
 
 
 @pytest.mark.asyncio
