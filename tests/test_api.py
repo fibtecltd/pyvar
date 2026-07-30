@@ -67,6 +67,7 @@ class FakeAsyncSession:
 def patch_sessionmaker(fake_session: FakeAsyncSession):
     return patch("api.routes.var.get_sessionmaker", return_value=lambda: fake_session)
 
+
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
