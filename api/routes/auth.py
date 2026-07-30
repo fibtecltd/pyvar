@@ -46,16 +46,16 @@ cfg = get_settings()
 def send_verification_email(email: str, token: str) -> None:
     """Verification email transport — see module docstring for why this is a stub.
 
-    Logs the token rather than a clickable link: the portal (where
-    dashboard.html lives) is not deployed anywhere yet either, so fabricating
-    a URL to a page that may 404 would be actively misleading. Append the
-    token to wherever dashboard.html ends up served, as ``?token=<token>``.
+    Logs a dashboard.html link rather than sending real email (no SES/SMTP
+    transport exists yet, see #149). The portal is now served by this same
+    app (fix/portal-root-serving), at cfg.public_base_url, so dashboard.html
+    is a real reachable page rather than a URL that would 404.
     """
     logger.info(
         "verification_email_stubbed",
         email=email,
         token=token,
-        verify_path=f"{cfg.api_v1_prefix}/auth/verify?token={token}",
+        verify_url=f"{cfg.public_base_url}/dashboard.html?token={token}",
     )
 
 
