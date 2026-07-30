@@ -402,7 +402,7 @@ async function initDomainGrid(domainSlug) {
         : `Showing all ${items.length} functions`;
     }
     grid.innerHTML = shown.map((f, i) => `
-      <div class="fn-card" id="${f.name}" data-fn="${f.name}" style="animation-delay:${i * 0.02}s">
+      <div class="fn-card" id="${f.name}" data-fn="${f.name}" style="animation-delay:${i * 0.02}s" role="button" tabindex="0" aria-label="Try ${f.display_name}">
         <div class="fn-name">${f.display_name}</div>
         <div class="fn-desc">${f.summary}</div>
         <div class="fn-try">Try it →</div>
@@ -413,11 +413,24 @@ async function initDomainGrid(domainSlug) {
   render('');
   if (filterInput) filterInput.addEventListener('input', () => render(filterInput.value));
 
+  function activateCard(card) {
+    const fn = items.find(f => f.name === card.dataset.fn);
+    if (fn) openTryItPanel(fn, card);
+  }
+
   grid.addEventListener('click', e => {
     const card = e.target.closest('.fn-card');
     if (!card) return;
-    const fn = items.find(f => f.name === card.dataset.fn);
-    if (fn) openTryItPanel(fn);
+    activateCard(card);
+  });
+
+  grid.addEventListener('keydown', e => {
+    const card = e.target.closest('.fn-card');
+    if (!card) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); // ' ' would otherwise scroll the page
+      activateCard(card);
+    }
   });
 
   // Deep-link from a search result: index.html search -> domain_page#function_name
@@ -427,7 +440,7 @@ async function initDomainGrid(domainSlug) {
       setTimeout(() => {
         const el = document.getElementById(fn.name);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        openTryItPanel(fn);
+        openTryItPanel(fn, el);
       }, 150);
     }
   }
@@ -468,23 +481,42 @@ function _tryitFieldHtml(p) {
   return `<label class="tryit-field"><span>${label}</span><input type="text" ${attr} value="${value}"/></label>`;
 }
 
+let _tryitTrigger = null;
+
 function closeTryItPanel() {
   const panel = document.getElementById('tryitPanel');
   if (panel) panel.classList.remove('open');
+  if (_tryitTrigger) { _tryitTrigger.focus(); _tryitTrigger = null; }
 }
 
-function openTryItPanel(fn) {
+function openTryItPanel(fn, triggerEl) {
+  _tryitTrigger = triggerEl || null;
   let panel = document.getElementById('tryitPanel');
   if (!panel) {
     panel = document.createElement('div');
     panel.id = 'tryitPanel';
     panel.className = 'tryit-overlay';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
     document.body.appendChild(panel);
     panel.addEventListener('click', e => { if (e.target === panel) closeTryItPanel(); });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && panel.classList.contains('open')) closeTryItPanel();
+      if (!panel.classList.contains('open')) return;
+      if (e.key === 'Escape') { closeTryItPanel(); return; }
+      if (e.key !== 'Tab') return;
+      // Trap focus inside the panel while it's open (WAI-ARIA modal dialog pattern)
+      const focusable = panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
     });
   }
+  panel.setAttribute('aria-label', `Try ${fn.display_name}`);
 
   const storedToken = localStorage.getItem('pyvar_jwt') || '';
   panel.innerHTML = `
@@ -494,7 +526,7 @@ function openTryItPanel(fn) {
           <div class="tryit-domain">${fn.domain_label}</div>
           <div class="tryit-title">${fn.display_name}</div>
         </div>
-        <button type="button" class="tryit-close" id="tryitClose">Esc</button>
+        <button type="button" class="tryit-close" id="tryitClose" aria-label="Close try-it panel">Esc</button>
       </div>
       <div class="tryit-desc">${fn.summary}${fn.description ? ' — ' + fn.description.replace(/\n/g, ' ') : ''}</div>
       <div class="tryit-jwt-row">
@@ -511,6 +543,7 @@ function openTryItPanel(fn) {
   panel.classList.add('open');
   document.getElementById('tryitClose').addEventListener('click', closeTryItPanel);
   document.getElementById('tryitForm').addEventListener('submit', e => _submitTryIt(e, fn));
+  document.getElementById('tryitJwt').focus();
 }
 
 async function _submitTryIt(e, fn) {
