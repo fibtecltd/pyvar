@@ -234,7 +234,19 @@ Branch: docs/p8-iron-triangle-data
 
 ---
 
-### Task 7 — pyvar.com DNS + SSL
+### Task 7 — pyvar.com DNS + SSL — CLOSED 2026-07-30
+
+Aruba's stale forwarding redirect (pyvar.com → example.com) and the
+expired TLS cert on their forwarding proxy (62.149.189.55) — both
+blocking issues unrelated to this task's own steps — were fixed by
+Aruba support and independently verified end to end (301 → 
+www.pyvar.com, valid cert through 2027-02-14, no masking, no
+regression on www.pyvar.com). See docs/p8-task7-dns-ssl-verification.md.
+
+The ACM cert + CloudFront alternate-domain-name change below (steps 2-3)
+was drafted on `feat/p8-domain-dns-ssl` but never deployed, and is not
+required for pyvar.com to work correctly now that the Aruba-side fix
+is live — left as an operator decision on whether to still pursue it.
 
 **High-risk task — confirm with operator before EVERY step, not just
 once at the start.**
@@ -289,8 +301,8 @@ Branch: fix/p8-seo-accessibility
 - [ ] Iron Triangle data contract documented (visual component itself
       is a follow-up, not part of this exit gate — depends on separate
       design output)
-- [ ] pyvar.com resolves via HTTPS with valid certificate (if Task 7
-      was completed and confirmed by operator at each DNS step)
+- [x] pyvar.com resolves via HTTPS with valid certificate — Task 7
+      closed 2026-07-30, see docs/p8-task7-dns-ssl-verification.md
 - [ ] Automated accessibility check run, findings documented
 - [ ] No regression on existing 388 API routes / auth gating
 
