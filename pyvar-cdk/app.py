@@ -27,6 +27,7 @@ from stacks.observability_stack import ObservabilityStack
 from stacks.pipeline_stack import PipelineStack
 from stacks.public_data_stack import PublicDataStack
 from stacks.queue_stack import QueueStack
+from stacks.ses_stack import SesStack
 
 from config import PyvarConfig
 
@@ -101,6 +102,14 @@ compute = ComputeStack(
     description="pyvar: EC2 Spot ASG Celery workers + step scaling",
 )
 
+ses = SesStack(
+    app,
+    f"{prefix}-ses",
+    cfg=cfg,
+    env=env_primary,
+    description="pyvar: SES domain identity for transactional email (#149)",
+)
+
 api = ApiStack(
     app,
     f"{prefix}-api",
@@ -109,6 +118,7 @@ api = ApiStack(
     sgs=network.sgs,
     var_queue=queue.var_queue,
     data=data,
+    ses_identity=ses.email_identity,
     env=env_primary,
     description="pyvar: ECS Fargate FastAPI + ALB + auto-scaling",
 )
@@ -170,6 +180,7 @@ compute.add_dependency(data)
 compute.add_dependency(queue)
 api.add_dependency(data)
 api.add_dependency(queue)
+api.add_dependency(ses)
 edge.add_dependency(api)
 public_data.add_dependency(api)  # references api.jwt_secret
 alb_waf.add_dependency(api)

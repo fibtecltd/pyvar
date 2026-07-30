@@ -44,6 +44,7 @@ from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_ecs_patterns as ecs_patterns
 from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_ses as ses
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 from stacks.data_stack import DataStack
@@ -64,6 +65,7 @@ class ApiStack(Stack):
         sgs: SecurityGroups,
         var_queue: sqs.Queue,
         data: DataStack,
+        ses_identity: ses.EmailIdentity,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -119,6 +121,9 @@ class ApiStack(Stack):
         )
         data.result_bucket.grant_read(task_role)  # presigned URL generation
         data.db_secret.grant_read(task_role)
+        # SendEmail/SendRawEmail scoped to this one verified identity (#149) —
+        # api/routes/auth.py::send_verification_email is the only caller.
+        ses_identity.grant_send_email(task_role)
         task_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["cloudwatch:PutMetricData"],

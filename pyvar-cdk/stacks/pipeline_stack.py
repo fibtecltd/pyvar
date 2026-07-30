@@ -354,6 +354,7 @@ class PyvarDeployStage(cdk.Stage):
         from stacks.network_stack import NetworkStack
         from stacks.public_data_stack import PublicDataStack
         from stacks.queue_stack import QueueStack
+        from stacks.ses_stack import SesStack
 
         prefix = f"pyvar-{cfg.env_name}"
         env_primary = cdk.Environment(account=cfg.account, region=cfg.region)
@@ -375,6 +376,7 @@ class PyvarDeployStage(cdk.Stage):
             data=data,
             env=env_primary,
         )
+        ses = SesStack(self, f"{prefix}-ses", cfg=cfg, env=env_primary)
         api = ApiStack(
             self,
             f"{prefix}-api",
@@ -383,6 +385,7 @@ class PyvarDeployStage(cdk.Stage):
             sgs=network.sgs,
             var_queue=queue.var_queue,
             data=data,
+            ses_identity=ses.email_identity,
             env=env_primary,
         )
         edge = EdgeStack(
@@ -407,5 +410,6 @@ class PyvarDeployStage(cdk.Stage):
         compute.add_dependency(queue)
         api.add_dependency(data)
         api.add_dependency(queue)
+        api.add_dependency(ses)
         edge.add_dependency(api)
         public_data.add_dependency(api)

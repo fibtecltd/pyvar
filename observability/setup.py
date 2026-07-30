@@ -126,7 +126,15 @@ def setup_logging() -> None:
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelName(cfg.log_level)),
-        logger_factory=structlog.PrintLoggerFactory(),
+        # stdlib.LoggerFactory(), not PrintLoggerFactory(): add_logger_name
+        # above (a stdlib-logging processor) reads logger.name, which a
+        # PrintLogger doesn't have — every structlog call anywhere in the
+        # app crashed with AttributeError once this ran (#149 uncovered it:
+        # nothing had exercised a real, unmocked structlog call before).
+        # LoggerFactory() is also what makes wrap_for_formatter meaningful at
+        # all — it hands off to the ProcessorFormatter + handler wired below,
+        # which PrintLoggerFactory bypasses entirely.
+        logger_factory=structlog.stdlib.LoggerFactory(),
     )
 
     formatter = structlog.stdlib.ProcessorFormatter(

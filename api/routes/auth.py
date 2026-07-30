@@ -6,16 +6,17 @@ Reasoning:
   rotation, no account dashboard beyond the one-time JWT display. Anything
   past that is a tracked follow-up (see module-level TODOs below), not
   built here.
-- Verification email delivery has no real transport: no SES, no SMTP,
-  anywhere in this codebase (confirmed by an exhaustive grep before writing
-  this). Real delivery also needs a DNS-verified sending domain, which
-  depends on P8 Task 7's pyvar.com DNS decision — deliberately deferred,
-  high-risk, gated on operator confirmation at every step. Building SES
-  sandbox-only sending now would only work for individually AWS-pre-verified
-  recipients, which is unusable for a public registration flow. See #149 for
-  the tracked follow-up once Task 7 lands. send_verification_email() is the
-  single seam to change then — everything around it (token issuance,
-  expiry, DB state, JWT minting) is real today.
+- Verification email delivery (#149): real SES send via get_ses_client(),
+  now that pyvar.com's DNS decision (P8 Task 7 / #158) is resolved — Aruba
+  stays, and pyvar-cdk/stacks/ses_stack.py verifies the pyvar.com domain
+  identity via DKIM. Note this identity starts in SES *sandbox* mode (the
+  AWS default for new accounts/regions): only individually pre-verified
+  recipient addresses can receive mail until an operator requests
+  production access via an AWS Support case — a console/account-level
+  action, not something this codebase or CDK can do. send_verification_email
+  falls back to the original log-only stub if the SES call itself fails
+  (sandbox rejection, no credentials in local dev, transient SES error) —
+  see its own docstring for why that's deliberately non-fatal.
 - Registering an already-registered-but-unverified email regenerates the
   token (handles a lost/expired first email) instead of erroring; an
   already-VERIFIED email is a no-op. Both return the identical response —
@@ -27,7 +28,9 @@ from __future__ import annotations
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
+import boto3
 import structlog
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
@@ -43,20 +46,62 @@ logger = structlog.get_logger()
 cfg = get_settings()
 
 
-def send_verification_email(email: str, token: str) -> None:
-    """Verification email transport — see module docstring for why this is a stub.
+def get_ses_client() -> Any:
+    """Build the boto3 SES client used to send verification email (#149).
 
-    Logs a dashboard.html link rather than sending real email (no SES/SMTP
-    transport exists yet, see #149). The portal is now served by this same
-    app (fix/portal-root-serving), at cfg.public_base_url, so dashboard.html
-    is a real reachable page rather than a URL that would 404.
+    A one-off inline builder, not a shared module like storage/redis_client.py
+    — this is the only caller, unlike the Redis URL fixup shared by
+    api/routes/caching.py and api/middleware/rate_limit.py.
     """
-    logger.info(
-        "verification_email_stubbed",
-        email=email,
-        token=token,
-        verify_url=f"{cfg.public_base_url}/dashboard.html?token={token}",
-    )
+    return boto3.client("ses", region_name=cfg.ses_region)
+
+
+def send_verification_email(email: str, token: str) -> None:
+    """Send the verification link via SES (#149); log-only fallback on failure.
+
+    Links to dashboard.html?token=... (portal/dashboard.html, served by this
+    same app at cfg.public_base_url — see fix/portal-root-serving), not the
+    raw GET /auth/verify API route: a human clicking an email link should
+    land on a page, not a bare JSON response. dashboard.html's own JS is what
+    calls GET /auth/verify.
+
+    Failure here is deliberately non-fatal: register() below calls this
+    AFTER the user row is already committed, so raising would turn a
+    successful registration into a confusing 500 for the caller without
+    undoing anything. Falling back to the same log line the original stub
+    always emitted keeps the token recoverable from CloudWatch — e.g. in
+    local dev with no real AWS credentials, or while the SES identity is
+    still in sandbox mode and the recipient isn't pre-verified.
+    """
+    verify_url = f"{cfg.public_base_url}/dashboard.html?token={token}"
+
+    try:
+        get_ses_client().send_email(
+            Source=cfg.ses_sender_email,
+            Destination={"ToAddresses": [email]},
+            Message={
+                "Subject": {"Data": "Confirm your pyvar.com account"},
+                "Body": {
+                    "Text": {
+                        "Data": (
+                            "Confirm your pyvar.com account by visiting the link below.\n\n"
+                            f"{verify_url}\n\n"
+                            f"This link expires in {cfg.verification_token_expiry_minutes} "
+                            "minutes."
+                        )
+                    }
+                },
+            },
+        )
+        logger.info("verification_email_sent", email=email)
+    except Exception:  # noqa: BLE001 — best-effort send, see docstring for why
+        logger.error(
+            "verification_email_send_failed",
+            email=email,
+            token=token,
+            verify_url=verify_url,
+            exc_info=True,
+        )
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_202_ACCEPTED)

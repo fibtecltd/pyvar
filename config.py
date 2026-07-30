@@ -29,11 +29,20 @@ class Settings(BaseSettings):
     # verification succeeds, not the one-time link itself.
     verification_token_expiry_minutes: int = 1440  # 24h
 
-    # Base URL this API is reachable at — used only to log a human-readable
-    # verification link (see api/routes/auth.py's send_verification_email
-    # stub; no real email transport exists yet, see #149). Dev CloudFront
-    # domain by default, matching scripts/test_cold_start.sh.
+    # Base URL this API is reachable at — used to build the verification
+    # link sent by api/routes/auth.py's send_verification_email (#149).
+    # Dev CloudFront domain by default, matching scripts/test_cold_start.sh.
     public_base_url: str = "https://d1mqqddh8gu2qi.cloudfront.net"
+
+    # ── Email (SES transport, #149) ─────────────────────────────────────────
+    # Sender identity for verification emails — must match the SES domain
+    # identity CDK verifies (pyvar-cdk/stacks/ses_stack.py verifies the
+    # pyvar.com domain itself via DKIM, not a subdomain). Safe to leave as
+    # the default in local dev / tests: send_verification_email() falls back
+    # to logging (its original stub behaviour) if the SES call itself fails,
+    # so no real AWS credentials or SES setup are required for that workflow.
+    ses_sender_email: str = "noreply@pyvar.com"
+    ses_region: str = "eu-west-1"
 
     # ── Redis (Celery broker + result backend + cache) ─────────────────────────
     redis_url: str = "redis://localhost:6379/0"

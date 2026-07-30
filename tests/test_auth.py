@@ -11,19 +11,23 @@ Reasoning:
   test_api.py mocks Celery's apply_async at. The DB row itself is a real
   storage.models.User instance (never persisted, just held in memory by the
   fake session) so field access in the route code is exercised for real.
-- send_verification_email is patched out: asserting it was called with the
-  right token is the useful signal, not writing to real structlog output.
+- send_verification_email is patched out in the register()/verify() tests
+  above: asserting it was called with the right token is the useful signal.
+  It gets its own dedicated tests below (#149) — real SES is still never
+  hit (get_ses_client is mocked), only send_verification_email's own
+  success/fail-open behavior is exercised.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
 
+from api.routes.auth import send_verification_email
 from config import get_settings
 from main import create_app
 from storage.models import User
@@ -210,3 +214,31 @@ async def test_verify_expired_token_returns_400(app):
 
     assert resp.status_code == 400
     assert user.email_verified is False  # never flipped
+
+
+# ── send_verification_email (#149) ───────────────────────────────────────────
+
+
+def test_send_verification_email_calls_ses_with_correct_args():
+    fake_client = MagicMock()
+    with patch("api.routes.auth.get_ses_client", return_value=fake_client):
+        send_verification_email("user@example.com", "tok-123")
+
+    fake_client.send_email.assert_called_once()
+    kwargs = fake_client.send_email.call_args.kwargs
+    assert kwargs["Source"] == cfg.ses_sender_email
+    assert kwargs["Destination"] == {"ToAddresses": ["user@example.com"]}
+    body_text = kwargs["Message"]["Body"]["Text"]["Data"]
+    assert "tok-123" in body_text
+    assert cfg.public_base_url in body_text
+
+
+def test_send_verification_email_falls_back_on_ses_failure():
+    """A real SES failure (sandbox rejection, no credentials, transient error)
+    must never raise into the caller — register() already committed the user
+    row by the time this is called (see api/routes/auth.py's docstring)."""
+    fake_client = MagicMock()
+    fake_client.send_email.side_effect = RuntimeError("simulated SES failure")
+
+    with patch("api.routes.auth.get_ses_client", return_value=fake_client):
+        send_verification_email("user@example.com", "tok-456")  # must not raise
