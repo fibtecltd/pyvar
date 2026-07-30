@@ -17,15 +17,15 @@
   --border3:rgba(255,255,255,0.15);
   --text:  #d4e4f0;
   --text2: #6888a0;
-  --dim:   #2a3a4a;
+  --dim:   #6888a0; /* WCAG AA fix: was #2a3a4a (~1.5-1.7:1, fails 4.5:1) -- merged into --text2's value, see PR description */
   --green: #00d97e;
   --green2:#00ff96;
   --green3:rgba(0,217,126,0.10);
   --green-line:rgba(0,217,126,0.18);
-  --blue:  #1a6fe8;
+  --blue:  #2d84ff; /* WCAG AA fix: was #1a6fe8 (~3.8-4.3:1, fails 4.5:1 at the badge's 10px/600 text size) */
   --blue2: rgba(26,111,232,0.10);
   --amber: #e8a020;
-  --red:   #e84040;
+  --red:   #ea4444; /* WCAG AA fix: was #e84040 (4.43:1 against --bg4, marginally under 4.5:1) */
   --sans:  'Space Grotesk', system-ui, sans-serif;
   --mono:  'JetBrains Mono', 'Fira Code', Consolas, monospace;
   --radius: 4px;
