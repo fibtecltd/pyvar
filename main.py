@@ -16,9 +16,11 @@ Reasoning:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api.middleware.rate_limit import enforce_compute_rate_limit, enforce_public_rate_limit
 from api.middleware.usage import usage_tracking_middleware
@@ -38,6 +40,8 @@ from config import get_settings
 from observability.setup import setup_observability
 
 cfg = get_settings()
+
+PORTAL_DIR = Path(__file__).resolve().parent / "portal"
 
 
 @asynccontextmanager
@@ -120,6 +124,14 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["system"], include_in_schema=False)
     async def health() -> dict:
         return {"status": "ok", "app": cfg.app_name, "env": cfg.app_env}
+
+    # ── Portal (static site) ─────────────────────────────────────────────────
+    # Mounted last and at "/": Starlette matches routes in registration order,
+    # so /health, /docs, /openapi.json, /redoc, and every /api/v1/* route above
+    # all get first crack at a request; this mount only ever sees paths none
+    # of those matched. html=True serves portal/index.html at "/" and portal's
+    # other .html files (domain-*.html, dashboard.html) at their own filename.
+    app.mount("/", StaticFiles(directory=PORTAL_DIR, html=True), name="portal")
 
     return app
 
