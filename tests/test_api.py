@@ -283,6 +283,43 @@ async def test_pro_tier_allows_larger_simulations(app, pro_token, valid_payload)
     assert resp.status_code == 202
 
 
+# ── Rate limiting (#146) ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_submit_var_returns_429_once_daily_quota_exhausted(app, free_token, valid_payload):
+    """Proves the real main.py/var.py wiring (route-level `dependencies=[...]`),
+    not just the isolated dependency function — see tests/test_rate_limit.py
+    for the rest of the tier/scope/fail-open coverage.
+
+    The rate limiter itself is already swapped for an isolated in-memory
+    instance by tests/conftest.py's autouse fixture (no real Redis, no
+    cross-test quota leakage) — this test only needs to lower the quota low
+    enough to exceed it in two requests.
+    """
+    from api.middleware import rate_limit as rate_limit_module
+
+    mock_task = MagicMock()
+    mock_task.id = "quota-task-uuid"
+
+    with (
+        patch.object(rate_limit_module.cfg, "rate_limit_free_daily", 1),
+        patch_sessionmaker(FakeAsyncSession()),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            first = await client.post(
+                "/api/v1/var/compute", json=valid_payload, headers=auth_headers(free_token)
+            )
+            second = await client.post(
+                "/api/v1/var/compute", json=valid_payload, headers=auth_headers(free_token)
+            )
+
+    assert first.status_code == 202
+    assert second.status_code == 429
+    assert "Retry-After" in second.headers
+
+
 # ── ElastiCache result caching ────────────────────────────────────────────────
 
 

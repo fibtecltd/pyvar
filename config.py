@@ -72,6 +72,17 @@ class Settings(BaseSettings):
     default_horizon_days: int = 1
     max_n_simulations: int = 1_000_000
 
+    # ── Rate limiting (#146) ────────────────────────────────────────────────────
+    # Account-wide daily quota across ALL /api/v1 compute endpoints (var + the 8
+    # domains), enforced by api/middleware/rate_limit.py. No verified traffic
+    # data or drafted spec exists for these numbers (see PR description) — kept
+    # as config so they can be retuned from real api_usage data post-launch
+    # without a code change. enterprise and internal (service/cron JWTs) tiers
+    # are unconditionally exempt — no setting needed for them.
+    rate_limit_unauth_per_hour: int = 5  # per-IP, /public/* only
+    rate_limit_free_daily: int = 10  # per-user, all /api/v1 compute endpoints
+    rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
+
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
     log_level: str = "INFO"

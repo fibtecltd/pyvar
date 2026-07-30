@@ -29,11 +29,18 @@ class TokenPayload:
 
     def __init__(self, sub: str, tier: str = "free"):
         self.user_id = sub
-        self.tier = tier  # free | pro | enterprise
+        # "internal" (#146): the scheduled demo-refresh Lambda's service JWT
+        # (pyvar-cdk/lambda/public_data_publisher/handler.py) — kept distinct
+        # from "enterprise" so its calls don't pollute real customer-tier
+        # usage analytics (api_usage.tier, var_jobs.tier), even though both
+        # are unlimited for simulation size and, per
+        # api/middleware/rate_limit.py, both exempt from the compute quota.
+        self.tier = tier  # free | pro | enterprise | internal
         self.max_simulations = {
             "free": 100_000,
             "pro": 500_000,
             "enterprise": 1_000_000,
+            "internal": 1_000_000,
         }.get(tier, 100_000)
 
 
