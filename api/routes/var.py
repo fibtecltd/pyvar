@@ -12,8 +12,17 @@ Reasoning:
 - The route enforces the user's simulation cap based on their JWT tier claim
   before dispatching — fail fast, before burning CPU.
 
-- slowapi rate limiting (10 requests/minute per user) prevents abuse and
-  controls Anthropic API cost exposure on the compute side.
+- Rate limiting (issue #146): POST /compute is covered by the SAME account-wide
+  daily quota as every other compute endpoint, not a VaR-specific per-minute
+  limit — enforced via api/middleware/rate_limit.py::enforce_compute_rate_limit,
+  attached to this one route's `dependencies=` below (NOT at router-inclusion
+  time in main.py, unlike the 8 domain routers) because this router also
+  contains GET /result/{task_id}, a cheap result poll that must never share
+  the same daily compute-dispatch quota. (This supersedes an earlier,
+  never-implemented "10 requests/minute per user" claim that lived in this
+  docstring — see #146's investigation for why a per-endpoint limit doesn't
+  give the intended per-account quota across the 386 compute endpoints this
+  app exposes.)
 
 - The result endpoint returns the full VaRResult including the loss_dist array.
   For very large n_simulations, consider returning a signed S3 URL instead
@@ -42,6 +51,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import update
 
 from api.middleware.auth import TokenPayload, get_current_user
+from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
@@ -66,6 +76,11 @@ router = APIRouter(prefix="/var", tags=["VaR"])
         "Returns a task_id immediately. Poll GET /var/result/{task_id} for results. "
         "Identical requests (same params) may return 200 with a cached result instead."
     ),
+    # Route-level, not router-level (main.py applies the same dependency to
+    # the whole router for the 8 domain routers, which are POST-only) —
+    # var_router also contains GET /result/{task_id}, a cheap result poll
+    # that must never be throttled by the same daily compute-dispatch quota.
+    dependencies=[Depends(enforce_compute_rate_limit)],
 )
 @cache_check(domain="var")
 async def submit_var(

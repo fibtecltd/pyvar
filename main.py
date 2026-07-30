@@ -17,9 +17,10 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.middleware.rate_limit import enforce_compute_rate_limit, enforce_public_rate_limit
 from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
@@ -87,7 +88,18 @@ def create_app() -> FastAPI:
 
     # ── Routes ──────────────────────────────────────────────────────────────
     app.include_router(auth_router, prefix=cfg.api_v1_prefix)
+
+    # Rate limiting (#146): var_router applies enforce_compute_rate_limit
+    # itself, at the POST /compute route only (api/routes/var.py) — var_router
+    # also contains GET /result/{task_id}, a cheap result poll that must never
+    # share the same daily compute-dispatch quota. The 8 domain routers below
+    # are POST-only (one endpoint per engine function, no polling pattern), so
+    # a single router-level dependency correctly covers all of them without
+    # decorating any of their 386 individual endpoint functions — see
+    # api/middleware/rate_limit.py's module docstring for why a per-endpoint
+    # decorator couldn't give the intended account-wide daily quota anyway.
     app.include_router(var_router, prefix=cfg.api_v1_prefix)
+    compute_rate_limit = [Depends(enforce_compute_rate_limit)]
     for domain_router in (
         market_risk_router,
         credit_risk_router,
@@ -98,10 +110,15 @@ def create_app() -> FastAPI:
         derivatives_router,
         alm_router,
     ):
-        app.include_router(domain_router, prefix=cfg.api_v1_prefix)
+        app.include_router(
+            domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit
+        )
 
     # No prefix — matches portal/pyvar.js's `${API_BASE}/public/...` fetches.
-    app.include_router(public_data_router)
+    # Unauthenticated, so a separate per-IP (not per-user) limit.
+    app.include_router(
+        public_data_router, dependencies=[Depends(enforce_public_rate_limit)]
+    )
 
     # ── Health check ────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"], include_in_schema=False)

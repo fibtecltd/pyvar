@@ -12,6 +12,8 @@ pydantic[email]>=2.6.0         # [email] extra -> EmailStr for schemas/auth.py
 pydantic-settings>=2.2.0
 python-jose[cryptography]>=3.3.0
 slowapi>=0.1.9
+limits>=3.9.0                  # slowapi's rate-limiting engine — imported directly by
+                                # api/middleware/rate_limit.py, not just a transitive dep
 orjson>=3.10.0
 python-multipart>=0.0.9
 

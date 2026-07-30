@@ -96,12 +96,22 @@ def _b64url(data: bytes) -> str:
 
 
 def _sign_service_jwt(secret: str) -> str:
-    """Hand-rolled HS256 JWT — see module docstring for why."""
+    """Hand-rolled HS256 JWT — see module docstring for why.
+
+    tier="internal" (not "free"): this Lambda calls POST /var/compute every
+    15 minutes (96x/day) to refresh demo-result.json. Under the tier-based
+    rate limiting added in #146, a "free" tier claim would exhaust the
+    free-tier daily quota in ~2.5 hours and silently stop the demo from
+    refreshing. api/middleware/auth.py::TokenPayload and
+    api/middleware/rate_limit.py both recognise "internal" as an unlimited,
+    unthrottled tier — kept distinct from "enterprise" so this scheduled
+    job's calls don't pollute real customer-tier usage analytics.
+    """
     header = _b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     expire = datetime.now(timezone.utc) + timedelta(minutes=10)
     claims = {
         "sub": "internal-demo-publisher",
-        "tier": "free",
+        "tier": "internal",
         "exp": int(expire.timestamp()),
     }
     payload = _b64url(json.dumps(claims).encode())
