@@ -24,9 +24,11 @@ Reasoning:
   give the intended per-account quota across the 386 compute endpoints this
   app exposes.)
 
-- The result endpoint returns the full VaRResult including the loss_dist array.
-  For very large n_simulations, consider returning a signed S3 URL instead
-  (see storage/s3.py) and only returning scalar metrics inline.
+- The result endpoint returns the full VaRResult including the loss_dist array
+  for jobs at or below cfg.s3_result_offload_threshold simulations. Above it
+  (#130), tasks/var_task.py writes the full result to S3 instead, loss_dist
+  here is empty, and presigned_url (storage/s3.py::hydrate_presigned_url,
+  generated fresh on every poll) is populated instead.
 
 - var_jobs audit write (issue #118): a `pending` VaRJob row is INSERTed here,
   synchronously, BEFORE the Celery task is dispatched — and if that insert
@@ -56,6 +58,7 @@ from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
 from storage.models import VaRJob
+from storage.s3 import hydrate_presigned_url
 from storage.session import get_sessionmaker
 from tasks.var_task import celery_app, compute_var_task
 
@@ -207,10 +210,16 @@ async def get_var_result(
 
     if state == "SUCCESS":
         raw = async_result.result
-        result = VaRResult(**raw)
         payload = (async_result.kwargs or {}).get("payload")
         if isinstance(payload, dict):
+            # Cache the canonical raw result (s3_key, no presigned_url) — the
+            # cache-hit path in api/routes/caching.py generates its own fresh
+            # presigned URL the same way this branch does below, rather than
+            # caching one that could outlive its expiry.
             await write_result_to_cache("var", payload, raw)
+        # #130: attaches a fresh presigned_url when raw carries an s3_key
+        # (large-simulation offload) — a no-op otherwise.
+        result = VaRResult(**hydrate_presigned_url(raw))
 
     elif state == "FAILURE":
         error = str(async_result.result)

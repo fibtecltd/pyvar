@@ -18,6 +18,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator
 
+from config import get_settings
+
+cfg = get_settings()
+
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
 
@@ -52,8 +56,13 @@ class VaRRequest(BaseModel):
     ] = 1
     n_simulations: Annotated[
         int,
-        Field(ge=1_000, le=1_000_000, default=100_000, description="Number of Monte Carlo paths"),
-    ] = 100_000
+        Field(
+            ge=1_000,
+            le=cfg.max_n_simulations,
+            default=cfg.default_n_simulations,
+            description="Number of Monte Carlo paths",
+        ),
+    ] = cfg.default_n_simulations
     seed: int | None = Field(default=42, description="Random seed for reproducibility")
 
     @field_validator("confidence_level")
@@ -84,7 +93,10 @@ class VaRRequest(BaseModel):
 class VaRResult(BaseModel):
     """
     Computed VaR result returned to the client.
-    loss_dist is the full sorted loss distribution as a list (orjson serialises this natively).
+    loss_dist is the full sorted loss distribution as a list (orjson serialises this natively) —
+    EXCEPT above cfg.s3_result_offload_threshold simulations (#130), where tasks/var_task.py
+    writes it to S3 instead and this is an empty list; presigned_url is populated instead
+    (freshly generated per request — see storage/s3.py::hydrate_presigned_url).
     """
 
     var_pct: float = Field(description="VaR as proportion of portfolio value")
@@ -97,6 +109,12 @@ class VaRResult(BaseModel):
     n_simulations: int
     confidence_level: float
     horizon_days: int
+    s3_key: str | None = Field(
+        default=None, description="S3 key for the full result, if offloaded (#130)"
+    )
+    presigned_url: str | None = Field(
+        default=None, description="Presigned URL for loss_dist, if offloaded (#130)"
+    )
 
 
 class JobResponse(BaseModel):
