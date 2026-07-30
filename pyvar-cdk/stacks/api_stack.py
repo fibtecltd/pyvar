@@ -407,6 +407,88 @@ class ApiStack(Stack):
             scale_out_cooldown=Duration.minutes(1),
         )
 
+        # ── Migration task (issue #119: automated DB migration on deploy) ─────
+        # A dedicated one-off Fargate task — no ALB, no service, no health
+        # check, it runs `scripts/db.py upgrade` to completion and stops.
+        # pipeline_stack.py's pre-deploy step launches it via `aws ecs
+        # run-task` BEFORE this stack's own API service update rolls out, so
+        # a failed migration blocks the deploy instead of shipping a
+        # schema-mismatched API.
+        #
+        # Reuses the SAME ECR image as the API task (command override only,
+        # no second image build) — scripts/, migrations/, alembic.ini, and
+        # every dependency the migration needs (alembic, psycopg2-binary)
+        # are already baked into it (see Dockerfile / requirements.txt).
+        #
+        # Dedicated task + execution roles (not the API's task_role /
+        # execution_role above) rather than reusing them: least-privilege —
+        # this task only ever needs to read the DB secret, nothing else the
+        # API task role grants (SQS, S3, CloudWatch) — and giving both
+        # roles their own explicit, deterministic role_name means
+        # pipeline_stack.py's IAM policy for the migration step (iam:PassRole)
+        # can reference a fixed ARN rather than needing another cross-stack
+        # CfnOutput.
+        migration_execution_role = iam.Role(
+            self,
+            "MigrationExecutionRole",
+            assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+            role_name=f"pyvar-{cfg.env_name}-migration-execution-role",
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/AmazonECSTaskExecutionRolePolicy"
+                )
+            ],
+        )
+        data.db_secret.grant_read(migration_execution_role)
+
+        migration_task_role = iam.Role(
+            self,
+            "MigrationTaskRole",
+            assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+            role_name=f"pyvar-{cfg.env_name}-migration-task-role",
+        )
+        data.db_secret.grant_read(migration_task_role)
+
+        migration_task_def = ecs.FargateTaskDefinition(
+            self,
+            "MigrationTaskDef",
+            family=f"pyvar-{cfg.env_name}-migrate",
+            cpu=256,
+            memory_limit_mib=512,
+            task_role=migration_task_role,
+            execution_role=migration_execution_role,
+        )
+        migration_task_def.add_container(
+            "migrate",
+            image=ecs.ContainerImage.from_ecr_repository(self.ecr_repo, tag=cfg.api_image_tag),
+            logging=ecs.LogDrivers.aws_logs(
+                stream_prefix="pyvar-migrate",
+                log_retention=cdk.aws_logs.RetentionDays.ONE_MONTH,
+            ),
+            environment={"APP_ENV": cfg.env_name},
+            secrets={
+                # Same five-field DB secret injection as the API task above —
+                # migrations/env.py's get_sync_url() assembles postgres_dsn
+                # from these via config.py, identically to the app.
+                "DB_HOST": ecs.Secret.from_secrets_manager(data.db_secret, "host"),
+                "DB_PORT": ecs.Secret.from_secrets_manager(data.db_secret, "port"),
+                "DB_NAME": ecs.Secret.from_secrets_manager(data.db_secret, "dbname"),
+                "DB_USER": ecs.Secret.from_secrets_manager(data.db_secret, "username"),
+                "DB_PASSWORD": ecs.Secret.from_secrets_manager(data.db_secret, "password"),
+            },
+            command=["python", "scripts/db.py", "upgrade"],
+        )
+
+        # The migration task runs in the same subnets/security group as the
+        # API task (sgs.api already has an Aurora ingress rule — see
+        # network_stack.py), so no new security-group wiring is needed here.
+        # pipeline_stack.py's migration step discovers those subnet/SG IDs
+        # itself at pipeline run time via tag-filtered EC2 API calls (a
+        # same-stage CfnOutput would create a dependency cycle against this
+        # stack's own deploy — see that module's _migration_step docstring),
+        # which is why sgs.api carries an explicit Name tag for it to filter
+        # on (network_stack.py).
+
         # ── Expose outputs ────────────────────────────────────────────────────
         self.alb = fargate_service.load_balancer
         self.alb_dns_name = fargate_service.load_balancer.load_balancer_dns_name

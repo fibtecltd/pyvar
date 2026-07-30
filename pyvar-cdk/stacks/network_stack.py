@@ -142,6 +142,14 @@ class NetworkStack(Stack):
             allow_all_outbound=True,  # needs SQS, Secrets Manager, ECR
         )
         sg_api.add_ingress_rule(sg_alb, ec2.Port.tcp(8000), "From ALB")
+        # Explicit Name tag (not the CDK-default construct-path one) so
+        # pipeline_stack.py's migration step (#119) can discover this SG by a
+        # stable, deterministic filter value via `aws ec2 describe-security-
+        # groups`, rather than needing a CfnOutput (which would create a
+        # same-stage pipeline dependency cycle — see that module). Also used
+        # by the migration task in api_stack.py, which reuses this SG since
+        # it already has the Aurora ingress rule below.
+        cdk.Tags.of(sg_api).add("Name", f"pyvar-{cfg.env_name}-sg-api")
 
         # EC2 Spot workers: no inbound (pull model via SQS)
         sg_worker = ec2.SecurityGroup(
