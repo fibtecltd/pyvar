@@ -129,11 +129,20 @@ class VaRJob(Base):
     task_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     user_id: Mapped[str] = mapped_column(String(128), nullable=False)
 
+    # Caller tier at submission time (denormalised for billing queries — see
+    # 0002_users_and_tier). Was already a column in the DB schema but missing
+    # from this ORM model until the var_jobs write path (#118) needed it.
+    tier: Mapped[str] = mapped_column(String(16), nullable=False, default="free")
+
     # Job lifecycle
     status: Mapped[str] = mapped_column(String(16), default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Wall-clock compute duration, set on completion (see 0002_users_and_tier;
+    # same missing-from-the-ORM-model gap as tier above).
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Request parameters (stored for audit / billing)
     portfolio_value: Mapped[float] = mapped_column(Float, nullable=False)

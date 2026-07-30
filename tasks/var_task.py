@@ -19,10 +19,16 @@ from __future__ import annotations
 
 import logging
 import os
+import time
+from datetime import datetime, timezone
+from typing import Any, cast
 
 from celery import Celery, Task
+from sqlalchemy import CursorResult, update
 
 from config import get_settings
+from storage.models import VaRJob
+from storage.session import get_sync_sessionmaker
 
 cfg = get_settings()
 logger = logging.getLogger(__name__)
@@ -69,6 +75,91 @@ def _emit_job_metric(metric_name: str, dimensions: list[dict[str, str]]) -> None
         logger.warning(
             "Failed to emit CloudWatch job metric",
             extra={"metric": metric_name},
+        )
+
+
+# ── var_jobs audit completion write (Path B, issue #118) ───────────────────────
+# The submission-side INSERT (api/routes/var.py) already created a `pending`
+# var_jobs row for this task_id before dispatch — see that module's docstring
+# for why that write is fail-loud. This is the other half: an UPDATE, by
+# task_id, to the row's terminal state. It is intentionally best-effort (unlike
+# the submission write): by the time this runs the original HTTP request has
+# already returned 202, so there is no caller left to fail loud to, and raising
+# here would only make the Celery task itself fail/retry over a pure
+# persistence problem. A failed update leaves the row parked at "pending"
+# rather than losing it, which is why the submission write existing is what
+# makes this safe to treat as best-effort. Logged loudly (structlog captures
+# this via the root logger config in observability/setup.py; Sentry is wired
+# into the worker too) so a stuck row is visible, not silent.
+#
+# Uses the SYNCHRONOUS sessionmaker (storage/session.py::get_sync_sessionmaker)
+# — this task runs in a plain sync Celery worker process, not an event loop.
+#
+# UPDATE-only, never a second INSERT on the normal path: task_id is unique and
+# Celery preserves self.request.id across self.retry() calls, so every retry
+# of one job targets the same row — no duplicate audit rows are possible by
+# construction. The INSERT fallback below only fires if the row is missing
+# (defensive; should not happen once the submission write path is live).
+
+
+def _write_terminal_audit(
+    task_id: str,
+    status: str,
+    *,
+    duration_ms: int,
+    result: dict[str, Any] | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Best-effort UPDATE of the var_jobs row for task_id to its terminal state.
+
+    Called exactly once per job — on success, or on failure once retries are
+    exhausted — never on a mid-retry attempt (a transient retry is not a
+    terminal outcome and must not flap the audit status).
+
+    Args:
+        task_id: Celery task id — the var_jobs dedup key.
+        status: Terminal status to record ("success" or "failure").
+        duration_ms: Wall-clock compute time (engine call only, not queue
+            wait) — timed by the caller so this stays a single UPDATE with no
+            need to read the row's created_at back first.
+        result: VaRResult dict (success only) — scalar fields are persisted,
+            loss_dist is not (see VaRJob's inline-scalars-only design).
+        error_message: Exception string (failure only).
+    """
+    values: dict[str, Any] = {
+        "status": status,
+        "completed_at": datetime.now(timezone.utc),
+        "duration_ms": duration_ms,
+        "error_message": error_message,
+    }
+    if result is not None:
+        values.update(
+            var_pct=result["var_pct"],
+            var_abs=result["var_abs"],
+            cvar_pct=result["cvar_pct"],
+            cvar_abs=result["cvar_abs"],
+        )
+
+    try:
+        with get_sync_sessionmaker()() as session:
+            updated = cast(
+                CursorResult,
+                session.execute(update(VaRJob).where(VaRJob.task_id == task_id).values(**values)),
+            )
+            if updated.rowcount == 0:
+                # No submission row found (should not happen on the normal
+                # path) — insert one rather than silently losing the record.
+                # user_id is unknown here (the task payload carries compute
+                # inputs only, not the caller identity — see the module note
+                # on why tier isn't propagated either); "unknown" flags this
+                # as the defensive fallback path, not a real audit gap.
+                session.add(VaRJob(task_id=task_id, user_id="unknown", **values))
+            session.commit()
+    except Exception:  # noqa: BLE001 — audit write must never crash the worker
+        logger.error(
+            "var_jobs completion audit write failed — row left at prior status",
+            extra={"task_id": task_id, "status": status},
+            exc_info=True,
         )
 
 
@@ -132,6 +223,8 @@ def compute_var_task(self: Task, payload: dict) -> dict:
     # See the PR notes for why Domain/Tier are omitted.
     job_dimensions = [{"Name": "TaskName", "Value": self.name}]
 
+    started = time.perf_counter()
+
     try:
         returns = np.array(payload["returns"], dtype=np.float64)
 
@@ -154,6 +247,14 @@ def compute_var_task(self: Task, payload: dict) -> dict:
         )
         # Completed successfully — count the job.
         _emit_job_metric("JobCount", job_dimensions)
+        # var_jobs is the compliance record of the job's terminal outcome —
+        # write it once, here, on the one path that actually succeeds.
+        _write_terminal_audit(
+            task_id,
+            "success",
+            duration_ms=int((time.perf_counter() - started) * 1000),
+            result=result,
+        )
         return result
 
     except Exception as exc:
@@ -164,4 +265,17 @@ def compute_var_task(self: Task, payload: dict) -> dict:
         # simple deliberately; terminal-only counting is a possible refinement.
         _emit_job_metric("JobCount", job_dimensions)
         _emit_job_metric("JobErrors", job_dimensions)
-        raise self.retry(exc=exc) if self.request.retries < self.max_retries else exc
+
+        retries_exhausted = self.request.retries >= self.max_retries
+        if retries_exhausted:
+            # Terminal failure — unlike the CloudWatch counters above, the
+            # audit record must reflect the job's final state exactly once,
+            # not flap on every transient retry attempt.
+            _write_terminal_audit(
+                task_id,
+                "failure",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                error_message=str(exc),
+            )
+            raise exc
+        raise self.retry(exc=exc)

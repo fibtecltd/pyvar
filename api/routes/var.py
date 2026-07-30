@@ -18,19 +18,35 @@ Reasoning:
 - The result endpoint returns the full VaRResult including the loss_dist array.
   For very large n_simulations, consider returning a signed S3 URL instead
   (see storage/s3.py) and only returning scalar metrics inline.
+
+- var_jobs audit write (issue #118): a `pending` VaRJob row is INSERTed here,
+  synchronously, BEFORE the Celery task is dispatched — and if that insert
+  fails, the request fails (503) without dispatching. This is deliberately
+  NOT the api_usage fire-and-forget pattern: var_jobs is the regulatory audit
+  log for every VaR computation (CLAUDE.md §3.3 — rows are never deleted,
+  retained indefinitely for compliance), so "the compute ran but nothing was
+  recorded" is the one outcome this write path exists to prevent. Once the
+  row exists, the task_id is reused for apply_async so the row this endpoint
+  created is the same row tasks/var_task.py updates on completion — task_id
+  is the dedup key end to end, never a second INSERT.
 """
 
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import datetime, timezone
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import update
 
 from api.middleware.auth import TokenPayload, get_current_user
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
+from storage.models import VaRJob
+from storage.session import get_sessionmaker
 from tasks.var_task import celery_app, compute_var_task
 
 logger = logging.getLogger(__name__)
@@ -69,11 +85,69 @@ async def submit_var(
             ),
         )
 
+    # Generated here (not left to Celery) so the same id ties together the audit
+    # row below and the dispatched task — task_id is the var_jobs dedup key.
+    task_id = str(uuid.uuid4())
+
+    try:
+        async with get_sessionmaker()() as session:
+            session.add(
+                VaRJob(
+                    task_id=task_id,
+                    user_id=user.user_id,
+                    tier=user.tier,
+                    status="pending",
+                    portfolio_value=body.portfolio_value,
+                    n_simulations=body.n_simulations,
+                    confidence_level=body.confidence_level,
+                    horizon_days=body.horizon_days,
+                )
+            )
+            await session.commit()
+    except Exception as exc:  # noqa: BLE001 — surfaced as 503 below, not swallowed
+        logger.error(
+            "var_jobs audit insert failed — job NOT dispatched",
+            extra={"task_id": task_id, "user_id": user.user_id},
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to record the audit log entry for this request. Please retry.",
+        ) from exc
+
     # Dispatch to Celery — payload must be JSON-serialisable (list, not np.ndarray)
-    task = compute_var_task.apply_async(
-        kwargs={"payload": body.model_dump()},
-        task_id=None,  # auto-generate UUID
-    )
+    try:
+        task = compute_var_task.apply_async(
+            kwargs={"payload": body.model_dump()},
+            task_id=task_id,
+        )
+    except Exception as exc:  # noqa: BLE001 — the audit row already exists; compensate it
+        logger.error(
+            "Celery dispatch failed after var_jobs row was written",
+            extra={"task_id": task_id, "user_id": user.user_id},
+            exc_info=True,
+        )
+        try:
+            async with get_sessionmaker()() as session:
+                await session.execute(
+                    update(VaRJob)
+                    .where(VaRJob.task_id == task_id)
+                    .values(
+                        status="failure",
+                        error_message="dispatch failed",
+                        completed_at=datetime.now(timezone.utc),
+                    )
+                )
+                await session.commit()
+        except Exception:  # noqa: BLE001 — best-effort compensation, do not mask the 503
+            logger.warning(
+                "Failed to mark var_jobs row as failed after dispatch error",
+                extra={"task_id": task_id},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to queue the computation. Please retry.",
+        ) from exc
 
     logger.info(
         "VaR job queued",

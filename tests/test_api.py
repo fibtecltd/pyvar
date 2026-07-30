@@ -11,6 +11,11 @@ Reasoning:
   middleware is exercised without a real identity provider.
 - Tests cover: happy path, schema validation errors, tier enforcement,
   result polling with SUCCESS and FAILURE states.
+- The var_jobs audit write (issue #118) is the other external dependency
+  POST /var/compute now has — same never-hit-a-real-backing-service rule as
+  Celery, mocked at api.routes.var.get_sessionmaker with a FakeAsyncSession,
+  the same boundary/pattern tests/test_auth.py already established for
+  api/routes/auth.py's DB writes.
 """
 
 from __future__ import annotations
@@ -23,6 +28,45 @@ from httpx import ASGITransport, AsyncClient
 from api.middleware.auth import create_access_token
 from ingestion.fixtures import generate_gbm_returns
 from main import create_app
+
+# ── Fakes ──────────────────────────────────────────────────────────────────────
+
+
+class FakeAsyncSession:
+    """Enough of AsyncSession's interface for api/routes/var.py's audit write.
+
+    fail_on_commit lets a test simulate a DB outage on the submission INSERT
+    (or the compensating dispatch-failure UPDATE) without a real Postgres.
+    """
+
+    def __init__(self, fail_on_commit: bool = False):
+        self.fail_on_commit = fail_on_commit
+        self.added: list = []
+        self.executed: list = []
+        self.committed = False
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    def add(self, obj):
+        self.added.append(obj)
+
+    async def execute(self, stmt):
+        self.executed.append(stmt)
+        return MagicMock()
+
+    async def commit(self):
+        if self.fail_on_commit:
+            raise RuntimeError("simulated DB outage")
+        self.committed = True
+
+
+def patch_sessionmaker(fake_session: FakeAsyncSession):
+    return patch("api.routes.var.get_sessionmaker", return_value=lambda: fake_session)
+
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -94,8 +138,12 @@ async def test_health(app):
 async def test_submit_var_returns_202(app, free_token, valid_payload):
     mock_task = MagicMock()
     mock_task.id = "test-task-uuid-1234"
+    fake_session = FakeAsyncSession()
 
-    with patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task):
+    with (
+        patch_sessionmaker(fake_session),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task) as mock_apply,
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
                 "/api/v1/var/compute",
@@ -107,6 +155,65 @@ async def test_submit_var_returns_202(app, free_token, valid_payload):
     body = resp.json()
     assert body["task_id"] == "test-task-uuid-1234"
     assert body["status"] == "pending"
+
+    # The var_jobs audit row was written before dispatch, using the same
+    # task_id that was then passed to apply_async — not a fresh Celery-side id.
+    assert len(fake_session.added) == 1
+    audit_row = fake_session.added[0]
+    assert audit_row.status == "pending"
+    assert audit_row.user_id == "test-user"
+    assert audit_row.tier == "free"
+    assert fake_session.committed is True
+    assert mock_apply.call_args.kwargs["task_id"] == audit_row.task_id
+    assert mock_task.id == "test-task-uuid-1234"
+
+
+@pytest.mark.asyncio
+async def test_submit_var_audit_insert_failure_returns_503(app, free_token, valid_payload):
+    """If the var_jobs INSERT fails, the request fails loud and Celery is never touched."""
+    fake_session = FakeAsyncSession(fail_on_commit=True)
+
+    with (
+        patch_sessionmaker(fake_session),
+        patch("api.routes.var.compute_var_task.apply_async") as mock_apply,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute",
+                json=valid_payload,
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 503
+    mock_apply.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_submit_var_dispatch_failure_compensates_and_returns_503(
+    app, free_token, valid_payload
+):
+    """If apply_async raises after the audit row was written, the row is
+    compensated (marked failure) rather than left stuck at pending."""
+    fake_session = FakeAsyncSession()
+
+    with (
+        patch_sessionmaker(fake_session),
+        patch(
+            "api.routes.var.compute_var_task.apply_async",
+            side_effect=RuntimeError("broker unavailable"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute",
+                json=valid_payload,
+                headers=auth_headers(free_token),
+            )
+
+    assert resp.status_code == 503
+    # One INSERT (submission) plus one compensating UPDATE.
+    assert len(fake_session.added) == 1
+    assert len(fake_session.executed) == 1
 
 
 @pytest.mark.asyncio
@@ -163,7 +270,10 @@ async def test_pro_tier_allows_larger_simulations(app, pro_token, valid_payload)
     mock_task = MagicMock()
     mock_task.id = "pro-task-uuid-5678"
 
-    with patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task):
+    with (
+        patch_sessionmaker(FakeAsyncSession()),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
                 "/api/v1/var/compute",
@@ -205,6 +315,7 @@ async def test_submit_var_cache_miss_dispatches_celery(app, free_token, valid_pa
 
     with (
         patch("api.routes.caching._cache_get", return_value=None),
+        patch_sessionmaker(FakeAsyncSession()),
         patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
