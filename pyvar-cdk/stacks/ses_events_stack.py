@@ -23,11 +23,18 @@ Reasoning:
 - The Lambda never touches Aurora/the VPC directly — it calls the API over
   the public CloudFront domain instead, the only established pattern for a
   Lambda in this codebase (lambda/public_data_publisher/handler.py).
-- SES's Configuration Set event publisher calls sns:Publish as the
-  ses.amazonaws.com service principal — a cross-service call that needs an
-  explicit SNS topic resource policy grant, exactly like
-  alerts_stack.py's own AWS Budgets grant ("Unlike CloudWatch alarms,
-  Budgets needs an explicit SNS resource-policy grant to publish").
+- No manual SNS topic policy for SES here — UNLIKE alerts_stack.py's AWS
+  Budgets grant. ConfigurationSet.add_event_destination(...,
+  EventDestination.sns_topic(topic), ...) already grants ses.amazonaws.com
+  sns:Publish on this topic itself (confirmed by synthesizing with no manual
+  grant present: the resulting AWS::SNS::TopicPolicy, scoped by SourceArn to
+  this exact configuration set, appears on its own). A hand-added
+  sns.TopicPolicy construct alongside it doesn't compose with that — SNS
+  topics accept exactly one resource policy, and two separate
+  AWS::SNS::TopicPolicy CloudFormation resources targeting the same topic
+  race to overwrite each other's Policy attribute on deploy, silently
+  discarding whichever applied first. Budgets has no equivalent built-in
+  grant (hence the manual policy there); this construct does.
 """
 
 from __future__ import annotations
@@ -64,24 +71,10 @@ class SesEventsStack(Stack):
             topic_name=f"pyvar-{cfg.env_name}-ses-events",
             display_name=f"pyvar {cfg.env_name} SES bounce/complaint events",
         )
-        topic_policy = sns.TopicPolicy(self, "SesEventsTopicPolicy", topics=[self.topic])
-        topic_policy.document.add_statements(
-            iam.PolicyStatement(
-                sid="AllowAccountOwnerPublish",
-                effect=iam.Effect.ALLOW,
-                principals=[iam.AccountRootPrincipal()],
-                actions=["sns:Publish"],
-                resources=[self.topic.topic_arn],
-            ),
-            iam.PolicyStatement(
-                sid="AllowSesPublish",
-                effect=iam.Effect.ALLOW,
-                principals=[iam.ServicePrincipal("ses.amazonaws.com")],
-                actions=["sns:Publish"],
-                resources=[self.topic.topic_arn],
-                conditions={"StringEquals": {"aws:SourceAccount": self.account}},
-            ),
-        )
+        # No manual TopicPolicy here — see module docstring. The
+        # ConfigurationSet's SNS event destination below grants
+        # ses.amazonaws.com sns:Publish on this topic itself, precisely
+        # scoped to this configuration set.
 
         # ── SES configuration set -> this topic, Bounce+Complaint only ─────────
         self.configuration_set = ses.ConfigurationSet(
