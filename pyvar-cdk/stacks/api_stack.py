@@ -66,6 +66,7 @@ class ApiStack(Stack):
         var_queue: sqs.Queue,
         data: DataStack,
         ses_identity: ses.EmailIdentity,
+        configuration_set: ses.IConfigurationSet,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -124,6 +125,24 @@ class ApiStack(Stack):
         # SendEmail/SendRawEmail scoped to this one verified identity (#149) —
         # api/routes/auth.py::send_verification_email is the only caller.
         ses_identity.grant_send_email(task_role)
+        # AWS additionally authorizes SendEmail against the CONFIGURATION SET
+        # resource itself whenever the identity has one attached as its
+        # default (see ses_stack.py) — granting only the identity ARN above
+        # is not sufficient once that's set. Discovered live: SendEmail 403'd
+        # with "not authorized to perform ses:SendEmail on resource
+        # arn:...:configuration-set/..." even though the identity grant was
+        # in place. ConfigurationSet has no .arn property (see api_stack.py
+        # git history) — built manually, same idiom as the SQS ListQueues
+        # ARN below.
+        task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["ses:SendEmail", "ses:SendRawEmail"],
+                resources=[
+                    f"arn:aws:ses:{self.region}:{self.account}:configuration-set/"
+                    f"{configuration_set.configuration_set_name}"
+                ],
+            )
+        )
         task_role.add_to_policy(
             iam.PolicyStatement(
                 actions=["cloudwatch:PutMetricData"],

@@ -53,7 +53,15 @@ from typing import Any
 import boto3
 
 ENV_NAME = os.environ["ENV_NAME"]
-JWT_SECRET_ARN = os.environ["JWT_SECRET_ARN"]
+# The secret's NAME, not its ARN: ses_events_stack.py imports the secret by
+# deterministic name (Secret.from_secret_name_v2, to avoid a CDK dependency
+# cycle — see that stack's docstring), and an imported-by-name secret's
+# .secret_arn is a synth-time placeholder MISSING the random 6-char suffix
+# Secrets Manager appends to every real secret ARN. Passing that placeholder
+# as SecretId here would 403 (it doesn't match any real secret). The name
+# has no such suffix problem — Secrets Manager resolves it to the real ARN
+# server-side, which does match the IAM grant's `-??????` wildcard resource.
+JWT_SECRET_ID = os.environ["JWT_SECRET_ID"]
 
 # See module docstring — same dev CloudFront domain hardcoded in
 # portal/pyvar.js, config.py, and lambda/public_data_publisher/handler.py.
@@ -88,8 +96,8 @@ def _sign_service_jwt(secret: str) -> str:
     return f"{header}.{payload}.{_b64url(signature)}"
 
 
-def _get_secret(secret_arn: str) -> str:
-    return secretsmanager.get_secret_value(SecretId=secret_arn)["SecretString"]
+def _get_secret(secret_id: str) -> str:
+    return secretsmanager.get_secret_value(SecretId=secret_id)["SecretString"]
 
 
 def _api_request(method: str, path: str, token: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -132,7 +140,7 @@ def _recipients_for(ses_event: dict[str, Any], reason: str) -> list[str]:
 
 
 def handler(event, context):  # noqa: ANN001, ANN201 — Lambda entrypoint signature is fixed
-    jwt_secret = _get_secret(JWT_SECRET_ARN)
+    jwt_secret = _get_secret(JWT_SECRET_ID)
     suppressed_count = 0
 
     for record in event.get("Records", []):
