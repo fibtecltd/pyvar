@@ -281,4 +281,6 @@ class EdgeStack(Stack):
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "CloudFrontDomain", value=self.distribution.distribution_domain_name)
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
-        cdk.CfnOutput(self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn)
+        cdk.CfnOutput(
+            self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn
+        )
