@@ -63,9 +63,14 @@ class Settings(BaseSettings):
     db_password: str | None = None
 
     # ── S3 / MinIO (large Parquet result storage) ─────────────────────────────
-    s3_endpoint_url: str = "http://localhost:9000"  # set to None for real AWS
-    s3_access_key: str = "minioadmin"
-    s3_secret_key: str = "minioadmin"
+    # Leave all three unset for real AWS: boto3's default credential chain then
+    # applies (ECS task role in every deployed environment, AWS_ACCESS_KEY_ID/
+    # AWS_SECRET_ACCESS_KEY env vars for local dev — see .env.example). Set all
+    # three only to point at a local MinIO container instead, which has no IAM
+    # role to assume and needs explicit (dummy) credentials.
+    s3_endpoint_url: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
     s3_bucket: str = "pyvar-results"
     s3_region: str = "eu-west-1"
 

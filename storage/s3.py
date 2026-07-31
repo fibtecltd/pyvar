@@ -32,14 +32,18 @@ logger = logging.getLogger(__name__)
 
 
 def get_s3_client() -> Any:
-    """Build boto3 S3 client. Points to MinIO in dev, real AWS in production."""
-    kwargs = {
-        "region_name": cfg.s3_region,
-        "aws_access_key_id": cfg.s3_access_key,
-        "aws_secret_access_key": cfg.s3_secret_key,
-    }
+    """Build boto3 S3 client. Points to MinIO if configured, real AWS otherwise.
+
+    Real AWS relies on boto3's default credential chain (ECS task role in every
+    deployed environment, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars for
+    local dev) -- explicit credentials are only passed for MinIO, which has no
+    IAM role to assume.
+    """
+    kwargs: dict[str, Any] = {"region_name": cfg.s3_region}
     if cfg.s3_endpoint_url:  # MinIO or other S3-compatible
         kwargs["endpoint_url"] = cfg.s3_endpoint_url
+        kwargs["aws_access_key_id"] = cfg.s3_access_key
+        kwargs["aws_secret_access_key"] = cfg.s3_secret_key
     return boto3.client("s3", **kwargs)
 
 
