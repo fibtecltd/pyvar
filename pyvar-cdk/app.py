@@ -130,6 +130,7 @@ api = ApiStack(
     var_queue=queue.var_queue,
     data=data,
     ses_identity=ses.email_identity,
+    configuration_set=ses_events.configuration_set,
     env=env_primary,
     description="pyvar: ECS Fargate FastAPI + ALB + auto-scaling",
 )
@@ -193,6 +194,7 @@ compute.add_dependency(queue)
 api.add_dependency(data)
 api.add_dependency(queue)
 api.add_dependency(ses)
+api.add_dependency(ses_events)  # references ses_events.configuration_set for SendEmail grant
 edge.add_dependency(api)
 public_data.add_dependency(api)  # references api.jwt_secret
 alb_waf.add_dependency(api)
