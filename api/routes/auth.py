@@ -119,6 +119,19 @@ async def register(body: RegisterRequest) -> RegisterResponse:
             # Already active — never rotate a live account's token, never re-send.
             return RegisterResponse()
 
+        if existing is not None and existing.email_suppressed:
+            # Permanent bounce or complaint on record (api/routes/internal.py) —
+            # SES's own account-level suppression list would already refuse this
+            # send, but skip before touching the token fields at all rather than
+            # relying on that silently. Same response shape as every other
+            # branch: never reveal suppression state to the caller.
+            logger.warning(
+                "registration_skipped_suppressed_email",
+                email=str(body.email),
+                reason=existing.suppression_reason,
+            )
+            return RegisterResponse()
+
         if existing is not None:
             existing.verification_token = token
             existing.verification_sent_at = now

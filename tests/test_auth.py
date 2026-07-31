@@ -144,6 +144,30 @@ async def test_register_already_verified_is_noop(app):
 
 
 @pytest.mark.asyncio
+async def test_register_suppressed_email_does_not_resend(app):
+    existing = User(
+        external_id="ext-3",
+        email="bounced@example.com",
+        email_verified=False,
+        email_suppressed=True,
+        suppression_reason="bounce_permanent",
+        verification_token="stale-token",
+    )
+    session = FakeAsyncSession(lookup_result=existing)
+
+    with patch_sessionmaker(session), patch("api.routes.auth.send_verification_email") as mock_send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/auth/register", json={"email": "bounced@example.com"}
+            )
+
+    assert resp.status_code == 202
+    mock_send.assert_not_called()
+    assert existing.verification_token == "stale-token"  # untouched, no regeneration
+    assert session.committed is False  # no DB write attempted
+
+
+@pytest.mark.asyncio
 async def test_register_rejects_malformed_email(app):
     session = FakeAsyncSession(lookup_result=None)
     with patch_sessionmaker(session):

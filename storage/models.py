@@ -109,6 +109,16 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Bounce/complaint suppression (0005_user_email_suppression, SES production-
+    # access review follow-up). Written only by api/routes/internal.py's
+    # POST /internal/suppress-email, called by
+    # pyvar-cdk/lambda/ses_suppression_handler/handler.py — never set directly
+    # by application code elsewhere. Checked in api/routes/auth.py::register()
+    # so a re-registration attempt doesn't keep resending to a known-bad address.
+    email_suppressed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    suppression_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     def __repr__(self) -> str:
         return f"<User email={self.email} tier={self.tier} verified={self.email_verified}>"
 
