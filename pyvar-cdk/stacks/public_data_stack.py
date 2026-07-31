@@ -36,10 +36,16 @@ Reasoning:
   stacks are eu-west-1, there is no cross-region reason to bypass CloudFront,
   and going through the public URL needs nothing beyond the JWT: no
   origin-verify header, no ALB DNS, no extra secret grant.
-- reserved_concurrent_executions=1 prevents overlapping invocations if a
-  demo-result refresh (which polls for up to 4.5 minutes to absorb a cold
-  Spot worker scale-up) is still running when the next scheduled trigger
-  fires.
+- No reserved_concurrent_executions: this account's total Lambda concurrency
+  quota is exactly 10 (AWS requires >=10 to remain UNRESERVED after any
+  per-function reservation), so any positive reservation is impossible here
+  regardless of value -- confirmed via `aws lambda get-account-settings`,
+  not something fixable in code (needs an AWS support quota increase).
+  The overlap risk this would have guarded against is low in practice: the
+  function's own worst case is a ~4.5-minute demo-result refresh (absorbing
+  a cold Spot worker scale-up) against a 15-minute schedule interval, so two
+  invocations overlapping would require a single run to run 3x longer than
+  its observed worst case.
 """
 
 from __future__ import annotations
@@ -127,7 +133,6 @@ class PublicDataStack(Stack):
             role=fn_role,
             timeout=Duration.minutes(5),
             memory_size=256,
-            reserved_concurrent_executions=1,
             log_group=log_group,
             environment={
                 "ENV_NAME": cfg.env_name,
