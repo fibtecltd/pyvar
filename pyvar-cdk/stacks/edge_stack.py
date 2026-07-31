@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import aws_cdk as cdk
 from aws_cdk import Stack
+from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_cloudfront as cf
 from aws_cdk import aws_cloudfront_origins as origins
 from aws_cdk import aws_route53 as route53
@@ -168,10 +169,48 @@ class EdgeStack(Stack):
             ),
         )
 
+        # ── ACM Certificate (us-east-1, CloudFront alternate domain names) ────
+        # DNS-validated TLS certificate for pyvar.com + www.pyvar.com as
+        # CloudFront aliases. pyvar.com DNS stays hosted at Aruba (P8 Task 7
+        # decision — DNSSEC was never actually activated there, despite being
+        # carried forward in earlier lead prompts as if it had been; Route53
+        # migration was assessed and explicitly declined) — hosted_zone_id
+        # stays empty and the Route53 block below stays unused. On first
+        # deploy CloudFormation blocks here until the CNAME record(s) are
+        # added manually to the pyvar.com zone at Aruba. After "cdk deploy"
+        # starts, retrieve the required records with:
+        #
+        #   aws acm describe-certificate \
+        #     --certificate-arn <CfnOutput: CloudFrontCertificateArn> \
+        #     --region us-east-1 \
+        #     --query "Certificate.DomainValidationOptions[*].{Name:ResourceRecord.Name,Value:ResourceRecord.Value}"
+        #
+        # These are subdomain-scoped validation CNAMEs (_<hash>.pyvar.com) —
+        # they do not conflict with the existing apex A/MX records. Mirrors
+        # the AlbCertificate pattern already proven in api_stack.py (eu-west-1,
+        # P6) — same manual-CNAME-at-Aruba workflow.
+        #
+        # Note: making the bare apex (pyvar.com, no subdomain) itself resolve
+        # to CloudFront is a separate concern from this certificate. A plain
+        # CNAME cannot coexist with the apex's existing A/MX/NS records per
+        # DNS spec — Aruba needs an ALIAS/ANAME-equivalent feature for that
+        # step, or an apex-forwarding mechanism. www.pyvar.com has no such
+        # constraint (already a CNAME today). Confirm Aruba's apex-aliasing
+        # support before adding the apex-facing record.
+        cloudfront_certificate = acm.Certificate(
+            self,
+            "CloudFrontCertificate",
+            domain_name=cfg.domain_name,
+            subject_alternative_names=[f"www.{cfg.domain_name}"],
+            validation=acm.CertificateValidation.from_dns(),
+        )
+
         self.distribution = cf.Distribution(
             self,
             "Distribution",
             comment=f"pyvar {cfg.env_name} CDN",
+            domain_names=[cfg.domain_name, f"www.{cfg.domain_name}"],
+            certificate=cloudfront_certificate,
             web_acl_id=web_acl.attr_arn,
             http_version=cf.HttpVersion.HTTP2_AND_3,
             minimum_protocol_version=cf.SecurityPolicyProtocol.TLS_V1_2_2021,
@@ -242,3 +281,6 @@ class EdgeStack(Stack):
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(self, "CloudFrontDomain", value=self.distribution.distribution_domain_name)
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
+        cdk.CfnOutput(
+            self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn
+        )
