@@ -131,7 +131,10 @@ class SesEventsStack(Stack):
             log_group=log_group,
             environment={
                 "ENV_NAME": cfg.env_name,
-                "JWT_SECRET_ARN": jwt_secret.secret_arn,
+                # secret_name, NOT secret_arn -- see handler.py's
+                # JWT_SECRET_ID comment for why the ARN from a
+                # name-based import is unusable at runtime here.
+                "JWT_SECRET_ID": jwt_secret.secret_name,
             },
         )
         self.topic.add_subscription(subscriptions.LambdaSubscription(self.function))
