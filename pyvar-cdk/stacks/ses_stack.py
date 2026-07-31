@@ -38,7 +38,15 @@ from config import PyvarConfig
 
 class SesStack(Stack):
 
-    def __init__(self, scope: Construct, id: str, *, cfg: PyvarConfig, **kwargs):
+    def __init__(
+        self,
+        scope: Construct,
+        id: str,
+        *,
+        cfg: PyvarConfig,
+        configuration_set: ses.IConfigurationSet | None = None,
+        **kwargs,
+    ):
         super().__init__(scope, id, **kwargs)
 
         # Easy DKIM, 2048-bit, dkim_signing=True (all defaults) — no
@@ -46,10 +54,16 @@ class SesStack(Stack):
         # SES's own amazonses.com MAIL FROM rather than provisioning a
         # dedicated MAIL FROM subdomain + its own MX record for an MVP
         # transactional flow.
+        #
+        # configuration_set (ses_events_stack.py) is set as this identity's
+        # DEFAULT — every send from this identity (api/routes/auth.py's
+        # existing send_email call, unmodified) automatically gets
+        # bounce/complaint event tracking with no application code change.
         self.email_identity = ses.EmailIdentity(
             self,
             "EmailIdentity",
             identity=ses.Identity.domain(cfg.domain_name),
+            configuration_set=configuration_set,
         )
 
         # api_stack.py grants ses:SendEmail/SendRawEmail against this ARN —

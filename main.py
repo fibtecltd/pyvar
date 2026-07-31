@@ -29,6 +29,7 @@ from api.routes.alm import router as alm_router
 from api.routes.auth import router as auth_router
 from api.routes.credit_risk import router as credit_risk_router
 from api.routes.derivatives import router as derivatives_router
+from api.routes.internal import router as internal_router
 from api.routes.liquidity import router as liquidity_router
 from api.routes.market_risk import router as market_risk_router
 from api.routes.operational import router as operational_router
@@ -92,6 +93,12 @@ def create_app() -> FastAPI:
 
     # ── Routes ──────────────────────────────────────────────────────────────
     app.include_router(auth_router, prefix=cfg.api_v1_prefix)
+
+    # Service-only ("internal" tier) endpoints — never called by a human/
+    # browser. No enforce_compute_rate_limit dependency: not a compute
+    # endpoint, and "internal" tier is already unconditionally exempt from
+    # rate limiting regardless (api/middleware/rate_limit.py::_EXEMPT_TIERS).
+    app.include_router(internal_router, prefix=cfg.api_v1_prefix)
 
     # Rate limiting (#146): var_router applies enforce_compute_rate_limit
     # itself, at the POST /compute route only (api/routes/var.py) — var_router

@@ -354,6 +354,7 @@ class PyvarDeployStage(cdk.Stage):
         from stacks.network_stack import NetworkStack
         from stacks.public_data_stack import PublicDataStack
         from stacks.queue_stack import QueueStack
+        from stacks.ses_events_stack import SesEventsStack
         from stacks.ses_stack import SesStack
 
         prefix = f"pyvar-{cfg.env_name}"
@@ -376,7 +377,15 @@ class PyvarDeployStage(cdk.Stage):
             data=data,
             env=env_primary,
         )
-        ses = SesStack(self, f"{prefix}-ses", cfg=cfg, env=env_primary)
+        ses_events = SesEventsStack(self, f"{prefix}-ses-events", cfg=cfg, env=env_primary)
+        ses = SesStack(
+            self,
+            f"{prefix}-ses",
+            cfg=cfg,
+            configuration_set=ses_events.configuration_set,
+            env=env_primary,
+        )
+        ses.add_dependency(ses_events)
         api = ApiStack(
             self,
             f"{prefix}-api",

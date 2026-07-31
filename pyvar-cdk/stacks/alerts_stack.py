@@ -43,6 +43,7 @@ from aws_cdk import aws_sns as sns
 from constructs import Construct
 from stacks.api_stack import ApiStack
 from stacks.compute_stack import ComputeStack
+from stacks.ses_events_stack import SesEventsStack
 
 from config import PyvarConfig
 
@@ -77,6 +78,9 @@ class AlertsStack(Stack):
         compute: The compute stack, referenced for its worker error metric
             (``compute.worker_error_metric``) so the worker-error alarm can
             target it.
+        ses_events: The SES events stack, referenced for its suppression
+            metric (``ses_events.suppression_metric``) so the SES
+            bounce/complaint alarm can target it.
     """
 
     def __init__(
@@ -87,6 +91,7 @@ class AlertsStack(Stack):
         cfg: PyvarConfig,
         api: ApiStack,
         compute: ComputeStack,
+        ses_events: SesEventsStack,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -175,7 +180,28 @@ class AlertsStack(Stack):
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
         ).add_alarm_action(cw_actions.SnsAction(self.topic))
 
-        # ── (d) Queue-age alarm — owned by queue_stack, NOT recreated here ──────
+        # ── (d) SES suppression alarm — any bounce/complaint, threshold 0 ───────
+        # Mirrors queue_stack.py's DlqDepthAlarm pattern (threshold=0), not this
+        # file's own worker-error alarm's threshold-5 burst pattern: at the
+        # expected <50 emails/day volume, a single permanent bounce or
+        # complaint is itself the signal worth surfacing, not a burst.
+        cloudwatch.Alarm(
+            self,
+            "SesSuppressionAlarm",
+            alarm_name=f"pyvar-{cfg.env_name}-ses-suppressions",
+            alarm_description=(
+                "One or more recipient addresses were just suppressed (permanent "
+                "bounce or complaint) — SES's own suppression list is silent by "
+                "default; this makes it visible."
+            ),
+            metric=ses_events.suppression_metric,
+            threshold=0,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+            evaluation_periods=1,
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+        ).add_alarm_action(cw_actions.SnsAction(self.topic))
+
+        # ── (e) Queue-age alarm — owned by queue_stack, NOT recreated here ──────
         # The pyvar-{env}-queue-age alarm already exists (P4) in queue_stack and
         # is (as of this change) wired to THIS topic by deterministic ARN there,
         # avoiding the cross-stack dependency cycle described in the docstring.

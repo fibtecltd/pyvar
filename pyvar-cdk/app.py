@@ -27,6 +27,7 @@ from stacks.observability_stack import ObservabilityStack
 from stacks.pipeline_stack import PipelineStack
 from stacks.public_data_stack import PublicDataStack
 from stacks.queue_stack import QueueStack
+from stacks.ses_events_stack import SesEventsStack
 from stacks.ses_stack import SesStack
 
 from config import PyvarConfig
@@ -102,13 +103,23 @@ compute = ComputeStack(
     description="pyvar: EC2 Spot ASG Celery workers + step scaling",
 )
 
+ses_events = SesEventsStack(
+    app,
+    f"{prefix}-ses-events",
+    cfg=cfg,
+    env=env_primary,
+    description="pyvar: SES bounce/complaint SNS topic + suppression Lambda",
+)
+
 ses = SesStack(
     app,
     f"{prefix}-ses",
     cfg=cfg,
+    configuration_set=ses_events.configuration_set,
     env=env_primary,
     description="pyvar: SES domain identity for transactional email (#149)",
 )
+ses.add_dependency(ses_events)
 
 api = ApiStack(
     app,
@@ -160,6 +171,7 @@ alerts = AlertsStack(
     cfg=cfg,
     api=api,
     compute=compute,
+    ses_events=ses_events,
     env=env_primary,
     description="pyvar: SNS alerts topic + CloudWatch alarms + monthly cost budget",
 )
@@ -186,6 +198,7 @@ public_data.add_dependency(api)  # references api.jwt_secret
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm
+alerts.add_dependency(ses_events)  # references ses_events.suppression_metric for SES alarm
 observability.add_dependency(api)  # references api.alb for dashboard ALB widgets
 
 cdk.Tags.of(app).add("Project", "pyvar")
