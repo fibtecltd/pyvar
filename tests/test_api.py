@@ -224,6 +224,22 @@ async def test_submit_var_requires_auth(app, valid_payload):
 
 
 @pytest.mark.asyncio
+async def test_wrong_method_on_api_route_is_not_shadowed_by_static_mount(app):
+    """Regression test: main.py mounts the static portal at "/" last, and a
+    plain Starlette Mount matches any HTTP method for its path prefix. A GET
+    against the POST-only /var/compute previously fell through to that
+    mount's file lookup instead of the real route's own method handling,
+    returning a misleading 404 (`{"detail": "Not Found"}`, indistinguishable
+    from a genuinely unknown path) instead of 405. main.py's
+    _PortalStaticMount excludes reserved API/system prefixes from the
+    portal mount's matching so this now surfaces correctly.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/api/v1/var/compute")
+    assert resp.status_code == 405
+
+
+@pytest.mark.asyncio
 async def test_submit_invalid_confidence_level(app, free_token, valid_payload):
     """Confidence level outside [0.90, 0.9999] should be rejected by Pydantic."""
     valid_payload["confidence_level"] = 0.5
