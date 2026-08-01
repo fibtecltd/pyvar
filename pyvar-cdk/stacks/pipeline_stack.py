@@ -285,14 +285,15 @@ def _smoke_test_step(
     stage_cfg: PyvarConfig, step_id: str, source: pipelines.CodePipelineSource
 ) -> pipelines.Step:
     """Pre-deploy step (#172): curl /health and an unauthenticated compute
-    endpoint (expect 403) against the stage's CloudFront distribution, using
-    the SAME network-discovery approach as _migration_step and for the
-    identical reason: this runs as a `pre` step (checking the PREVIOUSLY
-    deployed, currently-live state before this run's rollout, same as
-    _migration_step's own pre-flight framing — not this run's new version),
-    so it can't read a CfnOutput from this stage's own EdgeStack without
-    hitting the same DependencyCycleGraph _migration_step's docstring
-    describes.
+    endpoint (expect 401 — api/middleware/auth.py's HTTPBearer dependency
+    rejects missing credentials with 401, not 403) against the stage's
+    CloudFront distribution, using the SAME network-discovery approach as
+    _migration_step and for the identical reason: this runs as a `pre` step
+    (checking the PREVIOUSLY deployed, currently-live state before this
+    run's rollout, same as _migration_step's own pre-flight framing — not
+    this run's new version), so it can't read a CfnOutput from this stage's
+    own EdgeStack without hitting the same DependencyCycleGraph
+    _migration_step's docstring describes.
 
     Replaces what was previously a hardcoded curl against
     https://api-{env}.{domain}/health — that subdomain was never actually
@@ -326,10 +327,17 @@ def _smoke_test_step(
                 # ── Wait for ECS service to stabilise, then smoke test ────
                 "sleep 30",
                 'curl -f "https://$CF_DOMAIN/health" || exit 1',
-                # VaR endpoint smoke test (unauthenticated → 403)
-                "curl -s -o /dev/null -w '%{http_code}' "
+                # VaR endpoint smoke test (unauthenticated → 401). Must be
+                # -X POST: /var/compute is POST-only (api/routes/var.py), and
+                # a GET here would fall through to main.py's catch-all static
+                # portal mount instead of ever reaching this route's auth
+                # check — see the StaticFilesMount fix in main.py. Expects
+                # 401 (not 403): FastAPI's HTTPBearer security dependency
+                # rejects missing credentials with 401 + WWW-Authenticate,
+                # confirmed against the live endpoint (api/middleware/auth.py).
+                "curl -s -o /dev/null -w '%{http_code}' -X POST "
                 '"https://$CF_DOMAIN/api/v1/var/compute" '
-                "| grep -q '403' || exit 1",
+                "| grep -q '401' || exit 1",
             ],
         ),
         role_policy_statements=[
