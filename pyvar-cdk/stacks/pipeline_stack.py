@@ -632,14 +632,44 @@ class PyvarDeployStage(cdk.Stage):
         env_primary = cdk.Environment(account=cfg.account, region=cfg.region)
         env_edge = cdk.Environment(account=cfg.account, region="us-east-1")
 
-        network = NetworkStack(self, f"{prefix}-network", cfg=cfg, env=env_primary)
-        data = DataStack(
-            self, f"{prefix}-data", cfg=cfg, vpc=network.vpc, sgs=network.sgs, env=env_primary
+        # Explicit stack_name= on every stack below: without it, a stack
+        # constructed inside a cdk.Stage gets a CDK-default physical name of
+        # "{StageName}-{constructId}" (e.g. "Dev-pyvar-dev-network") instead
+        # of just the construct ID. That's a DIFFERENT CloudFormation stack
+        # from "pyvar-dev-network" — and "pyvar-dev-network" (and its
+        # siblings below) already exists, deployed standalone via app.py's
+        # documented bypass path (`cdk deploy pyvar-dev-* --all`) before
+        # this pipeline could reach the Dev stage at all. Discovered live:
+        # the pipeline's first real attempt at the Dev stage tried to create
+        # a second, parallel "Dev-pyvar-dev-*" copy of every app stack —
+        # for most of them CloudFormation would have silently gone ahead
+        # (a full duplicate VPC/Aurora/ECS/ALB/CloudFront environment,
+        # roughly doubling AWS spend), and for ses-events specifically it
+        # hard-failed outright (AWS::EarlyValidation::ResourceExistenceCheck)
+        # because that stack assigns fixed, non-stack-scoped physical names
+        # (SNS topic, Lambda function, SES configuration set) that collided
+        # with the real ones. Pinning stack_name= to the SAME bare names
+        # app.py already uses makes the pipeline target the EXISTING stacks
+        # (an update deploy) instead of creating new ones.
+        network = NetworkStack(
+            self, f"{prefix}-network", stack_name=f"{prefix}-network", cfg=cfg, env=env_primary
         )
-        queue = QueueStack(self, f"{prefix}-queue", cfg=cfg, env=env_primary)
+        data = DataStack(
+            self,
+            f"{prefix}-data",
+            stack_name=f"{prefix}-data",
+            cfg=cfg,
+            vpc=network.vpc,
+            sgs=network.sgs,
+            env=env_primary,
+        )
+        queue = QueueStack(
+            self, f"{prefix}-queue", stack_name=f"{prefix}-queue", cfg=cfg, env=env_primary
+        )
         compute = ComputeStack(
             self,
             f"{prefix}-compute",
+            stack_name=f"{prefix}-compute",
             cfg=cfg,
             vpc=network.vpc,
             sgs=network.sgs,
@@ -648,10 +678,17 @@ class PyvarDeployStage(cdk.Stage):
             data=data,
             env=env_primary,
         )
-        ses_events = SesEventsStack(self, f"{prefix}-ses-events", cfg=cfg, env=env_primary)
+        ses_events = SesEventsStack(
+            self,
+            f"{prefix}-ses-events",
+            stack_name=f"{prefix}-ses-events",
+            cfg=cfg,
+            env=env_primary,
+        )
         ses = SesStack(
             self,
             f"{prefix}-ses",
+            stack_name=f"{prefix}-ses",
             cfg=cfg,
             configuration_set=ses_events.configuration_set,
             env=env_primary,
@@ -660,6 +697,7 @@ class PyvarDeployStage(cdk.Stage):
         api = ApiStack(
             self,
             f"{prefix}-api",
+            stack_name=f"{prefix}-api",
             cfg=cfg,
             vpc=network.vpc,
             sgs=network.sgs,
@@ -672,6 +710,7 @@ class PyvarDeployStage(cdk.Stage):
         edge = EdgeStack(
             self,
             f"{prefix}-edge",
+            stack_name=f"{prefix}-edge",
             cfg=cfg,
             alb_dns=api.alb_dns_name,
             origin_verify_secret=api.origin_verify_secret,
@@ -683,6 +722,7 @@ class PyvarDeployStage(cdk.Stage):
         public_data = PublicDataStack(
             self,
             f"{prefix}-public-data",
+            stack_name=f"{prefix}-public-data",
             cfg=cfg,
             jwt_secret=api.jwt_secret,
             env=env_primary,
