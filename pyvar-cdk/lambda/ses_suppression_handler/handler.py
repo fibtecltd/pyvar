@@ -106,7 +106,7 @@ def _api_request(method: str, path: str, token: str, body: dict[str, Any]) -> di
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("Authorization", f"Bearer {token}")
     req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310 (fixed, hardcoded domain)
+    with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310  # fixed, hardcoded domain
         return json.loads(resp.read())
 
 

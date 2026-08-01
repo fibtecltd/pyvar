@@ -138,7 +138,7 @@ def _api_request(
         req.add_header("Content-Type", "application/json")
     with urllib.request.urlopen(
         req, timeout=15
-    ) as resp:  # noqa: S310 (fixed, hardcoded API domain)
+    ) as resp:  # nosec B310  # fixed, hardcoded API domain
         return json.loads(resp.read())
 
 
