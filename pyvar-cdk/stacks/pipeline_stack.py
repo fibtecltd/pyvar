@@ -143,6 +143,61 @@ def _migration_step(stage_cfg: PyvarConfig) -> pipelines.Step:
     )
 
 
+def _smoke_test_step(stage_cfg: PyvarConfig, step_id: str) -> pipelines.Step:
+    """Pre-deploy step (#172): curl /health and an unauthenticated compute
+    endpoint (expect 403) against the stage's CloudFront distribution, using
+    the SAME network-discovery approach as _migration_step and for the
+    identical reason: this runs as a `pre` step (checking the PREVIOUSLY
+    deployed, currently-live state before this run's rollout, same as
+    _migration_step's own pre-flight framing — not this run's new version),
+    so it can't read a CfnOutput from this stage's own EdgeStack without
+    hitting the same DependencyCycleGraph _migration_step's docstring
+    describes.
+
+    Replaces what was previously a hardcoded curl against
+    https://api-{env}.{domain}/health — that subdomain was never actually
+    provisioned (only pyvar.com/www.pyvar.com are DNS-validated CloudFront
+    aliases, per #158/#165), and the ALB itself rejects direct traffic
+    without CloudFront's origin-verify header regardless (api_stack.py), so
+    that curl could never have succeeded even if the DNS existed.
+
+    Filters on the `Comment` field edge_stack.py already sets on the
+    distribution (f"pyvar {cfg.env_name} CDN") — a live, tag-filtered lookup
+    against whatever's currently deployed, not a value baked in at any
+    particular pipeline run.
+    """
+    comment = f"pyvar {stage_cfg.env_name} CDN"
+
+    return pipelines.CodeBuildStep(
+        step_id,
+        commands=[
+            # ── Discover the live CloudFront domain ──────────────────────
+            "CF_DOMAIN=$(aws cloudfront list-distributions "
+            f"--query \"DistributionList.Items[?Comment=='{comment}'].DomainName | [0]\" "
+            "--output text)",
+            'echo "CloudFront domain: $CF_DOMAIN"',
+            '[ -n "$CF_DOMAIN" ] && [ "$CF_DOMAIN" != "None" ] '
+            '|| (echo "Could not discover CloudFront domain for smoke test — blocking deploy" '
+            "&& exit 1)",
+            # ── Wait for ECS service to stabilise, then smoke test ───────
+            "sleep 30",
+            'curl -f "https://$CF_DOMAIN/health" || exit 1',
+            # VaR endpoint smoke test (unauthenticated → 403)
+            "curl -s -o /dev/null -w '%{http_code}' "
+            '"https://$CF_DOMAIN/api/v1/var/compute" '
+            "| grep -q '403' || exit 1",
+        ],
+        role_policy_statements=[
+            iam.PolicyStatement(
+                # ListDistributions doesn't support resource-level ARN
+                # restriction — "*" is the only valid resource for it.
+                actions=["cloudfront:ListDistributions"],
+                resources=["*"],
+            ),
+        ],
+    )
+
+
 class PipelineStack(Stack):
 
     def __init__(self, scope: Construct, id: str, *, cfg: PyvarConfig, **kwargs):
@@ -245,19 +300,7 @@ class PipelineStack(Stack):
                 # same stage) rolls out to the new schema-dependent code.
                 _migration_step(dev_cfg),
                 # Run smoke tests against dev after deploy
-                pipelines.ShellStep(
-                    "SmokeTest",
-                    commands=[
-                        # Wait for ECS service to stabilise
-                        "sleep 30",
-                        # Health check
-                        f"curl -f https://api-dev.{cfg.domain_name}/health || exit 1",
-                        # VaR endpoint smoke test (unauthenticated → 403)
-                        f"curl -s -o /dev/null -w '%{{http_code}}' "
-                        f"https://api-dev.{cfg.domain_name}/api/v1/var/compute "
-                        f"| grep -q '403' || exit 1",
-                    ],
-                ),
+                _smoke_test_step(dev_cfg, "SmokeTest"),
             ],
         )
 
@@ -296,11 +339,19 @@ class PipelineStack(Stack):
                 prod_migration,
             ],
             post=[
+                # #172: a `post` step of THIS stage — unlike dev's SmokeTest
+                # (a `pre` step, checking the prior state), this genuinely
+                # runs after prod's own EdgeStack (this same stage) has just
+                # deployed, so reading its CfnOutput here is a real,
+                # non-cyclic dependency. No network-discovery step needed.
                 pipelines.ShellStep(
                     "ProdSmokeTest",
+                    env_from_cfn_outputs={
+                        "CF_DOMAIN": prod_stage.edge.cloudfront_domain_output,
+                    },
                     commands=[
                         "sleep 60",  # ECS blue/green needs longer to stabilise
-                        f"curl -f https://api.{cfg.domain_name}/health || exit 1",
+                        'curl -f "https://$CF_DOMAIN/health" || exit 1',
                     ],
                 )
             ],
@@ -423,6 +474,9 @@ class PyvarDeployStage(cdk.Stage):
             origin_verify_secret=api.origin_verify_secret,
             env=env_edge,
         )
+        # Exposed so PipelineStack's ProdSmokeTest step (#172) can read
+        # edge.cloudfront_domain_output via env_from_cfn_outputs.
+        self.edge = edge
         public_data = PublicDataStack(
             self,
             f"{prefix}-public-data",
