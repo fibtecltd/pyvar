@@ -36,8 +36,139 @@ from constructs import Construct
 
 from config import PyvarConfig
 
+# ── Portal-relevance gate (cost control) ────────────────────────────────────
+# Paths that can actually change the deployed portal — app code, Celery
+# tasks, DB migrations, the container image, and the CDK infra itself.
+# Deliberately excludes docs/, scripts/claude/, .claude/, tests/, and
+# anything else not listed: a docs-only PR (e.g. #177 — one markdown file,
+# zero portal impact) has no business paying for a real ECS Fargate
+# migration task run or a real CodeBuild smoke test against live CloudFront
+# on every push, and #177 did exactly that before this gate existed.
+_PORTAL_RELEVANT_PATHS = (
+    "api",
+    "engine",
+    "tasks",
+    "schemas",
+    "storage",
+    "observability",
+    "migrations",
+    "ui",
+    "pyvar-cdk",
+    "main.py",
+    "worker.py",
+    "config.py",
+    "requirements.txt",
+    "requirements-ci.txt",
+    "requirements-heavy.txt",
+    "Dockerfile",
+    "alembic.ini",
+)
 
-def _migration_step(stage_cfg: PyvarConfig) -> pipelines.Step:
+
+def _portal_hash_command(var_name: str) -> str:
+    """A single shell line computing a deterministic hash of every file under
+    _PORTAL_RELEVANT_PATHS, assigned to $<var_name>. Used both by the
+    pre-deploy skip gate (_skip_gate_commands) and by the post-deploy step
+    that records what was actually just deployed (_record_deployed_hash_step)
+    — both MUST compute the hash identically or the comparison is meaningless.
+    """
+    paths = " ".join(_PORTAL_RELEVANT_PATHS)
+    return (
+        f"{var_name}=$(find {paths} -type f 2>/dev/null | sort "
+        "| xargs sha256sum | sha256sum | cut -d' ' -f1)"
+    )
+
+
+def _skip_gate_commands(stage_cfg: PyvarConfig) -> list[str]:
+    """Sets $SKIP=1 when nothing portal-relevant has changed since the last
+    successful deploy of this stage, else $SKIP=0.
+
+    No git history is available here — CodePipeline's source action hands
+    CodeBuild a plain file snapshot, not a git checkout — so this compares
+    file CONTENT (hashed) against a hash recorded by
+    _record_deployed_hash_step after the last successful deploy, rather than
+    comparing commit SHAs. That's actually more correct than a SHA diff
+    would be: it correctly treats a revert or a squash-merge that nets out
+    to identical portal-relevant content as "unchanged" instead of forcing a
+    needless re-run.
+
+    First-ever run for a stage has no recorded hash (the SSM parameter
+    doesn't exist yet) — fails open (SKIP=0, never skip) rather than
+    guessing about history it doesn't have.
+    """
+    param_name = f"/pyvar/{stage_cfg.env_name}/last-deployed-portal-hash"
+    return [
+        _portal_hash_command("CURRENT_HASH"),
+        'echo "Portal-relevant content hash: $CURRENT_HASH"',
+        f'LAST_HASH=$(aws ssm get-parameter --name "{param_name}" '
+        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
+        'echo "Last deployed hash: $LAST_HASH"',
+        'if [ -n "$LAST_HASH" ] && [ "$LAST_HASH" != "None" ] '
+        '&& [ "$CURRENT_HASH" = "$LAST_HASH" ]; then SKIP=1; else SKIP=0; fi',
+    ]
+
+
+def _skip_gate_iam_statement(stage_cfg: PyvarConfig) -> iam.PolicyStatement:
+    param_name = f"/pyvar/{stage_cfg.env_name}/last-deployed-portal-hash"
+    return iam.PolicyStatement(
+        actions=["ssm:GetParameter"],
+        resources=[f"arn:aws:ssm:{stage_cfg.region}:{stage_cfg.account}:parameter{param_name}"],
+    )
+
+
+def _guarded(stage_cfg: PyvarConfig, step_label: str, real_commands: list[str]) -> list[str]:
+    """Wrap `real_commands` (a step's existing, unchanged logic) in the
+    portal-relevance gate: they only run when the gate says something
+    portal-relevant changed since the last successful deploy of this stage.
+
+    Combined into a single command entry (an `if/then/else/fi` block, not a
+    subshell) so any `exit 1` inside `real_commands` for a genuine failure
+    still terminates the whole build with a non-zero status exactly as
+    before — only the new SKIP=1 path is new behavior.
+    """
+    body = "\n".join(real_commands)
+    return [
+        *_skip_gate_commands(stage_cfg),
+        (
+            f'if [ "$SKIP" = "1" ]; then echo "No portal-relevant changes since '
+            f'the last deploy — skipping {step_label}."; else\n{body}\nfi'
+        ),
+    ]
+
+
+def _record_deployed_hash_step(
+    stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
+) -> pipelines.Step:
+    """`post` step: after this stage's stacks have successfully deployed,
+    record a hash of the portal-relevant files that were just deployed, so
+    the NEXT execution's _skip_gate_commands can tell whether anything worth
+    re-migrating or re-smoke-testing actually changed. Runs independently of
+    any other `post` step in the same stage (e.g. ProdSmokeTest) — recording
+    what's now live doesn't depend on, and isn't depended on by, verifying
+    it's healthy.
+    """
+    param_name = f"/pyvar/{stage_cfg.env_name}/last-deployed-portal-hash"
+    return pipelines.CodeBuildStep(
+        f"RecordDeployedHash-{stage_cfg.env_name}",
+        input=source,
+        commands=[
+            _portal_hash_command("CURRENT_HASH"),
+            'echo "Recording deployed portal hash: $CURRENT_HASH"',
+            f'aws ssm put-parameter --name "{param_name}" --value "$CURRENT_HASH" '
+            "--type String --overwrite",
+        ],
+        role_policy_statements=[
+            iam.PolicyStatement(
+                actions=["ssm:PutParameter"],
+                resources=[
+                    f"arn:aws:ssm:{stage_cfg.region}:{stage_cfg.account}:parameter{param_name}"
+                ],
+            ),
+        ],
+    )
+
+
+def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource) -> pipelines.Step:
     """Pre-deploy step (issue #119): run `scripts/db.py upgrade` against Aurora
     via a one-off ECS Fargate task, BEFORE this stage's stacks (incl. the API
     service) deploy — a failed migration exits non-zero and blocks the rest
@@ -72,41 +203,48 @@ def _migration_step(stage_cfg: PyvarConfig) -> pipelines.Step:
     network_stack_name = f"pyvar-{stage_cfg.env_name}-network"
     sg_name_tag = f"pyvar-{stage_cfg.env_name}-sg-api"
     cluster_arn = f"arn:aws:ecs:{stage_cfg.region}:{stage_cfg.account}:cluster/{cluster_name}"
+    step_name = f"RunDbMigration-{stage_cfg.env_name}"
 
     return pipelines.CodeBuildStep(
-        f"RunDbMigration-{stage_cfg.env_name}",
-        commands=[
-            # ── Discover the network (read-only, tag-filtered EC2 lookups) ──
-            "VPC_ID=$(aws ec2 describe-vpcs --filters "
-            f'"Name=tag:aws:cloudformation:stack-name,Values={network_stack_name}" '
-            '--query "Vpcs[0].VpcId" --output text)',
-            'echo "VPC: $VPC_ID"',
-            'SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" '
-            '"Name=tag:aws-cdk:subnet-name,Values=Private" '
-            '--query "Subnets[].SubnetId" --output text | tr "\\t" ",")',
-            'echo "Subnets: $SUBNET_IDS"',
-            'SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" '
-            f'"Name=tag:Name,Values={sg_name_tag}" '
-            '--query "SecurityGroups[0].GroupId" --output text)',
-            'echo "Security group: $SG_ID"',
-            '[ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ] '
-            '&& [ -n "$SUBNET_IDS" ] && [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ] '
-            '|| (echo "Could not discover network for migration task — blocking deploy" '
-            "&& exit 1)",
-            # ── Run the migration task and block the deploy on failure ──────
-            f'TASK_ARN=$(aws ecs run-task --cluster "{cluster_name}" '
-            f'--task-definition "{task_family}" --launch-type FARGATE '
-            '--network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],'
-            'securityGroups=[$SG_ID],assignPublicIp=DISABLED}" '
-            "--query 'tasks[0].taskArn' --output text)",
-            'echo "Migration task: $TASK_ARN"',
-            f'aws ecs wait tasks-stopped --cluster "{cluster_name}" --tasks "$TASK_ARN"',
-            f'EXIT_CODE=$(aws ecs describe-tasks --cluster "{cluster_name}" --tasks "$TASK_ARN" '
-            "--query 'tasks[0].containers[0].exitCode' --output text)",
-            'echo "Migration container exit code: $EXIT_CODE"',
-            '[ "$EXIT_CODE" = "0" ] || (echo "Migration FAILED — blocking deploy" && exit 1)',
-        ],
+        step_name,
+        input=source,
+        commands=_guarded(
+            stage_cfg,
+            step_name,
+            [
+                # ── Discover the network (read-only, tag-filtered EC2 lookups) ──
+                "VPC_ID=$(aws ec2 describe-vpcs --filters "
+                f'"Name=tag:aws:cloudformation:stack-name,Values={network_stack_name}" '
+                '--query "Vpcs[0].VpcId" --output text)',
+                'echo "VPC: $VPC_ID"',
+                'SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" '
+                '"Name=tag:aws-cdk:subnet-name,Values=Private" '
+                '--query "Subnets[].SubnetId" --output text | tr "\\t" ",")',
+                'echo "Subnets: $SUBNET_IDS"',
+                'SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" '
+                f'"Name=tag:Name,Values={sg_name_tag}" '
+                '--query "SecurityGroups[0].GroupId" --output text)',
+                'echo "Security group: $SG_ID"',
+                '[ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ] '
+                '&& [ -n "$SUBNET_IDS" ] && [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ] '
+                '|| (echo "Could not discover network for migration task — blocking deploy" '
+                "&& exit 1)",
+                # ── Run the migration task and block the deploy on failure ──────
+                f'TASK_ARN=$(aws ecs run-task --cluster "{cluster_name}" '
+                f'--task-definition "{task_family}" --launch-type FARGATE '
+                '--network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],'
+                'securityGroups=[$SG_ID],assignPublicIp=DISABLED}" '
+                "--query 'tasks[0].taskArn' --output text)",
+                'echo "Migration task: $TASK_ARN"',
+                f'aws ecs wait tasks-stopped --cluster "{cluster_name}" --tasks "$TASK_ARN"',
+                f'EXIT_CODE=$(aws ecs describe-tasks --cluster "{cluster_name}" --tasks "$TASK_ARN" '
+                "--query 'tasks[0].containers[0].exitCode' --output text)",
+                'echo "Migration container exit code: $EXIT_CODE"',
+                '[ "$EXIT_CODE" = "0" ] || (echo "Migration FAILED — blocking deploy" && exit 1)',
+            ],
+        ),
         role_policy_statements=[
+            _skip_gate_iam_statement(stage_cfg),
             iam.PolicyStatement(
                 # Describe*/List* EC2 actions don't support resource-level
                 # ARN restriction — "*" is the only valid resource for them.
@@ -143,7 +281,9 @@ def _migration_step(stage_cfg: PyvarConfig) -> pipelines.Step:
     )
 
 
-def _smoke_test_step(stage_cfg: PyvarConfig, step_id: str) -> pipelines.Step:
+def _smoke_test_step(
+    stage_cfg: PyvarConfig, step_id: str, source: pipelines.CodePipelineSource
+) -> pipelines.Step:
     """Pre-deploy step (#172): curl /health and an unauthenticated compute
     endpoint (expect 403) against the stage's CloudFront distribution, using
     the SAME network-discovery approach as _migration_step and for the
@@ -170,24 +310,30 @@ def _smoke_test_step(stage_cfg: PyvarConfig, step_id: str) -> pipelines.Step:
 
     return pipelines.CodeBuildStep(
         step_id,
-        commands=[
-            # ── Discover the live CloudFront domain ──────────────────────
-            "CF_DOMAIN=$(aws cloudfront list-distributions "
-            f"--query \"DistributionList.Items[?Comment=='{comment}'].DomainName | [0]\" "
-            "--output text)",
-            'echo "CloudFront domain: $CF_DOMAIN"',
-            '[ -n "$CF_DOMAIN" ] && [ "$CF_DOMAIN" != "None" ] '
-            '|| (echo "Could not discover CloudFront domain for smoke test — blocking deploy" '
-            "&& exit 1)",
-            # ── Wait for ECS service to stabilise, then smoke test ───────
-            "sleep 30",
-            'curl -f "https://$CF_DOMAIN/health" || exit 1',
-            # VaR endpoint smoke test (unauthenticated → 403)
-            "curl -s -o /dev/null -w '%{http_code}' "
-            '"https://$CF_DOMAIN/api/v1/var/compute" '
-            "| grep -q '403' || exit 1",
-        ],
+        input=source,
+        commands=_guarded(
+            stage_cfg,
+            step_id,
+            [
+                # ── Discover the live CloudFront domain ──────────────────
+                "CF_DOMAIN=$(aws cloudfront list-distributions "
+                f"--query \"DistributionList.Items[?Comment=='{comment}'].DomainName | [0]\" "
+                "--output text)",
+                'echo "CloudFront domain: $CF_DOMAIN"',
+                '[ -n "$CF_DOMAIN" ] && [ "$CF_DOMAIN" != "None" ] '
+                '|| (echo "Could not discover CloudFront domain for smoke test — '
+                'blocking deploy" && exit 1)',
+                # ── Wait for ECS service to stabilise, then smoke test ────
+                "sleep 30",
+                'curl -f "https://$CF_DOMAIN/health" || exit 1',
+                # VaR endpoint smoke test (unauthenticated → 403)
+                "curl -s -o /dev/null -w '%{http_code}' "
+                '"https://$CF_DOMAIN/api/v1/var/compute" '
+                "| grep -q '403' || exit 1",
+            ],
+        ),
         role_policy_statements=[
+            _skip_gate_iam_statement(stage_cfg),
             iam.PolicyStatement(
                 # ListDistributions doesn't support resource-level ARN
                 # restriction — "*" is the only valid resource for it.
@@ -304,9 +450,18 @@ class PipelineStack(Stack):
             pre=[
                 # #119: migration must apply before the API service (in this
                 # same stage) rolls out to the new schema-dependent code.
-                _migration_step(dev_cfg),
+                # Both steps below skip their real work (no Fargate task run,
+                # no live CloudFront hit) when nothing portal-relevant has
+                # changed since the last successful Dev deploy — see
+                # _skip_gate_commands.
+                _migration_step(dev_cfg, source),
                 # Run smoke tests against dev after deploy
-                _smoke_test_step(dev_cfg, "SmokeTest"),
+                _smoke_test_step(dev_cfg, "SmokeTest", source),
+            ],
+            post=[
+                # Records what was just deployed so the NEXT execution's
+                # gate above has something to compare against.
+                _record_deployed_hash_step(dev_cfg, source),
             ],
         )
 
@@ -333,7 +488,7 @@ class PipelineStack(Stack):
         # AFTER a human approves, not before or concurrently with approval.
         # Migrating prod's schema ahead of (or regardless of) that approval
         # would leave prod's DB migrated even if the deploy is then rejected.
-        prod_migration = _migration_step(prod_cfg)
+        prod_migration = _migration_step(prod_cfg, source)
         prod_migration.add_step_dependency(prod_approval)
 
         pipeline.add_stage(
@@ -342,6 +497,9 @@ class PipelineStack(Stack):
                 prod_approval,
                 # Runs only after approval above (see add_step_dependency),
                 # still before prod's own stacks (incl. the API service) deploy.
+                # Skips the real migration task if nothing portal-relevant
+                # changed since the last successful Prod deploy — see
+                # _skip_gate_commands.
                 prod_migration,
             ],
             post=[
@@ -350,6 +508,11 @@ class PipelineStack(Stack):
                 # runs after prod's own EdgeStack (this same stage) has just
                 # deployed, so reading its CfnOutput here is a real,
                 # non-cyclic dependency. No network-discovery step needed.
+                # Always runs regardless of the portal-relevance gate — it's
+                # a cheap health check, not "real infra cost" in the same
+                # category as the migration task, and confirming prod is
+                # actually healthy after every deploy matters regardless of
+                # what changed.
                 pipelines.ShellStep(
                     "ProdSmokeTest",
                     env_from_cfn_outputs={
@@ -359,7 +522,13 @@ class PipelineStack(Stack):
                         "sleep 60",  # ECS blue/green needs longer to stabilise
                         'curl -f "https://$CF_DOMAIN/health" || exit 1',
                     ],
-                )
+                ),
+                # Records what was just deployed so the NEXT execution's
+                # migration-step gate above has something to compare
+                # against. Independent of ProdSmokeTest above — recording
+                # what's live doesn't depend on, and isn't depended on by,
+                # verifying it's healthy.
+                _record_deployed_hash_step(prod_cfg, source),
             ],
         )
 
