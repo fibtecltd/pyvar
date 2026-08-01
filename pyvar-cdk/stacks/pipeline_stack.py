@@ -548,6 +548,26 @@ class PipelineStack(Stack):
         # Must be added after pipeline.build_pipeline() is called
         pipeline.build_pipeline()
 
+        # `cdk synth` performs live CDK context lookups the first time it
+        # resolves them for a given account/region — VPC availability zones
+        # (NetworkStack's Vpc construct) and the pre-baked worker AMI ID
+        # (ComputeStack's WorkerLaunchTemplate) — and this repo has no
+        # committed cdk.context.json to cache those answers. Without these,
+        # every real synth of the Dev/Prod stacks fails with "not authorized
+        # to perform: ec2:DescribeAvailabilityZones / ec2:DescribeImages".
+        # Neither Describe action supports resource-level ARN restriction —
+        # "*" is the only valid resource for them, same as other Describe*/
+        # List* EC2 actions elsewhere in this file.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ec2:DescribeAvailabilityZones",
+                    "ec2:DescribeImages",
+                ],
+                resources=["*"],
+            )
+        )
+
         notifications.NotificationRule(
             self,
             "PipelineNotificationRule",
