@@ -250,6 +250,12 @@ class PipelineStack(Stack):
                 "pip install -r requirements-ci.txt",
                 "pip install -r requirements.txt",
                 "pip install -r pyvar-cdk/requirements.txt",
+                # CDK CLI — not preinstalled on the CodeBuild image; aws-cdk-lib
+                # (the Python construct library, installed above) is a separate
+                # package from the `cdk` CLI binary itself. Pin to major version
+                # 2 to match aws-cdk-lib, same as the pipeline's own self-mutation
+                # buildspec (npm install -g aws-cdk@2).
+                "npm install -g aws-cdk@2",
                 # Security scan — fail pipeline on HIGH/CRITICAL findings
                 "pip install bandit",
                 "bandit -r . -ll -x tests/ || (echo 'Security issues found' && exit 1)",
