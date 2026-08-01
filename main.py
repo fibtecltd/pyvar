@@ -21,6 +21,8 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Match, Mount
+from starlette.types import Scope
 
 from api.middleware.rate_limit import enforce_compute_rate_limit, enforce_public_rate_limit
 from api.middleware.usage import usage_tracking_middleware
@@ -43,6 +45,44 @@ from observability.setup import setup_observability
 cfg = get_settings()
 
 PORTAL_DIR = Path(__file__).resolve().parent / "portal"
+
+# Paths owned by real app routes, never the static portal — kept in sync with
+# every prefix used in the app.include_router(...) calls below, plus the
+# unprefixed system endpoints (/health, /docs, /redoc, /openapi.json,
+# /metrics) FastAPI/Instrumentator register directly.
+_RESERVED_PATH_PREFIXES = (
+    cfg.api_v1_prefix,
+    "/public",
+    "/health",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/metrics",
+)
+
+
+class _PortalStaticMount(Mount):
+    """Starlette's plain Mount matches ANY HTTP method for its path prefix —
+    it has no concept of "wrong method", only "wrong path". Since this mount
+    is registered at "/" (matching every path) and LAST (after every real
+    API route), Starlette's routing always prefers its Match.FULL over an
+    earlier route's Match.PARTIAL (right path, wrong method) — so a
+    wrong-method request to a real route (e.g. GET on the POST-only
+    /api/v1/var/compute) silently falls through to this mount's static file
+    lookup instead of that route's own auth/405 logic, and returns a
+    misleading "file not found" 404 (or, for non-GET/HEAD methods,
+    StaticFiles' own blanket 405 — also not the real route's response).
+
+    Returning Match.NONE for reserved prefixes here lets Starlette correctly
+    fall back to whatever the real API routes' own matching produces
+    instead: their own 405 for a wrong method, or its own default 404 if
+    truly no route matches at all.
+    """
+
+    def matches(self, scope: Scope) -> tuple[Match, Scope]:
+        if scope["type"] == "http" and scope["path"].startswith(_RESERVED_PATH_PREFIXES):
+            return Match.NONE, {}
+        return super().matches(scope)
 
 
 @asynccontextmanager
@@ -133,12 +173,15 @@ def create_app() -> FastAPI:
         return {"status": "ok", "app": cfg.app_name, "env": cfg.app_env}
 
     # ── Portal (static site) ─────────────────────────────────────────────────
-    # Mounted last and at "/": Starlette matches routes in registration order,
-    # so /health, /docs, /openapi.json, /redoc, and every /api/v1/* route above
-    # all get first crack at a request; this mount only ever sees paths none
-    # of those matched. html=True serves portal/index.html at "/" and portal's
-    # other .html files (domain-*.html, dashboard.html) at their own filename.
-    app.mount("/", StaticFiles(directory=PORTAL_DIR, html=True), name="portal")
+    # Mounted last and at "/". html=True serves portal/index.html at "/" and
+    # portal's other .html files (domain-*.html, dashboard.html) at their own
+    # filename. Uses _PortalStaticMount, not app.mount()/plain Mount — see its
+    # docstring: a plain Mount at "/" would silently swallow wrong-method
+    # requests to real API/system routes registered above instead of letting
+    # their own 405/404 logic run.
+    app.router.routes.append(
+        _PortalStaticMount("/", app=StaticFiles(directory=PORTAL_DIR, html=True), name="portal")
+    )
 
     return app
 
