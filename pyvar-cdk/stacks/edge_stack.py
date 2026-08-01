@@ -279,7 +279,14 @@ class EdgeStack(Stack):
             )
 
         # ── Outputs ───────────────────────────────────────────────────────────
-        cdk.CfnOutput(self, "CloudFrontDomain", value=self.distribution.distribution_domain_name)
+        # Stored on self (not just a bare CfnOutput) so pipeline_stack.py's
+        # ProdSmokeTest step (#172) can wire it via env_from_cfn_outputs —
+        # a `post` step of the SAME stage this EdgeStack belongs to, so
+        # unlike _migration_step's `pre`-step problem, referencing this
+        # stage's own output here is a genuine, non-cyclic dependency.
+        self.cloudfront_domain_output = cdk.CfnOutput(
+            self, "CloudFrontDomain", value=self.distribution.distribution_domain_name
+        )
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
         cdk.CfnOutput(
             self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn
