@@ -156,16 +156,34 @@ class PipelineStack(Stack):
         github_token = cdk.SecretValue.secrets_manager("pyvar/github-token")
 
         # ── Source ────────────────────────────────────────────────────────────
+        # #172: this pointed at a placeholder org ("fibtec-limited", with a
+        # "replace with your org/repo" comment still sitting next to it,
+        # never filled in) and branch "main" — the real repo is
+        # fibtecltd/pyvar and its default branch is "master". Both silently
+        # wrong until now: the pipeline could never actually have connected
+        # to real commits, on top of the account-level CodeBuild quota that
+        # separately blocked ever deploying this stack at all (now resolved).
         source = pipelines.CodePipelineSource.git_hub(
-            repo_string="fibtec-limited/pyvar",  # replace with your org/repo
-            branch="main",
+            repo_string="fibtecltd/pyvar",
+            branch="master",
             authentication=github_token,
-            trigger=cpa.GitHubTrigger.WEBHOOK,  # triggers on push to main
+            trigger=cpa.GitHubTrigger.WEBHOOK,  # triggers on push to master
         )
 
         # ── Synth step (CDK synth + unit tests) ───────────────────────────────
         # This is the pipeline's "self-mutation" step.
         # It also runs the full test suite so a failing test blocks deployment.
+        #
+        # #172: the commands below previously assumed the checked-out repo
+        # nested app code under a "pyvar/" subdirectory sibling to
+        # "pyvar-cdk/" (pip install -r pyvar/requirements.txt, cd pyvar,
+        # bandit -r pyvar/ ...) — this repo's actual layout has
+        # requirements.txt, main.py, etc. at the checkout root directly, only
+        # pyvar-cdk/ is a real subdirectory. Would have failed on the very
+        # first `pip install` step. Paths below now match the real layout,
+        # and the requirements set matches .github/workflows/ci.yml's own
+        # test job exactly (requirements-ci.txt + requirements.txt covers
+        # everything the test suite imports, incl. polars/numba).
         synth = pipelines.ShellStep(
             "Synth",
             input=source,
@@ -174,15 +192,14 @@ class PipelineStack(Stack):
             },
             commands=[
                 # Python setup
-                "pip install -r pyvar/requirements.txt",
+                "pip install -r requirements-ci.txt",
+                "pip install -r requirements.txt",
                 "pip install -r pyvar-cdk/requirements.txt",
                 # Security scan — fail pipeline on HIGH/CRITICAL findings
                 "pip install bandit",
-                "bandit -r pyvar/ -ll -x pyvar/tests/ || (echo 'Security issues found' && exit 1)",
+                "bandit -r . -ll -x tests/ || (echo 'Security issues found' && exit 1)",
                 # Unit + integration tests with coverage gate
-                "cd pyvar",
                 "pytest -v --cov=. --cov-report=term-missing --cov-fail-under=80",
-                "cd ..",
                 # CDK synth (required for self-mutation)
                 "cd pyvar-cdk",
                 f"cdk synth --context env={cfg.env_name} --context account={cfg.account}",
