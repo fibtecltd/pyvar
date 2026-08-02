@@ -102,10 +102,20 @@ against at request time. The only real accuracy evidence in this codebase is
 the P5a cross-validation work: `tests/validation/` contains 9 test files (one
 per domain plus a shared regulatory-reference module,
 `test_regulatory_ref.py`), **627 test functions** cross-validating engine
-output against external reference values/formulas (QuantLib, closed-form
-Black-Scholes, analytical VaR, published Basel/FRTB worked examples) within
-stated tolerances (typically ≤0.1%–0.5% depending on the domain — see
-`docs/pyvar_release_plan.md`'s validation section for the tolerance table).
+output against external reference values/formulas — closed-form
+Black-Scholes, analytical VaR, published Basel/FRTB worked examples —
+within stated tolerances (typically ≤0.1%–0.5% depending on the domain —
+see `docs/pyvar_release_plan.md`'s validation section for the tolerance
+table).
+
+**Correction:** this section previously also listed QuantLib as a source of
+cross-validation. That was false. `QuantLib` appears in
+`requirements-heavy.txt` and in the AMI-bake install list
+(`pyvar-cdk/stacks/ami_stack.py`) but is not imported or used anywhere in
+`tests/validation/` or any other test — grep confirms zero references. It
+is an unused dependency, not a validation source. If QuantLib cross-checks
+are added to `tests/validation/` in the future, this section should be
+updated to reflect that truthfully at the same time — not before.
 
 This process found and fixed a real numerical bug during P5a (`docs/P5A_BLOCKERS.md`,
 BLOCKER 1 — `minimum_variance_portfolio`/`risk_parity_portfolio` SLSQP
