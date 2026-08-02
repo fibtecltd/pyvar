@@ -20,7 +20,7 @@ function buildNav(active = 'home') {
     {id:'home',      label:'home',        href:'index.html'},
     {id:'domains',   label:'domains',     href:'index.html#domains'},
     {id:'api',       label:'api docs',    href:'index.html#api'},
-    {id:'github',    label:'github ↗',    href:'https://github.com/fibtec-limited/pyvar', ext:true},
+    {id:'github',    label:'github ↗',    href:'https://github.com/fibtecltd/pyvar', ext:true},
   ];
   return `<nav class="nav" id="mainNav">
     <a href="index.html" class="nav-logo">
@@ -55,10 +55,10 @@ function buildFooter() {
               <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text)">py<span style="color:var(--green)">var</span>.com</div>
             </a>
           </div>
-          <p class="footer-tagline">Open-source financial and risk computation platform. 382 regulatory-grade functions. Free forever.</p>
+          <p class="footer-tagline">Open-source financial and risk computation platform. 385 regulatory-grade functions. Free forever.</p>
           <div class="footer-meta">
             <span>Built by <a href="https://fibtec.co.uk" target="_blank">Fibtec Limited</a> · UK</span>
-            <a href="https://github.com/fibtec-limited/pyvar" target="_blank">github.com/fibtec-limited/pyvar ↗</a>
+            <a href="https://github.com/fibtecltd/pyvar" target="_blank">github.com/fibtecltd/pyvar ↗</a>
             <a href="mailto:info@fibtec.co.uk">info@fibtec.co.uk</a>
           </div>
         </div>
@@ -86,7 +86,7 @@ function buildFooter() {
             <div class="footer-col-links">
               <a href="index.html#api">API reference</a>
               <a href="#">Python SDK</a>
-              <a href="https://github.com/fibtec-limited/pyvar" target="_blank">GitHub ↗</a>
+              <a href="https://github.com/fibtecltd/pyvar" target="_blank">GitHub ↗</a>
               <a href="#">Changelog</a>
             </div>
           </div>
