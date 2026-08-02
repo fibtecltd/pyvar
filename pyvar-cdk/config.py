@@ -80,8 +80,18 @@ class PyvarConfig:
     )
 
     @classmethod
-    def for_env(cls, env_name: str, account: str = "") -> "PyvarConfig":
+    def for_env(
+        cls, env_name: str, account: str = "", api_image_tag: str | None = None
+    ) -> "PyvarConfig":
         base = dict(env_name=env_name, account=account or "347228921290")
+        if api_image_tag:
+            # #119: pipeline_stack.py's Synth step resolves this to the
+            # short git SHA it just built and pushed, so the ECS task
+            # definition's image reference actually changes between
+            # deploys instead of staying pinned to the base "latest"
+            # default below (which never triggers a CloudFormation diff,
+            # so ECS never redeploys — the bug this override exists to fix).
+            base["api_image_tag"] = api_image_tag
         overrides = {
             "dev": dict(
                 vpc_nat_gateways=1,

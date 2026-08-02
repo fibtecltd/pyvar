@@ -7,10 +7,14 @@
 # token retrieval goes through the claude-docker container (AWS CLI lives
 # there, not on the host).
 #
-# This codifies the manual sequence used repeatedly during P6/P7 to work
-# around the lack of Docker daemon in the Claude Code agent sandbox and
-# the lack of AWS CLI on the host — see #119 (no CI/CD deploy pipeline)
-# for the underlying gap this script is a workaround for, not a fix.
+# #119 closed: pyvar-cdk/stacks/pipeline_stack.py's Synth step now builds and
+# pushes a git-SHA-tagged image on every pipeline run — that's the primary
+# mechanism now. This script remains as a break-glass fallback for when the
+# pipeline itself is broken (mirrors how a manual `cdk deploy pyvar-pipeline`
+# has repeatedly served as this session's bootstrap when Synth itself was
+# broken) — codifies the same manual sequence used repeatedly during P6/P7
+# to work around the lack of Docker daemon in the Claude Code agent sandbox
+# and the lack of AWS CLI on the host.
 #
 # Usage:
 #   ./scripts/build-push-api.sh              build + push :latest and :<short-sha>

@@ -393,11 +393,27 @@ class PipelineStack(Stack):
         # and the requirements set matches .github/workflows/ci.yml's own
         # test job exactly (requirements-ci.txt + requirements.txt covers
         # everything the test suite imports, incl. polars/numba).
+        # #119: the ECR repo pyvar-dev-api actually lives in (Dev only — Prod
+        # has never been deployed and has no ECR repo of its own yet; wiring
+        # Prod in too would mean re-uploading every layer to a second repo,
+        # since ECR doesn't dedupe layers across repos, on every single
+        # pipeline run for zero current benefit).
+        dev_ecr_uri = f"{cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com/pyvar-dev-api"
+
         synth = pipelines.ShellStep(
             "Synth",
             input=source,
             env={
                 "APP_ENV": "test",
+                # CodePipeline hands CodeBuild a plain file snapshot, not a git
+                # checkout (see _skip_gate_commands' docstring above) — there's
+                # no .git directory to `git rev-parse` here, and CodeBuild's own
+                # CODEBUILD_RESOLVED_SOURCE_VERSION var isn't populated for a
+                # CODEPIPELINE-type source either. source_attribute("CommitId")
+                # is CDK Pipelines' documented mechanism for exactly this: it
+                # resolves to a CodePipeline action-level variable reference
+                # that becomes a normal shell env var inside CodeBuild.
+                "COMMIT_ID": source.source_attribute("CommitId"),
             },
             commands=[
                 # Python setup
@@ -415,9 +431,38 @@ class PipelineStack(Stack):
                 "bandit -r . -ll -x tests/ || (echo 'Security issues found' && exit 1)",
                 # Unit + integration tests with coverage gate
                 "pytest -v --cov=. --cov-report=term-missing --cov-fail-under=80",
-                # CDK synth (required for self-mutation)
+                # ── Build + push the API image (#119) ────────────────────────
+                # Runs unconditionally on every commit, same as pytest/bandit/
+                # cdk synth above — NOT wrapped in the portal-relevance
+                # _guarded() gate. That gate's tracked paths deliberately
+                # exclude portal/ (a portal-only change needs no DB migration
+                # or smoke re-test), but portal/ IS baked into this image via
+                # Dockerfile's `COPY . .` — reusing that gate here would just
+                # reintroduce, for portal-only changes, the exact bug this
+                # step exists to fix (ECS silently serving a stale image).
+                #
+                # Mirrors scripts/build-push-api.sh's build invocation exactly
+                # (that script is now a break-glass fallback for when the
+                # pipeline itself is broken, not the primary mechanism).
+                # SHORT_SHA matches the 7-char convention already used for
+                # every existing tag in this ECR repo.
+                "SHORT_SHA=$(echo $COMMIT_ID | cut -c1-7)",
+                'echo "Building image for commit $SHORT_SHA"',
+                f"aws ecr get-login-password --region {cfg.region} "
+                f"| docker login --username AWS --password-stdin {cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com",
+                "docker build --platform linux/amd64 --target runtime "
+                "-t pyvar-dev-api:$SHORT_SHA -t pyvar-dev-api:latest .",
+                f"docker tag pyvar-dev-api:$SHORT_SHA {dev_ecr_uri}:$SHORT_SHA",
+                f"docker tag pyvar-dev-api:latest {dev_ecr_uri}:latest",
+                f"docker push {dev_ecr_uri}:$SHORT_SHA",
+                f"docker push {dev_ecr_uri}:latest",
+                # CDK synth (required for self-mutation). api_image_tag is only
+                # threaded through to dev_cfg below (see PyvarConfig.for_env) —
+                # Prod's ApiStack keeps the "latest" default until Prod is
+                # actually stood up.
                 "cd pyvar-cdk",
-                f"cdk synth --context env={cfg.env_name} --context account={cfg.account}",
+                f"cdk synth --context env={cfg.env_name} --context account={cfg.account} "
+                "--context api_image_tag=$SHORT_SHA",
                 "cd ..",
             ],
             primary_output_directory="pyvar-cdk/cdk.out",
@@ -441,12 +486,32 @@ class PipelineStack(Stack):
                     privileged=True,  # required for docker build
                 ),
             ),
+            # #119: scoped to ONLY the Synth project (not the shared
+            # code_build_defaults above, which every other CodeBuildStep in
+            # this pipeline — RunDbMigration-dev, SmokeTest, etc. — also
+            # inherits). None of those run Docker, so caching there would just
+            # flag every one of those projects for replacement for no benefit.
+            # Local/ephemeral/host-scoped — no S3/storage cost; speeds up the
+            # Synth step's new docker build (most layers are unchanged between
+            # commits) — a cache miss just means a full build, same as before.
+            synth_code_build_defaults=pipelines.CodeBuildOptions(
+                cache=cb.Cache.local(cb.LocalCacheMode.DOCKER_LAYER),
+            ),
             # Self-mutation: pipeline upgrades itself on every run
             self_mutation=True,
         )
 
         # ── Dev deploy stage ──────────────────────────────────────────────────
-        dev_cfg = PyvarConfig.for_env("dev", account=cfg.account)
+        # #119: api_image_tag threads the Synth step's freshly-pushed image tag
+        # (see the "COMMIT_ID"/SHORT_SHA commands above) through to ApiStack —
+        # without this override PyvarConfig's "latest" default never changes
+        # between deploys, so CloudFormation never sees a diff on the ECS task
+        # definition's image property and never redeploys it.
+        dev_cfg = PyvarConfig.for_env(
+            "dev",
+            account=cfg.account,
+            api_image_tag=self.node.try_get_context("api_image_tag"),
+        )
         dev_stage = PyvarDeployStage(
             self,
             "Dev",
@@ -573,6 +638,30 @@ class PipelineStack(Stack):
                     "ec2:DescribeImages",
                 ],
                 resources=["*"],
+            )
+        )
+
+        # #119: lets the Synth step's `docker login`/`docker push` (above)
+        # actually reach pyvar-dev-api. GetAuthorizationToken doesn't support
+        # resource-level restriction — "*" is the only valid resource for it,
+        # same pattern as the Describe*/List* EC2 actions above.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["ecr:GetAuthorizationToken"],
+                resources=["*"],
+            )
+        )
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:BatchGetImage",
+                ],
+                resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-dev-api"],
             )
         )
 
