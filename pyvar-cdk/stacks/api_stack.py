@@ -52,6 +52,30 @@ from stacks.network_stack import SecurityGroups
 
 from config import PyvarConfig
 
+# infra/172: mirrors pipeline_stack.py's stack_name= pinning. Without an
+# explicit policy_name=, CDK derives one from the FULL construct path
+# (including any Stage/Pipeline nesting above this stack), so wrapping this
+# stack in PyvarDeployStage changes it even though the stack's own
+# stack_name= is unchanged. AWS Application Auto Scaling refuses to have
+# two TargetTrackingScaling policies on the same scalable target + metric
+# at once, so CloudFormation's create-new-before-delete-old replacement for
+# a renamed policy fails outright ("Only one TargetTrackingScaling policy
+# for a given metric specification is allowed") instead of just being
+# churn — confirmed live against pyvar-dev-api. The dev names below are
+# copied verbatim from the policies AWS Application Auto Scaling already
+# has live (`aws application-autoscaling describe-scaling-policies
+# --service-namespace ecs`) so this is a true no-op update for the
+# existing dev deployment, not just a different-but-still-colliding
+# rename. Any env with no pre-pipeline deployment (e.g. prod, which has
+# never been deployed outside this pipeline) has no live policy to
+# collide with, so a plain deterministic name is fine there.
+_LEGACY_SCALING_POLICY_NAMES = {
+    "dev": {
+        "cpu": "pyvardevapiApiServiceTaskCountTargetCpuScaling1843CDE7",
+        "request": "pyvardevapiApiServiceTaskCountTargetRequestScaling005FA4CF",
+    },
+}
+
 
 class ApiStack(Stack):
 
@@ -416,11 +440,13 @@ class ApiStack(Stack):
             min_capacity=cfg.api_min_tasks,
             max_capacity=cfg.api_max_tasks,
         )
+        legacy_policy_names = _LEGACY_SCALING_POLICY_NAMES.get(cfg.env_name, {})
         scaling.scale_on_cpu_utilization(
             "CpuScaling",
             target_utilization_percent=60,
             scale_in_cooldown=Duration.minutes(5),
             scale_out_cooldown=Duration.minutes(1),
+            policy_name=legacy_policy_names.get("cpu", f"pyvar-{cfg.env_name}-api-cpu-scaling"),
         )
         # Also scale on request count to catch API-heavy traffic bursts
         scaling.scale_on_request_count(
@@ -429,6 +455,9 @@ class ApiStack(Stack):
             target_group=fargate_service.target_group,
             scale_in_cooldown=Duration.minutes(5),
             scale_out_cooldown=Duration.minutes(1),
+            policy_name=legacy_policy_names.get(
+                "request", f"pyvar-{cfg.env_name}-api-request-scaling"
+            ),
         )
 
         # ── Migration task (issue #119: automated DB migration on deploy) ─────
