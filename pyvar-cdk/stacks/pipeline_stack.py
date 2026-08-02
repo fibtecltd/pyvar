@@ -616,6 +616,24 @@ class PyvarDeployStage(cdk.Stage):
     ):
         super().__init__(scope, id, **kwargs)
 
+        # app.py's own cdk.Tags.of(app).add(...) calls never reach anything
+        # constructed in here. CDK Pipelines synthesizes each Stage's nested
+        # cloud assembly independently (needed for the self-mutation/staged
+        # deploy model) — an Aspect (which is what Tags.of().add() registers)
+        # only applies within the tree being walked by the synthesis pass
+        # that's currently running, and a Stage's own independent synth pass
+        # doesn't walk back up to aspects registered on an ancestor outside
+        # the Stage. Confirmed live: a cdk diff against the already-deployed
+        # (standalone) Dev stacks showed every resource here losing its
+        # cost-allocation tags, purely as a byproduct of this Stage
+        # boundary — not an intended change. Tagging the Stage directly
+        # sidesteps the boundary entirely: this aspect is now registered on
+        # (and applies within) the exact tree that gets synthesized.
+        cdk.Tags.of(self).add("Project", "pyvar")
+        cdk.Tags.of(self).add("Environment", cfg.env_name)
+        cdk.Tags.of(self).add("ManagedBy", "cdk")
+        cdk.Tags.of(self).add("Owner", "fibtec-limited")
+
         # Import application stacks — same stacks as in app.py
         # Imported here to avoid circular imports
         from stacks.api_stack import ApiStack
