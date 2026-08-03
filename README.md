@@ -7,9 +7,14 @@ Built by **Fibtec Limited (UK)** on top of NumPy, Numba, and the Anthropic Claud
 
 ## What is pyvar?
 
-pyvar exposes regulatory-grade risk functions — Monte Carlo VaR, Expected Shortfall,
-Greeks, stress testing, P&L attribution and more — as a REST API, accelerated via
-Numba JIT and served through an async Celery job pipeline.
+pyvar exposes risk functions — Monte Carlo VaR, Expected Shortfall,
+Greeks, stress testing, P&L attribution and more — as a REST API, served through
+an async Celery job pipeline. The most compute-intensive kernels (Monte Carlo
+simulation and related hot loops — 84 of 389 engine functions, 13 of them
+parallel) are Numba JIT-compiled; the rest are plain NumPy/SciPy, where JIT
+compilation offers little benefit. Not independently validated for regulatory
+use — see `tests/validation/` for pyvar's own cross-validation suite and its
+scope.
 
 ---
 

@@ -99,9 +99,9 @@ now.
 **Finding:** none exists, and none can exist in the way Time/Cost can — a
 production VaR/pricing/capital request has no ground-truth answer to compare
 against at request time. The only real accuracy evidence in this codebase is
-the P5a cross-validation work: `tests/validation/` contains 9 test files (one
-per domain plus a shared regulatory-reference module,
-`test_regulatory_ref.py`), **627 test functions** cross-validating engine
+the P5a cross-validation work: `tests/validation/` contains **8 test files**
+(one per domain, including `test_regulatory_ref.py` for Regulatory & Compliance
+— not an extra file on top of the 8), **627 test functions** cross-validating engine
 output against external reference values/formulas — closed-form
 Black-Scholes, analytical VaR, published Basel/FRTB worked examples —
 within stated tolerances (typically ≤0.1%–0.5% depending on the domain —

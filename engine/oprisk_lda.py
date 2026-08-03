@@ -315,7 +315,12 @@ def advanced_measurement_approach_ama(
     n_years: int = 100_000,
     seed: int | None = 42,
 ) -> dict:  # type: ignore[type-arg]
-    """Advanced Measurement Approach (AMA) capital charge.
+    """Advanced Measurement Approach (AMA) capital charge — retired under Basel III/IV.
+
+    Superseded by the Standardised Measurement Approach for Basel III/IV
+    regulatory capital (see ``basel_standardised_measurement_sma``); retained
+    here for economic-capital, internal scenario analysis, and jurisdictions
+    still on earlier timelines only.
 
     The AMA permits the LDA internal model. Under Basel II §669(b), if a bank can
     demonstrate that expected loss (EL) is already captured in its provisioning /
