@@ -1,9 +1,14 @@
 # ============================================================
 # requirements-ci.txt — packages needed to run the test suite in CI.
 #
-# Subset of requirements-heavy.txt: excludes ray, dask, quantlib,
-# streamlit and plotly (too large/slow for CI runners).
-# These are installed in addition to requirements.txt.
+# Subset of requirements-heavy.txt: excludes ray, dask, streamlit and
+# plotly (too large/slow for CI runners). These are installed in
+# addition to requirements.txt.
+#
+# QuantLib IS included, unlike the packages above: it's needed for
+# tests/validation/test_derivatives_ref.py's cross-validation tests
+# (independent-implementation reference, not a from-source compile —
+# ships as a ~20MB prebuilt manylinux wheel, no meaningful CI cost).
 # ============================================================
 
 numpy>=1.26.0
@@ -14,3 +19,4 @@ polars>=0.20.0
 pyarrow>=15.0.0
 statsmodels>=0.14.0
 arch>=6.3.0
+QuantLib>=1.33
