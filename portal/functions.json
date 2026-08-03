@@ -16245,8 +16245,8 @@
     "name": "advanced_measurement_approach_ama",
     "display_name": "Advanced Measurement Approach AMA",
     "path": "/api/v1/operational/advanced_measurement_approach_ama",
-    "summary": "Advanced Measurement Approach (AMA) capital charge.",
-    "description": "The AMA permits the LDA internal model. Under Basel II \u00a7669(b), if a bank can\ndemonstrate that expected loss (EL) is already captured in its provisioning /\npricing, capital may be set to unexpected loss only (OpVaR \u2212 EL); otherwise\ncapital equals the full OpVaR.",
+    "summary": "Advanced Measurement Approach (AMA) capital charge \u2014 retired under Basel III/IV.",
+    "description": "Superseded by the Standardised Measurement Approach for Basel III/IV\nregulatory capital (see ``basel_standardised_measurement_sma``); retained\nhere for economic-capital, internal scenario analysis, and jurisdictions\nstill on earlier timelines only.\n\nThe AMA permits the LDA internal model. Under Basel II \u00a7669(b), if a bank can\ndemonstrate that expected loss (EL) is already captured in its provisioning /\npricing, capital may be set to unexpected loss only (OpVaR \u2212 EL); otherwise\ncapital equals the full OpVaR.",
     "params": [
       {
         "name": "annual_event_counts",
