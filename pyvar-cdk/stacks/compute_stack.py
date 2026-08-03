@@ -338,6 +338,20 @@ class ComputeStack(Stack):
             http_put_response_hop_limit=1,  # defense-in-depth: 1 hop prevents container SSRF reaching IMDS
             nitro_enclave_enabled=False,
         )
+        # Tier 3 (independent strategic assessment): Cost Explorer's service-
+        # level breakdown groups NAT Gateway usage under "EC2 - Other" — the
+        # same top-level "EC2" service Spot worker instances bill under —
+        # with no way to tell the two apart. The generic Project/Environment/
+        # ManagedBy/Owner tags (applied stage-wide, see pipeline_stack.py's
+        # PyvarDeployStage) don't help here either: NAT Gateway gets the
+        # exact same tag values, since it sits in the same stage. A tag
+        # naming the SPECIFIC cost component is what's actually needed.
+        # cdk.Tags.of() on a LaunchTemplate construct — verified via cdk
+        # synth — generates TagSpecifications for both the "instance" and
+        # "volume" resource types, so this reaches the real running EC2
+        # instances (and their EBS volumes), not just the LaunchTemplate
+        # resource's own CloudFormation-level tags.
+        cdk.Tags.of(launch_template).add("CostComponent", "spot-worker-compute")
 
         # ── Auto Scaling Group ────────────────────────────────────────────────
         # Spot vs on-demand controlled by cfg.worker_use_spot (Option B).
