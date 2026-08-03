@@ -15,6 +15,20 @@ never against the function's own output. References used, in order of strength:
   5. LIMITING CASE / independent hand-calc where no clean textbook reference
      exists (rough Bergomi, LMM/BGM, Dupire local vol, displaced diffusion,
      Heston -> BS, SABR ATM).
+  6. INDEPENDENT-IMPLEMENTATION CROSS-VALIDATION via QuantLib
+     (AnalyticEuropeanEngine over a BlackScholesMertonProcess) — genuinely
+     different code, not just the same formula re-typed by the same author
+     as reference type 2 is. QuantLib is already a declared dependency
+     (requirements-heavy.txt) but was, until this was added, never actually
+     imported anywhere in the codebase — flagged by an independent strategic
+     assessment as the highest-leverage available accuracy work, since types
+     1-5 above all share the property that they can't catch a
+     model-specification error the engine and the reference both happen to
+     share. Maturity dates are constructed from the same day-count
+     (Actual365Fixed) `tau` the engine call uses, computed from whole days,
+     so there is no day-count-rounding artifact contaminating the
+     comparison — any residual difference is genuine model/implementation
+     disagreement.
 
 Run coverage with NUMBA_DISABLE_JIT=1 so @njit bodies are counted.
 """
@@ -25,6 +39,7 @@ import math
 
 import numpy as np
 import pytest
+import QuantLib as ql
 from scipy import stats
 
 from engine.deriv_bond_analytics import (
@@ -132,6 +147,33 @@ def bs_ref(spot, strike, rate, sigma, tau, is_call, q=0.0):
     ) * stats.norm.cdf(-d1)
 
 
+def ql_bs_price(spot, strike, rate, sigma, tau_days, is_call, q=0.0):
+    """QuantLib's own AnalyticEuropeanEngine price — a genuinely independent
+    implementation, not a re-derivation of the same formula (see bs_ref above
+    for that). Returns (price, tau_exact); tau_exact is derived from the same
+    Actual365Fixed day count QuantLib used to build the maturity date, so the
+    caller can price the engine function at that EXACT tau — eliminating any
+    day-count-rounding artifact from the comparison.
+    """
+    calc_date = ql.Date(1, 1, 2024)
+    ql.Settings.instance().evaluationDate = calc_date
+    day_count = ql.Actual365Fixed()
+    calendar = ql.NullCalendar()
+    spot_handle = ql.QuoteHandle(ql.SimpleQuote(spot))
+    rate_ts = ql.YieldTermStructureHandle(ql.FlatForward(calc_date, rate, day_count))
+    div_ts = ql.YieldTermStructureHandle(ql.FlatForward(calc_date, q, day_count))
+    vol_ts = ql.BlackVolTermStructureHandle(
+        ql.BlackConstantVol(calc_date, calendar, sigma, day_count)
+    )
+    process = ql.BlackScholesMertonProcess(spot_handle, div_ts, rate_ts, vol_ts)
+    maturity = calc_date + ql.Period(tau_days, ql.Days)
+    payoff = ql.PlainVanillaPayoff(ql.Option.Call if is_call else ql.Option.Put, strike)
+    option = ql.VanillaOption(payoff, ql.EuropeanExercise(maturity))
+    option.setPricingEngine(ql.AnalyticEuropeanEngine(process))
+    tau_exact = day_count.yearFraction(calc_date, maturity)
+    return option.NPV(), tau_exact
+
+
 def bond_pv_ref(face, cpn_rate, y, mat, freq):
     """Independent fixed-coupon bond PV: sum(cpn*DF)+face*DF."""
     n = int(round(mat * freq))
@@ -176,6 +218,32 @@ def test_bs_matches_independent_closed_form():
         ]
         ref = bs_ref(90, 105, 0.03, 0.25, 0.75, is_call)
         assert abs(px - ref) < 1e-6
+
+
+@pytest.mark.parametrize(
+    "spot,strike,rate,sigma,tau_days,is_call,q",
+    [
+        (100, 100, 0.05, 0.20, 365, True, 0.0),  # Hull anchor, call
+        (100, 100, 0.05, 0.20, 365, False, 0.0),  # Hull anchor, put
+        (100, 90, 0.05, 0.20, 365, True, 0.0),  # in-the-money call
+        (100, 110, 0.05, 0.20, 365, False, 0.0),  # in-the-money put
+        (50, 55, 0.03, 0.35, 730, True, 0.0),  # 2yr, high vol, low spot
+        (100, 100, 0.05, 0.20, 365, True, 0.03),  # dividend yield
+        (100, 100, 0.02, 0.45, 90, False, 0.01),  # short-dated, very high vol
+        (200, 180, 0.01, 0.15, 1825, True, 0.0),  # 5yr, low vol, low rate
+    ],
+)
+def test_bs_cross_validated_against_quantlib(spot, strike, rate, sigma, tau_days, is_call, q):
+    """Reference type 6 (see module docstring): genuine independent-implementation
+    cross-validation, not a re-derivation of the same formula. Tolerance is 1e-6
+    relative — generously loose against the ~1e-9 to 1e-10 agreement actually
+    observed; the point is to catch a real model-specification divergence, not
+    to chase floating-point-noise-level precision."""
+    ql_price, tau_exact = ql_bs_price(spot, strike, rate, sigma, tau_days, is_call, q)
+    px = black_scholes_european_option(
+        spot, strike, rate, sigma, tau_exact, "call" if is_call else "put", q
+    )["price"]
+    assert abs(px - ql_price) / ql_price < 1e-6
 
 
 def test_bs_put_call_parity():
