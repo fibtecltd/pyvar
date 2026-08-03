@@ -52,7 +52,9 @@ import argparse
 import base64
 import hashlib
 import hmac
+import http.client
 import json
+import random
 import subprocess
 import sys
 import time
@@ -115,16 +117,70 @@ def _request(url: str, headers: dict[str, str], data: bytes | None = None) -> di
 
 
 def submit_job(endpoint: str, headers: dict[str, str], n_simulations: int) -> str:
+    # api/routes/caching.py's cache_check decorator keys on a SHA-256 of the
+    # canonical request body and serves a cached result WITHOUT ever calling
+    # Celery ("task_id": "cached", bypasses dispatch entirely) once one exists
+    # for that exact body. Every job in a batch here uses the same RETURNS/
+    # n_simulations/etc, so once ANY prior call with this exact body completes
+    # once (celery_result_ttl-long window), every subsequent identical
+    # submission -- within this batch AND across future runs -- would
+    # short-circuit to that cache instead of ever touching the worker/Celery
+    # pipeline being benchmarked. Confirmed live (2026-08-03): a manual repeat
+    # of the exact same test payload returned "task_id": "cached". Perturbing
+    # one return by a per-call epsilon keeps the risk/compute profile
+    # effectively identical (30 returns, same n_simulations) while making the
+    # cache key unique per call, so every submission genuinely dispatches.
+    returns = list(RETURNS)
+    returns[0] += random.uniform(-1e-6, 1e-6)
     body = json.dumps(
         {
             "n_simulations": n_simulations,
             "confidence_level": 0.99,
             "horizon_days": 1,
             "portfolio_value": 1_000_000,
-            "returns": RETURNS,
+            "returns": returns,
         }
     ).encode()
-    resp = _request(f"{endpoint}/api/v1/var/compute", headers, body)
+    # Random jitter before opening the connection: observed live (2026-08-03)
+    # that ~50 truly-simultaneous fresh TLS connections from one source IP
+    # trips a CloudFront-level 403 ("Request blocked"/"could not be
+    # satisfied", server: CloudFront, x-cache: Error from cloudfront) that is
+    # NOT either of this account's own WAF Web ACLs (pyvar-dev-waf,
+    # pyvar-dev-alb-waf) -- zero matches in `aws wafv2 get-sampled-requests`
+    # for every rule in both across the exact failure window, and the
+    # CloudWatch BlockedRequests metric showed zero datapoints too. Most
+    # consistent with an automatic AWS-side anomaly/Shield-style mitigation
+    # outside this repo's WAF config, triggered by the burst pattern itself --
+    # and, on repeated live evidence, one that ESCALATES (longer block
+    # duration) on repeated triggers within its own cooldown window: a first
+    # 0-2s jitter version of this still tripped it, and the resulting block
+    # outlasted an 8x15s=120s retry budget, worse than the very first
+    # (untried-jitter) occurrence. Widened to 0-15s here -- still "concurrent"
+    # in every sense the methodology cares about (thread pool, ~3/s average
+    # start rate at n_jobs=50, nowhere close to a sequential loop's full
+    # serialize-per-request behaviour) while making the connection burst
+    # itself far less likely to look like an anomaly at the edge. Flagging
+    # this explicitly since it's a bigger parameter change than the first
+    # attempt, per instruction not to touch methodology substance quietly --
+    # it does NOT change what's being measured (submission via a thread pool,
+    # decoupled from N), only how aggressively that pool opens connections.
+    time.sleep(random.uniform(0, 15.0))
+    # Retry on top of that, in case the jitter isn't enough on a given run --
+    # observed recovery from an actual block took on the order of a minute,
+    # so the retry budget below is sized generously (up to ~2 minutes) rather
+    # than the first, too-short attempt (5 retries at 2s = 10s) that still
+    # failed. Bounded, not infinite, so a genuinely persistent failure still
+    # surfaces rather than hanging.
+    last_exc: Exception | None = None
+    for attempt in range(8):
+        try:
+            resp = _request(f"{endpoint}/api/v1/var/compute", headers, body)
+            break
+        except (urllib.error.URLError, http.client.HTTPException) as exc:
+            last_exc = exc
+            time.sleep(15.0)
+    else:
+        raise last_exc  # noqa: RSE102 -- deliberately re-raising the last attempt's exception
     task_id = resp.get("task_id")
     if not task_id:
         raise RuntimeError(f"no task_id in response: {resp!r}")
@@ -134,7 +190,25 @@ def submit_job(endpoint: str, headers: dict[str, str], n_simulations: int) -> st
 def poll_until_done(endpoint: str, headers: dict[str, str], task_id: str, timeout_s: float) -> str:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        resp = _request(f"{endpoint}/api/v1/var/result/{task_id}", headers)
+        try:
+            resp = _request(f"{endpoint}/api/v1/var/result/{task_id}", headers)
+        except (urllib.error.URLError, http.client.HTTPException):
+            # Transient blip -- retry within the same deadline instead of
+            # crashing the whole batch over one flaky poll. Two distinct
+            # causes observed live (2026-08-03), both transport-level, not
+            # application errors: intermittent 502 from CloudFront/ALB under
+            # 50 concurrent pollers (urllib.error.URLError, which HTTPError
+            # subclasses), and http.client.IncompleteRead truncating a large
+            # result body mid-transfer (a successful VaR result's loss_dist
+            # array makes each response several MB -- 50 of those downloading
+            # concurrently occasionally gets cut short). IncompleteRead is
+            # NOT a URLError subclass, hence the separate catch. Does not
+            # change what's measured: submit_wallclock is already captured
+            # before this function ever runs, and a transient retry here
+            # just costs a bit of this task's own poll time, same as if the
+            # real compute had simply taken longer.
+            time.sleep(1.0)
+            continue
         status = resp.get("status", "unknown")
         if status in ("success", "failure"):
             return status
