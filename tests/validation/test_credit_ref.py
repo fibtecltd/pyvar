@@ -15,6 +15,25 @@ Tolerances (per assignment):
   * 0.1% relative for VaR / Monte-Carlo simulation.
   * 0.001% for pure analytical formulae.
   * ZERO tolerance for IFRS 9 stage-threshold boundaries and confidence bounds.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  corporate_credit_scoring_model, sovereign_credit_risk_assessment,
+  downturn_lgd_adjustment (the 1.25x multiplier specifically -- EBA/GL/2019/03
+  actually specifies an ADDITIVE +15pp downturn fallback, not a multiplier),
+  macroeconomic_overlays_ecl, credit_stress_testing (the PD/LGD shock-multiplier
+  legs specifically -- the baseline EL leg is definitional and fine), and
+  wrong_way_risk_adjustment all have genuinely bespoke formulas with no
+  published source that reproduces their numbers -- checked against BIS/EBA
+  documents and the WWR literature (Hull & White 2012; Gregory, "The xVA
+  Challenge") and confirmed no match, rather than assumed. Their docstrings
+  previously implied regulatory grounding ("EBA-style", CRR Art. 181, etc.)
+  for the SPECIFIC FORMULA when only the general concept (downturn LGD,
+  forward-looking overlays, stress testing, WWR) is regulator-mandated, not
+  this implementation's exact numbers -- worth revisiting the docstring
+  wording, not done in this pass. Two free upgrades WERE applied elsewhere:
+  test_unexpected_loss_ul_computation cites Bluhm/Overbeck/Wagner Ch. 1 (the
+  formula is an exact match with deterministic LGD), and
+  test_retail_scorecard_pd_model cites Siddiqi (2006) for the PDO scaling.
 """
 
 from __future__ import annotations
@@ -208,7 +227,15 @@ def test_expected_loss_el_computation():
 def test_unexpected_loss_ul_computation():
     """closed-form: stand-alone UL = EAD*LGD*sqrt(PD(1-PD)); independent = RSS.
 
-    independent hand-calc, no published reference (Bernoulli loss std).
+    Genuine published match (Tier 3 #2 audit -- upgraded from "no published
+    reference"): with deterministic LGD (Var(LGD)=0), the standard stand-alone
+    UL = EAD*sqrt(PD(1-PD)*LGD^2 + PD*Var(LGD)) reduces exactly to this
+    formula. Bluhm, Overbeck & Wagner, "Introduction to Credit Risk Modeling",
+    2nd ed. (Chapman & Hall/CRC, 2010), Ch. 1 ("Expected and Unexpected
+    Loss"); also Ong, "Internal Credit Risk Models" (Risk Books, 1999), Ch. 5.
+    The RSS portfolio aggregation (ul_independent below) is the standard
+    zero-correlation portfolio standard deviation from the same chapters.
+    Formula match verified; no specific page/table number claimed.
     """
     pd = np.array([0.02, 0.05])
     lgd = np.array([0.45, 0.6])
@@ -590,7 +617,14 @@ def test_ratings_migration_matrix():
 
 
 def test_retail_scorecard_pd_model():
-    """closed-form: score = base + sum(fv*pts); odds=base_odds*2^((s-base)/pdo); PD=1/(1+odds)."""
+    """closed-form: score = base + sum(fv*pts); odds=base_odds*2^((s-base)/pdo); PD=1/(1+odds).
+
+    Genuine published match (Tier 3 #2 audit): odds = base_odds *
+    2^((score-base)/PDO) is the standard scorecard PDO (points-to-double-odds)
+    scaling, equivalent to Score = Offset + Factor*ln(odds) with
+    Factor = PDO/ln(2). Siddiqi, N., "Credit Risk Scorecards: Developing and
+    Implementing Intelligent Credit Scoring" (Wiley, 2006), scaling section.
+    """
     fv = np.array([1.0, 1.0, 0.0])
     pts = np.array([20.0, 30.0, 40.0])
     base_points, pdo, base_score, base_odds = 500.0, 50.0, 600.0, 50.0

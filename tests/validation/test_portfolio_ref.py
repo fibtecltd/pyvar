@@ -15,6 +15,29 @@ into three categories:
 Tolerances:
   * 1e-3 relative for optimisation / Monte-Carlo simulation.
   * 1e-5 (0.001%) relative for pure ratio / algebraic formulas.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  transaction_cost_analysis (a narrower quantity-weighted slippage measure
+  than Perold's full implementation-shortfall decomposition, which also
+  accounts for delay and unexecuted-share opportunity cost),
+  regime_detection_hmm (see engine/portfolio_factor.py's own docstring --
+  no transition matrix, so no published HMM benchmark like Hamilton 1989
+  applies), rebalancing_optimiser and its no-trade-band variant (the
+  no-trade region is a user-supplied threshold here, not derived from
+  cost/volatility parameters the way Leland 1999 or Donohue & Yip 2003
+  derive one) all have no published source that reproduces their exact
+  numbers -- checked, not assumed. black_litterman_model's formula is a
+  verified exact match to He & Litterman (1999) (Ω=diag(PτΣPᵀ),
+  λ=δ=2.5, τ=0.05 are their specific choices) but the TEST's 2-asset
+  inputs are not their published 7-country example -- re-anchoring to
+  their actual Table 1/2 data needs the primary paper transcribed by a
+  human, not done here (PDF access blocked in this environment).
+  carbon_footprint_attribution's WACI leg matches TCFD's definition
+  exactly; its total_financed_emissions leg does not match either TCFD's
+  or PCAF's financed-emissions standard (both use an ownership-share
+  method, not this function's revenue-intensity-times-invested-value) --
+  flagged as a likely correctness question for the domain owner, not a
+  citation gap.
 """
 
 from __future__ import annotations

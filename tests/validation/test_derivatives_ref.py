@@ -31,6 +31,23 @@ never against the function's own output. References used, in order of strength:
      disagreement.
 
 Run coverage with NUMBA_DISABLE_JIT=1 so @njit bodies are counted.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  normal_inverse_gaussian_model and lmm_bgm_rate_model have no published
+  reference AND no QuantLib pricer to cross-validate against (QuantLib has
+  no NIG engine; the LMM/BGM function returns only mean_terminal_rates, not
+  a price, so the standard LMM validation of simulated-caplet-vs-Black-76
+  can't be applied to its output). displaced_diffusion_model's a=0 case is
+  tautological BY CONSTRUCTION (the engine literally calls
+  black_scholes_european_option(spot+a, strike+a, ...), so a=0 is the
+  identity, not an independent check) -- a genuinely independent check
+  would need the a->infinity Bachelier/normal-price limit instead, not done
+  here. rough_volatility_rbergomi_model's price-level test remains a broad
+  0.3x-2.0x band: three real kernel bugs were found and fixed in this
+  domain (task #18) using invariant-based checks (an exact impulse-response
+  test, an eta->0 Black-Scholes reduction, put-call parity) rather than
+  tightening this specific band, since no independent rBergomi pricer
+  exists to validate the actual PRICE LEVEL against.
 """
 
 from __future__ import annotations

@@ -20,6 +20,30 @@ inherent, insurance offset reduces capital.
 Stochastic engines (LDA / AMA / scenario Monte Carlo) use fixed seeds.
 Tolerances: 0.1% relative for Monte-Carlo OpVaR; tighter for closed form; zero
 tolerance for Basel-defined boundaries.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  Most RCSA and governance "[independent hand-calc]" tests -- inherent/
+  residual risk scoring, control-effectiveness weighting, BEI/ICF
+  multipliers, loss-data thresholds, external-loss scaling, KRI breach
+  bands, the conduct/IT/vendor/BCM risk scores, the heat map, root-cause
+  normalisation, risk-appetite tiers, escalation thresholds, and the
+  audit-finding ageing uplift -- have no published source, checked against
+  BCBS 128, BCBS d424, BCBS 196 (AMA supervisory guidance) and the LDA
+  literature (Frachot/Georges/Roncalli 2001) and confirmed no match. BCBS
+  128 §676 and BCBS 196 REQUIRE BEICFs as an AMA input but explicitly leave
+  the incorporation formula to the bank, and this is the literature
+  consensus for RCSA scoring generally -- these are legitimate internal
+  conventions, not errors, but their reference values validate wiring and
+  rounding, not whether the scoring weights themselves are right.
+  Separately: in EVERY one of these cases, the test's "reference" turned
+  out to be the engine's own documented formula re-typed with the same
+  constants, rather than a hand-picked independent check -- a stronger
+  statement than "no citation available" and worth being explicit about.
+  test_insurance_offset_calculation_layer_logic and
+  test_oprisk_economic_capital_net_of_mitigants have a partial regulatory
+  anchor (BCBS 128 §677/§678's 20% insurance-recognition cap; §669(b)'s
+  UL=OpVaR-EL) for the STRUCTURE only, not the specific numeric
+  parameterisation.
 """
 
 from __future__ import annotations
