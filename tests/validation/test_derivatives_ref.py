@@ -999,6 +999,56 @@ def test_rbergomi_put_call_parity():
     assert (c["price"] - p["price"]) == pytest.approx(parity_target, abs=0.5)
 
 
+def test_rbergomi_control_variate_default_off_and_deterministic():
+    """control_variate defaults to False -- existing callers unaffected."""
+    a = rough_volatility_rbergomi_model(S, K, R, T, n_simulations=20_000, seed=2024)["price"]
+    b = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=20_000, seed=2024, control_variate=False
+    )["price"]
+    assert a == b
+    c = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=20_000, seed=2024, control_variate=True
+    )["price"]
+    d = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=20_000, seed=2024, control_variate=True
+    )["price"]
+    assert c == d
+
+
+def test_rbergomi_control_variate_reduces_variance_without_bias():
+    """Task #15 Phase 3: at matched n_simulations, control_variate=True should give
+    a materially lower spread of price estimates across independent seeds than
+    plain MC, with no material bias. The achievable reduction factor is itself
+    noisy at this sample size (observed 1.5x-4.5x across different 25-seed
+    batches during development) -- rBergomi's rough dynamics only partially
+    resemble the Heston companion used as the control, unlike Phase 2's much
+    cleaner QMC result on the exotic-option kernels. The exact seeds here are
+    fixed, so this specific threshold is deterministic (not flaky), but chosen
+    with margin below the ~1.48x actually observed for this seed range.
+    """
+    seeds = range(25)
+    n_simulations = 4_000
+
+    plain = np.array(
+        [
+            rough_volatility_rbergomi_model(S, K, R, T, n_simulations=n_simulations, seed=s)[
+                "price"
+            ]
+            for s in seeds
+        ]
+    )
+    cv = np.array(
+        [
+            rough_volatility_rbergomi_model(
+                S, K, R, T, n_simulations=n_simulations, seed=s, control_variate=True
+            )["price"]
+            for s in seeds
+        ]
+    )
+    assert np.var(cv) < np.var(plain) / 1.3, "control variate should materially reduce variance"
+    assert abs(np.mean(cv) - np.mean(plain)) < 3 * (np.std(plain) / np.sqrt(len(seeds)))
+
+
 def test_rbergomi_invalid():
     with pytest.raises(ValueError):
         rough_volatility_rbergomi_model(S, K, R, T, option_type="bad")

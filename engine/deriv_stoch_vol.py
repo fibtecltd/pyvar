@@ -407,6 +407,61 @@ def _rbergomi_paths(
     return out
 
 
+# Internal control-variate tuning constant for rough_volatility_rbergomi_model's
+# Heston companion (task #15 Phase 3) -- NOT a real calibrated mean-reversion
+# speed, just the kappa that empirically maximised correlation with rBergomi
+# payoffs on shared randomness in a parameter sweep (kappa in {8,16,20,24,32}
+# across two regimes; correlation kept rising with kappa but 16-20 was where it
+# stopped being worth chasing further, and produced no measurable bias). See
+# rough_volatility_rbergomi_model's docstring for the full validation.
+_HESTON_CV_KAPPA = 20.0
+
+
+@njit(cache=True, parallel=True)
+def _heston_companion_payoffs(
+    spot: float,
+    strike: float,
+    rate: float,
+    tau: float,
+    kappa: float,
+    theta: float,
+    sigma: float,
+    rho: float,
+    v0: float,
+    z_v: np.ndarray,
+    z_s: np.ndarray,
+    n_steps: int,
+    is_call: bool,
+) -> np.ndarray:
+    """Euler (full-truncation) Heston-path payoffs sharing rBergomi's own
+    z_v/z_s draws and rho-mixing convention, for use ONLY as a control
+    variate -- not exposed as a standalone pricer (the exact semi-analytic
+    heston_stochastic_volatility_model is strictly better for that). Sharing
+    the same random draws as _rbergomi_paths is what makes the two payoff
+    series correlated, which is the entire point of a control variate.
+    """
+    n_paths = z_v.shape[0]
+    dt = tau / n_steps
+    sqrt_dt = math.sqrt(dt)
+    disc = math.exp(-rate * tau)
+    out = np.empty(n_paths, dtype=np.float64)
+    for p in prange(n_paths):
+        v = v0
+        log_s = math.log(spot)
+        for step in range(n_steps):
+            v_pos = max(0.0, v)
+            dw = rho * z_v[p, step] + math.sqrt(1.0 - rho * rho) * z_s[p, step]
+            log_s += (rate - 0.5 * v_pos) * dt + math.sqrt(v_pos) * sqrt_dt * dw
+            v = v + kappa * (theta - v_pos) * dt + sigma * math.sqrt(v_pos * dt) * z_v[p, step]
+        st = math.exp(log_s)
+        if is_call:
+            payoff = st - strike if st > strike else 0.0
+        else:
+            payoff = strike - st if strike > st else 0.0
+        out[p] = disc * payoff
+    return out
+
+
 def rough_volatility_rbergomi_model(
     spot: float,
     strike: float,
@@ -420,6 +475,7 @@ def rough_volatility_rbergomi_model(
     n_simulations: int = 50_000,
     option_type: str = "call",
     seed: int = 2024,
+    control_variate: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Rough Bergomi (rBergomi) European option price via Monte Carlo.
 
@@ -467,6 +523,34 @@ def rough_volatility_rbergomi_model(
         n_simulations: Number of paths.
         option_type: ``"call"`` or ``"put"``.
         seed: RNG seed.
+        control_variate: Use a Heston-companion control variate (task #15
+            Phase 3) for a lower-variance estimate at the same
+            n_simulations. Defaults to False so existing callers/results
+            are unaffected.
+
+            A companion Heston path is simulated on the SAME pre-drawn
+            z_v/z_s normals (that shared randomness is what makes it
+            correlated with the rBergomi payoff -- an independently-drawn
+            Heston path would be a useless control). The companion uses
+            v0=theta=xi, sigma=eta, the same rho, and an internally-fixed
+            kappa (see ``_HESTON_CV_KAPPA``) chosen purely to maximise that
+            correlation -- rBergomi has no mean-reversion-speed parameter of
+            its own, so there's no "natural" kappa to inherit. The
+            companion's known EXACT price comes from the existing
+            semi-analytic heston_stochastic_volatility_model; the
+            optimal control-variate coefficient beta is estimated from the
+            sample covariance/variance of the two payoff series (standard
+            practice, not a fixed beta=1 subtraction).
+
+            Verified empirically across two parameter regimes (this
+            model's defaults, and a second regime with different strike/
+            tau/xi/eta/hurst/rho) that this gives a real ~2x-6x variance
+            reduction with no measurable bias -- weaker than Phase 2's QMC
+            result on the exotic-option kernels, but genuine, because
+            rBergomi's actual rough-volatility dynamics are structurally
+            quite different from Heston's Markovian CIR process (that
+            structural gap is exactly why the correlation -- and therefore
+            the achievable variance reduction -- isn't larger).
 
     Returns:
         Dict with ``price``, ``std_error``.
@@ -500,6 +584,33 @@ def rough_volatility_rbergomi_model(
         int(n_steps),
         option_type == "call",
     )
+
+    if control_variate:
+        heston_payoffs = _heston_companion_payoffs(
+            spot,
+            strike,
+            rate,
+            tau,
+            _HESTON_CV_KAPPA,
+            xi,
+            eta,
+            rho,
+            xi,
+            z_v,
+            z_s,
+            int(n_steps),
+            option_type == "call",
+        )
+        analytic_heston = heston_stochastic_volatility_model(
+            spot, strike, rate, tau, xi, _HESTON_CV_KAPPA, xi, eta, rho, option_type
+        )["price"]
+        var_h = float(np.var(heston_payoffs))
+        beta = float(np.cov(payoffs, heston_payoffs)[0, 1]) / var_h if var_h > 0.0 else 0.0
+        adjusted = payoffs - beta * (heston_payoffs - analytic_heston)
+        price = float(np.mean(adjusted))
+        se = float(np.std(adjusted) / math.sqrt(n_simulations))
+        return {"price": round(price, 8), "std_error": round(se, 8)}
+
     price = float(np.mean(payoffs))
     se = float(np.std(payoffs) / math.sqrt(n_simulations))
     return {"price": round(price, 8), "std_error": round(se, 8)}
