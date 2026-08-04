@@ -539,12 +539,17 @@ class SolvencyIiScrMarketRiskResponse(BaseModel):
 
 
 class SolvencyIiScrCreditRiskRequest(BaseModel):
-    """Request parameters for solvency_ii_scr_credit_risk()."""
+    """Request parameters for solvency_ii_scr_credit_risk().
+
+    No ``risk_factor`` field: DR (EU) 2015/35 Art. 200(1)-(3) fixes the
+    capital multiplier as a tiered function of sigma/total_lgd (3x/5x/capped
+    at total LGD) — it is not a caller-configurable value. See the engine
+    docstring for the regulatory fix this removal is part of.
+    """
 
     exposures: list[float] | list[list[float]]
     loss_given_default: list[float] | list[list[float]]
     default_probabilities: list[float] | list[list[float]]
-    risk_factor: float = 3.0
 
 
 class SolvencyIiScrCreditRiskResponse(BaseModel):

@@ -163,19 +163,35 @@ def solvency_ii_scr_credit_risk(
     exposures: np.ndarray,
     loss_given_default: np.ndarray,
     default_probabilities: np.ndarray,
-    risk_factor: float = 3.0,
 ) -> dict:  # type: ignore[type-arg]
-    """Solvency II SCR counterparty default (credit) risk — type 1 simplified.
+    """Solvency II SCR counterparty default (credit) risk — Type 1 exposures.
 
-    Computes the loss-given-default per counterparty and the capital charge from
-    the variance of losses, using the standard-formula risk factor on the
-    aggregate LGD (Delegated Regulation 2015/35 Art. 199-202, simplified).
+    [REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the
+    capital charge as a TIERED multiplier on the standard deviation (sigma) of
+    the loss distribution, not a flat 3x: SCR = 3*sigma while
+    sigma <= 7% of total LGD; SCR = 5*sigma while 7% < sigma/TLGD <= 20%; SCR =
+    total LGD (fully capped) once sigma/TLGD exceeds 20%. An earlier version of
+    this function exposed a caller-configurable ``risk_factor`` defaulting to a
+    flat 3.0 — that understated capital by ~79% on a representative 2-exposure
+    case (807 vs. the correct ~1449, entirely from missing the 5x/TLGD tiers).
+    The multiplier is fixed by the Delegated Regulation, so it is intentionally
+    not a parameter here (same reasoning as CLAUDE.md §4.3/§4.4's Basel
+    thresholds: never parameterise regulator-set constants).
+
+    [LIMITATION] The variance (sigma^2) computed here is the intra-counterparty
+    term only — an independent-Bernoulli approximation summing each
+    counterparty's own default-loss variance. Art. 201's full formula also adds
+    an inter-counterparty correlation term (V_inter) between exposures carrying
+    different default probabilities, which this implementation does NOT
+    compute — that term is generally positive, so the true Art. 201 variance
+    (and therefore the true SCR) is at least as large as what this function
+    returns. Do not rely on this for statutory Solvency II reporting without an
+    actuarial review of that gap.
 
     Args:
         exposures: Exposure at default per counterparty.
         loss_given_default: LGD fraction per counterparty.
         default_probabilities: PD per counterparty in [0, 1].
-        risk_factor: Standard-formula multiplier on the LGD volatility.
 
     Returns:
         Dict with ``scr_credit``, ``expected_loss`` and ``total_lgd``.
@@ -195,9 +211,22 @@ def solvency_ii_scr_credit_risk(
     lgd = ead * lgd_rate
     total_lgd = float(np.sum(lgd))
     expected_loss = float(np.sum(pd * lgd))
-    # Variance of loss assuming independent Bernoulli defaults.
+    # Variance of loss assuming independent Bernoulli defaults (intra-
+    # counterparty term only -- see [LIMITATION] above).
     variance = float(np.sum((lgd**2) * pd * (1.0 - pd)))
-    scr = risk_factor * np.sqrt(variance) if variance > 0.0 else 0.0
+    sigma = float(np.sqrt(variance)) if variance > 0.0 else 0.0
+
+    # Art. 200(1)-(3) tiered multiplier -- see [REGULATORY] above.
+    if total_lgd <= 0.0:
+        scr = 0.0
+    else:
+        ratio = sigma / total_lgd
+        if ratio <= 0.07:
+            scr = 3.0 * sigma
+        elif ratio <= 0.20:
+            scr = 5.0 * sigma
+        else:
+            scr = total_lgd
     # Capital cannot exceed total exposure at loss.
     scr = min(scr, total_lgd)
     return {
