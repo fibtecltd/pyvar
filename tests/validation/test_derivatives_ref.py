@@ -695,6 +695,10 @@ def test_dupire_invalid():
 
 
 def test_rbergomi_sanity_and_determinism():
+    # A broad price-level band like this one cannot, by construction, detect
+    # an autocovariance-structure defect in the underlying Volterra kernel --
+    # see tests/test_deriv_stoch_vol.py::test_rbergomi_volterra_driver_matches_hand_calc
+    # (task #18) for the exact, hand-computable regression test that can.
     # independent sanity / limiting case: price in a sensible band, deterministic
     r1 = rough_volatility_rbergomi_model(S, K, R, T, n_simulations=30_000, seed=2024)
     r2 = rough_volatility_rbergomi_model(S, K, R, T, n_simulations=30_000, seed=2024)
@@ -702,6 +706,31 @@ def test_rbergomi_sanity_and_determinism():
     # xi=0.04 -> vol ~0.2; price should be within a broad BS-implied band
     bs = bs_ref(S, K, R, 0.2, T, True)
     assert 0.3 * bs < r1["price"] < 2.0 * bs
+
+
+def test_rbergomi_put_call_parity():
+    """Independent reference: C - P = S - K*exp(-rT) must hold for ANY
+    risk-neutral Ito price process regardless of how complex the volatility
+    dynamics are -- it is not specific to Black-Scholes. This test would
+    have caught a real, separate bug found while fixing task #18's
+    autocovariance-structure issue: the variance used to scale a given
+    step's price shock was computed using that SAME step's own Brownian
+    draw, correlating "random" volatility with the very shock it should be
+    independent of and breaking the risk-neutral drift. Before the fix,
+    C - P landed at roughly -15.2 against a target of +1.98 (at r=0.02) --
+    not a rounding-level miss. n_simulations/tolerance chosen from an
+    empirical std-error check (~0.06 at 100k paths here) to be non-flaky
+    with a wide margin while still failing hard on the magnitude of bug
+    this guards against.
+    """
+    c = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=100_000, option_type="call", seed=2024
+    )
+    p = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=100_000, option_type="put", seed=2024
+    )
+    parity_target = S - K * math.exp(-R * T)
+    assert (c["price"] - p["price"]) == pytest.approx(parity_target, abs=0.5)
 
 
 def test_rbergomi_invalid():
