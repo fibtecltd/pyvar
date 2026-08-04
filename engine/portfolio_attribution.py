@@ -198,11 +198,26 @@ def currency_attribution(
     weights: np.ndarray,
     currency_names: list[str] | None = None,
 ) -> dict:  # type: ignore[type-arg]
-    """Currency attribution (Karnosky-Singer style).
+    """Currency attribution -- naive geometric local/FX decomposition.
 
     Splits the base-currency return into a local-market component and a currency
-    (FX) component per holding, weighted by exposure. The total reconciles to
-    the weighted base-currency return.
+    (FX) component per holding, weighted by exposure, via the geometric
+    identity ``base = (1+local)(1+fx)-1`` with currency as the residual. The
+    total reconciles to the weighted base-currency return.
+
+    This is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), "The
+    Currency Dimension of Global Asset Management and Performance
+    Attribution", CFA Institute Research Foundation) -- that method requires
+    local-currency return PREMIUMS (local return minus the local risk-free
+    rate) and moves the interest-rate differential onto the currency side via
+    covered interest parity; this function takes no interest rates at all. A
+    prior version of this docstring claimed "Karnosky-Singer style", which is
+    the same failure mode as this codebase's earlier false QuantLib
+    cross-validation claim (correct arithmetic, fabricated provenance) --
+    found during the Tier 3 #2 audit. See Bacon, C. (2008), "Practical
+    Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6, which
+    presents this naive geometric split as the baseline before introducing
+    Ankrim-Hensel and Karnosky-Singer.
 
     Args:
         local_returns: Local-currency return per holding.

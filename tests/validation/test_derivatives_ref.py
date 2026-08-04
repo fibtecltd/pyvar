@@ -5,8 +5,16 @@ never against the function's own output. References used, in order of strength:
 
   1. ANALYTICAL ANCHOR — Black-Scholes European (S=100, K=100, T=1, r=0.05,
      sigma=0.2): call=10.4506, put=5.5735, delta=0.6368, gamma=0.018762,
-     vega=37.524 per 1.00 vol.  Source: J. Hull, *Options, Futures and Other
-     Derivatives*, 8th ed., ch. 15 (worked example) and ch. 19 (Greeks).
+     vega=37.524 per 1.00 vol. These are the standard closed-form BSM values
+     at these inputs (independently confirmed to ~1e-9 relative agreement by
+     reference type 6's QuantLib cross-validation, which uses these exact
+     inputs) -- NOT a published Hull worked example, despite a prior version
+     of this docstring claiming "Hull, 8th ed., ch. 15/19": Hull's actual BSM
+     worked example uses S=42, K=40, r=10%, sigma=20%, T=0.5, and Hull's
+     Greeks-chapter running example uses S=49, K=50, r=5%, sigma=20%, T=20
+     weeks — neither matches these parameters. Correct arithmetic, fabricated
+     provenance — the same failure mode as this codebase's earlier false
+     QuantLib cross-validation claim. Found during the Tier 3 #2 audit.
   2. CLOSED FORM re-derived here independently (bond PV, duration, convexity,
      DV01, YTM inversion, Garman-Kohlhagen, Vasicek/CIR affine ZCB, CDS,
      swaps, curves, Black-76 caplet/swaption).
@@ -122,13 +130,14 @@ from engine.deriv_stoch_vol import (
     variance_gamma_model,
 )
 
-# ── Standard Hull anchor parameters ─────────────────────────────────────────
+# ── Standard BSM anchor parameters (see module docstring reference type 1 --
+# not a Hull worked example) ─────────────────────────────────────────────────
 S, K, R, SIG, T = 100.0, 100.0, 0.05, 0.2, 1.0
-HULL_CALL = 10.4506
-HULL_PUT = 5.5735
-HULL_DELTA = 0.6368
-HULL_GAMMA = 0.018762
-HULL_VEGA = 37.524  # per 1.00 vol
+BS_REF_CALL = 10.4506
+BS_REF_PUT = 5.5735
+BS_REF_DELTA = 0.6368
+BS_REF_GAMMA = 0.018762
+BS_REF_VEGA = 37.524  # per 1.00 vol
 
 
 # ── Independent reference helpers (NOT from the engine) ──────────────────────
@@ -203,12 +212,13 @@ def test_norm_cdf_known_points():
     assert abs(norm_pdf(0.0) - 1.0 / math.sqrt(2.0 * math.pi)) < 1e-12
 
 
-def test_bs_hull_anchor_call_put():
-    # ANALYTICAL ANCHOR — Hull, Options Futures & Other Derivatives
+def test_bs_reference_anchor_call_put():
+    # ANALYTICAL ANCHOR — standard BSM closed form, not a Hull worked example
+    # (see module docstring reference type 1)
     call = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]
     put = black_scholes_european_option(S, K, R, SIG, T, "put")["price"]
-    assert abs(call - HULL_CALL) / HULL_CALL < 1e-5
-    assert abs(put - HULL_PUT) / HULL_PUT < 1e-5
+    assert abs(call - BS_REF_CALL) / BS_REF_CALL < 1e-5
+    assert abs(put - BS_REF_PUT) / BS_REF_PUT < 1e-5
 
 
 def test_bs_matches_independent_closed_form():
@@ -223,8 +233,8 @@ def test_bs_matches_independent_closed_form():
 @pytest.mark.parametrize(
     "spot,strike,rate,sigma,tau_days,is_call,q",
     [
-        (100, 100, 0.05, 0.20, 365, True, 0.0),  # Hull anchor, call
-        (100, 100, 0.05, 0.20, 365, False, 0.0),  # Hull anchor, put
+        (100, 100, 0.05, 0.20, 365, True, 0.0),  # BSM reference anchor, call
+        (100, 100, 0.05, 0.20, 365, False, 0.0),  # BSM reference anchor, put
         (100, 90, 0.05, 0.20, 365, True, 0.0),  # in-the-money call
         (100, 110, 0.05, 0.20, 365, False, 0.0),  # in-the-money put
         (50, 55, 0.03, 0.35, 730, True, 0.0),  # 2yr, high vol, low spot
@@ -273,12 +283,13 @@ def test_bs_invalid_inputs():
         black_scholes_european_option(S, K, R, -0.1, T, "call")
 
 
-def test_bs_greeks_hull_anchor():
-    # ANALYTICAL ANCHOR — Hull ch.19 Greeks
+def test_bs_greeks_reference_anchor():
+    # ANALYTICAL ANCHOR — standard BSM Greeks closed form, not a Hull worked
+    # example (see module docstring reference type 1)
     g = black_scholes_greeks(S, K, R, SIG, T, "call")
-    assert abs(g["delta"] - HULL_DELTA) < 1e-3
-    assert abs(g["gamma"] - HULL_GAMMA) < 1e-4
-    assert abs(g["vega"] - HULL_VEGA) < 1e-2
+    assert abs(g["delta"] - BS_REF_DELTA) < 1e-3
+    assert abs(g["gamma"] - BS_REF_GAMMA) < 1e-4
+    assert abs(g["vega"] - BS_REF_VEGA) < 1e-2
 
 
 def test_bs_greeks_vs_finite_difference():

@@ -188,7 +188,7 @@ ES is the Basel IV / FRTB standard risk measure — NOT VaR.
 ```
 - Basel traffic-light test uses EXACTLY 250 trading days. Not 252. Not 260.
 - Breach zones: Green < 5, Yellow 5-9, Red >= 10 (per Basel Committee).
-- Capital add-on multiplier: 3.0 (green), 3.4-3.8 (yellow), 4.0 (red).
+- Capital add-on multiplier: 3.0 (green), 3.40-3.85 (yellow), 4.0 (red).
 - Kupiec and Christoffersen tests must use chi-squared critical values
   at 95% confidence — do not change significance level.
 ```

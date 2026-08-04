@@ -11089,7 +11089,7 @@
     "display_name": "Combined Stress Scenario",
     "path": "/api/v1/liquidity/combined_stress_scenario",
     "summary": "Combined idiosyncratic + market-wide stress scenario.",
-    "description": "The Basel/EBA reference scenario: a firm-specific shock occurring inside a\nmarket-wide crisis. Liability run-off is aggravated (retail default 15%,\nwholesale 100%) *and* HQLA value is reduced by stressed market haircuts.",
+    "description": "Models a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n\nNOT the Basel/EBA reference scenario, despite a prior version of this\ndocstring claiming that: BCBS 238's own combined idiosyncratic +\nmarket-wide scenario (\u00a7II paras 19-20) runs off the LCR's own regulator-\nset retail run-off categories (3%/5%/10% depending on deposit\nstability), not a flat 15% -- the 15%/100% defaults here are an internal\nconvention, not the Basel figures. Found during the Tier 3 #2 audit.",
     "params": [
       {
         "name": "retail_deposits",
@@ -18641,8 +18641,8 @@
     "name": "currency_attribution",
     "display_name": "Currency Attribution",
     "path": "/api/v1/portfolio/currency_attribution",
-    "summary": "Currency attribution (Karnosky-Singer style).",
-    "description": "Splits the base-currency return into a local-market component and a currency\n(FX) component per holding, weighted by exposure. The total reconciles to\nthe weighted base-currency return.",
+    "summary": "Currency attribution -- naive geometric local/FX decomposition.",
+    "description": "Splits the base-currency return into a local-market component and a currency\n(FX) component per holding, weighted by exposure, via the geometric\nidentity ``base = (1+local)(1+fx)-1`` with currency as the residual. The\ntotal reconciles to the weighted base-currency return.\n\nThis is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), \"The\nCurrency Dimension of Global Asset Management and Performance\nAttribution\", CFA Institute Research Foundation) -- that method requires\nlocal-currency return PREMIUMS (local return minus the local risk-free\nrate) and moves the interest-rate differential onto the currency side via\ncovered interest parity; this function takes no interest rates at all. A\nprior version of this docstring claimed \"Karnosky-Singer style\", which is\nthe same failure mode as this codebase's earlier false QuantLib\ncross-validation claim (correct arithmetic, fabricated provenance) --\nfound during the Tier 3 #2 audit. See Bacon, C. (2008), \"Practical\nPortfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6, which\npresents this naive geometric split as the baseline before introducing\nAnkrim-Hensel and Karnosky-Singer.",
     "params": [
       {
         "name": "local_returns",
@@ -20000,10 +20000,10 @@
     "domain_page": "domain-portfolio-analytics.html",
     "domain_color": "#7060d4",
     "name": "regime_detection_hmm",
-    "display_name": "Regime Detection HMM",
+    "display_name": "Regime Detection Hmm",
     "path": "/api/v1/portfolio/regime_detection_hmm",
-    "summary": "Two-state Gaussian regime detection (HMM-style mixture).",
-    "description": "Fits a two-component Gaussian mixture by EM and labels each observation by\nits most likely regime. The higher-variance component is reported as the\n\"stress\" regime \u2014 the standard calm/turbulent market characterisation.",
+    "summary": "Two-state Gaussian regime detection via EM (function name overstates the method -- see below).",
+    "description": "Fits a two-component Gaussian mixture by EM and labels each observation by\nits most likely regime. The higher-variance component is reported as the\n\"stress\" regime \u2014 the standard calm/turbulent market characterisation.\n\nDespite the ``_hmm`` in this function's name, this is a STATIONARY\nGaussian mixture (i.i.d. component weights ``pi``) -- there is no\ntransition matrix, so regime persistence/switching probabilities are not\nmodelled at all, only the marginal mixture. A genuine hidden Markov model\n(Hamilton, J.D. (1989), \"A New Approach to the Economic Analysis of\nNonstationary Time Series and the Business Cycle\", Econometrica 57(2))\nfits a Markov-switching autoregression with an explicit 2x2 transition\nmatrix and publishes reproducible parameter estimates on US GNP growth --\nnot applicable here since this function's inputs/outputs don't match that\nstructure. Renaming the function (and its REST route) is a larger,\nseparate change than this docstring fix; flagged here (Tier 3 #2 audit)\nso nobody mistakes the current name for a claim of Markov-switching\nbehaviour.",
     "params": [
       {
         "name": "returns",
@@ -21586,8 +21586,8 @@
     "name": "mifid_ii_best_execution_metric",
     "display_name": "MiFID II Best Execution Metric",
     "path": "/api/v1/regulatory/mifid_ii_best_execution_metric",
-    "summary": "MiFID II RTS 27/28 best-execution metric.",
-    "description": "Computes the quantity-weighted price improvement (or slippage) of executions\nversus a reference (e.g. EBBO) price, in basis points. Positive means price\nimprovement for the client.",
+    "summary": "MiFID II best-execution TCA metric -- internal, NOT an RTS 27/28 figure.",
+    "description": "Computes the quantity-weighted price improvement (or slippage) of executions\nversus a reference (e.g. EBBO) price, in basis points. Positive means price\nimprovement for the client.\n\nThis does not correspond to any specific RTS 27/28 field: RTS 27\n(Commission Delegated Regulation (EU) 2017/575) requires simple-average\nand volume-weighted transaction prices/spreads/best-bid-offer (Annex\nTables 1-9), and RTS 28 (DR (EU) 2017/576) requires execution-venue\nrankings -- neither defines a quantity-weighted price-improvement-in-bps\nmetric like this one. RTS 27 was also repealed by the 2024 MiFIR review.\nA prior version of this docstring cited \"RTS 27/28\" directly; corrected\nduring the Tier 3 #2 audit. This remains a reasonable internal TCA\nmetric, just not a regulatory-prescribed one.",
     "params": [
       {
         "name": "executed_prices",
