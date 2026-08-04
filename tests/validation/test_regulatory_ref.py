@@ -16,6 +16,26 @@ Regulatory boundary constants (CLAUDE.md §4) are asserted with ZERO tolerance:
   * Leverage minimum 3%, capital conservation buffer 2.5%.
   * Basel IV output floor 72.5%, CRR2 large-exposure limit 25%.
 Arithmetic ratios are checked to 1e-8 (< 0.001%).
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  icaap_capital_assessment and pillar_2b_stress_buffer have no published
+  source -- CRD IV Art. 73 and PRA SS31/15 / EBA/GL/2018/04 mandate THAT
+  these assessments happen, not a specific formula, and publish no worked
+  example. mifid_ii_pre_trade_transparency, mifid_ii_post_trade_
+  transparency and mifid_ii_algorithm_documentation cite real rules
+  (MiFIR Art. 4(1)(c)/9(1)(c) waivers; RTS 1/2 deferral; RTS 6 Art. 5-12
+  governance requirements) but the specific numeric thresholds and the
+  6-item documentation checklist are internal choices, not regulator-set
+  values -- ESMA publishes LIS/deferral thresholds only as per-instrument
+  values in the FITRS transparency register, no general worked example.
+  mifid_ii_transaction_report_validator, emir_trade_repository_report and
+  sftr_securities_finance_report validate a representative CORE SUBSET of
+  fields (9 of RTS 22's ~65, 6 of EMIR REFIT's ~200, 6 of SFTR's field
+  schema) -- the individual field-format rules checked (LEI=20 chars per
+  ISO 17442, ISIN=12 chars per ISO 6166, the 4-way SFT taxonomy per IR
+  2019/363 Annex Table 2) are genuinely regulator-sourced, but a
+  `valid: True` result from these functions should not be read as full
+  schema coverage.
 """
 
 from __future__ import annotations

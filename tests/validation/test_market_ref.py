@@ -16,6 +16,27 @@ Reference conventions used throughout:
 
 Tolerances: 0.1% relative for VaR/ES/simulation-class figures; ZERO tolerance
 for regulatory zone boundaries and the 250-day rule.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  * Cornish-Fisher, Kupiec, EGARCH, GJR-GARCH, GARCH(1,1) mean-reversion,
+    spectral risk measure, Greeks-based Taylor P&L, and the FRTB SBM/DRC/
+    RRAO/liquidity-adjusted-ES/SES formulas are all citable for FORMULA
+    provenance (textbook/paper references exist and were checked to match)
+    but NOT for the specific numeric worked values asserted -- BCBS
+    publishes the FRTB formulas and correlation tables but no end-to-end
+    numeric worked examples for SBM/DRC/RRAO/liquidity-adjusted-ES/SES
+    aggregation, and the academic sources for the others (Fisher & Cornish
+    1960, Kupiec 1995, Nelson 1991, Glosten/Jagannathan/Runkle 1993, Acerbi
+    2002) don't publish reproducible numbers at these specific test inputs
+    either.
+  * A distinct, higher-priority category: several tests (filtered
+    historical simulation/EWMA, the 250-day stressed-period brute-force
+    scan, the Neumann-series contagion scenario, several tail-mean/
+    empirical-quantile tests) retype the engine's own algorithm rather than
+    computing an independently-sourced reference -- they validate that the
+    test's convention matches the engine's, not that the underlying measure
+    is correct. Fixing this needs a genuinely separate implementation or an
+    analytic limit case, not a citation; not done in this pass.
 """
 
 from __future__ import annotations

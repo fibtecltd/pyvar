@@ -15,6 +15,26 @@ INDEPENDENT reference, never against the function's own output:
 
 Tolerances: 1e-5 (0.001%) for pure duration/PV arithmetic; 1e-3 (0.1%) for
 simulation; ZERO tolerance for the "exactly six shocks" IRRBB requirement.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  prepayment_model_mortgages computes WAL from TOTAL (interest+principal)
+  cashflows rather than principal-only, which is the standard WAL
+  definition in every published source checked (SIFMA "Standard Formulas
+  for the Analysis of MBS") -- no published example can match by
+  construction; a definition fix, not a citation, would be needed.
+  behavioural_modelling_nmds, non_maturity_deposit_stability,
+  funds_transfer_pricing_ftp (single-deal and curve construction),
+  pipeline_risk_measurement, liquidity_adjusted_nii, nii_simulation_stress,
+  dynamic_gap_analysis and balance_sheet_projection_model are all bespoke
+  constructions with no published worked example -- checked against BCBS
+  d368's standardised NMD treatment (a different methodology: slotting with
+  maturity caps, not this file's exponential-decay blend), BIS WP47 and ECB
+  WP 3140 (NMD stability literature reviews, no worked example), and
+  Grant (2011, BIS FSI OP No. 10) / Bessis Ch. 10 (FTP, qualitative only).
+  structural_hedge_optimisation_ref's single-instrument case is the exact
+  analytic solution to a degenerate 1-instrument bounded least-squares
+  problem -- correct, but doesn't exercise the general (multi-instrument)
+  case.
 """
 
 from __future__ import annotations

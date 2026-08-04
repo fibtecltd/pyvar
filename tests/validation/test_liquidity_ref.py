@@ -19,6 +19,28 @@ Reference tags used below:
 
 Tolerances: 0.1% relative in general; ZERO tolerance on the LCR/NSFR 100%
 threshold and on the 40%/15% HQLA caps.
+
+Known limitations (Tier 3 #2 audit, documented rather than silently left):
+  Roughly half the "[independent hand-calc]"-tagged tests in this file have
+  NO published source and none was found by checking BCBS 238/248/295 and
+  EBA ILAAP guidelines directly -- cash-flow ladder shortfall/bucketing,
+  liquidity gap ratio, funding tenor analysis, survival horizon, liquidity
+  buffer sizing, CFP trigger logic, secured-funding rollover gap, FX
+  liquidity netting, intragroup flow netting, funding cost, liquidity
+  transfer pricing, the ILAAP internal metric, risk-appetite RAG mapping,
+  early-warning indicators, the liquidity scorecard, deposit-stability
+  classification, and the cross-currency bridge are all internally
+  reasonable conventions with no regulator-published worked example to
+  check them against. Two tests (test_contingent_liquidity_risk_expected_
+  and_max, test_central_bank_eligibility_filter_and_capacity) have partial
+  parameter-level leads (BCBS 238 §131 committed-facility drawdown rates;
+  ECB/BoE collateral haircut schedules) not yet incorporated. A smaller,
+  separate issue also found: 5 "hand-calc" tests actually just restate the
+  implementation's own NumPy expression rather than computing anything
+  independently (test_cash_flow_ladder_1_year_buckets,
+  test_liquidity_gap_analysis, test_collateral_availability_*,
+  test_repo_market_stress_margin_call, part of
+  test_wholesale_concentration_hhi) -- not fixed in this pass.
 """
 
 from __future__ import annotations
