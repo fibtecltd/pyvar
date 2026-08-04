@@ -24,6 +24,7 @@ import math
 import numpy as np
 import pytest
 from scipy import stats
+from scipy.optimize import linprog
 
 # ── credit_capital ───────────────────────────────────────────────────────────
 from engine.credit_capital import (
@@ -1105,6 +1106,34 @@ def test_credit_portfolio_optimisation():
     assert sum(res["weights"]) == pytest.approx(1.0, rel=REL_ANALYTIC)
     assert all(0.0 <= w <= maxw + 1e-9 for w in res["weights"])
     assert res["portfolio_el"] >= 0.0
+
+
+def test_credit_portfolio_optimisation_cross_validated_against_linprog():
+    """Genuine independent cross-validation (task #23): the test above
+    re-runs the exact same greedy water-fill loop the engine implements --
+    it validates that the engine reproduces its own algorithm faithfully,
+    not that the algorithm's OUTPUT is actually optimal. scipy.optimize's
+    HiGHS-backed LP solver is a genuinely different method (interior-point/
+    simplex, not greedy) for the same problem: maximise w.score subject to
+    sum(w)=1, 0<=w<=max_weight -- exactly a bounded-simplex LP.
+
+    Uses distinct (non-tied) scores so both the achieved utility AND the
+    weight vector itself can be compared, not just the utility -- with tied
+    scores (as in the test above) there can be multiple optimal weight
+    vectors achieving the same utility, and HiGHS's specific tie-breaking
+    need not match the engine's argsort-based one.
+    """
+    r = np.array([0.10, 0.09, 0.07, 0.05])
+    el = np.array([0.02, 0.015, 0.01, 0.005])
+    lam, maxw = 1.0, 0.4
+    score = r - lam * el
+    assert len(set(score)) == score.size  # sanity: scores are genuinely distinct
+
+    res = credit_portfolio_optimisation(r, el, max_weight=maxw, risk_aversion=lam)
+    lp = linprog(c=-score, A_eq=[np.ones(score.size)], b_eq=[1.0], bounds=[(0, maxw)] * score.size)
+    assert lp.status == 0
+    np.testing.assert_allclose(res["weights"], lp.x, atol=1e-6)
+    assert res["utility"] == pytest.approx(-lp.fun, abs=1e-6)
 
 
 def test_credit_stress_testing():
