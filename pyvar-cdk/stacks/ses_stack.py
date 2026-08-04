@@ -21,6 +21,12 @@ Reasoning:
   only individually pre-verified recipient addresses can receive mail until
   an operator requests production access via an AWS Support case — a
   console/account-level action, not something CDK/IaC can request on its own.
+  UPDATE (2026-08): AWS approved production access for this account — this
+  identity can now send to any recipient, not just pre-verified addresses.
+  AWS can still revert an account to sandbox if bounce/complaint rates climb
+  too high; ses_events_stack.py's suppression alarm (surfaced in
+  alerts_stack.py as pyvar-{env}-ses-suppressions) is the early-warning
+  signal for that, and is worth watching as real send volume grows.
 - Deployed in the same region as the API (eu-west-1, not edge_stack.py's
   us-east-1) — SES sending has no CloudFront/edge dependency, and this keeps
   the identity in the same region as the ECS task that calls SendEmail.
@@ -84,11 +90,12 @@ class SesStack(Stack):
 
         cdk.CfnOutput(
             self,
-            "SesSandboxNote",
+            "SesProductionStatusNote",
             value=(
-                "New SES identities start in sandbox mode: only individually "
-                "pre-verified recipient addresses can receive mail. Request "
-                "production access via an AWS Support case (Service Quotas > SES "
-                "sending limits) before relying on this for real user registrations."
+                "SES production access was approved by AWS (2026-08) -- sending is "
+                "no longer limited to pre-verified recipients. AWS can revert an "
+                "account to sandbox if bounce/complaint rates climb too high, so "
+                "watch the pyvar-{env}-ses-suppressions CloudWatch alarm and the SES "
+                "reputation dashboard as real send volume grows."
             ),
         )

@@ -256,9 +256,10 @@ def test_send_verification_email_calls_ses_with_correct_args():
 
 
 def test_send_verification_email_falls_back_on_ses_failure():
-    """A real SES failure (sandbox rejection, no credentials, transient error)
-    must never raise into the caller — register() already committed the user
-    row by the time this is called (see api/routes/auth.py's docstring)."""
+    """A real SES failure (suppressed/bounced recipient, no credentials,
+    transient error) must never raise into the caller — register() already
+    committed the user row by the time this is called (see
+    api/routes/auth.py's docstring)."""
     fake_client = MagicMock()
     fake_client.send_email.side_effect = RuntimeError("simulated SES failure")
 
