@@ -434,10 +434,15 @@ class EmirTradeRepositoryReportResponse(BaseModel):
 
 
 class EmirClearingObligationCheckRequest(BaseModel):
-    """Request parameters for emir_clearing_obligation_check()."""
+    """Request parameters for emir_clearing_obligation_check().
 
-    asset_class: str
-    notional: float
+    ``notionals`` covers ALL asset classes the counterparty has positions in,
+    not just one -- required for the FC any-class-breach rule (EMIR REFIT
+    Art. 4a(1)): a single class's notional alone cannot answer whether an
+    FC's clearing obligation extends to its other classes too.
+    """
+
+    notionals: dict[str, float]
     counterparty_category: str
     clearing_thresholds: dict[str, Any]
 
@@ -448,8 +453,8 @@ class EmirClearingObligationCheckResponse(BaseModel):
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     clearing_required: Any = Field(default=None)
+    any_class_breached: Any = Field(default=None)
     counterparty_category: Any = Field(default=None)
-    threshold: Any = Field(default=None)
 
 
 class EmirMarginRequirementRequest(BaseModel):
