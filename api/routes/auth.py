@@ -9,13 +9,12 @@ Reasoning:
 - Verification email delivery (#149): real SES send via get_ses_client(),
   now that pyvar.com's DNS decision (P8 Task 7 / #158) is resolved — Aruba
   stays, and pyvar-cdk/stacks/ses_stack.py verifies the pyvar.com domain
-  identity via DKIM. Note this identity starts in SES *sandbox* mode (the
-  AWS default for new accounts/regions): only individually pre-verified
-  recipient addresses can receive mail until an operator requests
-  production access via an AWS Support case — a console/account-level
-  action, not something this codebase or CDK can do. send_verification_email
-  falls back to the original log-only stub if the SES call itself fails
-  (sandbox rejection, no credentials in local dev, transient SES error) —
+  identity via DKIM. This identity started in SES *sandbox* mode (the AWS
+  default for new accounts/regions: only individually pre-verified recipient
+  addresses can receive mail) until AWS approved production access (2026-08)
+  — sends to any recipient now succeed. send_verification_email falls back
+  to the original log-only stub if the SES call itself fails (no credentials
+  in local dev, a transient SES error, or a suppressed/bounced recipient) —
   see its own docstring for why that's deliberately non-fatal.
 - Registering an already-registered-but-unverified email regenerates the
   token (handles a lost/expired first email) instead of erroring; an
@@ -70,8 +69,8 @@ def send_verification_email(email: str, token: str) -> None:
     successful registration into a confusing 500 for the caller without
     undoing anything. Falling back to the same log line the original stub
     always emitted keeps the token recoverable from CloudWatch — e.g. in
-    local dev with no real AWS credentials, or while the SES identity is
-    still in sandbox mode and the recipient isn't pre-verified.
+    local dev with no real AWS credentials, or if SES itself rejects the
+    send (a suppressed/bounced recipient, a transient SES error).
     """
     verify_url = f"{cfg.public_base_url}/dashboard.html?token={token}"
 
