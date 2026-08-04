@@ -930,13 +930,17 @@ class TestSolvencyIISCRMarketRisk:
 
 
 class TestSolvencyIISCRCreditRisk:
-    """Solvency II SCR credit — Delegated Regulation (EU) 2015/35 Art. 199-202.
+    """Solvency II SCR credit — Delegated Regulation (EU) 2015/35 Art. 200-201.
 
-    Independent reference (simplified type-1):
+    Independent reference (Type 1, intra-counterparty variance term only --
+    see the engine docstring's [LIMITATION] note on the omitted V_inter term):
       lgd_i = ead_i * lgd_rate_i;  total_lgd = sum(lgd_i)
       expected_loss = sum(pd_i * lgd_i)
-      variance = sum(lgd_i^2 * pd_i * (1-pd_i))
-      scr = min(risk_factor * sqrt(variance), total_lgd)
+      variance = sum(lgd_i^2 * pd_i * (1-pd_i));  sigma = sqrt(variance)
+      ratio = sigma / total_lgd
+      scr = 3*sigma if ratio <= 0.07; 5*sigma if 0.07 < ratio <= 0.20;
+            else total_lgd  [REGULATORY] Art. 200(1)-(3) tiers -- fixed by
+      the Delegated Regulation, not a free parameter.
     Cross-validated (numpy).
     """
 
@@ -948,20 +952,39 @@ class TestSolvencyIISCRCreditRisk:
         lgd = ead * lgd_rate  # [450, 1200]
         total_lgd = float(np.sum(lgd))  # 1650
         expected_loss = float(np.sum(pd * lgd))  # 0.02*450 + 0.05*1200 = 69
-        variance = float(np.sum((lgd**2) * pd * (1.0 - pd)))
-        ref_scr = min(3.0 * math.sqrt(variance), total_lgd)
+        variance = float(np.sum((lgd**2) * pd * (1.0 - pd)))  # 72369.0
+        sigma = math.sqrt(variance)  # ~269.015
+        ratio = sigma / total_lgd  # ~16.3% -> the 5x tier, not a flat 3x
+        assert 0.07 < ratio <= 0.20  # sanity-check this case actually exercises the 5x tier
+        ref_scr = min(5.0 * sigma, total_lgd)
         out = solvency_ii_scr_credit_risk(ead, lgd_rate, pd)
         assert out["total_lgd"] == pytest.approx(total_lgd, abs=1e-4)
         assert out["expected_loss"] == pytest.approx(expected_loss, abs=1e-4)
         assert out["scr_credit"] == pytest.approx(ref_scr, abs=1e-4)
 
+    def test_scr_credit_low_sigma_uses_3x_tier(self) -> None:
+        # sigma/total_lgd well under 7% -> the 3x tier (Art. 200(1)).
+        ead = np.array([1000.0], dtype=np.float64)
+        lgd_rate = np.array([1.0], dtype=np.float64)
+        pd = np.array([0.001], dtype=np.float64)
+        lgd = ead * lgd_rate  # 1000
+        total_lgd = float(np.sum(lgd))
+        variance = float(np.sum((lgd**2) * pd * (1.0 - pd)))  # 999.0
+        sigma = math.sqrt(variance)  # ~31.607
+        ratio = sigma / total_lgd  # ~3.16%
+        assert ratio <= 0.07
+        ref_scr = 3.0 * sigma
+        out = solvency_ii_scr_credit_risk(ead, lgd_rate, pd)
+        assert out["scr_credit"] == pytest.approx(ref_scr, abs=1e-4)
+
     def test_scr_capped_at_total_lgd(self) -> None:
-        # High risk factor forces the min() cap at total LGD.
+        # sigma/total_lgd = 50% -> well past the 20% threshold -> Art. 200(3)
+        # caps the capital charge at total LGD itself, not 5x sigma.
         ead = np.array([1000.0], dtype=np.float64)
         lgd_rate = np.array([1.0], dtype=np.float64)
         pd = np.array([0.5], dtype=np.float64)
-        out = solvency_ii_scr_credit_risk(ead, lgd_rate, pd, risk_factor=100.0)
-        # total_lgd = 1000; uncapped scr huge → capped at 1000.
+        out = solvency_ii_scr_credit_risk(ead, lgd_rate, pd)
+        # total_lgd = 1000; sigma = 500 -> ratio 0.5 > 0.20 -> capped at 1000.
         assert out["scr_credit"] == pytest.approx(1000.0, abs=1e-4)
 
     def test_rejects_pd_out_of_range(self) -> None:

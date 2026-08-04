@@ -21864,8 +21864,8 @@
     "name": "solvency_ii_scr_credit_risk",
     "display_name": "Solvency II SCR Credit Risk",
     "path": "/api/v1/regulatory/solvency_ii_scr_credit_risk",
-    "summary": "Solvency II SCR counterparty default (credit) risk \u2014 type 1 simplified.",
-    "description": "Computes the loss-given-default per counterparty and the capital charge from\nthe variance of losses, using the standard-formula risk factor on the\naggregate LGD (Delegated Regulation 2015/35 Art. 199-202, simplified).",
+    "summary": "Solvency II SCR counterparty default (credit) risk \u2014 Type 1 exposures.",
+    "description": "[REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the\ncapital charge as a TIERED multiplier on the standard deviation (sigma) of\nthe loss distribution, not a flat 3x: SCR = 3*sigma while\nsigma <= 7% of total LGD; SCR = 5*sigma while 7% < sigma/TLGD <= 20%; SCR =\ntotal LGD (fully capped) once sigma/TLGD exceeds 20%. An earlier version of\nthis function exposed a caller-configurable ``risk_factor`` defaulting to a\nflat 3.0 \u2014 that understated capital by ~79% on a representative 2-exposure\ncase (807 vs. the correct ~1449, entirely from missing the 5x/TLGD tiers).\nThe multiplier is fixed by the Delegated Regulation, so it is intentionally\nnot a parameter here (same reasoning as CLAUDE.md \u00a74.3/\u00a74.4's Basel\nthresholds: never parameterise regulator-set constants).\n\n[LIMITATION] The variance (sigma^2) computed here is the intra-counterparty\nterm only \u2014 an independent-Bernoulli approximation summing each\ncounterparty's own default-loss variance. Art. 201's full formula also adds\nan inter-counterparty correlation term (V_inter) between exposures carrying\ndifferent default probabilities, which this implementation does NOT\ncompute \u2014 that term is generally positive, so the true Art. 201 variance\n(and therefore the true SCR) is at least as large as what this function\nreturns. Do not rely on this for statutory Solvency II reporting without an\nactuarial review of that gap.",
     "params": [
       {
         "name": "exposures",
@@ -21894,17 +21894,6 @@
         "type": "object",
         "required": true,
         "default": null,
-        "description": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null
-      },
-      {
-        "name": "risk_factor",
-        "type": "number",
-        "required": false,
-        "default": 3.0,
         "description": null,
         "minimum": null,
         "maximum": null,
