@@ -2,6 +2,13 @@
 
 Profiling complete, no optimisation needed.
 
+**Reproducing this benchmark (Tier 3 #5):** `python scripts/p7_bench.py` --
+fully local and offline, no AWS credentials needed. Inputs are fixed (a
+seeded RNG for the return series, literal `n_simulations`/`n_years` per
+case), so re-running reproduces the same workload every time; the absolute
+wall-clock numbers below will still vary machine-to-machine, since that's
+real hardware, not something a fixed seed controls.
+
 **Correction (post-review):** the original version of this document reported
 a "cold" column that was not actually a first-ever-compile measurement — see
 *Methodology correction* below. The corrected numbers still support the same
