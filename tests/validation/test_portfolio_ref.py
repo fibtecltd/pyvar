@@ -753,15 +753,34 @@ def test_factor_return_attribution_closed_form():
 
 
 def test_sector_attribution_total_effect():
+    # Independent hand-calc of Brinson-Hood-Beebower per-segment effects
+    # (task #23): a prior version of this test recomputed
+    # allocation+selection+interaction FROM out["allocation"]/out["selection"]/
+    # out["interaction"] themselves, i.e. the engine's own returned values --
+    # since total_effect is DEFINED as that sum in the engine
+    # (sector_attribution/return_attribution_brinson), the assertion could
+    # never fail regardless of whether allocation/selection/interaction were
+    # computed correctly in the first place. Here alloc/selection/interaction
+    # are recomputed independently from the raw inputs (wp, wb, rp, rb), so
+    # the test actually exercises the engine's formula, not just its "+".
     wp = np.array([0.6, 0.4])
     wb = np.array([0.5, 0.5])
     rp = np.array([0.10, 0.05])
     rb = np.array([0.08, 0.04])
+    total_rb = float(np.sum(wb * rb))
+    alloc_ref = (wp - wb) * (rb - total_rb)
+    selection_ref = wb * (rp - rb)
+    interaction_ref = (wp - wb) * (rp - rb)
+    total_effect_ref = alloc_ref + selection_ref + interaction_ref
+
     out = sector_attribution(wp, wb, rp, rb, sector_names=["Tech", "Energy"])
-    # total_effect = alloc + selection + interaction, checked per sector.
-    for k in ["Tech", "Energy"]:
-        ref = out["allocation"][k] + out["selection"][k] + out["interaction"][k]
-        assert out["total_effect"][k] == pytest.approx(ref, rel=REL_RATIO, abs=1e-12)
+    for i, k in enumerate(["Tech", "Energy"]):
+        assert out["allocation"][k] == pytest.approx(alloc_ref[i], rel=REL_RATIO, abs=1e-10)
+        assert out["selection"][k] == pytest.approx(selection_ref[i], rel=REL_RATIO, abs=1e-10)
+        assert out["interaction"][k] == pytest.approx(interaction_ref[i], rel=REL_RATIO, abs=1e-10)
+        assert out["total_effect"][k] == pytest.approx(
+            total_effect_ref[i], rel=REL_RATIO, abs=1e-10
+        )
 
 
 def test_currency_attribution_hand_calc():
