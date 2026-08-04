@@ -84,6 +84,93 @@ def test_deterministic_with_seed(synthetic_returns):
     assert r1["var_pct"] == r2["var_pct"]
 
 
+# ── Antithetic variates tests (task #15 Phase 1) ────────────────────────────────
+
+
+def test_antithetic_default_off(synthetic_returns):
+    """antithetic defaults to False -- existing callers see unchanged behaviour."""
+    r_default = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=10_000, seed=7
+    )
+    r_explicit_off = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=10_000, seed=7, antithetic=False
+    )
+    assert r_default["var_pct"] == r_explicit_off["var_pct"]
+    assert r_default["cvar_pct"] == r_explicit_off["cvar_pct"]
+
+
+def test_antithetic_deterministic_with_seed(synthetic_returns):
+    r1 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=10_000, seed=7, antithetic=True
+    )
+    r2 = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=10_000, seed=7, antithetic=True
+    )
+    assert r1["var_pct"] == r2["var_pct"]
+    assert r1["cvar_pct"] == r2["cvar_pct"]
+
+
+def test_antithetic_preserves_var_properties(synthetic_returns):
+    """Antithetic sampling must not break the core VaR/CVaR properties."""
+    result = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=10_000, antithetic=True
+    )
+    assert result["var_pct"] > 0
+    assert result["cvar_pct"] >= result["var_pct"]
+    assert len(result["loss_dist"]) == 10_000
+    assert result["loss_dist"] == sorted(result["loss_dist"])
+
+
+@pytest.mark.parametrize("n_simulations", [9_999, 10_000])
+def test_antithetic_preserves_path_count(synthetic_returns, n_simulations):
+    """Odd n_simulations gets one unmirrored extra draw; shape must still match exactly."""
+    result = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, n_simulations=n_simulations, antithetic=True
+    )
+    assert len(result["loss_dist"]) == n_simulations
+    assert result["n_simulations"] == n_simulations
+
+
+def test_antithetic_reduces_variance_without_bias(synthetic_returns):
+    """The actual property motivating Phase 1: at matched n_simulations, antithetic
+    sampling should give a materially lower spread of VaR estimates across independent
+    seeds than plain MC, while converging to essentially the same central estimate
+    (portfolio P&L is a near-linear, monotonic function of the underlying normal
+    draws here, which is exactly the regime where antithetic variance reduction is
+    real, not just a smaller displayed error -- see run_monte_carlo_var's docstring).
+    """
+    seeds = range(100)
+    n_simulations = 2_000
+
+    plain = np.array(
+        [
+            run_monte_carlo_var(
+                synthetic_returns, portfolio_value=1e6, n_simulations=n_simulations, seed=s
+            )["var_pct"]
+            for s in seeds
+        ]
+    )
+    antithetic = np.array(
+        [
+            run_monte_carlo_var(
+                synthetic_returns,
+                portfolio_value=1e6,
+                n_simulations=n_simulations,
+                seed=s,
+                antithetic=True,
+            )["var_pct"]
+            for s in seeds
+        ]
+    )
+
+    assert np.var(antithetic) < np.var(
+        plain
+    ), "antithetic sampling should reduce VaR estimator variance"
+    assert abs(np.mean(antithetic) - np.mean(plain)) < 3 * (
+        np.std(plain) / np.sqrt(len(seeds))
+    ), "antithetic sampling must not introduce material bias vs. plain MC"
+
+
 # ── Metrics tests ─────────────────────────────────────────────────────────────
 
 

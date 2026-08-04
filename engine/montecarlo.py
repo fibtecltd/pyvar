@@ -60,6 +60,29 @@ def _sorted_losses(pnl: np.ndarray) -> np.ndarray:
     return losses
 
 
+def _draw_random_shocks(n_simulations: int, horizon_days: int, antithetic: bool) -> np.ndarray:
+    """Pre-draw N(0,1) shocks in pure Python, per CLAUDE.md RULE 3.
+
+    When antithetic=True, draws only n_simulations // 2 independent normals
+    and mirrors each as its negation (z, -z), halving the true degrees of
+    freedom in exchange for lower-variance VaR/CVaR estimates -- the
+    variance-reduction effect is real for payoffs that are monotonic in the
+    underlying normal draws (portfolio P&L here is a near-linear function of
+    daily returns), see task #15 Phase 1. An odd n_simulations gets one
+    extra independent (unmirrored) draw so shape[0] always equals
+    n_simulations exactly, preserving downstream indexing unchanged.
+    """
+    if not antithetic:
+        return np.random.randn(n_simulations, horizon_days)
+
+    half = n_simulations // 2
+    z = np.random.randn(half, horizon_days)
+    shocks = np.concatenate((z, -z), axis=0)
+    if n_simulations % 2 == 1:
+        shocks = np.concatenate((shocks, np.random.randn(1, horizon_days)), axis=0)
+    return shocks
+
+
 def run_monte_carlo_var(
     returns: np.ndarray,
     portfolio_value: float,
@@ -67,6 +90,7 @@ def run_monte_carlo_var(
     horizon_days: int = 1,
     n_simulations: int = 100_000,
     seed: int | None = 42,
+    antithetic: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """
     Public interface for the Monte Carlo VaR engine.
@@ -78,6 +102,10 @@ def run_monte_carlo_var(
         horizon_days:     Risk horizon in trading days (1, 5, 10, etc.)
         n_simulations:    Number of Monte Carlo paths (100k is standard)
         seed:             Random seed for reproducibility (None = random)
+        antithetic:       Use antithetic-variate sampling (paired z/-z draws)
+                           for lower-variance VaR/CVaR estimates at the same
+                           n_simulations. Defaults to False so existing
+                           callers/results are unaffected; opt in explicitly.
 
     Returns:
         dict with:
@@ -96,7 +124,7 @@ def run_monte_carlo_var(
     returns = np.asarray(returns, dtype=np.float64)
 
     # Pre-draw all random shocks in one vectorised call (faster than inside JIT)
-    random_shocks = np.random.randn(n_simulations, horizon_days)
+    random_shocks = _draw_random_shocks(n_simulations, horizon_days, antithetic)
 
     # Run the JIT-compiled parallel simulation
     pnl = _simulate_paths(returns, random_shocks, horizon_days)
