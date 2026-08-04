@@ -158,11 +158,21 @@ def mifid_ii_best_execution_metric(
     quantities: np.ndarray,
     side: int = 1,
 ) -> dict:  # type: ignore[type-arg]
-    """MiFID II RTS 27/28 best-execution metric.
+    """MiFID II best-execution TCA metric -- internal, NOT an RTS 27/28 figure.
 
     Computes the quantity-weighted price improvement (or slippage) of executions
     versus a reference (e.g. EBBO) price, in basis points. Positive means price
     improvement for the client.
+
+    This does not correspond to any specific RTS 27/28 field: RTS 27
+    (Commission Delegated Regulation (EU) 2017/575) requires simple-average
+    and volume-weighted transaction prices/spreads/best-bid-offer (Annex
+    Tables 1-9), and RTS 28 (DR (EU) 2017/576) requires execution-venue
+    rankings -- neither defines a quantity-weighted price-improvement-in-bps
+    metric like this one. RTS 27 was also repealed by the 2024 MiFIR review.
+    A prior version of this docstring cited "RTS 27/28" directly; corrected
+    during the Tier 3 #2 audit. This remains a reasonable internal TCA
+    metric, just not a regulatory-prescribed one.
 
     Args:
         executed_prices: Executed price per fill.

@@ -190,9 +190,16 @@ def combined_stress_scenario(
 ) -> dict:  # type: ignore[type-arg]
     """Combined idiosyncratic + market-wide stress scenario.
 
-    The Basel/EBA reference scenario: a firm-specific shock occurring inside a
-    market-wide crisis. Liability run-off is aggravated (retail default 15%,
-    wholesale 100%) *and* HQLA value is reduced by stressed market haircuts.
+    Models a firm-specific shock occurring inside a market-wide crisis:
+    liability run-off is aggravated (default 15% retail, 100% wholesale)
+    *and* HQLA value is reduced by stressed market haircuts, simultaneously.
+
+    NOT the Basel/EBA reference scenario, despite a prior version of this
+    docstring claiming that: BCBS 238's own combined idiosyncratic +
+    market-wide scenario (§II paras 19-20) runs off the LCR's own regulator-
+    set retail run-off categories (3%/5%/10% depending on deposit
+    stability), not a flat 15% -- the 15%/100% defaults here are an internal
+    convention, not the Basel figures. Found during the Tier 3 #2 audit.
 
     Args:
         retail_deposits: Retail deposit balance.

@@ -354,7 +354,14 @@ def test_market_wide_stress_extra_haircut():
 
 
 def test_combined_stress_worse_than_components():
-    # [closed-form, EBA combined scenario]. outflow uses retail 0.15 default.
+    # [closed-form, internal combined-stress convention -- NOT a Basel/EBA
+    # reference scenario, despite a prior comment here claiming that: BCBS
+    # 238's own combined idiosyncratic + market-wide scenario (Sec II para
+    # 19-20) runs off the LCR's own 3%/5%/10% retail run-off categories, not
+    # a flat 15%. Found during the Tier 3 #2 audit; the aggregation-ordering
+    # property this test checks (combined never better than market-wide
+    # alone) still holds regardless of the specific retail rate used.
+    # outflow uses retail 0.15 default (internal, not regulator-set).
     retail, wholesale = 1000.0, 500.0
     hqla = np.array([500.0, 300.0, 200.0])
     hc = np.array([0.0, 0.10, 0.25])
@@ -385,7 +392,17 @@ def test_survival_horizon_nonnegative_and_exhaustion():
 
 
 def test_intraday_liquidity_monitor():
-    # [independent hand-calc, BCBS 248]. opening 100, flows drop below open.
+    # [independent hand-calc]. NOT actually exercising a BCBS 248 monitoring
+    # tool despite a prior comment tagging it that way: BCBS 248's "daily
+    # maximum intraday liquidity usage" is the largest NET NEGATIVE
+    # cumulative position -- that's net_debit_peak below, which this
+    # scenario keeps at exactly 0.0 (balance never goes negative). The
+    # load-bearing assertion here (max_usage == 80, the drop below opening
+    # balance) is a different, internal metric, not a BCBS 248 tool. Found
+    # during the Tier 3 #2 audit; a genuine BCBS 248 net-debit-peak check
+    # would need a scenario where cumulative flows actually go negative --
+    # left as a follow-up, not done here.
+    # opening 100, flows drop below open.
     ts = np.array([1.0, 2.0, 3.0, 4.0])
     flows = np.array([-30.0, -50.0, 20.0, 10.0])
     # balance path = 70, 20, 40, 50. min = 20. opening 100.

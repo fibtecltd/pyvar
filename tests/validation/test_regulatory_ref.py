@@ -547,7 +547,16 @@ class TestMiFIDPostTradeTransparency:
 
 
 class TestMiFIDBestExecutionMetric:
-    """MiFID II RTS 27/28 best-execution metric.
+    """MiFID II internal quantity-weighted price-improvement TCA metric.
+
+    NOT an RTS 27/28 metric, despite a prior citation here claiming that: RTS
+    27 (Commission Delegated Regulation (EU) 2017/575) Annex Tables 1-9
+    require simple-average and volume-weighted transaction prices, spreads
+    and best bid/offer -- it defines no quantity-weighted price-improvement-
+    in-bps figure. RTS 28 (DR (EU) 2017/576) requires execution-venue
+    rankings, an entirely different report. RTS 27 was also repealed by the
+    2024 MiFIR review. Correct arithmetic, fabricated provenance -- found
+    during the Tier 3 #2 audit.
 
     Independent reference: quantity-weighted price improvement in bps.
     improvement_i = side * (benchmark_i - executed_i);
