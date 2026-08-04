@@ -298,6 +298,13 @@ def test_eve_sensitivity_sign_and_ref():
 
     Asset-heavy long-dated net cashflows => positive duration gap => parallel-up
     shock must reduce EVE (dEVE < 0). [REGULATORY] BCBS d368.
+
+    This checks that eve_sensitivity_analysis composes correctly with
+    irrbb_six_standard_rate_shocks's output -- it does NOT independently
+    anchor the shock construction formula itself (calling that same
+    function for the reference means a shared bug there would pass this
+    test too). See test_irrbb_six_shocks_matches_bcbs_d368_annex2_worked_example
+    for that anchor.
     """
     cf = np.array([50.0, 50.0, 1050.0])  # net long asset position
     t = np.array([1.0, 5.0, 10.0])
@@ -386,6 +393,35 @@ def test_irrbb_six_shocks_construction_ref():
     assert shocks["flattener"][-1] < 0
 
 
+def test_irrbb_six_shocks_matches_bcbs_d368_annex2_worked_example():
+    """[REGULATORY] BCBS d368 Annex 2's own published worked example -- a
+    genuine external anchor, not a re-derivation of the engine's formula.
+
+    At t_k = 3.5 years with |short shock| = |long shock| = 100bp, Annex 2
+    gives steepener = -0.65*100*e^(-3.5/4) + 0.90*100*(1-e^(-3.5/4)) =
+    +25.4bp. Independently confirmed via a fresh web search (OSFI's
+    Interest Rate Risk Management guideline reproduces the same example)
+    and by hand (e^(-3.5/4) = 0.416862..., giving +25.386bp, consistent
+    with the published "+25.4bp" at its stated rounding) before being
+    written into this test -- found and researched during the Tier 3 #2
+    audit, but re-verified independently here rather than taken on trust.
+
+    test_irrbb_six_shocks_construction_ref above (and the three tests that
+    build their reference by calling irrbb_six_standard_rate_shocks --
+    test_eve_sensitivity_sign_and_ref, test_irrbb_standardised_framework_ref,
+    test_alm_stress_test_ref) all check that OTHER functions compose
+    correctly with this one's output, but none of them anchor the shock
+    CONSTRUCTION formula itself against anything external -- every one of
+    them would still pass if this formula's constants were subtly wrong,
+    since they'd all agree with each other via the same shared bug. This
+    test is that anchor.
+    """
+    t = np.array([3.5])
+    shocks = irrbb_six_standard_rate_shocks(t, parallel_bps=0.0, short_bps=100.0, long_bps=100.0)
+    steepener_bps = shocks["steepener"][0] * 1e4
+    assert steepener_bps == pytest.approx(25.4, abs=0.05)
+
+
 def test_irrbb_six_shocks_empty():
     with pytest.raises(ValueError):
         irrbb_six_standard_rate_shocks(np.array([]))
@@ -401,7 +437,12 @@ def test_economic_value_helper_closed_form():
 
 
 def test_irrbb_standardised_framework_ref():
-    """[REGULATORY] BCBS d368: worst dEVE across six shocks. Cross-validated."""
+    """[REGULATORY] BCBS d368: worst dEVE across six shocks. Cross-validated.
+
+    Composition check only -- see
+    test_irrbb_six_shocks_matches_bcbs_d368_annex2_worked_example for the
+    external anchor on the shock construction formula itself.
+    """
     cf = np.array([100.0, 100.0, 1100.0])
     t = np.array([1.0, 3.0, 8.0])
     r0 = np.array([0.015, 0.02, 0.025])
@@ -892,7 +933,10 @@ def test_alm_stress_test_ref():
     """[REGULATORY] BCBS d368: worst dEVE / Tier1; breach if > 15%. Cross-validated.
 
     Independently compute worst-case dEVE via eve_sensitivity reconstruction and
-    the capital ratio.
+    the capital ratio. Composition check only, same caveat as
+    test_eve_sensitivity_sign_and_ref -- see
+    test_irrbb_six_shocks_matches_bcbs_d368_annex2_worked_example for the
+    external anchor on the shock construction formula itself.
     """
     cf = np.array([100.0, 100.0, 2000.0])
     t = np.array([1.0, 5.0, 12.0])
