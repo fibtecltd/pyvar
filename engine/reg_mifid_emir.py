@@ -269,42 +269,72 @@ def emir_trade_repository_report(
 
 
 def emir_clearing_obligation_check(
-    asset_class: str,
-    notional: float,
+    notionals: dict,  # type: ignore[type-arg]
     counterparty_category: str,
     clearing_thresholds: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
-    """EMIR clearing obligation check (Art. 4 / clearing thresholds).
+    """EMIR clearing obligation check (Art. 4 / Art. 4a / Art. 10 / clearing thresholds).
 
-    Determines whether a derivative is subject to the mandatory clearing
-    obligation: financial counterparties (FC) above the threshold and
-    non-financials (NFC+) above the per-asset-class clearing threshold.
+    [REGULATORY] EMIR REFIT (Regulation (EU) 2019/834) Art. 4a(1): a Financial
+    Counterparty (FC) that breaches its clearing threshold in ANY ONE OTC
+    derivative asset class becomes subject to the clearing obligation for ALL
+    asset classes it has positions in, not just the one that breached. Art.
+    10(1) evaluates a Non-Financial Counterparty above threshold (NFC+)
+    per-asset-class instead -- only the classes where ITS OWN threshold is
+    breached become subject to clearing.
+
+    A prior version of this function applied FC's per-class-only logic to
+    BOTH categories (took a single ``asset_class``/``notional`` pair,
+    identical branching for FC and NFC+ beyond the NFC- exemption). It
+    understated an FC's clearing scope whenever the breaching class differed
+    from the queried class -- masked in the original test, which happened to
+    query the same class that breached. Found during the Tier 3 #2 audit.
 
     Args:
-        asset_class: Derivative asset class (e.g. "interest_rate", "credit").
-        notional: Gross notional outstanding in the asset class.
+        notionals: Mapping asset_class -> gross notional outstanding for this
+            counterparty, across ALL asset classes it holds positions in.
+            Required (not just the one class being asked about) for the FC
+            any-class-breach rule: a single class's notional alone cannot
+            answer whether the FC-wide obligation applies.
         counterparty_category: One of "FC", "NFC+", "NFC-".
         clearing_thresholds: Mapping asset_class -> clearing threshold notional.
 
     Returns:
-        Dict with ``clearing_required`` (bool), ``threshold`` applied and the
-        ``counterparty_category``.
+        Dict with ``clearing_required`` (mapping asset_class -> bool, one
+        entry per class in ``notionals``), ``any_class_breached`` (bool --
+        the FC any-class trigger) and the ``counterparty_category``.
 
     Raises:
-        ValueError: If notional is negative or category unknown.
+        ValueError: If any notional is negative or category unknown.
     """
-    if notional < 0.0:
-        raise ValueError("notional must be non-negative")
     if counterparty_category not in ("FC", "NFC+", "NFC-"):
         raise ValueError("counterparty_category must be FC, NFC+ or NFC-")
-    threshold = float(clearing_thresholds.get(asset_class, float("inf")))
+    if any(float(notional) < 0.0 for notional in notionals.values()):
+        raise ValueError("notional must be non-negative")
+
     if counterparty_category == "NFC-":
-        clearing_required = False
-    else:
-        clearing_required = notional > threshold
+        return {
+            "clearing_required": {ac: False for ac in notionals},
+            "any_class_breached": False,
+            "counterparty_category": counterparty_category,
+        }
+
+    breaches = {
+        ac: float(notional) > float(clearing_thresholds.get(ac, float("inf")))
+        for ac, notional in notionals.items()
+    }
+    any_breached = any(breaches.values())
+
+    if counterparty_category == "FC":
+        # Art. 4a(1): ANY breach -> clearing required across ALL classes.
+        clearing_required = {ac: any_breached for ac in notionals}
+    else:  # NFC+
+        # Art. 10(1): per-class only.
+        clearing_required = dict(breaches)
+
     return {
-        "clearing_required": bool(clearing_required),
-        "threshold": threshold,
+        "clearing_required": clearing_required,
+        "any_class_breached": bool(any_breached),
         "counterparty_category": counterparty_category,
     }
 

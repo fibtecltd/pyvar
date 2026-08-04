@@ -682,39 +682,60 @@ class TestEMIRTradeRepositoryReport:
 
 
 class TestEMIRClearingObligation:
-    """EMIR clearing obligation — Regulation (EU) 648/2012 Art. 4.
+    """EMIR clearing obligation — Regulation (EU) 648/2012 Art. 4, and EMIR
+    REFIT (Regulation (EU) 2019/834) Art. 4a(1) / Art. 10(1).
 
-    Independent hand-calc: FC/NFC+ above the asset-class clearing threshold
-    → clearing required; NFC- never subject to mandatory clearing.
+    Independent hand-calc. FC: Art. 4a(1) -- breaching ANY ONE asset class's
+    threshold puts ALL classes in scope. NFC+: Art. 10(1) -- per-class only.
+    NFC-: never subject to mandatory clearing.
     """
 
     THRESHOLDS = {"interest_rate": 3_000_000_000.0, "credit": 1_000_000_000.0}
 
     def test_fc_above_threshold(self) -> None:
         out = emir_clearing_obligation_check(
-            "interest_rate", 5_000_000_000.0, "FC", self.THRESHOLDS
+            {"interest_rate": 5_000_000_000.0}, "FC", self.THRESHOLDS
         )
-        assert out["clearing_required"] is True
-        assert out["threshold"] == pytest.approx(3_000_000_000.0, abs=1e-2)
+        assert out["clearing_required"] == {"interest_rate": True}
+        assert out["any_class_breached"] is True
+
+    def test_fc_breach_in_one_class_puts_all_classes_in_scope(self) -> None:
+        # The exact gap the prior (single-class) version had: interest_rate
+        # breaches, credit does not (500m << 1bn threshold) -- Art. 4a(1)
+        # still requires clearing for credit too, because the counterparty
+        # is FC and ANY breach is FC-wide, not class-by-class.
+        out = emir_clearing_obligation_check(
+            {"interest_rate": 5_000_000_000.0, "credit": 500_000_000.0}, "FC", self.THRESHOLDS
+        )
+        assert out["clearing_required"] == {"interest_rate": True, "credit": True}
+        assert out["any_class_breached"] is True
 
     def test_nfc_plus_below_threshold(self) -> None:
-        out = emir_clearing_obligation_check("credit", 500_000_000.0, "NFC+", self.THRESHOLDS)
-        assert out["clearing_required"] is False
+        out = emir_clearing_obligation_check({"credit": 500_000_000.0}, "NFC+", self.THRESHOLDS)
+        assert out["clearing_required"] == {"credit": False}
+
+    def test_nfc_plus_is_per_class_not_blanket(self) -> None:
+        # Art. 10(1): unlike FC, an NFC+ breach in one class does NOT put an
+        # unrelated, unbreached class in scope.
+        out = emir_clearing_obligation_check(
+            {"interest_rate": 5_000_000_000.0, "credit": 500_000_000.0}, "NFC+", self.THRESHOLDS
+        )
+        assert out["clearing_required"] == {"interest_rate": True, "credit": False}
 
     def test_nfc_minus_exempt(self) -> None:
         # NFC- exempt even above the threshold.
         out = emir_clearing_obligation_check(
-            "interest_rate", 9_000_000_000.0, "NFC-", self.THRESHOLDS
+            {"interest_rate": 9_000_000_000.0}, "NFC-", self.THRESHOLDS
         )
-        assert out["clearing_required"] is False
+        assert out["clearing_required"] == {"interest_rate": False}
 
     def test_rejects_unknown_category(self) -> None:
         with pytest.raises(ValueError):
-            emir_clearing_obligation_check("credit", 1.0, "XX", self.THRESHOLDS)
+            emir_clearing_obligation_check({"credit": 1.0}, "XX", self.THRESHOLDS)
 
     def test_rejects_negative_notional(self) -> None:
         with pytest.raises(ValueError):
-            emir_clearing_obligation_check("credit", -1.0, "FC", self.THRESHOLDS)
+            emir_clearing_obligation_check({"credit": -1.0}, "FC", self.THRESHOLDS)
 
 
 class TestEMIRMarginRequirement:

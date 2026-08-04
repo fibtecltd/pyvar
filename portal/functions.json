@@ -21183,23 +21183,12 @@
     "name": "emir_clearing_obligation_check",
     "display_name": "EMIR Clearing Obligation Check",
     "path": "/api/v1/regulatory/emir_clearing_obligation_check",
-    "summary": "EMIR clearing obligation check (Art. 4 / clearing thresholds).",
-    "description": "Determines whether a derivative is subject to the mandatory clearing\nobligation: financial counterparties (FC) above the threshold and\nnon-financials (NFC+) above the per-asset-class clearing threshold.",
+    "summary": "EMIR clearing obligation check (Art. 4 / Art. 4a / Art. 10 / clearing thresholds).",
+    "description": "[REGULATORY] EMIR REFIT (Regulation (EU) 2019/834) Art. 4a(1): a Financial\nCounterparty (FC) that breaches its clearing threshold in ANY ONE OTC\nderivative asset class becomes subject to the clearing obligation for ALL\nasset classes it has positions in, not just the one that breached. Art.\n10(1) evaluates a Non-Financial Counterparty above threshold (NFC+)\nper-asset-class instead -- only the classes where ITS OWN threshold is\nbreached become subject to clearing.\n\nA prior version of this function applied FC's per-class-only logic to\nBOTH categories (took a single ``asset_class``/``notional`` pair,\nidentical branching for FC and NFC+ beyond the NFC- exemption). It\nunderstated an FC's clearing scope whenever the breaching class differed\nfrom the queried class -- masked in the original test, which happened to\nquery the same class that breached. Found during the Tier 3 #2 audit.",
     "params": [
       {
-        "name": "asset_class",
-        "type": "string",
-        "required": true,
-        "default": null,
-        "description": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null
-      },
-      {
-        "name": "notional",
-        "type": "number",
+        "name": "notionals",
+        "type": "object",
         "required": true,
         "default": null,
         "description": null,

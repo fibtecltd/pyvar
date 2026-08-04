@@ -135,19 +135,32 @@ def test_emir_trade_report_valid():
 
 def test_emir_clearing_required_for_fc_above_threshold():
     r = emir_clearing_obligation_check(
-        "interest_rate",
-        notional=5e9,
+        notionals={"interest_rate": 5e9},
         counterparty_category="FC",
         clearing_thresholds={"interest_rate": 3e9},
     )
-    assert r["clearing_required"] is True
+    assert r["clearing_required"] == {"interest_rate": True}
+    assert r["any_class_breached"] is True
+
+
+def test_emir_clearing_fc_breach_in_one_class_covers_all_classes():
+    # Art. 4a(1): FC breaches interest_rate only -> clearing required for
+    # credit too, even though credit itself is well under its own threshold.
+    r = emir_clearing_obligation_check(
+        notionals={"interest_rate": 5e9, "credit": 1e8},
+        counterparty_category="FC",
+        clearing_thresholds={"interest_rate": 3e9, "credit": 1e9},
+    )
+    assert r["clearing_required"] == {"interest_rate": True, "credit": True}
 
 
 def test_emir_clearing_not_required_for_nfc_minus():
     r = emir_clearing_obligation_check(
-        "credit", notional=1e12, counterparty_category="NFC-", clearing_thresholds={"credit": 1e9}
+        notionals={"credit": 1e12},
+        counterparty_category="NFC-",
+        clearing_thresholds={"credit": 1e9},
     )
-    assert r["clearing_required"] is False
+    assert r["clearing_required"] == {"credit": False}
 
 
 def test_emir_margin_mta_suppresses_small_vm():
