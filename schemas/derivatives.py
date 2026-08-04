@@ -1222,6 +1222,7 @@ class RoughVolatilityRbergomiModelRequest(BaseModel):
     n_simulations: int = 50000
     option_type: str = "call"
     seed: int = 2024
+    control_variate: bool = False
 
 
 class RoughVolatilityRbergomiModelResponse(BaseModel):
