@@ -10,6 +10,26 @@ mismatch index.
 Pure-Python vectorised NumPy wrappers (CLAUDE.md §3.1 satisfied trivially).
 Rate shocks follow BCBS d368: the six shock names are
 ``parallel_up | parallel_down | steepener | flattener | short_up | short_down``.
+
+[LIMITATION -- STALE DEFAULT SHOCK MAGNITUDES] BCBS d578 (July 2024)
+recalibrated the per-currency shock sizes fed into
+``irrbb_six_standard_rate_shocks`` below, effective 1 January 2026 -- already
+in effect. This module's ``parallel_bps=200``/``short_bps=300``/
+``long_bps=150`` defaults are d368 (2016)'s USD row, not the current d578
+figures; they were never updated. Multiple independent web searches (this
+environment could not fetch BCBS/EIOPA/EUR-Lex/legislation.gov.uk primary
+text directly -- every domain tried returned 403, including a plain
+Wikipedia fetch as a sanity check) corroborate that d578 raised EUR and GBP
+parallel shocks materially (EUR 200->250bp, GBP 250->300bp) and left USD's
+parallel shock unchanged at 200bp, but disagree with each other on the exact
+new USD short/long figures -- NOT hardcoded here for that reason; a
+plausible-but-unverified number in this specific spot would repeat the same
+failure mode this codebase already got burned by once (a false QuantLib
+cross-validation claim, fixed in an earlier PR). Callers who need d578-
+compliant shocks must pass ``parallel_bps``/``short_bps``/``long_bps``
+explicitly, sourced from the primary document
+(https://www.bis.org/bcbs/publ/d578.htm), until this can be verified and
+updated properly.
 """
 
 from __future__ import annotations
@@ -49,10 +69,14 @@ def irrbb_six_standard_rate_shocks(
 ) -> dict:  # type: ignore[type-arg]
     """Construct the six BCBS d368 standard interest-rate shock curves.
 
-    [REGULATORY] BCBS d368 §115. The steepener/flattener combine scaled short
-    and long shocks: ``steepener = −0.65·short + 0.90·long`` and
+    [REGULATORY] BCBS d368 Annex 2 (not §115 -- a prior citation here named
+    the wrong section; Annex 2 is where the shock-construction formulas
+    actually live). The steepener/flattener combine scaled short and long
+    shocks: ``steepener = −0.65·short + 0.90·long`` and
     ``flattener = +0.80·short − 0.60·long`` (per-tenor short/long scalars decay
-    as ``e^{−t/4}``).
+    as ``e^{−t/4}``). See the module docstring for a [LIMITATION] on the
+    default shock magnitudes (``parallel_bps``/``short_bps``/``long_bps``) --
+    BCBS d578 recalibrated these in 2024, effective 2026.
 
     Args:
         tenors: Tenor points in years (> 0).
@@ -445,7 +469,9 @@ def interest_rate_risk_capital_irrbb(
 ) -> dict:  # type: ignore[type-arg]
     """IRRBB supervisory outlier test against Tier-1 capital.
 
-    [REGULATORY] BCBS d368 §118: a bank is an outlier if the worst-case EVE
+    [REGULATORY] BCBS d368 Principle 12 (not §118 -- a prior citation here
+    named the wrong section; the 15%-of-Tier-1 supervisory outlier test is set
+    out under Principle 12): a bank is an outlier if the worst-case EVE
     decline exceeds 15% of Tier-1 capital. Capital implied is the breach amount.
 
     Args:

@@ -6,7 +6,7 @@ INDEPENDENT reference, never against the function's own output:
 * Closed-form arithmetic (duration/PV/gap/EVE/CPR/convexity) recomputed here
   by hand from the textbook formula.
 * Regulatory (IRRBB / BCBS d368): the six standard shocks are checked for exact
-  count, names, signs and shape and cross-validated against the d368 §115
+  count, names, signs and shape and cross-validated against the d368 Annex 2
   construction; EVE deltas cross-checked against a hand-built shocked curve
   ("cross-validated" per BCBS d368).
 * Where no published reference exists (behavioural NMD models, structural hedge
@@ -349,7 +349,7 @@ def test_liquidity_adjusted_nii_invalid():
 
 
 def test_irrbb_exactly_six_shocks_zero_tolerance():
-    """[REGULATORY] BCBS d368 §115: EXACTLY six scenarios, exact names. ZERO tol."""
+    """[REGULATORY] BCBS d368 Annex 2: EXACTLY six scenarios, exact names. ZERO tol."""
     t = np.array([0.25, 1.0, 5.0, 10.0])
     shocks = irrbb_six_standard_rate_shocks(t, 200.0, 300.0, 150.0)
     assert len(shocks) == 6  # exactly six — zero tolerance
@@ -359,7 +359,7 @@ def test_irrbb_exactly_six_shocks_zero_tolerance():
 
 
 def test_irrbb_six_shocks_construction_ref():
-    """[REGULATORY] BCBS d368 §115 construction, cross-validated by hand.
+    """[REGULATORY] BCBS d368 Annex 2 construction, cross-validated by hand.
 
     parallel = +/- par (flat); short = short_bps*e^{-t/4}; long grows as
     (1-e^{-t/4}); steepener = -0.65*short + 0.90*long; flattener = 0.80*short
@@ -604,7 +604,7 @@ def test_pipeline_risk_invalid():
 
 
 def test_irrbb_capital_outlier_ref():
-    """[REGULATORY] BCBS d368 §118: outlier if EVE decline > 15% Tier1. Hand-calc."""
+    """[REGULATORY] BCBS d368 Principle 12: outlier if EVE decline > 15% Tier1. Hand-calc."""
     tier1 = 1000.0
     # Case 1: breach
     worst = -200.0
