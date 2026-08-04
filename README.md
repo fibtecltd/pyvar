@@ -141,6 +141,18 @@ streamlit run ui/app.py
 pytest -v --cov=. --cov-report=term-missing
 ```
 
+### 9. Reproduce the published performance benchmarks
+
+```bash
+python scripts/p7_bench.py
+```
+
+Fully local and offline (no AWS credentials needed) — benchmarks the 10
+hottest Monte Carlo kernels with fixed seeds/inputs, so the workload is
+reproducible even though the absolute wall-clock numbers will vary by
+machine. See `docs/p7-numba-profiling-results.md` for the last published
+run and methodology.
+
 ---
 
 ## Migration commands

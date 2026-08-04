@@ -1,7 +1,24 @@
 """P7 Task 1 — benchmark of the 10 hottest Monte Carlo kernels at n=100k.
 
-Not part of the committed test suite — a throwaway profiling harness for the
-perf/p7-numba-profiling branch.
+A reproducible performance benchmark, not part of the pytest suite (it
+measures wall-clock time, which pytest isn't the right tool for). Originally
+written as a one-off for the perf/p7-numba-profiling branch review; kept in
+the repo and documented here (Tier 3 #5) so the numbers in
+docs/p7-numba-profiling-results.md can actually be reproduced by anyone who
+clones the repo, not just cited from a single past run. Fully local and
+offline -- no AWS credentials or live infrastructure needed (contrast
+scripts/p7_concurrency_bench.py, which does).
+
+## Reproducing this benchmark
+
+    python scripts/p7_bench.py
+
+All inputs are fixed (RETURNS uses np.random.default_rng(0); every case's
+n_simulations/n_years is a literal in CASES below) so re-running this
+produces the same result set every time, modulo real machine-to-machine
+hardware variance in the actual wall-clock numbers themselves -- the fixed
+seeds make the WORKLOAD reproducible, not the absolute timings, which
+naturally depend on the CPU it runs on.
 
 CORRECTNESS NOTE (found during review — see docs/p7-numba-profiling-results.md):
 a first-in-this-process call is only a genuine "true cold" (first-ever JIT
