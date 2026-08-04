@@ -288,6 +288,63 @@ def ql_variance_gamma_price(spot, strike, rate, tau, sigma, nu, theta, is_call):
     return option.NPV()
 
 
+def ql_cds_price(notional, spread, hazard, recovery, maturity, disc_rate, freq):
+    """QuantLib's own CreditDefaultSwap + MidPointCdsEngine -- independent of
+    the engine's flat-hazard reduced-form formula (task #16).
+
+    Uses ql.DateGeneration.Forward (a plain, regular schedule starting
+    exactly at the evaluation date) rather than the market-realistic
+    DateGeneration.CDS2015 (IMM-date rolls) -- the latter generates a
+    genuinely different set of period boundaries than the engine's naive
+    "each period is exactly 1/frequency years from t=0" convention, which
+    would contaminate the comparison with a schedule mismatch rather than
+    measuring genuine model disagreement.
+
+    Verified NOT to converge to an exact match even with this schedule
+    alignment: MidPointCdsEngine assumes default losses settle at each
+    period's midpoint, while the engine's own formula assumes losses settle
+    at each period's END (a coarser, standard reduced-form-model
+    approximation, itself distinct from continuous-time default timing).
+    A finer QuantLib IntegralCdsEngine converges TOWARD the engine's number
+    as its step size shrinks (confirms both are approximating the same
+    underlying continuous integral) but not exactly to it, since the
+    engine's own end-of-period discretization is a different, coarser
+    convention than continuous-time integration converges to. The ~0.15%
+    relative gap here is that genuine, expected inter-convention difference,
+    not noise or a bug -- see the test's own tolerance/comment for why it's
+    intentionally looser than the ~1e-6 used for exact-formula comparisons
+    elsewhere in this file.
+    """
+    calc_date = ql.Date(1, 1, 2024)
+    ql.Settings.instance().evaluationDate = calc_date
+    calendar = ql.NullCalendar()
+    day_count = ql.Actual365Fixed()
+    discount_ts = ql.YieldTermStructureHandle(
+        ql.FlatForward(calc_date, disc_rate, day_count, ql.Continuous)
+    )
+    hazard_quote = ql.QuoteHandle(ql.SimpleQuote(hazard))
+    hazard_ts = ql.DefaultProbabilityTermStructureHandle(
+        ql.FlatHazardRate(calc_date, hazard_quote, day_count)
+    )
+    maturity_date = calc_date + ql.Period(round(maturity * 12), ql.Months)
+    freq_period = {1: ql.Annual, 2: ql.Semiannual, 4: ql.Quarterly, 12: ql.Monthly}[freq]
+    schedule = ql.Schedule(
+        calc_date,
+        maturity_date,
+        ql.Period(freq_period),
+        calendar,
+        ql.Unadjusted,
+        ql.Unadjusted,
+        ql.DateGeneration.Forward,
+        False,
+    )
+    cds = ql.CreditDefaultSwap(
+        ql.Protection.Buyer, notional, spread, schedule, ql.Unadjusted, day_count
+    )
+    cds.setPricingEngine(ql.MidPointCdsEngine(hazard_ts, recovery, discount_ts))
+    return cds.NPV(), cds.fairSpread()
+
+
 def bond_pv_ref(face, cpn_rate, y, mat, freq):
     """Independent fixed-coupon bond PV: sum(cpn*DF)+face*DF."""
     n = int(round(mat * freq))
@@ -1547,6 +1604,31 @@ def test_cds_invalid():
         credit_default_swap_cds_pricer(1e7, 0.01, 0.02, 1.5, 5, 0.03, 4)  # recovery>=1
     with pytest.raises(ValueError):
         credit_default_swap_cds_pricer(1e7, 0.01, 0.02, 0.4, 0, 0.03, 4)
+
+
+def test_cds_cross_validated_against_quantlib():
+    # INDEPENDENT-IMPLEMENTATION CROSS-VALIDATION (task #16). Tolerance is
+    # intentionally looser (0.5%, not the ~1e-6 used for exact-formula
+    # comparisons elsewhere in this file) -- see ql_cds_price's docstring for
+    # why: this is a genuine, expected difference between two legitimate but
+    # distinct default-timing discretization conventions, not noise.
+    notional, spread, hazard, recovery, maturity, disc_rate, freq = (
+        1e7,
+        0.02,
+        0.02,
+        0.4,
+        5.0,
+        0.03,
+        4,
+    )
+    eng = credit_default_swap_cds_pricer(
+        notional, spread, hazard, recovery, maturity, disc_rate, freq
+    )
+    ql_value, ql_fair_spread = ql_cds_price(
+        notional, spread, hazard, recovery, maturity, disc_rate, freq
+    )
+    assert abs(eng["value"] - ql_value) / abs(ql_value) < 5e-3
+    assert abs(eng["par_spread"] - ql_fair_spread) / ql_fair_spread < 5e-3
 
 
 def test_equity_swap_hand_calc():
