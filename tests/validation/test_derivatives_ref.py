@@ -607,6 +607,47 @@ def test_asian_deterministic_and_invalid():
         asian_option_pricer(S, K, R, SIG, T, option_type="bad")
 
 
+def test_asian_qmc_default_off():
+    """qmc defaults to False -- existing callers see unchanged behaviour."""
+    a = asian_option_pricer(S, K, R, SIG, T, 30, 20_000, "call", seed=5)["price"]
+    b = asian_option_pricer(S, K, R, SIG, T, 30, 20_000, "call", seed=5, qmc=False)["price"]
+    assert a == b
+
+
+def test_asian_qmc_deterministic_and_property():
+    a = asian_option_pricer(S, K, R, SIG, T, 100, 20_000, "call", seed=5, qmc=True)["price"]
+    b = asian_option_pricer(S, K, R, SIG, T, 100, 20_000, "call", seed=5, qmc=True)["price"]
+    assert a == b
+    vanilla = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]
+    assert 0.0 <= a < vanilla
+
+
+def test_asian_qmc_reduces_variance_without_bias():
+    """Task #15 Phase 2: at matched n_simulations, qmc=True must give a materially
+    lower spread of price estimates across independent seeds than plain MC, with
+    no material bias -- the property that justifies shipping this at all (verified
+    at n_steps=100 in the PR, not assumed from theory alone)."""
+    seeds = range(30)
+    n_simulations = 6_000  # small so the test stays fast; effect is even larger at 100k
+
+    plain = np.array(
+        [
+            asian_option_pricer(S, K, R, SIG, T, 100, n_simulations, "call", seed=s)["price"]
+            for s in seeds
+        ]
+    )
+    qmc_prices = np.array(
+        [
+            asian_option_pricer(S, K, R, SIG, T, 100, n_simulations, "call", seed=s, qmc=True)[
+                "price"
+            ]
+            for s in seeds
+        ]
+    )
+    assert np.var(qmc_prices) < np.var(plain) / 3, "qmc should materially reduce price variance"
+    assert abs(np.mean(qmc_prices) - np.mean(plain)) < 3 * (np.std(plain) / np.sqrt(len(seeds)))
+
+
 def test_lookback_ge_vanilla_payoff():
     # independent property: floating lookback call >= vanilla call
     vanilla = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]
@@ -621,6 +662,45 @@ def test_lookback_invalid():
         lookback_option_pricer(S, K, R, SIG, T, strike_type="bad")
     with pytest.raises(ValueError):
         lookback_option_pricer(S, K, R, SIG, T, option_type="bad")
+
+
+def test_lookback_qmc_default_off_and_deterministic():
+    a = lookback_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7)["price"]
+    b = lookback_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7, qmc=False)[
+        "price"
+    ]
+    assert a == b
+    c = lookback_option_pricer(S, K, R, SIG, T, 100, 20_000, "call", "floating", seed=7, qmc=True)[
+        "price"
+    ]
+    d = lookback_option_pricer(S, K, R, SIG, T, 100, 20_000, "call", "floating", seed=7, qmc=True)[
+        "price"
+    ]
+    assert c == d
+
+
+def test_lookback_qmc_reduces_variance_without_bias():
+    seeds = range(30)
+    n_simulations = 6_000
+
+    plain = np.array(
+        [
+            lookback_option_pricer(S, K, R, SIG, T, 100, n_simulations, "call", "floating", seed=s)[
+                "price"
+            ]
+            for s in seeds
+        ]
+    )
+    qmc_prices = np.array(
+        [
+            lookback_option_pricer(
+                S, K, R, SIG, T, 100, n_simulations, "call", "floating", seed=s, qmc=True
+            )["price"]
+            for s in seeds
+        ]
+    )
+    assert np.var(qmc_prices) < np.var(plain) / 3
+    assert abs(np.mean(qmc_prices) - np.mean(plain)) < 3 * (np.std(plain) / np.sqrt(len(seeds)))
 
 
 def test_american_lsm_ge_european():
