@@ -191,6 +191,7 @@ class AsianOptionPricerRequest(BaseModel):
     average_type: str = "arithmetic"
     div_yield: float = 0.0
     seed: int = 21
+    qmc: bool = False
 
 
 class AsianOptionPricerResponse(BaseModel):
@@ -216,6 +217,7 @@ class LookbackOptionPricerRequest(BaseModel):
     strike_type: str = "floating"
     div_yield: float = 0.0
     seed: int = 31
+    qmc: bool = False
 
 
 class LookbackOptionPricerResponse(BaseModel):
