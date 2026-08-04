@@ -76,6 +76,41 @@ def test_rbergomi_price_positive_and_deterministic():
     assert a["price"] == b["price"]
 
 
+def test_rbergomi_volterra_driver_matches_hand_calc():
+    """Regression test for the autocovariance-structure bug (task #18): a
+    previous version passed a broad option-price-band sanity check even
+    though it silently froze each increment's weight at the moment it was
+    drawn instead of recomputing it (as a gap to the current time) at every
+    later step -- right marginal variance at any single time, wrong
+    autocovariance between different times, invisible to a single-price-band
+    test. A unit-impulse input makes the difference exact and hand-
+    computable: only a correctly gap-based kernel decays after the impulse;
+    the broken, frozen-weight kernel stays constant.
+    """
+    from engine.deriv_stoch_vol import _rbergomi_volterra_driver
+
+    hurst = 0.1
+    dt = 0.02
+    n_steps = 10
+    z_v = np.zeros(n_steps, dtype=np.float64)
+    z_v[0] = 1.0  # unit impulse at the very first increment, silence elsewhere
+
+    driver = _rbergomi_volterra_driver(hurst, z_v, dt)
+
+    # Hand-computed reference: only k=0 contributes, weight = gap^(H-0.5)
+    # where gap = t_now - 0 = (step+1)*dt, recomputed at every step.
+    expected = np.array(
+        [((step + 1) * dt) ** (hurst - 0.5) * math.sqrt(dt) for step in range(n_steps)]
+    )
+    np.testing.assert_allclose(driver, expected, rtol=1e-10)
+
+    # Defining signature of a correct (gap-based) kernel: after a single
+    # impulse the driver decays monotonically (H < 0.5 => weight shrinks as
+    # the gap to t_now grows). A frozen-weight kernel stays constant after
+    # step 0 -- that's exactly the bug this guards against.
+    assert np.all(np.diff(driver) < 0.0)
+
+
 def test_variance_gamma_put_call_parity():
     c = variance_gamma_model(
         100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="call", seed=3
