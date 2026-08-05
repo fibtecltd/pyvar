@@ -317,6 +317,105 @@ def _price_by_qmc_replicates(
     return price, se, actual_n
 
 
+# ── Bump-and-reprice Greeks (task #15 Phase 4 pilot) ────────────────────────────
+
+_GREEKS_BUMP_REL_SPOT = 1e-3  # 0.1% of spot, for delta/gamma
+_GREEKS_BUMP_SIGMA = 1e-4  # 1bp absolute vol, for vega
+_GREEKS_BUMP_RATE = 1e-4  # 1bp absolute rate, for rho
+_GREEKS_BUMP_TAU_DAYS = 1.0  # 1 calendar day, for theta
+_DAYS_PER_YEAR = 365.0
+
+
+def _asian_disc_payoff_mean(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    div_yield: float,
+    option_type: str,
+    normals: np.ndarray,
+) -> float:
+    """Mean discounted Asian payoff for one (params, normals) combination."""
+    path_stats = np.asarray(_gbm_path_stats(spot, rate, div_yield, sigma, tau, normals))
+    avg = path_stats[:, 1]
+    payoff = (
+        np.maximum(avg - strike, 0.0) if option_type == "call" else np.maximum(strike - avg, 0.0)
+    )
+    disc = math.exp(-rate * tau)
+    return float(np.mean(disc * payoff))
+
+
+def _asian_greeks_bump_reprice(
+    spot: float,
+    strike: float,
+    rate: float,
+    sigma: float,
+    tau: float,
+    div_yield: float,
+    option_type: str,
+    normals: np.ndarray,
+    base_price: float,
+) -> dict[str, float]:
+    """Delta/gamma/vega/theta/rho via central-difference bump-and-reprice.
+
+    Every bumped reprice reuses the SAME pre-drawn ``normals`` array as the
+    base price (common random numbers) -- the MC noise in each bump is
+    almost perfectly correlated with the base run's noise, so it cancels out
+    in the difference instead of adding to it. That correlation is what lets
+    the bump sizes below stay small without the resulting Greek being
+    swamped by simulation noise; independently-redrawn bumps would need far
+    more paths for comparable precision.
+
+    Gamma reuses the same S+/S- reprices as delta (central second
+    difference against ``base_price``) rather than a separate bump, so the
+    full set costs 8 extra reprices, not 10.
+    """
+    d_s = spot * _GREEKS_BUMP_REL_SPOT
+    d_sigma = min(_GREEKS_BUMP_SIGMA, sigma * 0.5)
+    d_rate = _GREEKS_BUMP_RATE
+    d_tau = min(_GREEKS_BUMP_TAU_DAYS / _DAYS_PER_YEAR, tau * 0.4)
+
+    p_sp = _asian_disc_payoff_mean(
+        spot + d_s, strike, rate, sigma, tau, div_yield, option_type, normals
+    )
+    p_sm = _asian_disc_payoff_mean(
+        spot - d_s, strike, rate, sigma, tau, div_yield, option_type, normals
+    )
+    p_vp = _asian_disc_payoff_mean(
+        spot, strike, rate, sigma + d_sigma, tau, div_yield, option_type, normals
+    )
+    p_vm = _asian_disc_payoff_mean(
+        spot, strike, rate, sigma - d_sigma, tau, div_yield, option_type, normals
+    )
+    p_rp = _asian_disc_payoff_mean(
+        spot, strike, rate + d_rate, sigma, tau, div_yield, option_type, normals
+    )
+    p_rm = _asian_disc_payoff_mean(
+        spot, strike, rate - d_rate, sigma, tau, div_yield, option_type, normals
+    )
+    p_tp = _asian_disc_payoff_mean(
+        spot, strike, rate, sigma, tau + d_tau, div_yield, option_type, normals
+    )
+    p_tm = _asian_disc_payoff_mean(
+        spot, strike, rate, sigma, tau - d_tau, div_yield, option_type, normals
+    )
+
+    delta = (p_sp - p_sm) / (2.0 * d_s)
+    gamma = (p_sp - 2.0 * base_price + p_sm) / (d_s * d_s)
+    vega = (p_vp - p_vm) / (2.0 * d_sigma)
+    rho = (p_rp - p_rm) / (2.0 * d_rate)
+    theta = -(p_tp - p_tm) / (2.0 * d_tau)
+
+    return {
+        "delta": round(delta, 8),
+        "gamma": round(gamma, 8),
+        "vega": round(vega, 8),
+        "theta": round(theta, 8),
+        "rho": round(rho, 8),
+    }
+
+
 def asian_option_pricer(
     spot: float,
     strike: float,
@@ -330,6 +429,7 @@ def asian_option_pricer(
     div_yield: float = 0.0,
     seed: int = 21,
     qmc: bool = False,
+    greeks: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Arithmetic-average Asian option price via Monte Carlo.
 
@@ -352,12 +452,20 @@ def asian_option_pricer(
             see ``_price_by_qmc_replicates``) instead of plain MC for a
             lower-variance estimate at the same n_simulations. Defaults to
             False so existing callers/results are unaffected.
+        greeks: Also compute delta/gamma/vega/theta/rho via bump-and-reprice
+            (see ``_asian_greeks_bump_reprice``) on the same pre-drawn
+            normals used for the base price, so the bump noise cancels
+            against the base run's noise instead of adding to it. Costs 8
+            extra reprices at the same n_simulations/n_steps. Not supported
+            together with qmc=True. Defaults to False so existing
+            callers/results are unaffected.
 
     Returns:
-        Dict with ``price``, ``std_error``.
+        Dict with ``price``, ``std_error``, and if ``greeks=True`` also
+        ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
 
     Raises:
-        ValueError: If inputs are invalid.
+        ValueError: If inputs are invalid, or if greeks=True with qmc=True.
     """
     if option_type not in ("call", "put"):
         raise ValueError("option_type must be 'call' or 'put'")
@@ -365,6 +473,8 @@ def asian_option_pricer(
         raise ValueError("only arithmetic averaging supported")
     if spot <= 0 or strike <= 0 or sigma <= 0 or tau <= 0:
         raise ValueError("spot, strike, sigma, tau must be positive")
+    if greeks and qmc:
+        raise ValueError("greeks=True is not yet supported together with qmc=True")
 
     disc = math.exp(-rate * tau)
 
@@ -382,9 +492,9 @@ def asian_option_pricer(
         price, se, _ = _price_by_qmc_replicates(_price_from_normals, n_simulations, n_steps, seed)
         return {"price": round(price, 8), "std_error": round(se, 8)}
 
-    stats_arr = _simulate_path_stats(
-        spot, rate, div_yield, sigma, tau, n_steps, n_simulations, seed
-    )
+    rng = np.random.default_rng(seed)
+    normals = rng.standard_normal((int(n_simulations), int(n_steps))).astype(np.float64)
+    stats_arr = np.asarray(_gbm_path_stats(spot, rate, div_yield, sigma, tau, normals))
     avg = stats_arr[:, 1]
     if option_type == "call":
         payoff = np.maximum(avg - strike, 0.0)
@@ -393,7 +503,15 @@ def asian_option_pricer(
     disc_payoff = disc * payoff
     price = float(np.mean(disc_payoff))
     se = float(np.std(disc_payoff) / math.sqrt(n_simulations))
-    return {"price": round(price, 8), "std_error": round(se, 8)}
+    result = {"price": round(price, 8), "std_error": round(se, 8)}
+
+    if greeks:
+        result.update(
+            _asian_greeks_bump_reprice(
+                spot, strike, rate, sigma, tau, div_yield, option_type, normals, price
+            )
+        )
+    return result
 
 
 def lookback_option_pricer(

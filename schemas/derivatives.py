@@ -192,6 +192,7 @@ class AsianOptionPricerRequest(BaseModel):
     div_yield: float = 0.0
     seed: int = 21
     qmc: bool = False
+    greeks: bool = False
 
 
 class AsianOptionPricerResponse(BaseModel):
@@ -201,6 +202,11 @@ class AsianOptionPricerResponse(BaseModel):
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class LookbackOptionPricerRequest(BaseModel):

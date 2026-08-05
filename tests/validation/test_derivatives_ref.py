@@ -648,6 +648,64 @@ def test_asian_qmc_reduces_variance_without_bias():
     assert abs(np.mean(qmc_prices) - np.mean(plain)) < 3 * (np.std(plain) / np.sqrt(len(seeds)))
 
 
+def test_asian_greeks_default_off():
+    """greeks defaults to False -- existing callers see unchanged price/std_error
+    and no Greek keys in the result (task #15 Phase 4 pilot)."""
+    r = asian_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", seed=5)
+    assert set(r) == {"price", "std_error"}
+
+
+def test_asian_greeks_deterministic_and_not_with_qmc():
+    a = asian_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", seed=5, greeks=True)
+    b = asian_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", seed=5, greeks=True)
+    assert a == b
+    with pytest.raises(ValueError):
+        asian_option_pricer(S, K, R, SIG, T, seed=5, greeks=True, qmc=True)
+
+
+def test_asian_greeks_price_unchanged_by_flag():
+    """Turning greeks on must not perturb the base price -- both branches read
+    off the same pre-drawn normals (common random numbers)."""
+    base = asian_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", seed=5)["price"]
+    with_greeks = asian_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", seed=5, greeks=True)[
+        "price"
+    ]
+    assert base == with_greeks
+
+
+def test_asian_greeks_signs_and_shape():
+    call = asian_option_pricer(S, K, R, SIG, T, 50, 60_000, "call", seed=7, greeks=True)
+    put = asian_option_pricer(S, K, R, SIG, T, 50, 60_000, "put", seed=7, greeks=True)
+
+    assert 0.0 < call["delta"] < 1.0
+    assert -1.0 < put["delta"] < 0.0
+    assert call["gamma"] > 0.0
+    assert put["gamma"] > 0.0
+    assert call["vega"] > 0.0
+    assert put["vega"] > 0.0
+    assert call["rho"] > 0.0
+    assert put["rho"] < 0.0
+
+
+def test_asian_greeks_delta_below_vanilla():
+    """Averaging dampens sensitivity to the spot vs. a vanilla European with the
+    same parameters, so |Asian delta| must sit strictly below |vanilla delta|."""
+    vanilla_delta = black_scholes_greeks(S, K, R, SIG, T, "call")["delta"]
+    asian_delta = asian_option_pricer(S, K, R, SIG, T, 50, 60_000, "call", seed=7, greeks=True)[
+        "delta"
+    ]
+    assert 0.0 < asian_delta < vanilla_delta
+
+
+def test_asian_greeks_gamma_matches_between_call_and_put():
+    """Bump-and-reprice gamma comes from the same S+/S- reprices regardless of
+    payoff sign convention, so call and put gamma should coincide (matching the
+    closed-form BS property that gamma is payoff-type-independent)."""
+    call = asian_option_pricer(S, K, R, SIG, T, 50, 60_000, "call", seed=7, greeks=True)
+    put = asian_option_pricer(S, K, R, SIG, T, 50, 60_000, "put", seed=7, greeks=True)
+    assert call["gamma"] == pytest.approx(put["gamma"], rel=1e-6)
+
+
 def test_lookback_ge_vanilla_payoff():
     # independent property: floating lookback call >= vanilla call
     vanilla = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]
