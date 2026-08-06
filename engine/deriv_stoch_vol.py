@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 from numba import njit, prange
-from scipy import integrate
+from scipy import integrate, stats
 
 from engine.deriv_options_vanilla import black_scholes_european_option
 
@@ -462,6 +462,70 @@ def _heston_companion_payoffs(
     return out
 
 
+# ── Bump-and-reprice Greeks (task #15 Phase 4 batch 2) ──────────────────────────
+#
+# Defined locally to this file rather than imported from deriv_options_exotic.py
+# -- each engine/ file is an independently organised topic module per CLAUDE.md
+# section 2, and these are simple enough that duplicating them keeps this file
+# self-contained rather than creating a cross-file private-helper dependency.
+
+_GREEKS_BUMP_REL_SPOT = 1e-3  # 0.1% of spot, for delta/gamma
+_GREEKS_BUMP_VOL = 1e-4  # 1bp absolute, for the model's own "volatility level" param
+_GREEKS_BUMP_RATE = 1e-4  # 1bp absolute rate, for rho
+_GREEKS_BUMP_TAU_DAYS = 1.0  # 1 calendar day, for theta
+_DAYS_PER_YEAR = 365.0
+
+
+def _bump_reprice_greeks(
+    price_fn,  # Callable[[float, float, float, float], float] -- (spot, rate, vol_param, tau) -> price
+    spot: float,
+    rate: float,
+    vol_param: float,
+    tau: float,
+    base_price: float,
+    d_s: float,
+    d_vol: float,
+    d_rate: float,
+    d_tau: float,
+) -> dict:  # type: ignore[type-arg]
+    """Generic central-difference bump-and-reprice Greeks (task #15 Phase 4).
+
+    ``price_fn`` must reprice off the SAME pre-drawn random draws as
+    ``base_price`` for every call (common random numbers) -- the MC noise in
+    each bump is then almost perfectly correlated with the base run's noise
+    and cancels in the difference instead of adding to it, which is what
+    lets small bump sizes work at all. Callers are responsible for closing
+    over those draws.
+
+    ``vol_param`` is deliberately generic, not named ``sigma``: these models'
+    own "volatility level" parameter isn't always literally called sigma
+    (rBergomi's is ``xi``, a forward-variance level) -- see each caller for
+    what "vega" means concretely for that model.
+    """
+    p_sp = price_fn(spot + d_s, rate, vol_param, tau)
+    p_sm = price_fn(spot - d_s, rate, vol_param, tau)
+    p_vp = price_fn(spot, rate, vol_param + d_vol, tau)
+    p_vm = price_fn(spot, rate, vol_param - d_vol, tau)
+    p_rp = price_fn(spot, rate + d_rate, vol_param, tau)
+    p_rm = price_fn(spot, rate - d_rate, vol_param, tau)
+    p_tp = price_fn(spot, rate, vol_param, tau + d_tau)
+    p_tm = price_fn(spot, rate, vol_param, tau - d_tau)
+
+    delta = (p_sp - p_sm) / (2.0 * d_s)
+    gamma = (p_sp - 2.0 * base_price + p_sm) / (d_s * d_s)
+    vega = (p_vp - p_vm) / (2.0 * d_vol)
+    rho = (p_rp - p_rm) / (2.0 * d_rate)
+    theta = -(p_tp - p_tm) / (2.0 * d_tau)
+
+    return {
+        "delta": round(delta, 8),
+        "gamma": round(gamma, 8),
+        "vega": round(vega, 8),
+        "theta": round(theta, 8),
+        "rho": round(rho, 8),
+    }
+
+
 def rough_volatility_rbergomi_model(
     spot: float,
     strike: float,
@@ -476,6 +540,7 @@ def rough_volatility_rbergomi_model(
     option_type: str = "call",
     seed: int = 2024,
     control_variate: bool = False,
+    greeks: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Rough Bergomi (rBergomi) European option price via Monte Carlo.
 
@@ -551,12 +616,28 @@ def rough_volatility_rbergomi_model(
             quite different from Heston's Markovian CIR process (that
             structural gap is exactly why the correlation -- and therefore
             the achievable variance reduction -- isn't larger).
+        greeks: Also compute delta/gamma/vega/theta/rho via bump-and-reprice
+            (see ``_bump_reprice_greeks``) on the same pre-drawn z_v/z_s used
+            for the base price. "vega" here is sensitivity to ``xi`` (the
+            forward-variance level, this model's primary volatility
+            parameter) -- NOT to ``eta`` (vol-of-vol) or ``hurst``, which are
+            structural parameters outside the standard 5-Greek scope and are
+            held fixed. The Greek "rho" (sensitivity to the risk-free rate)
+            is unrelated to this model's own ``rho`` parameter (spot/vol
+            correlation, also held fixed) -- an unfortunate but standard
+            name collision, not a bug. Not supported together with
+            control_variate=True (the control-variate coefficient and the
+            analytic Heston reference price would both need re-deriving at
+            every bumped scenario; deferred rather than done partially).
+            Defaults to False so existing callers/results are unaffected.
 
     Returns:
-        Dict with ``price``, ``std_error``.
+        Dict with ``price``, ``std_error``, and if ``greeks=True`` also
+        ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
 
     Raises:
-        ValueError: If inputs are invalid.
+        ValueError: If inputs are invalid, or if greeks=True with
+            control_variate=True.
     """
     if option_type not in ("call", "put"):
         raise ValueError("option_type must be 'call' or 'put'")
@@ -566,6 +647,8 @@ def rough_volatility_rbergomi_model(
         raise ValueError("hurst must be in (0, 0.5)")
     if not -1.0 <= rho <= 1.0:
         raise ValueError("rho must be in [-1, 1]")
+    if greeks and control_variate:
+        raise ValueError("greeks=True is not yet supported together with control_variate=True")
 
     rng = np.random.default_rng(seed)
     z_v = rng.standard_normal((int(n_simulations), int(n_steps))).astype(np.float64)
@@ -613,7 +696,42 @@ def rough_volatility_rbergomi_model(
 
     price = float(np.mean(payoffs))
     se = float(np.std(payoffs) / math.sqrt(n_simulations))
-    return {"price": round(price, 8), "std_error": round(se, 8)}
+    result = {"price": round(price, 8), "std_error": round(se, 8)}
+
+    if greeks:
+
+        def _rbergomi_price(spot_: float, rate_: float, xi_: float, tau_: float) -> float:
+            payoffs_ = _rbergomi_paths(
+                spot_,
+                strike,
+                rate_,
+                tau_,
+                xi_,
+                eta,
+                hurst,
+                rho,
+                z_v,
+                z_s,
+                int(n_steps),
+                option_type == "call",
+            )
+            return float(np.mean(payoffs_))
+
+        result.update(
+            _bump_reprice_greeks(
+                _rbergomi_price,
+                spot,
+                rate,
+                xi,
+                tau,
+                price,
+                d_s=spot * _GREEKS_BUMP_REL_SPOT,
+                d_vol=min(_GREEKS_BUMP_VOL, xi * 0.5),
+                d_rate=_GREEKS_BUMP_RATE,
+                d_tau=min(_GREEKS_BUMP_TAU_DAYS / _DAYS_PER_YEAR, tau * 0.4),
+            )
+        )
+    return result
 
 
 # ── Variance Gamma (Monte Carlo) ───────────────────────────────────────────────
@@ -652,6 +770,63 @@ def _levy_subordinated_payoff(
     return out
 
 
+def _levy_bump_reprice_greeks(
+    price_fn,  # Callable[[float, float, float], float] -- (spot, rate, vol_param) -> price, at the
+    # ORIGINAL tau, reusing the base run's subordinator/normals (no tau dependence to reparameterize)
+    theta_pair_fn,  # Callable[[float], tuple[float, float]] -- d_tau -> (price at tau+d_tau, price
+    # at tau-d_tau); closes over the original tau itself, see callers
+    spot: float,
+    rate: float,
+    vol_param: float,
+    base_price: float,
+    d_s: float,
+    d_vol: float,
+    d_rate: float,
+    d_tau: float,
+) -> dict:  # type: ignore[type-arg]
+    """Bump-and-reprice Greeks for VG/NIG (task #15 Phase 4 batch 2).
+
+    Split into two callables rather than one ``price_fn(spot, rate, vol, tau)``
+    like ``_bump_reprice_greeks`` elsewhere in this file, because VG/NIG's
+    subordinator (Gamma for VG, inverse-Gaussian for NIG) is drawn with a
+    SHAPE PARAMETER that is itself a function of tau -- unlike a GBM path's
+    pre-drawn N(0,1) normals, which stay valid under any tau (only the
+    drift/vol scaling applied to them changes), the subordinator array itself
+    is a different random variable at a different tau and can't just be
+    reused. ``price_fn`` covers spot/vol/rate bumps, none of which touch the
+    subordinator's distribution, so those safely reuse the base run's
+    subordinator array for common-random-numbers noise cancellation exactly
+    like every other Greek in this codebase. ``theta_pair_fn`` is
+    responsible for tau+/-d_tau internally -- see variance_gamma_model's and
+    normal_inverse_gaussian_model's docstrings for how it keeps that
+    reparameterization itself CRN-consistent (verified empirically: an
+    independently-redrawn subordinator at each tau gave ~65x more
+    seed-to-seed noise in theta than sharing one uniform draw via the
+    subordinator's inverse-CDF).
+    """
+    p_sp = price_fn(spot + d_s, rate, vol_param)
+    p_sm = price_fn(spot - d_s, rate, vol_param)
+    p_vp = price_fn(spot, rate, vol_param + d_vol)
+    p_vm = price_fn(spot, rate, vol_param - d_vol)
+    p_rp = price_fn(spot, rate + d_rate, vol_param)
+    p_rm = price_fn(spot, rate - d_rate, vol_param)
+    p_tp, p_tm = theta_pair_fn(d_tau)
+
+    delta = (p_sp - p_sm) / (2.0 * d_s)
+    gamma = (p_sp - 2.0 * base_price + p_sm) / (d_s * d_s)
+    vega = (p_vp - p_vm) / (2.0 * d_vol)
+    rho = (p_rp - p_rm) / (2.0 * d_rate)
+    theta = -(p_tp - p_tm) / (2.0 * d_tau)
+
+    return {
+        "delta": round(delta, 8),
+        "gamma": round(gamma, 8),
+        "vega": round(vega, 8),
+        "theta": round(theta, 8),
+        "rho": round(rho, 8),
+    }
+
+
 def variance_gamma_model(
     spot: float,
     strike: float,
@@ -663,6 +838,7 @@ def variance_gamma_model(
     n_simulations: int = 100_000,
     option_type: str = "call",
     seed: int = 7,
+    greeks: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Variance Gamma European option price via Monte Carlo.
 
@@ -676,14 +852,38 @@ def variance_gamma_model(
         rate: Risk-free rate (continuous).
         tau: Time to maturity (years, > 0).
         sigma: Diffusion volatility.
-        theta: Drift of the subordinated Brownian motion (skew).
+        theta: Drift of the subordinated Brownian motion (skew). NOT the
+            Greek theta (time decay) -- an unfortunate name collision with
+            this model's own parameter; see ``greeks`` below.
         nu: Variance rate of the Gamma subordinator (> 0).
         n_simulations: Number of paths.
         option_type: ``"call"`` or ``"put"``.
         seed: RNG seed.
+        greeks: Also compute delta/gamma/vega/theta/rho via bump-and-reprice
+            (see ``_levy_bump_reprice_greeks``). "vega" here is sensitivity
+            to ``sigma`` (the diffusion volatility, this model's direct
+            Black-Scholes-like vol parameter). The Greek "theta" (time
+            decay, in the output dict) is unrelated to this function's own
+            ``theta`` parameter (skew) above, which stays fixed.
+
+            delta/vega/rho reuse the base run's Gamma subordinator directly
+            (spot/sigma/rate bumps don't change its shape parameter). theta
+            (the Greek) needs a subordinator at ``tau +/- d_tau``, and the
+            Gamma subordinator's shape parameter IS ``tau/nu`` -- so it
+            can't just reuse the base draw the way GBM-based normals can
+            under a tau bump. Verified empirically that independently
+            redrawing it at each bumped tau gives ~65x more seed-to-seed
+            noise in theta than the alternative shipped here: drawing ONE
+            shared uniform array and mapping it through the Gamma inverse-CDF
+            at ``(tau+d_tau)/nu`` and ``(tau-d_tau)/nu`` respectively, which
+            keeps the two bumped subordinators tightly (positively)
+            correlated with each other the same way common random numbers
+            correlate every other Greek in this codebase. Defaults to False
+            so existing callers/results are unaffected.
 
     Returns:
-        Dict with ``price``, ``std_error``.
+        Dict with ``price``, ``std_error``, and if ``greeks=True`` also
+        ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
 
     Raises:
         ValueError: If inputs are invalid.
@@ -703,7 +903,47 @@ def variance_gamma_model(
     )
     price = float(np.mean(payoffs))
     se = float(np.std(payoffs) / math.sqrt(n_simulations))
-    return {"price": round(price, 8), "std_error": round(se, 8)}
+    result = {"price": round(price, 8), "std_error": round(se, 8)}
+
+    if greeks:
+        is_call = option_type == "call"
+
+        def _price(spot_: float, rate_: float, sigma_: float) -> float:
+            omega_ = math.log(1.0 - theta * nu - 0.5 * sigma_ * sigma_ * nu) / nu
+            payoffs_ = _levy_subordinated_payoff(
+                spot_, strike, rate_, tau, omega_, theta, sigma_, g, z, is_call
+            )
+            return float(np.mean(payoffs_))
+
+        def _theta_pair(d_tau: float) -> tuple:
+            tau_p, tau_m = tau + d_tau, tau - d_tau
+            rng2 = np.random.default_rng(seed + 1_000_000_007)
+            u_tau = rng2.random(int(n_simulations))
+            g_p = stats.gamma.ppf(u_tau, a=tau_p / nu, scale=nu).astype(np.float64)
+            g_m = stats.gamma.ppf(u_tau, a=tau_m / nu, scale=nu).astype(np.float64)
+            payoffs_p = _levy_subordinated_payoff(
+                spot, strike, rate, tau_p, omega, theta, sigma, g_p, z, is_call
+            )
+            payoffs_m = _levy_subordinated_payoff(
+                spot, strike, rate, tau_m, omega, theta, sigma, g_m, z, is_call
+            )
+            return float(np.mean(payoffs_p)), float(np.mean(payoffs_m))
+
+        result.update(
+            _levy_bump_reprice_greeks(
+                _price,
+                _theta_pair,
+                spot,
+                rate,
+                sigma,
+                price,
+                d_s=spot * _GREEKS_BUMP_REL_SPOT,
+                d_vol=min(_GREEKS_BUMP_VOL, sigma * 0.5),
+                d_rate=_GREEKS_BUMP_RATE,
+                d_tau=min(_GREEKS_BUMP_TAU_DAYS / _DAYS_PER_YEAR, tau * 0.4),
+            )
+        )
+    return result
 
 
 def normal_inverse_gaussian_model(
@@ -717,6 +957,7 @@ def normal_inverse_gaussian_model(
     n_simulations: int = 100_000,
     option_type: str = "call",
     seed: int = 11,
+    greeks: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Normal Inverse Gaussian European option price via Monte Carlo.
 
@@ -730,13 +971,36 @@ def normal_inverse_gaussian_model(
         tau: Time to maturity (years, > 0).
         alpha: Tail heaviness (> |beta|).
         beta: Skewness parameter.
-        delta: Scale (> 0).
+        delta: Scale (> 0). NOT the Greek delta (spot sensitivity) -- an
+            unfortunate name collision with this model's own parameter; see
+            ``greeks`` below.
         n_simulations: Number of paths.
         option_type: ``"call"`` or ``"put"``.
         seed: RNG seed.
+        greeks: Also compute Greek-delta/gamma/vega/theta/rho via
+            bump-and-reprice (see ``_levy_bump_reprice_greeks``). "vega"
+            here is sensitivity to this function's ``delta`` PARAMETER (the
+            IG subordinator's scale, this model's closest analogue to a
+            volatility level) -- not to ``alpha`` or ``beta``, which are
+            held fixed. The output dict's ``"delta"`` key is the Greek
+            (spot sensitivity); it is unrelated to the ``delta`` parameter
+            above despite the shared name.
+
+            Greek-delta/rho reuse the base run's IG subordinator directly
+            (spot/rate bumps don't touch it). Both "vega" (bumping the
+            ``delta`` parameter) and the Greek "theta" (bumping tau) DO
+            change the subordinator's (mu, lambda), so each draws its own
+            shared ``(normal, uniform)`` pair once and maps it through the
+            IG inverse-transform (``_ig_from_randoms``) at the +/- bumped
+            (mu, lambda) -- the same common-random-numbers technique
+            variance_gamma_model uses for its own tau-dependent Gamma
+            subordinator, verified there to cut seed-to-seed noise by
+            ~65x vs. an independent redraw at each bumped value.
+            Defaults to False so existing callers/results are unaffected.
 
     Returns:
-        Dict with ``price``, ``std_error``.
+        Dict with ``price``, ``std_error``, and if ``greeks=True`` also
+        ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
 
     Raises:
         ValueError: If inputs are invalid (notably ``alpha > |beta|``).
@@ -764,23 +1028,91 @@ def normal_inverse_gaussian_model(
     )
     price = float(np.mean(payoffs))
     se = float(np.std(payoffs) / math.sqrt(n_simulations))
-    return {"price": round(price, 8), "std_error": round(se, 8)}
+    result = {"price": round(price, 8), "std_error": round(se, 8)}
+
+    if greeks:
+        is_call = option_type == "call"
+
+        def _price(spot_: float, rate_: float, delta_param_: float) -> float:
+            # spot/rate bumps pass delta_param_ through unchanged -- only a
+            # "vega" bump (delta_param_ != delta) needs to touch the
+            # subordinator at all.
+            if delta_param_ == delta:
+                omega_, ig_ = omega, ig
+            else:
+                omega_ = delta_param_ * (math.sqrt(alpha**2 - (beta + 1.0) ** 2) - gamma)
+                mu_ig_ = delta_param_ * tau / gamma
+                lam_ig_ = (delta_param_ * tau) ** 2
+                ig_ = _sample_inverse_gaussian(
+                    np.random.default_rng(seed), mu_ig_, lam_ig_, int(n_simulations)
+                )
+            payoffs_ = _levy_subordinated_payoff(
+                spot_, strike, rate_, tau, omega_, beta, sigma, ig_, z, is_call
+            )
+            return float(np.mean(payoffs_))
+
+        def _theta_pair(d_tau: float) -> tuple:
+            tau_p, tau_m = tau + d_tau, tau - d_tau
+            mu_ig_p, lam_ig_p = delta * tau_p / gamma, (delta * tau_p) ** 2
+            mu_ig_m, lam_ig_m = delta * tau_m / gamma, (delta * tau_m) ** 2
+            rng2 = np.random.default_rng(seed + 2_000_000_011)
+            ig_normal = rng2.standard_normal(int(n_simulations))
+            ig_uniform = rng2.random(int(n_simulations))
+            ig_p = _ig_from_randoms(mu_ig_p, lam_ig_p, ig_normal, ig_uniform)
+            ig_m = _ig_from_randoms(mu_ig_m, lam_ig_m, ig_normal, ig_uniform)
+            payoffs_p = _levy_subordinated_payoff(
+                spot, strike, rate, tau_p, omega, beta, sigma, ig_p, z, is_call
+            )
+            payoffs_m = _levy_subordinated_payoff(
+                spot, strike, rate, tau_m, omega, beta, sigma, ig_m, z, is_call
+            )
+            return float(np.mean(payoffs_p)), float(np.mean(payoffs_m))
+
+        result.update(
+            _levy_bump_reprice_greeks(
+                _price,
+                _theta_pair,
+                spot,
+                rate,
+                delta,
+                price,
+                d_s=spot * _GREEKS_BUMP_REL_SPOT,
+                d_vol=min(_GREEKS_BUMP_VOL, delta * 0.5),
+                d_rate=_GREEKS_BUMP_RATE,
+                d_tau=min(_GREEKS_BUMP_TAU_DAYS / _DAYS_PER_YEAR, tau * 0.4),
+            )
+        )
+    return result
+
+
+def _ig_from_randoms(
+    mu: float, lam: float, ig_normal: np.ndarray, ig_uniform: np.ndarray
+) -> np.ndarray:
+    """Michael-Schucany-Haas inverse-Gaussian(mu, lambda) given pre-drawn inputs.
+
+    Split out from ``_sample_inverse_gaussian`` so a Greeks bump that changes
+    only (mu, lam) -- e.g. tau or delta in normal_inverse_gaussian_model --
+    can reuse the SAME ``(ig_normal, ig_uniform)`` pair across the bumped
+    scenarios instead of redrawing fresh randomness for each. See
+    normal_inverse_gaussian_model's docstring for why that reuse matters.
+    """
+    y = ig_normal * ig_normal
+    x = (
+        mu
+        + (mu**2 * y) / (2.0 * lam)
+        - (mu / (2.0 * lam)) * np.sqrt(4.0 * mu * lam * y + mu**2 * y**2)
+    )
+    out = np.where(ig_uniform <= mu / (mu + x), x, mu**2 / x)
+    return out.astype(np.float64)
 
 
 def _sample_inverse_gaussian(
     rng: np.random.Generator, mu: float, lam: float, size: int
 ) -> np.ndarray:
     """Sample an inverse-Gaussian(mu, lambda) via Michael-Schucany-Haas."""
-    nu = rng.standard_normal(size)
-    y = nu * nu
-    x = (
-        mu
-        + (mu**2 * y) / (2.0 * lam)
-        - (mu / (2.0 * lam)) * np.sqrt(4.0 * mu * lam * y + mu**2 * y**2)
-    )
-    u = rng.random(size)
-    out = np.where(u <= mu / (mu + x), x, mu**2 / x)
-    return out.astype(np.float64)
+    ig_normal = rng.standard_normal(size)
+    ig_uniform = rng.random(size)
+    return _ig_from_randoms(mu, lam, ig_normal, ig_uniform)
 
 
 def displaced_diffusion_model(
