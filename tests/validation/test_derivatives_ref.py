@@ -1250,6 +1250,113 @@ def test_nig_invalid():
         normal_inverse_gaussian_model(S, K, R, T, alpha=3.0, beta=-5.0)  # alpha<=|beta|
 
 
+# ── task #15 Phase 4 batch 2: bump-and-reprice Greeks for the 3 stochastic-vol
+# MC pricers (completes Phase 4 -- Asian was the pilot, batch 1 covered the 6
+# other exotic-option MC pricers above) ──────────────────────────────────────
+
+
+def test_rbergomi_greeks_default_off_unchanged_price_and_deterministic():
+    r = rough_volatility_rbergomi_model(S, K, R, T, n_simulations=20_000, seed=2024)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=20_000, seed=2024, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    again = rough_volatility_rbergomi_model(
+        S, K, R, T, n_simulations=20_000, seed=2024, greeks=True
+    )
+    assert with_greeks == again
+    with pytest.raises(ValueError):
+        rough_volatility_rbergomi_model(S, K, R, T, greeks=True, control_variate=True)
+
+
+def test_rbergomi_greeks_signs():
+    r = rough_volatility_rbergomi_model(S, K, R, T, n_simulations=40_000, seed=2024, greeks=True)
+    assert 0.0 < r["delta"] < 1.0
+    assert r["gamma"] > 0.0
+    assert r["vega"] > 0.0  # sensitivity to xi (forward variance level)
+    assert r["rho"] > 0.0  # sensitivity to the risk-free rate
+
+
+def test_variance_gamma_greeks_default_off_unchanged_price_and_deterministic():
+    r = variance_gamma_model(S, K, R, T, n_simulations=20_000, seed=7)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = variance_gamma_model(S, K, R, T, n_simulations=20_000, seed=7, greeks=True)
+    assert with_greeks["price"] == r["price"]
+    again = variance_gamma_model(S, K, R, T, n_simulations=20_000, seed=7, greeks=True)
+    assert with_greeks == again
+
+
+def test_variance_gamma_greeks_signs():
+    r = variance_gamma_model(S, K, R, T, n_simulations=40_000, seed=7, greeks=True)
+    assert 0.0 < r["delta"] < 1.0
+    assert r["gamma"] > 0.0
+    assert r["vega"] > 0.0  # sensitivity to sigma (diffusion vol)
+    assert r["rho"] > 0.0
+
+
+def test_variance_gamma_greeks_theta_stable_across_seeds():
+    """theta's bumped Gamma subordinator can't reuse the base run's draw
+    directly (its shape parameter IS tau/nu) -- verified this needed a
+    shared-uniform inverse-CDF reparameterization rather than an independent
+    redraw at each bumped tau, which gave ~65x more seed-to-seed noise. This
+    checks the shipped implementation stays tight (relative std well under
+    10%), not just correctly signed."""
+    thetas = np.array(
+        [
+            variance_gamma_model(S, K, R, T, n_simulations=40_000, seed=s, greeks=True)["theta"]
+            for s in range(8)
+        ]
+    )
+    assert thetas.mean() < 0.0
+    assert thetas.std() / abs(thetas.mean()) < 0.10
+
+
+def test_nig_greeks_default_off_unchanged_price_and_deterministic():
+    r = normal_inverse_gaussian_model(S, K, R, T, n_simulations=20_000, seed=11)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = normal_inverse_gaussian_model(
+        S, K, R, T, n_simulations=20_000, seed=11, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    again = normal_inverse_gaussian_model(S, K, R, T, n_simulations=20_000, seed=11, greeks=True)
+    assert with_greeks == again
+
+
+def test_nig_greeks_signs():
+    r = normal_inverse_gaussian_model(S, K, R, T, n_simulations=40_000, seed=11, greeks=True)
+    assert 0.0 < r["delta"] < 1.0
+    assert r["gamma"] > 0.0
+    assert r["vega"] > 0.0  # sensitivity to the delta REQUEST PARAMETER (IG scale)
+    assert r["rho"] > 0.0
+
+
+def test_nig_greeks_theta_and_vega_stable_across_seeds():
+    """Both theta (tau bump) and vega (delta-parameter bump) change the IG
+    subordinator's (mu, lambda) and use the same shared-randoms
+    reparameterization technique verified for variance_gamma_model's theta."""
+    thetas = np.array(
+        [
+            normal_inverse_gaussian_model(S, K, R, T, n_simulations=40_000, seed=s, greeks=True)[
+                "theta"
+            ]
+            for s in range(8)
+        ]
+    )
+    vegas = np.array(
+        [
+            normal_inverse_gaussian_model(S, K, R, T, n_simulations=40_000, seed=s, greeks=True)[
+                "vega"
+            ]
+            for s in range(8)
+        ]
+    )
+    assert thetas.mean() < 0.0
+    assert thetas.std() / abs(thetas.mean()) < 0.15
+    assert vegas.mean() > 0.0
+    assert vegas.std() / abs(vegas.mean()) < 0.15
+
+
 def test_displaced_diffusion_reduces_to_bs():
     # LIMITING CASE: displacement=0 => exactly Black-Scholes
     ref = black_scholes_european_option(S, K, R, SIG, T, "call")["price"]

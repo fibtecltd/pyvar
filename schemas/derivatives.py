@@ -1229,15 +1229,25 @@ class RoughVolatilityRbergomiModelRequest(BaseModel):
     option_type: str = "call"
     seed: int = 2024
     control_variate: bool = False
+    greeks: bool = False
 
 
 class RoughVolatilityRbergomiModelResponse(BaseModel):
-    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict."""
+    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to xi (forward-variance level),
+    not to eta or hurst.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class VarianceGammaModelRequest(BaseModel):
@@ -1253,15 +1263,26 @@ class VarianceGammaModelRequest(BaseModel):
     n_simulations: int = 100000
     option_type: str = "call"
     seed: int = 7
+    greeks: bool = False
 
 
 class VarianceGammaModelResponse(BaseModel):
-    """Result of variance_gamma_model(). Mirrors the engine return dict."""
+    """Result of variance_gamma_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to sigma (diffusion vol); the
+    "theta" key is the Greek (time decay), unrelated to this model's own
+    theta request parameter (skew).
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class NormalInverseGaussianModelRequest(BaseModel):
@@ -1277,15 +1298,27 @@ class NormalInverseGaussianModelRequest(BaseModel):
     n_simulations: int = 100000
     option_type: str = "call"
     seed: int = 11
+    greeks: bool = False
 
 
 class NormalInverseGaussianModelResponse(BaseModel):
-    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict."""
+    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to this model's own delta
+    request parameter (IG scale); the "delta" key in this response is the
+    Greek (spot sensitivity), unrelated to that request parameter despite
+    the shared name.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class DisplacedDiffusionModelRequest(BaseModel):
