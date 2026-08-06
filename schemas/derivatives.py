@@ -224,6 +224,7 @@ class LookbackOptionPricerRequest(BaseModel):
     div_yield: float = 0.0
     seed: int = 31
     qmc: bool = False
+    greeks: bool = False
 
 
 class LookbackOptionPricerResponse(BaseModel):
@@ -233,6 +234,11 @@ class LookbackOptionPricerResponse(BaseModel):
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class AmericanOptionLsmRequest(BaseModel):
@@ -248,6 +254,7 @@ class AmericanOptionLsmRequest(BaseModel):
     option_type: str = "put"
     div_yield: float = 0.0
     seed: int = 41
+    greeks: bool = False
 
 
 class AmericanOptionLsmResponse(BaseModel):
@@ -256,6 +263,11 @@ class AmericanOptionLsmResponse(BaseModel):
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class BermudanOptionPricerRequest(BaseModel):
@@ -272,6 +284,7 @@ class BermudanOptionPricerRequest(BaseModel):
     option_type: str = "put"
     div_yield: float = 0.0
     seed: int = 51
+    greeks: bool = False
 
 
 class BermudanOptionPricerResponse(BaseModel):
@@ -281,6 +294,11 @@ class BermudanOptionPricerResponse(BaseModel):
 
     exercise_dates: Any = Field(default=None)
     price: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class RainbowOptionPricerRequest(BaseModel):
@@ -296,15 +314,25 @@ class RainbowOptionPricerRequest(BaseModel):
     option_type: str = "call"
     rainbow_type: str = "best-of"
     seed: int = 61
+    greeks: bool = False
 
 
 class RainbowOptionPricerResponse(BaseModel):
-    """Result of rainbow_option_pricer(). Mirrors the engine return dict."""
+    """Result of rainbow_option_pricer(). Mirrors the engine return dict.
+
+    delta/gamma/vega are one entry per asset when greeks=True (diagonal
+    sensitivities only, no cross-asset terms); theta/rho are scalar.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class BasketOptionPricerRequest(BaseModel):
@@ -320,15 +348,25 @@ class BasketOptionPricerRequest(BaseModel):
     n_simulations: int = 100000
     option_type: str = "call"
     seed: int = 71
+    greeks: bool = False
 
 
 class BasketOptionPricerResponse(BaseModel):
-    """Result of basket_option_pricer(). Mirrors the engine return dict."""
+    """Result of basket_option_pricer(). Mirrors the engine return dict.
+
+    delta/gamma/vega are one entry per asset when greeks=True (diagonal
+    sensitivities only, no cross-asset terms); theta/rho are scalar.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class SpreadOptionKirkApproximationRequest(BaseModel):
@@ -367,6 +405,7 @@ class CompoundOptionPricerRequest(BaseModel):
     compound_type: str = "call-on-call"
     div_yield: float = 0.0
     seed: int = 81
+    greeks: bool = False
 
 
 class CompoundOptionPricerResponse(BaseModel):
@@ -376,6 +415,11 @@ class CompoundOptionPricerResponse(BaseModel):
 
     price: Any = Field(default=None)
     std_error: Any = Field(default=None)
+    delta: Any = Field(default=None)
+    gamma: Any = Field(default=None)
+    vega: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    rho: Any = Field(default=None)
 
 
 class ChooserOptionPricerRequest(BaseModel):

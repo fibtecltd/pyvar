@@ -916,6 +916,140 @@ def test_compound_invalid():
         compound_option_pricer(S, K, 3, R, SIG, 1.0, 0.5)  # tau_under<=tau_compound
 
 
+# ── task #15 Phase 4 batch 1: bump-and-reprice Greeks for the 6 remaining
+# exotic MC option pricers (Asian was the Phase 4 pilot, already covered above) ──
+
+
+def test_lookback_greeks_default_off_and_unchanged_price():
+    r = lookback_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = lookback_option_pricer(
+        S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+
+
+def test_lookback_greeks_deterministic_and_not_with_qmc():
+    a = lookback_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7, greeks=True)
+    b = lookback_option_pricer(S, K, R, SIG, T, 50, 20_000, "call", "floating", seed=7, greeks=True)
+    assert a == b
+    with pytest.raises(ValueError):
+        lookback_option_pricer(S, K, R, SIG, T, seed=7, greeks=True, qmc=True)
+
+
+def test_lookback_greeks_floating_strike_is_scale_homogeneous():
+    """Floating-strike lookback (S_T - min(path), no fixed K) scales linearly
+    with spot under fixed normals -- delta must equal price/spot exactly and
+    gamma must be ~0. A strong closed-form-free correctness check, not just a
+    plausible-looking sign."""
+    r = lookback_option_pricer(S, K, R, SIG, T, 50, 40_000, "call", "floating", seed=7, greeks=True)
+    assert r["delta"] == pytest.approx(r["price"] / S, abs=1e-6)
+    assert abs(r["gamma"]) < 1e-6
+
+
+def test_american_lsm_greeks_deterministic_and_unchanged_price():
+    r = american_option_lsm(S, K, R, SIG, T, 50, 40_000, "put", seed=41)
+    with_greeks = american_option_lsm(S, K, R, SIG, T, 50, 40_000, "put", seed=41, greeks=True)
+    assert with_greeks["price"] == r["price"]
+    again = american_option_lsm(S, K, R, SIG, T, 50, 40_000, "put", seed=41, greeks=True)
+    assert with_greeks == again
+
+
+def test_american_lsm_greeks_signs():
+    """Uses the larger LSM-specific spot bump (_LSM_GREEKS_BUMP_REL_SPOT) --
+    verified empirically before shipping that the standard small bump gives a
+    noise-dominated, wrong-signed gamma here (regression exercise-boundary
+    flips under a tiny spot bump); see american_option_lsm's docstring."""
+    put = american_option_lsm(S, K, R, SIG, T, 50, 60_000, "put", seed=41, greeks=True)
+    call = american_option_lsm(S, K, R, SIG, T, 50, 60_000, "call", seed=41, greeks=True)
+    assert -1.0 < put["delta"] < 0.0
+    assert 0.0 < call["delta"] < 1.0
+    assert put["gamma"] > 0.0
+    assert call["gamma"] > 0.0
+    assert put["vega"] > 0.0
+    assert call["vega"] > 0.0
+    assert put["rho"] < 0.0
+    assert call["rho"] > 0.0
+
+
+def test_bermudan_greeks_deterministic_unchanged_price_and_signs():
+    r = bermudan_option_pricer(S, K, R, SIG, T, 4, 48, 40_000, "put", seed=51)
+    with_greeks = bermudan_option_pricer(
+        S, K, R, SIG, T, 4, 48, 40_000, "put", seed=51, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    again = bermudan_option_pricer(S, K, R, SIG, T, 4, 48, 40_000, "put", seed=51, greeks=True)
+    assert with_greeks == again
+    assert -1.0 < with_greeks["delta"] < 0.0
+    assert with_greeks["gamma"] > 0.0
+    assert with_greeks["vega"] > 0.0
+
+
+def test_rainbow_greeks_default_off_shape_and_signs():
+    spots = np.array([100.0, 100.0])
+    sigs = np.array([0.2, 0.25])
+    corr = np.array([[1.0, 0.3], [0.3, 1.0]])
+    r = rainbow_option_pricer(spots, 100, R, sigs, T, corr, 40_000, "call", "best-of", seed=61)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = rainbow_option_pricer(
+        spots, 100, R, sigs, T, corr, 40_000, "call", "best-of", seed=61, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    assert len(with_greeks["delta"]) == len(with_greeks["gamma"]) == len(with_greeks["vega"]) == 2
+    assert all(d > 0.0 for d in with_greeks["delta"])
+    assert all(g > 0.0 for g in with_greeks["gamma"])
+    assert all(v > 0.0 for v in with_greeks["vega"])
+
+
+def test_basket_greeks_default_off_shape_and_signs():
+    spots = np.array([100.0, 100.0])
+    weights = np.array([0.5, 0.5])
+    sigs = np.array([0.2, 0.25])
+    corr = np.array([[1.0, 0.4], [0.4, 1.0]])
+    r = basket_option_pricer(spots, weights, 100, R, sigs, T, corr, 40_000, "call", seed=71)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = basket_option_pricer(
+        spots, weights, 100, R, sigs, T, corr, 40_000, "call", seed=71, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    assert len(with_greeks["delta"]) == 2
+    assert all(d > 0.0 for d in with_greeks["delta"])
+    assert all(g > 0.0 for g in with_greeks["gamma"])
+
+
+def test_compound_greeks_default_off_unchanged_price_and_deterministic():
+    r = compound_option_pricer(S, K, 3.0, R, SIG, 0.5, 1.0, 40_000, "call-on-call", seed=81)
+    assert set(r) == {"price", "std_error"}
+    with_greeks = compound_option_pricer(
+        S, K, 3.0, R, SIG, 0.5, 1.0, 40_000, "call-on-call", seed=81, greeks=True
+    )
+    assert with_greeks["price"] == r["price"]
+    again = compound_option_pricer(
+        S, K, 3.0, R, SIG, 0.5, 1.0, 40_000, "call-on-call", seed=81, greeks=True
+    )
+    assert with_greeks == again
+
+
+def test_compound_greeks_call_on_call_signs():
+    r = compound_option_pricer(
+        S, K, 3.0, R, SIG, 0.5, 1.0, 60_000, "call-on-call", seed=81, greeks=True
+    )
+    assert r["delta"] > 0.0
+    assert r["vega"] > 0.0
+
+
+def test_compound_greeks_put_on_put_vega_can_be_negative():
+    """Known compound-option result (Geske 1979): a put on a put can have
+    NEGATIVE vega, since higher volatility raises the underlying put's value,
+    which hurts a payoff that pays off when that value is LOW. This is not a
+    bug -- a put-on-put with positive vega across this parameter range would
+    be the surprising result."""
+    r = compound_option_pricer(
+        S, K, 3.0, R, SIG, 0.5, 1.0, 60_000, "put-on-put", seed=81, greeks=True
+    )
+    assert r["vega"] < 0.0
+
+
 def test_chooser_ge_max_call_put():
     # independent property: chooser >= max(embedded call, embedded put)
     res = chooser_option_pricer(S, K, R, SIG, 0.5, 1.0)
