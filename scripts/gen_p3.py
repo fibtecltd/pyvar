@@ -171,13 +171,74 @@ def _default_repr(value: Any) -> str | None:
         return None
 
 
-def _return_keys(node: ast.FunctionDef) -> list[str]:
+def _return_keys(node: ast.FunctionDef, module_ast: ast.Module | None = None) -> list[str]:
+    """Static extraction of a function's response-dict keys.
+
+    Beyond a direct ``return {...}`` literal, this also resolves the
+    ``result = {...}; ...; result.update(<call>); return result`` idiom used
+    throughout the Greeks-bearing MC pricers (asian_option_pricer and every
+    function since): a dict literal assigned to a local variable, any
+    ``.update()`` calls on that variable -- recursing one level into a
+    same-module helper function if the update argument is a call (e.g.
+    ``_bump_reprice_greeks``) -- and a final ``return <var>``.
+
+    This is a best-effort static approximation, not real data-flow analysis:
+    it collects every dict-literal assignment and every ``.update()`` call
+    on a name ANYWHERE in the function regardless of which branch it's in or
+    what order it appears in (two passes, so a `.update()` nested inside an
+    `if` block is picked up even though `ast.walk`'s BFS order would
+    otherwise visit a same-level `return` before descending into that
+    branch) -- deliberately over-inclusive (union of all branches) since the
+    goal is "every key that COULD appear in the response," which is exactly
+    what a Pydantic response model with extra='allow' wants to document.
+    More exotic patterns (dict-merge via `{**a, **b}`, `.update(**kwargs)`,
+    multi-hop helper chains, keys computed then assigned via subscript like
+    `result["x"] = ...`) are not handled and will under-report; a
+    function that ends up with zero detected keys still falls back to the
+    generic "result" placeholder exactly as before.
+    """
+
+    def _literal_dict_keys(d: ast.Dict) -> set[str]:
+        return {k.value for k in d.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)}
+
+    def _helper_keys(func_name: str) -> set[str]:
+        if module_ast is None:
+            return set()
+        for n in module_ast.body:
+            if isinstance(n, ast.FunctionDef) and n.name == func_name:
+                return set(_return_keys(n, module_ast))
+        return set()
+
+    # Pass 1: every dict-literal assignment and every `.update()` call on a
+    # name, anywhere in the function -- order- and branch-independent.
+    var_keys: dict[str, set[str]] = {}
+    for n in ast.walk(node):
+        if isinstance(n, ast.Assign) and isinstance(n.value, ast.Dict):
+            for t in n.targets:
+                if isinstance(t, ast.Name):
+                    var_keys.setdefault(t.id, set()).update(_literal_dict_keys(n.value))
+        elif (
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "update"
+            and isinstance(n.func.value, ast.Name)
+            and n.args
+        ):
+            var_name = n.func.value.id
+            arg = n.args[0]
+            if isinstance(arg, ast.Dict):
+                var_keys.setdefault(var_name, set()).update(_literal_dict_keys(arg))
+            elif isinstance(arg, ast.Call) and isinstance(arg.func, ast.Name):
+                var_keys.setdefault(var_name, set()).update(_helper_keys(arg.func.id))
+
+    # Pass 2: every return statement, resolved against the variable map above.
     keys: set[str] = set()
     for n in ast.walk(node):
-        if isinstance(n, ast.Return) and isinstance(n.value, ast.Dict):
-            for k in n.value.keys:
-                if isinstance(k, ast.Constant) and isinstance(k.value, str):
-                    keys.add(k.value)
+        if isinstance(n, ast.Return):
+            if isinstance(n.value, ast.Dict):
+                keys.update(_literal_dict_keys(n.value))
+            elif isinstance(n.value, ast.Name) and n.value.id in var_keys:
+                keys.update(var_keys[n.value.id])
     return sorted(keys)
 
 
@@ -222,7 +283,7 @@ def collect_module(module: str) -> list[dict[str, Any]]:
                 "real": name,  # actual engine attribute name (never changes)
                 "cls": _class_name(name),
                 "params": params,
-                "return_keys": _return_keys(node),
+                "return_keys": _return_keys(node, tree),
             }
         )
     return funcs
