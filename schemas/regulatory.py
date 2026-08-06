@@ -444,7 +444,7 @@ class EmirClearingObligationCheckRequest(BaseModel):
 
     notionals: dict[str, float]
     counterparty_category: str
-    clearing_thresholds: dict[str, Any]
+    clearing_thresholds: dict[str, float]
 
 
 class EmirClearingObligationCheckResponse(BaseModel):
