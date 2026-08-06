@@ -39,10 +39,17 @@ pyvar/
 │   ├── oprisk_rcsa.py         ← RCSA scoring, control effectiveness, BEI/ICF, loss data
 │   ├── oprisk_kri.py          ← KRI library, breach detection, trend analysis
 │   ├── oprisk_scenario.py     ← scenario analysis, expert elicitation, severity/freq estimation
-│   └── oprisk_governance.py   ← cyber/conduct/model/IT/vendor/BCM, heat map, escalation
+│   ├── oprisk_governance.py   ← cyber/conduct/model/IT/vendor/BCM, heat map, escalation
+│   ├── deriv_options_exotic.py ← Asian/lookback/American+Bermudan LSM/rainbow/basket/compound
+│   │                              MC option pricers; greeks=True opt-in (delta/gamma/vega/
+│   │                              theta/rho via bump-and-reprice, task #15 Phase 4)
+│   └── deriv_stoch_vol.py     ← Heston/SABR/Dupire/rBergomi/Variance Gamma/NIG; the 3 MC
+│                                  pricers (rBergomi/VG/NIG) support greeks=True opt-in too
 │
 ├── schemas/                   ← Pydantic v2 request/response models
-│   └── var.py                 ← VaRRequest, VaRResult, JobResponse
+│   ├── var.py                 ← VaRRequest, VaRResult, JobResponse
+│   └── derivatives.py         ← Request/response models for derivatives pricers, incl. Greek
+│                                  fields (delta/gamma/vega/theta/rho) on greeks=True pricers
 │
 ├── ingestion/                 ← Data loading (Polars lazy scan + PyArrow)
 │   ├── loader.py
