@@ -281,7 +281,7 @@ def emir_trade_repository_report(
 def emir_clearing_obligation_check(
     notionals: dict[str, float],
     counterparty_category: str,
-    clearing_thresholds: dict,  # type: ignore[type-arg]
+    clearing_thresholds: dict[str, float],
 ) -> dict:  # type: ignore[type-arg]
     """EMIR clearing obligation check (Art. 4 / Art. 4a / Art. 10 / clearing thresholds).
 
