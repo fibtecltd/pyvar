@@ -434,9 +434,15 @@ class EmirTradeRepositoryReportResponse(BaseModel):
 
 
 class EmirClearingObligationCheckRequest(BaseModel):
-    """Request parameters for emir_clearing_obligation_check()."""
+    """Request parameters for emir_clearing_obligation_check().
 
-    notionals: dict[str, Any]
+    ``notionals`` covers ALL asset classes the counterparty has positions in,
+    not just one -- required for the FC any-class-breach rule (EMIR REFIT
+    Art. 4a(1)): a single class's notional alone cannot answer whether an
+    FC's clearing obligation extends to its other classes too.
+    """
+
+    notionals: dict[str, float]
     counterparty_category: str
     clearing_thresholds: dict[str, Any]
 
@@ -540,7 +546,13 @@ class SolvencyIiScrMarketRiskResponse(BaseModel):
 
 
 class SolvencyIiScrCreditRiskRequest(BaseModel):
-    """Request parameters for solvency_ii_scr_credit_risk()."""
+    """Request parameters for solvency_ii_scr_credit_risk().
+
+    No ``risk_factor`` field: DR (EU) 2015/35 Art. 200(1)-(3) fixes the
+    capital multiplier as a tiered function of sigma/total_lgd (3x/5x/capped
+    at total LGD) — it is not a caller-configurable value. See the engine
+    docstring for the regulatory fix this removal is part of.
+    """
 
     exposures: list[float] | list[list[float]]
     loss_given_default: list[float] | list[list[float]]
