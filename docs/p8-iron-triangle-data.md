@@ -74,11 +74,18 @@ endpoints, NAT Gateway, the Aurora/ElastiCache floor) into a "per-job" number,
 producing something that looks like marginal compute cost but is actually
 mostly amortized overhead. A worker Spot instance-hour cost isolated
 specifically from Cost Explorer, divided by jobs processed on that instance
-in the same window, would be a legitimate marginal-cost estimate — but that
-isolation isn't available today (Cost Explorer's service-level breakdown
-doesn't separate "EC2 - Spot workers" from other EC2 line items in the
-current tagging setup) and is a genuine follow-up, not something to fabricate
-now.
+in the same window, would be a legitimate marginal-cost estimate.
+
+**Update (2026-08-06):** the isolation gap described above is closed. The
+`CostComponent=spot-worker-compute` tag added to the worker LaunchTemplate
+(`compute_stack.py`, PR #193) is live in Cost Explorer as a filterable
+dimension — confirmed via `aws ce get-tags`/`get-cost-and-usage`: tagged
+spend shows up cleanly under "Amazon Elastic Compute Cloud - Compute" with
+no NAT Gateway or other EC2 - Other line items mixed in. Isolating the
+Spot compute cost is now possible; the actual marginal-cost figure (isolated
+cost ÷ jobs processed on that instance in the same window) still needs to be
+computed once dev job volume is high enough to be meaningful — not done
+here.
 
 **Contract:**
 - No real per-job cost exists today.
