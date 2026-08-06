@@ -610,11 +610,16 @@ def render_tests(domain: str, n_routes: int) -> str:
     L.append("")
     L.append("def _domain_routes(app) -> list[str]:")
     L.append('    prefix = f"/api/v1/{DOMAIN}/"')
+    # app.routes can hold both plain Route objects and _IncludedRouter-style
+    # mount wrappers (from app.include_router()) that have no top-level
+    # `.path` attribute -- walking the OpenAPI spec instead sidesteps that
+    # entirely and is stable across FastAPI/Starlette router-internals changes.
+    L.append("    spec = app.openapi()")
     L.append("    return sorted(")
     L.append("        {")
-    L.append("            r.path")
-    L.append("            for r in app.routes")
-    L.append('            if r.path.startswith(prefix) and "POST" in getattr(r, "methods", set())')
+    L.append("            path")
+    L.append('            for path, methods in spec.get("paths", {}).items()')
+    L.append('            if path.startswith(prefix) and "post" in methods')
     L.append("        }")
     L.append("    )")
     L.append("")
