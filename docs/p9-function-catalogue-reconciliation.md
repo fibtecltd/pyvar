@@ -68,8 +68,9 @@ flagged as a known gap rather than guessed at.
   It is generated from the live OpenAPI schema — it cannot drift from what the API
   actually does, only from when it was last regenerated (last run: 2026-08-02, this
   session).
-- **`pyvar_functions.csv`'s ongoing purpose, if any, needs an explicit decision.** As a
-  deduplicated, human-curated capability list it may still be useful for documentation
-  or planning purposes — but it should carry a visible note that it is not
-  auto-synced and may undercount live routes, rather than being read as a precise,
-  current inventory.
+- **Decided (2026-08-06):** `pyvar_functions.csv` is kept as a historical snapshot only,
+  not a live inventory. It now carries a header note pointing to `portal/functions.json`
+  as the canonical source. `portal/functions.json` was itself regenerated on this date
+  (`python3 scripts/generate_function_catalog.py`) to pick up the `greeks`/`qmc`
+  parameters and two docstring citation corrections added since its 2026-08-02
+  generation — it was stale by the same rule this doc states.
