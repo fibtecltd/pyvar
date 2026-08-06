@@ -190,7 +190,7 @@ class CombinedBufferRequirementResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    result: Any = Field(default=None)
+    combined_buffer_ratio: Any = Field(default=None)
 
 
 class CapitalConservationBufferRequest(BaseModel):
@@ -434,15 +434,9 @@ class EmirTradeRepositoryReportResponse(BaseModel):
 
 
 class EmirClearingObligationCheckRequest(BaseModel):
-    """Request parameters for emir_clearing_obligation_check().
+    """Request parameters for emir_clearing_obligation_check()."""
 
-    ``notionals`` covers ALL asset classes the counterparty has positions in,
-    not just one -- required for the FC any-class-breach rule (EMIR REFIT
-    Art. 4a(1)): a single class's notional alone cannot answer whether an
-    FC's clearing obligation extends to its other classes too.
-    """
-
-    notionals: dict[str, float]
+    notionals: dict[str, Any]
     counterparty_category: str
     clearing_thresholds: dict[str, Any]
 
@@ -452,8 +446,8 @@ class EmirClearingObligationCheckResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    clearing_required: Any = Field(default=None)
     any_class_breached: Any = Field(default=None)
+    clearing_required: Any = Field(default=None)
     counterparty_category: Any = Field(default=None)
 
 
@@ -506,7 +500,9 @@ class AifmdRiskMetricsResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    result: Any = Field(default=None)
+    commitment_leverage: Any = Field(default=None)
+    gross_leverage: Any = Field(default=None)
+    substantially_leveraged: Any = Field(default=None)
 
 
 class UcitsKiidRiskIndicatorRequest(BaseModel):
@@ -544,13 +540,7 @@ class SolvencyIiScrMarketRiskResponse(BaseModel):
 
 
 class SolvencyIiScrCreditRiskRequest(BaseModel):
-    """Request parameters for solvency_ii_scr_credit_risk().
-
-    No ``risk_factor`` field: DR (EU) 2015/35 Art. 200(1)-(3) fixes the
-    capital multiplier as a tiered function of sigma/total_lgd (3x/5x/capped
-    at total LGD) — it is not a caller-configurable value. See the engine
-    docstring for the regulatory fix this removal is part of.
-    """
+    """Request parameters for solvency_ii_scr_credit_risk()."""
 
     exposures: list[float] | list[list[float]]
     loss_given_default: list[float] | list[list[float]]

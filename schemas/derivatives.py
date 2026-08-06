@@ -200,13 +200,13 @@ class AsianOptionPricerResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class LookbackOptionPricerRequest(BaseModel):
@@ -232,13 +232,13 @@ class LookbackOptionPricerResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class AmericanOptionLsmRequest(BaseModel):
@@ -262,12 +262,12 @@ class AmericanOptionLsmResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class BermudanOptionPricerRequest(BaseModel):
@@ -292,13 +292,13 @@ class BermudanOptionPricerResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    exercise_dates: Any = Field(default=None)
-    price: Any = Field(default=None)
     delta: Any = Field(default=None)
+    exercise_dates: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class RainbowOptionPricerRequest(BaseModel):
@@ -318,21 +318,17 @@ class RainbowOptionPricerRequest(BaseModel):
 
 
 class RainbowOptionPricerResponse(BaseModel):
-    """Result of rainbow_option_pricer(). Mirrors the engine return dict.
-
-    delta/gamma/vega are one entry per asset when greeks=True (diagonal
-    sensitivities only, no cross-asset terms); theta/rho are scalar.
-    """
+    """Result of rainbow_option_pricer(). Mirrors the engine return dict."""
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class BasketOptionPricerRequest(BaseModel):
@@ -352,21 +348,17 @@ class BasketOptionPricerRequest(BaseModel):
 
 
 class BasketOptionPricerResponse(BaseModel):
-    """Result of basket_option_pricer(). Mirrors the engine return dict.
-
-    delta/gamma/vega are one entry per asset when greeks=True (diagonal
-    sensitivities only, no cross-asset terms); theta/rho are scalar.
-    """
+    """Result of basket_option_pricer(). Mirrors the engine return dict."""
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class SpreadOptionKirkApproximationRequest(BaseModel):
@@ -413,13 +405,13 @@ class CompoundOptionPricerResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class ChooserOptionPricerRequest(BaseModel):
@@ -1277,21 +1269,17 @@ class RoughVolatilityRbergomiModelRequest(BaseModel):
 
 
 class RoughVolatilityRbergomiModelResponse(BaseModel):
-    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict.
-
-    When greeks=True, "vega" is sensitivity to xi (forward-variance level),
-    not to eta or hurst.
-    """
+    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict."""
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class VarianceGammaModelRequest(BaseModel):
@@ -1311,22 +1299,17 @@ class VarianceGammaModelRequest(BaseModel):
 
 
 class VarianceGammaModelResponse(BaseModel):
-    """Result of variance_gamma_model(). Mirrors the engine return dict.
-
-    When greeks=True, "vega" is sensitivity to sigma (diffusion vol); the
-    "theta" key is the Greek (time decay), unrelated to this model's own
-    theta request parameter (skew).
-    """
+    """Result of variance_gamma_model(). Mirrors the engine return dict."""
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class NormalInverseGaussianModelRequest(BaseModel):
@@ -1346,23 +1329,17 @@ class NormalInverseGaussianModelRequest(BaseModel):
 
 
 class NormalInverseGaussianModelResponse(BaseModel):
-    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict.
-
-    When greeks=True, "vega" is sensitivity to this model's own delta
-    request parameter (IG scale); the "delta" key in this response is the
-    Greek (spot sensitivity), unrelated to that request parameter despite
-    the shared name.
-    """
+    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict."""
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
-    price: Any = Field(default=None)
-    std_error: Any = Field(default=None)
     delta: Any = Field(default=None)
     gamma: Any = Field(default=None)
-    vega: Any = Field(default=None)
-    theta: Any = Field(default=None)
+    price: Any = Field(default=None)
     rho: Any = Field(default=None)
+    std_error: Any = Field(default=None)
+    theta: Any = Field(default=None)
+    vega: Any = Field(default=None)
 
 
 class DisplacedDiffusionModelRequest(BaseModel):
