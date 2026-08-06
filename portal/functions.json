@@ -927,7 +927,7 @@
     "display_name": "Interest Rate Risk Capital IRRBB",
     "path": "/api/v1/alm/interest_rate_risk_capital_irrbb",
     "summary": "IRRBB supervisory outlier test against Tier-1 capital.",
-    "description": "[REGULATORY] BCBS d368 \u00a7118: a bank is an outlier if the worst-case EVE\ndecline exceeds 15% of Tier-1 capital. Capital implied is the breach amount.",
+    "description": "[REGULATORY] BCBS d368 Principle 12 (not \u00a7118 -- a prior citation here\nnamed the wrong section; the 15%-of-Tier-1 supervisory outlier test is set\nout under Principle 12): a bank is an outlier if the worst-case EVE\ndecline exceeds 15% of Tier-1 capital. Capital implied is the breach amount.",
     "params": [
       {
         "name": "worst_delta_eve",
@@ -1030,7 +1030,7 @@
     "display_name": "IRRBB Six Standard Rate Shocks",
     "path": "/api/v1/alm/irrbb_six_standard_rate_shocks",
     "summary": "Construct the six BCBS d368 standard interest-rate shock curves.",
-    "description": "[REGULATORY] BCBS d368 \u00a7115. The steepener/flattener combine scaled short\nand long shocks: ``steepener = \u22120.65\u00b7short + 0.90\u00b7long`` and\n``flattener = +0.80\u00b7short \u2212 0.60\u00b7long`` (per-tenor short/long scalars decay\nas ``e^{\u2212t/4}``).",
+    "description": "[REGULATORY] BCBS d368 Annex 2 (not \u00a7115 -- a prior citation here named\nthe wrong section; Annex 2 is where the shock-construction formulas\nactually live). The steepener/flattener combine scaled short and long\nshocks: ``steepener = \u22120.65\u00b7short + 0.90\u00b7long`` and\n``flattener = +0.80\u00b7short \u2212 0.60\u00b7long`` (per-tenor short/long scalars decay\nas ``e^{\u2212t/4}``). See the module docstring for a [LIMITATION] on the\ndefault shock magnitudes (``parallel_bps``/``short_bps``/``long_bps``) --\nBCBS d578 recalibrated these in 2024, effective 2026.",
     "params": [
       {
         "name": "tenors",
@@ -5134,7 +5134,7 @@
     "display_name": "American Option LSM",
     "path": "/api/v1/derivatives/american_option_lsm",
     "summary": "American option price via Longstaff-Schwartz Monte Carlo (LSM).",
-    "description": "Allows early exercise at every time step. The price must be >= the European\nprice of the same option.",
+    "description": "Allows early exercise at every time step. The price must be >= the European\nprice of the same option.\n\nDeliberately has no qmc option (task #15 Phase 2 evaluated and rejected\nit for this function specifically -- see _price_by_qmc_replicates'\ndocstring). Randomized-QMC replicates work cleanly for asian_option_pricer\nand lookback_option_pricer (simple path-average / path-extremum\nestimators) but introduce a real, non-vanishing pricing bias here: LSM's\nbackward-induction step fits a cross-sectional OLS regression of\ncontinuation value against in-the-money paths at each exercise date, and\nthat regression implicitly assumes the sampled points are independent.\nScrambled Sobol paths are deliberately correlated (that correlation is\nexactly what gives QMC its variance reduction elsewhere), which biases\nthe regression fit and, through it, the exercise decision. Measured at\nS=K=100, r=5%, sigma=20%, tau=1, n_steps=50 against a 200k-path plain-MC\nreference (~6.024): plain MC at n_simulations=6,000/20,000 is biased by\nonly +0.03-0.04 (LSM's well-known small-sample low bias), while QMC\nreplicates at the same total budget were biased by +0.08 to +0.31\ndepending on replicate count/size -- shrinking as per-replicate path\ncount grows into the thousands, but not vanishing by n_simulations=20k\nthe way it does for Asian/lookback. Revisit only with a fix for the\nunderlying regression-bias interaction (e.g. an in-sample/out-of-sample\nsplit for the regression fit), not by retuning replicate count alone.",
     "params": [
       {
         "name": "spot",
@@ -5240,6 +5240,17 @@
         "type": "integer",
         "required": false,
         "default": 41,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -5374,6 +5385,28 @@
         "type": "integer",
         "required": false,
         "default": 21,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "qmc",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -5704,6 +5737,17 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ]
   },
@@ -5833,6 +5877,17 @@
         "type": "integer",
         "required": false,
         "default": 51,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -6845,6 +6900,17 @@
         "type": "integer",
         "required": false,
         "default": 81,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -8685,6 +8751,28 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "qmc",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ]
   },
@@ -9075,6 +9163,17 @@
         "type": "integer",
         "required": false,
         "default": 11,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -9519,6 +9618,17 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ]
   },
@@ -9531,7 +9641,7 @@
     "display_name": "Rough Volatility Rbergomi Model",
     "path": "/api/v1/derivatives/rough_volatility_rbergomi_model",
     "summary": "Rough Bergomi (rBergomi) European option price via Monte Carlo.",
-    "description": "A rough-volatility model with Hurst exponent ``H < 0.5``. Randoms are\npre-drawn in pure Python (CLAUDE.md \u00a73.1 RULE 3).",
+    "description": "A rough-volatility model with Hurst exponent ``H < 0.5``. Randoms are\npre-drawn in pure Python (CLAUDE.md \u00a73.1 RULE 3).\n\nThree independent numerical-correctness bugs were fixed here (task #18,\nfound via the Tier 3 #2 test-reference audit and its follow-up\nverification -- see _rbergomi_volterra_driver, _rbergomi_discrete_variance\nand _rbergomi_paths' docstrings/comments for each in detail):\n\n1. The fractional driver froze each increment's weight at the moment it\n   was drawn instead of recomputing it (as a gap to the current time) at\n   every later step -- right marginal variance, wrong autocovariance,\n   invisible to any test that only checks a single time point.\n2. The martingale correction used the CONTINUUM-limit variance\n   (``t^(2H)``), which the naive discrete Riemann sum undershoots\n   substantially at this model's default ``n_steps`` -- pulling\n   ``E[var_t]`` well below ``xi``.\n3. The variance applied to a given step's price shock was computed using\n   that SAME step's own Brownian draw rather than a value predictable\n   from strictly prior information -- correlating \"random\" volatility\n   with the shock it should be independent of and breaking the\n   risk-neutral drift (``E[S_T] != S0*exp(rT)``; put-call parity was off\n   by more than 15, not a rounding-level miss).\n\nVerified (not merely believed) via three checks the code lacked before:\nan exact hand-computable impulse-response test on the fractional driver\n(bug 1), an ``eta -> 0`` reduction to flat-vol Black-Scholes (bugs 2 & 3\ntogether -- degenerate case has no vol-of-vol to expose either), and\nput-call parity at the model's actual default parameters (bug 3\nspecifically, since parity holds regardless of how the volatility itself\nis modelled).",
     "params": [
       {
         "name": "spot",
@@ -9659,6 +9769,28 @@
         "type": "integer",
         "required": false,
         "default": 2024,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "control_variate",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,
@@ -10434,6 +10566,17 @@
         "type": "integer",
         "required": false,
         "default": 7,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "greeks",
+        "type": "boolean",
+        "required": false,
+        "default": false,
         "description": null,
         "minimum": null,
         "maximum": null,

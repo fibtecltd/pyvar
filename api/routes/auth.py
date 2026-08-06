@@ -4,8 +4,7 @@ api/routes/auth.py — minimum-viable account flow: email -> verify -> JWT
 Reasoning:
 - Minimum viable only (P8 Task 3 scope): no password, no login, no key
   rotation, no account dashboard beyond the one-time JWT display. Anything
-  past that is a tracked follow-up (see module-level TODOs below), not
-  built here.
+  past that is a tracked follow-up, not built here.
 - Verification email delivery (#149): real SES send via get_ses_client(),
   now that pyvar.com's DNS decision (P8 Task 7 / #158) is resolved — Aruba
   stays, and pyvar-cdk/stacks/ses_stack.py verifies the pyvar.com domain

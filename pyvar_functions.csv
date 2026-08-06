@@ -1,3 +1,7 @@
+# NOTE: historical snapshot from the P2 implementation phase, not auto-synced.
+# 382 rows here vs 385 live routes (see docs/p9-function-catalogue-reconciliation.md).
+# Canonical, live source of truth is portal/functions.json, generated from the
+# OpenAPI schema by scripts/generate_function_catalog.py -- treat that as current.
 DOMAIN,FUNCTION_NAME
 Market Risk,Monte Carlo VaR (Parametric Normal)
 Market Risk,Historical Simulation VaR
