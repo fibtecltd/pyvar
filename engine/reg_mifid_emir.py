@@ -279,7 +279,7 @@ def emir_trade_repository_report(
 
 
 def emir_clearing_obligation_check(
-    notionals: dict,  # type: ignore[type-arg]
+    notionals: dict[str, float],
     counterparty_category: str,
     clearing_thresholds: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]

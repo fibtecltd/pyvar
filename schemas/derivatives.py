@@ -318,7 +318,11 @@ class RainbowOptionPricerRequest(BaseModel):
 
 
 class RainbowOptionPricerResponse(BaseModel):
-    """Result of rainbow_option_pricer(). Mirrors the engine return dict."""
+    """Result of rainbow_option_pricer(). Mirrors the engine return dict.
+
+    delta/gamma/vega are one entry per asset when greeks=True (diagonal
+    sensitivities only, no cross-asset terms); theta/rho are scalar.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
@@ -348,7 +352,11 @@ class BasketOptionPricerRequest(BaseModel):
 
 
 class BasketOptionPricerResponse(BaseModel):
-    """Result of basket_option_pricer(). Mirrors the engine return dict."""
+    """Result of basket_option_pricer(). Mirrors the engine return dict.
+
+    delta/gamma/vega are one entry per asset when greeks=True (diagonal
+    sensitivities only, no cross-asset terms); theta/rho are scalar.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
@@ -1269,7 +1277,11 @@ class RoughVolatilityRbergomiModelRequest(BaseModel):
 
 
 class RoughVolatilityRbergomiModelResponse(BaseModel):
-    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict."""
+    """Result of rough_volatility_rbergomi_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to xi (forward-variance level),
+    not to eta or hurst.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
@@ -1299,7 +1311,12 @@ class VarianceGammaModelRequest(BaseModel):
 
 
 class VarianceGammaModelResponse(BaseModel):
-    """Result of variance_gamma_model(). Mirrors the engine return dict."""
+    """Result of variance_gamma_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to sigma (diffusion vol); the
+    "theta" key is the Greek (time decay), unrelated to this model's own
+    theta request parameter (skew).
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
@@ -1329,7 +1346,13 @@ class NormalInverseGaussianModelRequest(BaseModel):
 
 
 class NormalInverseGaussianModelResponse(BaseModel):
-    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict."""
+    """Result of normal_inverse_gaussian_model(). Mirrors the engine return dict.
+
+    When greeks=True, "vega" is sensitivity to this model's own delta
+    request parameter (IG scale); the "delta" key in this response is the
+    Greek (spot sensitivity), unrelated to that request parameter despite
+    the shared name.
+    """
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 

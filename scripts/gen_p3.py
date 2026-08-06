@@ -142,6 +142,8 @@ def _py_type_and_conv(ann: str) -> tuple[str, str]:
         "dict": ("dict[str, Any]", ""),
         "dict|None": ("dict[str, Any] | None", ""),
         "dict[str,Any]": ("dict[str, Any]", ""),
+        "dict[str,float]": ("dict[str, float]", ""),
+        "dict[str,float]|None": ("dict[str, float] | None", ""),
         "float|np.ndarray": ("float | list[float]", "maybe_arr"),
     }
     if a in table:
