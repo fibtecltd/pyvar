@@ -473,4 +473,19 @@ FIX:   Always append .fifo when constructing queue names.
 ISSUE: Aurora SV2 Alembic migrations must use sync driver (psycopg2).
 FIX:   alembic.ini uses postgresql:// (not postgresql+asyncpg://).
        The application uses asyncpg — only migrations use psycopg2.
+
+ISSUE: prod worker_use_baked_ami=True (config.py) requires a pyvar-prod-worker-*
+       AMI to already exist. compute_stack.py resolves it via
+       ec2.MachineImage.lookup(name=f"pyvar-{cfg.env_name}-worker-*", ...) at
+       CDK synth time — this FAILS if no matching AMI has ever been built.
+       No automated trigger exists yet (see pyvar-cdk/stacks/pipeline_stack.py —
+       its docstring claims AMI baking runs "as a post-build step," but no such
+       step is actually implemented).
+FIX:   MANUAL — before every `cdk deploy --context env=prod`, bake the AMI first:
+         aws imagebuilder start-image-pipeline-execution \
+           --image-pipeline-arn <pyvar-prod-worker-pipeline ARN>
+       Wait for completion (Image Builder console, or CloudWatch Logs
+       /aws/imagebuilder/pyvar-prod-worker) before deploying. See
+       docs/p9-scenario-volume-cost-audit.md for the full writeup and the
+       automation trade-offs considered.
 ```
