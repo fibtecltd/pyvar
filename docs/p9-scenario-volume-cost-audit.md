@@ -171,32 +171,53 @@ off this should independently verify the Fargate/Aurora/SQS/S3/CloudFront
 public pricing figures and, ideally, run an actual multi-day load test at
 each target volume before committing to a number externally.
 
-## Config inconsistency: `worker_use_baked_ami` in prod
+## Config inconsistency: `worker_use_baked_ami` in prod — fixed
 
-See `pyvar-cdk/config.py`'s `prod` override block. The dataclass default is
+See `pyvar-cdk/config.py`'s `prod` override block. The dataclass default was
 `worker_use_baked_ami=False` ("Hypothesis B" — stock AL2023, ~5min runtime
-`pip install` boot). Only the `dev` override sets it `True` ("Hypothesis C" —
+`pip install` boot). Only the `dev` override set it `True` ("Hypothesis C" —
 pre-baked AMI, ~25s boot), with the comment "AMI pipeline live — use baked
-AMI (P6)". `prod` never overrides it, so a `prod` deploy inherits `False` —
+AMI (P6)". `prod` never overrode it, so a `prod` deploy inherited `False` —
 contradicting `CLAUDE.md §11`'s stated production intent.
 
 `docs/ami-cold-start-retrospective.md` (the P6 investigation that built this
 pipeline) frames Hypothesis C as the validated, intended steady-state path
 (cold start 3s avg vs. 15-20min) and Hypothesis B as an explicit fallback
 "for rapid dev iteration before a new AMI bake is triggered" — i.e. the
-opposite of what the current per-env config produces (dev = baked, prod =
+opposite of what the previous per-env config produced (dev = baked, prod =
 not baked).
 
-**Important precondition, not yet resolved as of this audit:** flipping
-`worker_use_baked_ami=True` for `prod` is only safe once a `pyvar-prod-worker-*`
-AMI actually exists — `compute_stack.py` resolves the AMI via
-`ec2.MachineImage.lookup(name=f"pyvar-{cfg.env_name}-worker-*", ...)` at CDK
-synth time, which fails if no matching AMI has ever been built. The AmiStack
-(`pyvar-cdk/stacks/ami_stack.py`) is already parameterized per environment
-(`pyvar-{env}-worker-pipeline`) so a prod pipeline exists in principle, but no
-automated trigger wires it up — `pipeline_stack.py`'s own docstring claims AMI
-baking runs "as a post-build step," but no such step (CodeBuild action,
-Lambda, or otherwise) is actually implemented anywhere in that stack; the only
-place a trigger is even mentioned is a manual CLI command in a comment inside
-`ami_stack.py`. This means the P6 retrospective's "pipeline live" claim has
-only ever been exercised for `dev`.
+**Fix applied:** `prod`'s override block in `pyvar-cdk/config.py` now sets
+`worker_use_baked_ami=True`, with a comment citing `CLAUDE.md §11`. Scope was
+deliberately kept to `prod` only — `staging` still defaults to `False`
+(fast-iteration boot path), since CLAUDE.md's production intent doesn't
+extend a stated requirement to staging.
+
+**Precondition this fix does NOT resolve — operational action required
+before the next prod deploy:** flipping this flag is only safe once a
+`pyvar-prod-worker-*` AMI actually exists — `compute_stack.py` resolves the
+AMI via `ec2.MachineImage.lookup(name=f"pyvar-{cfg.env_name}-worker-*", ...)`
+at CDK synth time, which **fails outright** if no matching AMI has ever been
+built. The AmiStack (`pyvar-cdk/stacks/ami_stack.py`) is already
+parameterized per environment (`pyvar-{env}-worker-pipeline`) so a prod
+pipeline exists in principle, but no automated trigger wires it up —
+`pipeline_stack.py`'s own docstring claims AMI baking runs "as a post-build
+step," but no such step (CodeBuild action, Lambda, or otherwise) is actually
+implemented anywhere in that stack; the only place a trigger is even
+mentioned is a manual CLI command in a comment inside `ami_stack.py`. This
+means the P6 retrospective's "pipeline live" claim has only ever been
+exercised for `dev`. Before the next `cdk deploy --context env=prod`,
+someone must manually run:
+
+```
+aws imagebuilder start-image-pipeline-execution \
+  --image-pipeline-arn <pyvar-prod-worker-pipeline ARN>
+```
+
+and confirm completion (Image Builder console, or CloudWatch Logs
+`/aws/imagebuilder/pyvar-prod-worker`) before deploying — otherwise `cdk
+synth`/`cdk deploy` for `prod` will fail on the AMI lookup. Automating this
+trigger (making `pipeline_stack.py`'s docstring claim actually true) was
+scoped out of this fix as a separate, larger infra change — see the
+"Also wire the automated trigger" option considered and declined for this
+pass.
