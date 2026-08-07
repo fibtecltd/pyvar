@@ -193,31 +193,53 @@ deliberately kept to `prod` only — `staging` still defaults to `False`
 (fast-iteration boot path), since CLAUDE.md's production intent doesn't
 extend a stated requirement to staging.
 
-**Precondition this fix does NOT resolve — operational action required
-before the next prod deploy:** flipping this flag is only safe once a
-`pyvar-prod-worker-*` AMI actually exists — `compute_stack.py` resolves the
-AMI via `ec2.MachineImage.lookup(name=f"pyvar-{cfg.env_name}-worker-*", ...)`
-at CDK synth time, which **fails outright** if no matching AMI has ever been
-built. The AmiStack (`pyvar-cdk/stacks/ami_stack.py`) is already
-parameterized per environment (`pyvar-{env}-worker-pipeline`) so a prod
-pipeline exists in principle, but no automated trigger wires it up —
-`pipeline_stack.py`'s own docstring claims AMI baking runs "as a post-build
-step," but no such step (CodeBuild action, Lambda, or otherwise) is actually
-implemented anywhere in that stack; the only place a trigger is even
-mentioned is a manual CLI command in a comment inside `ami_stack.py`. This
-means the P6 retrospective's "pipeline live" claim has only ever been
-exercised for `dev`. Before the next `cdk deploy --context env=prod`,
-someone must manually run:
+**Update — the trigger is now automated.** `pipeline_stack.py`'s shared
+`Synth` `ShellStep` now includes `_ami_bake_commands()`: a hash of
+`ami_stack.py` (the sole source of the Image Builder recipe/component) is
+compared against `SSM /pyvar/prod/last-baked-ami-hash`. Unchanged → a no-op
+(one hash compare, ~instant). Changed → it calls `aws imagebuilder
+start-image-pipeline-execution` against `pyvar-prod-worker-pipeline` and
+blocks, polling `get-image` every 45s (30-minute cap), until the new AMI
+reaches `AVAILABLE` — then records the new hash. It runs **before** `cdk
+synth`, not after, because `ec2.MachineImage.lookup()` resolves the AMI via a
+CDK **context lookup made during synth**, not at CloudFormation deploy time —
+a trigger placed anywhere after synth (e.g. a Prod-stage `pre` step) could
+kick off a real bake but couldn't affect the AMI ID already baked into that
+run's already-synthesized template, which would silently deploy on the
+*previous* AMI. Fails **closed**: if the bake can't start (pipeline doesn't
+exist), or it reports `FAILED`/`CANCELLED`, or it times out, the step exits 1
+and blocks the whole pipeline run — never a silent stale-AMI deploy. Verified
+via dry-run against a stubbed `aws` CLI (skip path, successful-bake path,
+`FAILED`-status path, and the "pipeline not found" path all behave as
+intended) and a full `cdk synth` producing a template that carries the new
+buildspec commands and exactly-scoped IAM (`imagebuilder:StartImagePipelineExecution`
++ `imagebuilder:GetImage` on the prod pipeline/image ARNs, `ssm:GetParameter`/
+`PutParameter` on the one hash parameter) — no live AWS account was available
+to actually exercise a real bake end-to-end.
+
+**Tradeoff accepted, not fully eliminated:** because the trigger has to live
+in the *shared* Synth step (there's exactly one per pipeline run, covering
+both stages' cloud assemblies), a Prod-only AMI-recipe change makes the Dev
+stage's deploy in that same pipeline run wait on the bake too. This only
+fires on the rare push that touches `ami_stack.py`; every other push pays
+just the hash-compare no-op. A cleaner decoupled design (bake asynchronously,
+let the *next* run pick it up) was considered and rejected — it would silently
+deploy the *current* run on a stale AMI, which is worse than the coupling.
+
+**One manual step remains, but it's now one-time, not per-deploy.** The
+Image Builder pipeline resource itself (`AmiStack` / `pyvar-prod-ami`) still
+needs bootstrapping once, out of band, before this trigger has anything to
+call:
 
 ```
-aws imagebuilder start-image-pipeline-execution \
-  --image-pipeline-arn <pyvar-prod-worker-pipeline ARN>
+cdk deploy pyvar-prod-ami --context env=prod --context account=ACCOUNT
 ```
 
-and confirm completion (Image Builder console, or CloudWatch Logs
-`/aws/imagebuilder/pyvar-prod-worker`) before deploying — otherwise `cdk
-synth`/`cdk deploy` for `prod` will fail on the AMI lookup. Automating this
-trigger (making `pipeline_stack.py`'s docstring claim actually true) was
-scoped out of this fix as a separate, larger infra change — see the
-"Also wire the automated trigger" option considered and declined for this
-pass.
+`AmiStack` is deliberately kept out of `PyvarDeployStage` (not part of the
+per-push CDK Pipeline stage) — folding it in would recreate the same
+ordering problem one level up: its CloudFormation resources would only exist
+*after* a stage deploy that itself depends on `cdk synth` having already run
+with a resolved AMI ID. This mirrors `pyvar-pipeline` itself, which app.py's
+own module docstring already documents as a one-time manual bootstrap
+("Deploy this stack once manually; it takes over from there") — same
+category of precondition, not a new kind of manual step.

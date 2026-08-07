@@ -168,6 +168,100 @@ def _record_deployed_hash_step(
     )
 
 
+# ── Prod AMI bake trigger (CLAUDE.md §11) ───────────────────────────────────
+# Spliced directly into the shared Synth ShellStep's commands (see the call
+# site below), NOT added as its own pipelines.CodeBuildStep like
+# _migration_step/_smoke_test_step. This has to run BEFORE `cdk synth`, not
+# after: ec2.MachineImage.lookup() (compute_stack.py) resolves the worker AMI
+# via a CDK CONTEXT LOOKUP made *during* `cdk synth`, not at CloudFormation
+# deploy time. A trigger-and-wait step placed anywhere AFTER synth (e.g. a
+# Prod-stage `pre` step next to prod_migration) would kick off a real bake,
+# but it couldn't change the AMI ID already baked into THIS run's
+# already-synthesized Prod template — the deploy would go out on the
+# PREVIOUS AMI while a fresh one builds for some unrelated future push. That
+# would be a worse, silently-wrong version of the manual process it replaces
+# ("bake, wait, THEN deploy" — CLAUDE.md §11), so it has to live here even
+# though the Synth step is shared: a prod-only AMI-recipe change means a Dev
+# deploy in the same pipeline run waits on it too. Accepted tradeoff — the
+# alternative (decoupled, always-stale-by-one-run automation) is worse.
+#
+# Gated the same way as _skip_gate_commands, but hashing ami_stack.py alone:
+# that file is the sole source of the Image Builder recipe/component
+# (NUMBA_WARMUP_SCRIPT + component versioning in ami_stack.py itself), so a
+# hash of just that file is exactly "would a new bake actually differ."
+#
+# Fails CLOSED: if pyvar-prod-ami (AmiStack) was never deployed,
+# start-image-pipeline-execution errors "pipeline not found" and this step —
+# and the whole pipeline run — fails loudly instead of silently deploying
+# without ever baking anything. AmiStack is deliberately NOT folded into
+# PyvarDeployStage (separate per-stack CloudFormation resources deployed
+# post-synth can't satisfy a pre-synth AMI lookup — same ordering problem as
+# above, one level up). It must be bootstrapped once, out of band, exactly
+# like pyvar-pipeline itself (app.py's own module docstring):
+#   cdk deploy pyvar-prod-ami --context env=prod --context account=ACCOUNT
+# Every prod-relevant AMI change after that one-time step is fully automatic.
+_PROD_AMI_HASH_SSM_PARAM = "/pyvar/prod/last-baked-ami-hash"
+_PROD_AMI_PIPELINE_NAME = "pyvar-prod-worker-pipeline"
+_PROD_AMI_RECIPE_NAME = "pyvar-prod-worker"
+
+
+def _ami_bake_commands(prod_cfg: PyvarConfig) -> list[str]:
+    pipeline_arn = (
+        f"arn:aws:imagebuilder:{prod_cfg.region}:{prod_cfg.account}"
+        f":image-pipeline/{_PROD_AMI_PIPELINE_NAME}"
+    )
+    bake_and_wait = "\n".join(
+        [
+            'echo "AMI recipe changed since last bake — triggering prod worker AMI bake '
+            '(pyvar-prod-ami must already be deployed once, see CLAUDE.md sec 11)"',
+            "BUILD_ARN=$(aws imagebuilder start-image-pipeline-execution "
+            f'--image-pipeline-arn "{pipeline_arn}" '
+            "--query imageBuildVersionArn --output text)",
+            # NOTE: deliberately NOT `... || (echo ... && exit 1)` here — this
+            # whole block is one embedded multi-line script (one CodeBuild
+            # buildspec command), not a standalone one, so `exit 1` inside a
+            # `(...)` subshell would only kill the subshell and let execution
+            # fall through into the wait loop below with an empty BUILD_ARN.
+            # `exit 1` in a plain `if` body runs in the current shell and
+            # actually aborts the script — verified by dry-run against a
+            # stubbed `aws` CLI.
+            'if [ -z "$BUILD_ARN" ] || [ "$BUILD_ARN" = "None" ]; then',
+            '  echo "Could not start AMI bake — is pyvar-prod-ami deployed? Blocking deploy."',
+            "  exit 1",
+            "fi",
+            'echo "Image build: $BUILD_ARN"',
+            # No CLI waiter exists for image-pipeline-execution completion —
+            # polling get-image is the documented approach. 40 * 45s = 30min cap.
+            "for i in $(seq 1 40); do",
+            '  STATUS=$(aws imagebuilder get-image --image-build-version-arn "$BUILD_ARN" '
+            '--query "image.state.status" --output text)',
+            '  echo "Bake status ($i/40): $STATUS"',
+            '  [ "$STATUS" = "AVAILABLE" ] && break',
+            '  { [ "$STATUS" = "FAILED" ] || [ "$STATUS" = "CANCELLED" ]; } '
+            '&& { echo "AMI bake $STATUS — blocking deploy"; exit 1; }',
+            '  [ "$i" = "40" ] '
+            '&& { echo "AMI bake timed out after 30 minutes — blocking deploy"; exit 1; }',
+            "  sleep 45",
+            "done",
+            f'aws ssm put-parameter --name "{_PROD_AMI_HASH_SSM_PARAM}" '
+            '--value "$CURRENT_AMI_HASH" --type String --overwrite',
+        ]
+    )
+    return [
+        "CURRENT_AMI_HASH=$(sha256sum pyvar-cdk/stacks/ami_stack.py | cut -d' ' -f1)",
+        'echo "AMI recipe hash: $CURRENT_AMI_HASH"',
+        f'LAST_AMI_HASH=$(aws ssm get-parameter --name "{_PROD_AMI_HASH_SSM_PARAM}" '
+        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
+        'echo "Last baked AMI hash: $LAST_AMI_HASH"',
+        (
+            'if [ -n "$LAST_AMI_HASH" ] && [ "$LAST_AMI_HASH" != "None" ] '
+            '&& [ "$CURRENT_AMI_HASH" = "$LAST_AMI_HASH" ]; then '
+            'echo "No AMI-relevant changes since the last bake — skipping."\n'
+            f"else\n{bake_and_wait}\nfi"
+        ),
+    ]
+
+
 def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource) -> pipelines.Step:
     """Pre-deploy step (issue #119): run `scripts/db.py upgrade` against Aurora
     via a one-off ECS Fargate task, BEFORE this stage's stacks (incl. the API
@@ -400,6 +494,12 @@ class PipelineStack(Stack):
         # pipeline run for zero current benefit).
         dev_ecr_uri = f"{cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com/pyvar-dev-api"
 
+        # Computed here (not down at the Prod stage section below, where it
+        # used to live) because _ami_bake_commands needs it inside `synth`'s
+        # command list, which is constructed next — see that function's
+        # docstring for why the AMI bake has to happen before `cdk synth`.
+        prod_cfg = PyvarConfig.for_env("prod", account=cfg.account)
+
         synth = pipelines.ShellStep(
             "Synth",
             input=source,
@@ -456,6 +556,13 @@ class PipelineStack(Stack):
                 f"docker tag pyvar-dev-api:latest {dev_ecr_uri}:latest",
                 f"docker push {dev_ecr_uri}:$SHORT_SHA",
                 f"docker push {dev_ecr_uri}:latest",
+                # ── Prod AMI bake trigger (CLAUDE.md §11) ─────────────────────
+                # MUST run before `cdk synth` below — see _ami_bake_commands'
+                # docstring for why. No-ops (a hash compare + one SSM read) on
+                # every push where ami_stack.py hasn't changed since the last
+                # bake; only actually triggers-and-waits on the rare push that
+                # changes the worker AMI recipe.
+                *_ami_bake_commands(prod_cfg),
                 # CDK synth (required for self-mutation). api_image_tag is only
                 # threaded through to dev_cfg below (see PyvarConfig.for_env) —
                 # Prod's ApiStack keeps the "latest" default until Prod is
@@ -539,7 +646,7 @@ class PipelineStack(Stack):
         )
 
         # ── Prod deploy stage (manual approval gate) ──────────────────────────
-        prod_cfg = PyvarConfig.for_env("prod", account=cfg.account)
+        # prod_cfg computed near `synth` above (needed there for _ami_bake_commands).
         prod_stage = PyvarDeployStage(
             self,
             "Prod",
@@ -662,6 +769,38 @@ class PipelineStack(Stack):
                     "ecr:BatchGetImage",
                 ],
                 resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-dev-api"],
+            )
+        )
+
+        # Lets the Synth step's _ami_bake_commands trigger and poll the prod
+        # worker AMI bake. StartImagePipelineExecution and GetImage both
+        # support resource-level ARN restriction, unlike the Describe*/List*
+        # actions above.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["imagebuilder:StartImagePipelineExecution"],
+                resources=[
+                    f"arn:aws:imagebuilder:{prod_cfg.region}:{prod_cfg.account}"
+                    f":image-pipeline/{_PROD_AMI_PIPELINE_NAME}"
+                ],
+            )
+        )
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["imagebuilder:GetImage"],
+                resources=[
+                    f"arn:aws:imagebuilder:{prod_cfg.region}:{prod_cfg.account}"
+                    f":image/{_PROD_AMI_RECIPE_NAME}/*"
+                ],
+            )
+        )
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["ssm:GetParameter", "ssm:PutParameter"],
+                resources=[
+                    f"arn:aws:ssm:{prod_cfg.region}:{prod_cfg.account}:parameter"
+                    f"{_PROD_AMI_HASH_SSM_PARAM}"
+                ],
             )
         )
 
