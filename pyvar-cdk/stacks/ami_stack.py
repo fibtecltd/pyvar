@@ -7,7 +7,13 @@ Reasoning:
 - With a pre-baked AMI, cold start drops to ~25s:
     ~20s OS boot + ~5s service start (dependencies already installed)
 - EC2 Image Builder automates AMI creation and distribution.
-  It is triggered by the CDK pipeline after a successful deploy.
+  For prod: triggered automatically — pipeline_stack.py's shared Synth
+  ShellStep hashes this file and, on a change, calls
+  start-image-pipeline-execution and blocks until the new AMI is
+  AVAILABLE, all BEFORE `cdk synth` runs (see that file's
+  _ami_bake_commands docstring for why it has to be pre-synth, not
+  post-deploy). For any other env (e.g. dev): still manual — trigger
+  with the AWS CLI command on WorkerImagePipeline below.
 - The Image Builder recipe installs ALL pyvar dependencies + runs a
   Numba warmup script that exercises the same @njit/prange/cache=True
   code paths as production kernels, so LLVM's JIT machinery is already
@@ -15,9 +21,13 @@ Reasoning:
   /opt/numba_cache (persistent EBS path — /tmp is tmpfs on AL2023 and
   would not survive the AMI snapshot). compute_stack.py sets the same
   NUMBA_CACHE_DIR for the running worker.
-- New AMIs are automatically set as the launch template default version
-  via a Lambda function triggered by Image Builder completion SNS.
-- Old AMIs (> 3 versions) are deregistered to control storage cost.
+- New AMIs take effect without any launch-template update: compute_stack.py
+  resolves the worker AMI via ec2.MachineImage.lookup() on the
+  "pyvar-{env}-worker-*" name pattern, re-run at every `cdk synth` — so
+  the launch template is built fresh against whatever is newest each
+  time, no separate Lambda/SNS wiring needed.
+- Old AMIs (> 3 versions) are deregistered — AWS-native Image Builder
+  Lifecycle Manager (WorkerAmiLifecyclePolicy below), not a custom Lambda.
 """
 
 from __future__ import annotations
@@ -149,10 +159,11 @@ phases:
         )
 
         # ── Recipe: Amazon Linux 2023 + pyvar component ────────────────────────
+        recipe_name = f"pyvar-{cfg.env_name}-worker"
         recipe = imagebuilder.CfnImageRecipe(
             self,
             "WorkerRecipe",
-            name=f"pyvar-{cfg.env_name}-worker",
+            name=recipe_name,
             version=component_version,
             parent_image=f"arn:aws:imagebuilder:{cfg.region}:aws:image/amazon-linux-2023-x86/x.x.x",
             components=[
@@ -236,6 +247,78 @@ phases:
             # To trigger manually:
             # aws imagebuilder start-image-pipeline-execution \
             #   --image-pipeline-arn <arn>
+        )
+
+        # ── Lifecycle policy: deregister old AMIs ───────────────────────────────
+        # Was previously an unimplemented claim in this module's docstring
+        # ("Old AMIs (> 3 versions) are deregistered") — nothing ever enforced
+        # it, so every triggered bake (pipeline_stack.py's _ami_bake_commands
+        # for prod, or a manual trigger for any env) left its 20GB gp3
+        # snapshot behind indefinitely. Native Image Builder Lifecycle
+        # Manager, not a custom Lambda: a COUNT filter of 3 keeps the 3 most
+        # recent AMIs per recipe and deletes (deregisters the AMI AND its
+        # backing EBS snapshot) everything older, on AWS's own schedule — no
+        # extra code to maintain here beyond the resource + its execution role.
+        #
+        # Trust policy and managed policy verified against AWS docs (not
+        # guessed): the lifecycle execution role is assumed by
+        # imagebuilder.amazonaws.com and needs the AWS managed
+        # service-role/EC2ImageBuilderLifecycleExecutionPolicy — a
+        # differently-named, more specific policy than the general
+        # EC2InstanceProfileForImageBuilder role above (that one is for the
+        # BUILD instance; this one is for the Lifecycle Manager service
+        # itself deregistering old images afterwards).
+        lifecycle_role = iam.Role(
+            self,
+            "AmiLifecycleRole",
+            assumed_by=iam.ServicePrincipal("imagebuilder.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/EC2ImageBuilderLifecycleExecutionPolicy"
+                ),
+            ],
+        )
+
+        imagebuilder.CfnLifecyclePolicy(
+            self,
+            "WorkerAmiLifecyclePolicy",
+            name=f"pyvar-{cfg.env_name}-worker-lifecycle",
+            description=(
+                "Retain the 3 most recent pyvar worker AMIs; delete older AMIs + "
+                "their EBS snapshots"
+            ),
+            execution_role=lifecycle_role.role_arn,
+            resource_type="AMI_IMAGE",
+            status="ENABLED",
+            policy_details=[
+                imagebuilder.CfnLifecyclePolicy.PolicyDetailProperty(
+                    action=imagebuilder.CfnLifecyclePolicy.ActionProperty(
+                        type="DELETE",
+                        include_resources=imagebuilder.CfnLifecyclePolicy.IncludeResourcesProperty(
+                            amis=True,
+                            snapshots=True,
+                        ),
+                    ),
+                    filter=imagebuilder.CfnLifecyclePolicy.FilterProperty(
+                        type="COUNT",
+                        value=3,
+                    ),
+                )
+            ],
+            resource_selection=imagebuilder.CfnLifecyclePolicy.ResourceSelectionProperty(
+                recipes=[
+                    imagebuilder.CfnLifecyclePolicy.RecipeSelectionProperty(
+                        name=recipe_name,
+                        # Wildcard: component_version's patch component is a
+                        # content hash (see _component_hash above), so every
+                        # AMI-relevant content change produces a DIFFERENT
+                        # "1.0.NNNN" version under the same recipe name — the
+                        # wildcard is what lets one lifecycle policy cover
+                        # all of them instead of just one frozen version.
+                        semantic_version="1.0.x",
+                    )
+                ],
+            ),
         )
 
         # ── Outputs ───────────────────────────────────────────────────────────
