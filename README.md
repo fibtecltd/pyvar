@@ -7,14 +7,16 @@ Built by **Fibtec Limited (UK)** on top of NumPy, Numba, and the Anthropic Claud
 
 ## What is pyvar?
 
-pyvar exposes risk functions — Monte Carlo VaR, Expected Shortfall,
-Greeks, stress testing, P&L attribution and more — as a REST API, served through
-an async Celery job pipeline. The most compute-intensive kernels (Monte Carlo
-simulation and related hot loops — 84 of 389 engine functions, 13 of them
-parallel) are Numba JIT-compiled; the rest are plain NumPy/SciPy, where JIT
-compilation offers little benefit. Not independently validated for regulatory
-use — see `tests/validation/` for pyvar's own cross-validation suite and its
-scope.
+pyvar exposes **385 risk functions** across 8 domains — Monte Carlo VaR,
+Expected Shortfall, Greeks, stress testing, P&L attribution and more — as a
+REST API, served through an async Celery job pipeline. The most
+compute-intensive kernels (Monte Carlo simulation and related hot loops —
+84 of the 389 functions defined in `engine/`, 4 of which are internal
+helpers not wired to any API route, 13 of them parallel) are Numba
+JIT-compiled; the rest are plain NumPy/SciPy, where JIT compilation offers
+little benefit. See `portal/functions.json` for the live, canonical function
+list. Not independently validated for regulatory use — see
+`tests/validation/` for pyvar's own cross-validation suite and its scope.
 
 ---
 
@@ -197,5 +199,15 @@ cdk deploy pyvar-pipeline --context account=ACCOUNT
 Estimated AWS cost at ~500 jobs/day: **~£126/month**
 
 ---
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the function-implementation
+process, Numba JIT rules, regulatory review requirements, and PR checklist.
+[`CHANGELOG.md`](CHANGELOG.md) tracks notable changes by release.
+
+---
+
+Licensed under the [Apache License 2.0](LICENSE).
 
 **Fibtec Limited** · hello@fibtec.co.uk
