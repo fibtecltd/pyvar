@@ -6,12 +6,18 @@ Reasoning:
   real transport — a structured-log stub since P8 Task 3. That was
   deliberately deferred pending pyvar.com's DNS hosting decision (P8 Task 7);
   #158 resolved that (Aruba stays, www.pyvar.com live), so this can proceed.
-- Verifies the pyvar.com domain identity ITSELF, not a subdomain — simpler,
-  one less moving part, and reasonable pre-launch (a dedicated subdomain
-  mainly isolates sending reputation, which matters at real send volume more
-  than it does here). Easy DKIM's 3 CNAME records live at
-  <selector>._domainkey.pyvar.com — a different name than the bare apex, so
-  this is entirely unaffected by #158's broken apex A/MX forwarding.
+- Originally verified the pyvar.com domain identity ITSELF, not a subdomain —
+  simpler, one less moving part, and reasonable pre-launch. That held for a
+  single environment, but SES allows only one EmailIdentity per literal
+  domain per account+region: once dev's SesStack claimed and verified
+  pyvar.com, prod's first-ever deploy failed with "EmailIdentity ...
+  pyvar.com already exists". cfg.ses_domain_name (config.py) now lets each
+  environment use a distinct identity — dev keeps the bare domain it already
+  verified, prod uses mail.pyvar.com — without touching dev's live, verified
+  identity. Easy DKIM's 3 CNAME records live at
+  <selector>._domainkey.<ses_domain_name> — never the bare apex regardless of
+  which domain is used, so this stays unaffected by #158's broken apex A/MX
+  forwarding either way.
 - The CNAME records themselves must be added MANUALLY at Aruba (DNS stays
   there — see #158) — the same "CDK sets up the mechanism, one manual DNS
   step is needed" pattern already used for the ACM certificate validation
@@ -68,7 +74,7 @@ class SesStack(Stack):
         self.email_identity = ses.EmailIdentity(
             self,
             "EmailIdentity",
-            identity=ses.Identity.domain(cfg.domain_name),
+            identity=ses.Identity.domain(cfg.ses_domain_name),
             configuration_set=configuration_set,
         )
 
@@ -82,9 +88,9 @@ class SesStack(Stack):
                 f"DkimRecord{i}",
                 value=f"CNAME {record.name} -> {record.value}",
                 description=(
-                    f"DKIM record {i} of 3 — add as a CNAME in the pyvar.com zone at "
-                    "Aruba (DNS stays there per #158; this name is not the bare apex, "
-                    "so it does not touch the existing A/MX records)."
+                    f"DKIM record {i} of 3 — add as a CNAME in the {cfg.ses_domain_name} "
+                    "zone at Aruba (DNS stays there per #158; this name is not the bare "
+                    "apex, so it does not touch the existing A/MX records)."
                 ),
             )
 
