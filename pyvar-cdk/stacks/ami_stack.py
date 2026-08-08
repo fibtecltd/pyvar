@@ -255,7 +255,9 @@ phases:
             infrastructure_configuration_arn=infra_config.attr_arn,
             distribution_configuration_arn=distribution_config.attr_arn,
             status="ENABLED",
-            # No schedule — triggered by CDK pipeline post-deploy step
+            # No schedule. For prod: triggered pre-synth by pipeline_stack.py's
+            # Synth ShellStep (see module docstring above) — not post-deploy.
+            # For any other env: still manual only.
             # To trigger manually:
             # aws imagebuilder start-image-pipeline-execution \
             #   --image-pipeline-arn <arn>
@@ -291,13 +293,39 @@ phases:
             ],
         )
 
+        # exclusion_rules.amis.last_launched protects whichever AMI is
+        # ACTUALLY currently in use, independent of the COUNT filter below.
+        # This matters because baking (pipeline_stack.py's _ami_bake_commands)
+        # and deploying (the separate, less-frequent prod CDK deploy that
+        # actually moves compute_stack.py's launch template onto a newer AMI)
+        # run on decoupled schedules: several unrelated ami_stack.py-touching
+        # pushes can each trigger a bake without a prod deploy in between, so
+        # a purely count-based policy could in principle deregister the AMI
+        # still referenced by prod's live launch template before that AMI is
+        # ever superseded there. last_launched exempts any AMI that has
+        # actually launched an instance within the window from deletion
+        # regardless of the COUNT filter, which covers the common case (an
+        # ASG that periodically scales up under real job traffic re-launches
+        # from — and re-protects — the in-use AMI).
+        #
+        # Residual gap, documented rather than silently assumed away: with
+        # worker_min_capacity=0 (scale-to-zero, config.py), an ASG that
+        # genuinely never scales up for the whole exclusion window won't
+        # re-trigger last_launched, so it doesn't protect a truly always-idle
+        # deployment against enough churn. Lifecycle Manager has no concept
+        # of "what CloudFormation currently references" — closing that last
+        # gap completely would mean tagging the in-use AMI at prod-deploy
+        # time and excluding by tag instead of (or in addition to)
+        # last_launched, which is real additional infra (a deploy-time
+        # tagging step) intentionally left as follow-up work, not built here.
         imagebuilder.CfnLifecyclePolicy(
             self,
             "WorkerAmiLifecyclePolicy",
             name=f"pyvar-{cfg.env_name}-worker-lifecycle",
             description=(
-                "Retain the 3 most recent pyvar worker AMIs; delete older AMIs + "
-                "their EBS snapshots"
+                "Retain the 3 most recent pyvar worker AMIs, and any AMI launched "
+                "in the last 30 days regardless of count; delete the rest + their "
+                "EBS snapshots"
             ),
             execution_role=lifecycle_role.role_arn,
             resource_type="AMI_IMAGE",
@@ -309,6 +337,14 @@ phases:
                         include_resources=imagebuilder.CfnLifecyclePolicy.IncludeResourcesProperty(
                             amis=True,
                             snapshots=True,
+                        ),
+                    ),
+                    exclusion_rules=imagebuilder.CfnLifecyclePolicy.ExclusionRulesProperty(
+                        amis=imagebuilder.CfnLifecyclePolicy.AmiExclusionRulesProperty(
+                            last_launched=imagebuilder.CfnLifecyclePolicy.LastLaunchedProperty(
+                                value=30,
+                                unit="DAYS",
+                            ),
                         ),
                     ),
                     filter=imagebuilder.CfnLifecyclePolicy.FilterProperty(

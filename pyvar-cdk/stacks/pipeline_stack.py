@@ -79,6 +79,35 @@ def _portal_hash_command(var_name: str) -> str:
     )
 
 
+def _hash_compare_commands(
+    hash_command: str, current_var: str, ssm_param: str, label: str
+) -> list[str]:
+    """Shared shell lines: compute a content hash into $<current_var> (via
+    `hash_command`, e.g. a _portal_hash_command(...) call or a plain
+    `sha256sum <file>`), fetch the last-recorded hash from SSM parameter
+    `ssm_param` into $LAST_HASH, and echo both. Callers compare
+    $<current_var> = $LAST_HASH themselves and decide what to do — the two
+    gates that use this (_skip_gate_commands, _ami_bake_commands) record
+    their "unchanged" hash at different points in their pipeline (post-deploy
+    vs. inline right after a successful bake), so unifying further than this
+    shared compute/fetch/echo step would force a control-flow shape neither
+    actually has.
+
+    First-ever run for a given `ssm_param` has no recorded hash (the SSM
+    parameter doesn't exist yet) — $LAST_HASH comes back empty, which every
+    caller here treats as "not equal to current" (fail open: never skip
+    something that's never actually run) rather than guessing about history
+    it doesn't have.
+    """
+    return [
+        hash_command,
+        f'echo "{label} hash: ${current_var}"',
+        f'LAST_HASH=$(aws ssm get-parameter --name "{ssm_param}" '
+        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
+        f'echo "Last recorded {label} hash: $LAST_HASH"',
+    ]
+
+
 def _skip_gate_commands(stage_cfg: PyvarConfig) -> list[str]:
     """Sets $SKIP=1 when nothing portal-relevant has changed since the last
     successful deploy of this stage, else $SKIP=0.
@@ -91,18 +120,12 @@ def _skip_gate_commands(stage_cfg: PyvarConfig) -> list[str]:
     would be: it correctly treats a revert or a squash-merge that nets out
     to identical portal-relevant content as "unchanged" instead of forcing a
     needless re-run.
-
-    First-ever run for a stage has no recorded hash (the SSM parameter
-    doesn't exist yet) — fails open (SKIP=0, never skip) rather than
-    guessing about history it doesn't have.
     """
     param_name = f"/pyvar/{stage_cfg.env_name}/last-deployed-portal-hash"
     return [
-        _portal_hash_command("CURRENT_HASH"),
-        'echo "Portal-relevant content hash: $CURRENT_HASH"',
-        f'LAST_HASH=$(aws ssm get-parameter --name "{param_name}" '
-        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
-        'echo "Last deployed hash: $LAST_HASH"',
+        *_hash_compare_commands(
+            _portal_hash_command("CURRENT_HASH"), "CURRENT_HASH", param_name, "portal-relevant content"
+        ),
         'if [ -n "$LAST_HASH" ] && [ "$LAST_HASH" != "None" ] '
         '&& [ "$CURRENT_HASH" = "$LAST_HASH" ]; then SKIP=1; else SKIP=0; fi',
     ]
@@ -205,6 +228,47 @@ _PROD_AMI_PIPELINE_NAME = "pyvar-prod-worker-pipeline"
 _PROD_AMI_RECIPE_NAME = "pyvar-prod-worker"
 
 
+def _ami_stack_drift_check_commands(prod_cfg: PyvarConfig) -> list[str]:
+    """Guards against baking against a stale AWS-side Image Builder recipe.
+
+    ami_stack.py's file hash (compared in _ami_bake_commands below) only
+    tells us the SOURCE changed — it says nothing about whether
+    pyvar-prod-ami, the actual deployed CloudFormation stack holding the
+    recipe/component Image Builder will bake against, was ever redeployed to
+    match. That stack is deliberately NOT part of this pipeline's automated
+    Prod stage (see the comment above _ami_bake_commands) — it's a
+    standalone, manually-triggered `cdk deploy pyvar-prod-ami`. Without this
+    check, a recipe-affecting edit that ships without that manual redeploy
+    would silently bake against the OLD recipe and then record the NEW file
+    hash as caught-up, permanently hiding the drift from every later push.
+
+    `cdk diff --fail` exits non-zero exactly when the locally-synthesized
+    template differs from what's actually deployed in AWS (including when
+    the stack doesn't exist at all yet) — read-only, no deploy permissions
+    needed, and it answers "is AWS in sync with source" directly instead of
+    through a proxy like a second hand-maintained hash.
+
+    Deliberately not `cmd || (... && exit 1)` — see the subshell note in
+    _ami_bake_commands below; a `(...)` subshell's `exit 1` wouldn't abort
+    this script, only the subshell, so the status is captured and checked
+    with a plain `if` instead.
+    """
+    return [
+        "cd pyvar-cdk",
+        "cdk diff pyvar-prod-ami --context env=prod "
+        f"--context account={prod_cfg.account} --fail > /tmp/ami_stack_diff.log 2>&1",
+        "DIFF_STATUS=$?",
+        "cd ..",
+        'if [ "$DIFF_STATUS" != "0" ]; then',
+        "  cat /tmp/ami_stack_diff.log",
+        '  echo "pyvar-prod-ami is out of sync with ami_stack.py (or was never deployed) -- '
+        "run 'cdk deploy pyvar-prod-ami --context env=prod --context account="
+        f"{prod_cfg.account}' before this can bake safely. Blocking deploy.\"",
+        "  exit 1",
+        "fi",
+    ]
+
+
 def _ami_bake_commands(prod_cfg: PyvarConfig) -> list[str]:
     pipeline_arn = (
         f"arn:aws:imagebuilder:{prod_cfg.region}:{prod_cfg.account}"
@@ -212,6 +276,7 @@ def _ami_bake_commands(prod_cfg: PyvarConfig) -> list[str]:
     )
     bake_and_wait = "\n".join(
         [
+            *_ami_stack_drift_check_commands(prod_cfg),
             'echo "AMI recipe changed since last bake — triggering prod worker AMI bake '
             '(pyvar-prod-ami must already be deployed once, see CLAUDE.md sec 11)"',
             "BUILD_ARN=$(aws imagebuilder start-image-pipeline-execution "
@@ -248,14 +313,15 @@ def _ami_bake_commands(prod_cfg: PyvarConfig) -> list[str]:
         ]
     )
     return [
-        "CURRENT_AMI_HASH=$(sha256sum pyvar-cdk/stacks/ami_stack.py | cut -d' ' -f1)",
-        'echo "AMI recipe hash: $CURRENT_AMI_HASH"',
-        f'LAST_AMI_HASH=$(aws ssm get-parameter --name "{_PROD_AMI_HASH_SSM_PARAM}" '
-        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
-        'echo "Last baked AMI hash: $LAST_AMI_HASH"',
+        *_hash_compare_commands(
+            "CURRENT_AMI_HASH=$(sha256sum pyvar-cdk/stacks/ami_stack.py | cut -d' ' -f1)",
+            "CURRENT_AMI_HASH",
+            _PROD_AMI_HASH_SSM_PARAM,
+            "AMI recipe",
+        ),
         (
-            'if [ -n "$LAST_AMI_HASH" ] && [ "$LAST_AMI_HASH" != "None" ] '
-            '&& [ "$CURRENT_AMI_HASH" = "$LAST_AMI_HASH" ]; then '
+            'if [ -n "$LAST_HASH" ] && [ "$LAST_HASH" != "None" ] '
+            '&& [ "$CURRENT_AMI_HASH" = "$LAST_HASH" ]; then '
             'echo "No AMI-relevant changes since the last bake — skipping."\n'
             f"else\n{bake_and_wait}\nfi"
         ),
