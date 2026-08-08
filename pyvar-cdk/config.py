@@ -24,6 +24,13 @@ class PyvarConfig:
     hosted_zone_id: str = ""  # fill in after creating the zone
     certificate_arn: str = ""  # ACM cert in us-east-1 for CloudFront
 
+    # SES EmailIdentity domain. Defaults to the bare domain (dev already
+    # verified this one — see ses_stack.py). SES allows only one identity
+    # per literal domain per account+region, so any other environment that
+    # also runs SesStack needs a distinct value (prod override below) or its
+    # deploy fails with "EmailIdentity ... already exists".
+    ses_domain_name: str = "pyvar.com"
+
     # ── VPC ───────────────────────────────────────────────────────────────────
     vpc_max_azs: int = 2
     vpc_nat_gateways: int = 1  # 1 NAT GW saves ~£27/month vs 2 (no HA tradeoff for non-prod)
@@ -117,6 +124,7 @@ class PyvarConfig:
                 aurora_min_acu=1.0,
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
+                ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity
                 worker_use_baked_ami=True,  # CLAUDE.md §11: "in production, pre-bake AMI"
                 # PRECONDITION — not yet automated (no post-deploy trigger wires up
                 # AmiStack's pipeline, see pipeline_stack.py): before the next `cdk
