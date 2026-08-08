@@ -389,14 +389,17 @@ class ComputeStack(Stack):
             ),
         )
 
-        # Warm pool: pre-initialise stopped instances so scale-out is faster (~30s vs ~90s).
-        # Warm pool costs ~30% of running instance price while stopped — prod only.
-        # NOTE: warm pools are attached via add_warm_pool(), not an ASG constructor kwarg.
-        if cfg.env_name == "prod":
-            self.asg.add_warm_pool(
-                min_size=1,
-                pool_state=autoscaling.PoolState.STOPPED,
-            )
+        # Warm pool (pre-initialise stopped instances so scale-out is ~30s
+        # instead of ~90s) was attempted here for prod, but AWS rejects it
+        # outright: "You can't add a warm pool to an Auto Scaling group that
+        # has a mixed instances policy or a launch template or launch
+        # configuration that requests Spot Instances." Confirmed live against
+        # pyvar-prod-compute's first-ever deploy — CREATE_FAILED, not a
+        # config issue. Warm pools and Spot-based mixed_instances_policy
+        # (above) are mutually exclusive on the same ASG; Spot is the
+        # deliberate cost strategy for this workload (see module docstring
+        # and CLAUDE.md), so the warm pool is dropped rather than the other
+        # way around. Scale-from-zero is ~90s instead of ~30s as a result.
 
         # Lifecycle hook: give workers 60s to drain before termination
         # Celery's task_acks_late=True means in-flight tasks return to queue if killed
