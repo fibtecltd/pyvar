@@ -124,7 +124,10 @@ def _skip_gate_commands(stage_cfg: PyvarConfig) -> list[str]:
     param_name = f"/pyvar/{stage_cfg.env_name}/last-deployed-portal-hash"
     return [
         *_hash_compare_commands(
-            _portal_hash_command("CURRENT_HASH"), "CURRENT_HASH", param_name, "portal-relevant content"
+            _portal_hash_command("CURRENT_HASH"),
+            "CURRENT_HASH",
+            param_name,
+            "portal-relevant content",
         ),
         'if [ -n "$LAST_HASH" ] && [ "$LAST_HASH" != "None" ] '
         '&& [ "$CURRENT_HASH" = "$LAST_HASH" ]; then SKIP=1; else SKIP=0; fi',
