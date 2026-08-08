@@ -66,7 +66,11 @@ class DataStack(Stack):
             self,
             "Aurora",
             engine=rds.DatabaseClusterEngine.aurora_postgres(
-                version=rds.AuroraPostgresEngineVersion.VER_16_6,
+                # VER_16_6 was deregistered by AWS in eu-west-1 (only
+                # 16.6-limitless remains) — 16.13 is the newest plain 16.x
+                # release available both in eu-west-1 and in this CDK
+                # version's AuroraPostgresEngineVersion enum.
+                version=rds.AuroraPostgresEngineVersion.VER_16_13,
             ),
             credentials=rds.Credentials.from_secret(self.db_secret),
             default_database_name="pyvar",
