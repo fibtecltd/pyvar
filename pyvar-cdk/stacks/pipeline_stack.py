@@ -841,6 +841,35 @@ class PipelineStack(Stack):
             )
         )
 
+        # Lets _ami_stack_drift_check_commands' `cdk diff pyvar-prod-ami --fail`
+        # actually read the deployed stack instead of failing closed on
+        # AccessDenied. `cdk diff` assumes no bootstrap role here (this
+        # project's role has no sts:AssumeRole grant at all, and the earlier
+        # ec2:Describe* lookups above don't need one either — no committed
+        # cdk.context.json means only the AZ/AMI context lookups happen live,
+        # via ambient credentials); it calls CloudFormation directly with the
+        # Synth role's own identity, and by default builds a read-only
+        # change set for a more accurate diff than template comparison alone.
+        # Without these, every drift check fails with AccessDenied on
+        # DescribeStacks regardless of whether the stack actually drifted,
+        # which still blocks the bake (fail-closed) but for the wrong reason
+        # and blocks it forever, even right after a real fix is deployed.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "cloudformation:DescribeStacks",
+                    "cloudformation:GetTemplate",
+                    "cloudformation:CreateChangeSet",
+                    "cloudformation:DescribeChangeSet",
+                    "cloudformation:DeleteChangeSet",
+                ],
+                resources=[
+                    f"arn:aws:cloudformation:{prod_cfg.region}:{prod_cfg.account}"
+                    ":stack/pyvar-prod-ami/*"
+                ],
+            )
+        )
+
         # Lets the Synth step's _ami_bake_commands trigger and poll the prod
         # worker AMI bake. StartImagePipelineExecution and GetImage both
         # support resource-level ARN restriction, unlike the Describe*/List*
