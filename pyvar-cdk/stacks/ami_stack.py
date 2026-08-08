@@ -192,10 +192,17 @@ phases:
             distributions=[
                 imagebuilder.CfnDistributionConfiguration.DistributionProperty(
                     region=cfg.region,
+                    # Raw dict with literal CloudFormation PascalCase keys, not the
+                    # AmiDistributionConfigurationProperty typed class or a
+                    # camelCase dict -- both serialize this property with the wrong
+                    # (camelCase) key casing in aws-cdk-lib 2.261.0, which the real
+                    # AWS::ImageBuilder::DistributionConfiguration resource schema
+                    # rejects outright ("extraneous key [name] is not permitted").
+                    # Confirmed via isolated repro against the installed CDK version.
                     ami_distribution_configuration={
-                        "name": f"pyvar-{cfg.env_name}-worker-{{{{ imagebuilder:buildDate }}}}",
-                        "description": f"pyvar {cfg.env_name} Celery worker with pre-compiled Numba cache",
-                        "amiTags": {
+                        "Name": f"pyvar-{cfg.env_name}-worker-{{{{ imagebuilder:buildDate }}}}",
+                        "Description": f"pyvar {cfg.env_name} Celery worker with pre-compiled Numba cache",
+                        "AmiTags": {
                             "Project": "pyvar",
                             "Environment": cfg.env_name,
                             "ManagedBy": "image-builder",
@@ -233,6 +240,11 @@ phases:
                 else {}
             ),
         )
+        # instance_profile_name above is a plain string, not a CFN token, so CDK's
+        # automatic dependency inference never wires this up -- without an explicit
+        # dependency, CloudFormation has no guarantee the instance profile exists
+        # (and has propagated through IAM) before Image Builder validates it.
+        infra_config.node.add_dependency(instance_profile)
 
         # ── Image pipeline: triggered manually or via API ──────────────────────
         self.image_pipeline = imagebuilder.CfnImagePipeline(
