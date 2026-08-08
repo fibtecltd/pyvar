@@ -7,7 +7,13 @@ Reasoning:
 - With a pre-baked AMI, cold start drops to ~25s:
     ~20s OS boot + ~5s service start (dependencies already installed)
 - EC2 Image Builder automates AMI creation and distribution.
-  It is triggered by the CDK pipeline after a successful deploy.
+  For prod: triggered automatically — pipeline_stack.py's shared Synth
+  ShellStep hashes this file and, on a change, calls
+  start-image-pipeline-execution and blocks until the new AMI is
+  AVAILABLE, all BEFORE `cdk synth` runs (see that file's
+  _ami_bake_commands docstring for why it has to be pre-synth, not
+  post-deploy). For any other env (e.g. dev): still manual — trigger
+  with the AWS CLI command on WorkerImagePipeline below.
 - The Image Builder recipe installs ALL pyvar dependencies + runs a
   Numba warmup script that exercises the same @njit/prange/cache=True
   code paths as production kernels, so LLVM's JIT machinery is already
@@ -15,9 +21,13 @@ Reasoning:
   /opt/numba_cache (persistent EBS path — /tmp is tmpfs on AL2023 and
   would not survive the AMI snapshot). compute_stack.py sets the same
   NUMBA_CACHE_DIR for the running worker.
-- New AMIs are automatically set as the launch template default version
-  via a Lambda function triggered by Image Builder completion SNS.
-- Old AMIs (> 3 versions) are deregistered to control storage cost.
+- New AMIs take effect without any launch-template update: compute_stack.py
+  resolves the worker AMI via ec2.MachineImage.lookup() on the
+  "pyvar-{env}-worker-*" name pattern, re-run at every `cdk synth` — so
+  the launch template is built fresh against whatever is newest each
+  time, no separate Lambda/SNS wiring needed.
+- Old AMIs (> 3 versions) are deregistered — AWS-native Image Builder
+  Lifecycle Manager (WorkerAmiLifecyclePolicy below), not a custom Lambda.
 """
 
 from __future__ import annotations
@@ -149,10 +159,11 @@ phases:
         )
 
         # ── Recipe: Amazon Linux 2023 + pyvar component ────────────────────────
+        recipe_name = f"pyvar-{cfg.env_name}-worker"
         recipe = imagebuilder.CfnImageRecipe(
             self,
             "WorkerRecipe",
-            name=f"pyvar-{cfg.env_name}-worker",
+            name=recipe_name,
             version=component_version,
             parent_image=f"arn:aws:imagebuilder:{cfg.region}:aws:image/amazon-linux-2023-x86/x.x.x",
             components=[
@@ -181,10 +192,17 @@ phases:
             distributions=[
                 imagebuilder.CfnDistributionConfiguration.DistributionProperty(
                     region=cfg.region,
+                    # Raw dict with literal CloudFormation PascalCase keys, not the
+                    # AmiDistributionConfigurationProperty typed class or a
+                    # camelCase dict -- both serialize this property with the wrong
+                    # (camelCase) key casing in aws-cdk-lib 2.261.0, which the real
+                    # AWS::ImageBuilder::DistributionConfiguration resource schema
+                    # rejects outright ("extraneous key [name] is not permitted").
+                    # Confirmed via isolated repro against the installed CDK version.
                     ami_distribution_configuration={
-                        "name": f"pyvar-{cfg.env_name}-worker-{{{{ imagebuilder:buildDate }}}}",
-                        "description": f"pyvar {cfg.env_name} Celery worker with pre-compiled Numba cache",
-                        "amiTags": {
+                        "Name": f"pyvar-{cfg.env_name}-worker-{{{{ imagebuilder:buildDate }}}}",
+                        "Description": f"pyvar {cfg.env_name} Celery worker with pre-compiled Numba cache",
+                        "AmiTags": {
                             "Project": "pyvar",
                             "Environment": cfg.env_name,
                             "ManagedBy": "image-builder",
@@ -222,6 +240,11 @@ phases:
                 else {}
             ),
         )
+        # instance_profile_name above is a plain string, not a CFN token, so CDK's
+        # automatic dependency inference never wires this up -- without an explicit
+        # dependency, CloudFormation has no guarantee the instance profile exists
+        # (and has propagated through IAM) before Image Builder validates it.
+        infra_config.node.add_dependency(instance_profile)
 
         # ── Image pipeline: triggered manually or via API ──────────────────────
         self.image_pipeline = imagebuilder.CfnImagePipeline(
@@ -232,10 +255,118 @@ phases:
             infrastructure_configuration_arn=infra_config.attr_arn,
             distribution_configuration_arn=distribution_config.attr_arn,
             status="ENABLED",
-            # No schedule — triggered by CDK pipeline post-deploy step
+            # No schedule. For prod: triggered pre-synth by pipeline_stack.py's
+            # Synth ShellStep (see module docstring above) — not post-deploy.
+            # For any other env: still manual only.
             # To trigger manually:
             # aws imagebuilder start-image-pipeline-execution \
             #   --image-pipeline-arn <arn>
+        )
+
+        # ── Lifecycle policy: deregister old AMIs ───────────────────────────────
+        # Was previously an unimplemented claim in this module's docstring
+        # ("Old AMIs (> 3 versions) are deregistered") — nothing ever enforced
+        # it, so every triggered bake (pipeline_stack.py's _ami_bake_commands
+        # for prod, or a manual trigger for any env) left its 20GB gp3
+        # snapshot behind indefinitely. Native Image Builder Lifecycle
+        # Manager, not a custom Lambda: a COUNT filter of 3 keeps the 3 most
+        # recent AMIs per recipe and deletes (deregisters the AMI AND its
+        # backing EBS snapshot) everything older, on AWS's own schedule — no
+        # extra code to maintain here beyond the resource + its execution role.
+        #
+        # Trust policy and managed policy verified against AWS docs (not
+        # guessed): the lifecycle execution role is assumed by
+        # imagebuilder.amazonaws.com and needs the AWS managed
+        # service-role/EC2ImageBuilderLifecycleExecutionPolicy — a
+        # differently-named, more specific policy than the general
+        # EC2InstanceProfileForImageBuilder role above (that one is for the
+        # BUILD instance; this one is for the Lifecycle Manager service
+        # itself deregistering old images afterwards).
+        lifecycle_role = iam.Role(
+            self,
+            "AmiLifecycleRole",
+            assumed_by=iam.ServicePrincipal("imagebuilder.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/EC2ImageBuilderLifecycleExecutionPolicy"
+                ),
+            ],
+        )
+
+        # exclusion_rules.amis.last_launched protects whichever AMI is
+        # ACTUALLY currently in use, independent of the COUNT filter below.
+        # This matters because baking (pipeline_stack.py's _ami_bake_commands)
+        # and deploying (the separate, less-frequent prod CDK deploy that
+        # actually moves compute_stack.py's launch template onto a newer AMI)
+        # run on decoupled schedules: several unrelated ami_stack.py-touching
+        # pushes can each trigger a bake without a prod deploy in between, so
+        # a purely count-based policy could in principle deregister the AMI
+        # still referenced by prod's live launch template before that AMI is
+        # ever superseded there. last_launched exempts any AMI that has
+        # actually launched an instance within the window from deletion
+        # regardless of the COUNT filter, which covers the common case (an
+        # ASG that periodically scales up under real job traffic re-launches
+        # from — and re-protects — the in-use AMI).
+        #
+        # Residual gap, documented rather than silently assumed away: with
+        # worker_min_capacity=0 (scale-to-zero, config.py), an ASG that
+        # genuinely never scales up for the whole exclusion window won't
+        # re-trigger last_launched, so it doesn't protect a truly always-idle
+        # deployment against enough churn. Lifecycle Manager has no concept
+        # of "what CloudFormation currently references" — closing that last
+        # gap completely would mean tagging the in-use AMI at prod-deploy
+        # time and excluding by tag instead of (or in addition to)
+        # last_launched, which is real additional infra (a deploy-time
+        # tagging step) intentionally left as follow-up work, not built here.
+        imagebuilder.CfnLifecyclePolicy(
+            self,
+            "WorkerAmiLifecyclePolicy",
+            name=f"pyvar-{cfg.env_name}-worker-lifecycle",
+            description=(
+                "Retain the 3 most recent pyvar worker AMIs, and any AMI launched "
+                "in the last 30 days regardless of count; delete the rest + their "
+                "EBS snapshots"
+            ),
+            execution_role=lifecycle_role.role_arn,
+            resource_type="AMI_IMAGE",
+            status="ENABLED",
+            policy_details=[
+                imagebuilder.CfnLifecyclePolicy.PolicyDetailProperty(
+                    action=imagebuilder.CfnLifecyclePolicy.ActionProperty(
+                        type="DELETE",
+                        include_resources=imagebuilder.CfnLifecyclePolicy.IncludeResourcesProperty(
+                            amis=True,
+                            snapshots=True,
+                        ),
+                    ),
+                    exclusion_rules=imagebuilder.CfnLifecyclePolicy.ExclusionRulesProperty(
+                        amis=imagebuilder.CfnLifecyclePolicy.AmiExclusionRulesProperty(
+                            last_launched=imagebuilder.CfnLifecyclePolicy.LastLaunchedProperty(
+                                value=30,
+                                unit="DAYS",
+                            ),
+                        ),
+                    ),
+                    filter=imagebuilder.CfnLifecyclePolicy.FilterProperty(
+                        type="COUNT",
+                        value=3,
+                    ),
+                )
+            ],
+            resource_selection=imagebuilder.CfnLifecyclePolicy.ResourceSelectionProperty(
+                recipes=[
+                    imagebuilder.CfnLifecyclePolicy.RecipeSelectionProperty(
+                        name=recipe_name,
+                        # Wildcard: component_version's patch component is a
+                        # content hash (see _component_hash above), so every
+                        # AMI-relevant content change produces a DIFFERENT
+                        # "1.0.NNNN" version under the same recipe name — the
+                        # wildcard is what lets one lifecycle policy cover
+                        # all of them instead of just one frozen version.
+                        semantic_version="1.0.x",
+                    )
+                ],
+            ),
         )
 
         # ── Outputs ───────────────────────────────────────────────────────────

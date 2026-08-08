@@ -8,6 +8,11 @@
 # Per-environment:
 #   cdk deploy --context env=prod --context account=123456789012 --all
 #
+# One-time bootstrap before the FIRST prod deploy via pyvar-pipeline:
+#   cdk deploy pyvar-prod-ami --context env=prod --context account=123456789012
+#   (creates the Image Builder pipeline the CDK Pipeline's Synth step bakes
+#   the worker AMI through automatically from then on — see CLAUDE.md §11)
+#
 # Stack order (auto-resolved by CDK but shown for clarity):
 #   NetworkStack → DataStack → QueueStack → ComputeStack → ApiStack → EdgeStack
 #

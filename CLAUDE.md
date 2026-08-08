@@ -473,4 +473,31 @@ FIX:   Always append .fifo when constructing queue names.
 ISSUE: Aurora SV2 Alembic migrations must use sync driver (psycopg2).
 FIX:   alembic.ini uses postgresql:// (not postgresql+asyncpg://).
        The application uses asyncpg — only migrations use psycopg2.
+
+ISSUE: prod worker_use_baked_ami=True (config.py) requires a pyvar-prod-worker-*
+       AMI to already exist. compute_stack.py resolves it via
+       ec2.MachineImage.lookup(name=f"pyvar-{cfg.env_name}-worker-*", ...) at
+       CDK synth time — this FAILS if no matching AMI has ever been built.
+FIX:   AUTOMATED as of this entry — pyvar-cdk/stacks/pipeline_stack.py's
+       shared Synth ShellStep now hashes ami_stack.py, and when it's changed
+       since the last recorded bake (SSM /pyvar/prod/last-baked-ami-hash),
+       triggers `aws imagebuilder start-image-pipeline-execution` against
+       pyvar-prod-worker-pipeline and blocks (polling, 30min cap) until the
+       new AMI reaches AVAILABLE — all BEFORE `cdk synth` runs, so
+       ec2.MachineImage.lookup picks it up in the same pipeline run. Fails
+       closed (exits 1) if the bake can't start or fails/times out — never
+       silently deploys without a fresh bake. No-ops (one hash compare) on
+       every push that doesn't touch ami_stack.py.
+       REMAINING MANUAL STEP (one-time only): the Image Builder pipeline
+       resource itself (pyvar-prod-ami / AmiStack) must be bootstrapped once,
+       out of band, before this can trigger anything —
+         cdk deploy pyvar-prod-ami --context env=prod --context account=ACCOUNT
+       — same category as bootstrapping pyvar-pipeline itself (app.py's own
+       docstring). AmiStack is deliberately NOT part of the per-push
+       CDK Pipeline stage (see pipeline_stack.py's _ami_bake_commands
+       docstring for the ordering reason). See
+       docs/p9-scenario-volume-cost-audit.md for the full writeup and the
+       tradeoffs considered before automating (incl. why the trigger has to
+       run pre-synth, coupling a Prod-only AMI change to the Dev deploy in
+       the same pipeline run).
 ```

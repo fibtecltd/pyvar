@@ -117,6 +117,16 @@ class PyvarConfig:
                 aurora_min_acu=1.0,
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
+                worker_use_baked_ami=True,  # CLAUDE.md §11: "in production, pre-bake AMI"
+                # PRECONDITION — not yet automated (no post-deploy trigger wires up
+                # AmiStack's pipeline, see pipeline_stack.py): before the next `cdk
+                # deploy --context env=prod`, a pyvar-prod-worker-* AMI must already
+                # exist, or compute_stack.py's ec2.MachineImage.lookup(...) fails at
+                # synth time. Trigger it manually first:
+                #   aws imagebuilder start-image-pipeline-execution \
+                #     --image-pipeline-arn <pyvar-prod-worker-pipeline ARN>
+                # and wait for it to complete (check the Image Builder console or
+                # CloudWatch Logs /aws/imagebuilder/pyvar-prod-worker) before deploying.
             ),
         }
         return cls(**{**base, **overrides.get(env_name, {})})
