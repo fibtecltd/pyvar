@@ -170,13 +170,18 @@ class EdgeStack(Stack):
         )
 
         # ── ACM Certificate (us-east-1, CloudFront alternate domain names) ────
-        # DNS-validated TLS certificate for pyvar.com + www.pyvar.com as
-        # CloudFront aliases. pyvar.com DNS stays hosted at Aruba (P8 Task 7
-        # decision — DNSSEC was never actually activated there, despite being
-        # carried forward in earlier lead prompts as if it had been; Route53
-        # migration was assessed and explicitly declined) — hosted_zone_id
-        # stays empty and the Route53 block below stays unused. On first
-        # deploy CloudFormation blocks here until the CNAME record(s) are
+        # DNS-validated TLS certificate for cfg.edge_domain_names (config.py)
+        # as CloudFront aliases. Only provisioned when this environment has
+        # aliases to serve at all — an environment with none (see the "prod"
+        # override in config.py, pending a deliberate domain cutover) has
+        # nothing to attach a cert to, and skipping it avoids provisioning +
+        # DNS-validating a certificate for no reason. pyvar.com DNS stays
+        # hosted at Aruba (P8 Task 7 decision — DNSSEC was never actually
+        # activated there, despite being carried forward in earlier lead
+        # prompts as if it had been; Route53 migration was assessed and
+        # explicitly declined) — hosted_zone_id stays empty and the Route53
+        # block below stays unused. On first deploy of an environment WITH
+        # aliases, CloudFormation blocks here until the CNAME record(s) are
         # added manually to the pyvar.com zone at Aruba. After "cdk deploy"
         # starts, retrieve the required records with:
         #
@@ -197,19 +202,21 @@ class EdgeStack(Stack):
         # step, or an apex-forwarding mechanism. www.pyvar.com has no such
         # constraint (already a CNAME today). Confirm Aruba's apex-aliasing
         # support before adding the apex-facing record.
-        cloudfront_certificate = acm.Certificate(
-            self,
-            "CloudFrontCertificate",
-            domain_name=cfg.domain_name,
-            subject_alternative_names=[f"www.{cfg.domain_name}"],
-            validation=acm.CertificateValidation.from_dns(),
-        )
+        cloudfront_certificate: acm.Certificate | None = None
+        if cfg.edge_domain_names:
+            cloudfront_certificate = acm.Certificate(
+                self,
+                "CloudFrontCertificate",
+                domain_name=cfg.edge_domain_names[0],
+                subject_alternative_names=cfg.edge_domain_names[1:],
+                validation=acm.CertificateValidation.from_dns(),
+            )
 
         self.distribution = cf.Distribution(
             self,
             "Distribution",
             comment=f"pyvar {cfg.env_name} CDN",
-            domain_names=[cfg.domain_name, f"www.{cfg.domain_name}"],
+            domain_names=cfg.edge_domain_names or None,
             certificate=cloudfront_certificate,
             web_acl_id=web_acl.attr_arn,
             http_version=cf.HttpVersion.HTTP2_AND_3,
@@ -289,5 +296,7 @@ class EdgeStack(Stack):
         )
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
         cdk.CfnOutput(
-            self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn
+            self,
+            "CloudFrontCertificateArn",
+            value=cloudfront_certificate.certificate_arn if cloudfront_certificate else "none",
         )

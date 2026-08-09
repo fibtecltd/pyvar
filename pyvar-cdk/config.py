@@ -31,6 +31,17 @@ class PyvarConfig:
     # deploy fails with "EmailIdentity ... already exists".
     ses_domain_name: str = "pyvar.com"
 
+    # CloudFront alternate domain names (aliases) for EdgeStack's distribution.
+    # Defaults to the bare domain + www — this is what dev's distribution
+    # serves today (the live pyvar.com / www.pyvar.com traffic) and must not
+    # change. CloudFront enforces alias uniqueness account-wide, not per
+    # distribution, so no other environment's distribution can also claim
+    # these same aliases until a deliberate domain cutover happens (tracked
+    # separately — see prod override below, which claims none at all).
+    edge_domain_names: list[str] = field(
+        default_factory=lambda: ["pyvar.com", "www.pyvar.com"]
+    )
+
     # ── VPC ───────────────────────────────────────────────────────────────────
     vpc_max_azs: int = 2
     vpc_nat_gateways: int = 1  # 1 NAT GW saves ~£27/month vs 2 (no HA tradeoff for non-prod)
@@ -125,6 +136,12 @@ class PyvarConfig:
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
                 ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity
+                # No custom domain alias at all yet — pyvar.com/www.pyvar.com are
+                # claimed by dev's live CloudFront distribution (CloudFront alias
+                # uniqueness is account-wide). Prod's distribution serves its bare
+                # *.cloudfront.net address with CloudFront's default certificate
+                # until a deliberate domain cutover happens (separate, tracked work).
+                edge_domain_names=[],
                 worker_use_baked_ami=True,  # CLAUDE.md §11: "in production, pre-bake AMI"
                 # PRECONDITION — not yet automated (no post-deploy trigger wires up
                 # AmiStack's pipeline, see pipeline_stack.py): before the next `cdk
