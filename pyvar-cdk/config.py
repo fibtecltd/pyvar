@@ -38,9 +38,7 @@ class PyvarConfig:
     # distribution, so no other environment's distribution can also claim
     # these same aliases until a deliberate domain cutover happens (tracked
     # separately — see prod override below, which claims none at all).
-    edge_domain_names: list[str] = field(
-        default_factory=lambda: ["pyvar.com", "www.pyvar.com"]
-    )
+    edge_domain_names: list[str] = field(default_factory=lambda: ["pyvar.com", "www.pyvar.com"])
 
     # ── VPC ───────────────────────────────────────────────────────────────────
     vpc_max_azs: int = 2
@@ -126,6 +124,13 @@ class PyvarConfig:
             "staging": dict(
                 api_min_tasks=2,
                 worker_max_capacity=10,
+                # Same alias-collision reasoning as prod above: pyvar.com/
+                # www.pyvar.com are already claimed account-wide by dev's live
+                # CloudFront distribution, so no other environment can claim
+                # them too. Without this override, deploying pyvar-staging-edge
+                # would hit the exact same ACM cert / distribution collision
+                # the prod override exists to avoid.
+                edge_domain_names=[],
             ),
             "prod": dict(
                 vpc_nat_gateways=2,  # 2 NAT GWs for full AZ independence

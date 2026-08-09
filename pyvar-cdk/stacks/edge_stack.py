@@ -202,6 +202,19 @@ class EdgeStack(Stack):
         # step, or an apex-forwarding mechanism. www.pyvar.com has no such
         # constraint (already a CNAME today). Confirm Aruba's apex-aliasing
         # support before adding the apex-facing record.
+        # TLS-floor tradeoff when edge_domain_names is empty (prod/staging
+        # right now — see config.py): with no custom domain there's no ACM
+        # certificate, and CloudFront only honors a custom
+        # minimum_protocol_version when the distribution has one. The
+        # minimum_protocol_version=TLS_V1_2_2021 set below is silently NOT
+        # enforced in that case — CloudFront falls back to its shared default
+        # certificate's fixed (older, non-configurable) TLS policy instead.
+        # Acceptable for now because nothing points real traffic at this
+        # distribution's default *.cloudfront.net address yet, but this is a
+        # HARD PRECONDITION for the domain cutover (Stage C, tracked
+        # separately): edge_domain_names must be non-empty — restoring a
+        # custom cert and therefore this TLS floor — before pyvar.com is ever
+        # pointed at this distribution.
         cloudfront_certificate: acm.Certificate | None = None
         if cfg.edge_domain_names:
             cloudfront_certificate = acm.Certificate(
@@ -220,6 +233,8 @@ class EdgeStack(Stack):
             certificate=cloudfront_certificate,
             web_acl_id=web_acl.attr_arn,
             http_version=cf.HttpVersion.HTTP2_AND_3,
+            # Only actually enforced when cloudfront_certificate is set — see
+            # the comment above the certificate block.
             minimum_protocol_version=cf.SecurityPolicyProtocol.TLS_V1_2_2021,
             price_class=cf.PriceClass.PRICE_CLASS_100,  # US + Europe PoPs only — cheapest
             default_behavior=cf.BehaviorOptions(
