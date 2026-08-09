@@ -170,13 +170,18 @@ class EdgeStack(Stack):
         )
 
         # ── ACM Certificate (us-east-1, CloudFront alternate domain names) ────
-        # DNS-validated TLS certificate for pyvar.com + www.pyvar.com as
-        # CloudFront aliases. pyvar.com DNS stays hosted at Aruba (P8 Task 7
-        # decision — DNSSEC was never actually activated there, despite being
-        # carried forward in earlier lead prompts as if it had been; Route53
-        # migration was assessed and explicitly declined) — hosted_zone_id
-        # stays empty and the Route53 block below stays unused. On first
-        # deploy CloudFormation blocks here until the CNAME record(s) are
+        # DNS-validated TLS certificate for cfg.edge_domain_names (config.py)
+        # as CloudFront aliases. Only provisioned when this environment has
+        # aliases to serve at all — an environment with none (see the "prod"
+        # override in config.py, pending a deliberate domain cutover) has
+        # nothing to attach a cert to, and skipping it avoids provisioning +
+        # DNS-validating a certificate for no reason. pyvar.com DNS stays
+        # hosted at Aruba (P8 Task 7 decision — DNSSEC was never actually
+        # activated there, despite being carried forward in earlier lead
+        # prompts as if it had been; Route53 migration was assessed and
+        # explicitly declined) — hosted_zone_id stays empty and the Route53
+        # block below stays unused. On first deploy of an environment WITH
+        # aliases, CloudFormation blocks here until the CNAME record(s) are
         # added manually to the pyvar.com zone at Aruba. After "cdk deploy"
         # starts, retrieve the required records with:
         #
@@ -197,22 +202,39 @@ class EdgeStack(Stack):
         # step, or an apex-forwarding mechanism. www.pyvar.com has no such
         # constraint (already a CNAME today). Confirm Aruba's apex-aliasing
         # support before adding the apex-facing record.
-        cloudfront_certificate = acm.Certificate(
-            self,
-            "CloudFrontCertificate",
-            domain_name=cfg.domain_name,
-            subject_alternative_names=[f"www.{cfg.domain_name}"],
-            validation=acm.CertificateValidation.from_dns(),
-        )
+        # TLS-floor tradeoff when edge_domain_names is empty (prod/staging
+        # right now — see config.py): with no custom domain there's no ACM
+        # certificate, and CloudFront only honors a custom
+        # minimum_protocol_version when the distribution has one. The
+        # minimum_protocol_version=TLS_V1_2_2021 set below is silently NOT
+        # enforced in that case — CloudFront falls back to its shared default
+        # certificate's fixed (older, non-configurable) TLS policy instead.
+        # Acceptable for now because nothing points real traffic at this
+        # distribution's default *.cloudfront.net address yet, but this is a
+        # HARD PRECONDITION for the domain cutover (Stage C, tracked
+        # separately): edge_domain_names must be non-empty — restoring a
+        # custom cert and therefore this TLS floor — before pyvar.com is ever
+        # pointed at this distribution.
+        cloudfront_certificate: acm.Certificate | None = None
+        if cfg.edge_domain_names:
+            cloudfront_certificate = acm.Certificate(
+                self,
+                "CloudFrontCertificate",
+                domain_name=cfg.edge_domain_names[0],
+                subject_alternative_names=cfg.edge_domain_names[1:],
+                validation=acm.CertificateValidation.from_dns(),
+            )
 
         self.distribution = cf.Distribution(
             self,
             "Distribution",
             comment=f"pyvar {cfg.env_name} CDN",
-            domain_names=[cfg.domain_name, f"www.{cfg.domain_name}"],
+            domain_names=cfg.edge_domain_names or None,
             certificate=cloudfront_certificate,
             web_acl_id=web_acl.attr_arn,
             http_version=cf.HttpVersion.HTTP2_AND_3,
+            # Only actually enforced when cloudfront_certificate is set — see
+            # the comment above the certificate block.
             minimum_protocol_version=cf.SecurityPolicyProtocol.TLS_V1_2_2021,
             price_class=cf.PriceClass.PRICE_CLASS_100,  # US + Europe PoPs only — cheapest
             default_behavior=cf.BehaviorOptions(
@@ -289,5 +311,7 @@ class EdgeStack(Stack):
         )
         cdk.CfnOutput(self, "CloudFrontId", value=self.distribution.distribution_id)
         cdk.CfnOutput(
-            self, "CloudFrontCertificateArn", value=cloudfront_certificate.certificate_arn
+            self,
+            "CloudFrontCertificateArn",
+            value=cloudfront_certificate.certificate_arn if cloudfront_certificate else "none",
         )
