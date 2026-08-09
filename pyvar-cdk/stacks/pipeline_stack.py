@@ -556,18 +556,29 @@ class PipelineStack(Stack):
         # and the requirements set matches .github/workflows/ci.yml's own
         # test job exactly (requirements-ci.txt + requirements.txt covers
         # everything the test suite imports, incl. polars/numba).
-        # #119: the ECR repo pyvar-dev-api actually lives in (Dev only — Prod
-        # has never been deployed and has no ECR repo of its own yet; wiring
-        # Prod in too would mean re-uploading every layer to a second repo,
-        # since ECR doesn't dedupe layers across repos, on every single
-        # pipeline run for zero current benefit).
+        # #119 / prod-bootstrap follow-up: originally Dev-only — Prod had
+        # never been deployed and had no ECR repo of its own, so wiring Prod
+        # in too would have meant re-uploading every layer to a second repo
+        # (ECR doesn't dedupe layers across repos) for zero benefit. Now that
+        # pyvar-prod-api's first-ever deploy actually needs an image, this
+        # promotes the SAME already-built local image into Prod's repo
+        # (retag + push, no second `docker build`) rather than building
+        # twice — see the "Promote the same image into Prod" commands below.
         dev_ecr_uri = f"{cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com/pyvar-dev-api"
+        prod_ecr_uri = f"{cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com/pyvar-prod-api"
 
         # Computed here (not down at the Prod stage section below, where it
         # used to live) because _ami_bake_commands needs it inside `synth`'s
         # command list, which is constructed next — see that function's
         # docstring for why the AMI bake has to happen before `cdk synth`.
-        prod_cfg = PyvarConfig.for_env("prod", account=cfg.account)
+        # api_image_tag mirrors dev_cfg's wiring below (#119) — same
+        # $SHORT_SHA context value, since the Synth step commands push the
+        # identical retagged image to both repos under that tag.
+        prod_cfg = PyvarConfig.for_env(
+            "prod",
+            account=cfg.account,
+            api_image_tag=self.node.try_get_context("api_image_tag"),
+        )
 
         synth = pipelines.ShellStep(
             "Synth",
@@ -625,6 +636,21 @@ class PipelineStack(Stack):
                 f"docker tag pyvar-dev-api:latest {dev_ecr_uri}:latest",
                 f"docker push {dev_ecr_uri}:$SHORT_SHA",
                 f"docker push {dev_ecr_uri}:latest",
+                # ── Promote the same image into Prod (prod-bootstrap follow-up) ──
+                # Retags the image just built above — no second `docker build`
+                # — and pushes it to pyvar-prod-api's own repo under the same
+                # $SHORT_SHA tag prod_cfg.api_image_tag resolves to below, so
+                # Prod always runs exactly what Dev already validated. The
+                # repo itself isn't CDK-managed (api_stack.py's own comment:
+                # provisioned out-of-band, RETAIN'd across stack lifecycles),
+                # so it's created here idempotently if this is its first run.
+                f"aws ecr describe-repositories --repository-names pyvar-prod-api "
+                f"--region {cfg.region} || aws ecr create-repository "
+                f"--repository-name pyvar-prod-api --region {cfg.region}",
+                f"docker tag pyvar-dev-api:$SHORT_SHA {prod_ecr_uri}:$SHORT_SHA",
+                f"docker tag pyvar-dev-api:latest {prod_ecr_uri}:latest",
+                f"docker push {prod_ecr_uri}:$SHORT_SHA",
+                f"docker push {prod_ecr_uri}:latest",
                 # ── Prod AMI bake trigger (CLAUDE.md §11) ─────────────────────
                 # MUST run before `cdk synth` below — see _ami_bake_commands'
                 # docstring for why. No-ops (a hash compare + one SSM read) on
@@ -838,6 +864,26 @@ class PipelineStack(Stack):
                     "ecr:BatchGetImage",
                 ],
                 resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-dev-api"],
+            )
+        )
+        # Lets the Synth step's "Promote the same image into Prod" commands
+        # (above) create pyvar-prod-api on its first-ever run and push the
+        # retagged image to it on every run thereafter — same action set as
+        # pyvar-dev-api's grant above, plus CreateRepository/DescribeRepositories
+        # for the idempotent create-if-missing check.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "ecr:DescribeRepositories",
+                    "ecr:CreateRepository",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:BatchGetImage",
+                ],
+                resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-prod-api"],
             )
         )
 
