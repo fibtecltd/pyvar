@@ -495,6 +495,10 @@ Day -7:  Prod CDK deploy via CodePipeline (push to main → pipeline → prod)
 Day -7:  Alembic upgrade head against Aurora prod
 Day -5:  48h soak test on prod — verify no SEV-1 errors
 Day -3:  Smoke test all 8 domains on prod
+Day -3:  Review + enhance .claude/skills/ with this deployment's project
+         experience (runs in parallel with the soak/smoke window above —
+         no AWS dependency; hard gate before Day 0, since .claude/ is
+         tracked in git and goes public with the repo)
 Day -1:  DNS switch: pyvar.com → CloudFront prod distribution
 Day  0:  GitHub repo public (tag v0.1.0)
 Day  0:  Post to Hacker News (Show HN), r/quantfinance, r/algotrading
@@ -507,6 +511,9 @@ Day +7:  Review usage metrics — identify most popular functions for v0.2.0 roa
 - Prod CDK deploy via CodePipeline (push to main → pipeline self-mutates → deploys prod stage)
 - Run Alembic upgrade head against Aurora prod before traffic arrives
 - Verify prod smoke test passes: all 8 domain compute endpoints return 202
+- Review and enhance all 13 `.claude/skills/*/SKILL.md` files with real project
+  experience from this deployment, before the repo goes public — see the
+  dedicated session prompt below
 - Set prod min task count to 2 (one per AZ) — verify ALB health checks passing in both AZs
 - GitHub release: tag v0.1.0, publish pyvar_functions.csv, attach architecture diagram
 - Write CONTRIBUTING.md: how to add a new function, Numba rules summary, PR checklist
@@ -551,8 +558,53 @@ Prepare the GitHub repository for public launch:
 The README must be compelling enough to earn 50 GitHub stars in the first week.
 ```
 
+**Review + enhance .claude/skills/ with real project experience:**
+```
+13 skill files live in .claude/skills/*/SKILL.md — 8 domain/regulatory skills
+(alm, credit-risk, derivatives, liquidity-risk, market-risk, operational-risk,
+portfolio-analytics, regulatory) and 5 architecture skills (arch-api-gateway,
+arch-compute, arch-data-ingestion, arch-observability, arch-storage). These
+are tracked in git and become public documentation the moment the repo goes
+public (Day 0) — review and correct them before then, not after.
+
+For each skill: read it in full, check every claim against what actually
+shipped in this codebase (not what the skill assumes), and enhance it with
+concrete lessons from real project experience — not generic advice a skill
+could have said on day one.
+
+Domain/regulatory skills — cross-check against the actual regulatory fixes
+made during this project (see CLAUDE.md section 4 and git history): the
+Solvency II SCR credit-risk formula correction (Art. 200-201), the rBergomi
+kernel's fractional-Brownian autocovariance fix, the IRRBB standard shock
+recalibration to BCBS d578, and the EMIR clearing scope correction
+(all-asset-class, not per-class). Also check the module docstrings this
+project already cleaned up for false/self-authored citations — the skill
+files should point to the same real published sources, not repeat whatever
+they said before that cleanup.
+
+Architecture skills — this is where the bulk of new material is, since
+almost all of this project's hard-won infrastructure lessons happened during
+the P9 prod bootstrap: the ImageBuilder DistributionConfiguration schema
+requiring literal PascalCase keys (not the typed CDK property class, which
+has the same bug); CloudFront and SES both enforcing alias/identity
+uniqueness ACCOUNT-WIDE, not per-distribution or per-stack, which blocked
+prod's edge and SES stacks from ever deploying until given their own
+domains; Aurora engine version pinning going stale when AWS deprecates a
+specific point version; EC2 ASG Warm Pools being flatly incompatible with
+Spot-based MixedInstancesPolicy; a self-mutating CDK pipeline silently
+reverting any deployed-but-uncommitted fix on its next run; and the
+RunDbMigration-before-the-app-stack-exists bootstrap ordering trap. Check
+each architecture skill actually reflects these constraints where relevant,
+not just the original design intent.
+
+Where a skill is still accurate, leave it. Where it's wrong, fix it. Where
+it's silent on something this project already learned the hard way, add it
+— specific and falsifiable, not generic restatement of what the skill
+already said.
+```
+
 ### Exit gate
-Prod deployment healthy for 48h. All 8 domain smoke tests passing. GitHub repo public. No SEV-1 Sentry errors in 48h post-launch.
+Prod deployment healthy for 48h. All 8 domain smoke tests passing. All 13 `.claude/skills/*/SKILL.md` files reviewed and enhanced with real project experience. GitHub repo public. No SEV-1 Sentry errors in 48h post-launch.
 
 ---
 
