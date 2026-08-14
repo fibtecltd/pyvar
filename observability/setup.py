@@ -72,8 +72,17 @@ def track_computation(
 
 
 def setup_sentry() -> None:
-    """Initialise Sentry SDK if DSN is configured. No-op in development."""
-    if not cfg.sentry_dsn:
+    """Initialise Sentry SDK if a valid DSN is configured. No-op in development,
+    and no-op (never a crash) on a malformed DSN -- Sentry is optional
+    observability and must never become a startup dependency for the API or
+    worker fleet.
+    """
+    if not cfg.sentry_dsn or cfg.sentry_dsn == "None":
+        # The literal string "None" is a known `aws secretsmanager
+        # get-secret-value --query SecretString --output text` quirk when a
+        # secret was created as SecretBinary instead of SecretString -- an
+        # easy mistake for a secret created outside CDK. Treat it the same as
+        # "not configured" rather than handing an invalid DSN to the SDK.
         return
 
     import sentry_sdk
@@ -81,17 +90,28 @@ def setup_sentry() -> None:
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-    sentry_sdk.init(
-        dsn=cfg.sentry_dsn,
-        environment=cfg.app_env,
-        integrations=[
-            FastApiIntegration(transaction_style="endpoint"),
-            CeleryIntegration(monitor_beat_tasks=True),
-            SqlalchemyIntegration(),
-        ],
-        traces_sample_rate=0.1 if cfg.app_env == "production" else 1.0,
-        send_default_pii=False,
-    )
+    try:
+        sentry_sdk.init(
+            dsn=cfg.sentry_dsn,
+            environment=cfg.app_env,
+            integrations=[
+                FastApiIntegration(transaction_style="endpoint"),
+                CeleryIntegration(monitor_beat_tasks=True),
+                SqlalchemyIntegration(),
+            ],
+            traces_sample_rate=0.1 if cfg.app_env == "production" else 1.0,
+            send_default_pii=False,
+        )
+    except Exception:
+        # setup_logging() always runs before setup_sentry() (both call sites
+        # -- main.py's setup_observability() and worker.py's module-level
+        # calls -- order it that way), so stdlib logging is already
+        # configured here.
+        logging.getLogger(__name__).warning(
+            "Sentry initialisation failed with dsn=%r -- continuing without it",
+            cfg.sentry_dsn,
+            exc_info=True,
+        )
 
 
 # ── structlog ─────────────────────────────────────────────────────────────────

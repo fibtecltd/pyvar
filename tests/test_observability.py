@@ -43,3 +43,31 @@ def test_setup_sentry_intercepted_when_dsn_present(_no_sentry_in_tests):
     assert _no_sentry_in_tests.call_args.kwargs["dsn"] == (
         "https://fake-dsn@example.ingest.sentry.io/1"
     )
+
+
+def test_setup_sentry_noop_with_literal_none_string(_no_sentry_in_tests):
+    """PR #229 review finding: `aws secretsmanager get-secret-value --query
+    SecretString --output text` prints the literal text "None" (not empty)
+    when a secret was created as SecretBinary instead of SecretString — an
+    easy mistake for pyvar/{env}/sentry-dsn, created outside CDK. That
+    string is truthy in Python, so it must be checked explicitly rather than
+    relying on `if not cfg.sentry_dsn`.
+    """
+    with patch.object(cfg, "sentry_dsn", "None"):
+        setup_sentry()
+
+    _no_sentry_in_tests.assert_not_called()
+
+
+def test_setup_sentry_survives_init_exception(_no_sentry_in_tests):
+    """PR #229 review finding: a malformed DSN that reaches sentry_sdk.init
+    must not crash API/worker startup — Sentry is optional observability,
+    never a hard dependency. Forces the mock to raise the way a genuinely
+    invalid DSN would inside the real SDK, and asserts setup_sentry() itself
+    doesn't propagate it.
+    """
+    _no_sentry_in_tests.side_effect = ValueError("Invalid Sentry DSN")
+    with patch.object(cfg, "sentry_dsn", "not-a-real-dsn"):
+        setup_sentry()  # must not raise
+
+    _no_sentry_in_tests.assert_called_once()
