@@ -71,13 +71,49 @@ def track_computation(
 # ── Sentry ────────────────────────────────────────────────────────────────────
 
 
+def _resolve_sentry_dsn() -> str:
+    """Resolve the Sentry DSN to actually use.
+
+    Workers already get SENTRY_DSN as a pre-populated env var --
+    scripts/fetch-config.sh fetches it into secrets.env before the process
+    starts, so cfg.sentry_dsn is already set and this returns immediately.
+
+    The API tier deliberately does NOT get it via ECS's native `secrets={}`
+    injection (see api_stack.py's comment above sentry_secret) -- that
+    mechanism has no "optional" mode, so a secret that becomes unreadable
+    would fail every new Fargate task launch outright and could block prod
+    deploys entirely over an observability nice-to-have. Fetched here
+    instead, at application startup, where a failure degrades gracefully.
+
+    Only attempts the fetch when actually running in a real ECS task
+    (cfg.ecs_container_metadata_uri_v4 set -- AWS injects this
+    automatically). Local dev and CI never have this secret and must never
+    attempt a real AWS call: CI's test job runs with APP_ENV=test, not
+    "development", so gating on the app_env string instead of real ECS
+    presence would have let a real Secrets Manager call slip into test runs.
+    """
+    if cfg.sentry_dsn:
+        return cfg.sentry_dsn
+    if not cfg.ecs_container_metadata_uri_v4:
+        return ""
+    try:
+        import boto3
+
+        client = boto3.client("secretsmanager")
+        response = client.get_secret_value(SecretId=f"pyvar/{cfg.app_env}/sentry-dsn")
+        return str(response.get("SecretString") or "")
+    except Exception:
+        return ""
+
+
 def setup_sentry() -> None:
     """Initialise Sentry SDK if a valid DSN is configured. No-op in development,
     and no-op (never a crash) on a malformed DSN -- Sentry is optional
     observability and must never become a startup dependency for the API or
     worker fleet.
     """
-    if not cfg.sentry_dsn or cfg.sentry_dsn == "None":
+    dsn = _resolve_sentry_dsn()
+    if not dsn or dsn == "None":
         # The literal string "None" is a known `aws secretsmanager
         # get-secret-value --query SecretString --output text` quirk when a
         # secret was created as SecretBinary instead of SecretString -- an
@@ -92,7 +128,7 @@ def setup_sentry() -> None:
 
     try:
         sentry_sdk.init(
-            dsn=cfg.sentry_dsn,
+            dsn=dsn,
             environment=cfg.app_env,
             integrations=[
                 FastApiIntegration(transaction_style="endpoint"),
@@ -109,7 +145,7 @@ def setup_sentry() -> None:
         # configured here.
         logging.getLogger(__name__).warning(
             "Sentry initialisation failed with dsn=%r -- continuing without it",
-            cfg.sentry_dsn,
+            dsn,
             exc_info=True,
         )
 
