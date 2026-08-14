@@ -380,7 +380,16 @@ class ComputeStack(Stack):
             **_asg_kwargs,
             min_capacity=cfg.worker_min_capacity,
             max_capacity=cfg.worker_max_capacity,
-            desired_capacity=0,  # start with 0; SQS scaling takes over
+            # Must be >= min_capacity (CDK/CloudFormation both enforce this) —
+            # was a hardcoded 0 until PR #227 raised prod's worker_min_capacity
+            # to 1 (temporary launch-window mitigation), which broke synth
+            # outright ("Should have minCapacity (1) <= desiredCapacity (0)")
+            # since 0 no longer satisfies that constraint for prod. Tracking
+            # worker_min_capacity keeps every environment's actual starting
+            # point consistent with its own floor instead of a separate
+            # hardcoded value that has to be remembered and kept in sync by
+            # hand; SQS target-tracking still takes over scaling from there.
+            desired_capacity=cfg.worker_min_capacity,
             # Health check: if instance fails 2 consecutive EC2 status checks, replace it
             health_check=autoscaling.HealthCheck.ec2(grace=Duration.seconds(120)),
             update_policy=autoscaling.UpdatePolicy.rolling_update(
