@@ -24,42 +24,58 @@ tags: [liquidity-risk, LCR, NSFR, HQLA, cash-flow, ILAAP,
 
 ```python
 pyvar.liquidity_risk.liquidity_coverage_ratio_lcr(
-    # Liquidity Coverage Ratio (LCR)
+    # Liquidity Coverage Ratio (LCR) = HQLA / net 30-day outflows. Net
+    # outflows are floored so recognised inflows can offset at most 75% of
+    # gross outflows (BCBS 238 §69, the default `inflow_cap`).
+    # compliant = (LCR >= 1.0).
     **params
 ) -> float | dict | pd.DataFrame
 ```
 
 ```python
 pyvar.liquidity_risk.net_stable_funding_ratio_nsfr(
-    # Net Stable Funding Ratio (NSFR)
-    **params
-) -> float | dict | pd.DataFrame
-```
-
-```python
-pyvar.liquidity_risk.intraday_liquidity_monitor(
-    # Intraday Liquidity Monitor
-    **params
-) -> float | dict | pd.DataFrame
-```
-
-```python
-pyvar.liquidity_risk.intraday_liquidity_stress_test(
-    # Intraday Liquidity Stress Test
+    # Net Stable Funding Ratio (NSFR) = ASF / RSF, must be >= 100% (BCBS 295)
     **params
 ) -> float | dict | pd.DataFrame
 ```
 
 ```python
 pyvar.liquidity_risk.available_stable_funding_asf_calc(
-    # Available Stable Funding (ASF) Calc
+    # Available Stable Funding (ASF) Calc = sum(funding_amount * asf_factor)
     **params
 ) -> float | dict | pd.DataFrame
 ```
 
 ```python
 pyvar.liquidity_risk.required_stable_funding_rsf_calc(
-    # Required Stable Funding (RSF) Calc
+    # Required Stable Funding (RSF) Calc = sum(asset_amount * rsf_factor)
+    **params
+) -> float | dict | pd.DataFrame
+```
+
+
+## Intraday Liquidity
+
+(Moved out of the LCR/NSFR group above — these are BCBS 248 intraday
+monitoring functions, not LCR/NSFR calculations.)
+
+```python
+pyvar.liquidity_risk.intraday_liquidity_monitor(
+    # Intraday Liquidity Monitor. Returns `net_debit_peak` (largest net
+    # negative cumulative position — BCBS 248's actual "daily maximum
+    # intraday liquidity usage" tool) AND `max_usage` (drop below opening
+    # balance). Only `net_debit_peak` is the genuine BCBS 248 figure —
+    # `max_usage` is an internal metric and the two diverge whenever the
+    # balance path never actually goes negative.
+    **params
+) -> float | dict | pd.DataFrame
+```
+
+```python
+pyvar.liquidity_risk.intraday_liquidity_stress_test(
+    # Intraday Liquidity Stress Test — delays a fraction of inflows
+    # (`delay_factor`); an internal stress design, not a specific BCBS 248
+    # prescribed scenario.
     **params
 ) -> float | dict | pd.DataFrame
 ```
@@ -69,24 +85,34 @@ pyvar.liquidity_risk.required_stable_funding_rsf_calc(
 
 ```python
 pyvar.liquidity_risk.hqla_level_1_asset_classifier(
-    # HQLA Level 1 Asset Classifier
+    # HQLA Level 1 Asset Classifier. 0% haircut by default (BCBS 238 §50)
     **params
 ) -> float | dict | pd.DataFrame
 ```
 
 ```python
 pyvar.liquidity_risk.hqla_level_2a_asset_classifier(
-    # HQLA Level 2A Asset Classifier
+    # HQLA Level 2A Asset Classifier. Raises ValueError below the 15%
+    # regulatory minimum haircut (BCBS 238 §52)
     **params
 ) -> float | dict | pd.DataFrame
 ```
 
 ```python
 pyvar.liquidity_risk.hqla_level_2b_asset_classifier(
-    # HQLA Level 2B Asset Classifier
+    # HQLA Level 2B Asset Classifier. Raises ValueError below the 25%
+    # regulatory minimum haircut (BCBS 238 §54); pass haircut=0.50 for the
+    # lower-grade-corporate/equity sub-bucket
     **params
 ) -> float | dict | pd.DataFrame
 ```
+
+**Composition caps are not enforced by any function.** BCBS 238 §46-§47 caps
+Level 2 assets at <= 40% of total HQLA and Level 2B at <= 15% of total HQLA.
+These thresholds exist as constants in `engine/liquidity_ratios.py` but no
+function combines the three classifiers' output and checks them — callers
+must sum the three `post_haircut_value` results themselves and apply the
+40%/15% checks.
 
 
 ## Cash Flow Ladder
@@ -131,7 +157,12 @@ pyvar.liquidity_risk.market_wide_stress_scenario(
 
 ```python
 pyvar.liquidity_risk.combined_stress_scenario(
-    # Combined Stress Scenario
+    # Combined Stress Scenario. NOT the Basel/EBA reference combined
+    # scenario: BCBS 238's own version runs off the LCR's regulator-set
+    # 3%/5%/10% retail run-off categories, not this function's flat 15%
+    # default (`retail_runoff`), which is an internal convention. The
+    # "combined deficit never better than market-wide alone" ordering
+    # property still holds regardless.
     **params
 ) -> float | dict | pd.DataFrame
 ```
@@ -323,6 +354,39 @@ pyvar.liquidity_risk.cross_currency_liquidity_bridge(
 ) -> float | dict | pd.DataFrame
 ```
 
+
+## Regulatory basis
+
+Only a subset of these 40 functions implement a published, checkable Basel/EBA
+formula; the rest are internally reasonable conventions with no regulator
+worked example to validate against. This split is documented and enforced
+(with `[closed-form, BCBS ...]` / `[independent hand-calc]` tags per test) in
+`tests/validation/test_liquidity_ref.py`. Summary:
+
+- **Regulator-sourced closed forms**: `liquidity_coverage_ratio_lcr`,
+  `net_stable_funding_ratio_nsfr`, `available_stable_funding_asf_calc`,
+  `required_stable_funding_rsf_calc`, the three `hqla_level_*_asset_classifier`
+  functions (BCBS 238 §46-§54), `retail_deposit_runoff_rate`,
+  `asset_encumbrance_ratio` (EBA), `wholesale_funding_concentration` (HHI —
+  a standard competition-economics measure, not a Basel-specific one), and
+  `intraday_liquidity_monitor`'s `net_debit_peak` field only (BCBS 248).
+- **Internal conventions, tagged `[independent hand-calc]` in the validation
+  suite** (BCBS 238/248/295 and EBA ILAAP guidelines checked directly, no
+  source found): the cash-flow ladder and gap/tenor functions,
+  `survival_horizon_calculator`, `liquidity_buffer_sizing`,
+  `contingency_funding_plan_trigger`, `secured_funding_rollover_risk`,
+  `collateral_availability_analysis`, `repo_market_stress_haircut`,
+  `fx_liquidity_risk_by_currency`, `intragroup_liquidity_flow`,
+  `funding_cost_analysis`, `liquidity_transfer_pricing`, and everything under
+  Internal Liquidity Metrics / Advanced Liquidity Analytics above except
+  `liquidity_var_liqvar`, plus `combined_stress_scenario` and
+  `intraday_liquidity_monitor`'s `max_usage` field (see callouts above).
+  `contingent_liquidity_risk` and `central_bank_facility_eligibility` have
+  partial parameter-level leads (BCBS 238 §131 committed-facility drawdown
+  rates; ECB/BoE collateral haircut schedules) not yet incorporated.
+- **Cross-validated, not regulator-sourced**: `liquidity_var_liqvar` — its
+  `liqvar` (Monte Carlo) is checked against `liqvar_analytic` (closed-form
+  normal quantile via scipy), not against a regulatory reference.
 
 ## Naming convention
 - All functions under `pyvar.liquidity_risk.*`
