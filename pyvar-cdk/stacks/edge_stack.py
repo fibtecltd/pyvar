@@ -215,8 +215,25 @@ class EdgeStack(Stack):
         # separately): edge_domain_names must be non-empty — restoring a
         # custom cert and therefore this TLS floor — before pyvar.com is ever
         # pointed at this distribution.
-        cloudfront_certificate: acm.Certificate | None = None
-        if cfg.edge_domain_names:
+        # cfg.certificate_arn (config.py) is an opt-in escape hatch for domain
+        # cutover events (Stage C): CloudFront enforces alias uniqueness
+        # account-wide, so pyvar.com/www.pyvar.com can't be added to THIS
+        # distribution's Aliases while another distribution in the account
+        # still holds them -- but ACM certificate issuance has no such
+        # restriction, so the cert for the NEW aliases can be requested and
+        # DNS-validated entirely out-of-band, well before the live cutover,
+        # decoupling the (potentially slow, human-in-the-loop) DNS validation
+        # wait from the actual alias-swap window. When set, this imports that
+        # already-issued certificate by ARN instead of creating+validating a
+        # new one inline -- every other environment (this field defaults to
+        # "") is completely unaffected, same acm.Certificate(...) path as
+        # before.
+        cloudfront_certificate: acm.ICertificate | None = None
+        if cfg.certificate_arn:
+            cloudfront_certificate = acm.Certificate.from_certificate_arn(
+                self, "CloudFrontCertificate", cfg.certificate_arn
+            )
+        elif cfg.edge_domain_names:
             cloudfront_certificate = acm.Certificate(
                 self,
                 "CloudFrontCertificate",
