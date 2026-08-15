@@ -118,6 +118,15 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     log_level: str = "INFO"
 
+    # AWS injects this into every real ECS Fargate/EC2 task automatically --
+    # used by observability/setup.py's _resolve_sentry_dsn() to detect "am I
+    # actually running in a deployed ECS task" before attempting a Secrets
+    # Manager fetch, rather than gating on an app_env string (CI's test job
+    # runs with APP_ENV=test, not "development" -- a name-based check would
+    # have let a real AWS call slip into test runs, violating CLAUDE.md's
+    # "never use real AWS services in tests" rule). Never set locally/in CI.
+    ecs_container_metadata_uri_v4: str | None = None
+
     @model_validator(mode="after")
     def _assemble_postgres_dsn(self) -> "Settings":
         """Build postgres_dsn from individually-injected DB_* components.

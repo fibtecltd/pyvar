@@ -224,6 +224,32 @@ class ApiStack(Stack):
         jwt_secret.grant_read(execution_role)
         self.jwt_secret = jwt_secret
 
+        # Sentry DSN — externally managed (not CDK-generated), same
+        # from_secret_name_v2 import pattern as GithubTokenSecret in
+        # compute_stack.py. Single shared DSN across dev/prod, differentiated
+        # by the `environment` tag observability/setup.py's setup_sentry()
+        # already sets from APP_ENV.
+        #
+        # Deliberately NOT injected via ECS's native `secrets={}` mechanism
+        # below (unlike JWT_SECRET/DB_*) -- that mechanism has no "optional"
+        # mode: if this secret ever becomes unreadable (deleted, rotated, IAM
+        # policy changed), EVERY new Fargate task launch fails outright at
+        # secret resolution, and with the deployment's circuit_breaker
+        # (rollback=True) + min_healthy_percent=100 (below, for HA), that
+        # would block every future prod deploy entirely over an
+        # observability nice-to-have. Instead the app fetches this one
+        # secret for itself at startup (observability/setup.py's
+        # setup_sentry(), via _resolve_sentry_dsn()) where a failure can be
+        # caught and degraded gracefully instead of failing ECS task launch
+        # -- so it needs read access via the TASK role (the app's own
+        # runtime identity), not the execution role (only used by the ECS
+        # agent at launch time, e.g. for `secrets={}` resolution and ECR
+        # pull).
+        sentry_secret = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "SentrySecret", f"pyvar/{cfg.env_name}/sentry-dsn"
+        )
+        sentry_secret.grant_read(task_role)
+
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
             self,
@@ -263,6 +289,8 @@ class ApiStack(Stack):
                 "DB_USER": ecs.Secret.from_secrets_manager(data.db_secret, "username"),
                 "DB_PASSWORD": ecs.Secret.from_secrets_manager(data.db_secret, "password"),
                 "JWT_SECRET": ecs.Secret.from_secrets_manager(jwt_secret),
+                # SENTRY_DSN deliberately NOT here -- see the comment above
+                # sentry_secret's construction for why.
             },
             health_check=ecs.HealthCheck(
                 command=["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],

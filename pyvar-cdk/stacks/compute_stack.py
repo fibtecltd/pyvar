@@ -92,6 +92,12 @@ class ComputeStack(Stack):
         cdk.aws_secretsmanager.Secret.from_secret_name_v2(
             self, "GithubTokenSecret", "pyvar/github-token"
         ).grant_read(worker_role)
+        # Sentry DSN — externally managed, optional (fetch-config.sh degrades
+        # gracefully if missing/denied; see its own comment for why this must
+        # never block worker startup).
+        cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "SentrySecret", f"pyvar/{cfg.env_name}/sentry-dsn"
+        ).grant_read(worker_role)
 
         # CloudWatch — publish custom metrics (computation duration, sim count)
         worker_role.add_to_policy(

@@ -54,3 +54,21 @@ os.chmod(out, 0o600)
 PYEOF
 
 echo "[fetch-config] Credentials written to ${SECRETS_FILE}"
+
+# Sentry DSN — optional. setup_sentry() (observability/setup.py) already
+# no-ops cleanly on a blank SENTRY_DSN, so a missing/denied secret here must
+# degrade to "no Sentry" rather than abort the script under set -e (unlike
+# the required aurora-credentials fetch above).
+echo "[fetch-config] Fetching pyvar/${ENV_NAME}/sentry-dsn from ${REGION} (optional) ..."
+SENTRY_DSN=$(aws secretsmanager get-secret-value \
+    --secret-id "pyvar/${ENV_NAME}/sentry-dsn" \
+    --region "${REGION}" \
+    --query SecretString \
+    --output text 2>/dev/null || echo "")
+
+if [ -n "${SENTRY_DSN}" ]; then
+    echo "SENTRY_DSN=${SENTRY_DSN}" >> "${SECRETS_FILE}"
+    echo "[fetch-config] Sentry DSN appended to ${SECRETS_FILE}"
+else
+    echo "[fetch-config] No Sentry DSN found for ${ENV_NAME} — continuing without Sentry (optional)"
+fi
