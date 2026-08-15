@@ -120,6 +120,20 @@ class PyvarConfig:
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
+                # Domain cutover Stage B: give dev its own permanent subdomain
+                # ahead of Stage C moving pyvar.com/www.pyvar.com to prod. An
+                # ADDITIONAL alias on the SAME distribution -- CloudFront
+                # supports multiple aliases per distribution, so pyvar.com/
+                # www.pyvar.com (dev's current live traffic) are UNCHANGED,
+                # not replaced. Requires a new ACM cert SAN (edge_stack.py's
+                # certificate covers edge_domain_names[0] + SANs for the
+                # rest) -- CloudFormation will REPLACE the existing cert
+                # resource to add this SAN (ACM certs are immutable w.r.t.
+                # their domain list), which needs a fresh DNS validation
+                # CNAME at Aruba before the deploy can complete, plus a
+                # second, separate CNAME making dev.pyvar.com actually
+                # resolve to the distribution once the cert validates.
+                edge_domain_names=["pyvar.com", "www.pyvar.com", "dev.pyvar.com"],
             ),
             "staging": dict(
                 api_min_tasks=2,
