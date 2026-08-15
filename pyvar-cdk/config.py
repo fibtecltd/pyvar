@@ -136,22 +136,20 @@ class PyvarConfig:
                 vpc_nat_gateways=2,  # 2 NAT GWs for full AZ independence
                 api_min_tasks=2,
                 api_max_tasks=20,
-                # TEMPORARY launch-window mitigation, not a permanent policy
-                # change -- base class default is 0 (scale-to-zero, the
-                # deliberate cost strategy). Day -3 smoke test measured a
-                # first-ever real /var/compute job taking 401.5s end-to-end
-                # (7.1s actual compute) because the scale-from-zero CloudWatch
-                # alarm on ApproximateNumberOfMessagesVisible sat in
-                # INSUFFICIENT_DATA for 6+ minutes -- SQS doesn't emit that
-                # metric on an idle queue, so this isn't a one-off: it
-                # recurs after any sufficiently idle stretch, which is
-                # exactly the traffic pattern a public launch produces.
-                # Revert to 0 once post-launch traffic patterns are
-                # established. Root-cause fix (a scale-up metric that keeps
-                # emitting on an idle queue, e.g. NumberOfMessagesSent
-                # instead) is separate, tracked follow-up work -- not done
-                # here under launch time pressure.
-                worker_min_capacity=1,
+                # worker_min_capacity intentionally omitted -- base class
+                # default of 0 (scale-to-zero) applies. PR #227/#228 had
+                # temporarily set this to 1 as a launch-window mitigation for
+                # the Day -3 smoke test's 401.5s cold-start finding (SQS's
+                # ApproximateNumberOfMessagesVisible alarm sitting in
+                # INSUFFICIENT_DATA on an idle queue). Task #38's root-cause
+                # fix (compute_stack.py's ScaleFromZero policy now watches a
+                # custom pyvar/job-submitted-{env} metric published by
+                # api/routes/var.py at submission time, bypassing SQS's own
+                # CloudWatch pipeline entirely) was verified live against
+                # prod on 2026-08-15: scaled the ASG to 0, submitted a real
+                # job, instance InService at t+63s, job succeeded at t+145s
+                # end-to-end (vs. 401.5s before) -- reverted here now that the
+                # mitigation is no longer needed.
                 worker_max_capacity=20,
                 aurora_min_acu=1.0,
                 aurora_max_acu=16.0,
