@@ -457,9 +457,29 @@ class ComputeStack(Stack):
         # If both policies propose conflicting capacities in the same evaluation,
         # AWS resolves it by taking the larger scale-out / less aggressive scale-in
         # — so this can never fight target tracking's own decisions once running.
+        #
+        # Deliberately NOT queue_depth_metric (unlike ScaleOnQueueDepth above) —
+        # task #38, Day -3 smoke test finding: SQS stops publishing ANY CloudWatch
+        # metric for a queue after 6+ hours of zero activity, and delivery resumes
+        # with UP TO A 15-MINUTE LAG once activity resumes. That's a platform-level
+        # behavior of SQS's own CloudWatch integration, not specific to
+        # ApproximateNumberOfMessagesVisible — switching to e.g. NumberOfMessagesSent
+        # (an earlier, incorrect hypothesis) would hit the identical delay, since
+        # that metric is subject to the same "queue must be active" gating. A
+        # custom, app-published metric has no such gating: api/routes/var.py
+        # publishes this the instant a job is enqueued, via a plain put_metric_data
+        # call that's always accepted immediately regardless of how long the queue
+        # was idle — bypassing SQS's own metrics pipeline entirely for just this
+        # 0->1 kickstart.
+        job_submitted_metric = cloudwatch.Metric(
+            namespace="pyvar",
+            metric_name=f"job-submitted-{cfg.env_name}",
+            period=Duration.minutes(1),
+            statistic="Sum",
+        )
         self.asg.scale_on_metric(
             "ScaleFromZero",
-            metric=queue_depth_metric,
+            metric=job_submitted_metric,
             scaling_steps=[
                 autoscaling.ScalingInterval(upper=1, change=0),
                 autoscaling.ScalingInterval(lower=1, change=1),
