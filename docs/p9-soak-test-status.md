@@ -4,8 +4,9 @@
 resources deleted and confirmed gone. Since then this doc has picked up a
 second life tracking the observability gaps the soak test surfaced (no
 Sentry, no prod alerts/dashboard) through to resolution — see "Observability
-rollout" below for current status. One open item remains: the prod alerts
-email subscription confirmation.**
+rollout" below. That work is now fully closed out: Sentry verified in both
+environments, prod alerts/dashboard deployed and confirmed real, both
+environments' alert-topic email subscriptions confirmed. No open items.**
 
 Not committed infra — this doc records what was stood up directly via AWS
 CLI (not CDK) for a time-boxed 48h validation window, so a fresh session
@@ -236,9 +237,9 @@ deployed"). Both gaps are now closed.
 | Topic | Endpoint | Status |
 |---|---|---|
 | `pyvar-dev-alerts` | `filippo.b@fibtec.co.uk` | **Confirmed** — already existed before this rollout, dev has not been unmonitored |
-| `pyvar-prod-alerts` | `filippo.buchicchio@gmail.com` | **Pending confirmation** — subscribed 2026-08-15, awaiting inbox click-through |
+| `pyvar-prod-alerts` | `filippo.buchicchio@gmail.com` | **Confirmed** — click-through completed, verified directly via `aws sns get-subscription-attributes` (`PendingConfirmation: false`), not inferred from the subscribe call |
 
-**Open item**: confirm the `pyvar-prod-alerts` email subscription (check
-inbox for "AWS Notification - Subscription Confirmation" from AWS). Until
-confirmed, prod alarm notifications do not actually reach anyone despite
-the subscription existing.
+**Closed.** Both dev and prod alert topics have confirmed subscribers.
+Prod alarm notifications (`WorkerErrorAlarm`, `ApiLatencyP95Alarm`,
+`Api5xxAlarm`, `SesSuppressionAlarm`) now actually reach someone. No open
+items remain from the observability rollout.
