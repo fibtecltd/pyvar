@@ -56,14 +56,80 @@ from api.middleware.auth import TokenPayload, get_current_user
 from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
+from config import get_settings
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
 from storage.models import VaRJob
 from storage.s3 import hydrate_presigned_url
 from storage.session import get_sessionmaker
 from tasks.var_task import celery_app, compute_var_task
 
+cfg = get_settings()
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/var", tags=["VaR"])
+
+# ── Scale-from-zero kickstart signal ────────────────────────────────────────────
+# compute_stack.py's worker ASG scales from 0 -> 1 on this metric instead of raw
+# SQS ApproximateNumberOfMessagesVisible. Root cause (Day -3 smoke test finding,
+# task #38): SQS stops publishing ANY CloudWatch metric for a queue after 6+
+# hours of zero activity, and delivery resumes with UP TO A 15-MINUTE LAG once
+# activity resumes -- this is a platform-level behavior of SQS's own CloudWatch
+# integration, not specific to one metric name (switching to e.g.
+# NumberOfMessagesSent would hit the identical delay, since that metric is
+# subject to the same "queue must be active" gating). A custom app-published
+# metric has no such gating -- put_metric_data is always accepted immediately,
+# regardless of how long the queue was idle -- so publishing this the instant a
+# job is enqueued bypasses SQS's own metrics pipeline entirely for the 0->1
+# kickstart specifically. The steady-state ScaleOnQueueDepth target-tracking
+# policy is UNCHANGED and still reads the real queue depth -- that's correct
+# once at least one instance is already running.
+#
+# Metric name has the environment baked in (job-submitted-{env}, matching
+# compute_stack.py's existing worker-errors-{env} convention) rather than a
+# CloudWatch dimension -- dev and prod share one AWS account/region, and the
+# existing JobCount/JobErrors metrics (tasks/var_task.py) have no
+# environment-distinguishing dimension at all, so they likely already conflate
+# dev's and prod's counts into one time series. Not fixed here (separate,
+# pre-existing gap), but deliberately not repeated for this new metric.
+_SCALE_KICKSTART_METRIC_NAMESPACE = "pyvar"
+_SCALE_KICKSTART_METRIC_NAME = f"job-submitted-{cfg.app_env}"
+_cw_client = None  # lazily created; creation needs a region (set via env)
+
+
+def _emit_scale_kickstart_metric() -> None:
+    """Publish a single-count CloudWatch metric marking a job submission.
+
+    Best-effort and fully isolated: must never fail or slow the actual
+    /var/compute response, so every error — including lazy client creation —
+    is swallowed with a warning. Same pattern as tasks/var_task.py's
+    _emit_job_metric (worker side); duplicated rather than imported since
+    that helper is worker-process-private (leading underscore) and this is a
+    different process (API, not Celery worker) publishing a different signal.
+
+    Only attempts the call when actually running in a real ECS task (same
+    cfg.ecs_container_metadata_uri_v4 gate as observability/setup.py's
+    _resolve_sentry_dsn(), for the identical reason: local dev and CI's test
+    job must never attempt a real AWS call — CLAUDE.md/tests Rule 3).
+    """
+    if not cfg.ecs_container_metadata_uri_v4:
+        return
+    global _cw_client
+    try:
+        if _cw_client is None:
+            import boto3
+
+            _cw_client = boto3.client("cloudwatch")
+        _cw_client.put_metric_data(
+            Namespace=_SCALE_KICKSTART_METRIC_NAMESPACE,
+            MetricData=[
+                {
+                    "MetricName": _SCALE_KICKSTART_METRIC_NAME,
+                    "Value": 1.0,
+                    "Unit": "Count",
+                }
+            ],
+        )
+    except Exception:  # noqa: BLE001 — metric emission must never break dispatch
+        logger.warning("Failed to emit scale-from-zero kickstart metric")
 
 
 # ── POST /var/compute ─────────────────────────────────────────────────────────
@@ -171,6 +237,7 @@ async def submit_var(
         "VaR job queued",
         extra={"task_id": task.id, "user_id": user.user_id, "n_sims": body.n_simulations},
     )
+    _emit_scale_kickstart_metric()
 
     return OrjsonResponse(
         content=JobResponse(task_id=task.id).model_dump(),
