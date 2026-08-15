@@ -118,27 +118,48 @@ has an unavoidable brief gap — see below).
 
 ### Prep tasks (no live risk)
 
-- **Cert strategy — open decision, not yet confirmed:**
-  - *Recommended*: request + DNS-validate prod's ACM cert for
-    `pyvar.com`/`www.pyvar.com` **out-of-band**, via `aws acm
-    request-certificate` (us-east-1) run independently of any CDK stack.
-    This decouples validation timing from the live cutover window
+- **Cert strategy — resolved (2026-08-15): out-of-band approach chosen and
+  executed.**
+  - Requested independently of any CDK stack:
+    `aws acm request-certificate --domain-name pyvar.com
+    --subject-alternative-names www.pyvar.com --validation-method DNS
+    --region us-east-1` →
+    `arn:aws:acm:us-east-1:347228921290:certificate/a18950da-05cc-49fa-81d9-78828e512f3e`.
+  - Validated near-instantly (`ISSUED` in under a minute) — ACM reused the
+    exact same `pyvar.com`/`www.pyvar.com` validation CNAME records
+    already on file at Aruba (same ones the original dev cert and the
+    Stage B `dev.pyvar.com` SAN-extension both used), so **no new Aruba
+    DNS action was needed** for this cert at all.
+  - This decouples validation timing from the live cutover window
     entirely, and avoids the risk of a validated cert being destroyed if a
     CloudFormation Distribution update later fails and rolls back (since a
     freshly-created-inline cert would roll back together with the failed
-    changeset). Once `ISSUED`, set prod's `cfg.certificate_arn` to that ARN
-    and extend `edge_stack.py` to `acm.Certificate.from_certificate_arn(...)`
-    when `certificate_arn` is set, instead of always creating one inline.
-  - *Alternative*: let CDK create + validate the cert inline as part of the
-    same deploy that adds the alias to prod — simpler, no new code path
-    (matches every other cert in this codebase), but the live cutover
-    window then also includes however long DNS validation takes (typically
-    5–40 minutes, not fully controllable), and a failed Distribution update
-    would waste that validation.
-  - **Confirm which approach before implementing Stage C.**
+    changeset).
+  - PR #237 (adds `edge_stack.py` support for
+    `acm.Certificate.from_certificate_arn(...)` when `cfg.certificate_arn`
+    is set, instead of always creating one inline) is up, CI running, not
+    yet merged. Next steps once ready: merge #237, set prod's
+    `cfg.certificate_arn` to the ARN above — both separate from this prep,
+    tightly sequenced with the live cutover, not done here.
+  - *(Original alternative, not taken: let CDK create + validate the cert
+    inline as part of the same deploy that adds the alias to prod —
+    simpler, no new code path, but the live cutover window would then also
+    include DNS validation time and a failed Distribution update would
+    waste that validation.)*
 - Reduce the `www.pyvar.com` CNAME's TTL at Aruba well in advance of the
   cutover, and wait out the old TTL — bounds propagation time once the
   record actually changes.
+  - **Done (2026-08-15).** Checked directly: `www.pyvar.com`'s CNAME was
+    already at 300s (5 min) — no change needed, nothing to wait out. The
+    `pyvar.com` bare-apex A record is separately at 3600s, but **Aruba
+    does not allow altering TTL on A records** (confirmed directly with
+    the user) — this doesn't block Stage C as designed, since the apex
+    record is Aruba's own forwarding proxy and is never touched by the
+    cutover sequence below (only `www.pyvar.com`'s CNAME moves). It does
+    constrain open decision 2 below: if the bare-apex alias option is
+    chosen and ever requires converting `pyvar.com` from an A record to a
+    CNAME at Aruba, that change would propagate on Aruba's fixed ~1h TTL,
+    not a shortened one — factor this in if that path is chosen.
 
 ### Live cutover sequence
 
