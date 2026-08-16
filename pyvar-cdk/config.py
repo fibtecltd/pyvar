@@ -95,6 +95,24 @@ class PyvarConfig:
         ]
     )
 
+    # ── CI/CD Pipeline (pipeline_stack.py) ────────────────────────────────────
+    # Gates the "ApproveProductionDeploy" ManualApprovalStep in the Prod stage
+    # of the self-mutating pipeline. True (default) = every pipeline execution
+    # pauses for a human to approve before it deploys/migrates prod, matching
+    # the pipeline's behavior since it was first bootstrapped. Every prod
+    # deploy so far this project has actually gone through direct, manually
+    # verified `cdk deploy` instead -- the pipeline's own Prod stage has never
+    # once completed, since every execution has either been rejected at this
+    # gate or hit CodePipeline's 7-day manual-approval timeout and auto-failed
+    # (see docs/ for the incident this surfaced). Left True here deliberately:
+    # flipping to False removes the gate entirely, and because the pipeline is
+    # self-mutating, that change takes effect on the SAME execution that
+    # carries it -- CodePipeline restarts execution under the new (gate-less)
+    # structure immediately, which would deploy every pyvar-prod-* stack
+    # (including RunDbMigration-prod) unattended the moment this merges. Do
+    # not flip this without deliberately watching that first gate-less run.
+    require_prod_approval: bool = True
+
     @classmethod
     def for_env(
         cls, env_name: str, account: str = "", api_image_tag: str | None = None
