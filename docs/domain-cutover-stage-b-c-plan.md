@@ -1,8 +1,12 @@
 # Domain cutover — Stage B (dev.pyvar.com) / Stage C (pyvar.com → prod)
 
-Status: **planning only — no code or AWS changes made under this doc.**
-Written 2026-08-09, on hold pending explicit go-ahead. Reuse this document
-when picking the work back up rather than re-deriving it from scratch.
+Status: **COMPLETE (2026-08-16).** Stage B and Stage C are both live and
+verified: `pyvar.com`/`www.pyvar.com` now serve from prod, `dev.pyvar.com`
+serves dev. Written 2026-08-09 as planning-only, executed 2026-08-15/16.
+See "Stage C incident report" below before ever repeating this kind of
+CloudFront alias migration elsewhere in this project — the live cutover
+sequence originally written here had an ordering bug that caused two real
+outages before the corrected sequence succeeded.
 
 ## Context
 
@@ -161,22 +165,35 @@ has an unavoidable brief gap — see below).
     CNAME at Aruba, that change would propagate on Aruba's fixed ~1h TTL,
     not a shortened one — factor this in if that path is chosen.
 
-### Live cutover sequence
+### Live cutover sequence (CORRECTED — see incident report below)
+
+**This is the sequence that actually worked on 2026-08-16, after two failed
+attempts using a different order. Do not use the original ordering (drop
+from old distro → add to new distro → swing DNS) — it causes a
+CloudFront `CNAMEAlreadyExists` rejection and an avoidable outage. DNS must
+change BEFORE the new distribution claims the alias, not after.**
 
 1. Confirm prod is healthy: the existing `ProdSmokeTest` `/health` check,
    plus a manual auth+compute check (the automated smoke test doesn't cover
    that path today).
-2. Deploy an update to `pyvar-dev-edge`: drop `pyvar.com`/`www.pyvar.com`
-   from `edge_domain_names`, leaving `["dev.pyvar.com"]`. Verify
-   `UPDATE_COMPLETE` and confirm via `get-distribution-config`.
-3. Deploy an update to `pyvar-prod-edge`: set `edge_domain_names` to
-   include `www.pyvar.com` (and, per the open decision below, possibly the
-   bare `pyvar.com` too), using the pre-validated cert ARN if that approach
-   was chosen in prep.
-4. **Manual**: swing the `www.pyvar.com` CNAME at Aruba from
-   `d1mqqddh8gu2qi.cloudfront.net` to prod's CloudFront domain (was
-   `d31t9sn2oya6qy.cloudfront.net` as of this session — re-verify at
-   execution time; it can change if the distribution is ever recreated).
+2. Deploy an update to the OLD distribution (`pyvar-dev-edge` in this
+   case): drop the alias from `edge_domain_names`. Verify `UPDATE_COMPLETE`
+   and confirm via `get-distribution-config`. **The domain is now down —
+   no distribution claims it.** This is expected and matches step 3 next,
+   not a mistake.
+3. **Manual, immediately**: swing the CNAME at Aruba (or wherever DNS is
+   managed) directly to the NEW distribution's `*.cloudfront.net` domain —
+   *before* the new distribution has been given the alias. Confirm this
+   independently (see the Aruba propagation caveat below — do not trust
+   the TTL alone) by querying the domain's authoritative nameserver
+   directly, not a public resolver, since public resolvers can serve a
+   stale cached answer that looks identical to "not propagated yet."
+4. Once the authoritative nameserver itself returns the new target, deploy
+   an update to the NEW distribution (`pyvar-prod-edge`): add the alias to
+   `edge_domain_names`, using the pre-validated cert ARN if that approach
+   was chosen in prep. This should now succeed — CloudFront's live-DNS
+   check no longer sees a conflicting distribution, since DNS points at
+   the very distribution being updated.
 5. Verify propagation via public DNS-over-HTTPS resolvers plus `curl -I
    https://www.pyvar.com/health`; confirm traffic actually landed on prod
    using prod's ALB/CloudFront CloudWatch request-count metrics (the
@@ -187,11 +204,14 @@ has an unavoidable brief gap — see below).
    `pyvar-prod-worker-errors`) for an agreed period before calling the
    cutover final.
 
-There is an inherent, unavoidable brief gap between step 2 (dev releases
-the alias) and step 3+5 (prod claims it and DNS resolves there) — CloudFront
-will not allow both distributions to hold the same alias simultaneously.
-Minimizing this gap is the entire point of the out-of-band cert strategy
-above.
+There is an inherent, unavoidable outage between step 2 (old distro
+releases the alias) and step 4 completing (new distro claims it) —
+CloudFront will not allow two distributions to hold the same alias
+simultaneously, and no distribution serves the domain in between regardless
+of what DNS says. Minimizing this window means having the DNS change ready
+to fire the instant step 2 completes, and firing step 4 the instant DNS is
+confirmed at the authoritative nameserver — not waiting for full global
+propagation, which can take much longer than the record's TTL suggests.
 
 ### Rollback
 
@@ -202,18 +222,91 @@ dev's cert with the fuller SAN list again — likely fast if Aruba's
 meantime, but not guaranteed instant). This asymmetry should be understood
 and accepted before starting the live sequence, not discovered mid-rollback.
 
-## Open decisions (unresolved — ask again before implementing Stage C)
+## Stage C incident report (2026-08-16)
 
-1. **Cert strategy**: out-of-band ARN import (recommended) vs. inline CDK
-   creation at cutover time.
-2. **Bare `pyvar.com` alias on prod**: keep it for parity with dev's
-   current setup (recommended — zero extra cost, avoids surprises if
-   Aruba's apex-forwarding setup ever changes to a CNAME-to-CloudFront
-   model) vs. drop it and alias only `www.pyvar.com` (simpler, since the
-   apex alias demonstrably serves no real traffic today).
+Two real outages happened while executing the live cutover, both since
+fixed by correcting the sequence above. Recorded here so the mistake isn't
+repeated on a future domain move in this project.
+
+**Incident 1 — wrong step order (~10 min outage, `www.pyvar.com`/`pyvar.com`
+down)**
+
+Followed the *original* sequence in this doc: dropped the alias from dev,
+then tried adding it to prod, then planned to swing DNS last. The
+prod-alias-add failed immediately with CloudFront's `CNAMEAlreadyExists`
+error: *"One or more aliases specified for the distribution includes an
+incorrectly configured DNS record that points to another CloudFront
+distribution."* Dev had already released the alias, so nothing served the
+domain. Restored dev's alias immediately to stop the outage, then
+researched the actual cause (confirmed via
+[AWS's CNAMEAlreadyExists guidance](https://repost.aws/knowledge-center/resolve-cnamealreadyexists-error)
+and
+[this writeup of the same CloudFront behavior](https://andyhunt.me/til/2021/04/06/aws-cloudfront-checks-your-domains-dns-records-for-other-cloudfront-distributions/)):
+CloudFront checks live DNS at alias-add time, and rejects the add if DNS
+still resolves to a *different* distribution — regardless of whether that
+distribution's own config still lists the alias. DNS has to move first.
+
+**Incident 2 — Aruba propagation much slower than its TTL (~40+ min outage,
+same domains down)**
+
+Retried with the corrected order: dropped the alias from dev, immediately
+asked for the `www.pyvar.com` CNAME to be swung directly to prod's
+CloudFront domain, then polled for it to appear. Public resolvers didn't
+help distinguish "not changed yet" from "cached" — queried Aruba's own
+authoritative nameserver directly instead (raw DNS query to
+`dns.technorail.com`'s IP, bypassing all resolver caching) and it *still*
+returned the old value after ~40 minutes of direct polling. This is not a
+TTL/caching issue — the record's TTL only bounds how long *resolvers* cache
+an answer once the authoritative source has the new one; it says nothing
+about how long the DNS provider itself takes to actually publish a saved
+change to its own nameservers. Rather than leave prod down indefinitely
+waiting on an unconfirmed external dependency, restored dev's alias again.
+That restore attempt itself then failed with the identical
+`CNAMEAlreadyExists` error — which turned out to be informative rather than
+a new problem: it meant the Aruba change *had* finally landed (just much
+later than the polling window covered), so dev could no longer reclaim an
+alias that DNS now pointed elsewhere. Recognized this immediately, checked
+DNS again (now showing prod's domain, confirmed at both the authoritative
+nameserver and public resolvers), and deployed prod directly — succeeded.
+
+**Takeaways for next time (already folded into the corrected sequence
+above):**
+- Verify DNS changes against the authoritative nameserver directly, not a
+  public resolver — a public resolver's cache can look identical to "not
+  propagated" and give false confidence either way.
+- Do not assume a DNS provider's propagation time is bounded by the
+  record's TTL. Aruba's actual propagation for this change took well over
+  10x its 300s TTL.
+- Set a personal time limit for "wait for an external DNS provider" before
+  treating a live outage as needing a rollback instead. Open-ended waiting
+  on an unconfirmed third party while production is down is itself a
+  choice with a cost.
+- A `CNAMEAlreadyExists` error on a *restore* attempt can mean the forward
+  change actually succeeded (DNS now conflicts with the OLD distribution
+  instead of the new one) — check current DNS state before assuming the
+  restore itself is broken.
+
+## Open decisions — resolved
+
+1. **Cert strategy**: resolved 2026-08-15, out-of-band ARN import chosen
+   and executed (see "Cert strategy" under Prep tasks above).
+2. **Bare `pyvar.com` alias on prod**: resolved, kept for parity with
+   dev's historical setup — confirmed explicitly before the live cutover.
+   Live on prod's distribution now, per the final state below.
 
 ## Status
 
-Planning only. Stage B is small enough to implement in one sitting once
-resumed. Stage C requires a scheduled live window, the two open decisions
-above resolved, and manual Aruba DNS steps at the actual cutover moment.
+**COMPLETE.** Final verified state (2026-08-16):
+- `pyvar-dev-edge`: aliases = `["dev.pyvar.com"]` only.
+- `pyvar-prod-edge`: aliases = `["pyvar.com", "www.pyvar.com"]`, using the
+  pre-imported cert (`arn:...certificate/a18950da-...`) — no fresh cert
+  created at cutover time.
+- `www.pyvar.com` serves prod (`env: prod` confirmed in response body),
+  `pyvar.com` still redirects via Aruba's own proxy (unaffected
+  throughout), `dev.pyvar.com` still serves dev (unaffected throughout).
+- Both stacks' `cdk diff` clean against git — no drift.
+- Real traffic on prod's ALB confirmed via CloudWatch `RequestCount`
+  immediately after cutover.
+- Combined outage across both incidents: roughly 50 minutes total, isolated
+  to `pyvar.com`/`www.pyvar.com`; `dev.pyvar.com` and everything else were
+  unaffected throughout.
