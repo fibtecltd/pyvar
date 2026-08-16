@@ -120,20 +120,21 @@ class PyvarConfig:
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
-                # Domain cutover Stage B: give dev its own permanent subdomain
-                # ahead of Stage C moving pyvar.com/www.pyvar.com to prod. An
-                # ADDITIONAL alias on the SAME distribution -- CloudFront
-                # supports multiple aliases per distribution, so pyvar.com/
-                # www.pyvar.com (dev's current live traffic) are UNCHANGED,
-                # not replaced. Requires a new ACM cert SAN (edge_stack.py's
-                # certificate covers edge_domain_names[0] + SANs for the
-                # rest) -- CloudFormation will REPLACE the existing cert
-                # resource to add this SAN (ACM certs are immutable w.r.t.
-                # their domain list), which needs a fresh DNS validation
-                # CNAME at Aruba before the deploy can complete, plus a
-                # second, separate CNAME making dev.pyvar.com actually
-                # resolve to the distribution once the cert validates.
-                edge_domain_names=["pyvar.com", "www.pyvar.com", "dev.pyvar.com"],
+                # Domain cutover Stage C: pyvar.com/www.pyvar.com move to prod
+                # (see prod override below and docs/domain-cutover-stage-b-c-plan.md).
+                # Stage B (above, historical) gave dev dev.pyvar.com as an
+                # ADDITIONAL alias alongside the live pyvar.com/www.pyvar.com
+                # specifically so dev could give those two up now without
+                # losing its own stable domain. dev.pyvar.com is the only
+                # alias dev keeps. This DOES replace the inline-created cert
+                # (edge_domain_names[0] becomes the cert's primary domain_name,
+                # "pyvar.com" -> "dev.pyvar.com" -- ACM certs are immutable
+                # w.r.t. their domain list) -- but dev.pyvar.com's DNS
+                # validation CNAME is already on file at Aruba from Stage B,
+                # so this is expected to validate near-instantly with no new
+                # manual DNS action, same as prod's out-of-band cert reusing
+                # its own already-present validation records.
+                edge_domain_names=["dev.pyvar.com"],
             ),
             "staging": dict(
                 api_min_tasks=2,
@@ -169,12 +170,20 @@ class PyvarConfig:
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
                 ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity
-                # No custom domain alias at all yet — pyvar.com/www.pyvar.com are
-                # claimed by dev's live CloudFront distribution (CloudFront alias
-                # uniqueness is account-wide). Prod's distribution serves its bare
-                # *.cloudfront.net address with CloudFront's default certificate
-                # until a deliberate domain cutover happens (separate, tracked work).
-                edge_domain_names=[],
+                # Domain cutover Stage C (live cutover): pyvar.com/www.pyvar.com
+                # move here from dev now that dev has its own dev.pyvar.com
+                # (Stage B, above). Bare-apex alias kept for parity with dev's
+                # historical setup, per explicit confirmation — costs nothing
+                # extra and the cert already covers it; Aruba's own forwarding
+                # proxy handles the real apex redirect independently of
+                # CloudFront either way (see docs/domain-cutover-stage-b-c-plan.md).
+                edge_domain_names=["pyvar.com", "www.pyvar.com"],
+                # Pre-validated out-of-band cert (docs/domain-cutover-stage-b-c-plan.md,
+                # "Cert strategy — resolved"), imported by ARN instead of created
+                # inline (edge_stack.py's cfg.certificate_arn branch, PR #237) --
+                # decouples DNS validation timing from this live cutover window
+                # entirely, since it was already ISSUED well ahead of time.
+                certificate_arn="arn:aws:acm:us-east-1:347228921290:certificate/a18950da-05cc-49fa-81d9-78828e512f3e",
                 worker_use_baked_ami=True,  # CLAUDE.md §11: "in production, pre-bake AMI"
                 # PRECONDITION — not yet automated (no post-deploy trigger wires up
                 # AmiStack's pipeline, see pipeline_stack.py): before the next `cdk
