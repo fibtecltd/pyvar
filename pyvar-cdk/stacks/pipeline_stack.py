@@ -748,35 +748,36 @@ class PipelineStack(Stack):
             cfg=prod_cfg,
             env=cdk.Environment(account=cfg.account, region=cfg.region),
         )
-        # Manual approval — ops team reviews dev smoke test results
-        prod_approval = pipelines.ManualApprovalStep(
-            "ApproveProductionDeploy",
-            comment=(
-                "Review dev deployment smoke tests and CloudWatch dashboard "
-                "before approving production deployment."
-            ),
-        )
-        # #119: a plain `pre=[...]` list does NOT imply ordering between its
-        # steps (aws_cdk.pipelines.Step.sequence()/add_step_dependency() exist
-        # precisely because sibling steps may run in parallel) — this
-        # explicit dependency is what guarantees the migration only runs
-        # AFTER a human approves, not before or concurrently with approval.
-        # Migrating prod's schema ahead of (or regardless of) that approval
-        # would leave prod's DB migrated even if the deploy is then rejected.
+        # Manual approval — ops team reviews dev smoke test results.
+        # Gated by cfg.require_prod_approval (config.py) — see that field's
+        # comment for what flipping it to False actually does (removes the
+        # gate immediately on the pipeline execution that carries the change,
+        # since this pipeline is self-mutating).
         prod_migration = _migration_step(prod_cfg, source)
-        prod_migration.add_step_dependency(prod_approval)
+        prod_pre_steps: list[pipelines.Step] = []
+        if cfg.require_prod_approval:
+            prod_approval = pipelines.ManualApprovalStep(
+                "ApproveProductionDeploy",
+                comment=(
+                    "Review dev deployment smoke tests and CloudWatch dashboard "
+                    "before approving production deployment."
+                ),
+            )
+            # #119: a plain `pre=[...]` list does NOT imply ordering between
+            # its steps (aws_cdk.pipelines.Step.sequence()/
+            # add_step_dependency() exist precisely because sibling steps may
+            # run in parallel) — this explicit dependency is what guarantees
+            # the migration only runs AFTER a human approves, not before or
+            # concurrently with approval. Migrating prod's schema ahead of
+            # (or regardless of) that approval would leave prod's DB migrated
+            # even if the deploy is then rejected.
+            prod_migration.add_step_dependency(prod_approval)
+            prod_pre_steps.append(prod_approval)
+        prod_pre_steps.append(prod_migration)
 
         pipeline.add_stage(
             prod_stage,
-            pre=[
-                prod_approval,
-                # Runs only after approval above (see add_step_dependency),
-                # still before prod's own stacks (incl. the API service) deploy.
-                # Skips the real migration task if nothing portal-relevant
-                # changed since the last successful Prod deploy — see
-                # _skip_gate_commands.
-                prod_migration,
-            ],
+            pre=prod_pre_steps,
             post=[
                 # #172: a `post` step of THIS stage — unlike dev's SmokeTest
                 # (a `pre` step, checking the prior state), this genuinely
