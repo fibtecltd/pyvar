@@ -34,6 +34,25 @@ class Settings(BaseSettings):
     # Dev CloudFront domain by default, matching scripts/test_cold_start.sh.
     public_base_url: str = "https://d1mqqddh8gu2qi.cloudfront.net"
 
+    # CORS allowlist — explicit per-environment origins, never "*" for any
+    # deployed environment. Populated by _default_cors_origins() below when
+    # left empty; set directly (e.g. via a CORS_ALLOWED_ORIGINS env var) only
+    # to override for local testing.
+    #
+    # task #42: previously this field didn't exist — main.py picked between
+    # ["*"] and ["https://pyvar.com"] based on cfg.debug, which nothing ever
+    # sets False in any real deployment (every CDK stack, the Dockerfile,
+    # and .env.example were checked — no DEBUG env var anywhere). Confirmed
+    # live: both dev and prod reflected an attacker-controlled Origin header
+    # back with access-control-allow-credentials: true. The real
+    # per-environment signal is app_env, but its live values are the SHORT
+    # forms CDK injects ("dev"/"staging"/"prod" — api_stack.py sets
+    # APP_ENV=cfg.env_name), not the long forms this field's own default
+    # below implies ("development") — comparing against the long forms
+    # would silently reproduce the same bug (see tasks #45/#46: the
+    # identical mismatch, already live, in observability/setup.py).
+    cors_allowed_origins: list[str] = []
+
     # ── Email (SES transport, #149) ─────────────────────────────────────────
     # Sender identity for verification emails — must match the SES domain
     # identity CDK verifies (pyvar-cdk/stacks/ses_stack.py verifies the
@@ -154,6 +173,35 @@ class Settings(BaseSettings):
                 f"postgresql+asyncpg://{user}:{password}"
                 f"@{self.db_host}:{self.db_port}/{self.db_name}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _default_cors_origins(self) -> "Settings":
+        """Fill cors_allowed_origins from app_env when not explicitly set.
+
+        Keyed on the SHORT-form app_env values real deployments actually use
+        ("dev"/"staging"/"prod" — see cors_allowed_origins's own comment).
+        Anything else (local dev's "development" default, CI's "test") keeps
+        the permissive wildcard local dev has always had — no deployed,
+        credential-bearing environment is affected by that branch.
+
+        Returns:
+            Settings: this instance, with cors_allowed_origins populated when
+            not already set.
+        """
+        if self.cors_allowed_origins:
+            return self
+        origins_by_env: dict[str, list[str]] = {
+            "prod": ["https://pyvar.com", "https://www.pyvar.com"],
+            "dev": ["https://dev.pyvar.com"],
+            # staging is never actually deployed (same "don't fix what
+            # isn't in active use" scoping as api_base_url's prod-only
+            # override in pyvar-cdk/config.py) — kept explicit rather than
+            # falling through to "*" so it isn't wide open the moment it
+            # ever is deployed.
+            "staging": ["https://dev.pyvar.com"],
+        }
+        self.cors_allowed_origins = origins_by_env.get(self.app_env, ["*"])
         return self
 
 
