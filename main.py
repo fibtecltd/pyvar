@@ -123,10 +123,19 @@ def create_app() -> FastAPI:
     app.middleware("http")(usage_tracking_middleware)
 
     # ── CORS ────────────────────────────────────────────────────────────────
+    # task #42: allow_origins used to pick between ["*"] and
+    # ["https://pyvar.com"] based on cfg.debug, which nothing ever sets
+    # False in any real deployment -- both dev and prod were confirmed live
+    # to reflect an attacker-controlled Origin header back with
+    # access-control-allow-credentials: true. cors_allowed_origins
+    # (config.py) is the explicit per-environment replacement. No
+    # allow_credentials: auth here is Bearer-JWT-in-header only (see
+    # api/middleware/auth.py) -- nothing in this app sets a cookie, so
+    # credentialed CORS serves no purpose and is exactly what made the
+    # wildcard-reflection above actually exploitable.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if cfg.debug else ["https://pyvar.com"],
-        allow_credentials=True,
+        allow_origins=cfg.cors_allowed_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
