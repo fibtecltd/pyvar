@@ -1,11 +1,18 @@
 /* pyvar.js — pyvar.com shared components
    Completely separate from fibtec.co.uk */
 
-// Dev CloudFront domain fronting the API — hardcoded the same way
-// scripts/test_cold_start.sh and scripts/chaos_test.sh already do; swap
-// once pyvar.com DNS (P8 Task 7) is wired up. Portal itself is not
-// deployed anywhere yet, so this is the only real endpoint to call.
-const API_BASE = 'https://d1mqqddh8gu2qi.cloudfront.net';
+// task #44 -- was a hardcoded literal (dev's raw pre-cutover CloudFront
+// domain, unconditionally) until every environment's portal called DEV's
+// API regardless of which environment actually served the page. Empty
+// string (relative path) instead: main.py mounts portal/ at "/" in the
+// SAME FastAPI app that serves /api/v1/* and /public/*, and CloudFront
+// (pyvar-cdk/stacks/edge_stack.py) has exactly one origin behind
+// everything except /health and /docs -- so whatever domain served this
+// script (pyvar.com, www.pyvar.com, dev.pyvar.com, or plain
+// localhost:8000 in local dev) is always the correct API host too, in
+// every environment, by construction. No per-environment value needed,
+// unlike task #41/#43's fixes -- this can't drift out of sync again.
+const API_BASE = '';
 
 // ── pyvar logomark — waveform + terminal cursor ───────────────────
 const LOGO_SVG = `<svg width="28" height="22" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -116,8 +123,7 @@ function buildFooter() {
 // scheduled Lambda (pyvar-cdk/stacks/public_data_stack.py), not computed
 // live per page visit — see that stack's module docstring for why (compute
 // workers scale to zero; a real live call on every homepage load would
-// mean visitors routinely wait on a cold Spot ASG scale-up). See API_BASE
-// above for why the domain is hardcoded.
+// mean visitors routinely wait on a cold Spot ASG scale-up).
 const PUBLIC_DATA_BASE = `${API_BASE}/public`;
 
 function fmtGBP(n) {
