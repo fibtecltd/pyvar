@@ -138,6 +138,7 @@ class PublicDataStack(Stack):
                 "ENV_NAME": cfg.env_name,
                 "PUBLIC_BUCKET": self.bucket.bucket_name,
                 "JWT_SECRET_ARN": jwt_secret.secret_arn,
+                "API_BASE_URL": cfg.api_base_url,
             },
         )
 

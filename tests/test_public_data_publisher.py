@@ -7,7 +7,7 @@ Reasoning:
   `tests` only, and there is no conftest.py / requirements wiring for it) —
   standing up a full test harness for one Lambda module to cover one JWT
   claim would be disproportionate. This imports the handler module directly
-  by file path instead, with the three required env vars stubbed, and
+  by file path instead, with the four required env vars stubbed, and
   asserts only the one thing #146 changed: the service JWT's tier claim.
 - No AWS calls happen: _sign_service_jwt is pure stdlib (hmac/hashlib/base64),
   and boto3.client(...) construction (module import time) does not touch the
@@ -30,6 +30,7 @@ def _load_handler_module(monkeypatch):
     monkeypatch.setenv("ENV_NAME", "test")
     monkeypatch.setenv("PUBLIC_BUCKET", "pyvar-test-public")
     monkeypatch.setenv("JWT_SECRET_ARN", "arn:aws:secretsmanager:eu-west-1:000000000000:secret:x")
+    monkeypatch.setenv("API_BASE_URL", "https://test.pyvar.example")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-west-1")
 
     spec = importlib.util.spec_from_file_location("public_data_publisher_handler", HANDLER_PATH)
@@ -56,3 +57,17 @@ def test_service_jwt_uses_internal_tier_not_free(monkeypatch):
 
     assert claims["tier"] == "internal"
     assert claims["sub"] == "internal-demo-publisher"
+
+
+def test_api_base_url_comes_from_environment_not_hardcoded(monkeypatch):
+    """task #41: API_BASE_URL was a hardcoded dev-CloudFront literal,
+    unconditionally, in every environment's copy of this Lambda -- prod's
+    calls failed outright (401, cross-environment JWT-secret mismatch since
+    dev's API verified against dev's own secret, not the one prod's Lambda
+    signed with). Must be read from the environment (set per-environment by
+    public_data_stack.py from cfg.api_base_url), not a fixed literal.
+    """
+    handler = _load_handler_module(monkeypatch)
+
+    assert handler.API_BASE_URL == "https://test.pyvar.example"
+    assert "d1mqqddh8gu2qi.cloudfront.net" not in handler.API_BASE_URL

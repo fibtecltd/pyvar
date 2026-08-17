@@ -40,6 +40,23 @@ class PyvarConfig:
     # separately — see prod override below, which claims none at all).
     edge_domain_names: list[str] = field(default_factory=lambda: ["pyvar.com", "www.pyvar.com"])
 
+    # Public API base URL, used by lambda/public_data_publisher and
+    # lambda/ses_suppression_handler to call the API the same way a browser
+    # would (through CloudFront), not the ALB directly -- see either
+    # handler's own module docstring for why. Was a hardcoded literal
+    # (dev's domain, unconditionally) in both Lambdas until task #41: every
+    # environment's own Lambda called DEV's API regardless of which
+    # environment it was deployed in. Prod's calls failed outright (401) --
+    # the JWT each Lambda signs is verified against whichever environment
+    # actually receives the HTTP request, and dev's and prod's JWT secrets
+    # are deliberately separate (confirmed via distinct Secrets Manager
+    # ARNs: pyvar/dev/jwt-secret vs pyvar/prod/jwt-secret), so a prod-signed
+    # token sent to dev's API is a guaranteed signature mismatch. Defaults
+    # to dev's real Stage-B subdomain (not the raw *.cloudfront.net literal
+    # this replaced) since that's more maintainable and confirmed live;
+    # prod override below points at its own Stage-C domain instead.
+    api_base_url: str = "https://dev.pyvar.com"
+
     # ── VPC ───────────────────────────────────────────────────────────────────
     vpc_max_azs: int = 2
     vpc_nat_gateways: int = 1  # 1 NAT GW saves ~£27/month vs 2 (no HA tradeoff for non-prod)
@@ -196,6 +213,14 @@ class PyvarConfig:
                 # proxy handles the real apex redirect independently of
                 # CloudFront either way (see docs/domain-cutover-stage-b-c-plan.md).
                 edge_domain_names=["pyvar.com", "www.pyvar.com"],
+                # task #41 -- see api_base_url's own comment above for the
+                # full story. www.pyvar.com specifically (not bare
+                # pyvar.com): that's the domain CloudFront/prod's
+                # distribution actually serves directly; the bare apex
+                # redirects through Aruba's own forwarding proxy first
+                # (docs/domain-cutover-stage-b-c-plan.md), an unnecessary
+                # extra hop for a server-to-server Lambda call.
+                api_base_url="https://www.pyvar.com",
                 # Pre-validated out-of-band cert (docs/domain-cutover-stage-b-c-plan.md,
                 # "Cert strategy — resolved"), imported by ARN instead of created
                 # inline (edge_stack.py's cfg.certificate_arn branch, PR #237) --

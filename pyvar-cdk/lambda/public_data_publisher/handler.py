@@ -18,9 +18,12 @@ Reasoning:
   makes — not the ALB directly. There's no longer a reason to bypass
   CloudFront (this Lambda lives in eu-west-1, same region as everything else,
   see public_data_stack.py's module docstring for why), so this needs nothing
-  beyond the JWT: no origin-verify header, no ALB DNS. The domain is
-  hardcoded the same way portal/pyvar.js and config.py already do; swap once
-  pyvar.com DNS (P8 Task 7) is wired up.
+  beyond the JWT: no origin-verify header, no ALB DNS. The domain comes from
+  API_BASE_URL (env var, set per-environment by public_data_stack.py from
+  cfg.api_base_url) -- was a hardcoded dev-only literal until task #41 found
+  it made every environment's Lambda call dev's API regardless of which
+  environment it ran in, which failed outright for prod (see API_BASE_URL's
+  own comment below for the full mechanism).
 - Compute workers scale to zero (worker_min_capacity=0, config.py). A demo
   refresh can therefore hit a cold Spot ASG scale-up (~1-3 min) if no worker
   is currently running. This is accepted deliberately: the schedule is 15
@@ -49,9 +52,16 @@ ENV_NAME = os.environ["ENV_NAME"]
 PUBLIC_BUCKET = os.environ["PUBLIC_BUCKET"]
 JWT_SECRET_ARN = os.environ["JWT_SECRET_ARN"]
 
-# See module docstring — same dev CloudFront domain hardcoded in
-# portal/pyvar.js and config.py's public_base_url.
-API_BASE_URL = "https://d1mqqddh8gu2qi.cloudfront.net"
+# task #41 -- was a hardcoded literal (dev's CloudFront domain,
+# unconditionally) until every environment's own Lambda called DEV's API
+# regardless of which environment it ran in. Prod's calls failed outright
+# with 401: the JWT this Lambda signs is verified against whichever
+# environment actually receives the request, and dev/prod have deliberately
+# separate JWT secrets (confirmed via distinct Secrets Manager ARNs), so a
+# prod-signed token sent to dev's API is a guaranteed signature mismatch.
+# Now set per-environment by public_data_stack.py from cfg.api_base_url
+# (config.py) -- see that field's own comment for the full story.
+API_BASE_URL = os.environ["API_BASE_URL"]
 
 secretsmanager = boto3.client("secretsmanager")
 cloudwatch = boto3.client("cloudwatch")  # alarms live in this Lambda's own region
