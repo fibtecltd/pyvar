@@ -18,9 +18,14 @@ Reasoning:
   calls don't pollute real customer-tier usage analytics.
 - Calls hit the public CloudFront domain, not the ALB directly — same
   reasoning as public_data_publisher (no cross-region/origin-verify need
-  once both stacks are eu-west-1). Domain hardcoded the same way; swap
-  once pyvar.com DNS is wired into this Lambda too (kept in lockstep with
-  the other Lambda and config.py, not changed unilaterally here).
+  once both stacks are eu-west-1). Domain comes from API_BASE_URL (env var,
+  set per-environment by ses_events_stack.py from cfg.api_base_url) — was a
+  hardcoded dev-only literal in lockstep with the other Lambda until task
+  #41 found it made every environment's Lambda call dev's API regardless of
+  which environment it ran in (see public_data_publisher/handler.py's own
+  API_BASE_URL comment for the full mechanism — this Lambda had the
+  identical bug, just never yet observed here since prod had zero real
+  bounce/complaint events to trigger it).
 - Bounce subtype matters: only a Permanent bounce or a Complaint suppresses
   the address. Transient bounces (mailbox full, message too large, content
   rejected) and Undetermined bounces are retryable/ambiguous by AWS's own
@@ -63,9 +68,8 @@ ENV_NAME = os.environ["ENV_NAME"]
 # server-side, which does match the IAM grant's `-??????` wildcard resource.
 JWT_SECRET_ID = os.environ["JWT_SECRET_ID"]
 
-# See module docstring — same dev CloudFront domain hardcoded in
-# portal/pyvar.js, config.py, and lambda/public_data_publisher/handler.py.
-API_BASE_URL = "https://d1mqqddh8gu2qi.cloudfront.net"
+# See module docstring — task #41.
+API_BASE_URL = os.environ["API_BASE_URL"]
 
 METRIC_NAMESPACE = "pyvar"
 METRIC_NAME = f"ses-suppressions-{ENV_NAME}"

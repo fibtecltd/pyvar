@@ -135,6 +135,7 @@ class SesEventsStack(Stack):
                 # JWT_SECRET_ID comment for why the ARN from a
                 # name-based import is unusable at runtime here.
                 "JWT_SECRET_ID": jwt_secret.secret_name,
+                "API_BASE_URL": cfg.api_base_url,
             },
         )
         self.topic.add_subscription(subscriptions.LambdaSubscription(self.function))
