@@ -31,8 +31,18 @@ class Settings(BaseSettings):
 
     # Base URL this API is reachable at — used to build the verification
     # link sent by api/routes/auth.py's send_verification_email (#149).
-    # Dev CloudFront domain by default, matching scripts/test_cold_start.sh.
-    public_base_url: str = "https://d1mqqddh8gu2qi.cloudfront.net"
+    # Populated by _default_public_base_url() below when left empty; set
+    # directly (e.g. via a PUBLIC_BASE_URL env var) only to override.
+    #
+    # task #43: previously a single hardcoded literal --
+    # https://d1mqqddh8gu2qi.cloudfront.net, dev's raw pre-cutover CloudFront
+    # domain, predating even Stage B/C -- unconditionally, in every
+    # environment. Same root cause as #41/#42: nothing anywhere (every CDK
+    # stack, the Dockerfile, .env.example) ever sets PUBLIC_BASE_URL, so
+    # every deployment fell back to that one literal. Every verification
+    # email, from a prod registration or a dev one, linked to a raw
+    # .cloudfront.net URL instead of the environment's real domain.
+    public_base_url: str = ""
 
     # CORS allowlist — explicit per-environment origins, never "*" for any
     # deployed environment. Populated by _default_cors_origins() below when
@@ -202,6 +212,35 @@ class Settings(BaseSettings):
             "staging": ["https://dev.pyvar.com"],
         }
         self.cors_allowed_origins = origins_by_env.get(self.app_env, ["*"])
+        return self
+
+    @model_validator(mode="after")
+    def _default_public_base_url(self) -> "Settings":
+        """Fill public_base_url from app_env when not explicitly set.
+
+        Keyed on the SHORT-form app_env values real deployments actually use
+        ("dev"/"staging"/"prod" — see cors_allowed_origins's own comment for
+        why). Anything else (local dev's "development" default, CI's "test")
+        falls back to the local uvicorn address (CLAUDE.md section 9) —
+        main.py mounts portal/ (including dashboard.html) at "/" in every
+        environment, including local, so this is an address a developer can
+        actually click through to on their own machine, unlike the AWS
+        CloudFront literal this replaced.
+
+        Returns:
+            Settings: this instance, with public_base_url populated when not
+            already set.
+        """
+        if self.public_base_url:
+            return self
+        base_url_by_env = {
+            "prod": "https://www.pyvar.com",
+            "dev": "https://dev.pyvar.com",
+            # staging is never actually deployed — see cors_allowed_origins's
+            # own comment for the same scoping call.
+            "staging": "https://dev.pyvar.com",
+        }
+        self.public_base_url = base_url_by_env.get(self.app_env, "http://localhost:8000")
         return self
 
 
