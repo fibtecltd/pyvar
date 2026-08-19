@@ -135,7 +135,17 @@ def setup_sentry() -> None:
                 CeleryIntegration(monitor_beat_tasks=True),
                 SqlalchemyIntegration(),
             ],
-            traces_sample_rate=0.1 if cfg.app_env == "production" else 1.0,
+            # task #45 -- was compared against "production" (long form),
+            # but api_stack.py injects APP_ENV=cfg.env_name, which is the
+            # SHORT form CDK actually uses everywhere ("dev"/"staging"/
+            # "prod" -- see cfg.app_env's own docstring in config.py, added
+            # for the identical mismatch in cors_allowed_origins/
+            # public_base_url, tasks #42/#43). Comparing against the long
+            # form meant this was always False in every real deployment, so
+            # prod silently sampled 100% of traces instead of the intended
+            # 10% -- a cost/volume issue, not a correctness one, but the
+            # exact bug class this whole task chain has been hunting.
+            traces_sample_rate=0.1 if cfg.app_env == "prod" else 1.0,
             send_default_pii=False,
         )
     except Exception:
@@ -153,10 +163,22 @@ def setup_sentry() -> None:
 # ── structlog ─────────────────────────────────────────────────────────────────
 
 
+#  Real deployed app_env values -- the SHORT forms CDK actually injects
+# (api_stack.py sets APP_ENV=cfg.env_name), not the long forms
+# "development"/"production" cfg.app_env's own default/docstring implies.
+# Shared here because setup_logging() below needs "is this any real AWS
+# deployment" as a set (dev/staging/prod all log to CloudWatch and all
+# want JSON), unlike setup_sentry()'s traces_sample_rate gate (task #45),
+# which only cares about "prod" specifically.
+_DEPLOYED_APP_ENVS = ("dev", "staging", "prod")
+
+
 def setup_logging() -> None:
     """
-    Configure structlog for structured JSON output in production,
-    pretty console output in development.
+    Configure structlog for structured JSON output in any real AWS
+    deployment (dev/staging/prod -- all ship logs to CloudWatch, which
+    JSON keeps searchable/filterable), pretty console output otherwise
+    (local dev, CI).
     """
     shared_processors = [
         structlog.contextvars.merge_contextvars,
@@ -171,10 +193,24 @@ def setup_logging() -> None:
         structlog.processors.format_exc_info,
     ]
 
-    if cfg.app_env == "development":
-        renderer = structlog.dev.ConsoleRenderer()
-    else:
+    # task #46 -- was `if cfg.app_env == "development"`, comparing against
+    # the long form. Deployed dev's real app_env ("dev") never matched, so
+    # deployed dev got JSONRenderer only by accident of that mismatch, not
+    # by deliberate design -- correct in outcome (see docstring above), but
+    # a coincidence away from silently flipping to ConsoleRenderer (ANSI
+    # escape codes, unreadable in CloudWatch's log viewer) if config.py's
+    # app_env default or docstring were ever "corrected" to match its own
+    # stated long-form convention without knowing about this coupling.
+    # Explicit now: JSON for every real deployment, console for everything
+    # else -- including CI's "test", a deliberate behaviour improvement
+    # (previously "test" also fell to JSONRenderer by the same accident;
+    # pretty console output is strictly more readable for a human
+    # inspecting a failed CI run's logs, and nothing asserts on the
+    # previous renderer choice -- grepped tests/test_observability.py).
+    if cfg.app_env in _DEPLOYED_APP_ENVS:
         renderer = structlog.processors.JSONRenderer()
+    else:
+        renderer = structlog.dev.ConsoleRenderer()
 
     structlog.configure(
         processors=shared_processors

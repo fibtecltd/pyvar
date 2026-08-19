@@ -19,9 +19,12 @@ Reasoning:
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
-from observability.setup import _resolve_sentry_dsn, cfg, setup_sentry
+import structlog
+
+from observability.setup import _resolve_sentry_dsn, cfg, setup_logging, setup_sentry
 
 
 def test_setup_sentry_noop_with_no_dsn(_no_sentry_in_tests):
@@ -71,6 +74,38 @@ def test_setup_sentry_survives_init_exception(_no_sentry_in_tests):
         setup_sentry()  # must not raise
 
     _no_sentry_in_tests.assert_called_once()
+
+
+# ── traces_sample_rate (task #45) ────────────────────────────────────────────
+# api_stack.py injects APP_ENV=cfg.env_name, the SHORT form CDK uses
+# everywhere ("dev"/"staging"/"prod"), not the long form "production" this
+# previously compared against -- which never matched any real deployment, so
+# prod silently sampled 100% of traces instead of the intended 10%.
+
+
+def test_setup_sentry_uses_reduced_sample_rate_for_prod(_no_sentry_in_tests):
+    """task #45: traces_sample_rate must be 0.1 for app_env "prod" (the real
+    value a deployed prod task actually has), not "production"."""
+    with (
+        patch.object(cfg, "sentry_dsn", "https://fake-dsn@example.ingest.sentry.io/1"),
+        patch.object(cfg, "app_env", "prod"),
+    ):
+        setup_sentry()
+
+    assert _no_sentry_in_tests.call_args.kwargs["traces_sample_rate"] == 0.1
+
+
+def test_setup_sentry_uses_full_sample_rate_outside_prod(_no_sentry_in_tests):
+    """task #45: every other app_env -- dev, staging, local dev's
+    "development" default, CI's "test" -- keeps full trace sampling. Only
+    prod's higher traffic volume justifies the reduced rate."""
+    for env in ("dev", "staging", "development", "test"):
+        with (
+            patch.object(cfg, "sentry_dsn", "https://fake-dsn@example.ingest.sentry.io/1"),
+            patch.object(cfg, "app_env", env),
+        ):
+            setup_sentry()
+        assert _no_sentry_in_tests.call_args.kwargs["traces_sample_rate"] == 1.0
 
 
 # ── _resolve_sentry_dsn ──────────────────────────────────────────────────────
@@ -147,3 +182,43 @@ def test_resolve_sentry_dsn_degrades_on_secrets_manager_failure():
         result = _resolve_sentry_dsn()  # must not raise
 
     assert result == ""
+
+
+# ── structlog renderer (task #46) ────────────────────────────────────────────
+# Same app_env short-vs-long-form mismatch as #45: real deployments use "dev"/
+# "staging"/"prod", not "development"/"production". setup_logging() adds a
+# StreamHandler to the real root logger and never removes it -- these tests
+# clean up after themselves so they don't pollute other tests' log capture.
+
+
+def _last_root_handler_processor():
+    handler = logging.getLogger().handlers[-1]
+    try:
+        # ProcessorFormatter stores the renderer passed as `processor=` at
+        # the end of its own `.processors` chain (preceded by
+        # remove_processors_meta) -- there's no public singular `.processor`
+        # attribute to read it back from directly.
+        return handler.formatter.processors[-1]
+    finally:
+        logging.getLogger().removeHandler(handler)
+
+
+def test_setup_logging_uses_json_for_any_real_deployment():
+    """task #46: dev/staging/prod must all get JSONRenderer -- CloudWatch-
+    searchable structured logs, not just prod specifically. Previously
+    deployed dev ("dev") fell into the JSON branch only by accident (it
+    simply didn't match the literal "development" the old code compared
+    against) -- this asserts it's now deliberate for every real env."""
+    for env in ("dev", "staging", "prod"):
+        with patch.object(cfg, "app_env", env):
+            setup_logging()
+        assert isinstance(_last_root_handler_processor(), structlog.processors.JSONRenderer)
+
+
+def test_setup_logging_uses_console_renderer_outside_real_deployments():
+    """task #46: unrecognised app_env -- local dev's "development" default,
+    CI's "test" -- gets the human-readable ConsoleRenderer, never JSON."""
+    for env in ("development", "test"):
+        with patch.object(cfg, "app_env", env):
+            setup_logging()
+        assert isinstance(_last_root_handler_processor(), structlog.dev.ConsoleRenderer)
