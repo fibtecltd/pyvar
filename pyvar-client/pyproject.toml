@@ -42,3 +42,12 @@ line_length = 100
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/conftest.py is imported as `tests.conftest` (not a bare
+# `conftest`) by the test modules themselves, so tests/ needs to be
+# importable as a package from this directory regardless of how pytest is
+# invoked. `python3 -m pytest` adds cwd to sys.path automatically (a `-m`
+# behavior), which is why this worked locally without this setting during
+# development -- CI's plain `pytest` entry-point invocation does not, and
+# failed with ModuleNotFoundError: No module named 'tests' as a result.
+# This makes pytest itself add the path, independent of invocation style.
+pythonpath = ["."]
