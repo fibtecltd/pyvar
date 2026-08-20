@@ -644,7 +644,49 @@ The following additions are scoped for v0.2.0, informed by usage statistics from
   (`pyvar compute var --params params.json`) — descoped from v0.1.0 (see P9 Tasks):
   design the client library and CLI together rather than bolting a CLI onto a
   rushed SDK, and let real API usage from the v0.1.0 launch inform the client's
-  design instead of guessing at it pre-launch.
+  design instead of guessing at it pre-launch. Scope sketch:
+  - **The one asymmetry that shapes everything**: 384 of the 385 functions are
+    synchronous (`POST /api/v1/{domain}/{function}` validates, computes, and
+    returns in one call). Only `POST /var/compute` is async — returns a
+    `task_id` immediately, client polls `GET /var/result/{task_id}` — and
+    above a simulation-count threshold even that returns a `presigned_url`
+    instead of an inline result (S3 offload, #130). The client has to handle
+    three response shapes cleanly, not pretend they're one.
+  - **Package shape**: `pyvar_client.Client(api_key=...)`, one entry point.
+    Per-domain namespaces mirroring the API (`client.market_risk.historical_
+    simulation_var(...)`, 8 domains, 385 methods). `client.var.compute(...)`
+    blocks internally (submit → poll → return) as a convenience; `client.var.
+    submit(...)`/`.poll(task_id)` exposed underneath for callers who want
+    async control themselves.
+  - **Generated, not hand-maintained**: `scripts/generate_function_catalog.py`
+    already builds `portal/functions.json` from the live OpenAPI schema
+    (`main.create_app().openapi()`) plus engine docstrings. That's the input
+    to a codegen step producing the typed per-domain methods and their
+    Pydantic-mirrored models, run in CI on every API schema change — 385
+    hand-written methods is its own maintenance burden and the fastest way
+    for the SDK to silently drift from the API (the P9 audit already found
+    one such drift in `pyvar_functions.csv` vs the live catalogue — see
+    `docs/p9-function-catalogue-reconciliation.md`).
+  - **Typed exceptions, not raw HTTP errors**: `PyvarAuthError` (401),
+    `PyvarValidationError` (422, carries field-level detail),
+    `PyvarRateLimitError` (429, carries `Retry-After` and the caller's tier),
+    `PyvarComputeError` (a VaR job that reached `status=failure`).
+  - **Auth**: register/verify stays a one-time human step (email link) — the
+    SDK takes a JWT the user already has, no separate SDK-side auth flow.
+  - **Retry/backoff**: every synchronous domain function is idempotent by
+    construction (pure compute, no side effects) — safe to auto-retry on
+    5xx/timeout. `POST /var/compute` submission is the one non-idempotent
+    call (blind retry risks double-submitting a job) — the wrapper
+    distinguishes retrying the submit from retrying the poll.
+  - **Versioning**: independent SemVer from the API's own (`/api/v1/`
+    already versions the API path) — a client major bump only follows a
+    real `/api/v2/` change, not a client-side ergonomics fix.
+  - **Testing**: no live API calls in the SDK's own suite (same rule this
+    project already holds its backend tests to) — recorded response
+    fixtures per domain, refreshed when `portal/functions.json` changes.
+  - **Explicitly out of v0.2.0**: no bundled CLI in the first cut (CLI is a
+    v0.2.1+ layer on top of a proven client shape), no `asyncio` client
+    variant, no batch/bulk-submit helper beyond what the API itself exposes.
 - Streamlit dashboard as a hosted pyvar.com feature (not just local)
 
 ### Dependency on Fibtec services
