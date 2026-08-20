@@ -1,7 +1,11 @@
 # pyvar-dev-pipeline's Prod approval gate — status
 
-Status: **toggle added, gate still enabled (required). Two pending approvals
-rejected so far. No decision yet on when/whether to actually disable it.**
+Status: **gate still enabled (required), `require_prod_approval` unchanged.
+As of 2026-08-16, two pending approvals had been rejected and the pipeline's
+Prod stage had never completed. That pattern no longer holds — see the
+2026-08-20 update below: three more executions reached the gate and were
+approved, and the Prod stage (including `RunDbMigration-prod`) has now
+completed via the pipeline itself, twice, confirmed via CloudTrail.**
 
 ## Why this doc exists
 
@@ -80,7 +84,7 @@ if the approval gate below is ever disabled.
 5. **Second pending approval rejected** (2026-08-16, this same execution)
    per explicit instruction — cleared cleanly.
 
-## Current state
+## Current state (as of 2026-08-16 — see 2026-08-20 update below)
 
 - `require_prod_approval = True` in `config.py` — gate is live and
   enforced exactly as it always has been.
@@ -105,3 +109,58 @@ remains an open decision, not made here.** When it happens:
   future merge to master: a new execution reaches `ApproveProductionDeploy`
   and needs to be either rejected (clean) or left to time out (7 days,
   another `FAILED` notification).
+
+  **This prediction did not hold — see the 2026-08-20 update below.** The
+  gate itself is unchanged (`require_prod_approval` is still `True`); what
+  changed is that pending approvals started actually being approved instead
+  of rejected. The decision to flip `require_prod_approval` to `False`
+  remains separately unmade.
+
+## Update (2026-08-20) — approvals actually started; Prod stage now completes via the pipeline
+
+Between 2026-08-17 and 2026-08-19, a #41–#46 bug-fix series (PRs #243,
+#244, #245, #246, #251 — CORS credential-reflection, a cross-environment
+Lambda `API_BASE_URL` bug, hardcoded dev-domain literals in email links and
+the portal client, and an `app_env` short/long-form comparison bug)
+produced three more executions that reached `ApproveProductionDeploy`.
+Unlike every prior execution, all three were **approved**, not rejected or
+left to time out:
+
+| Execution   | Revision (PR)                | Outcome |
+|-------------|-------------------------------|---------|
+| `a0098e07`  | `66698597` (PR #242)          | Approved 2026-08-17 — see note below |
+| `34dfd841`  | `0a99ccb` (PRs #243/#244/#245/#246) | Approved 2026-08-17 |
+| `cd132fdf`  | `e7b16808` (PR #251)          | Approved 2026-08-19 |
+
+All three ran their full `Prod` stage to completion for the first time in
+this project's history — `RunDbMigration-prod`, all `pyvar-prod-*` stack
+deploys, and `ProdSmokeTest` all succeeded on each. Confirmed via CloudTrail
+that the CloudFormation `ExecuteChangeSet` calls for `pyvar-prod-api` were
+invoked by `codepipeline.amazonaws.com` through the CDK bootstrap deploy
+role — genuinely pipeline-driven, not a manual `cdk deploy pyvar-prod-*`
+run from a workstation (the pattern Finding 1 established as the norm up to
+this point). Prod's running image tag (`e7b1680`) was independently
+verified to match PR #251's merge commit SHA exactly.
+
+**Operational gotcha worth recording:** `a0098e07` had been sitting queued
+at `ApproveProductionDeploy` since before this fix series existed (it
+carries PR #242 — this very doc's own original commit). Because CodePipeline
+locks the `Prod` stage to one execution at a time, every later execution
+(`14c4bb0e`, `a8213417`, `f2167735`, all superseded) queued up behind it
+without any obvious signal that an *older*, unrelated execution — not the
+one just merged — was what would actually run next. The first approval
+given during this series went to `a0098e07` by mistake, deploying PR #242's
+(inert, docs+toggle-only) changes rather than the intended fix bundle; the
+CORS vulnerability was confirmed still live via a direct HTTP check
+immediately afterward. The correct execution (`34dfd841`) only reached its
+own fresh `ApproveProductionDeploy` once `a0098e07` cleared the stage. When
+multiple commits land close together while an old approval has been sitting
+unresolved, **check which specific `pipelineExecutionId` an approval token
+belongs to (`list-action-executions --filter pipelineExecutionId=...`)
+before approving** — the action name and `get-pipeline-state`'s "latest"
+view alone aren't enough to tell them apart.
+
+`require_prod_approval` remains `True`. This update does not change the
+open decision above — it only corrects the doc's prediction now that the
+gate is actually being exercised as an approve/reject decision point rather
+than a reject-only formality.
