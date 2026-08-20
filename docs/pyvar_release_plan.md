@@ -521,8 +521,19 @@ Day +7:  Review usage metrics — identify most popular functions for v0.2.0 roa
 - Post to Hacker News (Show HN), r/quantfinance, r/algotrading, LinkedIn
 - Email Anthropic partner programme contact — pyvar.com is now live (referencing partner application)
 - Set up GitHub Discussions as community forum — seed with 3 starter threads per domain
-- Configure GitHub Actions to auto-publish new releases to PyPI (pyvar-client SDK)
 - Post-launch: monitor Sentry daily, review CloudWatch cost dashboard daily for first week
+
+**Descoped from v0.1.0**: publishing a `pyvar-client` Python SDK to PyPI (originally
+listed here as "configure GitHub Actions to auto-publish new releases to PyPI"). No
+`pyvar-client` code exists anywhere in this repo — this was never a polish item, it's
+a from-scratch package: auth/token handling, typed request/response models across
+385 endpoints, retry/backoff, its own test suite, docs, and a release/versioning
+strategy independent of the API's own. Launch ships the REST API directly (`README.md`'s
+quick start is the local dev / API setup, not a client library) — rushing a published
+SDK to hit a launch date risks locking in a bad public API surface. Moved to the
+v0.2.0 roadmap below, consolidated with the CLI tool idea (a CLI is naturally built
+on top of a client library, so they should be designed together, not the SDK first
+and a CLI bolted on after).
 
 ### Claude Code session prompts
 
@@ -546,8 +557,9 @@ Tone: welcoming to quant developers and risk engineers.
 ```
 Prepare the GitHub repository for public launch:
 1. Write a README.md that leads with "382 risk functions. One API. Open source."
-   — covers quick start (pip install pyvar-client), 8 domains with function counts,
-   tech stack, and links to pyvar.com
+   — covers quick start (local dev setup: clone, install, run — no pyvar-client
+   SDK exists; that's descoped to v0.2.0, see this doc's Tasks section above),
+   8 domains with function counts, tech stack, and links to pyvar.com
 2. Add GitHub topics: quantitative-finance, risk-management, var, monte-carlo, frtb,
    numba, fastapi, open-source
 3. Write a GitHub release body for v0.1.0: what's included, known limitations,
@@ -628,7 +640,11 @@ The following additions are scoped for v0.2.0, informed by usage statistics from
 - Real-time market data ingestion (Bloomberg/Refinitiv API connector via IntegratePro)
 - Jupyter notebook integration (pyvar-jupyter kernel)
 - Additional functions based on GitHub Discussions demand
-- CLI tool: `pyvar compute var --params params.json`
+- `pyvar-client` Python SDK, published to PyPI, with a CLI built on top of it
+  (`pyvar compute var --params params.json`) — descoped from v0.1.0 (see P9 Tasks):
+  design the client library and CLI together rather than bolting a CLI onto a
+  rushed SDK, and let real API usage from the v0.1.0 launch inform the client's
+  design instead of guessing at it pre-launch.
 - Streamlit dashboard as a hosted pyvar.com feature (not just local)
 
 ### Dependency on Fibtec services
