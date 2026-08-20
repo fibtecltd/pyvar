@@ -1,6 +1,14 @@
 [tool.isort]
 profile = "black"
 line_length = 100
+# pyvar_client (pyvar-client/pyvar_client/) is nested two levels under repo
+# root, not a direct top-level package -- isort's default first-party
+# auto-detection (scans src_paths, default ".") only finds it when cwd is
+# pyvar-client/ itself (pyvar-client's own pyproject.toml needs no override
+# for exactly that reason). Root-level `isort --check-only .` (the main CI
+# lint job) doesn't find it that way and misclassifies pyvar_client imports
+# as third-party -- explicit here so both invocations agree.
+known_first_party = ["pyvar_client"]
 
 [tool.black]
 line-length = 100

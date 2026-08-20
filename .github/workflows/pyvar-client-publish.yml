@@ -1,0 +1,48 @@
+name: pyvar-client publish
+
+# Triggered by pushing a tag like pyvar-client-v0.1.0 -- deliberately NOT
+# the same tag scheme as the main repo's own v0.1.0 release (see
+# CHANGELOG.md), since this package's SemVer is independent of the API's
+# own versioning (pyvar_client/__init__.py's own __version__ docstring
+# note, and docs/pyvar_release_plan.md's v0.2.0 scope sketch).
+#
+# ONE-TIME MANUAL BOOTSTRAP REQUIRED before this can actually publish
+# anything -- same category as this project's other bootstrap-then-wire
+# steps (see CLAUDE.md's AmiStack entry for the precedent): the
+# "pyvar-client" project must exist on PyPI with Trusted Publishing
+# configured for this exact repo/workflow/environment
+# (fibtecltd/pyvar, pyvar-client-publish.yml, "pypi") BEFORE the first tag
+# push -- PyPI's trusted-publisher flow requires the project to already
+# exist (or use PyPI's newer "pending publisher" flow, configured from the
+# PyPI UI, to let this workflow create it on first publish). No API token
+# is stored here by design -- OIDC trusted publishing needs none.
+
+on:
+  push:
+    tags:
+      - "pyvar-client-v*"
+
+jobs:
+  build-and-publish:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC) -- no API token needed
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build
+        working-directory: pyvar-client
+        run: |
+          pip install build
+          python3 -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: pyvar-client/dist

@@ -1,0 +1,94 @@
+name: pyvar-client CI
+
+# Scoped to pyvar-client/ via paths: -- this package has its own
+# dependency set (httpx + dev tools only, not engine/numba/etc.) and its
+# own test suite; running it on every unrelated repo change would be pure
+# waste, same reasoning as the main CI workflow's own scoping.
+
+on:
+  pull_request:
+    branches: [master, develop]
+    paths:
+      - "pyvar-client/**"
+      - "portal/functions.json"
+      - "main.py"
+      - "api/**"
+      - "schemas/**"
+      - ".github/workflows/pyvar-client-ci.yml"
+  push:
+    branches-ignore: [master]
+    paths:
+      - "pyvar-client/**"
+      - "portal/functions.json"
+      - "main.py"
+      - "api/**"
+      - "schemas/**"
+      - ".github/workflows/pyvar-client-ci.yml"
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install pyvar-client (with dev extras)
+        working-directory: pyvar-client
+        run: pip install -e ".[dev]"
+
+      - name: black --check
+        working-directory: pyvar-client
+        run: black --check --line-length 100 .
+
+      - name: isort --check-only
+        working-directory: pyvar-client
+        run: isort --check-only --profile black --line-length 100 .
+
+      - name: ruff check
+        working-directory: pyvar-client
+        run: ruff check .
+
+      - name: pytest
+        working-directory: pyvar-client
+        run: pytest -v --cov=pyvar_client --cov-report=term-missing --cov-fail-under=90
+
+  codegen-drift-check:
+    name: Codegen drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      # Needs the MAIN repo's deps (codegen imports main.create_app()
+      # directly, not just pyvar-client's own runtime deps) plus
+      # pyvar-client's own dev extras for the black formatting pass
+      # codegen/generate.py runs at the end.
+      - name: Install main repo + pyvar-client dependencies
+        run: |
+          pip install -r requirements-ci.txt
+          pip install -r requirements.txt
+          pip install -e "pyvar-client[dev]"
+
+      - name: Regenerate and diff
+        working-directory: pyvar-client
+        run: |
+          python3 codegen/generate.py
+          git diff --exit-code -- pyvar_client/_generated/ || \
+            (echo "::error::pyvar_client/_generated/ is stale -- run \
+            'python3 codegen/generate.py' from pyvar-client/ and commit the diff." \
+            && exit 1)

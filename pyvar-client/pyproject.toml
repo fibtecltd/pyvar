@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyvar-client"
+version = "0.1.0"
+description = "Python SDK for pyvar.com's open-source risk computation API"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Fibtec Limited" }]
+requires-python = ">=3.11"
+# Dependency-light by design -- see pyvar_client/_transport.py's own
+# module docstring: httpx is the only non-stdlib runtime dependency.
+dependencies = ["httpx>=0.27.0"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
+
+[project.urls]
+Homepage = "https://www.pyvar.com"
+Repository = "https://github.com/fibtecltd/pyvar"
+"Bug Tracker" = "https://github.com/fibtecltd/pyvar/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov", "black==26.5.1", "isort==8.0.1", "ruff==0.15.22"]
+
+[tool.setuptools.packages.find]
+include = ["pyvar_client*"]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# tests/conftest.py is imported as `tests.conftest` (not a bare
+# `conftest`) by the test modules themselves, so tests/ needs to be
+# importable as a package from this directory regardless of how pytest is
+# invoked. `python3 -m pytest` adds cwd to sys.path automatically (a `-m`
+# behavior), which is why this worked locally without this setting during
+# development -- CI's plain `pytest` entry-point invocation does not, and
+# failed with ModuleNotFoundError: No module named 'tests' as a result.
+# This makes pytest itself add the path, independent of invocation style.
+pythonpath = ["."]
