@@ -56,6 +56,40 @@ release:
   correctly in scope for all asset classes, not evaluated per-class.
 - **IRRBB standard shocks** — recalibrated to the BCBS d578 (2024) values.
 
+Pre-launch infrastructure corrections, found during a post-domain-cutover
+audit — every deployed environment (dev and prod alike) had been calling
+or linking to a hardcoded dev-only domain regardless of which environment
+was actually running:
+
+- **Lambda-to-API calls** — the scheduled demo-publisher and SES-
+  suppression Lambdas called dev's API from every environment, causing
+  prod's calls to fail outright on a guaranteed JWT signature mismatch
+  (dev and prod sign with separate secrets).
+- **Verification email links** — pointed at a stale, pre-cutover dev
+  CloudFront domain in every environment instead of the environment's own
+  real domain.
+- **Portal client** — `portal/pyvar.js` hardcoded the same dev domain for
+  every API call; replaced with a relative path, so the browser client
+  always talks to whichever environment actually served the page and
+  can't drift out of sync with it again.
+- **Sentry trace sampling and structured-log rendering** — both compared
+  the deployment environment against long-form values ("production"/
+  "development") that never match what's actually injected (the short
+  forms "prod"/"dev"), so prod silently over-sampled traces at 100%
+  instead of the intended 10%, and the JSON-vs-console log renderer
+  choice for deployed environments only worked by coincidence.
+
+### Security
+
+- **CORS allowlist reflected arbitrary Origins with credentials enabled**
+  — the allowed-origins list picked between a wildcard and a single
+  hardcoded domain based on a debug flag that was never actually `False`
+  in any real deployment, so every environment reflected any request's
+  Origin header back with `access-control-allow-credentials: true`.
+  Replaced with an explicit per-environment allowlist, and dropped
+  `allow_credentials` entirely — this API authenticates via Bearer JWT
+  only, never cookies, so it protected nothing.
+
 ### Changed
 
 - Removed misleading or false regulatory citations across engine
