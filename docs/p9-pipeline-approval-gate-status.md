@@ -221,12 +221,11 @@ the Approve/Reject action itself — a known, documented gotcha with AWS
 Chatbot + CodePipeline manual approvals specifically, not a hypothetical
 concern here.
 
-**Not yet verified: an actual end-to-end approval through Slack.**
-Configuration is confirmed correct (team ID, channel ID, role ARN, SNS
-topic ARN all checked directly via CLI, not assumed), but that only proves
-the wiring is right, not that clicking Approve/Reject in Slack actually
-resolves the pipeline action. That only gets exercised for real the next
-time an execution genuinely reaches `ApproveProductionDeploy` — worth
-watching once, given Finding 1 and the 2026-08-20 update above both
-recorded real mistakes at exactly this step (a stale 7-day timeout, and
-approving the wrong queued execution) before this integration existed.
+**Update (2026-08-22, later same day) — end-to-end Slack notification
+confirmed working.** `#pyvar-prod-approvals` has now been confirmed to
+receive the actual `ApproveProductionDeploy` notification for real, not
+just in configuration. This closes the one item left open above: the
+wiring (team ID, channel ID, role ARN, SNS topic ARN) was already verified
+via CLI, and now the live notification path itself is confirmed too.
+
+Task #47 (Slack integration for `ApproveProductionDeploy`) is complete.
