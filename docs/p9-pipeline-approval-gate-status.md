@@ -5,7 +5,12 @@ As of 2026-08-16, two pending approvals had been rejected and the pipeline's
 Prod stage had never completed. That pattern no longer holds — see the
 2026-08-20 update below: three more executions reached the gate and were
 approved, and the Prod stage (including `RunDbMigration-prod`) has now
-completed via the pipeline itself, twice, confirmed via CloudTrail.**
+completed via the pipeline itself, twice, confirmed via CloudTrail. As of
+2026-08-22, `ApproveProductionDeploy` also has a working Slack integration
+(PR #258 + AWS Chatbot console setup) — see that update below. Decision to
+flip `require_prod_approval` to `False` remains separately unmade,
+deliberately deferred until after the P9 exit gate (48h healthy prod +
+post-launch monitoring).**
 
 ## Why this doc exists
 
@@ -164,3 +169,64 @@ view alone aren't enough to tell them apart.
 open decision above — it only corrects the doc's prediction now that the
 gate is actually being exercised as an approve/reject decision point rather
 than a reject-only formality.
+
+## Update (2026-08-22) — Slack integration for ApproveProductionDeploy (task #47)
+
+`ApproveProductionDeploy` now posts to Slack (`#pyvar-prod-approvals`,
+workspace `ops@fibtec.co.uk`, team ID `T0BSSHVM7R6`) via AWS Chatbot, in
+addition to the existing `ops@fibtec.co.uk` email notification both already
+went to. Approve/Reject can now be actioned directly from Slack, not just
+via the CodePipeline console or CLI.
+
+**What's deployed:**
+- `pyvar-dev-chatbot-pipeline-approval` (PR #258,
+  `pyvar-cdk/stacks/pipeline_stack.py`) — an IAM role scoped to exactly
+  `codepipeline:GetPipelineState` + `codepipeline:PutApprovalResult` on
+  this one pipeline's ARN, plus read-only `cloudwatch:DescribeAlarms`.
+  Created via CDK specifically so this permission grant stays reviewable
+  and versioned, rather than letting the AWS Chatbot console's channel
+  wizard create its own role with a broader default policy.
+- An `AWS::Chatbot::SlackChannelConfiguration` (console-created, not
+  CDK-managed — see "Why this isn't in CDK" below), subscribed to the
+  existing `pyvar-pipeline-notifications` SNS topic, using the role
+  above. Verified live via `aws chatbot describe-slack-channel-
+  configurations`: correct team/channel IDs, correct (CDK-managed) role
+  ARN — no console-generated role — correct SNS topic ARN.
+
+**Why this isn't in CDK:** the Slack workspace has to be OAuth-authorized
+via the AWS Chatbot console first — that step cannot be automated via
+CDK/CLI, it needs a live browser session authenticated to both AWS and the
+target Slack workspace. The first authorization attempt didn't persist at
+all (confirmed via `aws chatbot describe-slack-workspaces`, empty in both
+eu-west-1 and us-east-1) — backing out of the console's channel-setup
+wizard before completing it, done deliberately to keep the channel
+resource CDK-managed, appears to have discarded the whole workspace
+authorization, not just the channel part. Redoing the flow and completing
+it fully (workspace auth + channel config together) is what actually
+persisted. Given that, the channel configuration resource itself stays
+console-managed for now; a future CDK import of the existing resource is
+possible but not done here.
+
+**Guardrail policy is `AdministratorAccess` — this is intentional, not a
+misconfiguration.** AWS Chatbot's console requires at least one guardrail
+policy, and guardrail policies apply as an *intersection* with the
+channel's own IAM role — they can only subtract permissions, never add
+them. Since the role above is already scoped to exactly two
+CodePipeline actions on one pipeline, intersecting with `AdministratorAccess`
+changes nothing; the channel still can't do anything beyond what the role
+allows. The alternative, `ReadOnlyAccess`, would have been a real bug:
+`codepipeline:PutApprovalResult` is a mutating action, so a ReadOnly
+guardrail would let Chatbot render the approval message but silently block
+the Approve/Reject action itself — a known, documented gotcha with AWS
+Chatbot + CodePipeline manual approvals specifically, not a hypothetical
+concern here.
+
+**Not yet verified: an actual end-to-end approval through Slack.**
+Configuration is confirmed correct (team ID, channel ID, role ARN, SNS
+topic ARN all checked directly via CLI, not assumed), but that only proves
+the wiring is right, not that clicking Approve/Reject in Slack actually
+resolves the pipeline action. That only gets exercised for real the next
+time an execution genuinely reaches `ApproveProductionDeploy` — worth
+watching once, given Finding 1 and the 2026-08-20 update above both
+recorded real mistakes at exactly this step (a stale 7-day timeout, and
+approving the wrong queued execution) before this integration existed.
