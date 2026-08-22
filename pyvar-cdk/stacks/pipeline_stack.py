@@ -962,6 +962,62 @@ class PipelineStack(Stack):
             notification_rule_name=f"pyvar-{cfg.env_name}-pipeline-events",
         )
 
+        # ── Slack integration for ApproveProductionDeploy (task #47) ───────────
+        # AWS Chatbot needs an IAM role to assume when a Slack user clicks
+        # Approve/Reject on a CodePipeline manual approval action -- this is
+        # that role, created here (not by the AWS Chatbot console's own
+        # channel-setup wizard, which offers to create one with a broader
+        # default policy) so the actual permission grant stays reviewable,
+        # scoped, and versioned like every other IAM policy in this file.
+        #
+        # docs/p9-pipeline-approval-gate-status.md's operational-gotcha
+        # section is exactly why PutApprovalResult is scoped to this one
+        # pipeline's ARN, not "*" -- the whole point of wiring Slack in here
+        # is to reduce the chance of approving the wrong thing, not to widen
+        # what a compromised or misconfigured Chatbot integration could
+        # approve.
+        #
+        # This role is NOT wired to a SlackChannelConfiguration in this
+        # stack -- that resource still requires the Slack workspace to be
+        # authorized first, a one-time manual step via the AWS Chatbot
+        # console (OAuth, cannot be done via CDK/CLI). Once that's done,
+        # this role's name is what gets selected in the console's channel-
+        # setup wizard ("use an existing role"), instead of letting the
+        # wizard create its own.
+        chatbot_role = iam.Role(
+            self,
+            "ChatbotPipelineApprovalRole",
+            role_name=f"pyvar-{cfg.env_name}-chatbot-pipeline-approval",
+            assumed_by=iam.ServicePrincipal("chatbot.amazonaws.com"),
+        )
+        chatbot_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["codepipeline:GetPipelineState", "codepipeline:PutApprovalResult"],
+                resources=[pipeline.pipeline.pipeline_arn],
+            )
+        )
+        # Lets Chatbot format the manual-approval Slack message it renders
+        # (approval action details, pipeline name) -- read-only, and
+        # CloudWatch doesn't support resource-level ARN restriction for
+        # these actions, same pattern as the Describe*/List* EC2 grants
+        # above.
+        chatbot_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["cloudwatch:DescribeAlarms"],
+                resources=["*"],
+            )
+        )
+
+        cdk.CfnOutput(
+            self,
+            "ChatbotPipelineApprovalRoleArn",
+            value=chatbot_role.role_arn,
+            description=(
+                "Select this role (not 'create new role') in the AWS Chatbot "
+                "console's Slack channel-configuration step for #pyvar-prod-approvals."
+            ),
+        )
+
         # ── Outputs ───────────────────────────────────────────────────────────
         cdk.CfnOutput(
             self,
