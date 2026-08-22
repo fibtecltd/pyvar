@@ -9,7 +9,7 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 Nothing yet.
 
-## [0.1.0] — pending public launch
+## [0.1.0] — 2026-08-22
 
 Initial public release. 385 risk functions across 8 domains, exposed as a
 REST API and served through an async Celery/SQS job pipeline on AWS. See
@@ -42,6 +42,13 @@ REST API and served through an async Celery/SQS job pipeline on AWS. See
   `docs/p7-numba-profiling-results.md`.
 - `tests/validation/` — cross-validation suite against QuantLib and
   published worked examples, with documented scope and limitations.
+- `pyvar-client` — a typed Python SDK covering all 385 endpoints across the
+  8 domains, with retry/backoff, typed exceptions, and a blocking
+  `client.var.compute(...)` convenience wrapper over the one async job
+  flow. Source-available in this repo at launch; not yet published to
+  PyPI (Trusted Publisher project bootstrap and the SDK's own
+  `pyvar-client-v0.1.0` tag are still pending — see
+  `docs/pyvar_release_plan.md`).
 
 ### Fixed
 
