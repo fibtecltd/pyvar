@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyvar-client"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python SDK for pyvar.com's open-source risk computation API"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -26,6 +26,9 @@ classifiers = [
 Homepage = "https://www.pyvar.com"
 Repository = "https://github.com/fibtecltd/pyvar"
 "Bug Tracker" = "https://github.com/fibtecltd/pyvar/issues"
+
+[project.scripts]
+pyvar = "pyvar_client.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov", "black==26.5.1", "isort==8.0.1", "ruff==0.15.22"]
