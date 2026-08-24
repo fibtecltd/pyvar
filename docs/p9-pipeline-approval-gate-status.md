@@ -229,3 +229,43 @@ wiring (team ID, channel ID, role ARN, SNS topic ARN) was already verified
 via CLI, and now the live notification path itself is confirmed too.
 
 Task #47 (Slack integration for `ApproveProductionDeploy`) is complete.
+
+## Update (2026-08-24) — real test notification delivered; one more gotcha found and fixed
+
+The 2026-08-22 "confirmed working" update above verified the notification
+*path* (SNS topic → Chatbot → channel) was wired correctly, but hadn't yet
+sent an actual test message through it. Doing that surfaced one more
+gotcha, now fixed:
+
+- **A raw plain-text SNS publish never reached Slack.** It delivered fine
+  to the `ops@fibtec.co.uk` email subscription on the same topic, but AWS
+  Chatbot silently drops anything that isn't EventBridge-shaped or its own
+  "custom notification" JSON schema (`version`, `source: "custom"`,
+  `content.description` required — see
+  [the Chatbot custom-notifications doc](https://docs.aws.amazon.com/chatbot/latest/adminguide/custom-notifs.html)).
+  Republishing in that schema still didn't show up — a second, unrelated
+  failure.
+- **Root cause of the second failure: the bot was never actually a member
+  of `#pyvar-prod-approvals`.** Workspace-level OAuth authorization (the
+  2026-08-22 update above) does not automatically add the Chatbot/"Amazon Q
+  Developer" bot user to any specific channel, especially a private one.
+  Inviting it (`/invite @Amazon Q Developer`) fixed it immediately — the
+  same schema-valid test message, republished after the invite, appeared
+  in the channel. **Anyone setting up a new AWS Chatbot Slack channel for
+  this pipeline (or copying this pattern elsewhere) needs to remember to
+  invite the bot into the channel as a separate, manual step** — the
+  console wizard and the workspace authorization do not do this for you.
+- **Follow-up question, answered and closed:** adding another Fibtec
+  teammate to `#pyvar-prod-approvals` is a plain Slack-side action (just
+  invite them) — no AWS-side change needed. The one thing worth knowing:
+  the channel's `UserAuthorizationRequired: false` setting means everyone
+  in the channel approves/rejects through the same shared IAM role
+  (`pyvar-dev-chatbot-pipeline-approval`), not individually-authorized,
+  individually-audited access. Switching to `UserAuthorizationRequired:
+  true` would give per-user authorization at the cost of extra setup per
+  person. Decision: the shared-role model is fine for now — not revisited
+  further here.
+
+Task #47 is fully closed: wiring verified, a real message delivered
+end-to-end, and the one operational gotcha (bot channel membership)
+documented for next time.
