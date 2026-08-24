@@ -23,12 +23,14 @@ Reasoning:
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import Stack
+from aws_cdk import Duration, Stack
 from aws_cdk import aws_codebuild as cb
 from aws_cdk import aws_codepipeline as codepipeline
 from aws_cdk import aws_codepipeline_actions as cpa
 from aws_cdk import aws_codestarnotifications as notifications
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_lambda as lambda_
+from aws_cdk import aws_logs as logs
 from aws_cdk import aws_sns as sns
 from aws_cdk import aws_sns_subscriptions as subs
 from aws_cdk import pipelines
@@ -901,6 +903,19 @@ class PipelineStack(Stack):
         # Add email subscription — replace with your ops email
         ops_topic.add_subscription(subs.EmailSubscription("ops@fibtec.co.uk"))
 
+        # Narrowly-scoped topic carrying ONLY manual-approval-needed events,
+        # in their native CodeStar Notifications shape — feeds
+        # approval_relay_fn below, never Chatbot directly. See that
+        # Lambda's own module docstring (lambda/approval_action_relay/
+        # handler.py) for why this has to be a separate topic rather than
+        # republishing onto ops_topic itself (would double-post to Slack).
+        approval_raw_topic = sns.Topic(
+            self,
+            "PipelineApprovalRawNotifications",
+            topic_name="pyvar-pipeline-approval-raw",
+            display_name="pyvar Pipeline Approval Notifications (raw)",
+        )
+
         # CodeStar notification rule — fires on pipeline failure and success
         # Must be added after pipeline.build_pipeline() is called
         pipeline.build_pipeline()
@@ -1052,11 +1067,82 @@ class PipelineStack(Stack):
             events=[
                 "codepipeline-pipeline-pipeline-execution-failed",
                 "codepipeline-pipeline-pipeline-execution-succeeded",
-                "codepipeline-pipeline-manual-approval-needed",
             ],
             targets=[ops_topic],
             notification_rule_name=f"pyvar-{cfg.env_name}-pipeline-events",
         )
+
+        # manual-approval-needed is split into its OWN rule targeting
+        # approval_raw_topic (not ops_topic) — see that topic's own comment
+        # above and lambda/approval_action_relay/handler.py's module
+        # docstring for why. Email still gets a manual-approval-needed
+        # notification: approval_relay_fn's whole job is turning this into
+        # a Chatbot-renderable custom message on ops_topic, which ops_topic's
+        # own EmailSubscription above still receives same as any other
+        # message published there.
+        notifications.NotificationRule(
+            self,
+            "PipelineApprovalNotificationRule",
+            source=pipeline.pipeline,
+            events=["codepipeline-pipeline-manual-approval-needed"],
+            targets=[approval_raw_topic],
+            notification_rule_name=f"pyvar-{cfg.env_name}-pipeline-approval-needed",
+        )
+
+        # ── Approval action relay (Chatbot Custom Actions groundwork) ──────────
+        # Reformats the native manual-approval-needed event into a Chatbot
+        # `custom`-schema notification with the approval token exposed via
+        # metadata.additionalContext, republished onto ops_topic — see
+        # lambda/approval_action_relay/handler.py's own module docstring
+        # for the full reasoning and the NOT-YET-FIELD-VALIDATED caveat.
+        # Attaching an actual Custom Action button to this message type is a
+        # separate, console-side step (same category as the
+        # SlackChannelConfiguration itself — see docs/
+        # p9-pipeline-approval-gate-status.md's "Why this isn't in CDK"),
+        # done once this Lambda's output has been confirmed correct against
+        # a live test.
+        approval_relay_log_group = logs.LogGroup(
+            self,
+            "ApprovalRelayLogGroup",
+            log_group_name=f"/aws/lambda/pyvar-{cfg.env_name}-approval-action-relay",
+            retention=logs.RetentionDays.TWO_WEEKS,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+        )
+        approval_relay_role = iam.Role(
+            self,
+            "ApprovalRelayRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/AWSLambdaBasicExecutionRole"
+                )
+            ],
+        )
+        # Publish-only, and only to ops_topic — this Lambda never touches
+        # CodePipeline itself. The actual approve/reject authority stays
+        # exactly where PR #258 put it: the Chatbot channel's own IAM role,
+        # invoked only when a human clicks the eventual Custom Action button.
+        ops_topic.grant_publish(approval_relay_role)
+
+        # No reserved_concurrent_executions — this account's total Lambda
+        # concurrency quota is exactly 10 (see ses_events_stack.py's module
+        # docstring for the confirmed account-level constraint); any
+        # positive reservation would make deployment fail the same way it
+        # did there.
+        approval_relay_fn = lambda_.Function(
+            self,
+            "ApprovalActionRelayFunction",
+            function_name=f"pyvar-{cfg.env_name}-approval-action-relay",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="handler.handler",
+            code=lambda_.Code.from_asset("lambda/approval_action_relay"),
+            role=approval_relay_role,
+            timeout=Duration.minutes(1),
+            memory_size=128,
+            log_group=approval_relay_log_group,
+            environment={"TARGET_TOPIC_ARN": ops_topic.topic_arn},
+        )
+        approval_raw_topic.add_subscription(subs.LambdaSubscription(approval_relay_fn))
 
         # ── Slack integration for ApproveProductionDeploy (task #47) ───────────
         # AWS Chatbot needs an IAM role to assume when a Slack user clicks

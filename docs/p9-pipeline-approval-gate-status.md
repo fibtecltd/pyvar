@@ -269,3 +269,58 @@ gotcha, now fixed:
 Task #47 is fully closed: wiring verified, a real message delivered
 end-to-end, and the one operational gotcha (bot channel membership)
 documented for next time.
+
+## Update (2026-08-24, later same day) — notification delivery broke again; approve button groundwork added
+
+The "fully closed" line above turned out to be premature — one more real
+incident surfaced after it was written, distinct from the bot-membership
+issue already covered above:
+
+- **Silent delivery failure** on a second real `ApproveProductionDeploy`
+   notification (execution `55b4ffec`, opened 2026-08-24T06:05:07Z) and one
+   more real pipeline-succeeded notification in the same window — both
+   logged "Sending message to Slack" and then nothing: no error, no
+   confirmation, no message ever appeared. Extensive repro attempts
+   afterward (varying event source shape, real vs. synthetic execution
+   data, message burst timing) could not reproduce the failure — all
+   repros delivered cleanly. The one variable that couldn't be replicated:
+   the SNS Message Attributes the real AWS CodeStar Notifications service
+   sets when it publishes (used for filtering/routing), not retained by
+   SNS after delivery and therefore not inspectable after the fact.
+   Concluded as a rare/transient failure rather than a deterministic bug —
+   not enough for a support case to investigate without a repro, but
+   logged here since it's the second real incident, not the first. If it
+   recurs, escalate to AWS Support with this full history attached
+   (Developer support plan being activated specifically for this).
+
+This incident, like the bot-membership one above, was handled by manually
+approving directly via the CodePipeline console once discovered — the
+approval gate's actual job (human review) was never blocked by either,
+only the *notification* of a pending approval was.
+
+**Groundwork added for a real Approve/Reject button in Slack** (PR TBD):
+AWS Chatbot's Custom Actions feature can attach a button that runs a CLI
+command using the channel's existing IAM role — but (per docs, not yet
+confirmed live) only on `custom`-schema notifications with the approval
+token exposed via `metadata.additionalContext`, not on native
+CodePipeline-shaped ones. Added:
+- `pyvar-pipeline-approval-raw` — a new SNS topic carrying *only*
+  `codepipeline-pipeline-manual-approval-needed` events, via a second,
+  narrowly-scoped `NotificationRule` (the existing rule keeps every other
+  event type going straight to `pyvar-pipeline-notifications` as before).
+- `pyvar-{env}-approval-action-relay` — a new Lambda subscribed to that
+  raw topic, reformatting the native event into a Chatbot `custom`
+  notification (pipeline/stage/action/token in `additionalContext`),
+  republished onto the existing `pyvar-pipeline-notifications` topic — the
+  path already proven reliable for `custom`-shaped messages specifically.
+
+**Not yet done, and NOT CDK-manageable** (same category as the
+`SlackChannelConfiguration` itself): attaching the actual Custom Action
+button to this message type is a console-side step, done once someone
+with Slack + AWS console access fires a test notification through the new
+raw topic and confirms (a) the relay Lambda's field extraction is correct
+against a real captured payload — flagged as unvalidated in the Lambda's
+own module docstring — and (b) what variables Chatbot actually exposes for
+the button's CLI command template. Until that's done, notifications for
+`ApproveProductionDeploy` still land as plain text, same as before this
+update — this is groundwork for the button, not the button itself.

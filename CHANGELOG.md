@@ -16,6 +16,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   no separate codegen step; `var` gets its own `submit`/`poll`/`compute`
   sub-subcommands mirroring `client.var`. See `pyvar-client/README.md`'s
   `## CLI` section. Published as `pyvar-client` v0.1.1.
+- **Chatbot approve-button groundwork** — `pyvar-pipeline-approval-raw` (a
+  new, narrowly-scoped SNS topic + `NotificationRule` carrying only
+  `codepipeline-pipeline-manual-approval-needed`) and
+  `pyvar-{env}-approval-action-relay` (a new Lambda reformatting that native
+  event into a Chatbot `custom`-schema notification, republished onto the
+  existing `pyvar-pipeline-notifications` topic). Groundwork for an actual
+  Approve/Reject button in Slack via AWS Chatbot Custom Actions — attaching
+  the button itself is a console-side step, not yet done. See
+  `docs/p9-pipeline-approval-gate-status.md`'s 2026-08-24 update.
 
 ### Security
 
