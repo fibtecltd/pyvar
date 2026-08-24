@@ -194,6 +194,111 @@ def _record_deployed_hash_step(
     )
 
 
+# ── Image build gate (cost control) ─────────────────────────────────────────
+# Every commit previously rebuilt and repushed the API image to both ECR
+# repos regardless of what changed -- even a docs-only or pyvar-client-only
+# commit -- and because api_image_tag (below) is threaded straight into the
+# ECS task definition, that meant EVERY commit also caused a real
+# CloudFormation task-definition update and ECS rolling deployment in both
+# Dev and Prod, not just wasted CodeBuild minutes. This gate skips the
+# rebuild and reuses the last build's tag when nothing that ends up in the
+# image actually changed, so cdk synth's output for the API stacks becomes
+# byte-identical to the last build and CloudFormation correctly sees nothing
+# to deploy.
+#
+# _PORTAL_RELEVANT_PATHS PLUS portal/ itself: unlike the migration/smoke-test
+# gate above (which deliberately excludes portal/ -- a portal-only change
+# needs no DB migration or smoke re-test), this gate must include portal/ --
+# it's baked into the runtime image via Dockerfile's `COPY . .`, and reusing
+# an old tag for a portal-only change would mean ECS keeps serving a stale
+# image (the exact bug the "NOT wrapped in the portal-relevance _guarded()
+# gate" comment at the docker build call site already flags).
+#
+# Reused tags are never pruned: api_stack.py's ECR lifecycle policy only
+# deletes UNTAGGED images after 30 days, so a $SHORT_SHA tag from an
+# arbitrarily old commit remains pullable indefinitely.
+_IMAGE_RELEVANT_PATHS = _PORTAL_RELEVANT_PATHS + ("portal",)
+_IMAGE_HASH_SSM_PARAM = "/pyvar/pipeline/last-image-relevant-hash"
+_IMAGE_TAG_SSM_PARAM = "/pyvar/pipeline/last-image-tag"
+
+
+def _image_relevant_hash_command(var_name: str) -> str:
+    paths = " ".join(_IMAGE_RELEVANT_PATHS)
+    return (
+        f"{var_name}=$(find {paths} -type f 2>/dev/null | sort "
+        "| xargs sha256sum | sha256sum | cut -d' ' -f1)"
+    )
+
+
+def _image_build_commands(cfg: PyvarConfig, dev_ecr_uri: str, prod_ecr_uri: str) -> list[str]:
+    """Builds+pushes the API image to both ECR repos, or reuses the last
+    build's tag when nothing image-relevant changed since then. Sets
+    $SHORT_SHA either way -- callers downstream (cdk synth --context
+    api_image_tag=$SHORT_SHA) don't need to know which branch ran.
+
+    First-ever run has no recorded hash/tag (the SSM parameters don't exist
+    yet) -- same fail-open behavior as _skip_gate_commands: always rebuilds
+    rather than reusing a tag that might not actually exist in ECR.
+
+    Takes `cfg` (the pipeline's own top-level config), not `prod_cfg` --
+    same as the original unconditional commands this replaces, both ECR
+    repos live in the one account/region this pipeline itself runs in.
+    """
+    build_and_push = [
+        'echo "Building image for commit $SHORT_SHA"',
+        f"aws ecr get-login-password --region {cfg.region} "
+        f"| docker login --username AWS --password-stdin "
+        f"{cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com",
+        "docker build --platform linux/amd64 --target runtime "
+        "-t pyvar-dev-api:$SHORT_SHA -t pyvar-dev-api:latest .",
+        f"docker tag pyvar-dev-api:$SHORT_SHA {dev_ecr_uri}:$SHORT_SHA",
+        f"docker tag pyvar-dev-api:latest {dev_ecr_uri}:latest",
+        f"docker push {dev_ecr_uri}:$SHORT_SHA",
+        f"docker push {dev_ecr_uri}:latest",
+        # ── Promote the same image into Prod (prod-bootstrap follow-up) ──
+        # Retags the image just built above -- no second `docker build` --
+        # and pushes it to pyvar-prod-api's own repo under the same
+        # $SHORT_SHA tag prod_cfg.api_image_tag resolves to, so Prod always
+        # runs exactly what Dev already validated. The repo itself isn't
+        # CDK-managed (api_stack.py's own comment: provisioned out-of-band,
+        # RETAIN'd across stack lifecycles), so it's created here
+        # idempotently if this is its first run.
+        f"aws ecr describe-repositories --repository-names pyvar-prod-api "
+        f"--region {cfg.region} || aws ecr create-repository "
+        f"--repository-name pyvar-prod-api --region {cfg.region}",
+        f"docker tag pyvar-dev-api:$SHORT_SHA {prod_ecr_uri}:$SHORT_SHA",
+        f"docker tag pyvar-dev-api:latest {prod_ecr_uri}:latest",
+        f"docker push {prod_ecr_uri}:$SHORT_SHA",
+        f"docker push {prod_ecr_uri}:latest",
+        f'aws ssm put-parameter --name "{_IMAGE_HASH_SSM_PARAM}" --value "$IMAGE_HASH" '
+        "--type String --overwrite",
+        f'aws ssm put-parameter --name "{_IMAGE_TAG_SSM_PARAM}" --value "$SHORT_SHA" '
+        "--type String --overwrite",
+    ]
+    reuse = [
+        'echo "No image-relevant changes since the last build -- reusing '
+        'image tag $LAST_IMAGE_TAG instead of rebuilding."',
+        "SHORT_SHA=$LAST_IMAGE_TAG",
+    ]
+    body_build = "\n".join(build_and_push)
+    body_reuse = "\n".join(reuse)
+    return [
+        _image_relevant_hash_command("IMAGE_HASH"),
+        'echo "image-relevant content hash: $IMAGE_HASH"',
+        f'LAST_IMAGE_HASH=$(aws ssm get-parameter --name "{_IMAGE_HASH_SSM_PARAM}" '
+        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
+        f'LAST_IMAGE_TAG=$(aws ssm get-parameter --name "{_IMAGE_TAG_SSM_PARAM}" '
+        '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
+        'echo "Last recorded image-relevant hash: $LAST_IMAGE_HASH (tag: $LAST_IMAGE_TAG)"',
+        (
+            'if [ -n "$LAST_IMAGE_HASH" ] && [ "$LAST_IMAGE_HASH" != "None" ] '
+            '&& [ "$IMAGE_HASH" = "$LAST_IMAGE_HASH" ] '
+            '&& [ -n "$LAST_IMAGE_TAG" ] && [ "$LAST_IMAGE_TAG" != "None" ]; then\n'
+            f"{body_reuse}\nelse\n{body_build}\nfi"
+        ),
+    ]
+
+
 # ── Prod AMI bake trigger (CLAUDE.md §11) ───────────────────────────────────
 # Spliced directly into the shared Synth ShellStep's commands (see the call
 # site below), NOT added as its own pipelines.CodeBuildStep like
@@ -612,14 +717,13 @@ class PipelineStack(Stack):
                 # Unit + integration tests with coverage gate
                 "pytest -v --cov=. --cov-report=term-missing --cov-fail-under=80",
                 # ── Build + push the API image (#119) ────────────────────────
-                # Runs unconditionally on every commit, same as pytest/bandit/
-                # cdk synth above — NOT wrapped in the portal-relevance
-                # _guarded() gate. That gate's tracked paths deliberately
-                # exclude portal/ (a portal-only change needs no DB migration
-                # or smoke re-test), but portal/ IS baked into this image via
-                # Dockerfile's `COPY . .` — reusing that gate here would just
-                # reintroduce, for portal-only changes, the exact bug this
-                # step exists to fix (ECS silently serving a stale image).
+                # Gated by _image_build_commands (see its own module-level
+                # comment): skips the rebuild and reuses the last build's tag
+                # when nothing under _IMAGE_RELEVANT_PATHS changed, instead of
+                # rebuilding/repushing/redeploying on every single commit
+                # regardless of relevance (a docs-only or pyvar-client-only
+                # push previously caused a real ECS rolling deployment in both
+                # Dev and Prod for zero behavior change).
                 #
                 # Mirrors scripts/build-push-api.sh's build invocation exactly
                 # (that script is now a break-glass fallback for when the
@@ -627,30 +731,7 @@ class PipelineStack(Stack):
                 # SHORT_SHA matches the 7-char convention already used for
                 # every existing tag in this ECR repo.
                 "SHORT_SHA=$(echo $COMMIT_ID | cut -c1-7)",
-                'echo "Building image for commit $SHORT_SHA"',
-                f"aws ecr get-login-password --region {cfg.region} "
-                f"| docker login --username AWS --password-stdin {cfg.account}.dkr.ecr.{cfg.region}.amazonaws.com",
-                "docker build --platform linux/amd64 --target runtime "
-                "-t pyvar-dev-api:$SHORT_SHA -t pyvar-dev-api:latest .",
-                f"docker tag pyvar-dev-api:$SHORT_SHA {dev_ecr_uri}:$SHORT_SHA",
-                f"docker tag pyvar-dev-api:latest {dev_ecr_uri}:latest",
-                f"docker push {dev_ecr_uri}:$SHORT_SHA",
-                f"docker push {dev_ecr_uri}:latest",
-                # ── Promote the same image into Prod (prod-bootstrap follow-up) ──
-                # Retags the image just built above — no second `docker build`
-                # — and pushes it to pyvar-prod-api's own repo under the same
-                # $SHORT_SHA tag prod_cfg.api_image_tag resolves to below, so
-                # Prod always runs exactly what Dev already validated. The
-                # repo itself isn't CDK-managed (api_stack.py's own comment:
-                # provisioned out-of-band, RETAIN'd across stack lifecycles),
-                # so it's created here idempotently if this is its first run.
-                f"aws ecr describe-repositories --repository-names pyvar-prod-api "
-                f"--region {cfg.region} || aws ecr create-repository "
-                f"--repository-name pyvar-prod-api --region {cfg.region}",
-                f"docker tag pyvar-dev-api:$SHORT_SHA {prod_ecr_uri}:$SHORT_SHA",
-                f"docker tag pyvar-dev-api:latest {prod_ecr_uri}:latest",
-                f"docker push {prod_ecr_uri}:$SHORT_SHA",
-                f"docker push {prod_ecr_uri}:latest",
+                *_image_build_commands(cfg, dev_ecr_uri, prod_ecr_uri),
                 # ── Prod AMI bake trigger (CLAUDE.md §11) ─────────────────────
                 # MUST run before `cdk synth` below — see _ami_bake_commands'
                 # docstring for why. No-ops (a hash compare + one SSM read) on
@@ -885,6 +966,21 @@ class PipelineStack(Stack):
                     "ecr:BatchGetImage",
                 ],
                 resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-prod-api"],
+            )
+        )
+
+        # Lets _image_build_commands' skip gate read/write the image-relevant
+        # hash and last-built tag it needs to decide whether to rebuild —
+        # same pattern as _skip_gate_iam_statement for the migration/smoke
+        # gate, granted directly here (not via role_policy_statements) since
+        # this Synth step is a plain ShellStep, not a CodeBuildStep.
+        pipeline.synth_project.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["ssm:GetParameter", "ssm:PutParameter"],
+                resources=[
+                    f"arn:aws:ssm:{cfg.region}:{cfg.account}:parameter{_IMAGE_HASH_SSM_PARAM}",
+                    f"arn:aws:ssm:{cfg.region}:{cfg.account}:parameter{_IMAGE_TAG_SSM_PARAM}",
+                ],
             )
         )
 
