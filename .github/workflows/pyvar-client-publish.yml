@@ -29,6 +29,9 @@ jobs:
     environment: pypi
     permissions:
       id-token: write # required for PyPI Trusted Publishing (OIDC) -- no API token needed
+      contents: read # required by actions/checkout -- declaring `permissions:` at all
+      # zeroes every unlisted scope, so without this the default GITHUB_TOKEN can't
+      # even read this (private) repo and checkout fails with "Repository not found"
     steps:
       - uses: actions/checkout@v4
 
