@@ -533,16 +533,18 @@ quick start is the local dev / API setup, not a client library) — rushing a pu
 SDK to hit a launch date risks locking in a bad public API surface. Moved to the
 v0.2.0 roadmap below, consolidated with the CLI tool idea (a CLI is naturally built
 on top of a client library, so they should be designed together, not the SDK first
-
-**Update (2026-08-24)** — this changed before launch: `pyvar-client` was built anyway
-and shipped source-available in this repo at v0.1.0 (PR #257, 385 methods across 8
-domains — see `CHANGELOG.md`'s 0.1.0 entry). Only the PyPI publish itself stayed
-deferred past the v0.1.0 tag, pending the one-time Trusted Publisher bootstrap
-described in `.github/workflows/pyvar-client-publish.yml`'s own header comment (that
-bootstrap has to be done by hand via the PyPI web UI — no API exists for it). Both are
-now done: `pyvar-client` v0.1.0 is live at https://pypi.org/project/pyvar-client/. The
-CLI tool below is the only piece of this note still actually outstanding for v0.2.0.
 and a CLI bolted on after).
+
+**Update (2026-08-24)** — none of this held: `pyvar-client` was built anyway and
+shipped source-available in this repo at v0.1.0 (PR #257, 385 methods across 8
+domains — see `CHANGELOG.md`'s 0.1.0 entry), published to PyPI shortly after
+(https://pypi.org/project/pyvar-client/, pending the one-time Trusted Publisher
+bootstrap described in `.github/workflows/pyvar-client-publish.yml`'s own header
+comment — that bootstrap has to be done by hand via the PyPI web UI, no API exists
+for it), and the CLI itself then shipped too (PR #266, `pyvar-client` v0.1.1,
+2026-08-24) rather than waiting for v0.2.0 as this note originally planned. Nothing
+from this note is still outstanding — see the v0.2.0 roadmap bullet below, which is
+updated to match.
 
 ### Claude Code session prompts
 
@@ -649,54 +651,17 @@ The following additions are scoped for v0.2.0, informed by usage statistics from
 - Real-time market data ingestion (Bloomberg/Refinitiv API connector via IntegratePro)
 - Jupyter notebook integration (pyvar-jupyter kernel)
 - Additional functions based on GitHub Discussions demand
-- `pyvar-client` CLI (`pyvar compute var --params params.json`), built on top of the
-  SDK — the SDK itself is done: it shipped in this repo at v0.1.0 (PR #257) and
-  published to PyPI on 2026-08-24 (https://pypi.org/project/pyvar-client/), ahead of
-  the original plan to defer both to v0.2.0 (see the P9 update note above). Design
-  sketch below is retained as background for the SDK's shape; the CLI is the only
-  remaining piece of this item:
-  - **The one asymmetry that shapes everything**: 384 of the 385 functions are
-    synchronous (`POST /api/v1/{domain}/{function}` validates, computes, and
-    returns in one call). Only `POST /var/compute` is async — returns a
-    `task_id` immediately, client polls `GET /var/result/{task_id}` — and
-    above a simulation-count threshold even that returns a `presigned_url`
-    instead of an inline result (S3 offload, #130). The client has to handle
-    three response shapes cleanly, not pretend they're one.
-  - **Package shape**: `pyvar_client.Client(api_key=...)`, one entry point.
-    Per-domain namespaces mirroring the API (`client.market_risk.historical_
-    simulation_var(...)`, 8 domains, 385 methods). `client.var.compute(...)`
-    blocks internally (submit → poll → return) as a convenience; `client.var.
-    submit(...)`/`.poll(task_id)` exposed underneath for callers who want
-    async control themselves.
-  - **Generated, not hand-maintained**: `scripts/generate_function_catalog.py`
-    already builds `portal/functions.json` from the live OpenAPI schema
-    (`main.create_app().openapi()`) plus engine docstrings. That's the input
-    to a codegen step producing the typed per-domain methods and their
-    Pydantic-mirrored models, run in CI on every API schema change — 385
-    hand-written methods is its own maintenance burden and the fastest way
-    for the SDK to silently drift from the API (the P9 audit already found
-    one such drift in `pyvar_functions.csv` vs the live catalogue — see
-    `docs/p9-function-catalogue-reconciliation.md`).
-  - **Typed exceptions, not raw HTTP errors**: `PyvarAuthError` (401),
-    `PyvarValidationError` (422, carries field-level detail),
-    `PyvarRateLimitError` (429, carries `Retry-After` and the caller's tier),
-    `PyvarComputeError` (a VaR job that reached `status=failure`).
-  - **Auth**: register/verify stays a one-time human step (email link) — the
-    SDK takes a JWT the user already has, no separate SDK-side auth flow.
-  - **Retry/backoff**: every synchronous domain function is idempotent by
-    construction (pure compute, no side effects) — safe to auto-retry on
-    5xx/timeout. `POST /var/compute` submission is the one non-idempotent
-    call (blind retry risks double-submitting a job) — the wrapper
-    distinguishes retrying the submit from retrying the poll.
-  - **Versioning**: independent SemVer from the API's own (`/api/v1/`
-    already versions the API path) — a client major bump only follows a
-    real `/api/v2/` change, not a client-side ergonomics fix.
-  - **Testing**: no live API calls in the SDK's own suite (same rule this
-    project already holds its backend tests to) — recorded response
-    fixtures per domain, refreshed when `portal/functions.json` changes.
-  - **Explicitly out of v0.2.0**: no bundled CLI in the first cut (CLI is a
-    v0.2.1+ layer on top of a proven client shape), no `asyncio` client
-    variant, no batch/bulk-submit helper beyond what the API itself exposes.
+- ~~`pyvar-client` CLI, built on top of the SDK~~ — **done, not v0.2.0 scope
+  anymore.** Both halves of this item shipped ahead of schedule instead of
+  waiting for v0.2.0 as originally planned here (see the P9 update note
+  above): the SDK at v0.1.0 (PR #257, published to PyPI 2026-08-24) and the
+  CLI at v0.1.1 (PR #266, published to PyPI the same day). See
+  `pyvar-client/README.md`'s own `## CLI` section for actual usage — that's
+  now the source of truth for this item, not the design sketch this bullet
+  used to carry (package shape, exception types, retry semantics, etc. all
+  landed as designed; the generated-methods codegen approach also landed,
+  in `codegen/generate.py`, resolving the drift concern this sketch raised
+  about hand-maintaining 385 methods).
 - Streamlit dashboard as a hosted pyvar.com feature (not just local)
 
 ### Dependency on Fibtec services

@@ -7,6 +7,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a
+  `pyvar` command (stdlib `argparse` only, no new dependency). Generic
+  JSON-params dispatch (`pyvar <domain> <function> --params file.json`) over
+  the existing generated SDK namespaces, so it covers all 385 methods with
+  no separate codegen step; `var` gets its own `submit`/`poll`/`compute`
+  sub-subcommands mirroring `client.var`. See `pyvar-client/README.md`'s
+  `## CLI` section. Published as `pyvar-client` v0.1.1.
+
 ### Security
 
 - **Registration abuse gaps** — `POST /auth/register` had no disposable-email
