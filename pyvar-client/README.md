@@ -102,6 +102,67 @@ Polling (`client.var.poll()`) is a read, so it retries normally.
 in the main repo for the full, live list, or just use your editor's autocomplete —
 every method is fully typed.
 
+## CLI
+
+`pip install pyvar-client` also installs a `pyvar` command — stdlib `argparse`
+only, no extra install step, no extras group. It's a thin, generic dispatcher
+over the same `Client` namespaces above: `pyvar <domain> <function> --params
+file.json` resolves to `client.<domain>.<function>(**params)`, so every
+current and future method works without the CLI needing its own copy of the
+385-method catalogue.
+
+```bash
+export PYVAR_API_KEY="eyJ..."   # or pass --api-key on every call
+
+pyvar market_risk historical_simulation_var --params-json \
+    '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'
+
+# Or from a file, or piped in via stdin with --params -
+pyvar market_risk historical_simulation_var --params params.json
+```
+
+Calling a function with neither `--params` nor `--params-json` prints its
+docstring and signature instead of making a doomed API call with zero fields
+— handy when you don't remember what a function needs:
+
+```bash
+$ pyvar market_risk historical_simulation_var --api-key "$PYVAR_API_KEY"
+historical_simulation_var(*, returns: list[float] | list[list[float]], portfolio_value: float, ...) -> dict[str, Any]
+
+Historical simulation VaR from empirical return distribution.
+...
+```
+
+The one async function gets its own `submit`/`poll`/`compute` sub-subcommands,
+matching `client.var` exactly:
+
+```bash
+pyvar var compute --params var_params.json          # blocks: submit + poll + return
+pyvar var submit --params var_params.json           # returns immediately: {"task_id": "..."}
+pyvar var poll <task_id>                            # checks once, no blocking
+pyvar var compute --params var_params.json --poll-interval 1 --poll-timeout 60
+```
+
+Discover what's available without any credentials at all:
+
+```bash
+pyvar list-domains
+pyvar list-functions --domain market_risk
+```
+
+Exit codes distinguish failure modes for scripting, mirroring the exception
+table above:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Success (or a docstring/help display) |
+| `1` | Bad input — unknown domain/function, malformed `--params`, missing/wrong keyword arguments, or any other non-auth/validation/rate-limit/compute API error |
+| `2` | `PyvarAuthError` (401) |
+| `3` | `PyvarValidationError` (422) — field errors printed to stderr |
+| `4` | `PyvarRateLimitError` (429) — `retry_after` printed to stderr |
+| `5` | `PyvarComputeError` / `PyvarTimeoutError` — `task_id` printed to stderr |
+| `130` | Interrupted (Ctrl-C) |
+
 ## How the domain methods are generated
 
 385 methods is too much to hand-maintain without drifting from the API (see
