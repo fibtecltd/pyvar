@@ -196,5 +196,6 @@ the tests control, never a live server. See `tests/conftest.py`.
 
 ## License
 
-Apache License 2.0 — see [`LICENSE`](LICENSE). Same license as the main
-[pyvar.com](https://github.com/fibtecltd/pyvar) repository.
+Apache License 2.0 — see
+[`LICENSE`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/LICENSE).
+Same license as the main [pyvar.com](https://github.com/fibtecltd/pyvar) repository.
