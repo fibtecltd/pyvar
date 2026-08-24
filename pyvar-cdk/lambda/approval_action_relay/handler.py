@@ -28,18 +28,20 @@ Reasoning:
   untested one. If this Lambda instead republished onto the SAME topic it
   reads from, Chatbot would receive the native message AND the custom one
   for the same approval -- two Slack messages per approval, not one.
-- NOT YET FIELD-VALIDATED against a real captured payload. The field paths
-  below (content.additionalAttributes.token, etc.) are AWS's documented
-  CodeStar Notifications content schema for CodePipeline approval events,
-  but this repo has no committed sample of a REAL payload to test against.
-  handler() logs the full raw message unconditionally (see _log_raw_event)
-  specifically so a field-path mismatch is immediately diagnosable in
-  CloudWatch Logs on the very first real trigger, rather than silently
-  publishing a custom notification with missing/wrong token/pipeline/stage
-  data. Whoever deploys this should fire one synthetic
-  manual-approval-needed test through the new raw topic and confirm the
-  resulting Slack message's Custom Action menu actually offers the
-  expected variables before relying on this for a real approval.
+- FIELD-VALIDATED against real captured payloads (2026-08-24): there is no
+  top-level "content" key in any real CodeStar Notifications payload seen
+  for this account -- "additionalAttributes" is a sibling of "detail", not
+  nested under a "content" object. The approval token is at
+  detail["action-execution-id"] (this equals the actionExecutionId/token
+  returned by `codepipeline get-pipeline-state`), and the review link is at
+  the top-level additionalAttributes.externalEntityLink. A synthetic
+  manual-approval-needed test published directly onto
+  pyvar-pipeline-approval-raw confirmed the original field paths below
+  (content.additionalAttributes.token, detail.approval.token) never match
+  for this account and would have silently skipped every real approval
+  notification, not just the test. Those paths are kept as secondary
+  fallbacks only, matching AWS's documented-but-unobserved content schema,
+  in case some other event source ever does send that shape.
 """
 
 from __future__ import annotations
@@ -72,25 +74,38 @@ def parse_manual_approval_event(raw_message: dict[str, Any]) -> dict[str, str] |
     detail = raw_message.get("detail", {})
     content = raw_message.get("content", {})
     content_attrs = content.get("additionalAttributes", {})
+    top_attrs = raw_message.get("additionalAttributes", {})
 
     event_type = raw_message.get("detailType") or raw_message.get("detail-type")
-    is_approval_shaped = bool(detail.get("action")) and (
-        content_attrs.get("token") or detail.get("approval", {}).get("token")
+    # Token field path, in priority order:
+    #   1. detail["action-execution-id"] — the real path for this account,
+    #      confirmed against actual captured payloads (see module
+    #      docstring). This IS the approval token CodePipeline expects
+    #      back via PutApprovalResult.
+    #   2. content.additionalAttributes.token / detail.approval.token —
+    #      AWS's documented but (for this account) never-observed content
+    #      schema. Kept as a defensive fallback only.
+    token = (
+        detail.get("action-execution-id")
+        or content_attrs.get("token")
+        or detail.get("approval", {}).get("token")
     )
+    is_approval_shaped = bool(detail.get("action")) and bool(token)
     if event_type is None and not is_approval_shaped:
         return None
 
     pipeline = detail.get("pipeline")
     stage = detail.get("stage")
     action = detail.get("action")
-    # Two known field paths for the token depending on notification content
-    # version — prefer the documented CodeStar Notifications one, fall back
-    # to the older direct-SNS-on-approval-action shape in case this account
-    # ever sees that instead.
-    token = content_attrs.get("token") or detail.get("approval", {}).get("token")
     region = raw_message.get("region") or detail.get("region")
-    review_link = content_attrs.get("approvalReviewLink") or detail.get("approval", {}).get(
-        "approvalReviewLink"
+    # Review link, in priority order: real payloads carry this at the
+    # top-level additionalAttributes.externalEntityLink (often an empty
+    # string for this pipeline's ApproveProductionDeploy action).
+    # Documented content-schema paths kept as a defensive fallback only.
+    review_link = (
+        top_attrs.get("externalEntityLink")
+        or content_attrs.get("approvalReviewLink")
+        or detail.get("approval", {}).get("approvalReviewLink")
     )
 
     if not (pipeline and stage and action and token):
