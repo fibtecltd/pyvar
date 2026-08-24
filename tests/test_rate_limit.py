@@ -28,6 +28,7 @@ from api.middleware.rate_limit import (
     cfg,
     enforce_compute_rate_limit,
     enforce_public_rate_limit,
+    enforce_register_rate_limit,
     get_trusted_client_ip,
 )
 
@@ -176,3 +177,60 @@ async def test_public_rate_limit_keyed_by_trusted_ip_not_alb_peer(memory_limiter
         )
         await enforce_public_rate_limit(request_a)
         await enforce_public_rate_limit(request_b)  # different real IP — not throttled
+
+
+# ── enforce_register_rate_limit ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_allows_under_quota(memory_limiter):
+    with patch.object(cfg, "rate_limit_register_per_hour", 2):
+        request = FakeRequest(client_host="198.51.100.10")
+        await enforce_register_rate_limit(request)
+        await enforce_register_rate_limit(request)
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_blocks_over_quota(memory_limiter):
+    with patch.object(cfg, "rate_limit_register_per_hour", 1):
+        request = FakeRequest(client_host="198.51.100.11")
+        await enforce_register_rate_limit(request)
+        with pytest.raises(Exception) as exc_info:
+            await enforce_register_rate_limit(request)
+        assert exc_info.value.status_code == 429
+        assert "Retry-After" in exc_info.value.headers
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_keyed_by_trusted_ip_not_alb_peer(memory_limiter):
+    """Two different real clients behind the same ALB peer must not share a bucket."""
+    with patch.object(cfg, "rate_limit_register_per_hour", 1):
+        request_a = FakeRequest(
+            headers={"x-forwarded-for": "3.3.3.3, 10.0.0.9"}, client_host="10.0.0.9"
+        )
+        request_b = FakeRequest(
+            headers={"x-forwarded-for": "4.4.4.4, 10.0.0.9"}, client_host="10.0.0.9"
+        )
+        await enforce_register_rate_limit(request_a)
+        await enforce_register_rate_limit(request_b)  # different real IP — not throttled
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_separate_bucket_from_public_rate_limit(memory_limiter):
+    """Register and /public/* share an IP-keyed limiter instance but must not
+    share a quota bucket — a client shouldn't be able to exhaust one via the
+    other."""
+    with (
+        patch.object(cfg, "rate_limit_register_per_hour", 1),
+        patch.object(cfg, "rate_limit_unauth_per_hour", 1),
+    ):
+        request = FakeRequest(client_host="198.51.100.12")
+        await enforce_register_rate_limit(request)
+        await enforce_public_rate_limit(request)  # separate scope — not throttled
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_fails_open_on_storage_error(memory_limiter):
+    """An ElastiCache outage must never block registration."""
+    with patch.object(memory_limiter.limiter, "hit", side_effect=RuntimeError("redis down")):
+        await enforce_register_rate_limit(FakeRequest())  # must not raise

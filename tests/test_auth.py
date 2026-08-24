@@ -166,6 +166,24 @@ async def test_register_suppressed_email_does_not_resend(app):
 
 
 @pytest.mark.asyncio
+async def test_register_disposable_email_does_not_create_user(app):
+    session = FakeAsyncSession(lookup_result=None)
+
+    with patch_sessionmaker(session), patch("api.routes.auth.send_verification_email") as mock_send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/auth/register", json={"email": "throwaway@mailinator.com"}
+            )
+
+    # Same response shape as a real registration — never reveal *why* a
+    # request didn't go through (see api/routes/auth.py's module docstring).
+    assert resp.status_code == 202
+    assert session.added == []
+    assert session.committed is False
+    mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_register_rejects_malformed_email(app):
     session = FakeAsyncSession(lookup_result=None)
     with patch_sessionmaker(session):
