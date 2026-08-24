@@ -34,6 +34,11 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   zeroed every other default `GITHUB_TOKEN` scope, so `actions/checkout`
   couldn't read this private repo (`Repository not found`) on the first real
   `pyvar-client-v0.1.0` tag push. Added `contents: read`.
+- **`pyvar-client` README** — the License section linked `[LICENSE](LICENSE)`,
+  a relative path that resolves fine on GitHub but renders as a dead link on
+  PyPI's project page (PyPI doesn't rewrite relative markdown links against
+  the repo). Points at the GitHub blob instead. Published as `pyvar-client`
+  v0.1.2.
 
 ## [0.1.0] — 2026-08-22
 
