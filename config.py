@@ -142,6 +142,17 @@ class Settings(BaseSettings):
     rate_limit_unauth_per_hour: int = 5  # per-IP, /public/* only
     rate_limit_free_daily: int = 10  # per-user, all /api/v1 compute endpoints
     rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
+    rate_limit_register_per_hour: int = 5  # per-IP, POST /auth/register only
+
+    # ── Registration anti-abuse ─────────────────────────────────────────────────
+    # api/middleware/disposable_email.py vendors a static list of well-known
+    # disposable/throwaway email domains, checked at POST /auth/register (before
+    # any DB write or SES send — see api/routes/auth.py). This setting is for
+    # operator-added domains on top of that vendored list (e.g. one seen abusing
+    # signups post-launch) without needing a code change/redeploy of the vendored
+    # set itself. Empty by default — the vendored list alone is the default
+    # behavior.
+    blocked_email_domains: list[str] = []
 
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None

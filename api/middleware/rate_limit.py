@@ -161,3 +161,29 @@ async def enforce_public_rate_limit(request: Request) -> None:
 
     if not allowed:
         _raise_rate_limited(item, client_ip, "public")
+
+
+async def enforce_register_rate_limit(request: Request) -> None:
+    """Per-IP hourly quota for POST /auth/register.
+
+    Registration is unauthenticated (there's no JWT yet to key off), so this
+    is IP-keyed like enforce_public_rate_limit rather than user-keyed like
+    enforce_compute_rate_limit — and uses its own "register" scope so it
+    can't share or exhaust the /public/* bucket a client behind the same IP
+    might also be using. Closes the gap noted when this endpoint's own
+    anti-abuse gap was reviewed: registration previously had no throttling
+    at all, so an attacker could spam SES sends (cost + reputation risk) or
+    probe the disposable-email blocklist (api/middleware/disposable_email.py)
+    without limit.
+    """
+    client_ip = get_trusted_client_ip(request)
+    item = limits.parse(f"{cfg.rate_limit_register_per_hour}/hour")
+
+    try:
+        allowed = _limiter.limiter.hit(item, client_ip, "register")
+    except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+        logger.warning("Rate limit storage unavailable — allowing request", exc_info=True)
+        return
+
+    if not allowed:
+        _raise_rate_limited(item, client_ip, "register")

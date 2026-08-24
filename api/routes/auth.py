@@ -19,6 +19,14 @@ Reasoning:
   token (handles a lost/expired first email) instead of erroring; an
   already-VERIFIED email is a no-op. Both return the identical response —
   the endpoint never reveals whether an address is registered.
+- Anti-abuse: register() previously had no throttling and no domain check
+  at all. It now rejects known disposable/throwaway domains (see
+  api/middleware/disposable_email.py's own docstring for why this is
+  scoped to throwaway providers specifically, not personal-looking domains
+  like gmail.com) before touching the DB or SES, and is rate-limited
+  per-IP (api/middleware/rate_limit.py::enforce_register_rate_limit) —
+  both close a real gap: an attacker could otherwise spam SES sends or
+  probe the blocklist without limit.
 """
 
 from __future__ import annotations
@@ -30,10 +38,12 @@ from typing import Any
 
 import boto3
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
 from api.middleware.auth import create_access_token
+from api.middleware.disposable_email import is_disposable_email
+from api.middleware.rate_limit import enforce_register_rate_limit
 from config import get_settings
 from schemas.auth import RegisterRequest, RegisterResponse, VerifyResponse
 from storage.models import User
@@ -102,9 +112,22 @@ def send_verification_email(email: str, token: str) -> None:
         )
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(enforce_register_rate_limit)],
+)
 async def register(body: RegisterRequest) -> RegisterResponse:
     """Register an email; a verification token is issued (see send_verification_email)."""
+    if is_disposable_email(str(body.email)):
+        # Same response shape as every other branch below — never reveal
+        # *why* a registration didn't go through, so the blocklist itself
+        # can't be probed/fingerprinted from the outside. No DB write, no
+        # SES send: this domain never reaches either.
+        logger.warning("registration_skipped_disposable_email", email=str(body.email))
+        return RegisterResponse()
+
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
 
