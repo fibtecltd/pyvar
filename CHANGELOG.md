@@ -7,7 +7,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- **Registration abuse gaps** — `POST /auth/register` had no disposable-email
+  domain check and no rate limiting at all, unlike every other endpoint (which
+  goes through slowapi via `enforce_compute_rate_limit`/
+  `enforce_public_rate_limit`). Added a vendored, config-extensible
+  disposable-email blocklist checked before any DB write or SES send, and a
+  dedicated `enforce_register_rate_limit` (IP-keyed, its own
+  `rate_limit_register_per_hour` config knob). Both follow the existing
+  never-reveal-why-it-failed pattern: same generic 202 response either way.
+
+### Fixed
+
+- **`pyvar-client-publish.yml`** — declaring `permissions: { id-token: write }`
+  zeroed every other default `GITHUB_TOKEN` scope, so `actions/checkout`
+  couldn't read this private repo (`Repository not found`) on the first real
+  `pyvar-client-v0.1.0` tag push. Added `contents: read`.
 
 ## [0.1.0] — 2026-08-22
 
