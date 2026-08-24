@@ -45,10 +45,10 @@ REST API and served through an async Celery/SQS job pipeline on AWS. See
 - `pyvar-client` — a typed Python SDK covering all 385 endpoints across the
   8 domains, with retry/backoff, typed exceptions, and a blocking
   `client.var.compute(...)` convenience wrapper over the one async job
-  flow. Source-available in this repo at launch; not yet published to
-  PyPI (Trusted Publisher project bootstrap and the SDK's own
-  `pyvar-client-v0.1.0` tag are still pending — see
-  `docs/pyvar_release_plan.md`).
+  flow. Source-available in this repo at launch, and published to PyPI on
+  2026-08-24 (https://pypi.org/project/pyvar-client/) — see
+  `docs/pyvar_release_plan.md` for the PyPI Trusted Publisher bootstrap
+  history.
 
 ### Fixed
 

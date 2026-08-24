@@ -533,6 +533,15 @@ quick start is the local dev / API setup, not a client library) — rushing a pu
 SDK to hit a launch date risks locking in a bad public API surface. Moved to the
 v0.2.0 roadmap below, consolidated with the CLI tool idea (a CLI is naturally built
 on top of a client library, so they should be designed together, not the SDK first
+
+**Update (2026-08-24)** — this changed before launch: `pyvar-client` was built anyway
+and shipped source-available in this repo at v0.1.0 (PR #257, 385 methods across 8
+domains — see `CHANGELOG.md`'s 0.1.0 entry). Only the PyPI publish itself stayed
+deferred past the v0.1.0 tag, pending the one-time Trusted Publisher bootstrap
+described in `.github/workflows/pyvar-client-publish.yml`'s own header comment (that
+bootstrap has to be done by hand via the PyPI web UI — no API exists for it). Both are
+now done: `pyvar-client` v0.1.0 is live at https://pypi.org/project/pyvar-client/. The
+CLI tool below is the only piece of this note still actually outstanding for v0.2.0.
 and a CLI bolted on after).
 
 ### Claude Code session prompts
@@ -640,11 +649,12 @@ The following additions are scoped for v0.2.0, informed by usage statistics from
 - Real-time market data ingestion (Bloomberg/Refinitiv API connector via IntegratePro)
 - Jupyter notebook integration (pyvar-jupyter kernel)
 - Additional functions based on GitHub Discussions demand
-- `pyvar-client` Python SDK, published to PyPI, with a CLI built on top of it
-  (`pyvar compute var --params params.json`) — descoped from v0.1.0 (see P9 Tasks):
-  design the client library and CLI together rather than bolting a CLI onto a
-  rushed SDK, and let real API usage from the v0.1.0 launch inform the client's
-  design instead of guessing at it pre-launch. Scope sketch:
+- `pyvar-client` CLI (`pyvar compute var --params params.json`), built on top of the
+  SDK — the SDK itself is done: it shipped in this repo at v0.1.0 (PR #257) and
+  published to PyPI on 2026-08-24 (https://pypi.org/project/pyvar-client/), ahead of
+  the original plan to defer both to v0.2.0 (see the P9 update note above). Design
+  sketch below is retained as background for the SDK's shape; the CLI is the only
+  remaining piece of this item:
   - **The one asymmetry that shapes everything**: 384 of the 385 functions are
     synchronous (`POST /api/v1/{domain}/{function}` validates, computes, and
     returns in one call). Only `POST /var/compute` is async — returns a
