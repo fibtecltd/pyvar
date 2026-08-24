@@ -9,9 +9,16 @@ Reasoning:
   without credentials; handler()'s own sns.publish call is mocked by
   replacing the module-level `sns` attribute after import.
 - parse_manual_approval_event/build_custom_notification are pure functions,
-  tested directly without going through handler()/SNS-record wrapping —
-  see that module's own docstring for why field-path correctness here is
-  flagged as NOT YET validated against a real captured payload.
+  tested directly without going through handler()/SNS-record wrapping.
+- _REAL_APPROVAL_EVENT matches actual CodeStar Notifications payloads
+  captured while diagnosing the missing prod-approval Slack notification
+  (2026-08-22 to 2026-08-24 incident): no top-level "content" key exists,
+  "additionalAttributes" is a sibling of "detail", and the approval token
+  is detail["action-execution-id"]. The previous fixture here encoded
+  AWS's documented-but-never-observed content.additionalAttributes.token
+  schema instead — that mismatch is exactly what let the original handler
+  bug (see its module docstring) pass this suite while silently skipping
+  every real approval notification.
 """
 
 from __future__ import annotations
@@ -38,29 +45,35 @@ def _load_handler_module(monkeypatch):
     return module
 
 
-# A realistic CodeStar Notifications payload shape for
-# codepipeline-pipeline-manual-approval-needed, per AWS's documented
-# notification content schema.
-_NATIVE_APPROVAL_EVENT = {
+# The REAL CodeStar Notifications payload shape for
+# codepipeline-pipeline-manual-approval-needed, confirmed against actual
+# captured payloads for this account -- not AWS's documented content
+# schema (see module docstring and handler.py's).
+_REAL_APPROVAL_EVENT = {
     "account": "123456789012",
     "detailType": "CodePipeline Action Execution State Change",
     "region": "eu-west-1",
     "source": "aws.codepipeline",
+    "notificationRuleArn": (
+        "arn:aws:codestar-notifications:eu-west-1:123456789012:notificationrule/example"
+    ),
     "detail": {
         "pipeline": "pyvar-dev-pipeline",
+        "execution-id": "11111111-1111-4111-8111-111111111111",
+        "start-time": "2026-08-24T06:05:07.104Z",
         "stage": "Prod",
+        "action-execution-id": "abc-token-123",
         "action": "ApproveProductionDeploy",
         "state": "STARTED",
         "region": "eu-west-1",
+        "type": {"owner": "AWS", "provider": "Manual", "category": "Approval", "version": "1"},
+        "version": 7.0,
+        "pipeline-execution-attempt": 1.0,
     },
-    "content": {
-        "textType": "client-markdown",
-        "title": "CodePipeline pyvar-dev-pipeline has a manual approval",
-        "description": "The pipeline requires a manual approval action",
-        "additionalAttributes": {
-            "token": "abc-token-123",
-            "approvalReviewLink": "https://console.aws.amazon.com/codesuite/codepipeline/...",
-        },
+    "resources": ["arn:aws:codepipeline:eu-west-1:123456789012:pyvar-dev-pipeline"],
+    "additionalAttributes": {
+        "externalEntityLink": "https://console.aws.amazon.com/codesuite/codepipeline/...",
+        "customData": "Review dev deployment smoke tests before approving.",
     },
 }
 
@@ -68,9 +81,9 @@ _NATIVE_APPROVAL_EVENT = {
 # ── parse_manual_approval_event ──────────────────────────────────────────────
 
 
-def test_parse_extracts_all_fields_from_documented_shape(monkeypatch):
+def test_parse_extracts_all_fields_from_real_shape(monkeypatch):
     module = _load_handler_module(monkeypatch)
-    fields = module.parse_manual_approval_event(_NATIVE_APPROVAL_EVENT)
+    fields = module.parse_manual_approval_event(_REAL_APPROVAL_EVENT)
 
     assert fields == {
         "pipeline": "pyvar-dev-pipeline",
@@ -80,6 +93,31 @@ def test_parse_extracts_all_fields_from_documented_shape(monkeypatch):
         "region": "eu-west-1",
         "review_link": "https://console.aws.amazon.com/codesuite/codepipeline/...",
     }
+
+
+def test_parse_falls_back_to_documented_content_schema_token(monkeypatch):
+    """AWS's documented content.additionalAttributes.token schema — never
+    observed for this account, but kept as a defensive fallback. See
+    module docstring."""
+    module = _load_handler_module(monkeypatch)
+    event = {
+        "detailType": "CodePipeline Action Execution State Change",
+        "detail": {
+            "pipeline": "pyvar-dev-pipeline",
+            "stage": "Prod",
+            "action": "ApproveProductionDeploy",
+        },
+        "content": {
+            "additionalAttributes": {
+                "token": "documented-schema-token",
+                "approvalReviewLink": "https://example.com/review",
+            }
+        },
+    }
+
+    fields = module.parse_manual_approval_event(event)
+    assert fields["token"] == "documented-schema-token"
+    assert fields["review_link"] == "https://example.com/review"
 
 
 def test_parse_falls_back_to_detail_approval_token(monkeypatch):
@@ -93,11 +131,30 @@ def test_parse_falls_back_to_detail_approval_token(monkeypatch):
             "action": "ApproveProductionDeploy",
             "approval": {"token": "fallback-token"},
         },
-        "content": {},
     }
 
     fields = module.parse_manual_approval_event(event)
     assert fields["token"] == "fallback-token"
+
+
+def test_parse_prefers_real_shape_token_over_fallback_paths(monkeypatch):
+    """detail.action-execution-id must win when multiple field paths are
+    somehow present at once."""
+    module = _load_handler_module(monkeypatch)
+    event = {
+        "detailType": "CodePipeline Action Execution State Change",
+        "detail": {
+            "pipeline": "pyvar-dev-pipeline",
+            "stage": "Prod",
+            "action": "ApproveProductionDeploy",
+            "action-execution-id": "real-shape-token",
+            "approval": {"token": "fallback-token"},
+        },
+        "content": {"additionalAttributes": {"token": "documented-schema-token"}},
+    }
+
+    fields = module.parse_manual_approval_event(event)
+    assert fields["token"] == "real-shape-token"
 
 
 def test_parse_returns_none_when_token_missing(monkeypatch):
@@ -105,7 +162,6 @@ def test_parse_returns_none_when_token_missing(monkeypatch):
     event = {
         "detailType": "CodePipeline Action Execution State Change",
         "detail": {"pipeline": "p", "stage": "s", "action": "a"},
-        "content": {"additionalAttributes": {}},
     }
     assert module.parse_manual_approval_event(event) is None
 
@@ -123,7 +179,7 @@ def test_parse_returns_none_for_unrelated_event_shape(monkeypatch):
 
 def test_parse_returns_none_when_review_link_and_region_absent_but_still_no_token(monkeypatch):
     module = _load_handler_module(monkeypatch)
-    event = {"detail": {}, "content": {}}
+    event = {"detail": {}}
     assert module.parse_manual_approval_event(event) is None
 
 
@@ -182,7 +238,7 @@ def test_handler_publishes_custom_notification_for_valid_event(monkeypatch):
     mock_sns = MagicMock()
     monkeypatch.setattr(module, "sns", mock_sns)
 
-    result = module.handler({"Records": [_sns_record(_NATIVE_APPROVAL_EVENT)]}, None)
+    result = module.handler({"Records": [_sns_record(_REAL_APPROVAL_EVENT)]}, None)
 
     assert result == {"relayed_count": 1}
     mock_sns.publish.assert_called_once()
@@ -211,7 +267,7 @@ def test_handler_one_malformed_record_does_not_abort_batch(monkeypatch):
     monkeypatch.setattr(module, "sns", mock_sns)
 
     malformed = {"Sns": {"Message": "not-json"}}
-    valid = _sns_record(_NATIVE_APPROVAL_EVENT)
+    valid = _sns_record(_REAL_APPROVAL_EVENT)
     result = module.handler({"Records": [malformed, valid]}, None)
 
     assert result == {"relayed_count": 1}
