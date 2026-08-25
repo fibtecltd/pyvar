@@ -292,12 +292,30 @@ def _image_build_commands(cfg: PyvarConfig, dev_ecr_uri: str, prod_ecr_uri: str)
         f'LAST_IMAGE_TAG=$(aws ssm get-parameter --name "{_IMAGE_TAG_SSM_PARAM}" '
         '--query "Parameter.Value" --output text 2>/dev/null || echo "")',
         'echo "Last recorded image-relevant hash: $LAST_IMAGE_HASH (tag: $LAST_IMAGE_TAG)"',
+        # set -e scoped to exactly this if/else block: it's ONE CodeBuild
+        # commands: entry (not a subshell — same reasoning as the AMI bake
+        # gate's own comment above), so CodeBuild only ever checks the exit
+        # status of the LAST line executed. Without set -e, a failure
+        # partway through body_build (e.g. `docker build` hitting a
+        # registry pull rate limit) doesn't stop the script — bash just
+        # keeps going, `docker tag`/`docker push` fail too, and execution
+        # still reaches the final `aws ssm put-parameter` calls, which
+        # succeed on their own and record a tag that was never actually
+        # pushed to either ECR repo. That's exactly what happened on
+        # 2026-08-25: tag 83d9897 got recorded as built, ECS then failed
+        # every task launch with CannotPullContainerError, and the
+        # deployment circuit breaker auto-rolled Dev back. set +e
+        # immediately after so this doesn't change behavior for the
+        # unrelated steps (_ami_bake_commands, cdk synth) that follow in
+        # this same continuous CodeBuild shell session.
+        "set -e",
         (
             'if [ -n "$LAST_IMAGE_HASH" ] && [ "$LAST_IMAGE_HASH" != "None" ] '
             '&& [ "$IMAGE_HASH" = "$LAST_IMAGE_HASH" ] '
             '&& [ -n "$LAST_IMAGE_TAG" ] && [ "$LAST_IMAGE_TAG" != "None" ]; then\n'
             f"{body_reuse}\nelse\n{body_build}\nfi"
         ),
+        "set +e",
     ]
 
 
