@@ -15,9 +15,19 @@
 # Build:
 #   docker build --target runtime -t pyvar-api .
 #   docker compose build pyvar-api   (via pyvar/docker-compose.yml)
+#
+# Base image is pulled from Amazon ECR Public's Docker Official Images
+# mirror (public.ecr.aws/docker/library/...), not docker.io, in both
+# stages below. CodeBuild pulling docker.io/library/python:3.11-slim
+# anonymously (no docker.io credentials configured) hit Docker Hub's
+# unauthenticated pull-rate limit mid-build on 2026-08-25, which the
+# image-build gate's missing `set -e` then let fail silently — see
+# pyvar-cdk/stacks/pipeline_stack.py's _image_build_commands comment.
+# public.ecr.aws mirrors the same official image/tags with a much
+# higher unauthenticated limit and needs no credentials either.
 # ============================================================
 
-FROM python:3.11-slim AS builder
+FROM public.ecr.aws/docker/library/python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -78,7 +88,9 @@ print('Numba warmup complete')"
 
 
 # ── Runtime stage ─────────────────────────────────────────────
-FROM python:3.11-slim AS runtime
+# Same public.ecr.aws mirror as the builder stage above — see that
+# FROM line's comment.
+FROM public.ecr.aws/docker/library/python:3.11-slim AS runtime
 
 WORKDIR /app
 
