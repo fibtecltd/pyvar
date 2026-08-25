@@ -7,10 +7,12 @@ Prod stage had never completed. That pattern no longer holds — see the
 approved, and the Prod stage (including `RunDbMigration-prod`) has now
 completed via the pipeline itself, twice, confirmed via CloudTrail. As of
 2026-08-22, `ApproveProductionDeploy` also has a working Slack integration
-(PR #258 + AWS Chatbot console setup) — see that update below. Decision to
-flip `require_prod_approval` to `False` remains separately unmade,
-deliberately deferred until after the P9 exit gate (48h healthy prod +
-post-launch monitoring).**
+(PR #258 + AWS Chatbot console setup) — see that update below. As of
+2026-08-25, `ApproveProductionDeploy` also has working Approve/Reject
+buttons directly in Slack — see that update below. Decision to flip
+`require_prod_approval` to `False` remains separately unmade, deliberately
+deferred until after the P9 exit gate (48h healthy prod + post-launch
+monitoring).**
 
 ## Why this doc exists
 
@@ -324,3 +326,82 @@ own module docstring — and (b) what variables Chatbot actually exposes for
 the button's CLI command template. Until that's done, notifications for
 `ApproveProductionDeploy` still land as plain text, same as before this
 update — this is groundwork for the button, not the button itself.
+
+## Update (2026-08-25) — Approve/Reject Slack buttons: two real bugs found and fixed, now fully working
+
+The 2026-08-24 groundwork (raw SNS topic + `approval_action_relay` Lambda,
+PR #272) was explicitly framed as "not yet field-validated." Turning it
+into an actual clickable button surfaced two distinct, real bugs — both
+now found, fixed, and independently verified:
+
+**Bug 1 — relay Lambda read the token from the wrong field path (PR
+#273).** `parse_manual_approval_event` assumed AWS's documented
+`content.additionalAttributes.token` schema. The real CodeStar
+Notifications payload for this account has **no top-level `content` key
+at all** — `additionalAttributes` is a sibling of `detail`, and the
+approval token is actually at `detail["action-execution-id"]` (confirmed
+to equal the `actionExecutionId`/token CodePipeline's own
+`get-pipeline-state` returns). A synthetic `manual-approval-needed` test
+published directly onto `pyvar-pipeline-approval-raw` reproduced this
+exactly: the Lambda logged `approval_relay_skipped_unrecognised_event` and
+never republished anything. Fixed field paths (token/review-link),
+confirmed via a follow-up synthetic test: relay logged no skip/error,
+`NumberOfMessagesPublished` on `pyvar-pipeline-notifications` incremented,
+and the resulting custom notification was confirmed delivered to
+`#pyvar-prod-approvals`.
+
+**Bug 2 — the Chatbot role's `PutApprovalResult` grant used the wrong
+resource ARN shape (PR #274).** Once notifications were relaying
+correctly, the actual Custom Action button (see below) was created and
+test-clicked. First click failed with
+`AccessDeniedException: ... is not authorized to perform:
+codepipeline:PutApprovalResult ... because no identity-based policy
+allows the codepipeline:PutApprovalResult action` — the role's policy
+granted `PutApprovalResult` on the **bare pipeline ARN**
+(`arn:...:pyvar-dev-pipeline`), but per
+[AWS's own IAM reference](https://docs.aws.amazon.com/codepipeline/latest/userguide/approvals-iam-permissions.html),
+that action's resource-level ARN format is `pipeline-name/stage-name/
+action-name` — the grant never matched. (`GetPipelineState`'s
+resource-level format genuinely *is* the bare pipeline ARN per the same
+AWS doc, so that grant was already correct and untouched.) Split into two
+`PolicyStatement`s, `PutApprovalResult` now scoped to
+`pyvar-dev-pipeline/Prod/ApproveProductionDeploy`. Confirmed fixed with a
+second test click: the same button, same (still-fake) UUID-shaped token,
+now fails with `InvalidApprovalTokenException` ("token ... either does
+not exist or is not the correct token") instead of `AccessDeniedException`
+— i.e. IAM authorization now succeeds, and the request correctly reaches
+CodePipeline's own approval-token-matching logic, which correctly rejects
+a token that isn't real.
+
+**What's actually deployed now:** two Chatbot Custom Actions on the
+`#pyvar-prod-approvals` channel, `approve-production-deploy` and
+`reject-production-deploy` (CLI action type), running
+```
+codepipeline put-approval-result --result summary="$ApprovalComment",status=Approved --stage-name $stageName --action-name $actionName --pipeline-name $pipelineName --token $approvalToken --region $region
+```
+(and the `Rejected`/`$RejectionReason` equivalent), using the predefined
+notification variables `$pipelineName`/`$stageName`/`$actionName`/
+`$approvalToken`/`$region` that `approval_action_relay`'s custom
+notification exposes via `metadata.additionalContext`, plus free-text
+`$ApprovalComment`/`$RejectionReason` variables Chatbot prompts for at
+click-time. Both buttons are scoped with a display criterion
+(`actionName` equals `ApproveProductionDeploy`) so they only appear on
+this specific notification type, not on every message in the channel.
+
+**What's still unverified, and can only be verified by a real approval:**
+every stage of the chain (SNS → relay Lambda → Chatbot custom
+notification delivery → button → IAM authorization → CodePipeline's
+approval-token matching) has now been independently confirmed working,
+using synthetic test data at every stage since none of this could safely
+be tested against a real in-flight approval. The one thing a synthetic
+token can never confirm is a real token succeeding — that only happens
+the next time `ApproveProductionDeploy` genuinely opens and someone clicks
+Approve or Reject for real. No reason to expect it won't work given
+everything else checks out, but it's the one box this update can't tick.
+
+This closes out the Slack approve-button portion of task #47 (the
+notification-delivery portion was already closed in the updates above).
+The one open thread from the 2026-08-24 update — the rare, non-reproducible
+silent-delivery failure — did not recur across any of this round's
+extensive synthetic testing; still nothing to escalate to AWS Support
+without a repro, per that update's own conclusion.
