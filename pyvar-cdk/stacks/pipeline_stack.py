@@ -1153,11 +1153,12 @@ class PipelineStack(Stack):
         # scoped, and versioned like every other IAM policy in this file.
         #
         # docs/p9-pipeline-approval-gate-status.md's operational-gotcha
-        # section is exactly why PutApprovalResult is scoped to this one
-        # pipeline's ARN, not "*" -- the whole point of wiring Slack in here
-        # is to reduce the chance of approving the wrong thing, not to widen
-        # what a compromised or misconfigured Chatbot integration could
-        # approve.
+        # section is exactly why PutApprovalResult is scoped down at all
+        # (not "*") -- the whole point of wiring Slack in here is to reduce
+        # the chance of approving the wrong thing, not to widen what a
+        # compromised or misconfigured Chatbot integration could approve.
+        # It's scoped even narrower than the pipeline's own ARN, in fact --
+        # see the PutApprovalResult PolicyStatement below for why.
         #
         # This role is NOT wired to a SlackChannelConfiguration in this
         # stack -- that resource still requires the Slack workspace to be
@@ -1174,8 +1175,25 @@ class PipelineStack(Stack):
         )
         chatbot_role.add_to_policy(
             iam.PolicyStatement(
-                actions=["codepipeline:GetPipelineState", "codepipeline:PutApprovalResult"],
+                actions=["codepipeline:GetPipelineState"],
                 resources=[pipeline.pipeline.pipeline_arn],
+            )
+        )
+        chatbot_role.add_to_policy(
+            iam.PolicyStatement(
+                # PutApprovalResult's resource-level ARN format is
+                # pipeline/stage/action, NOT the bare pipeline ARN used above
+                # for GetPipelineState -- confirmed against AWS's own IAM
+                # reference (docs.aws.amazon.com/codepipeline/latest/
+                # userguide/approvals-iam-permissions.html) after a live
+                # Custom Action button click failed with AccessDeniedException
+                # using the bare pipeline ARN (no identity-based policy
+                # allows the action, because the Resource simply didn't
+                # match). "Prod"/"ApproveProductionDeploy" are the literal
+                # stage/action names from the ManualApprovalStep above --
+                # keep both in sync if either is ever renamed.
+                actions=["codepipeline:PutApprovalResult"],
+                resources=[f"{pipeline.pipeline.pipeline_arn}/Prod/ApproveProductionDeploy"],
             )
         )
         # Lets Chatbot format the manual-approval Slack message it renders
