@@ -500,6 +500,13 @@ Day -3:  Review + enhance .claude/skills/ with this deployment's project
          no AWS dependency; hard gate before Day 0, since .claude/ is
          tracked in git and goes public with the repo)
 Day -1:  DNS switch: pyvar.com → CloudFront prod distribution
+         DONE — pulled forward and executed 2026-08-15/16, well ahead of
+         this checklist reaching Day -1. Do NOT re-run this: it's a live-
+         traffic-affecting CloudFront alias migration that caused two real
+         outages before the corrected sequence succeeded. See
+         docs/domain-cutover-stage-b-c-plan.md for the full runbook,
+         incident report, and final verified state (pyvar.com/www.pyvar.com
+         both serving prod, confirmed via real CloudWatch traffic).
 Day  0:  GitHub repo public (tag v0.1.0)
 Day  0:  Post to Hacker News (Show HN), r/quantfinance, r/algotrading
 Day  0:  Email Anthropic partner programme — pyvar.com is live
