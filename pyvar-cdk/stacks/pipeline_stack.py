@@ -1193,7 +1193,15 @@ class PipelineStack(Stack):
         )
         chatbot_role.add_to_policy(
             iam.PolicyStatement(
-                actions=["codepipeline:GetPipelineState"],
+                # GetPipeline is a SEPARATE action from GetPipelineState --
+                # Chatbot's "Get Info" button on a manual-approval message
+                # calls GetPipeline (the pipeline's declarative structure),
+                # not GetPipelineState (current execution status), and a
+                # live "Get Info" click failed with AccessDeniedException on
+                # GetPipeline alone even with GetPipelineState already
+                # granted. Both use the same bare-pipeline-ARN resource
+                # format, unlike PutApprovalResult below.
+                actions=["codepipeline:GetPipeline", "codepipeline:GetPipelineState"],
                 resources=[pipeline.pipeline.pipeline_arn],
             )
         )
