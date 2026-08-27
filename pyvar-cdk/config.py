@@ -153,8 +153,20 @@ class PyvarConfig:
     # in the Console the connection flips to "Available" and its ARN can be
     # pasted in here. Do this, then set this field, as a small dedicated
     # follow-up -- not required for this field/gate to merge safely.
+    # 2026-08-27: the original connection above (0b05d0ea-...) had settled on
+    # "Available" without ever actually having a live "AWS Connector for
+    # GitHub" installation behind it on the fibtecltd org -- every pipeline
+    # execution's Source action failed with "[GitHub] No Branch [master]
+    # found for FullRepositoryName [fibtecltd/pyvar]", and the connection's
+    # own trigger-retry relay kept starting (and failing) a fresh execution
+    # roughly every 9 minutes. There is no update-in-place API for a
+    # Connection's GitHub App binding (confirmed against the actual
+    # codeconnections service model: Create/Delete/Get/List only, no
+    # Update), so the fix was a brand-new connection, not a repair of the
+    # old one. The App is now confirmed installed on the fibtecltd org
+    # (repository_selection: "all") before this ARN was created.
     github_connection_arn: str = (
-        "arn:aws:codeconnections:eu-west-1:347228921290:connection/0b05d0ea-3d15-4056-9a0b-d758f6269965"
+        "arn:aws:codeconnections:eu-west-1:347228921290:connection/6fe494f3-a953-4a9b-af81-0a5763cc4caa"
     )
 
     @classmethod
