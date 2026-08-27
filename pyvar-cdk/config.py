@@ -153,7 +153,9 @@ class PyvarConfig:
     # in the Console the connection flips to "Available" and its ARN can be
     # pasted in here. Do this, then set this field, as a small dedicated
     # follow-up -- not required for this field/gate to merge safely.
-    github_connection_arn: str = ""
+    github_connection_arn: str = (
+        "arn:aws:codeconnections:eu-west-1:347228921290:connection/0b05d0ea-3d15-4056-9a0b-d758f6269965"
+    )
 
     @classmethod
     def for_env(
