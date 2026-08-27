@@ -150,6 +150,31 @@ class EdgeStack(Stack):
             },
         )
 
+        # HSTS response header — prerequisite for HSTS preload eligibility
+        # (hstspreload.org) on www.pyvar.com specifically. Note the scope
+        # limit: pyvar.com's bare apex is served entirely by Aruba's own
+        # forwarding proxy (a 301 to www.pyvar.com, outside CloudFront/this
+        # stack's control — see the certificate comment below), so this
+        # header can only ever cover www.pyvar.com and cannot close the
+        # first-visit-to-the-bare-apex plaintext window; that would need a
+        # separate, operator-only check of whether Aruba's forwarding
+        # service supports custom response headers at all (uncertain, not
+        # actioned here). max_age=1 year + includeSubDomains + preload are
+        # the exact three hstspreload.org submission requirements.
+        hsts_policy = cf.ResponseHeadersPolicy(
+            self,
+            "HstsPolicy",
+            response_headers_policy_name=f"pyvar-{cfg.env_name}-hsts",
+            security_headers_behavior=cf.ResponseSecurityHeadersBehavior(
+                strict_transport_security=cf.ResponseHeadersStrictTransportSecurity(
+                    access_control_max_age=cdk.Duration.days(365),
+                    include_subdomains=True,
+                    preload=True,
+                    override=True,
+                ),
+            ),
+        )
+
         # Cache policy for API responses:
         # - Respects Cache-Control headers from FastAPI
         # - min TTL = 0 so PENDING responses (Cache-Control: no-store) are never cached
@@ -260,6 +285,7 @@ class EdgeStack(Stack):
                 cache_policy=api_cache_policy,
                 allowed_methods=cf.AllowedMethods.ALLOW_ALL,
                 origin_request_policy=cf.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+                response_headers_policy=hsts_policy,
                 compress=True,
             ),
             additional_behaviors={
@@ -269,6 +295,7 @@ class EdgeStack(Stack):
                     viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                     cache_policy=cf.CachePolicy.CACHING_DISABLED,
                     allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
+                    response_headers_policy=hsts_policy,
                 ),
                 # API docs: cache for 5 minutes
                 "/docs": cf.BehaviorOptions(
@@ -276,6 +303,7 @@ class EdgeStack(Stack):
                     viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                     cache_policy=cf.CachePolicy.CACHING_OPTIMIZED,
                     allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
+                    response_headers_policy=hsts_policy,
                 ),
             },
             enable_logging=True,
