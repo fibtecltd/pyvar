@@ -22,6 +22,8 @@ Reasoning:
 
 from __future__ import annotations
 
+import typing
+
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack
 from aws_cdk import aws_codebuild as cb
@@ -660,12 +662,27 @@ class PipelineStack(Stack):
         # wrong until now: the pipeline could never actually have connected
         # to real commits, on top of the account-level CodeBuild quota that
         # separately blocked ever deploying this stack at all (now resolved).
-        source = pipelines.CodePipelineSource.git_hub(
-            repo_string="fibtecltd/pyvar",
-            branch="master",
-            authentication=github_token,
-            trigger=cpa.GitHubTrigger.WEBHOOK,  # triggers on push to master
-        )
+        # cfg.github_connection_arn is empty until the one-time manual
+        # CodeStar Connection authorization is done (see its own comment in
+        # config.py) -- until then this stays on the original OAuth source
+        # below with no behavior change. Once set, switch to a
+        # connection-based source: required for the Git push-filter trigger
+        # added after pipeline.build_pipeline() below, which only applies to
+        # a "CodeStarSourceConnection"-provider source, not an OAuth one.
+        if cfg.github_connection_arn:
+            source = pipelines.CodePipelineSource.connection(
+                "fibtecltd/pyvar",
+                "master",
+                connection_arn=cfg.github_connection_arn,
+                action_name="Source",
+            )
+        else:
+            source = pipelines.CodePipelineSource.git_hub(
+                repo_string="fibtecltd/pyvar",
+                branch="master",
+                authentication=github_token,
+                trigger=cpa.GitHubTrigger.WEBHOOK,  # triggers on push to master
+            )
 
         # ── Synth step (CDK synth + unit tests) ───────────────────────────────
         # This is the pipeline's "self-mutation" step.
@@ -937,6 +954,51 @@ class PipelineStack(Stack):
         # CodeStar notification rule — fires on pipeline failure and success
         # Must be added after pipeline.build_pipeline() is called
         pipeline.build_pipeline()
+
+        # ── Git push-filter trigger (skip execution entirely, not just steps) ──
+        # Only wired up once cfg.github_connection_arn is set (see its config.py
+        # comment): the trigger's provider_type "CodeStarSourceConnection" only
+        # applies when the Source action above is connection-based, not the
+        # OAuth git_hub() source this pipeline uses by default. L1 escape hatch
+        # (CfnPipeline) because CDK Pipelines' L2 pipelines.CodePipeline has no
+        # `triggers` passthrough of its own.
+        #
+        # includes lists both the bare path and "path/**" for every entry in
+        # _IMAGE_RELEVANT_PATHS (the same "does this push touch anything that
+        # can change the deployed portal" list the in-execution skip gates
+        # already use) -- belt-and-suspenders rather than relying on exactly
+        # one glob convention being the one CodePipeline expects for both a
+        # top-level file (e.g. "config.py") and a directory (e.g. "engine").
+        # A push touching ONLY paths outside this list (docs/, scripts/claude/,
+        # .claude/, tests/, *.md, etc.) never starts an execution at all -- no
+        # CodeBuild minutes spent, no Slack ApproveProductionDeploy ping, unlike
+        # the existing gates, which still start (and partially pay for) a full
+        # execution before skipping individual steps inside it.
+        if cfg.github_connection_arn:
+            image_relevant_includes = [
+                path for entry in _IMAGE_RELEVANT_PATHS for path in (entry, f"{entry}/**")
+            ]
+            cfn_pipeline = typing.cast(
+                codepipeline.CfnPipeline, pipeline.pipeline.node.default_child
+            )
+            cfn_pipeline.triggers = [
+                codepipeline.CfnPipeline.PipelineTriggerDeclarationProperty(
+                    provider_type="CodeStarSourceConnection",
+                    git_configuration=codepipeline.CfnPipeline.GitConfigurationProperty(
+                        source_action_name="Source",
+                        push=[
+                            codepipeline.CfnPipeline.GitPushFilterProperty(
+                                branches=codepipeline.CfnPipeline.GitBranchFilterCriteriaProperty(
+                                    includes=["master"],
+                                ),
+                                file_paths=codepipeline.CfnPipeline.GitFilePathFilterCriteriaProperty(
+                                    includes=image_relevant_includes,
+                                ),
+                            ),
+                        ],
+                    ),
+                ),
+            ]
 
         # `cdk synth` performs live CDK context lookups the first time it
         # resolves them for a given account/region — VPC availability zones
