@@ -31,6 +31,15 @@ Reasoning:
   it, and a timed-out cycle leaves the previous demo-result.json in place
   rather than overwriting it with a failure — the portal always shows the
   last *real* result, never a synthetic fallback.
+- The published "runtime_ms" is VaRResult.duration_ms (engine call only) --
+  deliberately NOT this Lambda's own end-to-end timer, which would also
+  count SQS queue wait and any worker cold-start above and silently make
+  the homepage demo look far slower than pyvar's actual compute engine is.
+  publish_demo_result also has to handle DEMO_PAYLOAD (fixed on every call)
+  landing a Redis cache hit at api/routes/caching.py's cache_check decorator
+  most cycles inside the 1h result-cache TTL -- see that function's own
+  comment for why treating the cache-hit response as a pollable task_id was
+  a real, previously-shipped bug (nearly every refresh silently no-op'd).
 """
 
 from __future__ import annotations
@@ -181,26 +190,48 @@ def publish_status() -> dict[str, Any]:
 
 def publish_demo_result(jwt_secret: str) -> dict[str, Any] | None:
     token = _sign_service_jwt(jwt_secret)
-    started = time.monotonic()
 
     submit = _api_request("POST", "/api/v1/var/compute", token, DEMO_PAYLOAD)
-    task_id = submit["task_id"]
 
-    deadline = time.monotonic() + POLL_TIMEOUT_SECONDS
-    result_body = None
-    while time.monotonic() < deadline:
-        time.sleep(POLL_INTERVAL_SECONDS)
-        polled = _api_request("GET", f"/api/v1/var/result/{task_id}", token)
-        if polled["status"] == "success":
-            result_body = polled["result"]
-            break
-        if polled["status"] == "failure":
-            return None  # leave the previous good demo-result.json in place
-
+    # DEMO_PAYLOAD is byte-identical on every call, so most cycles inside the
+    # 1h Redis result-cache TTL (config.py::celery_result_ttl) hit
+    # api/routes/caching.py's cache_check decorator and get the result back
+    # immediately, in JobResultResponse shape ({"task_id": "cached", "status":
+    # "success", "result": {...}}) -- NOT the normal 202 dispatch shape
+    # ({"task_id": <celery-id>, "status": "pending"}). Treating "cached" as a
+    # pollable Celery task_id (the original bug here) means GET .../result/
+    # cached never resolves -- Celery's AsyncResult reports PENDING forever
+    # for an id it's never seen -- so the poll loop always timed out and this
+    # function silently returned None, skipping the publish, on nearly every
+    # cycle except the rare one that happened to land right as the cache
+    # entry expired.
+    result_body = submit.get("result")
     if result_body is None:
-        return None  # timed out (likely cold Spot scale-up) — skip this cycle
+        task_id = submit["task_id"]
+        deadline = time.monotonic() + POLL_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            time.sleep(POLL_INTERVAL_SECONDS)
+            polled = _api_request("GET", f"/api/v1/var/result/{task_id}", token)
+            if polled["status"] == "success":
+                result_body = polled["result"]
+                break
+            if polled["status"] == "failure":
+                return None  # leave the previous good demo-result.json in place
 
-    runtime_ms = int((time.monotonic() - started) * 1000)
+        if result_body is None:
+            return None  # timed out (likely cold Spot scale-up) — skip this cycle
+
+    # duration_ms (schemas.var.VaRResult) is the engine call only -- excludes
+    # SQS queue wait and any worker cold-start, unlike a round-trip timer
+    # started before the POST above would be. On a cache hit this is simply
+    # whichever real compute originally populated the cache entry, which is
+    # exactly right: it's still a genuine engine-only measurement, just not
+    # from this particular cycle. None only for a VaRResult cached before
+    # this field existed -- skip publishing rather than show a broken number.
+    duration_ms = result_body.get("duration_ms")
+    if duration_ms is None:
+        return None
+
     demo = {
         "computed_at": datetime.now(timezone.utc).isoformat(),
         "request": {
@@ -217,7 +248,7 @@ def publish_demo_result(jwt_secret: str) -> dict[str, Any] | None:
             "mu": result_body["mu"],
             "sigma": result_body["sigma"],
         },
-        "runtime_ms": runtime_ms,
+        "runtime_ms": duration_ms,
     }
     s3.put_object(
         Bucket=PUBLIC_BUCKET,

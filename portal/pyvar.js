@@ -610,7 +610,7 @@ function initNav() {
   if (!nav) return;
   window.addEventListener('scroll', () => {
     nav.style.borderBottomColor = window.scrollY > 20
-      ? 'rgba(0,217,126,0.12)' : 'rgba(255,255,255,0.06)';
+      ? 'rgba(168,74,46,0.12)' : 'rgba(31,30,29,0.06)';
   }, { passive: true });
 }
 

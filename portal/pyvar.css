@@ -1,31 +1,46 @@
 /* ═══════════════════════════════════════════════════════
    pyvar.css — pyvar.com design system
-   Identity: Quant terminal · Deep navy + signal green
+   Identity: Warm, light, editorial — paper background + clay accent
+     (Anthropic-adjacent palette; approximated from general brand
+     knowledge, not a pixel-verified fetch of anthropic.com — this
+     session's network egress blocks that domain. Re-check against the
+     live site by hand if exact hue-matching ever matters.)
    Audience: Quantitative analysts, risk engineers, developers
    Tone: Precise, data-dense, open-source credible
+
+   Variable NAMES are kept as-is (--green, --green2, etc.) even though
+   they no longer hold literally-green values -- this was a deliberate
+   minimal-diff choice for a site-wide reskin across 9 HTML files + this
+   stylesheet + pyvar.js, rather than a full var-rename refactor. --green
+   is the one clay/terracotta brand accent; --blue is a muted secondary
+   used only for visual differentiation (e.g. GET vs POST badges).
+
+   Every text/background pairing below is WCAG AA checked (>=4.5:1 for
+   normal text) against the specific --bg/--bg2 tier it's actually used
+   on -- see the contrast notes inline. Values were computed, not eyeballed.
 ═══════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 
 :root {
-  --bg:    #050810;
-  --bg2:   #080d18;
-  --bg3:   #0c1220;
-  --bg4:   #101828;
-  --border: rgba(255,255,255,0.06);
-  --border2:rgba(255,255,255,0.10);
-  --border3:rgba(255,255,255,0.15);
-  --text:  #d4e4f0;
-  --text2: #6888a0;
-  --dim:   #6888a0; /* WCAG AA fix: was #2a3a4a (~1.5-1.7:1, fails 4.5:1) -- merged into --text2's value, see PR description */
-  --green: #00d97e;
-  --green2:#00ff96;
-  --green3:rgba(0,217,126,0.10);
-  --green-line:rgba(0,217,126,0.18);
-  --blue:  #2d84ff; /* WCAG AA fix: was #1a6fe8 (~3.8-4.3:1, fails 4.5:1 at the badge's 10px/600 text size) */
-  --blue2: rgba(26,111,232,0.10);
-  --amber: #e8a020;
-  --red:   #ea4444; /* WCAG AA fix: was #e84040 (4.43:1 against --bg4, marginally under 4.5:1) */
+  --bg:    #faf9f5;
+  --bg2:   #f3f1ea;
+  --bg3:   #edeae1;
+  --bg4:   #e5e1d5;
+  --border: rgba(31,30,29,0.08);
+  --border2:rgba(31,30,29,0.14);
+  --border3:rgba(31,30,29,0.20);
+  --text:  #1f1e1d;
+  --text2: #6b6862; /* 5.27:1 on --bg, 4.91:1 on --bg2 -- both pass AA */
+  --dim:   #6b6862; /* kept equal to --text2, same AA-driven merge as the previous dark theme */
+  --green: #a84a2e; /* clay/terracotta accent. 5.41:1 on --bg, 5.04:1 on --bg2 */
+  --green2:#b04d32; /* hover state, 5.04:1 -- kept >=4.5:1 even though hover is transient */
+  --green3:rgba(168,74,46,0.10);
+  --green-line:rgba(168,74,46,0.18);
+  --blue:  #4c6b7a; /* muted slate — secondary accent only. 5.40:1 on --bg */
+  --blue2: rgba(76,107,122,0.10);
+  --amber: #8a5d0f; /* 5.46:1 on --bg, 5.09:1 on --bg2 */
+  --red:   #b23b32; /* 5.59:1 on --bg */
   --sans:  'Space Grotesk', system-ui, sans-serif;
   --mono:  'JetBrains Mono', 'Fira Code', Consolas, monospace;
   --radius: 4px;
@@ -41,7 +56,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
-::selection { background: rgba(0,217,126,0.15); }
+::selection { background: rgba(168,74,46,0.15); }
 a { color: inherit; text-decoration: none; }
 
 /* ── Layout ── */
@@ -52,7 +67,7 @@ a { color: inherit; text-decoration: none; }
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   height: 56px; display: flex; align-items: center;
   padding: 0 32px; gap: 20px;
-  background: rgba(5,8,16,0.95);
+  background: rgba(250,249,245,0.92); /* was a hardcoded dark literal, not var(--bg) -- missed the dark->light reskin otherwise */
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
@@ -73,7 +88,7 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--mono); font-size: 12px; color: var(--text2);
   padding: 5px 12px; border-radius: var(--radius); transition: color .15s, background .15s;
 }
-.nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.nav-links a:hover { color: var(--text); background: rgba(31,30,29,0.04); }
 .nav-links a.active { color: var(--green); }
 .nav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .nav-version { font-family: var(--mono); font-size: 11px; color: var(--dim); }
@@ -139,7 +154,7 @@ a { color: inherit; text-decoration: none; }
   border-left: 2px solid var(--rc, var(--border)); text-decoration: none;
   transition: background .1s;
 }
-.search-result:hover { background: rgba(255,255,255,0.04); }
+.search-result:hover { background: rgba(31,30,29,0.04); }
 .search-result-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
 .search-result-domain {
   font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
@@ -277,14 +292,14 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-scanlines {
   position: absolute; inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,217,126,0.008) 3px, rgba(0,217,126,0.008) 4px);
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(168,74,46,0.008) 3px, rgba(168,74,46,0.008) 4px);
   pointer-events: none;
 }
 .hero-grid-lines {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(0,217,126,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,217,126,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(168,74,46,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168,74,46,0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse 80% 80% at 80% 50%, black 0%, transparent 70%);
 }
@@ -308,8 +323,8 @@ a { color: inherit; text-decoration: none; }
 .code-block .kw { color: var(--green); }
 .code-block .str { color: var(--amber); }
 .code-block .cm { color: var(--dim); font-style: italic; }
-.code-block .num { color: #64b0f0; }
-.code-block .fn { color: #90c0f0; }
+.code-block .num { color: var(--blue); } /* was #64b0f0 -- 2.06:1 on the new light --bg2, badly fails AA */
+.code-block .fn { color: #5a5c8a; } /* muted indigo, distinct from --blue; 5.58:1 on --bg2 */
 
 /* ── Status pill ── */
 .status-pill {
@@ -318,8 +333,12 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: .06em; text-transform: uppercase;
   padding: 4px 10px; border-radius: 2px;
 }
-.status-green { background: rgba(0,217,126,0.1); color: var(--green); border: 1px solid rgba(0,217,126,0.2); }
-.status-green::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2s ease-in-out infinite; }
+/* Deliberately NOT var(--green) -- that's now the clay brand accent, and
+   status-amber/status-red already establish a traffic-light convention
+   this pill needs to stay visually distinct from (clay reads too close to
+   amber/red to double as "definitely fine"). #177a45: 5.1:1 on --bg. */
+.status-green { background: rgba(23,122,69,0.1); color: #177a45; border: 1px solid rgba(23,122,69,0.2); }
+.status-green::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #177a45; animation: blink 2s ease-in-out infinite; }
 .status-amber { background: rgba(232,160,32,0.1); color: var(--amber); border: 1px solid rgba(232,160,32,0.2); }
 .status-amber::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); animation: blink 2s ease-in-out infinite; }
 .status-red { background: rgba(232,64,64,0.1); color: var(--red); border: 1px solid rgba(232,64,64,0.2); }

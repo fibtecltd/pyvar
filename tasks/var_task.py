@@ -267,12 +267,19 @@ def compute_var_task(self: Task, payload: dict) -> dict:
 
         # Completed successfully — count the job.
         _emit_job_metric("JobCount", job_dimensions)
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        # Surfaced through the API response too (schemas.var.VaRResult.duration_ms)
+        # so callers -- notably lambda/public_data_publisher/handler.py's homepage
+        # demo -- can report true engine-only compute time instead of mistaking
+        # their own end-to-end round trip (queue wait + possible worker
+        # cold-start) for it.
+        result["duration_ms"] = duration_ms
         # var_jobs is the compliance record of the job's terminal outcome —
         # write it once, here, on the one path that actually succeeds.
         _write_terminal_audit(
             task_id,
             "success",
-            duration_ms=int((time.perf_counter() - started) * 1000),
+            duration_ms=duration_ms,
             result=result,
         )
         return result
