@@ -963,21 +963,41 @@ class PipelineStack(Stack):
         # (CfnPipeline) because CDK Pipelines' L2 pipelines.CodePipeline has no
         # `triggers` passthrough of its own.
         #
-        # includes lists both the bare path and "path/**" for every entry in
-        # _IMAGE_RELEVANT_PATHS (the same "does this push touch anything that
-        # can change the deployed portal" list the in-execution skip gates
-        # already use) -- belt-and-suspenders rather than relying on exactly
-        # one glob convention being the one CodePipeline expects for both a
-        # top-level file (e.g. "config.py") and a directory (e.g. "engine").
-        # A push touching ONLY paths outside this list (docs/, scripts/claude/,
-        # .claude/, tests/, *.md, etc.) never starts an execution at all -- no
-        # CodeBuild minutes spent, no Slack ApproveProductionDeploy ping, unlike
-        # the existing gates, which still start (and partially pay for) a full
-        # execution before skipping individual steps inside it.
+        # excludes, not includes: AWS::CodePipeline::Pipeline hard-caps
+        # triggers[].gitConfiguration.push[].filePaths.{includes,excludes} at 8
+        # entries each (learned the hard way -- an includes list built from
+        # _IMAGE_RELEVANT_PATHS had 18 entries and failed CloudFormation
+        # validation with "Member must have length less than or equal to 8" on
+        # SelfMutate, rolling the pipeline stack back cleanly to its prior
+        # OAuth-source state). _IMAGE_RELEVANT_PATHS itself is too long to fit
+        # either direction, but its COMPLEMENT -- the top-level dirs that are
+        # NOT portal-relevant -- happens to be exactly 8 today, so excludes is
+        # the only direction that fits. Each entry needs the "/**" suffix:
+        # push-filter patterns match file paths, and a bare directory name
+        # (e.g. "docs", no wildcard) never equals any actual changed file path.
+        #
+        # This is deliberately the complement of the in-execution gates'
+        # ALLOWlist (_PORTAL_RELEVANT_PATHS/_IMAGE_RELEVANT_PATHS), not derived
+        # from them programmatically -- there's no room left in the 8-entry cap
+        # to also exclude top-level irrelevant FILES (README.md, CHANGELOG.md,
+        # etc.), so a push touching only those still starts an execution today
+        # (no worse than before this feature; the in-execution gates still
+        # no-op the actual work). If a 9th non-portal top-level directory is
+        # ever added to the repo, this list must be updated by hand or the
+        # trigger silently stops excluding it (falls back to "always starts an
+        # execution" for that new directory, not the dangerous direction, but
+        # worth fixing promptly for cost).
+        _TRIGGER_EXCLUDED_PATHS = (
+            ".claude",
+            ".claude-plugin",
+            ".github",
+            "docs",
+            "ingestion",
+            "pyvar-client",
+            "scripts",
+            "tests",
+        )
         if cfg.github_connection_arn:
-            image_relevant_includes = [
-                path for entry in _IMAGE_RELEVANT_PATHS for path in (entry, f"{entry}/**")
-            ]
             cfn_pipeline = typing.cast(
                 codepipeline.CfnPipeline, pipeline.pipeline.node.default_child
             )
@@ -992,7 +1012,7 @@ class PipelineStack(Stack):
                                     includes=["master"],
                                 ),
                                 file_paths=codepipeline.CfnPipeline.GitFilePathFilterCriteriaProperty(
-                                    includes=image_relevant_includes,
+                                    excludes=[f"{path}/**" for path in _TRIGGER_EXCLUDED_PATHS],
                                 ),
                             ),
                         ],
