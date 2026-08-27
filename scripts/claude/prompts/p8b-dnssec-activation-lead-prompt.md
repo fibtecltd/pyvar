@@ -305,3 +305,77 @@ propagation delay, or any other sign of a broken chain of trust:
 
 Do not declare this done on the strength of Aruba's own status indicator
 alone — every box above requires independent, external verification.
+
+---
+
+## Update (2026-08-27) — bundled with HSTS preload; likely combined fix is a DNS-hosting migration, not an Aruba setting
+
+Deferred again, alongside a related item: getting `pyvar.com` onto the
+HSTS preload list. Both now share the same root blocker and are being
+tracked together rather than as two separate Aruba-panel actions.
+
+### How HSTS preload connects to this doc
+
+A CloudFront `ResponseHeadersPolicy` (PR #280) added a correct
+`Strict-Transport-Security` header (`max-age=31536000; includeSubDomains;
+preload`) to `www.pyvar.com`, fully controlled by CloudFront. This does
+**not** get the domain preload-eligible on its own: hstspreload.org's
+`/api/v2/preloadable` endpoint rejects `www.pyvar.com` outright —
+`domain.is_subdomain`, *"we only accept automated preload list
+submissions of whole registered domains"* — confirmed via a live API
+call, not assumed. `includeSubDomains` on the apex is what's supposed to
+extend coverage to `www` automatically; there is no path to preload a
+bare subdomain while excluding the apex.
+
+The apex itself (`pyvar.com`) is the only valid submission target, and it
+currently has no HSTS header at all — confirmed live (`server:
+aruba-proxy`, no `strict-transport-security` on either
+`http://pyvar.com/` or `https://pyvar.com/`, both just 301 to
+`www.pyvar.com`). Per `docs/domain-cutover-stage-b-c-plan.md`, this proxy
+is Aruba's own domain-forwarding service, entirely outside CloudFront/CDK
+control — the exact same black box this DNSSEC doc already treats as
+unreachable via API/CLI.
+
+### Why this probably isn't a small Aruba-panel fix (unverified, needs confirming)
+
+Per input relayed from the user (originating from another AI assistant's
+answer — **not independently verified**, treat the specifics below as
+leads to confirm, not settled fact): if the domain only has Aruba's
+"Gestione DNS con Redirect" (DNS Management with Redirect) service and no
+actual hosting plan, there is no server config surface to inject a custom
+HSTS header onto the forwarding response — that service reportedly maps
+DNS/does a basic server-side forward only, nothing more.
+
+If accurate, the two commonly-suggested workarounds are both bigger than
+a settings toggle:
+- **Migrate `pyvar.com`'s authoritative nameservers to Cloudflare**
+  (free tier includes a one-click HSTS toggle and redirect rules). This
+  is not a small change — it moves the *entire* DNS zone off Aruba, not
+  just the apex forwarding rule. Every record currently at Aruba (MX for
+  email, the `www` CNAME, everything) would need replicating and cutting
+  over. Same risk *class* as the Stage B/C domain cutover already done
+  (`docs/domain-cutover-stage-b-c-plan.md`), likely larger blast radius.
+  Worth noting as a genuine upside if this path is ever taken: Cloudflare
+  has its own well-regarded, single-provider, effectively one-click
+  DNSSEC support — meaningfully simpler than Aruba's ambiguous two-party
+  (Aruba-signs, Tucows-publishes-DS) flow this doc spends most of its
+  length on. A Cloudflare migration would plausibly solve **both** this
+  doc's DNSSEC item and the HSTS-apex item in the same move.
+- **Point the apex at a third-party redirect-as-a-service tool**
+  (e.g. Redirect.pizza) that handles TLS + header injection. Smaller
+  footprint than a full DNS migration, but introduces an unvetted
+  third-party vendor into the trust chain for a regulatory-grade
+  platform's public domain — real vetting (reliability, security
+  posture, who's actually terminating TLS for `pyvar.com`) needed before
+  this is anywhere near production, not before.
+
+### Status
+
+Not investigated further, not actioned. Bundled with DNSSEC for the
+evolutive/maintenance phase — post-launch, not before. If picked up, the
+first step is confirming the Aruba capability claim above directly
+(their panel or support), then evaluating a Cloudflare DNS migration as
+the likely combined fix for both items, with its own dedicated
+investigation and runbook (mirroring this doc's and
+`docs/domain-cutover-stage-b-c-plan.md`'s level of rigor) before any live
+change — not a decision to make inline against a live zone.
