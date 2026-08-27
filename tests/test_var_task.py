@@ -169,7 +169,11 @@ def test_compute_var_task_success_writes_terminal_audit_once():
     ):
         result = raw_task_run(mock_self, payload=PAYLOAD)
 
+    # duration_ms is timing-dependent (wall-clock), so it's checked
+    # separately rather than folded into the MOCK_RESULT equality check.
+    duration_ms = result.pop("duration_ms")
     assert result == MOCK_RESULT
+    assert isinstance(duration_ms, int) and duration_ms >= 0
     assert len(fake_session.executed) == 1
     mock_self.retry.assert_not_called()
 

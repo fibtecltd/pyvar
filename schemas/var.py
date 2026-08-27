@@ -115,6 +115,15 @@ class VaRResult(BaseModel):
     presigned_url: str | None = Field(
         default=None, description="Presigned URL for loss_dist, if offloaded (#130)"
     )
+    duration_ms: int | None = Field(
+        default=None,
+        description=(
+            "Wall-clock engine compute time in milliseconds (the Monte Carlo "
+            "call itself only — excludes SQS queue wait and any worker "
+            "cold-start). None for results computed before this field "
+            "existed (e.g. an already-cached VaRResult from Redis)."
+        ),
+    )
 
 
 class JobResponse(BaseModel):

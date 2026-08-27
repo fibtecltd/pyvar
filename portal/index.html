@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>pyvar.com — Open-Source Financial Risk Computation Platform</title>
-<meta name="description" content="Open-source financial and risk computation platform with 385 functions across 8 domains — VaR, credit risk, derivatives pricing, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital. Free forever."/>
+<meta name="description" content="Open-source financial and risk computation platform with 385 functions across 8 domains — VaR, credit risk, derivatives pricing, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital. Free to use."/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="pyvar.com"/>
 <meta property="og:title" content="pyvar.com — Open-Source Financial Risk Computation Platform"/>
-<meta property="og:description" content="Open-source financial and risk computation platform with 385 functions across 8 domains — VaR, credit risk, derivatives pricing, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital. Free forever."/>
+<meta property="og:description" content="Open-source financial and risk computation platform with 385 functions across 8 domains — VaR, credit risk, derivatives pricing, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital. Free to use."/>
 <meta property="og:url" content="https://pyvar.com/"/>
 <script type="application/ld+json">
 {
@@ -29,9 +29,9 @@
 <style>
 /* ── Hero ── */
 .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 0 72px;position:relative;overflow:hidden}
-.hero-scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,217,126,0.007) 3px,rgba(0,217,126,0.007) 4px);pointer-events:none}
-.hero-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 50% at 75% 45%,rgba(0,217,126,0.04) 0%,transparent 65%);pointer-events:none}
-.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,217,126,0.028) 1px,transparent 1px),linear-gradient(90deg,rgba(0,217,126,0.028) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 100% 80% at 80% 50%,black 0%,transparent 70%)}
+.hero-scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(168,74,46,0.007) 3px,rgba(168,74,46,0.007) 4px);pointer-events:none}
+.hero-glow{position:absolute;inset:0;background:radial-gradient(ellipse 55% 50% at 75% 45%,rgba(168,74,46,0.04) 0%,transparent 65%);pointer-events:none}
+.hero-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(168,74,46,0.028) 1px,transparent 1px),linear-gradient(90deg,rgba(168,74,46,0.028) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 100% 80% at 80% 50%,black 0%,transparent 70%)}
 .hero-inner{display:grid;grid-template-columns:1fr 460px;gap:64px;align-items:center;position:relative;z-index:1}
 .hero-eyebrow{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:20px;display:flex;align-items:center;gap:10px}
 .hero-eyebrow span{color:var(--green);font-weight:500}
@@ -52,7 +52,7 @@
 .t-prompt{color:var(--green)}
 .t-cmd{color:var(--text)}
 .t-output{color:var(--text2)}
-.t-val{color:#64b0f0}
+.t-val{color:var(--blue)}
 .t-key{color:var(--amber)}
 .t-ok{color:var(--green)}
 .t-section{color:var(--dim);font-style:italic}
@@ -77,8 +77,8 @@
 .endpoint-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)}
 .endpoint-row:last-child{border-bottom:none}
 .method{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:2px;flex-shrink:0}
-.m-post{background:rgba(0,217,126,0.1);color:var(--green);border:1px solid rgba(0,217,126,0.2)}
-.m-get{background:rgba(26,111,232,0.1);color:var(--blue);border:1px solid rgba(26,111,232,0.2)}
+.m-post{background:rgba(168,74,46,0.1);color:var(--green);border:1px solid rgba(168,74,46,0.2)}
+.m-get{background:rgba(76,107,122,0.1);color:var(--blue);border:1px solid rgba(76,107,122,0.2)}
 .endpoint-path{font-family:var(--mono);font-size:12px;color:var(--text);flex:1}
 .endpoint-desc{font-size:12px;color:var(--text2)}
 /* Tech row */
@@ -87,7 +87,7 @@
 .tech-name{font-size:13px;color:var(--text);display:flex;align-items:center;gap:10px}
 .tech-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .tech-purpose{font-family:var(--mono);font-size:10px;color:var(--text2)}
-.tech-layer{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:2px;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--dim)}
+.tech-layer{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:2px;background:rgba(31,30,29,0.03);border:1px solid var(--border);color:var(--dim)}
 /* By Fibtec callout */
 .fibtec-callout{border:1px solid rgba(198,162,69,0.2);background:rgba(198,162,69,0.03);border-radius:var(--radius);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
 /* Get API key form */
@@ -121,7 +121,7 @@
         <h1 class="hero-h1 reveal d1">
           385 risk functions.<br/><em>One REST API.</em><br/>Open source.
         </h1>
-        <p class="hero-sub reveal d2">Financial and risk computation across 8 domains — Monte Carlo VaR, Greeks, stress testing, FRTB, IFRS 9 ECL and more. Open source and fully auditable, cross-validated against published references. Free forever.</p>
+        <p class="hero-sub reveal d2">Financial and risk computation across 8 domains — Monte Carlo VaR, Greeks, stress testing, FRTB, IFRS 9 ECL and more. Open source and fully auditable, cross-validated against published references. Free to use.</p>
         <div class="hero-actions reveal d3">
           <a href="#domains" class="btn-green">Explore domains</a>
           <a href="#api" class="btn-ghost">API docs</a>
@@ -287,12 +287,12 @@
         <div class="label">technology</div>
         <h2 class="h2" style="margin-bottom:24px">Built for<br/><em>performance.</em></h2>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
-          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:#c8a44a"></div>Anthropic Claude</div><div class="tech-purpose">AI reasoning</div><div class="tech-layer">claude-sonnet-4-6</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:#c8a44a"></div>Anthropic Claude</div><div class="tech-purpose">AI reasoning</div><div class="tech-layer">claude-sonnet-5 / claude-opus-4-8</div></div>
           <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--green)"></div>NumPy · Numba JIT</div><div class="tech-purpose">Monte Carlo engine</div><div class="tech-layer">@njit parallel</div></div>
           <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--green)"></div>Polars · PyArrow</div><div class="tech-purpose">Data ingestion</div><div class="tech-layer">lazy scan</div></div>
           <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--blue)"></div>FastAPI · orjson</div><div class="tech-purpose">REST API</div><div class="tech-layer">async</div></div>
           <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:#7060d4"></div>Celery · SQS FIFO</div><div class="tech-purpose">Job queue</div><div class="tech-layer">AWS</div></div>
-          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--amber)"></div>ECS Fargate · EC2 Spot</div><div class="tech-purpose">Compute · UK region</div><div class="tech-layer">eu-west-2</div></div>
+          <div class="tech-row"><div class="tech-name"><div class="tech-dot" style="background:var(--amber)"></div>ECS Fargate · EC2 Spot</div><div class="tech-purpose">Compute · EU region</div><div class="tech-layer">eu-west-1 / us-east-1</div></div>
         </div>
         <div class="fibtec-callout">
           <div>
@@ -310,7 +310,7 @@
 <section class="section-dark" style="padding:56px 0;text-align:center" id="get-api-key">
   <div class="container">
     <div class="label reveal" style="justify-content:center">get started</div>
-    <h2 class="h2 reveal" style="margin-bottom:16px">Free forever. <em>Open source.</em></h2>
+    <h2 class="h2 reveal" style="margin-bottom:16px">Free to use. <em>Open source.</em></h2>
     <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is MIT licensed. The API is free to use. Enter your email for a free-tier API key — no password, no credit card.</p>
     <div class="get-key-form reveal">
       <input type="email" id="registerEmail" class="get-key-input" placeholder="you@company.com" autocomplete="email"/>
