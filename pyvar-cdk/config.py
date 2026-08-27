@@ -130,6 +130,31 @@ class PyvarConfig:
     # not flip this without deliberately watching that first gate-less run.
     require_prod_approval: bool = True
 
+    # ARN of a CodeStar (Developer Tools) Connection to GitHub, region-scoped
+    # to `region` above (eu-west-1). Empty by default: the pipeline's Source
+    # action stays on the original OAuth-token `git_hub()` source (Secrets
+    # Manager token, webhook-triggered) with zero behavior change. Filling
+    # this in switches the Source action to `pipelines.CodePipelineSource.
+    # connection(...)` AND enables a CfnPipeline-level Git push-filter
+    # trigger (pipeline_stack.py) that skips starting a pipeline execution
+    # at all for pushes touching only paths outside _IMAGE_RELEVANT_PATHS
+    # (docs, scripts/claude/, tests/, etc.) -- distinct from and stronger
+    # than the existing in-execution skip gates, which still start (and pay
+    # for) a full execution even for a docs-only push. The trigger's
+    # provider_type ("CodeStarSourceConnection") only applies to a
+    # connection-based source, which is why both changes are gated on this
+    # one field together.
+    #
+    # The connection itself can't be created via CDK/CLI -- it requires a
+    # one-time manual authorization: AWS Console (Developer Tools /
+    # CodePipeline Settings -> Connections, in THIS region) to create a
+    # "Pending" connection, a hop to GitHub.com to install/authorize the
+    # "AWS Connector for GitHub" GitHub App on the fibtecltd org, then back
+    # in the Console the connection flips to "Available" and its ARN can be
+    # pasted in here. Do this, then set this field, as a small dedicated
+    # follow-up -- not required for this field/gate to merge safely.
+    github_connection_arn: str = ""
+
     @classmethod
     def for_env(
         cls, env_name: str, account: str = "", api_image_tag: str | None = None
