@@ -1,10 +1,25 @@
 # P10 — Claude Code Skills & pyvar MCP Plugin
 ## Exposing pyvar.com's domain expertise and API as installable Claude Code assets
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** August 2026
 **Status:** Planning — not yet implemented
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
+
+---
+
+## Sequencing — ahead of the P9 public launch
+
+P10 is scheduled to land **before** the repo visibility flip (`fibtecltd/pyvar`
+private → public), the remaining gating step of P9's own Day-0 launch actions. In
+practice this means: a Claude Code session pointed at this repo while it's still
+private already has the domain skills and the pyvar API directly available, so
+there's no functional urgency from *that* angle — the reason to sequence P10 first
+is that going public is effectively pyvar's public debut, and both the skills
+package and the MCP plugin are part of the story worth having ready at that moment
+rather than as a follow-up announced later. Concretely: this plan should reach a
+usable v1 (both plugins installable, both linked from the portal) before the
+visibility flip is scheduled, not after.
 
 ---
 
@@ -123,19 +138,44 @@ importantly — its compute logic would silently drift from what's actually depl
 pyvar.com the moment either one changes without the other, the exact class of bug this
 whole phase is trying to move away from, not toward.
 
-### B.2 Tool coverage — all 385 functions, individually
+### B.2 Tool coverage — all 385 functions, individually, plus a generic first choice
 
-Every function across all 8 domains gets its own named MCP tool (`compute_var`,
-`compute_credit_pd`, `compute_lcr`, etc.) rather than a curated subset behind a
-generic dispatcher. Generated from `portal/functions.json` (the same catalogue the
-portal's own search/domain pages already read from) at build time — one tool
-definition per catalogue entry, so a new function added to any domain automatically
-gets an MCP tool on the next deploy with no manual wiring.
+Every function across all 8 domains still gets its own named MCP tool (`compute_var`,
+`compute_credit_pd`, `compute_lcr`, etc.), generated from `portal/functions.json`
+(the same catalogue the portal's own search/domain pages already read from) at build
+time — one tool definition per catalogue entry, so a new function added to any domain
+automatically gets an MCP tool on the next deploy with no manual wiring.
 
-**Known risk, accepted deliberately, worth monitoring in practice:** a 385-tool
-surface is large enough that some MCP clients/models may show degraded tool-selection
-quality compared to a curated subset. No corrective action is planned pre-emptively —
-this is a "watch real usage, revisit if it's actually a problem" risk, not a blocker.
+**Revised per explicit direction — the tool-selection-quality risk below is now
+mitigated, not just watched.** Two generic tools are added and positioned as the
+model's *first* choice, ahead of hunting through 385 named tools:
+
+- **`list_pyvar_functions(domain?: str)`** — returns names, one-line descriptions, and
+  parameter summaries from `functions.json`, optionally filtered to one domain. The
+  discovery step: a model that doesn't already know pyvar's exact function names
+  starts here.
+- **`call_pyvar_function(domain: str, function_name: str, params: object)`** — the
+  actual dispatcher. Looks up `function_name` in the same `functions.json` catalogue
+  used to generate the 385 named tools, validates `params` against that entry's own
+  schema *server-side* before forwarding the call, and returns a clear
+  "expected params: ..., got: ..." error on a mismatch rather than a raw API 422 —
+  so the looser `params: object` typing (unavoidable for a single generic tool
+  covering 385 different parameter shapes) doesn't trade away good error feedback.
+
+Both tool descriptions explicitly steer a calling model toward this pair as the
+default entry point ("use this first; reach for a specific named tool like
+`compute_var` only when you already know its exact parameters and want its more
+detailed per-parameter schema up front"). The 385 named tools remain fully present
+and functional — for a model that already knows exactly which function it wants,
+a direct named call with a precise per-function schema is still available and often
+preferable. This is additive, not a reduction in coverage: the generic pair exists
+specifically to give the model a low-cardinality default path, with the full
+385-tool surface still there for direct, specific use.
+
+**Residual risk, now smaller:** whether models in practice actually prefer the
+generic pair over browsing the full 385-tool list depends on how the tool
+descriptions read to each specific client/model — worth watching in real usage,
+same as before, but no longer an unmitigated risk with zero corrective action.
 
 ### B.3 Async handling
 
@@ -200,6 +240,12 @@ Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
   never-hit-a-real-backing-service test philosophy); a small number of
   integration-style tests against a mocked pyvar API confirming the submit→poll→
   result flow and 403/timeout error surfacing.
+- `call_pyvar_function`/`list_pyvar_functions` specifically: a valid
+  `(domain, function_name, params)` call dispatches correctly; an unknown
+  `function_name` and a `params` mismatch against the catalogue's own schema both
+  return the clear, actionable error (not a raw API 422) *without* ever reaching the
+  live API; `list_pyvar_functions` with and without a `domain` filter returns the
+  expected catalogue subset.
 - Both: the existing `_PORTAL_RELEVANT_PATHS`-style hash gates get their own test
   coverage for the no-op-on-irrelevant-push path, matching how the image-build gate
   is already tested.
@@ -232,12 +278,12 @@ Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
 
 ---
 
-## Why this document exists as a docs-only change
+## This document stays a docs-only change
 
-This plan intentionally touches nothing outside `docs/` — no code, no portal files,
-no CDK. That makes this commit the first real-world test of the CodePipeline Git
-push-filter trigger added in #282–#285: `docs/` is one of the 8 paths explicitly
-excluded from the trigger's file-path filter (`pyvar-cdk/stacks/pipeline_stack.py`),
-so this push should start **no** pipeline execution at all, rather than the
-"starts a full execution, then the in-execution gates skip the actual work" behavior
-every push got before that feature existed.
+The original version of this plan (#288) was the first real-world test of the
+CodePipeline Git push-filter trigger added in #282–#285 — confirmed working:
+that merge started **zero** `pyvar-dev-pipeline` executions, verified directly
+against CodePipeline's own API. This revision (v1.1, adding the sequencing note and
+the `call_pyvar_function`/`list_pyvar_functions` mitigation) keeps the same property
+deliberately: still touches nothing outside `docs/`, so it should skip an execution
+too, same as the first version did.
