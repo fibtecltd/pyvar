@@ -40,6 +40,15 @@ Reasoning:
   most cycles inside the 1h result-cache TTL -- see that function's own
   comment for why treating the cache-hit response as a pollable task_id was
   a real, previously-shipped bug (nearly every refresh silently no-op'd).
+- publish_status() also fetches the live published pyvar-client version from
+  PyPI's public JSON API and includes it in status.json, so the portal's
+  version badge (portal/index.html, portal/pyvar.js's nav) never goes stale
+  the way a hardcoded literal did before (it sat at "v0.1.0-beta" long after
+  pyvar-client had actually shipped 0.1.2). This is the one genuine
+  third-party call in this Lambda -- everything else hits pyvar's own
+  domain (API_BASE_URL) by design, per the task #41 note above. Best-effort:
+  a PyPI hiccup carries forward whatever version the previous cycle
+  published rather than making the badge disappear or flicker.
 """
 
 from __future__ import annotations
@@ -56,6 +65,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import boto3
+from botocore.exceptions import ClientError
 
 ENV_NAME = os.environ["ENV_NAME"]
 PUBLIC_BUCKET = os.environ["PUBLIC_BUCKET"]
@@ -109,6 +119,8 @@ DEMO_PAYLOAD: dict[str, Any] = {
 POLL_INTERVAL_SECONDS = 5
 POLL_TIMEOUT_SECONDS = 270  # 4.5 min — stays inside the 5 min Lambda timeout
 
+PYPI_PACKAGE_URL = "https://pypi.org/pypi/pyvar-client/json"
+
 
 def _b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
@@ -161,6 +173,37 @@ def _api_request(
         return json.loads(resp.read())
 
 
+def _fetch_pypi_version() -> str | None:
+    """Live published version of pyvar-client, from PyPI's public JSON API.
+
+    Best-effort: returns None on any failure (network, malformed response,
+    unexpected shape) rather than raising — see publish_status()'s own
+    fallback for how a failure here is absorbed.
+    """
+    req = urllib.request.Request(PYPI_PACKAGE_URL, method="GET")
+    try:
+        with urllib.request.urlopen(
+            req, timeout=10
+        ) as resp:  # nosec B310 -- fixed, well-known public API
+            data = json.loads(resp.read())
+        return str(data["info"]["version"])
+    except (urllib.error.URLError, KeyError, ValueError, OSError):
+        return None
+
+
+def _previous_pyvar_client_version() -> str | None:
+    """Whatever version status.json last published, if anything -- used to
+    carry the version forward through a transient PyPI outage instead of
+    letting the portal's version badge disappear or flicker."""
+    try:
+        prev = s3.get_object(Bucket=PUBLIC_BUCKET, Key="public/status.json")
+        prev_status: dict[str, Any] = json.loads(prev["Body"].read())
+    except (ClientError, KeyError, ValueError):
+        return None
+    version = prev_status.get("pyvar_client_version")
+    return str(version) if version is not None else None
+
+
 def publish_status() -> dict[str, Any]:
     resp = cloudwatch.describe_alarms(AlarmNames=ALARM_NAMES)
     states = {a["AlarmName"]: a["StateValue"] for a in resp.get("MetricAlarms", [])}
@@ -173,11 +216,14 @@ def publish_status() -> dict[str, Any]:
     else:
         overall = "down"
 
-    status = {
+    status: dict[str, Any] = {
         "status": overall,
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "alarms": states,
     }
+    pyvar_client_version = _fetch_pypi_version() or _previous_pyvar_client_version()
+    if pyvar_client_version is not None:
+        status["pyvar_client_version"] = pyvar_client_version
     s3.put_object(
         Bucket=PUBLIC_BUCKET,
         Key="public/status.json",

@@ -27,7 +27,7 @@
 </script>
 <link rel="stylesheet" href="pyvar.css"/>
 <style>
-:root{--svc:#c8a44a;--svc2:rgba(200,164,74,0.10);--svc3:rgba(200,164,74,0.22)}
+:root{--svc:#7b652d;--svc2:rgba(123,101,45,0.10);--svc3:rgba(123,101,45,0.22)}
 .fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:48px}
 .fn-card{background:var(--bg2);padding:20px 22px;transition:background .15s;position:relative;overflow:hidden}
 .fn-card:hover{background:var(--bg3)}
@@ -38,7 +38,7 @@
 .fn-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.55}
 .cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent}
 .cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
-.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(31,30,29,0.02);border-color:var(--border)}
 .cat-pill:hover{color:var(--text);border-color:var(--border2)}
 .hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;text-align:center}
 .hero-metric-val{font-family:var(--serif);font-size:36px;font-weight:300;letter-spacing:-.02em}
@@ -61,7 +61,7 @@
 
 <!-- Hero -->
 <section class="page-hero">
-  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(200,164,74,0.06) 0%,transparent 70%)"></div>
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(123,101,45,0.06) 0%,transparent 70%)"></div>
   <div class="page-hero-grid"></div>
   <div class="container" style="position:relative;z-index:1">
     <div class="eyebrow reveal">
@@ -77,8 +77,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
         <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">55</div><div class="hero-metric-lbl">Functions</div></div>
         <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
-        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">Basel</div><div class="hero-metric-lbl">IRB coverage</div></div>
-        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">IFRS 9</div><div class="hero-metric-lbl">ECL framework</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">Basel</div><div class="hero-metric-lbl">IRB coverage</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">IFRS 9</div><div class="hero-metric-lbl">ECL framework</div></div>
       </div>
     </div>
   </div>
@@ -135,7 +135,7 @@
         <div class="eyebrow">API example</div>
         <h3 class="h3" style="margin-bottom:20px">IFRS 9 ECL <em>endpoint</em></h3>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2">
-          <span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/credit/ecl</span><br/>
+          <span style="color:var(--blue)">POST</span> <span style="color:var(--green)">/api/v1/credit/ecl</span><br/>
           <span style="color:var(--dim)">{</span><br/>
           &nbsp;&nbsp;<span style="color:var(--svc)">"exposure"</span>: 1000000,<br/>
           &nbsp;&nbsp;<span style="color:var(--svc)">"pd_stage1"</span>: 0.012,<br/>
