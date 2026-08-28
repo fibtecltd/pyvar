@@ -15,6 +15,7 @@
     { "name": "pyvar-arch-data-ingestion", "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/arch/data-ingestion" }, "description": "Arch: Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation" },
     { "name": "pyvar-arch-compute",        "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/arch/compute" },        "description": "Arch: NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch" },
     { "name": "pyvar-arch-storage",        "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/arch/storage" },        "description": "Arch: Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store" },
-    { "name": "pyvar-arch-observability",  "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/arch/observability" },  "description": "Arch: Prometheus, Grafana, Sentry, Bandit, input validation security" }
+    { "name": "pyvar-arch-observability",  "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/arch/observability" },  "description": "Arch: Prometheus, Grafana, Sentry, Bandit, input validation security" },
+    { "name": "pyvar-mcp",                 "source": { "source": "github", "repo": "fibtecltd/pyvar", "path": "plugins/mcp" },                  "description": "MCP server: all 385 pyvar functions as Claude Code tools, via the live API" }
   ]
 }

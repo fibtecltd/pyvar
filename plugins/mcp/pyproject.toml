@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyvar-mcp"
+version = "0.1.0"
+description = "MCP server exposing pyvar.com's 385 risk functions as Claude Code tools"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Fibtec Limited" }]
+requires-python = ">=3.11"
+# mcp is the one real runtime dependency -- the actual pyvar API calls use
+# stdlib urllib (see pyvar_mcp/client.py's own docstring for why), not a
+# second HTTP stack; mcp itself pulls in httpx transitively but only for
+# the MCP protocol wire format, unrelated to this server's own API calls.
+dependencies = ["mcp>=2.1.0,<3", "anyio>=4.0"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
+
+[project.urls]
+Homepage = "https://www.pyvar.com"
+Repository = "https://github.com/fibtecltd/pyvar"
+"Bug Tracker" = "https://github.com/fibtecltd/pyvar/issues"
+
+[project.scripts]
+pyvar-mcp = "pyvar_mcp.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov",
+    "black==26.5.1",
+    "isort==8.0.1",
+    "ruff==0.15.22",
+]
+
+[tool.setuptools.packages.find]
+include = ["pyvar_mcp*"]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["pyvar_mcp"]
+# Explicit, not a guess: isort's local-package auto-detection, run from this
+# directory, misclassifies the third-party `mcp` PyPI package (mcp.types,
+# mcp.server.*) as first-party -- this project's own directory is named
+# plugins/mcp/, and isort's heuristic conflates the project root's basename
+# with the module name "mcp" it's trying to classify. Confirmed directly via
+# `isort.place_module("mcp", config)` returning FIRSTPARTY here but
+# THIRDPARTY when the exact same import is checked from the repo root.
+known_third_party = ["mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

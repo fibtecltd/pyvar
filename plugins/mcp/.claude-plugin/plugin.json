@@ -1,0 +1,29 @@
+{
+  "name": "pyvar-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing all 385 pyvar.com risk functions (VaR, credit, derivatives, liquidity, operational risk, portfolio analytics, ALM, regulatory) as Claude Code tools, via the live pyvar API",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT",
+  "userConfig": {
+    "pyvar_api_key": {
+      "type": "string",
+      "title": "pyvar API key",
+      "description": "Free-tier key from https://www.pyvar.com#get-api-key",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "mcpServers": {
+    "pyvar": {
+      "command": "pyvar-mcp",
+      "env": {
+        "PYVAR_API_KEY": "${user_config.pyvar_api_key}"
+      }
+    }
+  }
+}
