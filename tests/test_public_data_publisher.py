@@ -152,3 +152,84 @@ def test_publish_demo_result_skips_publish_when_duration_ms_missing(monkeypatch)
 
     assert demo is None
     mock_put_object.assert_not_called()
+
+
+def _fake_cloudwatch_response():
+    return MagicMock(return_value={"MetricAlarms": []})
+
+
+def test_fetch_pypi_version_parses_info_version(monkeypatch):
+    """Confirms the exact JSON shape PyPI's public API is expected to
+    return ({"info": {"version": "..."}}) is parsed correctly."""
+    handler = _load_handler_module(monkeypatch)
+
+    fake_response = MagicMock()
+    fake_response.read.return_value = json.dumps({"info": {"version": "0.1.2"}}).encode()
+    fake_response.__enter__.return_value = fake_response
+    fake_response.__exit__.return_value = False
+    monkeypatch.setattr(handler.urllib.request, "urlopen", MagicMock(return_value=fake_response))
+
+    assert handler._fetch_pypi_version() == "0.1.2"
+
+
+def test_fetch_pypi_version_returns_none_on_network_failure(monkeypatch):
+    handler = _load_handler_module(monkeypatch)
+
+    def raise_url_error(*args, **kwargs):
+        raise handler.urllib.error.URLError("simulated network failure")
+
+    monkeypatch.setattr(handler.urllib.request, "urlopen", raise_url_error)
+
+    assert handler._fetch_pypi_version() is None
+
+
+def test_publish_status_includes_live_pypi_version(monkeypatch):
+    handler = _load_handler_module(monkeypatch)
+
+    monkeypatch.setattr(handler.cloudwatch, "describe_alarms", _fake_cloudwatch_response())
+    monkeypatch.setattr(handler, "_fetch_pypi_version", MagicMock(return_value="0.1.2"))
+    mock_put_object = MagicMock()
+    monkeypatch.setattr(handler.s3, "put_object", mock_put_object)
+
+    status = handler.publish_status()
+
+    assert status["pyvar_client_version"] == "0.1.2"
+    published_body = json.loads(mock_put_object.call_args.kwargs["Body"].decode())
+    assert published_body["pyvar_client_version"] == "0.1.2"
+
+
+def test_publish_status_falls_back_to_previous_version_on_pypi_failure(monkeypatch):
+    """A transient PyPI outage must not make the portal's version badge
+    disappear -- carry forward whatever the last successful cycle
+    published instead."""
+    handler = _load_handler_module(monkeypatch)
+
+    monkeypatch.setattr(handler.cloudwatch, "describe_alarms", _fake_cloudwatch_response())
+    monkeypatch.setattr(handler, "_fetch_pypi_version", MagicMock(return_value=None))
+    prev_body = MagicMock()
+    prev_body.read.return_value = json.dumps({"pyvar_client_version": "0.1.1"}).encode()
+    monkeypatch.setattr(handler.s3, "get_object", MagicMock(return_value={"Body": prev_body}))
+    monkeypatch.setattr(handler.s3, "put_object", MagicMock())
+
+    status = handler.publish_status()
+
+    assert status["pyvar_client_version"] == "0.1.1"
+
+
+def test_publish_status_omits_version_when_no_pypi_and_no_previous(monkeypatch):
+    """First-ever run (no prior status.json) coinciding with a PyPI outage --
+    the field is simply omitted, never published as null/broken."""
+    handler = _load_handler_module(monkeypatch)
+
+    monkeypatch.setattr(handler.cloudwatch, "describe_alarms", _fake_cloudwatch_response())
+    monkeypatch.setattr(handler, "_fetch_pypi_version", MagicMock(return_value=None))
+    monkeypatch.setattr(
+        handler.s3,
+        "get_object",
+        MagicMock(side_effect=handler.ClientError({"Error": {"Code": "NoSuchKey"}}, "GetObject")),
+    )
+    monkeypatch.setattr(handler.s3, "put_object", MagicMock())
+
+    status = handler.publish_status()
+
+    assert "pyvar_client_version" not in status

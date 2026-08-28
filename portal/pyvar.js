@@ -16,8 +16,8 @@ const API_BASE = '';
 
 // ── pyvar logomark — waveform + terminal cursor ───────────────────
 const LOGO_SVG = `<svg width="28" height="22" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#00d97e" stroke-width="1.75" stroke-linecap="round"/>
-  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#00d97e" opacity="0.9">
+  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#a84a2e" stroke-width="1.75" stroke-linecap="round"/>
+  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#a84a2e" opacity="0.9">
     <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.2s" repeatCount="indefinite"/>
   </rect>
 </svg>`;
@@ -39,7 +39,7 @@ function buildNav(active = 'home') {
     </div>
     <div class="nav-right">
       <button type="button" class="nav-search-btn" id="navSearchBtn" aria-haspopup="dialog">Search <kbd>/</kbd></button>
-      <span class="nav-version">v0.1.0-beta</span>
+      <span class="nav-version" data-version>v0.1.2</span>
       <a href="https://fibtec.co.uk" target="_blank" class="nav-gh" title="Built by Fibtec Limited">by fibtec.co.uk</a>
       <a href="index.html#get-api-key" class="nav-cta">Get API key</a>
     </div>
@@ -47,8 +47,8 @@ function buildNav(active = 'home') {
 }
 
 const FOOTER_LOGO = `<svg width="32" height="26" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#00d97e" stroke-width="1.75" stroke-linecap="round"/>
-  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#00d97e" opacity="0.7"/>
+  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#a84a2e" stroke-width="1.75" stroke-linecap="round"/>
+  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#a84a2e" opacity="0.7"/>
 </svg>`;
 
 function buildFooter() {
@@ -144,6 +144,25 @@ async function initStatusIndicator() {
     pill.textContent = labels[data.status] || labels.operational;
   } catch (e) {
     // Offline / pre-deploy / CORS — static default already shown, nothing to do.
+  }
+}
+
+async function initVersion() {
+  // [data-version] appears on every page (buildNav's nav-version span) plus
+  // index.html's own hero eyebrow -- hydrated from the same status.json
+  // fetch initStatusIndicator uses, so this can't drift from the actually
+  // published pyvar-client version the way a hardcoded literal did before
+  // (see pyvar-cdk/lambda/public_data_publisher/handler.py's own comment).
+  const els = document.querySelectorAll('[data-version]');
+  if (!els.length) return;
+  try {
+    const res = await fetch(`${PUBLIC_DATA_BASE}/status.json`, { cache: 'no-store' });
+    if (!res.ok) return; // leave the static fallback version in place
+    const data = await res.json();
+    if (!data.pyvar_client_version) return; // PyPI outage carried no prior value either
+    els.forEach(el => { el.textContent = `v${data.pyvar_client_version}`; });
+  } catch (e) {
+    // Offline / pre-deploy / CORS — static fallback version already shown.
   }
 }
 
@@ -615,5 +634,5 @@ function initNav() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initReveal(); initNav(); initStatusIndicator(); initTerminalDemo(); initSearch();
+  initReveal(); initNav(); initStatusIndicator(); initTerminalDemo(); initSearch(); initVersion();
 });

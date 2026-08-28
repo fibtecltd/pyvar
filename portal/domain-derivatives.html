@@ -27,7 +27,7 @@
 </script>
 <link rel="stylesheet" href="pyvar.css"/>
 <style>
-:root{--svc:#c47a2a;--svc2:rgba(196,122,42,0.10);--svc3:rgba(196,122,42,0.22)}
+:root{--svc:#945c1f;--svc2:rgba(148,92,31,0.10);--svc3:rgba(148,92,31,0.22)}
 .fn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:40px}
 .fn-card{background:var(--bg2);padding:18px 20px;transition:background .15s;position:relative;overflow:hidden}
 .fn-card:hover{background:var(--bg3)}
@@ -36,7 +36,7 @@
 .fn-name{font-family:var(--serif);font-size:14px;font-weight:400;color:var(--text);line-height:1.3}
 .cat-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
 .cat-pill.act{background:var(--svc2);color:var(--svc);border-color:var(--svc3)}
-.cat-pill:not(.act){color:var(--dim);background:rgba(255,255,255,0.02);border-color:var(--border)}
+.cat-pill:not(.act){color:var(--dim);background:rgba(31,30,29,0.02);border-color:var(--border)}
 .cat-pill:hover{color:var(--text);border-color:var(--border2)}
 .hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;text-align:center}
 .hero-metric-val{font-family:var(--serif);font-size:32px;font-weight:300;letter-spacing:-.02em}
@@ -59,7 +59,7 @@
 <main>
 
 <section class="page-hero">
-  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(196,122,42,0.055) 0%,transparent 70%)"></div>
+  <div class="page-hero-bg" style="background:radial-gradient(ellipse 65% 70% at 65% 50%,rgba(148,92,31,0.055) 0%,transparent 70%)"></div>
   <div class="page-hero-grid"></div>
   <div class="container" style="position:relative;z-index:1">
     <div class="eyebrow reveal">
@@ -75,8 +75,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
         <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">62</div><div class="hero-metric-lbl">Functions</div></div>
         <div class="hero-metric"><div class="hero-metric-val" style="color:var(--svc)">6</div><div class="hero-metric-lbl">Categories</div></div>
-        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">FRTB SA</div><div class="hero-metric-lbl">Standard</div></div>
-        <div class="hero-metric"><div class="hero-metric-val" style="color:#1a9e72">EMIR SIMM</div><div class="hero-metric-lbl">Coverage</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">FRTB SA</div><div class="hero-metric-lbl">Standard</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">EMIR SIMM</div><div class="hero-metric-lbl">Coverage</div></div>
       </div>
     </div>
   </div>
@@ -114,7 +114,7 @@
       <div>
         <div class="eyebrow">API example</div>
         <h3 class="h3" style="margin-bottom:20px">Derivatives & Pricing <em>endpoint</em></h3>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2"><span style="color:#2a6fd4">POST</span> <span style="color:#1a9e72">/api/v1/derivatives/option</span><br/><span style="color:var(--dim)">{</span><br/>&nbsp;&nbsp;<span style="color:var(--svc)">"model"</span>: "heston",<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"S"</span>: 100, <span style="color:var(--svc)">"K"</span>: 105,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"T"</span>: 0.5, <span style="color:var(--svc)">"r"</span>: 0.05,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"v0"</span>: 0.04, <span style="color:var(--svc)">"kappa"</span>: 2.0,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"theta"</span>: 0.04, <span style="color:var(--svc)">"sigma"</span>: 0.3<br/><span style="color:var(--dim)">}</span><br/><br/><span style="color:var(--dim)">→ price: 6.842</span><br/><span style="color:var(--dim)">→ delta: 0.412  vega: 0.187</span><br/><span style="color:var(--dim)">→ implied_vol: 21.4%</span></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2"><span style="color:var(--blue)">POST</span> <span style="color:var(--green)">/api/v1/derivatives/option</span><br/><span style="color:var(--dim)">{</span><br/>&nbsp;&nbsp;<span style="color:var(--svc)">"model"</span>: "heston",<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"S"</span>: 100, <span style="color:var(--svc)">"K"</span>: 105,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"T"</span>: 0.5, <span style="color:var(--svc)">"r"</span>: 0.05,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"v0"</span>: 0.04, <span style="color:var(--svc)">"kappa"</span>: 2.0,<br/>&nbsp;&nbsp;<span style="color:var(--svc)">"theta"</span>: 0.04, <span style="color:var(--svc)">"sigma"</span>: 0.3<br/><span style="color:var(--dim)">}</span><br/><br/><span style="color:var(--dim)">→ price: 6.842</span><br/><span style="color:var(--dim)">→ delta: 0.412  vega: 0.187</span><br/><span style="color:var(--dim)">→ implied_vol: 21.4%</span></div>
         <div style="margin-top:16px;display:flex;gap:10px">
           <a href="index.html" class="btn-outline" style="flex:1;justify-content:center;font-size:10px">← All domains</a>
           <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-gold" style="flex:1;justify-content:center;font-size:10px">API access →</a>
