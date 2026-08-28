@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-arch-storage",
+  "version": "1.0.0",
+  "description": "Arch: Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

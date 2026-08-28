@@ -1,9 +1,9 @@
 # P10 — Claude Code Skills & pyvar MCP Plugin
 ## Exposing pyvar.com's domain expertise and API as installable Claude Code assets
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** August 2026
-**Status:** Planning — not yet implemented
+**Status:** Part A (skills plugins) implemented; Part B (MCP plugin) still planning
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
 
 ---
@@ -26,98 +26,90 @@ visibility flip is scheduled, not after.
 ## Executive Summary
 
 pyvar.com already ships two Claude Code-native assets that live only inside this
-repository: 12 domain skills under `.claude/skills/*` (alm, credit-risk, derivatives,
-liquidity-risk, market-risk, operational-risk, portfolio-analytics, regulatory, plus
-4 architecture skills), and the pyvar REST API itself (385 functions across 8 domains).
-Neither is currently reachable by someone who isn't working inside this repo's own
-Claude Code session.
+repository: 13 skills under `.claude/skills/*` (8 domain skills — alm, credit-risk,
+derivatives, liquidity-risk, market-risk, operational-risk, portfolio-analytics,
+regulatory — plus 5 architecture skills), and the pyvar REST API itself (385
+functions across 8 domains). Neither is currently reachable by someone who isn't
+working inside this repo's own Claude Code session.
 
-This phase makes both installable directly into *any* user's own Claude Code setup,
-downloadable from the portal:
+This phase makes both installable directly into *any* user's own Claude Code setup:
 
-1. **Skills package** — the 12 domain skills, packaged as a proper Claude Code plugin
-   (not a bare zip) and available from a new portal page.
+1. **Skills plugins** — turns out this was already half-planned: `.claude-plugin/
+   marketplace.json` was already committed at repo root, declaring 13 individual
+   single-skill plugins (one per `.claude/skills/*` entry) at `plugins/<path>/` --
+   the actual plugin directories just didn't exist yet. This phase builds them
+   (§A), verified against Claude Code's real, documented plugin format rather than
+   guessed.
 2. **pyvar MCP plugin** — a new Claude Code plugin bundling an MCP server that wraps
    the live pyvar.com API, giving any Claude Code session direct tool access to all
-   385 functions. Distributed the same way, and referenced from each domain page's
-   existing API-reference section.
+   385 functions. Referenced from each domain page's existing API-reference section.
 
-Both are built fresh from the actual repository content at deploy time — the same
-"never let a published fact drift from reality" principle that motivated the recent
-homepage fixes (stale region/model strings, a demo runtime figure that hid a real bug,
-a version badge that had drifted from the actual PyPI release).
+Both follow the same "never let a published fact drift from reality" principle that
+motivated the recent homepage fixes (stale region/model strings, a demo runtime
+figure that hid a real bug, a version badge that had drifted from the actual PyPI
+release) -- concretely, via the same generate-and-CI-diff pattern this repo already
+uses for `pyvar-client` (`pyvar-client/codegen/generate.py` +
+`.github/workflows/pyvar-client-ci.yml`'s "Codegen drift check" job), not a new
+deploy-time build mechanism invented for this phase specifically.
 
 ---
 
-## Part A — Skills package
+## Part A — Skills plugins  (IMPLEMENTED as of this revision)
 
-### A.1 What ships
+### A.1 Format, verified not guessed
 
-All 12 directories under `.claude/skills/*`, as they exist in the repo at build time —
-no hand-curation, no separate copy to keep in sync. This mirrors this project's own
-"drift is a bug" lesson: a maintained *copy* of the skills, refreshed by hand, is
-exactly the failure mode that produced the stale version badge and the 4x-stale demo
-runtime figure fixed in the last two PRs.
+Before writing any files, the real Claude Code plugin/marketplace format was
+confirmed against actual documentation (not invented): `.claude-plugin/plugin.json`
+(only `name` is required; `version`, `description`, `author`, `mcpServers`,
+`skills`, `userConfig` etc. are all real optional fields), a repo-root
+`.claude-plugin/marketplace.json` (required `name`/`owner`/`plugins[]`, each entry a
+`name` + a `source` -- a relative path for a same-repo plugin, or a full git
+reference for an external one), and the *single-skill shorthand*: a plugin wrapping
+exactly one skill can put `SKILL.md` straight at the plugin root instead of nesting
+it under `skills/<name>/`.
 
-### A.2 Packaging — proper Claude Code plugin, not a bare zip
+### A.2 What already existed vs. what this phase built
 
-Structured as an installable Claude Code plugin:
+`.claude-plugin/marketplace.json` was already committed at repo root (predates this
+phase), declaring exactly 13 plugins -- one per `.claude/skills/*` skill -- each
+with a `name` (matching that skill's own frontmatter `name`, e.g. `pyvar-market-risk`)
+and a GitHub `source` pointing at `plugins/<path>` (e.g. `plugins/market-risk`,
+`plugins/arch/api-gateway` for the 5 architecture skills, nested under `plugins/arch/`).
+The `plugins/` directories themselves didn't exist yet -- this phase builds them,
+matching the already-declared marketplace exactly rather than inventing a different
+(single combined bundle) structure, which was this doc's own original, incorrect
+first draft.
 
-```
-pyvar-skills-plugin/
-├── .claude-plugin/
-│   └── plugin.json          # name, version, description
-├── skills/
-│   ├── alm/
-│   ├── arch-api-gateway/
-│   ├── arch-compute/
-│   ├── arch-data-ingestion/
-│   ├── arch-observability/
-│   ├── arch-storage/
-│   ├── credit-risk/
-│   ├── derivatives/
-│   ├── liquidity-risk/
-│   ├── market-risk/
-│   ├── operational-risk/
-│   ├── portfolio-analytics/
-│   └── regulatory/
-└── README.md
-```
+### A.3 Generator, not a deploy-time build step
 
-`plugin.json`'s `version` field is set at build time from the same git short-SHA
-convention the pipeline already uses for image tags (`pipeline_stack.py`'s
-`SHORT_SHA`), so a downloaded package is traceable to the exact commit it came from.
+`scripts/generate_plugins.py`: reads each `.claude/skills/*/SKILL.md` (source of
+truth, unchanged), copies it to the matching `plugins/<path>/SKILL.md` (single-skill
+shorthand -- no nested `skills/` dir), and writes `plugins/<path>/.claude-plugin/
+plugin.json` (`name`+`version` from the skill's own frontmatter, `description` from
+the already-committed `marketplace.json` entry, `author`/`homepage`/`repository`/
+`license` fixed).
 
-A marketplace-style `marketplace.json` (or equivalent) is added alongside it so the
-package installs via Claude Code's own `/plugin` flow, not a manual unzip into
-`.claude/skills/`.
+This is a **generate-and-commit** step, not a deploy-time artifact: a git-based
+Claude Code plugin install (`/plugin marketplace add fibtecltd/pyvar`, then
+`/plugin install pyvar-market-risk@pyvar-marketplace`, etc.) reads directly from
+whatever's committed in the repo tree -- there is no server-side build/zip/S3 step
+in that flow at all, unlike the portal's own `status.json`/`demo-result.json`
+pattern. `.github/workflows/plugins-ci.yml` is the drift check: re-run the
+generator, diff against what's committed, fail with the exact fix command if stale
+-- the same shape as `pyvar-client-ci.yml`'s existing "Codegen drift check" job, and
+(like that job) informational rather than one of the branch ruleset's required
+status checks.
 
-### A.3 Build & publish — fresh at deploy time
+### A.4 Portal & distribution
 
-New step in the existing CDK Synth ShellStep (`pyvar-cdk/stacks/pipeline_stack.py`),
-gated by the same portal-relevance path check already used for the image-build and
-migration-skip gates (`_PORTAL_RELEVANT_PATHS`-style hashing), but keyed specifically
-on `.claude/skills/**`:
-
-1. Hash `.claude/skills/**`. If unchanged since the last recorded build, skip (same
-   no-op-on-irrelevant-push philosophy as the existing gates).
-2. If changed: zip `.claude/skills/*` into the plugin structure above, upload to the
-   public S3 bucket (`pyvar-cdk/stacks/public_data_stack.py`'s existing bucket — same
-   one `status.json`/`demo-result.json` already live in) at a fixed key, e.g.
-   `public/pyvar-skills-plugin.zip`.
-3. Record the new hash in SSM (same pattern as `/pyvar/pipeline/last-image-relevant-hash`).
-
-No new Lambda needed — this is a deploy-time artifact, not a periodically-refreshed
-one (skills change on commit, not on a clock), so it belongs in the pipeline's own
-Synth step, not `public_data_publisher`.
-
-### A.4 Portal placement
-
-New page, `portal/skills.html`, following the exact same shared-header/footer/palette
-pattern as the other 9 portal pages (`buildNav`/`buildFooter`, `pyvar.css` variables).
-Lists all 12 skills with their one-line descriptions (pulled from each skill's own
-frontmatter at build time, not hand-copied), and a single "Download skills plugin"
-button pointing at the S3 key above.
+No zip download after all -- `/plugin marketplace add fibtecltd/pyvar` (once the
+repo goes public) is the real, standard, already-working install path once
+`plugins/` exists, and a portal page's job is simply to *tell* a visitor that
+command plus which of the 13 plugin names to install, not to serve a file. A new
+`portal/skills.html`, matching the shared-header/footer/palette pattern of the other
+9 pages, lists the 13 plugins with their descriptions (already written, in
+`marketplace.json`) and the exact install commands -- still open per §B.6 below
+whether this is its own page or folded together with the MCP plugin's page.
 
 ---
 
@@ -186,22 +178,45 @@ failure, or a bounded timeout) rather than exposing raw `task_id`/poll semantics
 separate tools. A model calling `compute_var(...)` gets a result back directly,
 without needing to understand pyvar's async job pattern itself.
 
-### B.4 Authentication
+### B.4 Authentication — plugin.json's real `userConfig` mechanism
 
-`PYVAR_API_KEY` environment variable, set in the plugin's MCP server config at
-install time. The user obtains a free-tier key through the portal's existing
-"Get API key" flow (`portal/index.html`'s `#get-api-key` section, `api/routes/auth.py`)
-— no new auth mechanism, no bundled/shared key. A 403 (tier cap exceeded) from the
-API surfaces back through the tool call as a plain error a model can read and relay,
-not a silent failure.
+Verified, not guessed (§A.1): `plugin.json` supports a `userConfig` block that
+Claude Code itself prompts the user for at install time (typed fields --
+`string`/`number`/`boolean`/`file`/`directory`, a `sensitive: true` flag that masks
+password-style input, `required: true`). This plugin declares one:
+
+```json
+"userConfig": {
+  "pyvar_api_key": {
+    "type": "string",
+    "title": "pyvar API key",
+    "description": "Free-tier key from https://www.pyvar.com#get-api-key",
+    "sensitive": true,
+    "required": true
+  }
+}
+```
+
+and the bundled MCP server's own config references it directly:
+`"env": {"PYVAR_API_KEY": "${user_config.pyvar_api_key}"}`. The user obtains the
+key through the portal's existing "Get API key" flow (`portal/index.html`'s
+`#get-api-key` section, `api/routes/auth.py`) — no new auth mechanism on the API
+side, no bundled/shared key, and no manual "go edit a config file" step on the
+plugin side either, since `userConfig` is a real interactive install-time prompt.
+A 403 (tier cap exceeded) from the API surfaces back through the tool call as a
+plain error a model can read and relay, not a silent failure.
 
 ### B.5 Packaging & build
 
-Same proper-plugin structure as the skills package (Part A.2), same
-`.claude-plugin/plugin.json` + marketplace-manifest pattern, same "built fresh at
-deploy time" rule — except this time gated on changes to `portal/functions.json`
-(the tool-generation source) or the MCP server's own source, not `.claude/skills/**`.
-Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
+Same real plugin structure as the skills plugins (§A.1), added as a 14th entry in
+the already-existing `.claude-plugin/marketplace.json` (`source: "./plugins/mcp"`
+or similar). Its `mcpServers` block (either inline in `plugin.json` or a sibling
+`.mcp.json`) points at the bundled server's entry point via `${CLAUDE_PLUGIN_ROOT}`.
+Tool definitions generated from `portal/functions.json` follow the exact same
+generate-and-commit-and-CI-diff pattern as §A.3 (extending `scripts/
+generate_plugins.py` or a sibling script, and `.github/workflows/plugins-ci.yml`'s
+drift check) — not a deploy-time S3 artifact, for the same reason: a git-based
+plugin install reads the committed tree directly.
 
 ### B.6 Portal & docs placement
 
@@ -218,23 +233,35 @@ Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
 
 ## Build/pipeline changes summary
 
-- `pyvar-cdk/stacks/pipeline_stack.py`: two new hash-gated build steps in the shared
-  Synth ShellStep (skills zip, MCP plugin zip), each keyed on its own relevant-path
-  set, each a no-op when nothing relevant changed — same shape as the existing
-  image-build and migration-skip gates, not a new mechanism.
-- `pyvar-cdk/stacks/public_data_stack.py`: no changes expected — reuses the existing
-  public S3 bucket, just two new fixed keys.
-- New MCP server source: location TBD (see open questions) — most likely a new
-  top-level directory in this repo (e.g. `mcp-server/`), matching how `pyvar-client/`
-  already lives alongside the main API rather than in a separate repo.
+- ~~`pyvar-cdk/stacks/pipeline_stack.py`: two new hash-gated build steps in the
+  shared Synth ShellStep (skills zip, MCP plugin zip), each keyed on its own
+  relevant-path set, each a no-op when nothing relevant changed — same shape as
+  the existing image-build and migration-skip gates.~~ Not needed, see §A.3/§B.5:
+  no CDK/pipeline changes at all turned out to be required for either plugin (a
+  git-based plugin install reads the committed tree directly -- there's no
+  deploy-time build step in that flow to hook into). Struck through rather than
+  deleted so a future reader can see the design actually changed, not just
+  vanished.
+- ~~`pyvar-cdk/stacks/public_data_stack.py`: no changes expected — reuses the
+  existing public S3 bucket, just two new fixed keys.~~ Not needed -- no S3
+  artifact, see §A.3/§B.5.
+- New MCP server source: **resolved** (was open question #1) — `plugins/mcp/`
+  in `fibtecltd/pyvar` itself, matching how the skills plugins turned out to
+  already be scaffolded in this same repo (`.claude-plugin/marketplace.json`,
+  predating this phase) rather than a separate one.
+- Actual new infra: `.github/workflows/plugins-ci.yml` (drift-check CI job,
+  implemented in §A.3) and `scripts/generate_plugins.py` (the generator).
 
 ---
 
 ## Testing plan
 
-- Skills plugin: verify the built zip's `plugin.json` version matches the deploying
-  commit's short SHA; verify all 12 skill directories are present and non-empty;
-  smoke-install into a scratch Claude Code config and confirm skills load.
+- Skills plugins: `.github/workflows/plugins-ci.yml`'s drift-check job IS the test
+  (regenerate, diff against committed, fail with the fix command if stale) --
+  implemented, not just planned. Still open: an actual smoke-install into a scratch
+  Claude Code config to confirm `/plugin marketplace add` + `/plugin install`
+  genuinely works end-to-end, which needs a real Claude Code session outside this
+  sandbox to verify.
 - MCP plugin: unit tests generating tool definitions from a fixture
   `functions.json` (no live API calls, mirroring this repo's existing
   never-hit-a-real-backing-service test philosophy); a small number of
@@ -254,11 +281,10 @@ Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
 
 ## Open questions — before implementation starts
 
-1. **MCP server source location.** New top-level directory in `fibtecltd/pyvar`
-   (matching `pyvar-client/`'s precedent), or a separate repository? This session's
-   GitHub access is scoped to `fibtecltd/claude-docker`, `fibtecltd/pyvar`, and
-   `fibtecltd/.github` — a new separate repo would need to be created and added to
-   that scope first.
+1. ~~**MCP server source location.**~~ **Resolved**: `plugins/mcp/` in
+   `fibtecltd/pyvar` itself — the skills plugins turned out to already be scaffolded
+   in this same repo (a pre-existing `.claude-plugin/marketplace.json`), so the MCP
+   plugin follows the same convention rather than a separate repository.
 2. **One combined "Claude Code" portal page vs. two separate pages** (`skills.html` +
    `plugin.html`). Two pages match the existing one-topic-per-page portal convention;
    one page keeps everything Claude-Code-related in a single, more discoverable place.
@@ -278,12 +304,28 @@ Published to the same public bucket, e.g. `public/pyvar-mcp-plugin.zip`.
 
 ---
 
-## This document stays a docs-only change
+## Revision history note — this one is NOT a docs-only change, and surfaces a gap
 
-The original version of this plan (#288) was the first real-world test of the
-CodePipeline Git push-filter trigger added in #282–#285 — confirmed working:
-that merge started **zero** `pyvar-dev-pipeline` executions, verified directly
-against CodePipeline's own API. This revision (v1.1, adding the sequencing note and
-the `call_pyvar_function`/`list_pyvar_functions` mitigation) keeps the same property
-deliberately: still touches nothing outside `docs/`, so it should skip an execution
-too, same as the first version did.
+The first two versions of this plan (#288, #289) were pure `docs/` changes,
+confirming the CodePipeline Git push-filter trigger (#282–#285) correctly starts
+**zero** `pyvar-dev-pipeline` executions for a docs-only push. This revision (v1.2)
+ships alongside the actual Part A implementation (`scripts/generate_plugins.py`,
+`.github/workflows/plugins-ci.yml`, and the 13 `plugins/*` directories) in the same
+commit, since the doc text and the code it describes need to land together to stay
+accurate.
+
+Worth flagging rather than quietly working around: `scripts/` and `.github/` are
+both already in the trigger's 8-entry exclude list, but the new top-level `plugins/`
+directory is in neither that exclude list nor `_PORTAL_RELEVANT_PATHS` (the
+in-execution skip gates' allowlist) -- exactly the "a 9th non-portal top-level
+directory shows up" scenario `pipeline_stack.py`'s own comments warned about when
+the exclude list was built (PR #284), and the exclude list is already at its
+AWS-imposed 8-entry cap, so adding `plugins` there means deliberately dropping one
+of the current 8. Net effect on this specific push: the trigger starts a real
+execution (falls back to the safe direction -- an unrecognized path is treated as
+relevant, not silently skipped), and then the in-execution image-build gate
+correctly no-ops the rebuild anyway since `plugins/` isn't portal-relevant either --
+so nothing wrong happens, just one wasted-but-harmless execution, the same shape of
+waste the whole trigger effort was meant to eliminate. Not fixed in this PR
+(changing the trigger's exclude list is its own decision, not bundled into a
+feature PR) -- flagged here for a deliberate follow-up call instead.
