@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-alm",
+  "version": "1.0.0",
+  "description": "33 functions: Duration gap, NII/EVE, IRRBB 6 shocks, repricing, NMD, FTP",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

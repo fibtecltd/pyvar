@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-credit-risk",
+  "version": "1.0.0",
+  "description": "55 functions: PD/LGD/EAD, IRB/SA, XVA full suite, IFRS 9 ECL, CDS, SA-CCR, scoring",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

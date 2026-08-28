@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-liquidity-risk",
+  "version": "1.0.0",
+  "description": "40 functions: LCR, NSFR, HQLA, cash flow, ILAAP, intraday, LiqVaR",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

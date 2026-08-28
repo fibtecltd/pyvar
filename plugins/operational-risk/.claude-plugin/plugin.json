@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-operational-risk",
+  "version": "1.0.0",
+  "description": "44 functions: LDA, AMA, SMA, RCSA, KRI, scenario, BEICF, cyber/model/IT risk",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

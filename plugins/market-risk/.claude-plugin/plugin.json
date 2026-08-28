@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-market-risk",
+  "version": "1.0.0",
+  "description": "68 functions: VaR, ES, stress, Greeks, P&L attribution, backtesting, GARCH, FRTB SA/IMA",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}

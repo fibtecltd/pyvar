@@ -1,0 +1,12 @@
+{
+  "name": "pyvar-derivatives",
+  "version": "1.0.0",
+  "description": "62 functions: BS/Heston/SABR/Dupire/LSM, exotic options, bonds, IRS/CDS, FX",
+  "author": {
+    "name": "Fibtec Limited",
+    "url": "https://pyvar.com"
+  },
+  "homepage": "https://pyvar.com",
+  "repository": "https://github.com/fibtecltd/pyvar",
+  "license": "MIT"
+}
