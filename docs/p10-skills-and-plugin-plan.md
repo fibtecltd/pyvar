@@ -1,9 +1,10 @@
 # P10 — Claude Code Skills & pyvar MCP Plugin
 ## Exposing pyvar.com's domain expertise and API as installable Claude Code assets
 
-**Version:** 1.2
+**Version:** 1.3
 **Date:** August 2026
-**Status:** Part A (skills plugins) implemented; Part B (MCP plugin) still planning
+**Status:** Part A (skills plugins) and Part B (MCP server + tools) implemented;
+only §B.6 (portal placement) still open
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
 
 ---
@@ -113,15 +114,14 @@ whether this is its own page or folded together with the MCP plugin's page.
 
 ---
 
-## Part B — pyvar MCP plugin
+## Part B — pyvar MCP plugin  (IMPLEMENTED as of this revision, except §B.6)
 
 ### B.1 Architecture — thin API wrapper
 
 The MCP server does **not** vendor `engine/` locally. Each tool call is a real HTTPS
-round-trip to `https://www.pyvar.com/api/v1/{domain}/compute` using the same async
-job pattern (`POST` → `task_id` → poll `GET .../result/{task_id}`) every other pyvar
-client already uses — the MCP server is functionally a third implementation of the
-same client pattern `pyvar-client` (the PyPI package) already implements in Python.
+`POST {path}` to the API, where `path` is the function's own catalogued endpoint
+(e.g. `/api/v1/alm/alm_stress_test`) — see §B.3 below for why this is a plain
+request/response, not the submit/poll shape originally assumed here.
 
 Rejected: vendoring the engine directly into the plugin. It would need `numpy`/`numba`
 as plugin dependencies (heavy install, `numba`'s first-call JIT compilation cost paid
@@ -169,14 +169,72 @@ generic pair over browsing the full 385-tool list depends on how the tool
 descriptions read to each specific client/model — worth watching in real usage,
 same as before, but no longer an unmitigated risk with zero corrective action.
 
-### B.3 Async handling
+### B.3 Async handling — turned out to be unnecessary; a real homepage bug found along the way
 
-Given the API's own submit/poll shape, the MCP server itself owns the polling loop
-(mirroring `lambda/public_data_publisher/handler.py`'s own poll pattern, and
-`pyvar-client`'s Python SDK) — a tool call blocks until the job resolves (success,
-failure, or a bounded timeout) rather than exposing raw `task_id`/poll semantics as
-separate tools. A model calling `compute_var(...)` gets a result back directly,
-without needing to understand pyvar's async job pattern itself.
+This section originally assumed the API's async submit/poll shape (`task_id` +
+polling) applied to all 385 functions, matching what `portal/index.html`'s own API
+section claims: *"All 385 functions use the same async job pattern: POST to submit,
+GET to poll."* That claim is **false**, confirmed by reading the actual route code,
+not assumed from the homepage's own text (the same "verify, don't trust a published
+claim" discipline behind the recent version-badge and demo-runtime fixes):
+`grep`-ing every file under `api/routes/*.py` for the async job markers
+(`apply_async`, `task_id`) turns up exactly one hit — `api/routes/var.py`
+(`POST /api/v1/var/compute` → `task_id` → poll `GET /api/v1/var/result/{task_id}`,
+Celery-backed, reserved for the one heavy Monte Carlo path per `scripts/gen_p3.py`'s
+own design docstring). Every other route (`api/routes/alm.py` and the other 6
+domain route files) is a plain synchronous `POST` returning a JSON dict directly —
+confirmed by reading the generated route bodies themselves, not inferred. `var.py`'s
+async endpoint isn't even one of the 385 catalogued `functions.json` entries (its
+domain there is `market-risk`, and none of that domain's 68 catalogued functions are
+`/api/v1/var/compute` — they're all separate, already-synchronous VaR-adjacent
+functions like `historical_simulation_var`).
+
+Net effect: **no polling logic exists in the MCP server at all** — every one of the
+385 generated tools, plus `call_pyvar_function`, is a single synchronous
+POST-and-return. Simpler and more correct than the original plan, and a real,
+separate finding worth fixing on the homepage itself (not done as part of this
+plugin work — flagged, not silently patched, same as this whole project's other
+mid-task discoveries).
+
+**Also worth recording:** initial research into the Python `mcp` SDK's API for a
+large, programmatically-generated tool set (asked of a research agent, not written
+from memory) came back claiming the SDK's low-level `Server` class -- exactly the
+API a ~385-tool dynamic catalogue needs -- had been "removed" in the current major
+version. That claim didn't match this project's own prior confidence about MCP's
+SDK design, so it was checked directly against the actually-installed `mcp` package
+(`pip install mcp`, then introspecting `mcp.server.lowlevel.Server`'s real
+constructor and `mcp.types.Tool`/`CallToolResult`/etc. field names) rather than
+trusted or dismissed on priors alone -- the claim was wrong: `Server(name,
+on_list_tools=..., on_call_tool=...)` is real, current, and exactly the shape used
+in `plugins/mcp/pyvar_mcp/main.py`. Recorded here because a second source turning
+out to be confidently wrong on something this foundational is worth knowing, not
+because the mistake mattered once caught.
+
+### B.3a Implementation
+
+`plugins/mcp/` is a real installable Python package (`pyvar_mcp`), structured
+exactly like `pyvar-client/` (its own `pyproject.toml`, `[project.scripts] pyvar-mcp
+= "pyvar_mcp.main:main"`, `tests/`, `.gitignore`) rather than a bare script:
+
+- `pyvar_mcp/client.py` — the thin HTTP client (stdlib `urllib`, matching
+  `pyvar-cdk/lambda/*/handler.py`'s own no-extra-HTTP-stack convention).
+- `pyvar_mcp/catalogue.py` — lookup helpers (`by_tool_name`, `by_domain_and_function`,
+  `in_domain`) over the generated function list.
+- `pyvar_mcp/_generated/functions.py` — generated by `scripts/generate_mcp_tools.py`
+  from `portal/functions.json`, same generate-and-commit-and-CI-diff pattern as the
+  skills plugins (§A.3) and `pyvar-client`'s own codegen.
+- `pyvar_mcp/main.py` — `mcp.server.lowlevel.Server` wiring: one `on_list_tools`
+  handler building all 387 `Tool` objects (385 named + the 2 generic), one
+  `on_call_tool` handler dispatching all three call shapes (a named tool,
+  `call_pyvar_function`'s explicit domain+function_name, `list_pyvar_functions`) to
+  the same underlying `_invoke()`. Errors (unknown tool, missing required param, a
+  4xx/5xx from the API) come back as `CallToolResult(is_error=True, ...)` -- a
+  normal tool result the model can read, never a raised exception.
+
+22 tests (`plugins/mcp/tests/`), 96% coverage on `pyvar_mcp` (the uncovered lines are
+the stdio entry point itself, `main()`/`_amain()`, which needs a real subprocess to
+exercise meaningfully) -- no live network calls, `urllib.request.urlopen` mocked
+throughout.
 
 ### B.4 Authentication — plugin.json's real `userConfig` mechanism
 
@@ -208,15 +266,28 @@ plain error a model can read and relay, not a silent failure.
 
 ### B.5 Packaging & build
 
-Same real plugin structure as the skills plugins (§A.1), added as a 14th entry in
-the already-existing `.claude-plugin/marketplace.json` (`source: "./plugins/mcp"`
-or similar). Its `mcpServers` block (either inline in `plugin.json` or a sibling
-`.mcp.json`) points at the bundled server's entry point via `${CLAUDE_PLUGIN_ROOT}`.
-Tool definitions generated from `portal/functions.json` follow the exact same
-generate-and-commit-and-CI-diff pattern as §A.3 (extending `scripts/
-generate_plugins.py` or a sibling script, and `.github/workflows/plugins-ci.yml`'s
-drift check) — not a deploy-time S3 artifact, for the same reason: a git-based
-plugin install reads the committed tree directly.
+Added as the 14th entry in the already-existing `.claude-plugin/marketplace.json`
+(`source: "./plugins/mcp"`). `plugin.json`'s `mcpServers` block runs the installed
+console script directly (`"command": "pyvar-mcp"`) rather than pointing at a
+`${CLAUDE_PLUGIN_ROOT}`-relative script path -- simpler once the package is
+actually installed, at the cost of one real, currently-manual step (below).
+`pyvar_mcp/_generated/functions.py` follows the exact same generate-and-commit-
+and-CI-diff pattern as §A.3, via a second job (`.github/workflows/plugins-ci.yml`'s
+`plugins-drift-check`, extended, plus a new `pyvar-mcp-tests` job running this
+package's own lint+test suite) -- not a deploy-time S3 artifact, for the same
+reason as the skills plugins: a git-based plugin install reads the committed tree
+directly.
+
+**One real, currently-manual step, documented rather than glossed over**
+(`plugins/mcp/README.md`): `/plugin install` doesn't itself run `pip install` for a
+bundled Python package's dependencies (`mcp`, `anyio`) -- there's no verified
+"auto-install my requirements" plugin mechanism to build against, so rather than
+invent one, the honest state is documented: run `pip install -e plugins/mcp` once,
+which puts the `pyvar-mcp` console command `mcpServers` invokes onto `PATH`. Same
+category as this project's other flagged one-time manual steps (the AMI Image
+Builder bootstrap, the PyPI Trusted Publisher bootstrap for `pyvar-client`) --
+tracked as open question #4 below (publish to PyPI, switch to `uvx pyvar-mcp`,
+remove the step entirely) rather than solved with an unverified guess now.
 
 ### B.6 Portal & docs placement
 
@@ -249,8 +320,11 @@ plugin install reads the committed tree directly.
   in `fibtecltd/pyvar` itself, matching how the skills plugins turned out to
   already be scaffolded in this same repo (`.claude-plugin/marketplace.json`,
   predating this phase) rather than a separate one.
-- Actual new infra: `.github/workflows/plugins-ci.yml` (drift-check CI job,
-  implemented in §A.3) and `scripts/generate_plugins.py` (the generator).
+- Actual new infra: `.github/workflows/plugins-ci.yml` (drift-check CI job for
+  both generators, plus a `pyvar-mcp-tests` lint+test job), `scripts/
+  generate_plugins.py` and `scripts/generate_mcp_tools.py` (the two generators),
+  `plugins/mcp/` itself (a real installable package, `pyproject.toml` +
+  `[project.scripts]`, mirroring `pyvar-client/`'s own structure exactly).
 
 ---
 
@@ -258,24 +332,24 @@ plugin install reads the committed tree directly.
 
 - Skills plugins: `.github/workflows/plugins-ci.yml`'s drift-check job IS the test
   (regenerate, diff against committed, fail with the fix command if stale) --
-  implemented, not just planned. Still open: an actual smoke-install into a scratch
-  Claude Code config to confirm `/plugin marketplace add` + `/plugin install`
-  genuinely works end-to-end, which needs a real Claude Code session outside this
-  sandbox to verify.
-- MCP plugin: unit tests generating tool definitions from a fixture
-  `functions.json` (no live API calls, mirroring this repo's existing
-  never-hit-a-real-backing-service test philosophy); a small number of
-  integration-style tests against a mocked pyvar API confirming the submit→poll→
-  result flow and 403/timeout error surfacing.
-- `call_pyvar_function`/`list_pyvar_functions` specifically: a valid
-  `(domain, function_name, params)` call dispatches correctly; an unknown
-  `function_name` and a `params` mismatch against the catalogue's own schema both
-  return the clear, actionable error (not a raw API 422) *without* ever reaching the
-  live API; `list_pyvar_functions` with and without a `domain` filter returns the
-  expected catalogue subset.
-- Both: the existing `_PORTAL_RELEVANT_PATHS`-style hash gates get their own test
-  coverage for the no-op-on-irrelevant-push path, matching how the image-build gate
-  is already tested.
+  implemented, not just planned.
+- MCP plugin: **implemented**, 22 tests in `plugins/mcp/tests/`, 96% coverage on
+  `pyvar_mcp` (`pytest --cov=pyvar_mcp --cov-fail-under=90`, enforced in CI's
+  `pyvar-mcp-tests` job) -- `test_client.py` (the HTTP layer, `urlopen` mocked
+  throughout, both success and error paths incl. network failures), `test_catalogue.py`
+  (lookup helpers against the real generated 385-entry list), `test_main.py`
+  (the actual `on_list_tools`/`on_call_tool` handlers registered on a real
+  `mcp.server.lowlevel.Server` instance -- confirms all 387 tools list correctly,
+  the generic pair validates params and dispatches to the right endpoint without
+  ever calling a nonexistent one, a named tool call reaches the identical endpoint
+  `call_pyvar_function` would, and every error path (unknown tool, unknown function,
+  missing required param, a 403 from the API) returns `CallToolResult(is_error=True)`
+  rather than raising).
+- Still open, not verifiable from this sandbox: an actual smoke-install into a real
+  Claude Code session (`/plugin marketplace add fibtecltd/pyvar` then `/plugin
+  install pyvar-mcp@pyvar-marketplace`) to confirm the full install -> `userConfig`
+  prompt -> `pip install -e plugins/mcp` manual step -> working tool calls chain
+  genuinely works end-to-end, not just each piece in isolation.
 
 ---
 
@@ -288,31 +362,40 @@ plugin install reads the committed tree directly.
 2. **One combined "Claude Code" portal page vs. two separate pages** (`skills.html` +
    `plugin.html`). Two pages match the existing one-topic-per-page portal convention;
    one page keeps everything Claude-Code-related in a single, more discoverable place.
-3. **MCP server implementation language/framework** — Python (consistent with the
-   rest of this codebase, could reuse `pyvar-client`'s own HTTP client code directly)
-   vs. TypeScript (the more common ecosystem default for MCP servers). Reusing
-   `pyvar-client` argues for Python; broader MCP tooling/ecosystem familiarity argues
-   for TypeScript.
-4. **Marketplace listing** — does `fibtecltd` want its own Claude Code plugin
-   marketplace/registry entry for discoverability, or is direct
-   git-repo/zip-based installation sufficient for a first version?
+   Still open -- §B.6 not built yet.
+3. ~~**MCP server implementation language/framework.**~~ **Resolved**: Python,
+   implemented (`plugins/mcp/pyvar_mcp/`) -- reuses this codebase's own stdlib-HTTP
+   convention (`pyvar-cdk/lambda/*/handler.py`'s pattern) and mirrors `pyvar-client/`'s
+   package structure exactly.
+4. **PyPI publish + `uvx pyvar-mcp`** (was "Marketplace listing") -- currently a
+   `pip install -e plugins/mcp` manual step is required after `/plugin install`
+   (§B.5). Publishing `pyvar-mcp` to PyPI (mirroring `pyvar-client`'s own
+   `pyvar-client-publish.yml` release workflow, including its same one-time PyPI
+   Trusted Publisher bootstrap) and switching `plugin.json`'s `mcpServers.command`
+   to `uvx pyvar-mcp` would remove that manual step entirely. Not done in this
+   pass -- worth a deliberate follow-up, not a blocker for the plugin working today.
 5. **Rate limits at scale** — if the MCP plugin sees real adoption, free-tier API key
    usage from many simultaneous Claude Code sessions is a new usage pattern the
    existing tier system (`api/middleware/rate_limit.py`) wasn't originally sized
    around. Not a blocker for a first version, but worth a deliberate look before any
    broad promotion of the plugin.
+6. **The homepage's async-job-pattern claim** (found while building §B.3, not fixed
+   here): `portal/index.html`'s API section says all 385 functions share the async
+   submit/poll pattern; only one endpoint (`/api/v1/var/compute`, not itself one of
+   the 385) actually does. A real, live inaccuracy, same class as the stale version
+   badge and misleading demo runtime already fixed -- worth its own small follow-up.
 
 ---
 
-## Revision history note — this one is NOT a docs-only change, and surfaces a gap
+## Revision history note — none of the code-shipping revisions are docs-only
 
 The first two versions of this plan (#288, #289) were pure `docs/` changes,
 confirming the CodePipeline Git push-filter trigger (#282–#285) correctly starts
-**zero** `pyvar-dev-pipeline` executions for a docs-only push. This revision (v1.2)
-ships alongside the actual Part A implementation (`scripts/generate_plugins.py`,
-`.github/workflows/plugins-ci.yml`, and the 13 `plugins/*` directories) in the same
-commit, since the doc text and the code it describes need to land together to stay
-accurate.
+**zero** `pyvar-dev-pipeline` executions for a docs-only push. v1.2 shipped
+alongside the Part A implementation; this revision (v1.3) ships alongside Part B
+(`plugins/mcp/`, `scripts/generate_mcp_tools.py`, the extended
+`.github/workflows/plugins-ci.yml`) in the same commit, for the same reason: the
+doc text and the code it describes need to land together to stay accurate.
 
 Worth flagging rather than quietly working around: `scripts/` and `.github/` are
 both already in the trigger's 8-entry exclude list, but the new top-level `plugins/`
