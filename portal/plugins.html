@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Claude Code plugins — pyvar.com · Fibtec</title>
+<meta name="description" content="13 domain and architecture skills, plus the pyvar MCP server: use all 385 pyvar.com risk functions directly from Claude Code."/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="Claude Code plugins — pyvar.com · Fibtec"/>
+<meta property="og:description" content="13 domain and architecture skills, plus the pyvar MCP server: use all 385 pyvar.com risk functions directly from Claude Code."/>
+<meta property="og:url" content="https://pyvar.com/plugins.html"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "pyvar",
+  "url": "https://pyvar.com/",
+  "description": "Open-source financial and risk computation platform with 385 functions across 8 domains: market risk, credit risk, derivatives, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital.",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (REST API)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+.plugin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.plugin-card{background:var(--bg2);padding:22px 20px;transition:background .15s;position:relative;overflow:hidden}
+.plugin-card:hover{background:var(--bg3)}
+.plugin-bar{position:absolute;top:0;left:0;right:0;height:1px;transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.plugin-card:hover .plugin-bar{transform:scaleX(1)}
+.plugin-icon{font-size:20px;margin-bottom:10px}
+.plugin-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;line-height:1.3}
+.plugin-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.55}
+.install-step{display:flex;gap:16px;align-items:flex-start;padding:20px 0;border-bottom:1px solid var(--border)}
+.install-step:last-child{border-bottom:none}
+.install-num{font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid var(--green-line);background:var(--green3);border-radius:50%;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.install-title{font-size:14px;color:var(--text);margin-bottom:6px}
+.install-body{font-size:12px;color:var(--text2);font-weight:300;line-height:1.6}
+.hero-metric{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;text-align:center}
+.hero-metric-val{font-family:var(--sans);font-size:36px;font-weight:300;letter-spacing:-.02em}
+.hero-metric-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+@media(max-width:1024px){.plugin-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.plugin-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('plugins'))</script>
+<main>
+
+<!-- Hero -->
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Claude Code plugins
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end;margin-top:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Claude Code</div>
+        <h1 class="h1 reveal d1">385 functions,<br/><em>right inside your agent.</em></h1>
+        <p class="body-lg reveal d2" style="max-width:560px;margin:24px 0 0">8 domain skills, 5 architecture skills, and an MCP server exposing every pyvar function as a Claude Code tool — all generated straight from this repo, so none of it can drift out of sync with the live API.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0" class="reveal">
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">13</div><div class="hero-metric-lbl">Skills</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--green)">1</div><div class="hero-metric-lbl">MCP server</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--blue)">385</div><div class="hero-metric-lbl">Functions as tools</div></div>
+        <div class="hero-metric"><div class="hero-metric-val" style="color:var(--blue)">MIT</div><div class="hero-metric-lbl">Licence</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quickstart -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="label reveal">Quickstart</div>
+    <h2 class="h2 reveal" style="margin-bottom:32px">Two commands <em>to get started</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+      <div class="reveal">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.1">
+          <span style="color:var(--dim)"># add the marketplace, once</span><br/>
+          <span style="color:var(--green)">$</span> /plugin marketplace add fibtecltd/pyvar<br/>
+          <br/>
+          <span style="color:var(--dim)"># install any skill…</span><br/>
+          <span style="color:var(--green)">$</span> /plugin install pyvar-market-risk@pyvar-marketplace<br/>
+          <br/>
+          <span style="color:var(--dim)"># …or the MCP server</span><br/>
+          <span style="color:var(--green)">$</span> /plugin install pyvar-mcp@pyvar-marketplace
+        </div>
+      </div>
+      <div class="reveal d1">
+        <div class="install-step">
+          <div class="install-num">1</div>
+          <div>
+            <div class="install-title">Skills need nothing else</div>
+            <div class="install-body">A skill is instructions Claude Code reads before touching that domain — architecture context, function signatures, routing notes on where the REST/async pattern differs from what you'd expect. No dependencies, no API key required just to install.</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-num">2</div>
+          <div>
+            <div class="install-title">The MCP server needs a free API key</div>
+            <div class="install-body">You'll be prompted for a pyvar API key during install — <a href="index.html#get-api-key" style="color:var(--green)">get a free-tier one here</a>, no password or credit card. Every tool call is a real HTTPS request against the live API, so results always match what's actually deployed.</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-num">3</div>
+          <div>
+            <div class="install-title">One manual step for the MCP server, for now</div>
+            <div class="install-body">The plugin install flow doesn't yet install its Python dependencies — run <code style="font-family:var(--mono);color:var(--amber)">pip install -e plugins/mcp</code> once, from wherever the marketplace checked this repo out to. If a tool call fails with "command not found", this is almost certainly why.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Domain skills -->
+<section class="section">
+  <div class="container">
+    <div class="label reveal">8 domain skills</div>
+    <h2 class="h2 reveal" style="margin-bottom:40px">One skill <em>per risk domain</em></h2>
+    <div class="plugin-grid reveal">
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#2a6fd4"></div>
+        <div class="plugin-icon">📈</div>
+        <div class="plugin-name">pyvar-market-risk</div>
+        <div class="plugin-desc">68 functions: VaR, ES, stress, Greeks, P&amp;L attribution, backtesting, GARCH, FRTB SA/IMA</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#c8a44a"></div>
+        <div class="plugin-icon">🏦</div>
+        <div class="plugin-name">pyvar-credit-risk</div>
+        <div class="plugin-desc">55 functions: PD/LGD/EAD, IRB/SA, XVA full suite, IFRS 9 ECL, CDS, SA-CCR, scoring</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#00d97e"></div>
+        <div class="plugin-icon">💧</div>
+        <div class="plugin-name">pyvar-liquidity-risk</div>
+        <div class="plugin-desc">40 functions: LCR, NSFR, HQLA, cash flow, ILAAP, intraday, LiqVaR</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#e84040"></div>
+        <div class="plugin-icon">⚠️</div>
+        <div class="plugin-name">pyvar-operational-risk</div>
+        <div class="plugin-desc">44 functions: LDA, AMA, SMA, RCSA, KRI, scenario, BEICF, cyber/model/IT risk</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#7060d4"></div>
+        <div class="plugin-icon">📊</div>
+        <div class="plugin-name">pyvar-portfolio-analytics</div>
+        <div class="plugin-desc">50 functions: Markowitz/BL/risk-parity, Sharpe/Sortino, Brinson, FF5, PCA, HMM, ESG</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#4a9e22"></div>
+        <div class="plugin-icon">📋</div>
+        <div class="plugin-name">pyvar-regulatory</div>
+        <div class="plugin-desc">30 functions: Basel III/IV, FRTB, ICAAP/SREP, MiFID II, EMIR, Solvency II, CRR2</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#c47a2a"></div>
+        <div class="plugin-icon">∿</div>
+        <div class="plugin-name">pyvar-derivatives</div>
+        <div class="plugin-desc">62 functions: BS/Heston/SABR/Dupire/LSM, exotic options, bonds, IRS/CDS, FX</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:#6a7a8a"></div>
+        <div class="plugin-icon">⚖️</div>
+        <div class="plugin-name">pyvar-alm</div>
+        <div class="plugin-desc">33 functions: Duration gap, NII/EVE, IRRBB 6 shocks, repricing, NMD, FTP</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture skills -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="label reveal">5 architecture skills</div>
+    <h2 class="h2 reveal" style="margin-bottom:16px">How pyvar <em>is actually built</em></h2>
+    <p class="body-md reveal" style="max-width:640px;margin-bottom:40px">Not risk domains — the infrastructure layers underneath them. Load these when you're extending pyvar itself, not just calling it: the Numba JIT rules, the Celery/SQS broker constraints, the storage and observability conventions this repo's own CLAUDE.md enforces.</p>
+    <div class="plugin-grid reveal">
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:var(--blue)"></div>
+        <div class="plugin-icon">🌐</div>
+        <div class="plugin-name">pyvar-arch-api-gateway</div>
+        <div class="plugin-desc">FastAPI, Pydantic v2, JWT, orjson, rate limiting, OpenAPI</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:var(--blue)"></div>
+        <div class="plugin-icon">📥</div>
+        <div class="plugin-name">pyvar-arch-data-ingestion</div>
+        <div class="plugin-desc">Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:var(--blue)"></div>
+        <div class="plugin-icon">⚙️</div>
+        <div class="plugin-name">pyvar-arch-compute</div>
+        <div class="plugin-desc">NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:var(--blue)"></div>
+        <div class="plugin-icon">🗄️</div>
+        <div class="plugin-name">pyvar-arch-storage</div>
+        <div class="plugin-desc">Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store</div>
+      </div>
+      <div class="plugin-card">
+        <div class="plugin-bar" style="background:var(--blue)"></div>
+        <div class="plugin-icon">📡</div>
+        <div class="plugin-name">pyvar-arch-observability</div>
+        <div class="plugin-desc">Prometheus, Grafana, Sentry, Bandit, input validation security</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP server -->
+<section class="section">
+  <div class="container">
+    <div class="label reveal">The MCP server</div>
+    <h2 class="h2 reveal" style="margin-bottom:32px">Two tools to start.<br/><em>385 more if you need them.</em></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+      <div class="reveal">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
+          <div style="font-family:var(--serif,var(--sans));font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px">list_pyvar_functions(domain?)</div>
+          <div class="body-md">Browse available functions, optionally filtered to one domain — <code style="font-family:var(--mono);color:var(--amber)">alm</code>, <code style="font-family:var(--mono);color:var(--amber)">credit-risk</code>, <code style="font-family:var(--mono);color:var(--amber)">derivatives</code>, <code style="font-family:var(--mono);color:var(--amber)">liquidity</code>, <code style="font-family:var(--mono);color:var(--amber)">market-risk</code>, <code style="font-family:var(--mono);color:var(--amber)">operational</code>, <code style="font-family:var(--mono);color:var(--amber)">portfolio</code>, <code style="font-family:var(--mono);color:var(--amber)">regulatory</code>.</div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
+          <div style="font-family:var(--serif,var(--sans));font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px">call_pyvar_function(domain, function_name, params)</div>
+          <div class="body-md">Call any function by name, with <code style="font-family:var(--mono);color:var(--amber)">params</code> validated against that function's own schema before the request goes out. These two tools are the intended first choice — reaching for one generic dispatcher over guessing among 385 individually named tools keeps tool selection reliable at this scale.</div>
+        </div>
+      </div>
+      <div class="reveal d1">
+        <p class="body-md" style="margin-bottom:20px">Every one of the 385 functions is also registered as its own precisely-typed tool — <code style="font-family:var(--mono);color:var(--amber)">alm_stress_test</code>, <code style="font-family:var(--mono);color:var(--amber)">historical_simulation_var</code>, and so on — for when you already know exactly which one you want.</p>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2">
+          <span style="color:var(--dim)"># thin wrapper, not a bundled engine —</span><br/>
+          <span style="color:var(--dim)"># every call is a real HTTPS request</span><br/>
+          <span style="color:var(--dim)"># against the live pyvar API</span><br/>
+          <br/>
+          <span style="color:var(--blue)">tool</span> <span style="color:var(--green)">call_pyvar_function</span>(<br/>
+          &nbsp;&nbsp;domain=<span style="color:var(--amber)">"market-risk"</span>,<br/>
+          &nbsp;&nbsp;function_name=<span style="color:var(--amber)">"historical_simulation_var"</span>,<br/>
+          &nbsp;&nbsp;params={...}<br/>
+          )
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a href="https://github.com/fibtecltd/pyvar/tree/master/plugins/mcp" target="_blank" class="btn-ghost" style="flex:1;justify-content:center;font-size:10px">README on GitHub →</a>
+          <a href="index.html#get-api-key" class="btn-green" style="flex:1;justify-content:center;font-size:10px">Get a free API key →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">source of truth</div>
+    <h2 class="h2 reveal" style="margin-bottom:16px">Generated, <em>not hand-maintained.</em></h2>
+    <p class="body-md reveal" style="max-width:520px;margin:0 auto 28px">All 13 skills and the MCP server's 385+2 tools are generated straight from this repo's own skills and function catalogue — CI fails if the committed output ever drifts from what regenerating produces.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="index.html" class="btn-ghost">← All domains</a>
+      <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-green">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>

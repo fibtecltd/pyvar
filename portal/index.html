@@ -265,15 +265,16 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start" class="reveal">
       <div>
         <div class="label">api reference</div>
-        <h2 class="h2" style="margin-bottom:20px">Simple async<br/><em>job pattern.</em></h2>
-        <p class="body-md" style="margin-bottom:32px">All 385 functions use the same async job pattern: POST to submit, GET to poll. No timeouts, no blocking — designed for 100k-path Monte Carlo simulations running 2–10 seconds.</p>
+        <h2 class="h2" style="margin-bottom:20px">Sync by default.<br/><em>Async when it counts.</em></h2>
+        <p class="body-md" style="margin-bottom:32px">384 of pyvar's 385 functions are synchronous — POST your params to that function's own endpoint, get the JSON result straight back. The one exception is large-scale Monte Carlo VaR (up to 100k paths, 2–10 seconds): POST to submit, GET to poll. No timeouts, no blocking, either way.</p>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
           <div style="padding:12px 18px;border-bottom:1px solid var(--border);background:var(--bg3)">
             <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">core endpoints</div>
           </div>
           <div style="padding:0 18px">
-            <div class="endpoint-row"><div class="method m-post">POST</div><div><div class="endpoint-path">/api/v1/{domain}/compute</div><div class="endpoint-desc">Submit job · returns task_id immediately</div></div></div>
-            <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/api/v1/{domain}/result/{task_id}</div><div class="endpoint-desc">Poll result · pending → started → success</div></div></div>
+            <div class="endpoint-row"><div class="method m-post">POST</div><div><div class="endpoint-path">/api/v1/{domain}/{function}</div><div class="endpoint-desc">Call any function · 384 of 385 — returns the result directly</div></div></div>
+            <div class="endpoint-row"><div class="method m-post">POST</div><div><div class="endpoint-path">/api/v1/var/compute</div><div class="endpoint-desc">The one async exception · large Monte Carlo VaR · returns task_id</div></div></div>
+            <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/api/v1/var/result/{task_id}</div><div class="endpoint-desc">Poll the Monte Carlo VaR result · pending → started → success</div></div></div>
             <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/api/v1/domains</div><div class="endpoint-desc">List all 8 domains and function catalogue</div></div></div>
             <div class="endpoint-row"><div class="method m-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Platform status · no auth required</div></div></div>
           </div>
