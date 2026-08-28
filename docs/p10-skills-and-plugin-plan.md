@@ -1,10 +1,10 @@
 # P10 — Claude Code Skills & pyvar MCP Plugin
 ## Exposing pyvar.com's domain expertise and API as installable Claude Code assets
 
-**Version:** 1.3
+**Version:** 1.4
 **Date:** August 2026
-**Status:** Part A (skills plugins) and Part B (MCP server + tools) implemented;
-only §B.6 (portal placement) still open
+**Status:** Part A (skills plugins) and Part B (MCP server + tools, incl. §B.6
+portal placement) implemented. P10 is complete.
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
 
 ---
@@ -106,15 +106,16 @@ status checks.
 No zip download after all -- `/plugin marketplace add fibtecltd/pyvar` (once the
 repo goes public) is the real, standard, already-working install path once
 `plugins/` exists, and a portal page's job is simply to *tell* a visitor that
-command plus which of the 13 plugin names to install, not to serve a file. A new
-`portal/skills.html`, matching the shared-header/footer/palette pattern of the other
-9 pages, lists the 13 plugins with their descriptions (already written, in
-`marketplace.json`) and the exact install commands -- still open per §B.6 below
-whether this is its own page or folded together with the MCP plugin's page.
+command plus which of the 14 plugin names to install, not to serve a file.
+**Implemented as `portal/plugins.html`** (see §B.6) rather than a separate
+`skills.html`: one combined page, matching the shared-header/footer/palette
+pattern of the other 9 pages, listing all 13 skills plus the MCP server with
+their descriptions (copied verbatim from `marketplace.json`) and the exact
+install commands.
 
 ---
 
-## Part B — pyvar MCP plugin  (IMPLEMENTED as of this revision, except §B.6)
+## Part B — pyvar MCP plugin  (IMPLEMENTED as of this revision, incl. §B.6)
 
 ### B.1 Architecture — thin API wrapper
 
@@ -289,16 +290,37 @@ Builder bootstrap, the PyPI Trusted Publisher bootstrap for `pyvar-client`) --
 tracked as open question #4 below (publish to PyPI, switch to `uvx pyvar-mcp`,
 remove the step entirely) rather than solved with an unverified guess now.
 
-### B.6 Portal & docs placement
+### B.6 Portal & docs placement  (IMPLEMENTED as of this revision)
 
-- New page, `portal/plugin.html` (or folded into `portal/skills.html` as a second
-  section on one combined "Claude Code" page — open question, see below) — the
-  primary download/install entry point, mirroring `skills.html`'s structure.
-- A short "Use this domain via Claude Code" callout added to each of the 8
-  `domain-*.html` pages' existing API-reference section (near the current
-  POST/GET endpoint-example block), naming the specific MCP tools that domain
-  exposes and linking to the plugin page. Touches all 8 domain pages — a small,
-  mechanical addition per page, not a redesign.
+- **One combined page**, `portal/plugins.html` — resolves open question #2 in
+  favour of a single page over a `skills.html` + `plugin.html` split: quickstart
+  (`/plugin marketplace add fibtecltd/pyvar`, then `/plugin install
+  <name>@pyvar-marketplace`), the 8 domain skills and 5 architecture skills as
+  cards (descriptions copied verbatim from `.claude-plugin/marketplace.json`,
+  the same source `scripts/generate_plugins.py` reads — hardcoded HTML rather
+  than a client-side fetch, matching how `index.html`'s own domain-grid is
+  already static rather than JSON-fetched; only the granular 385-function list
+  uses the fetch-`functions.json` pattern), and a dedicated MCP server section
+  covering the `list_pyvar_functions`/`call_pyvar_function` fallback pair, the
+  per-function tools, and the one manual `pip install -e plugins/mcp` step
+  (content mirrors `plugins/mcp/README.md` verbatim, not reworded from memory).
+  Linked from the shared nav (`pyvar.js`'s `buildNav`) and footer.
+- A small, mechanical callout box added to each of the 8 `domain-*.html`
+  pages' API-reference section, immediately above the existing "← All
+  domains / API access →" button row: names that domain's specific skill
+  plugin (e.g. `pyvar-market-risk`) and links to `plugins.html`. Same
+  structure on all 8 pages, only the plugin name changes.
+- **Found and fixed while touching this section**: all 8 domain pages' two
+  CTA buttons per page used `class="btn-outline"` / `class="btn-gold"`, but
+  `pyvar.css` only ever defined `.btn-ghost` / `.btn-green` (the names
+  `index.html` itself uses) — a naming drift that left every domain page's
+  most prominent CTAs rendering as bare unstyled links, no border/background/
+  padding, on every one of the 8 pages, since whenever those buttons were
+  first added. Same bug class as the version-badge/demo-runtime/homepage-
+  async-claim fixes already in this plan doc: a real, live inaccuracy/defect
+  discovered incidentally, not searched for. Fixed by renaming the classes to
+  the ones `pyvar.css` actually defines (16 occurrences across 8 files) rather
+  than adding duplicate CSS for a second pair of names.
 
 ---
 
@@ -359,10 +381,8 @@ remove the step entirely) rather than solved with an unverified guess now.
    `fibtecltd/pyvar` itself — the skills plugins turned out to already be scaffolded
    in this same repo (a pre-existing `.claude-plugin/marketplace.json`), so the MCP
    plugin follows the same convention rather than a separate repository.
-2. **One combined "Claude Code" portal page vs. two separate pages** (`skills.html` +
-   `plugin.html`). Two pages match the existing one-topic-per-page portal convention;
-   one page keeps everything Claude-Code-related in a single, more discoverable place.
-   Still open -- §B.6 not built yet.
+2. ~~**One combined "Claude Code" portal page vs. two separate pages.**~~
+   **Resolved**: one combined page, `portal/plugins.html` — see §B.6.
 3. ~~**MCP server implementation language/framework.**~~ **Resolved**: Python,
    implemented (`plugins/mcp/pyvar_mcp/`) -- reuses this codebase's own stdlib-HTTP
    convention (`pyvar-cdk/lambda/*/handler.py`'s pattern) and mirrors `pyvar-client/`'s
@@ -379,11 +399,13 @@ remove the step entirely) rather than solved with an unverified guess now.
    existing tier system (`api/middleware/rate_limit.py`) wasn't originally sized
    around. Not a blocker for a first version, but worth a deliberate look before any
    broad promotion of the plugin.
-6. **The homepage's async-job-pattern claim** (found while building §B.3, not fixed
-   here): `portal/index.html`'s API section says all 385 functions share the async
-   submit/poll pattern; only one endpoint (`/api/v1/var/compute`, not itself one of
-   the 385) actually does. A real, live inaccuracy, same class as the stale version
-   badge and misleading demo runtime already fixed -- worth its own small follow-up.
+6. ~~**The homepage's async-job-pattern claim**~~ (found while building §B.3).
+   **Resolved**: `portal/index.html`'s API section rewritten to state the real
+   architecture — 384 of 385 functions are synchronous (`POST` params, get the
+   JSON result straight back); the one exception is large-scale Monte Carlo VaR
+   (`POST /api/v1/var/compute` + `GET /api/v1/var/result/{task_id}`). Same class
+   of fix as the stale version badge and misleading demo runtime already
+   corrected earlier in this project.
 
 ---
 
@@ -412,3 +434,13 @@ so nothing wrong happens, just one wasted-but-harmless execution, the same shape
 waste the whole trigger effort was meant to eliminate. Not fixed in this PR
 (changing the trigger's exclude list is its own decision, not bundled into a
 feature PR) -- flagged here for a deliberate follow-up call instead.
+
+v1.4 closes out §B.6, the one item left open after v1.3: `portal/plugins.html`
+(one combined page, resolving open question #2), the 8 domain-page callouts, the
+`buildNav`/`buildFooter` links, the homepage async-claim rewrite (open question
+#6), and the incidentally-discovered `btn-outline`/`btn-gold` CTA styling bug on
+all 8 domain pages. `portal/` changes are outside the trigger's 8-entry exclude
+list by design (portal changes should deploy), so this push starts a normal
+pipeline execution, not a docs-only-skip one. With this revision P10 is complete:
+both plugins are installable, both linked from the portal, ahead of the P9
+visibility flip as planned in the Sequencing section above.
