@@ -1,8 +1,10 @@
 # P11 — Pre-launch hardening: cost safety, distribution, discoverability
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** August 2026
-**Status:** Planning — items sequenced, two items blocked on external action (see §6, §7)
+**Status:** Items 1, 2, 3, 4 implemented (PRs #295, #294, this revision).
+Items 5, 6, 7 remain: 5 is the largest remaining body of work, 6 and 7 are
+blocked on external action (see §5, §6).
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
 
 ---
@@ -18,13 +20,13 @@ sequences all seven, grounded in what actually already exists in
 
 | # | Item | Kind | Status this revision |
 |---|------|------|----------------------|
-| 1 | API throttling to prevent AWS overspend | Plan | Designed below (§1) — implemented alongside #3 |
-| 2 | Local-package build, manual-trigger pipeline + Slack | Implement | Designed below (§2) |
-| 3 | Emergency API kill switch | Implement | Designed below (§1) |
-| 4 | Iron-triangle chart into `index.html` | Implement | Designed below (§3) |
-| 5 | Formula + parameter frame for all 385 functions | Create | Full scope confirmed by the user (no pilot) — sourcing plan in §4 |
+| 1 | API throttling to prevent AWS overspend | Plan | **Implemented** (§1, PR #295) — aggregate WAF rate limit |
+| 2 | Local-package build, manual-trigger pipeline + Slack | Implement | **Implemented** (§2, this revision) |
+| 3 | Emergency API kill switch | Implement | **Implemented** (§1, PR #295) |
+| 4 | Iron-triangle chart into `index.html` | Implement | **Implemented** (§3, PR #294) |
+| 5 | Formula + parameter frame for all 385 functions | Create | Full scope confirmed by the user (no pilot) — sourcing plan in §4, not yet started |
 | 6 | Redesign fibtec.co.uk, consistent with the pyvar portal | Delegate | **Blocked on the user** — repo doesn't exist yet (§5) |
-| 7 | Submit pyvar's plugins to the official Claude Code marketplace | Submit | Real process found; submission itself needs a human/GitHub-authenticated action (§6) |
+| 7 | Submit pyvar's plugins to the official Claude Code marketplace | Submit | Real process found, content prepared (PR #293); submission itself needs a human/GitHub-authenticated action (§6) |
 
 **Sequencing** (user's instruction: easiest → hardest, group into PRs to
 minimize CodePipeline executions):
@@ -135,7 +137,7 @@ budget-alarm wiring, not a new subsystem):**
 
 ---
 
-## 2. Item 2 — local-package build: manual-trigger pipeline + Slack
+## 2. Item 2 — local-package build: manual-trigger pipeline + Slack (IMPLEMENTED as of this revision)
 
 Builds and publishes the "pyvar Local" package specified in
 `docs/proposals/pyvar-local-package-proposal.docx` (prior session). Recommended
@@ -161,27 +163,61 @@ artifact type, **publish the built package as a GitHub Release asset** on
 - The idiomatic distribution channel for an open-source downloadable
   package generally, independent of the residency question.
 
-### Pipeline design
+### Pipeline design (as built — `pyvar-cdk/stacks/local_package_stack.py`)
 
-- A **new, manually-triggered** CodePipeline (or a manually-triggered stage
-  on the existing pipeline, gated the same way `ApproveProductionDeploy`
-  already gates production — `pipeline_stack.py`'s existing manual-approval
-  pattern is the template, not a new mechanism) — never runs on every push,
-  only on demand, matching the user's explicit "manual triggering process."
-- Stages: build the Docker image with a pre-warmed Numba cache (mirrors
-  `ami_stack.py`'s existing AMI-bake pattern for the same underlying
-  first-call JIT-compile problem, applied to a container image instead of an
-  AMI) → run `tests/test_engine.py` inside the built image as a release gate
-  (the local-package proposal's own differentiator: ship what was actually
-  tested) → tag and publish as a GitHub Release asset → notify.
-- **Slack notification** reuses the existing, already-partially-wired
-  scaffold: `pipeline_stack.py`'s `chatbot_role`
-  (`ChatbotPipelineApprovalRole`) and `ops_topic` pattern. The **one
-  remaining manual step is unchanged and not duplicated**: AWS Chatbot's
+- A genuinely **separate, new** CodePipeline (`pyvar-{env}-local-package`),
+  not a stage bolted onto the existing one: `pipeline_stack.py`'s pipeline
+  is built on the CDK Pipelines L2 construct (`pipelines.CodePipeline`),
+  which is specifically opinionated toward self-mutating, trigger-on-push
+  continuous deployment — the wrong tool for an artifact that should only
+  ever build on demand. This stack instead uses the lower-level
+  `aws_codepipeline.Pipeline` L2 construct directly, whose
+  `CodeStarConnectionsSourceAction` exposes `trigger_on_push=False` — this
+  disables the automatic webhook GitHub normally registers for a connected
+  source, confirmed in the synthesized template (`DetectChanges: false`,
+  zero `AWS::CodePipeline::Webhook` resources). The pipeline only starts via
+  `aws codepipeline start-pipeline-execution` or the console's "Release
+  change" button, matching the user's explicit "manual triggering process."
+- Two CodeBuild stages: **BuildAndTest** (`docker build`, pre-warm the Numba
+  cache the same way `ami_stack.py`'s warmup script does for the AMI —
+  applied to a container image instead — then `tests/test_engine.py` runs
+  inside the built image as a release gate; a failing test fails this
+  stage and the pipeline never reaches Publish) and **Publish**
+  (`docker save` → `scripts/publish_local_package_release.sh`, a dedicated
+  script rather than inline pipeline logic, using the GitHub REST API
+  directly via `curl`+`jq` — not the `gh` CLI, not guaranteed present on the
+  CodeBuild image used here — to create/update a release and upload the
+  image as an asset).
+- **Notifications** reuse `pipeline_stack.py`'s existing
+  `pyvar-pipeline-notifications` SNS topic, referenced by deterministic ARN
+  (same avoid-a-cross-stack-cycle pattern `queue_stack.py` already uses for
+  `alerts_stack.py`'s topic) — **not** `chatbot_role`
+  (`ChatbotPipelineApprovalRole`): that role is scoped narrowly to
+  `PutApprovalResult` on the main pipeline's own
+  `Prod/ApproveProductionDeploy` action specifically (by design — see that
+  role's own comment on why it's scoped that tight), not reusable for a
+  plain informational notification, which needs no interactive-approval
+  IAM at all. A `NotificationRule` on this pipeline's execution success/
+  failure events, targeting that same topic, is sufficient — once the
+  Slack workspace is authorized via AWS Chatbot (the same pending one-time
+  console step, not a new one), this pipeline's notifications appear in the
+  same channel automatically. The **one remaining manual step is unchanged
+  and not duplicated**: AWS Chatbot's
   Slack workspace authorization is a one-time, console-only action (already
   documented as pending in `pipeline_stack.py`'s own comments) — this PR
-  extends the existing IAM role's scoped permissions to cover the new
-  pipeline/stage rather than creating a second Chatbot integration.
+  touches no IAM role for it and creates no second Chatbot integration.
+- **`pyvar-local/`** — the actual thing this pipeline builds: a `Dockerfile`
+  (ships `engine/` + `tests/test_engine.py` + a minimal CLI, `pyvar_local/cli.py`,
+  that reflects over `engine/`'s own modules so it can never drift out of
+  sync with what `engine/` actually contains) and a `README.md` explicitly
+  scoping what's in this first release versus what's a deliberate fast-follow
+  (a full local FastAPI server matching the hosted API's route surface —
+  not built here). A new, path-scoped `pyvar-local-ci.yml` workflow builds
+  and smoke-tests this Dockerfile in GitHub Actions on every relevant PR —
+  the main `ci.yml`'s "Docker build check" job only ever builds the root
+  `Dockerfile` (the hosted API image), so without this addition
+  `pyvar-local/Dockerfile` would have had zero CI coverage until the
+  manually-triggered AWS pipeline actually ran it.
 
 ---
 
