@@ -21,6 +21,38 @@ Reasoning:
   mechanism CDK uses for alb_dns). The ALB enforces it via a listener
   rule — see api_stack.py — so a direct hit to the ALB without the
   header is rejected, closing the WAF-bypass gap.
+
+Cost-explosion protection (P11 items 1 + 3, docs/p11-pre-launch-hardening.md
+§1) — two more rules on the same WebACL, same reasoning as the existing
+per-IP RateLimitPerIp rule above, extended to cover what it structurally
+can't:
+- AggregateRateLimit (priority 25): a single rate-based rule with
+  aggregate_key_type="CONSTANT" — one shared bucket across every request
+  regardless of source IP, unlike RateLimitPerIp's per-IP buckets. Bounds
+  worst-case aggregate cost from many simultaneous low-rate clients (a
+  traffic spike, or the pyvar MCP server's AI-agent usage pattern flagged
+  as an open question in docs/p10-skills-and-plugin-plan.md) that no
+  per-IP rule can see. AGGREGATE_RATE_LIMIT_PER_5MIN is a conservative
+  placeholder pending a real traffic baseline post-launch (P11 §7) — revisit
+  once there's real public traffic to size it against, don't treat 6000 as
+  load-bearing today.
+- EmergencyKillSwitch (priority 0, evaluated first): a "block everything"
+  rule (an empty-string STARTS_WITH match on the URI path — every request
+  path starts with "", so this matches unconditionally) matching the user's
+  "zero whitelisting" request, adapted to this architecture's actual control
+  point (this WebACL) rather than the API Gateway resource policy the
+  original request assumed — this deployment has no API Gateway; traffic
+  flows CloudFront -> WAF -> ALB -> Fargate.
+  Ships with action=count (INERT) so deploying/redeploying this rule never
+  changes live traffic behaviour by itself — a normal `cdk deploy` is always
+  safe. The actual emergency toggle is scripts/toggle_kill_switch.sh, which
+  flips this rule's Action between Count and Block via a direct
+  `aws wafv2 update-web-acl` call — NOT a CDK redeploy, which takes minutes
+  and defeats the point of an emergency switch. Running `cdk deploy` again
+  after a manual toggle resets this rule back to Count (CloudFormation
+  drift) — intentional: the kill switch is a short-lived emergency measure,
+  not a persistent state meant to survive the next normal deploy. See the
+  script's own header comment for the full runbook.
 """
 
 from __future__ import annotations
@@ -37,6 +69,11 @@ from aws_cdk import aws_wafv2 as waf
 from constructs import Construct
 
 from config import PyvarConfig
+
+# Aggregate (all-clients-combined) request cap per 5-minute window — see the
+# AggregateRateLimit rule below. Conservative placeholder, not yet sized
+# against real public traffic (P11 §7 open item) -- revisit post-launch.
+AGGREGATE_RATE_LIMIT_PER_5MIN = 6000
 
 
 class EdgeStack(Stack):
@@ -67,6 +104,29 @@ class EdgeStack(Stack):
                 sampled_requests_enabled=True,
             ),
             rules=[
+                # Emergency kill switch — priority 0, evaluated before every other
+                # rule. Ships inert (action=count); see the module docstring and
+                # scripts/toggle_kill_switch.sh for how this is actually engaged.
+                waf.CfnWebACL.RuleProperty(
+                    name="EmergencyKillSwitch",
+                    priority=0,
+                    action=waf.CfnWebACL.RuleActionProperty(count={}),
+                    statement=waf.CfnWebACL.StatementProperty(
+                        byte_match_statement=waf.CfnWebACL.ByteMatchStatementProperty(
+                            search_string="",
+                            field_to_match=waf.CfnWebACL.FieldToMatchProperty(uri_path={}),
+                            positional_constraint="STARTS_WITH",
+                            text_transformations=[
+                                waf.CfnWebACL.TextTransformationProperty(priority=0, type="NONE")
+                            ],
+                        )
+                    ),
+                    visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="EmergencyKillSwitch",
+                        sampled_requests_enabled=True,
+                    ),
+                ),
                 # AWS Managed: Core rule set (OWASP Top 10 mitigations)
                 waf.CfnWebACL.RuleProperty(
                     name="AWSManagedRulesCommonRuleSet",
@@ -116,6 +176,27 @@ class EdgeStack(Stack):
                     visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
                         cloud_watch_metrics_enabled=True,
                         metric_name="RateLimit",
+                        sampled_requests_enabled=True,
+                    ),
+                ),
+                # Aggregate (all-clients-combined) rate limit — see module
+                # docstring. Evaluated after the managed rule sets and before
+                # nothing (last): this and RateLimitPerIp are independent
+                # bounds, not a priority-ordered fallback of one another.
+                waf.CfnWebACL.RuleProperty(
+                    name="AggregateRateLimit",
+                    priority=25,
+                    action=waf.CfnWebACL.RuleActionProperty(block={}),
+                    statement=waf.CfnWebACL.StatementProperty(
+                        rate_based_statement=waf.CfnWebACL.RateBasedStatementProperty(
+                            aggregate_key_type="CONSTANT",
+                            limit=AGGREGATE_RATE_LIMIT_PER_5MIN,
+                            evaluation_window_sec=300,
+                        )
+                    ),
+                    visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="AggregateRateLimit",
                         sampled_requests_enabled=True,
                     ),
                 ),
