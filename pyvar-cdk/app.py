@@ -22,6 +22,7 @@ from stacks.api_stack import ApiStack
 from stacks.compute_stack import ComputeStack
 from stacks.data_stack import DataStack
 from stacks.edge_stack import EdgeStack
+from stacks.local_package_stack import LocalPackageStack
 from stacks.network_stack import NetworkStack
 from stacks.observability_stack import ObservabilityStack
 from stacks.pipeline_stack import PipelineStack
@@ -60,6 +61,15 @@ ami = AmiStack(
     cfg=cfg,
     env=env_primary,
     description="pyvar: EC2 Image Builder — pre-baked Numba worker AMI",
+)
+
+# ── Local-package build pipeline (manually triggered, never on push) ─────────
+local_package = LocalPackageStack(
+    app,
+    f"{prefix}-local-package",
+    cfg=cfg,
+    env=env_primary,
+    description="pyvar: manually-triggered pyvar Local build + GitHub Release publish",
 )
 
 # ── Application stacks (managed by pipeline in normal operation) ─────────────

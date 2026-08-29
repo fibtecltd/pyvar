@@ -1,0 +1,68 @@
+name: pyvar Local CI
+
+# Scoped via paths: to pyvar-local/, engine/, tests/test_engine.py and
+# requirements-heavy.txt -- same reasoning as pyvar-client-ci.yml's and
+# plugins-ci.yml's own path scoping: a change unrelated to the local
+# package or the engine it packages has no reason to run this.
+#
+# This is the ONLY CI verification pyvar-local/Dockerfile actually gets:
+# the main ci.yml "Docker build check" job builds the root Dockerfile only
+# (pyvar-api), never this one. Without this job, a break in
+# pyvar-local/Dockerfile would go completely unnoticed until the manually-
+# triggered pyvar-cdk/stacks/local_package_stack.py pipeline actually runs
+# on AWS -- CodeBuild minutes are more expensive to burn on a build-time
+# mistake than GitHub Actions minutes are here, and this job only runs when
+# something in its own path filter actually changed, not on every push.
+#
+# Informational only (not a required status check on master, same as
+# plugins-ci.yml's own jobs) -- it verifies pyvar-local/, it doesn't gate
+# unrelated changes.
+
+on:
+  pull_request:
+    branches: [master, develop]
+    paths:
+      - "pyvar-local/**"
+      - "engine/**"
+      - "tests/test_engine.py"
+      - "requirements-heavy.txt"
+      - ".github/workflows/pyvar-local-ci.yml"
+  push:
+    branches-ignore: [master]
+    paths:
+      - "pyvar-local/**"
+      - "engine/**"
+      - "tests/test_engine.py"
+      - "requirements-heavy.txt"
+      - ".github/workflows/pyvar-local-ci.yml"
+
+jobs:
+  docker-build-and-test:
+    name: pyvar Local Docker build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build pyvar-local image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: pyvar-local/Dockerfile
+          push: false
+          load: true
+          tags: pyvar-local:ci-${{ github.sha }}
+          cache-from: type=gha,scope=pyvar-local
+          cache-to: type=gha,mode=max,scope=pyvar-local
+
+      - name: Run tests/test_engine.py inside the built image
+        run: |
+          docker run --rm --entrypoint pytest pyvar-local:ci-${{ github.sha }} \
+            /app/tests/test_engine.py -v
+
+      - name: Smoke-test the CLI
+        run: |
+          docker run --rm pyvar-local:ci-${{ github.sha }} list | grep -q "montecarlo.run_monte_carlo_var" || \
+            (echo "::error::pyvar-local CLI 'list' did not surface a known engine function" && exit 1)
