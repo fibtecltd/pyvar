@@ -37,12 +37,10 @@ can't:
   once there's real public traffic to size it against, don't treat 6000 as
   load-bearing today.
 - EmergencyKillSwitch (priority 0, evaluated first): a "block everything"
-  rule (an empty-string STARTS_WITH match on the URI path — every request
-  path starts with "", so this matches unconditionally) matching the user's
-  "zero whitelisting" request, adapted to this architecture's actual control
-  point (this WebACL) rather than the API Gateway resource policy the
-  original request assumed — this deployment has no API Gateway; traffic
-  flows CloudFront -> WAF -> ALB -> Fargate.
+  rule matching the user's "zero whitelisting" request, adapted to this
+  architecture's actual control point (this WebACL) rather than the API
+  Gateway resource policy the original request assumed — this deployment
+  has no API Gateway; traffic flows CloudFront -> WAF -> ALB -> Fargate.
   Ships with action=count (INERT) so deploying/redeploying this rule never
   changes live traffic behaviour by itself — a normal `cdk deploy` is always
   safe. The actual emergency toggle is scripts/toggle_kill_switch.sh, which
@@ -53,6 +51,37 @@ can't:
   drift) — intentional: the kill switch is a short-lived emergency measure,
   not a persistent state meant to survive the next normal deploy. See the
   script's own header comment for the full runbook.
+
+_match_all_statement() (below) — both rules above need an unconditional
+"matches every request" statement (the kill switch AS its own match
+condition; AggregateRateLimit as its required ScopeDownStatement, see next
+paragraph) built from SizeConstraintStatement(UriPath length >= 0), which
+is always true and is AWS's own documented example shape for a
+ScopeDownStatement, rather than a ByteMatchStatement with an empty
+search_string on the theory that an empty prefix matches everything: that
+approach is NOT documented as valid AWS behaviour (checked directly against
+AWS's own CloudFormation User Guide, not assumed), and this stack has
+already been burned once by trusting an undocumented-but-plausible-looking
+WAFv2 construct shape (see the ScopeDownStatement paragraph below) — not
+worth the same risk twice in the same file.
+
+FIX (post-deploy, real production incident, not a synth-time catch): the
+very first deploy of AggregateRateLimit failed with "A required field is
+missing from the parameter., field: SCOPE_DOWN, parameter:
+RateBasedStatement" — confirmed directly against AWS's own CloudFormation
+User Guide: a RateBasedStatement with aggregate_key_type="CONSTANT" is
+REQUIRED to carry a ScopeDownStatement (CloudFormation's own schema marks
+the field optional; WAFv2's CreateWebACL/UpdateWebACL API enforces it
+conditionally at deploy time regardless — exactly the class of gap
+`cdk synth` cannot catch without live AWS credentials, flagged as a known
+limitation when this rule was first added). The CloudFormation stack itself
+rolled back cleanly (UPDATE_ROLLBACK_COMPLETE) and only the Dev stage was
+affected — Prod was never reached — but every subsequent deploy would have
+kept failing at the same step until fixed. scope_down_statement below is
+set to the same _match_all_statement() the kill switch uses: this rule is
+deliberately meant to be a true global bucket with no narrowing, and a
+scope-down that matches unconditionally preserves that while satisfying
+the now-confirmed-mandatory field.
 """
 
 from __future__ import annotations
@@ -74,6 +103,27 @@ from config import PyvarConfig
 # AggregateRateLimit rule below. Conservative placeholder, not yet sized
 # against real public traffic (P11 §7 open item) -- revisit post-launch.
 AGGREGATE_RATE_LIMIT_PER_5MIN = 6000
+
+
+def _match_all_statement() -> waf.CfnWebACL.StatementProperty:
+    """An unconditional "matches every request" WAFv2 statement.
+
+    SizeConstraintStatement(UriPath length >= 0) is always true (every URI
+    path has non-negative length) and is the shape AWS's own documented
+    CONSTANT-aggregation example uses for a ScopeDownStatement -- see the
+    module docstring's ScopeDownStatement paragraph for why this is used
+    instead of an empty-search-string ByteMatchStatement.
+    """
+    return waf.CfnWebACL.StatementProperty(
+        size_constraint_statement=waf.CfnWebACL.SizeConstraintStatementProperty(
+            field_to_match=waf.CfnWebACL.FieldToMatchProperty(uri_path={}),
+            comparison_operator="GE",
+            size=0,
+            text_transformations=[
+                waf.CfnWebACL.TextTransformationProperty(priority=0, type="NONE")
+            ],
+        )
+    )
 
 
 class EdgeStack(Stack):
@@ -111,16 +161,7 @@ class EdgeStack(Stack):
                     name="EmergencyKillSwitch",
                     priority=0,
                     action=waf.CfnWebACL.RuleActionProperty(count={}),
-                    statement=waf.CfnWebACL.StatementProperty(
-                        byte_match_statement=waf.CfnWebACL.ByteMatchStatementProperty(
-                            search_string="",
-                            field_to_match=waf.CfnWebACL.FieldToMatchProperty(uri_path={}),
-                            positional_constraint="STARTS_WITH",
-                            text_transformations=[
-                                waf.CfnWebACL.TextTransformationProperty(priority=0, type="NONE")
-                            ],
-                        )
-                    ),
+                    statement=_match_all_statement(),
                     visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
                         cloud_watch_metrics_enabled=True,
                         metric_name="EmergencyKillSwitch",
@@ -192,6 +233,11 @@ class EdgeStack(Stack):
                             aggregate_key_type="CONSTANT",
                             limit=AGGREGATE_RATE_LIMIT_PER_5MIN,
                             evaluation_window_sec=300,
+                            # Required by the real WAFv2 API whenever
+                            # aggregate_key_type="CONSTANT" -- see the module
+                            # docstring's FIX paragraph. CDK's own type marks
+                            # this optional; AWS's API does not.
+                            scope_down_statement=_match_all_statement(),
                         )
                     ),
                     visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
