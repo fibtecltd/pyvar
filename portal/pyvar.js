@@ -67,7 +67,7 @@ function buildFooter() {
           <div class="footer-meta">
             <span>Built by <a href="https://fibtec.co.uk" target="_blank">Fibtec Limited</a> · UK</span>
             <a href="https://github.com/fibtecltd/pyvar" target="_blank">github.com/fibtecltd/pyvar ↗</a>
-            <a href="mailto:info@fibtec.co.uk">info@fibtec.co.uk</a>
+            <a href="mailto:info@pyvar.com">info@pyvar.com</a>
           </div>
         </div>
         <div class="footer-nav">
@@ -675,6 +675,7 @@ async function _submitTryIt(e, fn) {
   }
 }
 
+// ── Search (P8 Task 4) ─────────────────────────────────────────────────────
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
