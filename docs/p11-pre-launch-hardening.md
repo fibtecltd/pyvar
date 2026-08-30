@@ -1,10 +1,9 @@
 # P11 — Pre-launch hardening: cost safety, distribution, discoverability
 
-**Version:** 1.1
+**Version:** 1.2
 **Date:** August 2026
-**Status:** Items 1, 2, 3, 4 implemented (PRs #295, #294, this revision).
-Items 5, 6, 7 remain: 5 is the largest remaining body of work, 6 and 7 are
-blocked on external action (see §5, §6).
+**Status:** Items 1, 2, 3, 4, 5 implemented. Items 6, 7 remain, both blocked
+on external action (see §5, §6).
 **Prepared by:** Fibtec Limited (drafted with Claude Code)
 
 ---
@@ -21,10 +20,10 @@ sequences all seven, grounded in what actually already exists in
 | # | Item | Kind | Status this revision |
 |---|------|------|----------------------|
 | 1 | API throttling to prevent AWS overspend | Plan | **Implemented** (§1, PR #295) — aggregate WAF rate limit |
-| 2 | Local-package build, manual-trigger pipeline + Slack | Implement | **Implemented** (§2, this revision) |
+| 2 | Local-package build, manual-trigger pipeline + Slack | Implement | **Implemented** (§2, PR #296) |
 | 3 | Emergency API kill switch | Implement | **Implemented** (§1, PR #295) |
 | 4 | Iron-triangle chart into `index.html` | Implement | **Implemented** (§3, PR #294) |
-| 5 | Formula + parameter frame for all 385 functions | Create | Full scope confirmed by the user (no pilot) — sourcing plan in §4, not yet started |
+| 5 | Formula + parameter frame for all 385 functions | Create | **Implemented** (§4, this revision) — full 385-function scope, no pilot |
 | 6 | Redesign fibtec.co.uk, consistent with the pyvar portal | Delegate | **Blocked on the user** — repo doesn't exist yet (§5) |
 | 7 | Submit pyvar's plugins to the official Claude Code marketplace | Submit | Real process found, content prepared (PR #293); submission itself needs a human/GitHub-authenticated action (§6) |
 
@@ -249,37 +248,78 @@ the public site either).
 - The user has chosen the full 385-function scope over a pilot, given the
   accuracy stakes explicit acknowledgement.
 
-### Sourcing discipline (the actual risk to manage)
+### Sourcing discipline (IMPLEMENTED as of this revision)
 
-Every formula must be **derived from the function's real implementation
-code**, never written from general financial-formula recall and assumed to
-match this specific implementation's exact variant, sign convention, or
-regulatory parameterisation — the same "verify, don't guess" discipline this
-project has already applied twice this session (the homepage async-claim fix,
-the MCP SDK API claim). Proposed process:
+Every formula was **derived from the function's real implementation code**,
+never written from general financial-formula recall and assumed to match
+this specific implementation's exact variant, sign convention, or regulatory
+parameterisation — the same "verify, don't guess" discipline this project
+has already applied repeatedly this session (the homepage async-claim fix,
+the MCP SDK API claim, the WAF ScopeDownStatement production incident).
+Actual process:
 
-1. Per domain (8), a research pass reads each function's actual `@njit`
-   kernel or wrapper body plus any regulatory citation already in its
-   docstring, and produces a structured formula record (LaTeX-renderable
-   expression, each symbol mapped to its actual parameter name in
-   `functions.json`, and the regulatory citation if one exists in the code
-   already — never invented if it doesn't).
-2. A separate verification pass spot-checks a sample per domain against the
-   actual code before that domain's batch is considered done — catching a
-   systematically wrong sign convention or confidence-level mixup before it
-   propagates across dozens of functions in the same file.
-3. Landed as one PR across all 8 domains once every domain has passed its
-   verification pass (not eight incremental PRs), per the pipeline-execution
-   minimisation instruction.
+1. One research pass per domain (8 parallel agents), each reading every
+   assigned function's actual `@njit` kernel or wrapper body — never just
+   the docstring — plus any regulatory citation already present in the code,
+   producing a structured record: a LaTeX-renderable `formula_latex`, a
+   `symbol_map` from each symbol to its actual parameter name (cross-checked
+   programmatically against that function's own `params` list — zero
+   mismatches across all 385), the regulatory/academic `citation` verbatim
+   if and only if one already exists in the code (never invented), and a
+   `caveat` field as the honesty escape hatch for genuine uncertainty —
+   never a silently-guessed formula presented as settled.
+2. Each domain agent ran its own adversarial re-verification pass against
+   the source before reporting done (5–17 functions re-checked per domain,
+   every domain). This caught two real, since-fixed bugs in the agents' own
+   first drafts, not just confirmed them clean: credit-risk's
+   `probability_of_default_pd_estimation` was missing the code's `min(...,
+   1.0)` pooled-PD cap; derivatives' `barrier_option_pricer` included a
+   rebate-related λ term the code computes but never actually uses (a dead
+   variable — removed from the formula, flagged instead).
+3. Landed as one PR across all 8 domains (not eight incremental PRs), per
+   the pipeline-execution minimisation instruction — see §7 below for the
+   PR reference.
+4. This session's own independent verification, on top of each agent's
+   self-check: cross-referenced the domain→module mapping the agents used
+   against a live reflection over `engine/`'s actual public functions
+   (`pkgutil.iter_modules` + `inspect.getmembers`, the exact same mechanism
+   `pyvar_local/cli.py` already uses) — confirmed all 385
+   `portal/functions.json` entries resolve to a real engine function with no
+   gaps; then re-read 5 functions spread across 5 different domains
+   (`sharpe_ratio`, `duration_gap_analysis`, `liquidity_coverage_ratio_lcr`,
+   `probability_of_default_pd_estimation`, and `kupiec_pof_test`'s docstring)
+   directly against source, independently of the agents' own reports —
+   all matched exactly, including confirming the `probability_of_default_pd_estimation`
+   fix above was real.
 
-### Rendering
+Final coverage: 385/385 functions have a formula record (zero missing —
+`scripts/generate_function_catalog.py`'s new missing-formula warning, mirrored
+on the existing `unresolved_engine_alias` check, fired zero times). 62 carry
+a citation, 99 (~26%) carry a caveat — a healthy, credible ratio: neither
+suspiciously zero (which would suggest rubber-stamping) nor overwhelming.
 
-- New `formula` field (LaTeX string) added to `scripts/generate_function_catalog.py`'s
-  output schema and `portal/functions.json`.
-- Rendered via KaTeX (the lightest standard option, no runtime LaTeX
-  dependency) in a new "Formula" tab inside the existing "Try it" panel
-  (`portal/pyvar.js`'s `openTryItPanel`) — additive to the existing
-  params-form/result view, not a redesign of it.
+### Rendering (IMPLEMENTED as of this revision)
+
+- New `formula` field (an object: `formula_latex`, `symbol_map`, `citation`,
+  `caveat`) merged into `portal/functions.json` by
+  `scripts/generate_function_catalog.py`, sourced from a new, separate,
+  hand-reviewed file — `scripts/data/function_formulas.json` — rather than
+  derived from the OpenAPI schema/docstrings the way every other field is
+  (no formula data exists anywhere in the docstrings themselves, see above).
+  Keeping it in its own file means regenerating `functions.json` for an
+  unrelated reason (a new function, a changed parameter) merges the existing
+  formulas back in automatically instead of wiping them.
+- Rendered via KaTeX 0.16.11 (MIT), vendored at `portal/vendor/katex/` —
+  same self-hosted convention as `vendor/fuse.min.js`, not a CDN — lazy-
+  loaded only when a Try-it panel for a function that actually has a formula
+  is opened (`portal/pyvar.js`'s `_ensureKatex`/`_renderFormula`, mirroring
+  how `_ensureSearchIndex` already lazy-loads Fuse.js). Shows the rendered
+  expression, a symbol-to-parameter legend, the citation if present, and a
+  visible caveat if the sourcing pass flagged one — additive to the existing
+  params-form/result view inside the same panel, not a redesign of it.
+  Verified end-to-end in headless Chromium across 5 real functions spanning
+  5 different domains before committing, not just assumed from reading the
+  code.
 
 ---
 
@@ -337,7 +377,20 @@ above.
    adapted grant brief's own caveat) — the grant brief should be re-checked
    against the live nlnet.nl/propose page immediately before actual
    submission, not assumed still accurate from this research pass.
-3. Item 5's KaTeX rendering choice and exact "Formula" tab UX are a
-   reasonable default, not user-confirmed — worth a quick look once the
-   first domain's batch is ready, before committing the same pattern across
-   all 8.
+3. ~~Item 5's KaTeX rendering choice and exact "Formula" tab UX~~ **Resolved
+   by shipping it**: rendered inline in the existing Try-it panel (not a
+   separate tab — simpler, and the panel was never crowded enough to need
+   one), verified end-to-end in headless Chromium across 5 real functions.
+   Worth an actual look at pyvar.com once live, and worth deciding whether
+   `caveat` should stay visible to every visitor long-term or move to a
+   collapsed/expandable state if the ~26% caveat rate reads as noisy at
+   scale — a product-polish call, not a correctness one.
+4. Item 5's 99 caveats (~26% of functions) are themselves a punch list: each
+   one names a specific place where pyvar's implementation is a
+   simplification, a bespoke convention, or diverges from the textbook/
+   regulatory-standard method (e.g. Solvency II SCR credit risk's missing
+   inter-counterparty correlation term, several IRRBB/LCR internal-convention
+   flags). Not a defect in this exercise — surfacing them accurately was the
+   point — but worth its own triage pass: some are genuine engine
+   limitations worth fixing in `engine/` itself, filed separately from this
+   portal-content effort.

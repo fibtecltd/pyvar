@@ -1,0 +1,3993 @@
+{
+  "active_share": {
+    "caveat": null,
+    "citation": "Cremers & Petajisto",
+    "formula_latex": "AS = \\frac{1}{2}\\sum_i |w_i - b_i|",
+    "symbol_map": {
+      "benchmark_weights": "b_i",
+      "weights": "w_i"
+    }
+  },
+  "advanced_measurement_approach_ama": {
+    "caveat": "OpVaR and EL are not direct inputs \u2014 they are computed by running the full LDA pipeline (Poisson frequency MLE + lognormal severity MLE fit to annual_event_counts/loss_amounts, then a Monte Carlo quantile) internally, so symbol_map is left empty since the formula's symbols are derived intermediates, not literal parameters.",
+    "citation": "Basel II \u00a7669(b)",
+    "formula_latex": "AMA = \\begin{cases} \\max(OpVaR - EL,\\,0) & \\text{expected\\_loss\\_covered} = \\text{True} \\\\ OpVaR & \\text{expected\\_loss\\_covered} = \\text{False} \\end{cases}",
+    "symbol_map": {}
+  },
+  "aifmd_risk_metrics": {
+    "caveat": "\"Substantially leveraged\" is a threshold flag (commitment leverage > 3x NAV) rather than a separate equation; not shown above.",
+    "citation": "Delegated Regulation 231/2013 Art. 7-8",
+    "formula_latex": "Gross\\ Leverage = \\frac{Gross\\ Exposure}{NAV} \\\\ Commitment\\ Leverage = \\frac{Commitment\\ Exposure}{NAV}",
+    "symbol_map": {
+      "commitment_exposure": "Commitment\\ Exposure",
+      "gross_exposure": "Gross\\ Exposure",
+      "net_asset_value": "NAV"
+    }
+  },
+  "alm_stress_test": {
+    "caveat": "Wraps eve_sensitivity_analysis's six-shock \u0394EVE computation and expresses the worst-case loss as a fraction of Tier-1 capital; only tier1_capital appears as a distinct symbol above -- the underlying \u0394EVE per scenario follows the same PV formula as economic_value_of_equity_eve / eve_sensitivity_analysis.",
+    "citation": "BCBS d368",
+    "formula_latex": "\\Delta EVE_{worst} = \\min_s\\big(EVE(r_0+\\Delta r_s)-EVE(r_0)\\big) \\quad Ratio = \\dfrac{\\big|\\min(\\Delta EVE_{worst},0)\\big|}{Tier1}",
+    "symbol_map": {
+      "tier1_capital": "Tier1"
+    }
+  },
+  "altman_z_score_credit_scoring": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Z = 1.2\\frac{WC}{TA}+1.4\\frac{RE}{TA}+3.3\\frac{EBIT}{TA}+0.6\\frac{MVE}{TL}+1.0\\frac{Sales}{TA}",
+    "symbol_map": {
+      "ebit": "EBIT",
+      "market_value_equity": "MVE",
+      "retained_earnings": "RE",
+      "sales": "Sales",
+      "total_assets": "TA",
+      "total_liabilities": "TL",
+      "working_capital": "WC"
+    }
+  },
+  "american_option_lsm": {
+    "caveat": "Longstaff-Schwartz Monte Carlo: continuation value is a quadratic OLS regression on in-the-money paths at every step; the formula shown is the algorithm's defining recursion, not a closed form. Greeks (opt-in) use a 30x larger spot bump than smooth-payoff products because the LSM exercise decision is discontinuous in spot.",
+    "citation": null,
+    "formula_latex": "S_{t_k}=S_{t_{k-1}}\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\Delta t+\\sigma\\sqrt{\\Delta t}\\,Z_k\\big],\\ \\Delta t=\\tau/n \\\\\\text{Intrinsic}(S)=\\max(\\phi(S-K),0) \\\\\\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1 S_{t_k}+\\hat\\beta_2 S_{t_k}^2\\ \\text{(OLS on in-the-money paths)}\\\\\\text{Exercise at } t_k \\text{ if Intrinsic}(S_{t_k})>\\hat C(S_{t_k});\\qquad \\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
+    "symbol_map": {
+      "div_yield": "q",
+      "n_steps": "n",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "asian_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\bar S=\\frac1n\\sum_{k=1}^n S_{t_k},\\qquad S_{t_k}=S_0\\exp\\!\\Big(\\textstyle\\sum_{j=1}^k\\big[(r-q-\\tfrac12\\sigma^2)\\Delta t+\\sigma\\sqrt{\\Delta t}\\,Z_j\\big]\\Big)\\\\ \\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(\\bar S-K),0)\\big]",
+    "symbol_map": {
+      "div_yield": "q",
+      "n_steps": "n",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "asset_encumbrance_ratio": {
+    "caveat": null,
+    "citation": "EBA reporting",
+    "formula_latex": "\\text{Encumbrance} = \\frac{E}{T}",
+    "symbol_map": {
+      "encumbered_assets": "E",
+      "total_assets": "T"
+    }
+  },
+  "asset_liability_mismatch_index": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "I = \\dfrac{\\left|\\sum_i D_i^A A_i - \\sum_j D_j^L L_j\\right|}{\\sum_i A_i}",
+    "symbol_map": {
+      "asset_amounts": "A_i",
+      "asset_durations": "D_i^A",
+      "liability_amounts": "L_j",
+      "liability_durations": "D_j^L"
+    }
+  },
+  "asset_swap_spread": {
+    "caveat": "The bond_price argument is accepted but never used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates instead, so the formula shown is what the code actually evaluates, not one using the passed-in bond_price.",
+    "citation": null,
+    "formula_latex": "ASW = \\frac{PV_{bond} - F}{\\text{Annuity}\\cdot F},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+    "symbol_map": {
+      "cashflows": "CF_i",
+      "face_value": "F",
+      "frequency": "m",
+      "swap_rates": "s_i",
+      "times": "t_i"
+    }
+  },
+  "audit_finding_risk_scorer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_{base} = Sev \\times Lik \\\\ S_{adj} = \\min\\left(S_{base} + 2\\left\\lfloor \\frac{OD}{30} \\right\\rfloor,\\,25\\right)",
+    "symbol_map": {
+      "likelihood": "Lik",
+      "overdue_days": "OD",
+      "severity": "Sev"
+    }
+  },
+  "available_stable_funding_asf_calc": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ASF = \\sum_i F_i \\cdot \\alpha_i",
+    "symbol_map": {
+      "asf_factors": "\\alpha_i",
+      "funding_amounts": "F_i"
+    }
+  },
+  "average_drawdown": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DD_t = \\frac{P_t - V_t}{P_t}, \\quad P_t = \\max_{s \\le t} V_s \\\\ \\overline{DD} = \\frac{1}{T}\\sum_{t=1}^{T} DD_t",
+    "symbol_map": {
+      "returns": "V_t"
+    }
+  },
+  "balance_sheet_projection_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_t = A_0(1+g_A)^t,\\quad L_t = L_0(1+g_L)^t,\\quad E_t = A_t-L_t,\\quad NII_t = A_t y_A - L_t c_L,\\quad t=1,\\dots,n",
+    "symbol_map": {
+      "asset_growth_rate": "g_A",
+      "asset_yield": "y_A",
+      "initial_assets": "A_0",
+      "initial_liabilities": "L_0",
+      "liability_cost": "c_L",
+      "liability_growth_rate": "g_L",
+      "n_years": "n"
+    }
+  },
+  "barrier_option_pricer": {
+    "caveat": "Reiner-Rubinstein closed form: x1,x2,y1,y2 are the standard barrier d-terms (phi=+-1 for call/put, eta=+-1 for down/up); the exact combination of A/B/C/D used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier \u2014 only the general building blocks are shown here rather than all eight case branches. The code also computes a rebate-related lambda term (sqrt(mu^2 + 2r/sigma^2)) that is never actually used in any of A/B/C/D \u2014 consistent with the rebate parameter being accepted but not modelled (always priced as 0).",
+    "citation": null,
+    "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\\\text{knock-in}\\in\\{A,B,C,D\\text{ combinations by type}\\},\\qquad \\text{knock-out}=\\text{vanilla}-\\text{knock-in}",
+    "symbol_map": {
+      "barrier": "H",
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "basel_capital_addon_multiplier": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "m(n) = \\begin{cases} 3.00 & n < 5 \\\\ 3.40,\\,3.50,\\,3.65,\\,3.75,\\,3.85 & n = 5,6,7,8,9\\ \\text{(BCBS schedule)} \\\\ 4.00 & n \\geq 10 \\end{cases}",
+    "symbol_map": {
+      "n_breaches": "n"
+    }
+  },
+  "basel_iii_cet1_ratio": {
+    "caveat": null,
+    "citation": "Basel III \u00a750",
+    "formula_latex": "CET1\\ ratio = \\frac{CET1_{capital}}{RWA}",
+    "symbol_map": {
+      "cet1_capital": "CET1_{capital}",
+      "risk_weighted_assets": "RWA"
+    }
+  },
+  "basel_iii_leverage_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Leverage\\ ratio = \\frac{Tier1_{capital}}{Total\\ Exposure}",
+    "symbol_map": {
+      "tier1_capital": "Tier1_{capital}",
+      "total_exposure": "Total\\ Exposure"
+    }
+  },
+  "basel_iii_tier1_ratio": {
+    "caveat": null,
+    "citation": "Basel III \u00a750",
+    "formula_latex": "Tier\\ 1\\ ratio = \\frac{Tier1_{capital}}{RWA}",
+    "symbol_map": {
+      "risk_weighted_assets": "RWA",
+      "tier1_capital": "Tier1_{capital}"
+    }
+  },
+  "basel_iii_total_capital_ratio": {
+    "caveat": null,
+    "citation": "Basel III \u00a750",
+    "formula_latex": "Total\\ capital\\ ratio = \\frac{Total\\ Capital}{RWA}",
+    "symbol_map": {
+      "risk_weighted_assets": "RWA",
+      "total_capital": "Total\\ Capital"
+    }
+  },
+  "basel_iv_output_floor": {
+    "caveat": null,
+    "citation": "Basel III finalisation",
+    "formula_latex": "Floored\\ RWA = \\max\\big(RWA_{IM},\\ floor\\_factor \\times RWA_{SA}\\big)",
+    "symbol_map": {
+      "floor_factor": "floor\\_factor",
+      "internal_model_rwa": "RWA_{IM}",
+      "standardised_rwa": "RWA_{SA}"
+    }
+  },
+  "basel_standardised_approach_rwa": {
+    "caveat": null,
+    "citation": "CRE20",
+    "formula_latex": "RWA = \\max(EAD - CRM,\\ 0) \\cdot RW, \\quad K = 0.08 \\cdot RWA",
+    "symbol_map": {
+      "credit_risk_mitigation": "CRM",
+      "ead": "EAD",
+      "risk_weight": "RW"
+    }
+  },
+  "basel_standardised_measurement_sma": {
+    "caveat": "ILM is fixed at 1.0 (skipping the log formula) whenever use_ilm is False, BI is in bucket 1 (<=1bn), or BIC<=0 \u2014 the code implements this as an explicit override, not part of the log expression itself.",
+    "citation": null,
+    "formula_latex": "BIC = \\begin{cases} 0.12\\,BI & BI \\le 1\\text{bn} \\\\ 0.12(1\\text{bn}) + 0.15(BI-1\\text{bn}) & 1\\text{bn} < BI \\le 30\\text{bn} \\\\ 0.12(1\\text{bn}) + 0.15(29\\text{bn}) + 0.18(BI-30\\text{bn}) & BI > 30\\text{bn} \\end{cases} \\\\ ILM = \\max\\left(\\ln\\left(e-1+\\left(\\frac{LC}{BIC}\\right)^{0.8}\\right),\\,0\\right) \\\\ SMA = BIC \\times ILM",
+    "symbol_map": {
+      "business_indicator": "BI",
+      "loss_component": "LC"
+    }
+  },
+  "basis_risk_irrbb": {
+    "caveat": null,
+    "citation": "BCBS d368",
+    "formula_latex": "\\Delta NII = \\sum_i A_i\\,\\Delta i_i^A - \\sum_j L_j\\,\\Delta i_j^L",
+    "symbol_map": {
+      "asset_balances": "A_i",
+      "asset_index_shifts": "\\Delta i_i^A",
+      "liability_balances": "L_j",
+      "liability_index_shifts": "\\Delta i_j^L"
+    }
+  },
+  "basket_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_{i,T}=S_{i,0}\\exp\\!\\big[(r-\\tfrac12\\sigma_i^2)\\tau+\\sigma_i\\sqrt\\tau\\,(LZ)_i\\big],\\qquad \\text{Basket}=\\sum_i w_i S_{i,T}\\\\\\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(\\text{Basket}-K),0)\\big]",
+    "symbol_map": {
+      "correlation": "L\\ (\\text{Cholesky factor})",
+      "rate": "r",
+      "sigmas": "\\sigma_i",
+      "spots": "S_{i,0}",
+      "strike": "K",
+      "tau": "\\tau",
+      "weights": "w_i"
+    }
+  },
+  "behavioural_modelling_nmds": {
+    "caveat": "Docstring cites BCBS d368 NMD treatment, but the code implements a bespoke core/non-core exponential-decay blend rather than d368's actual standardised NMD slotting methodology -- treat as an independent, unvalidated behavioural model, not a compliant d368 implementation.",
+    "citation": "BCBS d368",
+    "formula_latex": "B_{surv} = B\\,f_{core}\\,e^{-r_{core} H} + B\\,(1-f_{core})\\,e^{-r_{nc} H} \\quad EL = \\dfrac{B f_{core}/r_{core} + B(1-f_{core})/r_{nc}}{B}",
+    "symbol_map": {
+      "core_fraction": "f_{core}",
+      "core_runoff_rate": "r_{core}",
+      "horizon_years": "H",
+      "non_core_runoff_rate": "r_{nc}",
+      "total_balance": "B"
+    }
+  },
+  "bermudan_option_pricer": {
+    "caveat": "Same Longstaff-Schwartz algorithm as american_option_lsm but the exercise mask is restricted to an evenly-spaced subset of ~n_steps/exercise_dates grid points; no closed form.",
+    "citation": null,
+    "formula_latex": "\\text{Same LSM recursion as american\\_option\\_lsm, restricted to } M \\text{ discrete exercise dates:}\\\\\\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1S_{t_k}+\\hat\\beta_2S_{t_k}^2\\ \\text{(OLS, only at allowed } t_k),\\\\\\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
+    "symbol_map": {
+      "div_yield": "q",
+      "exercise_dates": "M",
+      "n_steps": "n",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "binomial_tree_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "u=e^{\\sigma\\sqrt{\\Delta t}},\\quad d=\\frac1u,\\quad p=\\frac{e^{(r-q)\\Delta t}-d}{u-d}\\\\V_i^{(N)}=\\max(\\phi(S_0u^{N-i}d^{i}-K),0)\\\\V_i^{(k)}=\\max\\Big(e^{-r\\Delta t}\\big[pV_i^{(k+1)}+(1-p)V_{i+1}^{(k+1)}\\big],\\ \\text{[American] intrinsic}(S_0u^{k-i}d^{i})\\Big)",
+    "symbol_map": {
+      "div_yield": "q",
+      "n_steps": "N",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "black_litterman_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Pi = \\lambda \\Sigma w_{mkt} \\\\ \\Omega = \\text{diag}\\big(P(\\tau\\Sigma)P^\\top\\big) \\;\\; \\text{(default)} \\\\ E[R] = \\Big[(\\tau\\Sigma)^{-1} + P^\\top\\Omega^{-1}P\\Big]^{-1}\\Big[(\\tau\\Sigma)^{-1}\\Pi + P^\\top\\Omega^{-1}Q\\Big] \\\\ w^{*} = (\\lambda\\Sigma)^{-1} E[R]",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "market_weights": "w_{mkt}",
+      "omega": "\\Omega",
+      "p_matrix": "P",
+      "q_views": "Q",
+      "risk_aversion": "\\lambda",
+      "tau": "\\tau"
+    }
+  },
+  "black_scholes_european_option": {
+    "caveat": "When tau=0 or sigma=0 the code instead returns the discounted-forward intrinsic value (a degenerate limiting case), not the formula above.",
+    "citation": null,
+    "formula_latex": "C=S e^{-q\\tau}N(d_1)-K e^{-r\\tau}N(d_2),\\qquad P=K e^{-r\\tau}N(-d_2)-S e^{-q\\tau}N(-d_1)\\\\d_1=\\frac{\\ln(S/K)+(r-q+\\sigma^2/2)\\tau}{\\sigma\\sqrt\\tau},\\qquad d_2=d_1-\\sigma\\sqrt\\tau",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "black_scholes_greeks": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Delta_{call}=e^{-q\\tau}N(d_1),\\quad \\Delta_{put}=-e^{-q\\tau}N(-d_1)\\\\\\Gamma=\\frac{e^{-q\\tau}N'(d_1)}{S\\sigma\\sqrt\\tau},\\qquad \\text{Vega}=S e^{-q\\tau}N'(d_1)\\sqrt\\tau\\quad(\\text{same for call and put})\\\\\\Theta_{call}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}-rKe^{-r\\tau}N(d_2)+qSe^{-q\\tau}N(d_1),\\quad \\Theta_{put}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}+rKe^{-r\\tau}N(-d_2)-qSe^{-q\\tau}N(-d_1)\\\\\\rho_{call}=K\\tau e^{-r\\tau}N(d_2),\\qquad \\rho_{put}=-K\\tau e^{-r\\tau}N(-d_2)",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "bond_pricer_fixed_coupon": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y/m)^{i}}+\\frac{F}{(1+y/m)^{n}},\\qquad n=\\text{round}(T\\cdot m)",
+    "symbol_map": {
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "maturity": "T",
+      "yield_rate": "y"
+    }
+  },
+  "bond_pricer_floating_rate": {
+    "caveat": "n (the number of coupon periods) is taken from len(reference_rates), not from maturity\u00b7frequency \u2014 the maturity argument is only used for input validation (must be > 0) and does not otherwise drive the cashflow schedule.",
+    "citation": null,
+    "formula_latex": "P=\\sum_{i=1}^{n} CF_i\\left(1+\\frac{d_i}{m}\\right)^{-i},\\qquad CF_i=F\\frac{r_i+s}{m}\\ (\\text{plus } F \\text{ at } i=n)",
+    "symbol_map": {
+      "discount_rates": "d_i",
+      "face_value": "F",
+      "frequency": "m",
+      "reference_rates": "r_i",
+      "spread": "s"
+    }
+  },
+  "bootstrap_yield_curve": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DF_i=\\frac{F-\\sum_{j<i} c_i\\,DF_j}{F+c_i},\\qquad c_i=\\frac{p_i F}{m},\\qquad z_i=-\\frac{\\ln DF_i}{t_i}",
+    "symbol_map": {
+      "face_value": "F",
+      "frequency": "m",
+      "maturities": "t_i",
+      "par_rates": "p_i"
+    }
+  },
+  "business_continuity_risk_score": {
+    "caveat": "rpo_hours is accepted as a parameter but is not used anywhere in the score computation in the code \u2014 only RTO vs MTD and bcp_maturity drive the score.",
+    "citation": null,
+    "formula_latex": "G = \\min\\!\\left(\\frac{RTO}{MTD},\\,2\\right)\\Big/2 \\\\ Raw = 50\\cdot\\mathbb{1}[RTO>MTD] + 50\\,G \\\\ Score = \\min\\big(Raw\\times(1-0.5\\,M),\\,100\\big)",
+    "symbol_map": {
+      "bcp_maturity": "M",
+      "max_tolerable_downtime": "MTD",
+      "rto_hours": "RTO"
+    }
+  },
+  "business_environment_factor_bei": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\overline{S} = \\frac{1}{n}\\sum_i S_i \\\\ BEI = \\max\\big(1 + k(\\overline{S}-B),\\,0\\big)",
+    "symbol_map": {
+      "baseline": "B",
+      "factor_scores": "S_i",
+      "sensitivity": "k"
+    }
+  },
+  "callable_bond_pricer": {
+    "caveat": "This is a simplified multiplicative short-rate lattice with fixed 0.5/0.5 branch probabilities (r_{k,j}=r_0 e^{sigma_r*sqrt(dt)*(2j-k)}), not a Black-Derman-Toy tree calibrated to an initial term structure; coupon c=F*coupon_rate/frequency is added at every node on every step.",
+    "citation": null,
+    "formula_latex": "V_j^{(N)}=F+c;\\qquad V_j^{(k)}=\\min\\!\\left(K_{call},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right),\\qquad r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)},\\qquad \\text{Price}=V_0^{(0)}",
+    "symbol_map": {
+      "call_price": "K_{call}",
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "maturity": "T",
+      "rate_vol": "\\sigma_r",
+      "short_rate": "r_0"
+    }
+  },
+  "calmar_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CAGR = \\left(\\prod_{t=1}^{n}(1+r_t)\\right)^{T/n} - 1 \\\\ Calmar = \\frac{CAGR}{MDD}",
+    "symbol_map": {
+      "periods_per_year": "T",
+      "returns": "r_t"
+    }
+  },
+  "cap_floor_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Price}=\\sum_i N\\,\\tau_i\\,DF_i\\big[f_iN(d_{1,i})-KN(d_{2,i})\\big]\\ (\\text{cap; floorlet legs for a floor}),\\\\ d_{1,i}=\\frac{\\ln(f_i/K)+\\tfrac12\\sigma_i^2\\tau_i^{exp}}{\\sigma_i\\sqrt{\\tau_i^{exp}}},\\quad d_{2,i}=d_{1,i}-\\sigma_i\\sqrt{\\tau_i^{exp}}",
+    "symbol_map": {
+      "accruals": "\\tau_i",
+      "discount_factors": "DF_i",
+      "expiries": "\\tau_i^{exp}",
+      "forward_rates": "f_i",
+      "notional": "N",
+      "strike": "K",
+      "vols": "\\sigma_i"
+    }
+  },
+  "capital_conservation_buffer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Required\\ CET1 = 0.045 + buffer\\_ratio \\\\ Buffer\\ Capital = buffer\\_ratio \\times RWA \\\\ MDA\\ restricted \\iff CET1_{ratio} < 0.045 + buffer\\_ratio",
+    "symbol_map": {
+      "buffer_ratio": "buffer\\_ratio",
+      "cet1_ratio": "CET1_{ratio}",
+      "risk_weighted_assets": "RWA"
+    }
+  },
+  "capital_valuation_adjustment_kva": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Delta t_k = t_k-t_{k-1}, \\quad KVA = c\\sum_k K_k\\,DF_k\\,\\Delta t_k",
+    "symbol_map": {
+      "capital_profile": "K_k",
+      "cost_of_capital": "c",
+      "discount_factors": "DF_k",
+      "time_steps": "t_k"
+    }
+  },
+  "caplet_floorlet_pricer_black": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Caplet}=N\\,\\tau\\,DF\\big[fN(d_1)-KN(d_2)\\big],\\qquad \\text{Floorlet}=N\\,\\tau\\,DF\\big[KN(-d_2)-fN(-d_1)\\big]\\\\d_1=\\frac{\\ln(f/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\qquad d_2=d_1-\\sigma\\sqrt T",
+    "symbol_map": {
+      "accrual": "\\tau",
+      "discount_factor": "DF",
+      "expiry": "T",
+      "forward_rate": "f",
+      "notional": "N",
+      "strike": "K",
+      "vol": "\\sigma"
+    }
+  },
+  "carbon_footprint_attribution": {
+    "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition. total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards -- flagged as a likely correctness question, not merely a citation gap.",
+    "citation": null,
+    "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ E_i = w_i \\cdot V_{port} \\cdot CI_i, \\quad E_{total} = \\sum_i E_i",
+    "symbol_map": {
+      "carbon_intensities": "CI_i",
+      "portfolio_value": "V_{port}",
+      "weights": "w_i"
+    }
+  },
+  "carhart_4_factor_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "y = \\alpha + \\beta_{MKT}F_{MKT} + \\beta_{SMB}F_{SMB} + \\beta_{HML}F_{HML} + \\beta_{MOM}F_{MOM} + \\epsilon \\\\ \\hat\\beta = (X^\\top X)^{-1}X^\\top y \\;\\; (\\text{OLS via lstsq}),\\;\\; X=[\\mathbf{1}, F]",
+    "symbol_map": {
+      "excess_returns": "y",
+      "factors": "F"
+    }
+  },
+  "cash_flow_ladder_1_year": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{net\\_gap}_i = I_i - O_i \\\\ \\text{cumulative\\_gap}_i = B_0 + \\sum_{j \\le i} \\text{net\\_gap}_j \\\\ \\text{min\\_cumulative} = \\min_i(\\text{cumulative\\_gap}_i)",
+    "symbol_map": {
+      "bucket_inflows": "I_i",
+      "bucket_outflows": "O_i",
+      "opening_balance": "B_0"
+    }
+  },
+  "cash_flow_ladder_30_day": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{net\\_gap}_t = I_t - O_t \\\\ \\text{cumulative\\_gap}_t = B_0 + \\sum_{s \\le t} \\text{net\\_gap}_s \\\\ \\text{min\\_cumulative} = \\min_t(\\text{cumulative\\_gap}_t)",
+    "symbol_map": {
+      "daily_inflows": "I_t",
+      "daily_outflows": "O_t",
+      "opening_balance": "B_0"
+    }
+  },
+  "cds_pricing_isda_standard": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "LGD=1-R,\\quad S_k=e^{-\\lambda t_k} \\\\ PV_{buyer} = \\underbrace{LGD\\cdot N\\sum_k DF_k(S_{k-1}-S_k)}_{\\text{protection leg}} - \\underbrace{s\\cdot N\\sum_k \\delta_k DF_k S_k}_{\\text{premium leg}}",
+    "symbol_map": {
+      "accrual_factors": "\\delta_k",
+      "contract_spread": "s",
+      "discount_factors": "DF_k",
+      "hazard_rate": "\\lambda",
+      "notional": "N",
+      "payment_times": "t_k",
+      "recovery_rate": "R"
+    }
+  },
+  "cds_spread_to_pd_conversion": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\lambda = \\frac{s}{1-R}, \\quad PD = 1-e^{-\\lambda T}",
+    "symbol_map": {
+      "cds_spread": "s",
+      "maturity": "T",
+      "recovery_rate": "R"
+    }
+  },
+  "central_bank_facility_eligibility": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Eligible}_i = \\mathbb{1}[R_i \\ge R_{min}] \\\\ \\text{BorrowingCapacity} = \\sum_{i:\\ \\text{Eligible}_i} V_i(1-h_i)",
+    "symbol_map": {
+      "asset_ratings": "R_i",
+      "asset_values": "V_i",
+      "cb_haircuts": "h_i",
+      "min_rating": "R_{min}"
+    }
+  },
+  "charm_delta_decay": {
+    "caveat": "Computed as +\u2202\u0394/\u2202\u03c4 (time-to-maturity convention per the docstring), the opposite sign from the common calendar-time charm convention -\u2202\u0394/\u2202t.",
+    "citation": null,
+    "formula_latex": "\\frac{\\partial d_1}{\\partial\\tau} = \\frac{b}{\\sigma\\sqrt\\tau} - \\frac{a+b\\tau}{2\\sigma\\tau\\sqrt\\tau},\\ a=\\ln(S/K),\\ b=r-q+\\tfrac12\\sigma^2 \\\\ Charm_{call} = -qe^{-q\\tau}N(d_1) + e^{-q\\tau}\\phi(d_1)\\tfrac{\\partial d_1}{\\partial\\tau} \\\\ Charm_{put} = qe^{-q\\tau}N(-d_1) + e^{-q\\tau}\\phi(d_1)\\tfrac{\\partial d_1}{\\partial\\tau}",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "chooser_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Price}=C(S,K,\\tau_e)+P\\big(S,\\;K e^{-(r-q)(\\tau_e-\\tau_c)},\\;\\tau_c\\big)",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau_choose": "\\tau_c",
+      "tau_expiry": "\\tau_e"
+    }
+  },
+  "christoffersen_independence_test": {
+    "caveat": "The n_{00},n_{01},n_{10},n_{11} Markov transition counts are derived internally from the breaches sequence (b_t); the parameter itself does not appear as a symbol in the formula.",
+    "citation": null,
+    "formula_latex": "LR_{ind} = -2\\Big[ n_{00}\\ln(1-\\pi) + n_{01}\\ln\\pi + n_{10}\\ln(1-\\pi) + n_{11}\\ln\\pi \\\\ \\qquad - n_{00}\\ln(1-\\pi_{01}) - n_{01}\\ln\\pi_{01} - n_{10}\\ln(1-\\pi_{11}) - n_{11}\\ln\\pi_{11} \\Big]",
+    "symbol_map": {
+      "breaches": "b_t"
+    }
+  },
+  "collateral_availability_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Available} = \\sum_i \\max\\big(V_i(1-h_i) - P_i,\\ 0\\big)",
+    "symbol_map": {
+      "already_pledged": "P_i",
+      "collateral_values": "V_i",
+      "haircuts": "h_i"
+    }
+  },
+  "collateral_haircut_calculation": {
+    "caveat": null,
+    "citation": "CRE22",
+    "formula_latex": "C_{adj} = \\max\\big(C\\cdot(1-H_c-H_{fx}),\\ 0\\big)",
+    "symbol_map": {
+      "collateral_value": "C",
+      "haircut_collateral": "H_c",
+      "haircut_fx": "H_{fx}"
+    }
+  },
+  "combined_backtesting": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "LR_{cc} = LR_{POF}(x,n,\\alpha) + LR_{ind}(b_t) \\ \\sim\\ \\chi^2_{2}\\ \\text{at the 95\\% critical value}",
+    "symbol_map": {
+      "breaches": "b_t",
+      "confidence_level": "\\alpha"
+    }
+  },
+  "combined_buffer_requirement": {
+    "caveat": "The docstring's CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB) expects the max to already be computed by the caller into systemic_buffer_ratio -- the function itself only sums the three supplied ratios.",
+    "citation": "CRD IV",
+    "formula_latex": "CBR = CCoB + CCyB + SyRB \\\\ CBR_{capital} = CBR \\times RWA",
+    "symbol_map": {
+      "capital_conservation_buffer_ratio": "CCoB",
+      "countercyclical_buffer_ratio": "CCyB",
+      "risk_weighted_assets": "RWA",
+      "systemic_buffer_ratio": "SyRB"
+    }
+  },
+  "combined_stress_scenario": {
+    "caveat": "The function's own docstring explicitly states this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set 3%/5%/10% retail categories, whereas this function's 15% retail / 100% wholesale defaults are an internal convention (correction noted during a Tier 3 audit).",
+    "citation": null,
+    "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ O = R\\cdot r_R + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
+    "symbol_map": {
+      "hqla_by_level": "H_i",
+      "inflows": "I",
+      "market_haircuts": "h_i",
+      "retail_deposits": "R",
+      "retail_runoff": "r_R",
+      "wholesale_funding": "W",
+      "wholesale_runoff": "r_W"
+    }
+  },
+  "component_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_i = z_\\alpha\\,\\frac{w_i(\\Sigma w)_i}{\\sigma_p},\\quad \\sigma_p=\\sqrt{w^\\top\\Sigma w},\\quad VaR=\\sum_i VaR_i",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "weights": "w"
+    }
+  },
+  "compound_loss_distribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "N_y \\sim \\text{Poisson}(\\lambda), \\quad X_{y,i} \\sim \\text{LogNormal}(\\mu,\\sigma) \\\\ L_y = \\sum_{i=1}^{N_y} X_{y,i} \\\\ \\text{mean\\_annual\\_loss} = \\frac{1}{n}\\sum_{y=1}^{n} L_y, \\quad \\text{std\\_annual\\_loss} = \\text{std}(L_y)",
+    "symbol_map": {
+      "frequency_lambda": "\\lambda",
+      "n_years": "n",
+      "severity_mu": "\\mu",
+      "severity_sigma": "\\sigma"
+    }
+  },
+  "compound_option_pricer": {
+    "caveat": "Monte Carlo: the underlying option's value at the compound expiry is priced analytically (Black-Scholes) at each simulated S_mid, not via the classical Geske closed-form bivariate normal \u2014 despite 'Geske' appearing in the module docstring, the code is MC + analytic-inner-value, not the exact Geske formula.",
+    "citation": null,
+    "formula_latex": "S_{mid}=S_0\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\tau_c+\\sigma\\sqrt{\\tau_c}\\,Z\\big]\\\\V_{under}(S_{mid})=\\text{BS}\\big(S_{mid},K_u,r,\\sigma,\\tau_u-\\tau_c\\big)\\\\\\text{Price}=e^{-r\\tau_c}\\,\\mathbb E\\big[\\max\\big(\\phi_{outer}(V_{under}-K_c),0\\big)\\big]",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike_compound": "K_c",
+      "strike_underlying": "K_u",
+      "tau_compound": "\\tau_c",
+      "tau_underlying": "\\tau_u"
+    }
+  },
+  "compute_breaches": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "n_{breaches}=\\sum_t \\mathbb{1}[-r_t > VaR_t],\\quad \\text{zone}=\\begin{cases}\\text{green} & n<5\\\\ \\text{yellow} & 5\\le n\\le9\\\\ \\text{red} & n\\ge10\\end{cases}",
+    "symbol_map": {
+      "actual_returns": "r_t",
+      "var_estimates": "VaR_t"
+    }
+  },
+  "compute_cvar": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ES_\\alpha = \\frac{1}{n-\\lfloor\\alpha n\\rfloor}\\sum_{i=\\lfloor\\alpha n\\rfloor}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "sorted_losses": "L_{(i)}"
+    }
+  },
+  "compute_loss_percentiles": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Q_p = L_{\\big(\\min(\\lfloor p\\,n\\rfloor,\\ n-1)\\big)} \\quad \\text{for each } p \\in \\text{percentiles}",
+    "symbol_map": {
+      "percentiles": "p",
+      "sorted_losses": "L_{(i)}"
+    }
+  },
+  "compute_rolling_var": {
+    "caveat": "Docstring calls this an 'expanding window' but the code uses a fixed-length trailing window of size `window` (returns[i-window:i]); the formula reflects the actual trailing-window computation.",
+    "citation": null,
+    "formula_latex": "VaR_t = -\\big(\\mu_{t-w:t} - z_\\alpha\\sigma_{t-w:t}\\big),\\quad z_\\alpha=\\Phi^{-1}(\\alpha)",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "returns": "r_t",
+      "window": "w"
+    }
+  },
+  "concentration_risk_hhi": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\tilde w_i = \\frac{|w_i|}{\\sum_j |w_j|}, \\quad HHI = \\sum_i \\tilde w_i^2 \\\\ N_{eff} = \\frac{1}{HHI}, \\quad HHI_{norm} = \\frac{HHI - 1/n}{1 - 1/n}",
+    "symbol_map": {
+      "weights": "w_i"
+    }
+  },
+  "conditional_drawdown_at_risk": {
+    "caveat": null,
+    "citation": "Chekhlov, Uryasev, Zabarankin",
+    "formula_latex": "DaR_\\alpha = \\text{Quantile}_\\alpha(DD) \\\\ CDaR_\\alpha = \\frac{1}{\\left|\\{t : DD_t \\ge DaR_\\alpha\\}\\right|}\\sum_{t:\\,DD_t \\ge DaR_\\alpha} DD_t",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "returns": "DD_t"
+    }
+  },
+  "conditional_var_es": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha = L_{(\\lfloor \\alpha n\\rfloor)},\\quad ES_\\alpha = \\frac{1}{n-\\lfloor \\alpha n\\rfloor}\\sum_{i=\\lfloor \\alpha n\\rfloor}^{n-1} L_{(i)} \\\\ L_{(i)} = \\text{ascending-sorted losses } (-r_t),\\quad ES_{abs}=ES_\\alpha\\cdot V",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "portfolio_value": "V"
+    }
+  },
+  "conduct_risk_metric": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CPK = \\frac{Complaints}{Customers}\\times 1000,\\quad RR = \\frac{Redress}{Revenue} \\\\ Index = \\min(CPK,\\,50) + \\min(500\\,RR,\\,50)",
+    "symbol_map": {
+      "complaints": "Complaints",
+      "customers": "Customers",
+      "redress_paid": "Redress",
+      "revenue": "Revenue"
+    }
+  },
+  "contagion_stress_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "shock_{cum} = \\sum_{k=0}^{R} C^k x_0",
+    "symbol_map": {
+      "contagion_matrix": "C",
+      "initial_shock": "x_0",
+      "rounds": "R"
+    }
+  },
+  "contingency_funding_plan_trigger": {
+    "caveat": "This is a logical breach test (metric below threshold), not an arithmetic formula; shown here as an indicator function.",
+    "citation": null,
+    "formula_latex": "\\text{Breach}_k = \\mathbb{1}[m_k < \\tau_k] \\\\ \\text{CFP\\_Activated} = \\bigvee_k \\text{Breach}_k",
+    "symbol_map": {
+      "metrics": "m_k",
+      "thresholds": "\\tau_k"
+    }
+  },
+  "contingent_liquidity_risk": {
+    "caveat": "ccf (credit conversion factor) defaults to 1.0 per commitment when not supplied.",
+    "citation": null,
+    "formula_latex": "E[\\text{Outflow}] = \\sum_i C_i\\, p_i\\, \\gamma_i \\\\ \\text{MaxOutflow} = \\sum_i C_i\\, \\gamma_i",
+    "symbol_map": {
+      "ccf": "\\gamma_i",
+      "commitment_amounts": "C_i",
+      "draw_probabilities": "p_i"
+    }
+  },
+  "control_testing_effectiveness": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PR = \\frac{P}{T}, \\quad \\text{ExceptionRate} = 1-PR \\\\ \\text{conclusion} = \\text{effective if } PR \\ge 0.95 \\text{ else deficient}",
+    "symbol_map": {
+      "tests_passed": "P",
+      "tests_total": "T"
+    }
+  },
+  "convertible_bond_pricer": {
+    "caveat": "Simplified lower-bound decomposition (max of straight-bond floor and conversion value) \u2014 does not model conversion optionality, equity volatility, or embedded call/put features of a real convertible.",
+    "citation": null,
+    "formula_latex": "P=\\max\\big(P_{floor},\\ \\text{ratio}\\cdot S\\big),\\qquad P_{floor}=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y/m)^{i}}+\\frac{F}{(1+y/m)^{n}},\\quad n=\\text{round}(T\\cdot m)",
+    "symbol_map": {
+      "conversion_ratio": "\\text{ratio}",
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "maturity": "T",
+      "stock_price": "S",
+      "yield_rate": "y"
+    }
+  },
+  "convexity": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "C=\\frac{1}{P}\\sum_k CF_k\\, t_k\\left(t_k+\\frac{1}{m}\\right)\\left(1+\\frac{y}{m}\\right)^{-(m t_k+2)},\\qquad P=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "times": "t_k",
+      "yield_rate": "y"
+    }
+  },
+  "convexity_gap": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CGAP = C_A - \\dfrac{L}{A}\\,C_L",
+    "symbol_map": {
+      "asset_convexity": "C_A",
+      "liability_convexity": "C_L",
+      "total_assets": "A",
+      "total_liabilities": "L"
+    }
+  },
+  "core_deposit_duration": {
+    "caveat": "Duration is computed as a discrete monthly Riemann sum over the exponential run-off schedule (not a closed-form integral) -- the LaTeX reflects the exact discretised sum executed in code.",
+    "citation": null,
+    "formula_latex": "D = \\dfrac{\\sum_{t=1/12}^{T} t\\,B\\,\\lambda\\,e^{-(\\lambda+y)t}}{\\sum_{t=1/12}^{T} B\\,\\lambda\\,e^{-(\\lambda+y)t}} \\quad (\\Delta t = 1/12\\text{ years})",
+    "symbol_map": {
+      "core_balance": "B",
+      "decay_rate": "\\lambda",
+      "discount_rate": "y",
+      "max_years": "T"
+    }
+  },
+  "cornish_fisher_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "z_{CF} = z_\\alpha + \\frac{z_\\alpha^2-1}{6}S + \\frac{z_\\alpha^3-3z_\\alpha}{24}K - \\frac{2z_\\alpha^3-5z_\\alpha}{36}S^2 \\\\ VaR_\\alpha = z_{CF}\\,\\sigma - \\mu",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "excess_kurtosis": "K",
+      "skewness": "S"
+    }
+  },
+  "corporate_credit_scoring_model": {
+    "caveat": "Bespoke internal weighted-factor scoring model, confirmed against BIS/EBA sources in the domain's reference-validation audit not to match any specific published or regulatory formula; treat as a reasonable internal model.",
+    "citation": null,
+    "formula_latex": "\\text{strength} = \\frac{\\sum_k s_k w_k}{\\sum_k w_k}, \\quad PD = \\max\\big(PD_{anchor}\\cdot(1-\\text{strength}),\\ PD_{floor}\\big)",
+    "symbol_map": {
+      "factor_scores": "s_k",
+      "factor_weights": "w_k",
+      "pd_anchor": "PD_{anchor}",
+      "pd_floor": "PD_{floor}"
+    }
+  },
+  "correlation_clustering": {
+    "caveat": "Hand-rolled single-linkage agglomerative clustering (not scikit-learn): repeatedly merges the two clusters with the smallest minimum pairwise correlation-distance until n_clusters groups remain.",
+    "citation": null,
+    "formula_latex": "d_{ij} = \\sqrt{2(1 - \\rho_{ij})} \\\\ D(A,B) = \\min_{i \\in A,\\, j \\in B} d_{ij} \\;\\; \\text{(single-linkage merge criterion)}",
+    "symbol_map": {
+      "returns_matrix": "\\rho_{ij}"
+    }
+  },
+  "correlation_matrix_historical": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\rho_{ij} = \\frac{\\mathrm{Cov}(r_i,r_j)}{\\sigma_i\\sigma_j}",
+    "symbol_map": {
+      "returns_matrix": "r_i"
+    }
+  },
+  "correlation_matrix_portfolio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\rho_{ij} = \\text{Corr}(r_i, r_j) \\\\ \\bar\\rho = \\frac{1}{n(n-1)}\\sum_{i \\ne j} \\rho_{ij}",
+    "symbol_map": {
+      "returns_matrix": "r"
+    }
+  },
+  "countercyclical_capital_buffer": {
+    "caveat": null,
+    "citation": "CRD IV Art. 140",
+    "formula_latex": "CCyB_{rate} = \\frac{\\sum_i E_i \\cdot r_i}{\\sum_i E_i} \\\\ CCyB_{capital} = CCyB_{rate} \\times RWA",
+    "symbol_map": {
+      "country_ccyb_rates": "r_i",
+      "exposure_amounts": "E_i",
+      "risk_weighted_assets": "RWA"
+    }
+  },
+  "counterparty_credit_risk_ccr_exposure": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Exposure = \\max(MtM - C,\\ 0) + AddOn",
+    "symbol_map": {
+      "add_on": "AddOn",
+      "collateral": "C",
+      "mark_to_market": "MtM"
+    }
+  },
+  "cox_ingersoll_ross_model": {
+    "caveat": "MC path uses full-truncation Euler (r floored at 0 both inside the sqrt and for the terminal output), not the exact non-central chi-squared CIR transition distribution.",
+    "citation": null,
+    "formula_latex": "\\gamma=\\sqrt{\\kappa^2+2\\sigma^2},\\qquad B=\\frac{2(e^{\\gamma T}-1)}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\\\A=\\left[\\frac{2\\gamma e^{(\\kappa+\\gamma)T/2}}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\right]^{2\\kappa\\theta/\\sigma^2},\\qquad P(0,T)=A\\,e^{-Br_0}\\\\dr=\\kappa(\\theta-r)\\,dt+\\sigma\\sqrt{r}\\,dW\\ \\text{(MC, full-truncation Euler)}",
+    "symbol_map": {
+      "kappa": "\\kappa",
+      "maturity": "T",
+      "r0": "r_0",
+      "sigma": "\\sigma",
+      "theta": "\\theta"
+    }
+  },
+  "credit_concentration_risk_hhi": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "HHI = \\sum_i w_i^2, \\quad w_i = \\frac{e_i}{\\sum_i e_i}",
+    "symbol_map": {
+      "exposures": "e_i"
+    }
+  },
+  "credit_default_swap_cds_pricer": {
+    "caveat": "Flat-hazard-rate reduced-form model with default/coupon events settled at each period END (t_i), not at the accrual midpoint \u2014 a deliberate discretisation choice; see tests/validation for a convergence check against QuantLib's midpoint-settlement CDS engine, not an exact-match assertion.",
+    "citation": null,
+    "formula_latex": "Q_i=e^{-\\lambda t_i},\\qquad DF_i=e^{-r t_i},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)\\\\\\text{Premium leg}=s\\,\\tau\\sum_i DF_i Q_i\\cdot N,\\qquad \\text{Protection leg}=(1-R)\\,N\\sum_i DF_i(Q_{i-1}-Q_i)\\\\\\text{Value (buyer)}=\\text{Protection}-\\text{Premium},\\qquad s_{par}=\\frac{(1-R)\\sum_i DF_i(Q_{i-1}-Q_i)}{\\tau\\sum_i DF_i Q_i}",
+    "symbol_map": {
+      "discount_rate": "r",
+      "frequency": "m",
+      "hazard_rate": "\\lambda",
+      "maturity": "T",
+      "notional": "N",
+      "recovery_rate": "R",
+      "spread": "s"
+    }
+  },
+  "credit_default_swap_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DV01 = N\\cdot RPV01, \\quad z=\\Phi^{-1}(q), \\quad VaR = z\\cdot\\sigma_s\\cdot\\sqrt{h}\\cdot DV01",
+    "symbol_map": {
+      "confidence_level": "q",
+      "horizon_days": "h",
+      "notional": "N",
+      "risky_annuity": "RPV01",
+      "spread_volatility": "\\sigma_s"
+    }
+  },
+  "credit_pnl_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_{credit} = \\sum_i CS01_i\\cdot \\Delta s_i^{bp}",
+    "symbol_map": {
+      "cs01_sensitivities": "CS01_i",
+      "spread_moves_bp": "\\Delta s_i^{bp}"
+    }
+  },
+  "credit_portfolio_optimisation": {
+    "caveat": "Solved by a greedy water-filling allocation onto the highest risk-adjusted score rather than a generic LP solver; the docstring states this is the exact optimum under these box + simplex constraints for a linear objective.",
+    "citation": null,
+    "formula_latex": "\\max_{w}\\ \\sum_i w_i\\,(r_i-\\gamma\\,EL_i) \\quad \\text{s.t.}\\ \\sum_i w_i=1,\\ 0\\le w_i\\le w_{max}",
+    "symbol_map": {
+      "expected_losses": "EL_i",
+      "expected_returns": "r_i",
+      "max_weight": "w_{max}",
+      "risk_aversion": "\\gamma"
+    }
+  },
+  "credit_spread_curve_bootstrap": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "LGD = 1-R, \\quad \\lambda(t) = \\frac{s(t)}{LGD}, \\quad S(t) = e^{-\\lambda(t)\\,t}",
+    "symbol_map": {
+      "par_spreads": "s(t)",
+      "recovery_rate": "R",
+      "tenors": "t"
+    }
+  },
+  "credit_stress_testing": {
+    "caveat": "The baseline EL leg (PD*LGD*EAD) is definitional, but the multiplicative PD/LGD shock structure itself is a bespoke internal stress design, confirmed against BIS/EBA sources in the domain's reference-validation audit not to reproduce a specific published adverse-scenario formula.",
+    "citation": null,
+    "formula_latex": "EL_{base} = \\sum_i PD_i LGD_i EAD_i \\\\ PD_i^{stress}=\\text{clip}(PD_i\\cdot m_{PD},0,1),\\ LGD_i^{stress}=\\text{clip}(LGD_i\\cdot m_{LGD},0,1) \\\\ EL_{stress} = \\sum_i PD_i^{stress} LGD_i^{stress} EAD_i",
+    "symbol_map": {
+      "ead": "EAD_i",
+      "lgd": "LGD_i",
+      "lgd_shock_multiplier": "m_{LGD}",
+      "pd": "PD_i",
+      "pd_shock_multiplier": "m_{PD}"
+    }
+  },
+  "credit_valuation_adjustment_cva": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "LGD = 1-R, \\quad \\lambda = \\frac{s}{LGD}, \\quad S_k = e^{-\\lambda t_k} \\\\ CVA = LGD\\sum_k EPE_k\\,DF_k\\,(S_{k-1}-S_k)",
+    "symbol_map": {
+      "credit_spread": "s",
+      "discount_factors": "DF_k",
+      "expected_exposure": "EPE_k",
+      "recovery_rate": "R",
+      "time_steps": "t_k"
+    }
+  },
+  "credit_var_analytical_vasicek": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "L(q) = LGD\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{\\rho}\\,\\Phi^{-1}(q)}{\\sqrt{1-\\rho}}\\right) \\\\ VaR = L(q)\\cdot EAD_{tot}, \\quad EL = PD\\cdot LGD\\cdot EAD_{tot}, \\quad UL = VaR-EL",
+    "symbol_map": {
+      "asset_correlation": "\\rho",
+      "confidence_level": "q",
+      "ead_total": "EAD_{tot}",
+      "lgd": "LGD",
+      "pd": "PD"
+    }
+  },
+  "credit_var_monte_carlo": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
+    "symbol_map": {
+      "asset_correlation": "\\rho_i",
+      "confidence_level": "q",
+      "ead": "EAD_i",
+      "lgd": "LGD_i",
+      "pd": "PD_i"
+    }
+  },
+  "creditmetrics_portfolio_model": {
+    "caveat": "This function is a direct pass-through to the identical one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo (same formula, same code path) \u2014 it is not a distinct multi-state CreditMetrics rating-migration model; migration itself is handled separately by ratings_migration_matrix.",
+    "citation": null,
+    "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
+    "symbol_map": {
+      "asset_correlation": "\\rho_i",
+      "confidence_level": "q",
+      "exposures": "EAD_i",
+      "lgd": "LGD_i",
+      "pd": "PD_i"
+    }
+  },
+  "cross_currency_liquidity_bridge": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_{usable} = S\\,(1-h) \\\\ \\text{Coverable} = \\min(D,\\ S_{usable}\\cdot X) \\\\ \\text{Residual} = D - \\text{Coverable}",
+    "symbol_map": {
+      "fx_rate": "X",
+      "shortfall_amount": "D",
+      "surplus_amount": "S",
+      "swap_haircut": "h"
+    }
+  },
+  "cross_currency_swap_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PV_{dom}=N_d\\Big(r_d\\sum_i\\tau_iDF_i^d+DF_n^d\\Big),\\qquad PV_{for}=N_f\\Big(r_f\\sum_i\\tau_iDF_i^f+DF_n^f\\Big)\\\\ V=\\big(PV_{for}\\cdot X-PV_{dom}\\big)\\ \\text{[pay\\_domestic]},\\quad \\text{or}\\ \\big(PV_{dom}-PV_{for}\\cdot X\\big)\\ \\text{otherwise}",
+    "symbol_map": {
+      "accruals": "\\tau_i",
+      "df_dom": "DF_i^d",
+      "df_for": "DF_i^f",
+      "fixed_rate_dom": "r_d",
+      "fixed_rate_for": "r_f",
+      "fx_spot": "X",
+      "notional_dom": "N_d",
+      "notional_for": "N_f"
+    }
+  },
+  "crr2_large_exposure_limit": {
+    "caveat": "Simplified to the 25%-of-Tier-1 ratio test only; the EUR 150m absolute alternative threshold for institutions is not applied, per the function's own docstring.",
+    "citation": "CRR2 Art. 395",
+    "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Excess = \\max\\big(exposure\\_value - 0.25 \\times tier1\\_capital,\\ 0\\big)",
+    "symbol_map": {
+      "exposure_value": "exposure\\_value",
+      "tier1_capital": "tier1\\_capital"
+    }
+  },
+  "cs01_credit_spread": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CS01 = 10^{-4}\\sum_k cf_k\\,t_k\\,e^{-(r+s)t_k}",
+    "symbol_map": {
+      "cashflows": "cf_k",
+      "credit_spread": "s",
+      "risk_free_rate": "r",
+      "times": "t_k"
+    }
+  },
+  "currency_attribution": {
+    "caveat": "Naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer, which nets local returns against the local risk-free rate; this function takes no interest rates at all.",
+    "citation": "Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
+    "formula_latex": "R^{local}_i = w_i r^{L}_i \\\\ R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ R_{total} = \\sum_i \\left(R^{local}_i + R^{fx}_i\\right)",
+    "symbol_map": {
+      "fx_returns": "r^{FX}_i",
+      "local_returns": "r^{L}_i",
+      "weights": "w_i"
+    }
+  },
+  "current_exposure_method_cem": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "EAD = \\max(MtM,\\ 0) + N\\cdot\\alpha",
+    "symbol_map": {
+      "add_on_factor": "\\alpha",
+      "mark_to_market": "MtM",
+      "notional": "N"
+    }
+  },
+  "cva_sensitivity_cva_greeks": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CS01 = CVA(s+\\Delta s) - CVA(s), \\quad \\text{exposure\\_delta} = 0.01\\cdot CVA(s)",
+    "symbol_map": {
+      "credit_spread": "s",
+      "spread_bump": "\\Delta s"
+    }
+  },
+  "cvar_constrained_optimisation": {
+    "caveat": "CVaR is enforced as a nonlinear inequality constraint solved directly by SLSQP (empirical mean of tail losses), not via Rockafellar-Uryasev's original auxiliary-variable linear-programming reformulation.",
+    "citation": "Rockafellar-Uryasev",
+    "formula_latex": "\\max_w\\; w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1,\\; CVaR_\\alpha(w) \\le c \\\\ L(w) = -R w, \\quad VaR_\\alpha(w) = \\text{Quantile}_\\alpha\\big(L(w)\\big) \\\\ CVaR_\\alpha(w) = \\mathbb{E}\\big[L(w) \\mid L(w) \\ge VaR_\\alpha(w)\\big]",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cvar_limit": "c",
+      "mean_returns": "\\mu",
+      "scenario_returns": "R"
+    }
+  },
+  "cvar_decomposition_euler": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ES_\\alpha = \\sigma_p\\cdot\\frac{\\phi(z_\\alpha)}{1-\\alpha},\\quad \\sigma_p=\\sqrt{w^\\top\\Sigma w},\\ z_\\alpha=\\Phi^{-1}(\\alpha) \\\\ ES_i = \\frac{w_i(\\Sigma w)_i}{\\sigma_p}\\cdot\\frac{\\phi(z_\\alpha)}{1-\\alpha},\\quad \\sum_i ES_i = ES_\\alpha",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "weights": "w"
+    }
+  },
+  "cyber_risk_loss_estimation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "L_{worst} = N \\times C + BI \\\\ L_{exp} = L_{worst} \\times p",
+    "symbol_map": {
+      "breach_probability": "p",
+      "business_interruption_cost": "BI",
+      "cost_per_record": "C",
+      "records_exposed": "N"
+    }
+  },
+  "dcc_garch_dynamic_correlation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Q_t = (1-a-b)\\bar Q + a\\,z_{t-1}z_{t-1}^\\top + b\\,Q_{t-1} \\\\ R_t = D_t^{-1}Q_tD_t^{-1},\\quad D_t=\\mathrm{diag}(\\sqrt{Q_{t,ii}})",
+    "symbol_map": {
+      "a": "a",
+      "b": "b",
+      "returns_matrix": "z_t"
+    }
+  },
+  "debt_valuation_adjustment_dva": {
+    "caveat": "Computed by calling the CVA function on the negative-exposure profile and the bank's own spread/recovery \u2014 an identical formula with the sign/role of exposure and reference entity swapped.",
+    "citation": null,
+    "formula_latex": "LGD_{own} = 1-R_{own}, \\quad \\lambda_{own} = \\frac{s_{own}}{LGD_{own}}, \\quad S_k = e^{-\\lambda_{own} t_k} \\\\ DVA = LGD_{own}\\sum_k ENE_k\\,DF_k\\,(S_{k-1}-S_k)",
+    "symbol_map": {
+      "discount_factors": "DF_k",
+      "expected_negative_exposure": "ENE_k",
+      "own_credit_spread": "s_{own}",
+      "own_recovery_rate": "R_{own}",
+      "time_steps": "t_k"
+    }
+  },
+  "default_correlation_matrix": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "p_{ij} = \\Phi_2\\big(\\Phi^{-1}(PD_i),\\Phi^{-1}(PD_j);\\ \\rho^A_{ij}\\big), \\quad \\rho^D_{ij} = \\frac{p_{ij}-PD_i PD_j}{\\sqrt{PD_i(1-PD_i)\\,PD_j(1-PD_j)}}",
+    "symbol_map": {
+      "asset_correlation": "\\rho^A_{ij}",
+      "pd": "PD_i"
+    }
+  },
+  "deposit_stability_classification": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Stable}_i = \\mathbb{1}[f_i \\ge \\tau] \\\\ \\text{StableFraction} = \\frac{1}{n}\\sum_i \\mathbb{1}[f_i \\ge \\tau]",
+    "symbol_map": {
+      "deposit_features": "f_i",
+      "stable_threshold": "\\tau"
+    }
+  },
+  "digital_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Call}=Q\\,e^{-r\\tau}N(d_2),\\qquad \\text{Put}=Q\\,e^{-r\\tau}N(-d_2),\\qquad d_2=\\frac{\\ln(S/K)+(r-q-\\sigma^2/2)\\tau}{\\sigma\\sqrt\\tau}",
+    "symbol_map": {
+      "div_yield": "q",
+      "payout": "Q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "displaced_diffusion_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Price}=\\text{BS}(S+a,\\ K+a,\\ r,\\ \\sigma,\\ \\tau,\\ q)\\quad\\text{(Black-Scholes on shifted spot/strike)}",
+    "symbol_map": {
+      "displacement": "a",
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "diversification_benefit_oprisk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{div} = \\sqrt{\\sum_i \\sum_j \\rho_{ij} K_i K_j}, \\quad \\rho_{ii}=1,\\ \\rho_{ij}=\\rho\\ (i\\ne j) \\\\ \\text{Benefit} = \\max\\left(\\sum_i K_i - D_{div},\\,0\\right)",
+    "symbol_map": {
+      "correlation": "\\rho",
+      "standalone_capitals": "K_i"
+    }
+  },
+  "diversification_ratio": {
+    "caveat": null,
+    "citation": "Choueifaty",
+    "formula_latex": "DR = \\frac{\\sum_i |w_i|\\, \\sigma_i}{\\sqrt{w^\\top \\Sigma w}}, \\quad \\sigma_i = \\sqrt{\\Sigma_{ii}}",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "weights": "w_i"
+    }
+  },
+  "downturn_lgd_adjustment": {
+    "caveat": "CRR Art. 181 requires downturn-conservative LGD, but this specific multiplicative scaling is a deliberate departure from the EBA/GL/2019/03 additive fallback (+15pp) \u2014 the docstring itself states that additive formula is 'not used here'. Calibrate downturn_multiplier to your own downturn analysis rather than assuming regulatory grounding for the exact formula.",
+    "citation": null,
+    "formula_latex": "LGD_{DT} = \\max\\big(\\min(LGD_{LR}\\cdot m,\\ 1),\\ f,\\ LGD_{LR}\\big)",
+    "symbol_map": {
+      "downturn_multiplier": "m",
+      "floor": "f",
+      "lgd_long_run": "LGD_{LR}"
+    }
+  },
+  "drawdown_duration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "d_t = \\begin{cases} 0 & V_t \\ge P_t \\\\ d_{t-1} + 1 & V_t < P_t \\end{cases} \\\\ D_{max} = \\max_t d_t",
+    "symbol_map": {
+      "returns": "V_t"
+    }
+  },
+  "duration_gap_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DGAP = D_A - \\dfrac{L}{A}D_L \\quad \\Delta EVE \\approx -DGAP\\cdot A\\cdot \\Delta y",
+    "symbol_map": {
+      "asset_duration": "D_A",
+      "liability_duration": "D_L",
+      "rate_shock": "\\Delta y",
+      "total_assets": "A",
+      "total_liabilities": "L"
+    }
+  },
+  "duration_macaulay": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{Mac}=\\frac{\\sum_k t_k\\, CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}}{\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}}",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "times": "t_k",
+      "yield_rate": "y"
+    }
+  },
+  "dv01_pv01_bucketed": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PV = \\sum_k cf_k e^{-y t_k},\\quad DV01 = 10^{-4}\\sum_k cf_k\\,t_k\\,e^{-y t_k}",
+    "symbol_map": {
+      "cashflows": "cf_k",
+      "flat_yield": "y",
+      "times": "t_k"
+    }
+  },
+  "dv01_pvbp": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DV01=P(y-0.5\\,\\text{bp})-P(y+0.5\\,\\text{bp}),\\quad \\text{bp}=10^{-4},\\qquad P(y)=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "times": "t_k",
+      "yield_rate": "y"
+    }
+  },
+  "dynamic_gap_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Gap_p = \\sum_i A_i(1+g_i^A)^p - \\sum_i L_i(1+g_i^L)^p,\\quad p=1,\\dots,n",
+    "symbol_map": {
+      "asset_growth": "g_i^A",
+      "bucket_assets": "A_i",
+      "bucket_liabilities": "L_i",
+      "liability_growth": "g_i^L",
+      "n_periods": "n"
+    }
+  },
+  "early_warning_indicator_liquidity": {
+    "caveat": "Direction-dependent logical breach test (per-indicator higher_breach vs lower_breach, default lower_breach), not a single arithmetic formula; the aggregate signal escalates from normal to watch (1-2 triggers) to alert (3+).",
+    "citation": null,
+    "formula_latex": "\\text{Trigger}_k = \\begin{cases} \\mathbb{1}[v_k > \\tau_k] & \\text{higher\\_breach} \\\\ \\mathbb{1}[v_k < \\tau_k] & \\text{lower\\_breach} \\end{cases}",
+    "symbol_map": {
+      "indicators": "v_k",
+      "thresholds": "\\tau_k"
+    }
+  },
+  "economic_value_of_equity_eve": {
+    "caveat": null,
+    "citation": "BCBS d368",
+    "formula_latex": "EVE = \\sum_i CF_i^A e^{-r_i^A t_i^A} - \\sum_j CF_j^L e^{-r_j^L t_j^L}",
+    "symbol_map": {
+      "asset_cashflows": "CF_i^A",
+      "asset_rates": "r_i^A",
+      "asset_times": "t_i^A",
+      "liability_cashflows": "CF_j^L",
+      "liability_rates": "r_j^L",
+      "liability_times": "t_j^L"
+    }
+  },
+  "effective_duration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{eff}=\\frac{P_- - P_+}{2\\,P_0\\,\\Delta y}",
+    "symbol_map": {
+      "price_base": "P_0",
+      "price_down": "P_-",
+      "price_up": "P_+",
+      "yield_shock": "\\Delta y"
+    }
+  },
+  "effective_duration_alm": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{eff} = \\dfrac{PV_{-} - PV_{+}}{2\\,PV_0\\,\\Delta y}",
+    "symbol_map": {
+      "pv_base": "PV_0",
+      "pv_down": "PV_{-}",
+      "pv_up": "PV_{+}",
+      "rate_shock": "\\Delta y"
+    }
+  },
+  "effective_epe_regulatory": {
+    "caveat": null,
+    "citation": "CRE53",
+    "formula_latex": "EEE(t_k) = \\max\\big(EEE(t_{k-1}),\\ EE(t_k)\\big), \\quad EEPE = \\frac{1}{T}\\int_0^T EEE(t)\\,dt",
+    "symbol_map": {
+      "expected_exposure": "EE",
+      "time_steps": "t"
+    }
+  },
+  "egarch_volatility_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\ln\\sigma_t^2 = \\omega+\\beta\\ln\\sigma_{t-1}^2+\\alpha\\big(|z_{t-1}|-\\sqrt{2/\\pi}\\big)+\\gamma z_{t-1},\\quad z_{t-1}=\\frac{\\varepsilon_{t-1}}{\\sigma_{t-1}}",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "beta": "\\beta",
+      "gamma": "\\gamma",
+      "omega": "\\omega"
+    }
+  },
+  "emir_clearing_obligation_check": {
+    "caveat": null,
+    "citation": "EMIR REFIT (Regulation (EU) 2019/834) Art. 4a(1) / Art. 10(1)",
+    "formula_latex": "any\\_breached = \\bigvee_{ac} \\big(notional_{ac} > threshold_{ac}\\big) \\\\ FC:\\ clearing_{ac} = any\\_breached\\ \\ \\forall ac \\qquad NFC{+}:\\ clearing_{ac} = notional_{ac} > threshold_{ac}",
+    "symbol_map": {
+      "clearing_thresholds": "threshold_{ac}",
+      "notionals": "notional_{ac}"
+    }
+  },
+  "emir_margin_requirement": {
+    "caveat": null,
+    "citation": "EMIR Art. 11",
+    "formula_latex": "IM = initial\\_margin\\_rate \\times portfolio\\_value \\\\ VM_{call} = \\begin{cases} variation\\_margin & |variation\\_margin| \\ge MTA \\\\ 0 & \\text{otherwise} \\end{cases} \\\\ Total\\ Margin = IM + VM_{call}",
+    "symbol_map": {
+      "initial_margin_rate": "initial\\_margin\\_rate",
+      "minimum_transfer_amount": "MTA",
+      "portfolio_value": "portfolio\\_value",
+      "variation_margin": "variation\\_margin"
+    }
+  },
+  "emir_trade_repository_report": {
+    "caveat": "Field-presence/format validator (returns valid/errors/report), not a numerical formula; checks a representative core subset (6 of EMIR REFIT's ~200 fields), not full schema coverage.",
+    "citation": null,
+    "formula_latex": "valid = (\\text{required fields present}) \\wedge (|LEI| = 20) \\wedge (notional > 0)",
+    "symbol_map": {}
+  },
+  "equal_weight_portfolio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "w_i = \\frac{1}{N}, \\quad i = 1,\\dots,N",
+    "symbol_map": {
+      "n_assets": "N"
+    }
+  },
+  "equity_swap_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "V=N\\,(R_{eq}-r_f\\tau)\\,DF",
+    "symbol_map": {
+      "accrual": "\\tau",
+      "discount_factor": "DF",
+      "equity_return": "R_{eq}",
+      "funding_rate": "r_f",
+      "notional": "N"
+    }
+  },
+  "es_at_multiple_confidence_levels": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ES_{\\alpha_k} = \\frac{1}{n-\\lfloor \\alpha_k n\\rfloor}\\sum_{i=\\lfloor \\alpha_k n\\rfloor}^{n-1} L_{(i)} \\quad \\text{for each } \\alpha_k \\in \\text{confidence\\_levels}",
+    "symbol_map": {
+      "confidence_levels": "\\alpha_k"
+    }
+  },
+  "escalation_threshold_calculation": {
+    "caveat": "This is a rule-based lookup: the code selects the triggered tier with the numerically largest threshold value (not necessarily the dict's declared 'highest' tier by name/order), so it relies on thresholds being monotonically ordered with severity.",
+    "citation": null,
+    "formula_latex": "\\text{Triggered} = \\{\\,lvl : thr_{lvl} \\mid L \\ge thr_{lvl}\\,\\} \\\\ lvl^{*} = \\arg\\max_{lvl \\in \\text{Triggered}} thr_{lvl}",
+    "symbol_map": {
+      "loss_amount": "L",
+      "thresholds": "thr_{lvl}"
+    }
+  },
+  "esg_score_integration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_{ESG} = \\frac{\\sum_i w_i \\cdot ESG_i}{\\sum_i w_i} \\\\ \\min_w\\; w^\\top \\Sigma w \\quad \\text{s.t. } \\sum_i w_i = 1,\\; w^\\top ESG \\ge S_{min},\\; 0 \\le w_i \\le 1",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "esg_scores": "ESG_i",
+      "min_esg_score": "S_{min}",
+      "weights": "w_i"
+    }
+  },
+  "eve_sensitivity_analysis": {
+    "caveat": null,
+    "citation": "BCBS d368",
+    "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad \\Delta EVE_{worst}=\\min_s\\Delta EVE_s",
+    "symbol_map": {
+      "base_rates": "r_{0,k}",
+      "net_cashflows": "CF_k",
+      "times": "t_k"
+    }
+  },
+  "expected_loss_el_computation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "EL = PD\\cdot LGD\\cdot EAD",
+    "symbol_map": {
+      "ead": "EAD",
+      "lgd": "LGD",
+      "pd": "PD"
+    }
+  },
+  "expected_positive_exposure_epe": {
+    "caveat": null,
+    "citation": "CRE53",
+    "formula_latex": "EPE = \\frac{1}{T}\\int_0^T EE(t)\\,dt",
+    "symbol_map": {
+      "expected_exposure": "EE",
+      "time_steps": "t"
+    }
+  },
+  "expected_shortfall_contribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "L_t = -\\sum_i a_{t,i}w_i,\\quad T_\\alpha=\\{t : L_t \\text{ among the } n-\\lfloor\\alpha n\\rfloor \\text{ largest losses}\\} \\\\ ES_i = \\frac{1}{|T_\\alpha|}\\sum_{t\\in T_\\alpha}\\big(-a_{t,i}w_i\\big),\\quad ES=\\sum_i ES_i",
+    "symbol_map": {
+      "asset_returns": "a_{t,i}",
+      "confidence_level": "\\alpha",
+      "weights": "w_i"
+    }
+  },
+  "exposure_at_default_ead_calculator": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "EAD = Drawn + CCF\\cdot Undrawn",
+    "symbol_map": {
+      "credit_conversion_factor": "CCF",
+      "drawn": "Drawn",
+      "undrawn": "Undrawn"
+    }
+  },
+  "external_loss_data_integration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "X'_{ext} = s \\cdot X_{ext} \\\\ \\text{combined\\_mean} = \\frac{\\sum X_{int} + \\sum X'_{ext}}{n_{int}+n_{ext}}, \\quad w_{ext} = \\frac{n_{ext}}{n_{int}+n_{ext}}",
+    "symbol_map": {
+      "external_losses": "X_{ext}",
+      "internal_losses": "X_{int}",
+      "scaling_factor": "s"
+    }
+  },
+  "extreme_value_theory_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_p = u + \\frac{\\beta}{\\xi}\\left[\\Big(\\tfrac{n}{N_u}(1-p)\\Big)^{-\\xi} - 1\\right],\\ \\xi\\neq0 \\\\ VaR_p = u - \\beta\\ln\\Big(\\tfrac{n}{N_u}(1-p)\\Big),\\ \\xi\\approx0",
+    "symbol_map": {
+      "confidence_level": "p",
+      "threshold_quantile": "q_u\\ (\\text{sets } u)"
+    }
+  },
+  "factor_based_optimisation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Sigma = B F B^\\top + \\text{diag}(\\sigma^2_{spec}) \\\\ \\min_w\\; w^\\top \\Sigma w \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1 \\;\\; \\big(\\text{optionally } B^\\top w = e_{tgt}\\big)",
+    "symbol_map": {
+      "factor_cov": "F",
+      "factor_exposures": "B",
+      "specific_var": "\\sigma^2_{spec}",
+      "target_exposures": "e_{tgt}"
+    }
+  },
+  "factor_exposure_analysis_barra": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "E = B^\\top w, \\quad E_k = \\sum_i B_{ik}\\, w_i",
+    "symbol_map": {
+      "asset_exposures": "B",
+      "weights": "w"
+    }
+  },
+  "factor_return_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "C_i = b_i f_i \\\\ R_{factor} = \\sum_i C_i \\\\ R_{total} = R_{factor} + \\epsilon",
+    "symbol_map": {
+      "factor_exposures": "b_i",
+      "factor_returns": "f_i",
+      "specific_return": "\\epsilon"
+    }
+  },
+  "fama_french_3_factor_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "y = \\alpha + \\beta_{MKT}F_{MKT} + \\beta_{SMB}F_{SMB} + \\beta_{HML}F_{HML} + \\epsilon \\\\ \\hat\\beta = (X^\\top X)^{-1}X^\\top y \\;\\; (\\text{OLS via lstsq})",
+    "symbol_map": {
+      "excess_returns": "y",
+      "factors": "F"
+    }
+  },
+  "fama_french_5_factor_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "y = \\alpha + \\beta_{MKT}F_{MKT} + \\beta_{SMB}F_{SMB} + \\beta_{HML}F_{HML} + \\beta_{RMW}F_{RMW} + \\beta_{CMA}F_{CMA} + \\epsilon \\\\ \\hat\\beta = (X^\\top X)^{-1}X^\\top y",
+    "symbol_map": {
+      "excess_returns": "y",
+      "factors": "F"
+    }
+  },
+  "filtered_historical_simulation_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_t^2=\\lambda\\sigma_{t-1}^2+(1-\\lambda)r_{t-1}^2,\\quad z_t=r_t/\\sigma_t \\\\ \\sigma_{fcst}^2=\\lambda\\sigma_T^2+(1-\\lambda)r_T^2,\\quad \\tilde r_t=\\sigma_{fcst}\\,z_t \\\\ VaR_\\alpha,\\ ES_\\alpha = \\text{tail-mean of } \\{-\\tilde r_t\\}\\text{ at }\\alpha",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "lambda_decay": "\\lambda",
+      "returns": "r_t"
+    }
+  },
+  "forward_rate_agreement_fra": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "V=N\\,(f-K)\\,\\tau\\,DF,\\qquad \\tau=T_{end}-T_{start}",
+    "symbol_map": {
+      "discount_factor": "DF",
+      "end": "T_{end}",
+      "forward_rate": "f",
+      "fra_rate": "K",
+      "notional": "N",
+      "start": "T_{start}"
+    }
+  },
+  "frequency_distribution_fitting": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\hat\\lambda = \\frac{1}{n}\\sum_i N_i \\quad (\\text{Poisson MLE}) \\\\ \\text{Dispersion} = \\frac{\\text{Var}(N)}{\\hat\\lambda}",
+    "symbol_map": {
+      "annual_event_counts": "N_i"
+    }
+  },
+  "frtb_ima_aggregate_capital_charge": {
+    "caveat": null,
+    "citation": "MAR33.43",
+    "formula_latex": "ACC = IMCC + SES + DRC",
+    "symbol_map": {
+      "default_risk_charge": "DRC",
+      "imcc": "IMCC",
+      "ses": "SES"
+    }
+  },
+  "frtb_ima_expected_shortfall": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha = L_{(\\lfloor \\alpha n\\rfloor)},\\quad ES_\\alpha = \\frac{1}{n-\\lfloor \\alpha n\\rfloor}\\sum_{i=\\lfloor \\alpha n\\rfloor}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha"
+    }
+  },
+  "frtb_ima_market_risk_capital": {
+    "caveat": null,
+    "citation": "BCBS d457 \u00a7189",
+    "formula_latex": "m_c = \\max(multiplier,\\ 1.5) \\\\ ES_{charge} = m_c \\times ES_{97.5\\%} \\times stressed\\_es\\_ratio \\\\ IMA_{capital} = ES_{charge} + SES_{NMRF} + DRC",
+    "symbol_map": {
+      "default_risk_charge": "DRC",
+      "expected_shortfall": "ES_{97.5\\%}",
+      "multiplier": "multiplier",
+      "non_modellable_ses": "SES_{NMRF}",
+      "stressed_es_ratio": "stressed\\_es\\_ratio"
+    }
+  },
+  "frtb_ima_non_modellable_risk_factors": {
+    "caveat": null,
+    "citation": "MAR33.16",
+    "formula_latex": "SES = \\sqrt{(\\rho\\textstyle\\sum_i ISES_i)^2 + (1-\\rho^2)\\sum_i ISES_i^2}",
+    "symbol_map": {
+      "individual_ses": "ISES_i",
+      "rho": "\\rho"
+    }
+  },
+  "frtb_ima_stressed_period_finder": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "start^{*} = \\arg\\max_{s}\\ ES_\\alpha\\big(r_{s:s+w}\\big)\\quad\\text{(tail-mean ES over each sliding window)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "window": "w"
+    }
+  },
+  "frtb_pl_attribution_test": {
+    "caveat": "The green/amber/red zone assignment is a fixed-threshold lookup on (|correlation|, ratio) rather than a single closed-form equation -- shown here are the two underlying statistics that feed it.",
+    "citation": "BCBS d457",
+    "formula_latex": "\\rho = Spearman(RTPL, HPL) \\\\ ratio = \\frac{\\sigma(RTPL)}{\\sigma(HPL)}",
+    "symbol_map": {
+      "hypothetical_pnl": "HPL",
+      "risk_theoretical_pnl": "RTPL"
+    }
+  },
+  "frtb_sa_default_risk_charge": {
+    "caveat": null,
+    "citation": "MAR22",
+    "formula_latex": "net_i = JTD^{long}_i - JTD^{short}_i \\\\ WtS = \\frac{\\sum_{net_i>0} net_i}{\\sum_{net_i>0} net_i + \\sum_{net_i<0}|net_i|} \\\\ DRC = \\max\\Big(0,\\ \\sum_{net_i>0} RW_i\\,net_i - WtS\\sum_{net_i<0} RW_i\\,|net_i|\\Big)",
+    "symbol_map": {
+      "jtd_long": "JTD^{long}_i",
+      "jtd_short": "JTD^{short}_i",
+      "risk_weights": "RW_i"
+    }
+  },
+  "frtb_sa_market_risk_capital": {
+    "caveat": null,
+    "citation": "BCBS d457 \u00a72",
+    "formula_latex": "SA_{capital} = SBM_{charge} + DRC + RRAO",
+    "symbol_map": {
+      "default_risk_charge": "DRC",
+      "residual_risk_addon": "RRAO",
+      "sensitivities_charge": "SBM_{charge}"
+    }
+  },
+  "frtb_sa_residual_risk_addon": {
+    "caveat": null,
+    "citation": "MAR23",
+    "formula_latex": "RRAO = \\sum_i notional_i \\cdot w_i",
+    "symbol_map": {
+      "notionals": "notional_i",
+      "rrao_weights": "w_i"
+    }
+  },
+  "frtb_sa_sensitivity_based_method": {
+    "caveat": "The code floors both the K_b^2 term and the aggregate sum at 0 before taking the square root (protecting against a negative value under extreme correlation inputs); this floor is not shown explicitly above.",
+    "citation": "MAR21",
+    "formula_latex": "K_b = \\sqrt{\\sum_i WS_i^2 + \\rho\\sum_{i\\neq j} WS_i WS_j} \\\\ \\text{Risk Charge} = \\sqrt{\\sum_b K_b^2 + \\gamma\\sum_{b\\neq c} S_b S_c},\\quad S_b=\\sum_i WS_i",
+    "symbol_map": {
+      "bucket_weighted_sensitivities": "WS_i",
+      "inter_bucket_corr": "\\gamma",
+      "intra_bucket_corr": "\\rho"
+    }
+  },
+  "frtb_trading_desk_aggregation": {
+    "caveat": null,
+    "citation": "BCBS d457",
+    "formula_latex": "Total_{capital} = \\sum_{d \\,\\in\\, eligible} IMA_d + \\sum_{d \\,\\notin\\, eligible} SA_d",
+    "symbol_map": {
+      "desk_ima_charges": "IMA_d",
+      "desk_ima_eligible": "eligible",
+      "desk_sa_charges": "SA_d"
+    }
+  },
+  "ftp_curve_construction": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "FTP_i = r_i^{base} + s_i",
+    "symbol_map": {
+      "base_curve": "r_i^{base}",
+      "liquidity_spreads": "s_i"
+    }
+  },
+  "funding_cost_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{WAC} = \\frac{\\sum_i A_i r_i}{\\sum_i A_i} \\\\ \\text{TotalAnnualCost} = \\sum_i A_i r_i",
+    "symbol_map": {
+      "funding_amounts": "A_i",
+      "funding_rates": "r_i"
+    }
+  },
+  "funding_tenor_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{WAT} = \\frac{\\sum_i A_i T_i}{\\sum_i A_i} \\\\ \\text{ShortTermRatio} = \\frac{\\sum_{i:\\ T_i \\le 90} A_i}{\\sum_i A_i}",
+    "symbol_map": {
+      "funding_amounts": "A_i",
+      "tenors_days": "T_i"
+    }
+  },
+  "funding_valuation_adjustment_fva": {
+    "caveat": "survival_probability S_k defaults to 1 (no default conditioning) when not supplied.",
+    "citation": null,
+    "formula_latex": "\\Delta t_k = t_k-t_{k-1}, \\quad FVA = s_f\\sum_k EPE_k\\,DF_k\\,S_k\\,\\Delta t_k",
+    "symbol_map": {
+      "discount_factors": "DF_k",
+      "expected_exposure": "EPE_k",
+      "funding_spread": "s_f",
+      "survival_probability": "S_k",
+      "time_steps": "t_k"
+    }
+  },
+  "funds_transfer_pricing_ftp": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\begin{aligned}r_{FTP}^{all} &= r_{FTP}+p_{liq}\\\\M_{comm} &= \\begin{cases}(r_{cust}-r_{FTP}^{all})\\,N & \\text{is\\_asset = True}\\\\(r_{FTP}^{all}-r_{cust})\\,N & \\text{is\\_asset = False}\\end{cases}\\\\FV &= r_{FTP}^{all}\\,N,\\qquad Spread = \\big|r_{cust}-r_{FTP}^{all}\\big|\\,N\\end{aligned}",
+    "symbol_map": {
+      "customer_rate": "r_{cust}",
+      "ftp_rate": "r_{FTP}",
+      "liquidity_premium": "p_{liq}",
+      "notional": "N"
+    }
+  },
+  "fx_forward_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "F=S\\,e^{(r_d-r_f)\\tau},\\qquad V=N\\,(F-K_{fwd})\\,e^{-r_d\\tau}",
+    "symbol_map": {
+      "contracted_forward": "K_{fwd}",
+      "notional": "N",
+      "rate_domestic": "r_d",
+      "rate_foreign": "r_f",
+      "spot": "S",
+      "tau": "\\tau"
+    }
+  },
+  "fx_liquidity_risk_by_currency": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Net}_{ccy} = I_{ccy} - O_{ccy}",
+    "symbol_map": {
+      "inflows_by_ccy": "I_{ccy}",
+      "outflows_by_ccy": "O_{ccy}"
+    }
+  },
+  "fx_option_pricer_garman_kohlhagen": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "C=S e^{-r_f\\tau}N(d_1)-K e^{-r_d\\tau}N(d_2),\\qquad P=Ke^{-r_d\\tau}N(-d_2)-Se^{-r_f\\tau}N(-d_1)\\\\d_1=\\frac{\\ln(S/K)+(r_d-r_f+\\sigma^2/2)\\tau}{\\sigma\\sqrt\\tau},\\quad d_2=d_1-\\sigma\\sqrt\\tau",
+    "symbol_map": {
+      "rate_domestic": "r_d",
+      "rate_foreign": "r_f",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "fx_pnl_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_{FX} = \\sum_i \\delta_i^{FX}\\cdot \\Delta FX_i",
+    "symbol_map": {
+      "fx_deltas": "\\delta_i^{FX}",
+      "fx_moves": "\\Delta FX_i"
+    }
+  },
+  "gamma_cross_gamma_matrix": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "G_{ii}=\\gamma_i,\\quad G_{ij}=\\tfrac12\\big(\\Gamma^{cross}_{ij}+\\Gamma^{cross}_{ji}\\big)\\ (i\\neq j) \\\\ \\text{Gamma P\\&L} = \\tfrac12\\,ds^\\top G\\,ds",
+    "symbol_map": {
+      "cross_gammas": "\\Gamma^{cross}_{ij}",
+      "own_gammas": "\\gamma_i"
+    }
+  },
+  "gamma_pnl_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_\\Gamma = \\tfrac12\\,\\Gamma\\,(dS)^2",
+    "symbol_map": {
+      "gamma": "\\Gamma",
+      "spot_move": "dS"
+    }
+  },
+  "garch_11_volatility_forecast": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_t^2=\\omega+\\alpha\\varepsilon_{t-1}^2+\\beta\\sigma_{t-1}^2 \\\\ \\sigma_{T+k}^2 = \\sigma_\\infty^2 + (\\alpha+\\beta)^k\\big(\\sigma_{T+1}^2-\\sigma_\\infty^2\\big),\\quad \\sigma_\\infty^2=\\frac{\\omega}{1-\\alpha-\\beta}",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "beta": "\\beta",
+      "horizon": "k",
+      "omega": "\\omega"
+    }
+  },
+  "gics_sector_exposure": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "E_s = \\sum_{i \\,\\in\\, \\text{sector } s} w_i",
+    "symbol_map": {
+      "weights": "w_i"
+    }
+  },
+  "gjr_garch_asymmetric_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_t^2 = \\omega + (\\alpha+\\gamma\\,\\mathbb{1}[\\varepsilon_{t-1}<0])\\varepsilon_{t-1}^2+\\beta\\sigma_{t-1}^2,\\quad \\sigma_\\infty^2=\\frac{\\omega}{1-\\alpha-\\beta-\\gamma/2}",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "beta": "\\beta",
+      "gamma": "\\gamma",
+      "omega": "\\omega"
+    }
+  },
+  "greeks_based_pnl_explain": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_{pred} = \\Delta\\,dS + \\tfrac12\\Gamma\\,dS^2 + \\nu\\,d\\sigma + \\Theta\\,dt + \\rho\\,dr \\\\ Unexplained = PnL_{actual} - PnL_{pred}",
+    "symbol_map": {
+      "actual_pnl": "PnL_{actual}",
+      "delta": "\\Delta",
+      "gamma": "\\Gamma",
+      "rate_move": "dr",
+      "rho": "\\rho",
+      "spot_move": "dS",
+      "theta": "\\Theta",
+      "time_step": "dt",
+      "vega": "\\nu",
+      "vol_move": "d\\sigma"
+    }
+  },
+  "heston_stochastic_volatility_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "C=S P_1-Ke^{-r\\tau}P_2,\\qquad P=C-S+Ke^{-r\\tau}\\ \\text{(put-call parity)}\\\\P_1=\\tfrac12+\\frac{1}{\\pi\\,\\phi(-i)}\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u-i)}{iu}\\Big]du,\\qquad P_2=\\tfrac12+\\frac1\\pi\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u)}{iu}\\Big]du\\\\\\xi=\\kappa-\\sigma\\rho i u,\\ d=\\sqrt{\\xi^2+\\sigma^2(iu+u^2)},\\ g=\\frac{\\xi-d}{\\xi+d}\\\\\\phi(u)=\\exp\\!\\Big[riu\\tau+\\frac{\\kappa\\theta}{\\sigma^2}\\big((\\xi-d)\\tau-2\\ln\\tfrac{1-ge^{-d\\tau}}{1-g}\\big)+\\frac{\\xi-d}{\\sigma^2}\\cdot\\frac{1-e^{-d\\tau}}{1-ge^{-d\\tau}}\\,v_0+iu\\ln S\\Big]",
+    "symbol_map": {
+      "kappa": "\\kappa",
+      "rate": "r",
+      "rho": "\\rho",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau",
+      "theta": "\\theta",
+      "v0": "v_0"
+    }
+  },
+  "historical_expected_shortfall": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha = L_{(\\lfloor \\alpha n\\rfloor)},\\quad ES_\\alpha = \\frac{1}{n-\\lfloor \\alpha n\\rfloor}\\sum_{i=\\lfloor \\alpha n\\rfloor}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha"
+    }
+  },
+  "historical_scenario_replay": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_t = \\sum_f h_{t,f}\\,e_f,\\quad worst = \\min_t PnL_t",
+    "symbol_map": {
+      "exposures": "e_f",
+      "historical_factor_returns": "h_{t,f}"
+    }
+  },
+  "historical_simulation_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha = L_{(\\lfloor \\alpha n\\rfloor)},\\quad CVaR_\\alpha = \\frac{1}{n-\\lfloor \\alpha n\\rfloor}\\sum_{i=\\lfloor \\alpha n\\rfloor}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha"
+    }
+  },
+  "hqla_level_1_asset_classifier": {
+    "caveat": "haircuts defaults to all zeros when not supplied (i.e. h_i = 0 for all i).",
+    "citation": "BCBS 238 \u00a750",
+    "formula_latex": "V^{adj}_i = V_i(1-h_i) \\\\ \\text{PostHaircutValue} = \\sum_i V_i(1-h_i)",
+    "symbol_map": {
+      "asset_values": "V_i",
+      "haircuts": "h_i"
+    }
+  },
+  "hqla_level_2a_asset_classifier": {
+    "caveat": "A single scalar haircut h applies uniformly to all assets (not a per-asset array); the function raises ValueError if h < 0.15.",
+    "citation": "BCBS 238 \u00a752",
+    "formula_latex": "\\text{PostHaircutValue} = \\sum_i V_i(1-h), \\quad h \\ge 0.15",
+    "symbol_map": {
+      "asset_values": "V_i",
+      "haircut": "h"
+    }
+  },
+  "hqla_level_2b_asset_classifier": {
+    "caveat": "A single scalar haircut h applies uniformly to all assets; the function raises ValueError if h < 0.25 (pass haircut=0.50 for the lower-grade-corporate/equity sub-bucket).",
+    "citation": "BCBS 238 \u00a754",
+    "formula_latex": "\\text{PostHaircutValue} = \\sum_i V_i(1-h), \\quad h \\ge 0.25",
+    "symbol_map": {
+      "asset_values": "V_i",
+      "haircut": "h"
+    }
+  },
+  "hull_white_short_rate_model": {
+    "caveat": "With a constant theta_const this is exactly the Vasicek closed-form model (the code literally calls vasicek_interest_rate_model) \u2014 not a genuine time-dependent Hull-White fit to a market forward curve.",
+    "citation": null,
+    "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW,\\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa},\\qquad A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big]\\\\P(0,T)=A\\,e^{-Br_0}",
+    "symbol_map": {
+      "kappa": "\\kappa",
+      "maturity": "T",
+      "r0": "r_0",
+      "sigma": "\\sigma",
+      "theta_const": "\\theta"
+    }
+  },
+  "hypothetical_multi_factor_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL = \\sum_i e_i\\,s_i",
+    "symbol_map": {
+      "exposures": "e_i",
+      "shocks": "s_i"
+    }
+  },
+  "icaap_capital_assessment": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Total\\ Capital\\ Requirement = Pillar1 + \\sum_i RiskComponent_i \\\\ Capital\\ Surplus = Available\\ Capital - Total\\ Capital\\ Requirement",
+    "symbol_map": {
+      "available_capital": "Available\\ Capital",
+      "pillar1_capital": "Pillar1",
+      "risk_capital_components": "RiskComponent_i"
+    }
+  },
+  "idiosyncratic_stress_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "O = R\\cdot r_R + W\\cdot r_W \\\\ \\text{Surplus} = HQLA - O",
+    "symbol_map": {
+      "hqla": "HQLA",
+      "retail_deposits": "R",
+      "retail_runoff": "r_R",
+      "wholesale_funding": "W",
+      "wholesale_runoff": "r_W"
+    }
+  },
+  "ifrs_9_12_month_ecl_stage_1": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ECL = PD_{12m}\\cdot LGD\\cdot EAD\\cdot DF",
+    "symbol_map": {
+      "discount_factor": "DF",
+      "ead": "EAD",
+      "lgd": "LGD",
+      "pd_12m": "PD_{12m}"
+    }
+  },
+  "ifrs_9_lifetime_ecl_stage_2_3": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "ECL = \\sum_t PD_t^{marg}\\cdot LGD_t\\cdot EAD_t\\cdot DF_t",
+    "symbol_map": {
+      "discount_factors": "DF_t",
+      "ead": "EAD_t",
+      "lgd": "LGD_t",
+      "marginal_pd": "PD_t^{marg}"
+    }
+  },
+  "ifrs_9_scenario_weighted_ecl": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\hat w_s = \\frac{w_s}{\\sum_s w_s}, \\quad ECL = \\sum_s \\hat w_s\\,ECL_s",
+    "symbol_map": {
+      "scenario_ecls": "ECL_s",
+      "scenario_weights": "w_s"
+    }
+  },
+  "ifrs_9_stage_classification_pd_threshold": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Stage} = \\begin{cases} 3 & DPD\\ge90 \\\\ 2 & PD_{cur}\\ge k\\,PD_{orig}\\ \\text{or}\\ PD_{cur}-PD_{orig}\\ge\\tau \\\\ 1 & \\text{otherwise} \\end{cases}",
+    "symbol_map": {
+      "days_past_due": "DPD",
+      "pd_current": "PD_{cur}",
+      "pd_origination": "PD_{orig}",
+      "sicr_absolute_threshold": "\\tau",
+      "sicr_relative_threshold": "k"
+    }
+  },
+  "ifrs_9_staging_criteria_assessment": {
+    "caveat": "Stage_PD is the quantitative PD-threshold rule from ifrs_9_stage_classification_pd_threshold (same sicr_relative_threshold parameter feeds that sub-rule).",
+    "citation": null,
+    "formula_latex": "\\text{Stage} = \\max\\Big(\\text{Stage}_{PD},\\ 3\\cdot\\mathbb{1}[DPD\\ge90],\\ 2\\cdot\\mathbb{1}[\\text{forbearance}],\\ 2\\cdot\\mathbb{1}[\\text{watchlist}]\\Big)",
+    "symbol_map": {
+      "days_past_due": "DPD",
+      "forbearance": "\\text{forbearance}",
+      "pd_current": "PD_{cur}",
+      "pd_origination": "PD_{orig}",
+      "watchlist": "\\text{watchlist}"
+    }
+  },
+  "ilaap_internal_liquidity_metric": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{CoverageRatio} = \\frac{CBC}{SNO} \\\\ \\text{Adequate} \\iff \\text{CoverageRatio} \\ge 1 \\ \\text{and}\\ SD \\ge SD_{min}",
+    "symbol_map": {
+      "counterbalancing_capacity": "CBC",
+      "minimum_survival_days": "SD_{min}",
+      "stressed_net_outflow": "SNO",
+      "survival_days": "SD"
+    }
+  },
+  "ilaap_stress_testing_framework": {
+    "caveat": "SD_k denotes the surplus_deficit field each named scenario dict must already carry; this function only aggregates pre-computed values, it performs no cash-flow arithmetic itself.",
+    "citation": null,
+    "formula_latex": "\\text{Binding} = \\arg\\min_k SD_k \\\\ \\text{WorstSurplusDeficit} = \\min_k SD_k \\\\ \\text{Adequate} \\iff \\min_k SD_k \\ge 0",
+    "symbol_map": {
+      "scenarios": "SD_k"
+    }
+  },
+  "incremental_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "IVaR_i = z_\\alpha\\sqrt{w^\\top\\Sigma w} - z_\\alpha\\sqrt{w_{(-i)}^\\top\\Sigma w_{(-i)}}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "position_index": "i",
+      "weights": "w"
+    }
+  },
+  "inflation_linked_bond_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=\\sum_{i=1}^{n}\\left[\\frac{F c_r}{m}(1+\\pi)^{t_i}\\right]\\left(1+\\frac{y_r}{m}\\right)^{-i}+F(1+\\pi)^{t_n}\\left(1+\\frac{y_r}{m}\\right)^{-n},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)",
+    "symbol_map": {
+      "face_value": "F",
+      "frequency": "m",
+      "inflation_rate": "\\pi",
+      "maturity": "T",
+      "real_coupon_rate": "c_r",
+      "real_yield": "y_r"
+    }
+  },
+  "information_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "IR = \\sqrt{T} \\cdot \\frac{\\overline{r_p - r_b}}{\\sigma(r_p - r_b)}",
+    "symbol_map": {
+      "benchmark_returns": "r_b",
+      "periods_per_year": "T",
+      "returns": "r_p"
+    }
+  },
+  "insurance_offset_calculation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "R = \\min\\big(\\max(GL-D,\\,0),\\,PL\\big) \\times (1-h) \\\\ NL = GL - R,\\quad \\text{RecoveryRate} = R/GL",
+    "symbol_map": {
+      "deductible": "D",
+      "gross_loss": "GL",
+      "haircut": "h",
+      "policy_limit": "PL"
+    }
+  },
+  "interest_rate_risk_capital_irrbb": {
+    "caveat": null,
+    "citation": "BCBS d368 Principle 12",
+    "formula_latex": "Decline = \\big|\\min(\\Delta EVE_{worst},0)\\big|,\\quad Threshold=\\theta\\cdot Tier1,\\quad AddOn=\\max(Decline-Threshold,0)",
+    "symbol_map": {
+      "outlier_threshold": "\\theta",
+      "tier1_capital": "Tier1",
+      "worst_delta_eve": "\\Delta EVE_{worst}"
+    }
+  },
+  "interest_rate_swap_irs_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "V=N\\left(\\sum_i f_i\\tau_i DF_i-K\\sum_i\\tau_i DF_i\\right),\\qquad K_{par}=\\frac{\\sum_i f_i\\tau_i DF_i}{\\sum_i \\tau_i DF_i}",
+    "symbol_map": {
+      "accruals": "\\tau_i",
+      "discount_factors": "DF_i",
+      "fixed_rate": "K",
+      "forward_rates": "f_i",
+      "notional": "N"
+    }
+  },
+  "internal_control_factor_icf": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\overline{C} = \\frac{1}{n}\\sum_i C_i \\\\ ICF = \\max\\big(1 - k(\\overline{C}-B),\\,0\\big)",
+    "symbol_map": {
+      "baseline": "B",
+      "control_scores": "C_i",
+      "sensitivity": "k"
+    }
+  },
+  "intraday_liquidity_monitor": {
+    "caveat": "Only NetDebitPeak (the largest negative cumulative position) is the genuine BCBS 248 'largest net debit position' monitoring tool; MaxUsage (drop below opening balance) is an internal metric, and the two diverge whenever the balance path never actually goes negative.",
+    "citation": "BCBS 248",
+    "formula_latex": "B_t = B_0 + \\sum_{s \\le t} f_s \\\\ \\text{MaxUsage} = \\max(0,\\ B_0 - \\min_t B_t) \\\\ \\text{NetDebitPeak} = \\max(0,\\ -\\min_t B_t)",
+    "symbol_map": {
+      "net_flows": "f_s",
+      "opening_balance": "B_0"
+    }
+  },
+  "intraday_liquidity_stress_test": {
+    "caveat": "This is an internal stress design (delaying a fraction of positive intraday inflows) referencing the BCBS 248 intraday-liquidity monitoring context; it is not a specific BCBS-prescribed stress scenario.",
+    "citation": null,
+    "formula_latex": "f^{stress}_t = \\begin{cases} f_t(1-d) & f_t > 0 \\\\ f_t & f_t \\le 0 \\end{cases} \\\\ B_t = (B_0 - \\Delta) + \\sum_{s \\le t} f^{stress}_s \\\\ \\text{StressedMaxUsage} = \\max\\big(0,\\ (B_0-\\Delta) - \\min_t B_t\\big)",
+    "symbol_map": {
+      "delay_factor": "d",
+      "inflow_delay_shock": "\\Delta",
+      "net_flows": "f_t",
+      "opening_balance": "B_0"
+    }
+  },
+  "intragroup_liquidity_flow": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{TotalProvided} = \\sum_{e:\\ v_e > 0} v_e \\\\ \\text{Balanced} \\iff \\Big|\\sum_e v_e\\Big| < 10^{-6}",
+    "symbol_map": {
+      "entity_positions": "v_e"
+    }
+  },
+  "irb_advanced_approach_capital": {
+    "caveat": "R defaults to the Basel corporate correlation function of PD (as in sme_correlation_factor_basel) whenever the optional correlation override is not supplied; the formula shown uses whichever R is actually in force.",
+    "citation": "CRE31",
+    "formula_latex": "K = \\max\\!\\left(0,\\ \\left[LGD\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD\\right]\\cdot MA\\right), \\quad RWA = 12.5\\cdot K\\cdot EAD \\\\ MA = \\frac{1+(M-2.5)\\,b(PD)}{1-1.5\\,b(PD)}, \\quad b(PD)=(0.11852-0.05478\\ln PD)^2",
+    "symbol_map": {
+      "correlation": "R",
+      "ead": "EAD",
+      "lgd": "LGD",
+      "maturity": "M",
+      "pd": "PD"
+    }
+  },
+  "irb_foundation_approach_capital": {
+    "caveat": "R is always the Basel corporate correlation function of PD here (F-IRB exposes no correlation override); MA follows the same maturity-adjustment formula as maturity_adjustment_basel_irb.",
+    "citation": "CRE31; CRE32",
+    "formula_latex": "LGD_{sup} = 0.45\\ (\\text{senior unsecured})\\ \\text{or}\\ 0.75\\ (\\text{subordinated}) \\\\ K = \\max\\!\\left(0,\\ \\left[LGD_{sup}\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD_{sup}\\right]\\cdot MA\\right), \\quad RWA = 12.5\\cdot K\\cdot EAD",
+    "symbol_map": {
+      "ead": "EAD",
+      "lgd": "LGD_{sup}",
+      "maturity": "M",
+      "pd": "PD"
+    }
+  },
+  "irrbb_internal_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad WorstCase_{99}=\\mathrm{Percentile}_{1\\%}\\big(\\{\\Delta EVE_s\\}\\big)",
+    "symbol_map": {
+      "base_rates": "r_{0,k}",
+      "net_cashflows": "CF_k",
+      "rate_scenarios": "\\Delta r_{s,k}",
+      "times": "t_k"
+    }
+  },
+  "irrbb_six_standard_rate_shocks": {
+    "caveat": null,
+    "citation": "BCBS d368 Annex 2",
+    "formula_latex": "\\begin{aligned}s_{short}(t) &= \\dfrac{short_{bps}}{10^4}e^{-t/4},\\quad s_{long}(t)=\\dfrac{long_{bps}}{10^4}\\big(1-e^{-t/4}\\big)\\\\Steepener &= -0.65\\,s_{short}+0.90\\,s_{long},\\quad Flattener = 0.80\\,s_{short}-0.60\\,s_{long},\\quad Parallel_{\\pm}=\\pm\\dfrac{parallel_{bps}}{10^4}\\end{aligned}",
+    "symbol_map": {
+      "long_bps": "long_{bps}",
+      "parallel_bps": "parallel_{bps}",
+      "short_bps": "short_{bps}",
+      "tenors": "t"
+    }
+  },
+  "irrbb_standardised_framework": {
+    "caveat": null,
+    "citation": "BCBS d368",
+    "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad \\Delta EVE_{worst}=\\min_s \\Delta EVE_s",
+    "symbol_map": {
+      "base_rates": "r_{0,k}",
+      "net_cashflows": "CF_k",
+      "times": "t_k"
+    }
+  },
+  "it_risk_scoring": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S = \\min\\Big(40(1-A) + 2\\min(N,\\,20) + 20(1-P),\\,100\\Big)",
+    "symbol_map": {
+      "availability": "A",
+      "incident_count": "N",
+      "patch_compliance": "P"
+    }
+  },
+  "jensens_alpha": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\beta = \\frac{\\text{Cov}(r_p - r_f,\\, r_b - r_f)}{\\text{Var}(r_b - r_f)} \\\\ \\alpha = T\\left[\\overline{(r_p - r_f)} - \\beta\\,\\overline{(r_b - r_f)}\\right]",
+    "symbol_map": {
+      "benchmark_returns": "r_b",
+      "periods_per_year": "T",
+      "returns": "r_p",
+      "risk_free": "r_f"
+    }
+  },
+  "key_risk_indicator_kri_library": {
+    "caveat": "Pure validation/indexing (checks name/amber_threshold/red_threshold/direction keys exist) \u2014 there is no numeric computation, so no equation applies beyond building the keyed registry.",
+    "citation": null,
+    "formula_latex": "\\text{Registry} = \\{\\,k.\\text{name} \\mapsto k \\mid k \\in \\text{kri\\_definitions},\\ k\\ \\text{valid}\\,\\}",
+    "symbol_map": {}
+  },
+  "kmv_merton_distance_to_default": {
+    "caveat": "mu (the asset drift) defaults to risk_free_rate r when asset_drift is not supplied.",
+    "citation": null,
+    "formula_latex": "DD = \\frac{\\ln(V/D)+(\\mu-0.5\\sigma^2)T}{\\sigma\\sqrt{T}}, \\quad PD = \\Phi(-DD)",
+    "symbol_map": {
+      "asset_drift": "\\mu",
+      "asset_value": "V",
+      "asset_volatility": "\\sigma",
+      "debt_face_value": "D",
+      "horizon": "T",
+      "risk_free_rate": "r"
+    }
+  },
+  "kri_threshold_breach_detection": {
+    "caveat": "For direction='lower_breach' the code reverses every inequality (red when V<=R, amber when R<V<=A, green when V>A) \u2014 the formula above shows only the higher_breach branch.",
+    "citation": null,
+    "formula_latex": "\\text{status} = \\begin{cases} \\text{red} & V \\ge R \\\\ \\text{amber} & A \\le V < R \\\\ \\text{green} & V < A \\end{cases} \\quad (\\text{direction}=\\text{higher\\_breach})",
+    "symbol_map": {
+      "amber_threshold": "A",
+      "red_threshold": "R",
+      "value": "V"
+    }
+  },
+  "kri_trend_analysis": {
+    "caveat": "Trend classification is a rule layered on the OLS slope: 'stable' uses a scale-relative threshold (1e-4 x mean(|observations|)); the deteriorating/improving call also depends on the higher_is_worse flag, which flips which slope sign counts as adverse.",
+    "citation": null,
+    "formula_latex": "\\hat\\beta_1 = \\arg\\min_{\\beta_0,\\beta_1} \\sum_t \\big(y_t - (\\beta_0+\\beta_1 t)\\big)^2 \\quad (\\text{OLS slope, } t=0,\\dots,n-1) \\\\ \\text{trend} = \\text{stable if } |\\hat\\beta_1| < 10^{-4}\\overline{|y|},\\ \\text{else deteriorating/improving by sign of } \\hat\\beta_1",
+    "symbol_map": {
+      "observations": "y_t"
+    }
+  },
+  "kupiec_pof_test": {
+    "caveat": "Boundary cases x=0 or x=n use a simplified one-sided form of this likelihood ratio (avoiding ln(0)); the general expression above applies for 0<x<n.",
+    "citation": null,
+    "formula_latex": "LR_{POF} = -2\\Big[(n-x)\\ln(1-p) + x\\ln p - (n-x)\\ln(1-\\hat\\pi) - x\\ln\\hat\\pi\\Big],\\quad p = 1-\\alpha,\\ \\hat\\pi = x/n",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "n_breaches": "x",
+      "n_observations": "n"
+    }
+  },
+  "liquidity_adjusted_es": {
+    "caveat": null,
+    "citation": "FRTB IMA, MAR33.12",
+    "formula_latex": "ES_{LA} = \\sqrt{ ES_{base}^2 + \\sum_{j=2}^{K} \\Big( ES_j \\sqrt{\\tfrac{LH_j-LH_{j-1}}{T}} \\Big)^2 }",
+    "symbol_map": {
+      "base_horizon": "T",
+      "es_base": "ES_{base}",
+      "liquidity_horizons": "LH_j",
+      "partial_es": "ES_j"
+    }
+  },
+  "liquidity_adjusted_nii": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "NII_{adj} = NII_{base} + B\\,(y_B-c_F-p_{liq})",
+    "symbol_map": {
+      "base_nii": "NII_{base}",
+      "buffer_yield": "y_B",
+      "funding_cost": "c_F",
+      "liquidity_buffer": "B",
+      "liquidity_premium": "p_{liq}"
+    }
+  },
+  "liquidity_adjusted_portfolio_var": {
+    "caveat": null,
+    "citation": "Bangia-Diebold-Schuermann simplified add-on",
+    "formula_latex": "\\sigma_p = \\sqrt{w^\\top \\Sigma w} \\\\ LVaR = z_\\alpha \\sigma_p \\sqrt{h} + \\frac{1}{2}\\sum_i |w_i|\\, s_i, \\quad z_\\alpha = \\Phi^{-1}(\\alpha)",
+    "symbol_map": {
+      "bid_ask_spreads": "s_i",
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "horizon_days": "h",
+      "weights": "w_i"
+    }
+  },
+  "liquidity_buffer_sizing": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Peak} = \\max\\Big(0,\\ \\max_i \\sum_{j \\le i} O_j\\Big) \\\\ \\text{RequiredBuffer} = \\text{Peak} \\times (1 + c)",
+    "symbol_map": {
+      "confidence_buffer": "c",
+      "stressed_net_outflows": "O_j"
+    }
+  },
+  "liquidity_coverage_ratio_lcr": {
+    "caveat": null,
+    "citation": "BCBS 238 \u00a769",
+    "formula_latex": "\\text{CappedInflows} = \\min(GI,\\ c \\cdot GO) \\\\ NO = \\max\\big(GO - \\text{CappedInflows},\\ (1-c)\\,GO\\big) \\\\ LCR = \\frac{HQLA}{NO}",
+    "symbol_map": {
+      "gross_inflows": "GI",
+      "gross_outflows": "GO",
+      "hqla": "HQLA",
+      "inflow_cap": "c"
+    }
+  },
+  "liquidity_gap_analysis": {
+    "caveat": "Unlike the two cash-flow-ladder functions, this cumulative gap is NOT offset by an opening balance (the function takes no such parameter).",
+    "citation": null,
+    "formula_latex": "\\text{Gap}_i = A_i - L_i \\\\ \\text{CumulativeGap}_i = \\sum_{j \\le i} \\text{Gap}_j \\\\ \\text{GapRatio}_i = \\frac{A_i}{L_i}",
+    "symbol_map": {
+      "asset_maturities": "A_i",
+      "liability_maturities": "L_i"
+    }
+  },
+  "liquidity_risk_appetite_threshold": {
+    "caveat": "Piecewise categorical rule; the comparison direction flips (green <= amber <= metric) when higher_is_better is False. Shown here for the higher-is-better case.",
+    "citation": null,
+    "formula_latex": "\\text{Zone} = \\begin{cases} \\text{green} & m \\ge \\tau_g \\\\ \\text{amber} & \\tau_a \\le m < \\tau_g \\\\ \\text{red} & m < \\tau_a \\end{cases} \\quad (\\text{higher\\_is\\_better case; comparisons invert when lower is better})",
+    "symbol_map": {
+      "amber_threshold": "\\tau_a",
+      "green_threshold": "\\tau_g",
+      "metric_value": "m"
+    }
+  },
+  "liquidity_scorecard_aggregation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Composite} = \\frac{\\sum_i s_i w_i}{\\sum_i w_i}",
+    "symbol_map": {
+      "scores": "s_i",
+      "weights": "w_i"
+    }
+  },
+  "liquidity_stress_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "O = \\sum_i B_i r_i \\\\ N = O - I \\\\ \\text{Surplus} = HQLA - N",
+    "symbol_map": {
+      "balances": "B_i",
+      "hqla": "HQLA",
+      "inflows": "I",
+      "runoff_rates": "r_i"
+    }
+  },
+  "liquidity_transfer_pricing": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "r_{all\\text{-}in} = r_{base} + s_{liq} + s_{cont} \\\\ \\text{AnnualCharge} = N \\cdot r_{all\\text{-}in} \\\\ \\text{LifetimeCharge} = N \\cdot r_{all\\text{-}in} \\cdot T",
+    "symbol_map": {
+      "base_rate": "r_{base}",
+      "contingent_spread": "s_{cont}",
+      "liquidity_spread": "s_{liq}",
+      "notional": "N",
+      "tenor_years": "T"
+    }
+  },
+  "liquidity_var_liqvar": {
+    "caveat": "liqvar is a simulated order statistic of a floored-at-zero normal-shock model (Z pre-drawn per CLAUDE.md RULE 3), cross-validated only against its own analytic normal counterpart liqvar_analytic, not against a regulatory reference; the index is floor(confidence_level * n_simulations) capped at n_simulations-1, 0-indexed into the sorted draws.",
+    "citation": null,
+    "formula_latex": "X_i = \\max\\big(0,\\ \\mu(1+\\sigma Z_i)\\big), \\quad Z_i \\sim N(0,1) \\\\ LiqVaR = X_{(\\lfloor \\alpha n \\rfloor)} \\\\ LiqVaR_{analytic} = \\max\\big(0,\\ \\mu(1+\\sigma\\,\\Phi^{-1}(\\alpha))\\big)",
+    "symbol_map": {
+      "base_outflow": "\\mu",
+      "confidence_level": "\\alpha",
+      "outflow_vol": "\\sigma"
+    }
+  },
+  "lmm_bgm_rate_model": {
+    "caveat": "Log-Euler discretisation of the standard log-normal BGM spot-measure drift; the drift sum for rate i includes j=i itself (range(i+1)) alongside all earlier-maturity rates j<i. Rates are updated sequentially within a step (f_i is overwritten immediately after being computed), so the drift for rate i actually uses the SAME step's already-updated f_j for j<i, not their start-of-step values \u2014 a specific sequential-Euler discretisation choice, not a fully simultaneous update.",
+    "citation": null,
+    "formula_latex": "f_i(t+\\Delta t)=f_i(t)\\exp\\!\\left[\\left(\\sum_{j\\le i}\\frac{\\tau f_j(t)\\sigma_j\\sigma_i}{1+\\tau f_j(t)}-\\tfrac12\\sigma_i^2\\right)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right],\\qquad \\Delta t=\\frac{T_{hz}}{n_{steps}}",
+    "symbol_map": {
+      "forward_rates": "f_i(0)",
+      "horizon": "T_{hz}",
+      "tenor": "\\tau",
+      "vols": "\\sigma_i"
+    }
+  },
+  "loan_prepayment_rate_cpr": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "CPR = 1-(1-SMM)^{12} \\quad SMM = 1-(1-CPR)^{1/12}",
+    "symbol_map": {
+      "cpr": "CPR",
+      "smm": "SMM"
+    }
+  },
+  "local_volatility_dupire_model": {
+    "caveat": "Partial derivatives are finite differences on the supplied discrete (maturities x strikes) grid (forward difference in T, central differences in K), evaluated only at interior grid points; spot is used solely for a positivity check, not in the formula itself.",
+    "citation": null,
+    "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}",
+    "symbol_map": {
+      "call_surface": "C(K,T)",
+      "maturities": "T",
+      "rate": "r",
+      "strikes": "K"
+    }
+  },
+  "logistic_regression_pd_model": {
+    "caveat": "Coefficients are fit by Newton-Raphson (IRLS) maximum-likelihood iteration to convergence, not a closed form; the formula shown is the final sigmoid link and the per-iteration update rule.",
+    "citation": null,
+    "formula_latex": "PD = \\sigma(\\beta_0+x\\cdot\\beta) = \\frac{1}{1+e^{-(\\beta_0+x\\cdot\\beta)}} \\\\ \\beta^{(t+1)} = \\beta^{(t)} + \\big(X^\\top W X+\\rho I\\big)^{-1} X^\\top(y-\\hat y)",
+    "symbol_map": {
+      "defaults": "y",
+      "features": "x",
+      "ridge": "\\rho"
+    }
+  },
+  "lookback_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Floating:}\\ \\text{Call}=e^{-r\\tau}\\mathbb E[S_T-S_{min}],\\quad \\text{Put}=e^{-r\\tau}\\mathbb E[S_{max}-S_T]\\\\ \\text{Fixed:}\\ \\text{Call}=e^{-r\\tau}\\mathbb E[\\max(S_{max}-K,0)],\\quad \\text{Put}=e^{-r\\tau}\\mathbb E[\\max(K-S_{min},0)]",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "loss_data_collection_framework": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Reportable} = \\{\\,A_i : A_i \\ge \\tau\\,\\} \\\\ \\text{total\\_loss} = \\sum_{A_i \\ge \\tau} A_i, \\quad \\text{max\\_loss} = \\max_{A_i \\ge \\tau} A_i",
+    "symbol_map": {
+      "reporting_threshold": "\\tau"
+    }
+  },
+  "loss_distribution_approach_lda": {
+    "caveat": "This is the composed pipeline (fit frequency + fit severity + Monte Carlo quantile), not a single closed-form equation; n_years and seed control the simulation but don't appear as formula symbols.",
+    "citation": null,
+    "formula_latex": "\\hat\\lambda = \\overline{N}, \\quad \\hat\\mu = \\overline{\\ln X}, \\quad \\hat\\sigma = \\text{std}(\\ln X) \\\\ L_y \\sim \\text{Poisson}(\\hat\\lambda) \\otimes \\text{LogNormal}(\\hat\\mu,\\hat\\sigma) \\ \\text{(simulated)} \\\\ OpVaR_\\alpha = L_{(k)},\\ k=\\lfloor \\alpha n \\rfloor, \\quad Capital = \\max(OpVaR_\\alpha - \\overline{L},\\,0)",
+    "symbol_map": {
+      "annual_event_counts": "N_i",
+      "confidence_level": "\\alpha",
+      "loss_amounts": "X_i"
+    }
+  },
+  "loss_event_classification_basel": {
+    "caveat": "This is a membership lookup against the fixed 7 Basel II Level-1 event-type categories, not a numeric equation.",
+    "citation": "BCBS 128, Annex 9",
+    "formula_latex": "\\text{valid} = \\big(ET \\in \\mathcal{C}_{Basel}\\big) \\\\ idx = \\begin{cases} \\text{index}(ET) & \\text{valid} \\\\ -1 & \\text{otherwise} \\end{cases}",
+    "symbol_map": {
+      "event_type": "ET"
+    }
+  },
+  "loss_given_default_lgd_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "LGD_i = \\text{clip}\\!\\left(1-\\frac{R_i-c\\,EAD_i}{EAD_i},\\ 0,\\ 1\\right), \\quad LGD = \\frac{\\sum_i LGD_i\\,EAD_i}{\\sum_i EAD_i}",
+    "symbol_map": {
+      "exposure_amounts": "EAD_i",
+      "recovery_amounts": "R_i",
+      "workout_cost_rate": "c"
+    }
+  },
+  "macaulay_duration_balance_sheet": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{mac} = \\dfrac{\\sum_i t_i\\,CF_i\\,e^{-y t_i}}{\\sum_i CF_i\\,e^{-y t_i}}",
+    "symbol_map": {
+      "cashflows": "CF_i",
+      "discount_rate": "y",
+      "times": "t_i"
+    }
+  },
+  "machine_learning_pd_calibration": {
+    "caveat": "a and b (slope/intercept) are fit by the same Newton-Raphson logistic solver as logistic_regression_pd_model, on the single-feature design [1, score].",
+    "citation": null,
+    "formula_latex": "PD = \\sigma(a\\cdot\\text{score}+b) = \\frac{1}{1+e^{-(a\\cdot\\text{score}+b)}}",
+    "symbol_map": {
+      "raw_scores": "\\text{score}"
+    }
+  },
+  "macro_scenario_generator": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "scenarios = Z\\,L^\\top,\\quad L=\\text{chol}(\\Sigma),\\ Z_{i,\\cdot}\\sim N(0,I)",
+    "symbol_map": {
+      "factor_cov": "\\Sigma",
+      "n_scenarios": "N(\\text{rows of }Z)"
+    }
+  },
+  "macroeconomic_overlays_ecl": {
+    "caveat": "Bespoke internal overlay formula \u2014 the multiplicative macro-adjustment structure is an implementation choice, confirmed against BIS/EBA sources in the domain's reference-validation audit not to reproduce a specific published or regulatory formula.",
+    "citation": null,
+    "formula_latex": "m = \\max\\Big(1+\\sum_j \\beta_j f_j,\\ 0\\Big), \\quad ECL_{model}=ECL_{base}\\cdot m, \\quad ECL_{adj}=\\max(ECL_{model}+O,\\ 0)",
+    "symbol_map": {
+      "base_ecl": "ECL_{base}",
+      "macro_factors": "f_j",
+      "management_overlay": "O",
+      "sensitivities": "\\beta_j"
+    }
+  },
+  "margin_valuation_adjustment_mva": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Delta t_k = t_k-t_{k-1}, \\quad MVA = s_m\\sum_k IM_k\\,DF_k\\,\\Delta t_k",
+    "symbol_map": {
+      "discount_factors": "DF_k",
+      "initial_margin_profile": "IM_k",
+      "margin_funding_spread": "s_m",
+      "time_steps": "t_k"
+    }
+  },
+  "marginal_contribution_to_risk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_p = \\sqrt{w^\\top \\Sigma w} \\\\ MCR_i = \\frac{(\\Sigma w)_i}{\\sigma_p}, \\quad CCR_i = w_i \\cdot MCR_i, \\quad \\sum_i CCR_i = \\sigma_p",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "weights": "w"
+    }
+  },
+  "marginal_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\frac{\\partial VaR}{\\partial w_i} = z_\\alpha\\,\\frac{(\\Sigma w)_i}{\\sigma_p},\\quad \\sigma_p=\\sqrt{w^\\top\\Sigma w}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "weights": "w"
+    }
+  },
+  "market_wide_stress_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ \\text{Surplus} = HQLA_{stressed} - O",
+    "symbol_map": {
+      "hqla_by_level": "H_i",
+      "market_haircuts": "h_i",
+      "outflow": "O"
+    }
+  },
+  "maturity_adjustment_basel_irb": {
+    "caveat": null,
+    "citation": "CRE31.6",
+    "formula_latex": "b(PD) = (0.11852 - 0.05478\\ln PD)^2, \\quad MA = \\frac{1+(M-2.5)\\,b(PD)}{1-1.5\\,b(PD)}",
+    "symbol_map": {
+      "maturity": "M",
+      "pd": "PD"
+    }
+  },
+  "maximum_drawdown": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "MDD = \\max_t \\frac{P_t - V_t}{P_t}, \\quad P_t = \\max_{s \\le t} V_s",
+    "symbol_map": {
+      "returns": "V_t"
+    }
+  },
+  "maximum_sharpe_ratio_portfolio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\max_w\\; \\frac{w^\\top \\mu - r_f/T}{\\sqrt{w^\\top \\Sigma w}} \\quad \\text{s.t. } \\sum_i w_i = 1",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "mean_returns": "\\mu",
+      "periods_per_year": "T",
+      "risk_free": "r_f"
+    }
+  },
+  "mean_variance_optimisation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\max_w\\; w^\\top \\mu - \\frac{1}{2}\\lambda\\, w^\\top \\Sigma w \\quad \\text{s.t. } \\sum_i w_i = 1",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "mean_returns": "\\mu",
+      "risk_aversion": "\\lambda"
+    }
+  },
+  "mifid_ii_algorithm_documentation": {
+    "caveat": "The 6-item documentation checklist is this codebase's internal choice, not a formula published by RTS 6 itself.",
+    "citation": "RTS 6",
+    "formula_latex": "completeness = 1 - \\frac{|\\text{missing items}|}{6}",
+    "symbol_map": {}
+  },
+  "mifid_ii_best_execution_metric": {
+    "caveat": "Not an RTS 27/28-prescribed figure -- the function's own docstring states this is an internal TCA metric only, since neither RTS 27 nor RTS 28 defines a quantity-weighted price-improvement-in-bps field.",
+    "citation": null,
+    "formula_latex": "PriceImprovement_{bps} = \\frac{\\sum_i side \\times (bench_i - p_i) \\times q_i}{\\sum_i bench_i \\times q_i} \\times 10^4",
+    "symbol_map": {
+      "benchmark_prices": "bench_i",
+      "executed_prices": "p_i",
+      "quantities": "q_i",
+      "side": "side"
+    }
+  },
+  "mifid_ii_post_trade_transparency": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "deferral = (trade\\_size \\ge threshold) \\vee \\neg is\\_liquid",
+    "symbol_map": {
+      "delayed_publication_threshold": "threshold",
+      "is_liquid": "is\\_liquid",
+      "trade_size": "trade\\_size"
+    }
+  },
+  "mifid_ii_pre_trade_transparency": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "waiver = \\begin{cases} \\text{large\\_in\\_scale} & order\\_size \\ge LIS_{threshold} \\\\ \\text{illiquid\\_instrument} & \\neg is\\_liquid \\\\ \\text{none} & \\text{otherwise} \\end{cases}",
+    "symbol_map": {
+      "is_liquid": "is\\_liquid",
+      "large_in_scale_threshold": "LIS_{threshold}",
+      "order_size": "order\\_size"
+    }
+  },
+  "mifid_ii_transaction_report_validator": {
+    "caveat": "Checks a representative core subset (9 fields) of RTS 22's ~65 mandatory transaction-report fields, not full schema coverage.",
+    "citation": "RTS 22",
+    "formula_latex": "valid = (\\text{required fields present}) \\wedge (|LEI| = 20) \\wedge (|ISIN| = 12) \\wedge (price > 0) \\wedge (quantity > 0)",
+    "symbol_map": {}
+  },
+  "minimum_variance_portfolio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\min_w\\; w^\\top \\Sigma w \\quad \\text{s.t. } \\sum_i w_i = 1 \\\\ w^{*} = \\frac{\\Sigma^{-1}\\mathbf{1}}{\\mathbf{1}^\\top \\Sigma^{-1}\\mathbf{1}} \\;\\; \\text{(closed form when shorting allowed)}",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma"
+    }
+  },
+  "model_risk_assessment": {
+    "caveat": "The docstring names SR 11-7 / PRA SS1/23 only as the general style of materiality x complexity tiering this follows; the specific 1-5 scale, multiplication, and RAG thresholds are pyvar's own and not values prescribed by either document.",
+    "citation": "SR 11-7 / PRA SS1/23 style",
+    "formula_latex": "I = M \\times C \\\\ R = I \\times (1 - V)",
+    "symbol_map": {
+      "complexity": "C",
+      "materiality": "M",
+      "validation_score": "V"
+    }
+  },
+  "modified_duration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{mod}=\\frac{D_{Mac}}{1+y/m},\\qquad D_{Mac}=\\frac{\\sum_k t_k\\, CF_k(1+y/m)^{-m t_k}}{\\sum_k CF_k(1+y/m)^{-m t_k}}",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "times": "t_k",
+      "yield_rate": "y"
+    }
+  },
+  "modified_duration_balance_sheet": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "D_{mac} = \\dfrac{\\sum_i t_i\\,CF_i\\,e^{-y t_i}}{\\sum_i CF_i\\,e^{-y t_i}} \\quad D_{mod} = \\dfrac{D_{mac}}{1+y/m}",
+    "symbol_map": {
+      "cashflows": "CF_i",
+      "discount_rate": "y",
+      "frequency": "m",
+      "times": "t_i"
+    }
+  },
+  "monte_carlo_expected_shortfall": {
+    "caveat": "Reads es_pct/es_abs from the parametric-normal Monte Carlo VaR kernel (engine.montecarlo.run_monte_carlo_var); mu, sigma are fitted from the returns argument.",
+    "citation": null,
+    "formula_latex": "P\\&L_i = \\sum_{t=1}^{h}(\\mu+\\sigma z_{i,t}),\\ z_{i,t}\\sim N(0,1),\\quad L_i=-P\\&L_i \\\\ ES_\\alpha = \\frac{1}{N-\\lfloor\\alpha N\\rfloor}\\sum_{i=\\lfloor\\alpha N\\rfloor}^{N-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "horizon_days": "h",
+      "n_simulations": "N"
+    }
+  },
+  "monte_carlo_oprisk_capital": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "L_y \\sim \\text{Poisson}(\\lambda) \\otimes \\text{LogNormal}(\\mu,\\sigma) \\ \\text{(simulated over } n \\text{ years)} \\\\ k = \\lfloor \\alpha n \\rfloor, \\quad OpVaR_\\alpha = L_{(k)}, \\quad EL = \\overline{L} \\\\ Capital = \\max(OpVaR_\\alpha - EL,\\,0), \\quad ES_\\alpha = \\frac{1}{n-k}\\sum_{i=k}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "frequency_lambda": "\\lambda",
+      "n_years": "n",
+      "severity_mu": "\\mu",
+      "severity_sigma": "\\sigma"
+    }
+  },
+  "monte_carlo_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_T=S_0\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\tau+\\sigma\\sqrt\\tau\\,Z\\big],\\quad Z\\sim N(0,1)\\\\\\text{Price}=e^{-r\\tau}\\,\\frac1N\\sum_{i=1}^{N}\\max(\\phi(S_T^{(i)}-K),0)",
+    "symbol_map": {
+      "div_yield": "q",
+      "n_simulations": "N",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "monte_carlo_portfolio_simulation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "R_{s,t} = \\mu + L z_{s,t}, \\quad \\Sigma = L L^\\top \\\\ \\Pi_s = V_0\\left[\\prod_{t=1}^{H}\\big(1 + w^\\top R_{s,t}\\big) - 1\\right] \\\\ VaR_\\alpha = \\text{Quantile}_\\alpha(-\\Pi), \\quad ES_\\alpha = \\mathbb{E}\\big[-\\Pi \\mid -\\Pi \\ge VaR_\\alpha\\big]",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "horizon": "H",
+      "mean_returns": "\\mu",
+      "portfolio_value": "V_0",
+      "weights": "w"
+    }
+  },
+  "near_miss_capture_framework": {
+    "caveat": "Rule-based filter/count over the events list (actual_loss==0 and potential_loss>0 defines a near-miss); actual_loss and potential_loss are per-event dict keys, not top-level function parameters, so symbol_map is empty.",
+    "citation": null,
+    "formula_latex": "N_{nm} = \\sum_i \\mathbb{1}[AL_i=0 \\wedge PL_i>0] \\\\ TPL = \\sum_i PL_i \\cdot \\mathbb{1}[AL_i=0 \\wedge PL_i>0]",
+    "symbol_map": {}
+  },
+  "nelson_siegel_curve_fit": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "y(t)=\\beta_0+\\beta_1\\frac{1-e^{-t/\\tau}}{t/\\tau}+\\beta_2\\left(\\frac{1-e^{-t/\\tau}}{t/\\tau}-e^{-t/\\tau}\\right)",
+    "symbol_map": {
+      "maturities": "t",
+      "yields": "y(t)"
+    }
+  },
+  "nelson_siegel_svensson_curve": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "y(t)=\\beta_0+\\beta_1 f_1(t)+\\beta_2\\big(f_1(t)-e^{-t/\\tau_1}\\big)+\\beta_3\\big(f_2(t)-e^{-t/\\tau_2}\\big),\\qquad f_i(t)=\\frac{1-e^{-t/\\tau_i}}{t/\\tau_i}",
+    "symbol_map": {
+      "maturities": "t",
+      "yields": "y(t)"
+    }
+  },
+  "net_stable_funding_ratio_nsfr": {
+    "caveat": null,
+    "citation": "BCBS 295",
+    "formula_latex": "NSFR = \\frac{ASF}{RSF}",
+    "symbol_map": {
+      "available_stable_funding": "ASF",
+      "required_stable_funding": "RSF"
+    }
+  },
+  "nii_sensitivity_rate_shock": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Delta NII = (RSA-RSL)\\cdot \\Delta y",
+    "symbol_map": {
+      "rate_sensitive_assets": "RSA",
+      "rate_sensitive_liabilities": "RSL",
+      "rate_shock": "\\Delta y"
+    }
+  },
+  "nii_simulation_baseline": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "NII = \\sum_i A_i r_i^A - \\sum_j L_j r_j^L",
+    "symbol_map": {
+      "asset_balances": "A_i",
+      "asset_rates": "r_i^A",
+      "liability_balances": "L_j",
+      "liability_rates": "r_j^L"
+    }
+  },
+  "nii_simulation_stress": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\begin{aligned}NII_{base} &=\\sum_i A_i r_i^A - \\sum_j L_j r_j^L\\\\NII_{stress} &=\\sum_i A_i(r_i^A+\\beta_A\\Delta y)-\\sum_j L_j(r_j^L+\\beta_L\\Delta y)\\\\\\Delta NII &= NII_{stress}-NII_{base}\\end{aligned}",
+    "symbol_map": {
+      "asset_balances": "A_i",
+      "asset_beta": "\\beta_A",
+      "asset_rates": "r_i^A",
+      "liability_balances": "L_j",
+      "liability_beta": "\\beta_L",
+      "liability_rates": "r_j^L",
+      "rate_shock": "\\Delta y"
+    }
+  },
+  "non_maturity_deposit_stability": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "B_{stable} = \\mathrm{Percentile}_{(1-c)\\times100\\%}\\big(\\{B_t\\}\\big) \\quad B_{volatile} = \\max(B_{current}-B_{stable},0) \\quad f_{stable} = \\dfrac{B_{stable}}{B_{current}}",
+    "symbol_map": {
+      "balance_history": "\\{B_t\\}",
+      "confidence_level": "c"
+    }
+  },
+  "normal_inverse_gaussian_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\gamma=\\sqrt{\\alpha^2-\\beta^2},\\qquad \\omega=\\delta\\big(\\sqrt{\\alpha^2-(\\beta+1)^2}-\\gamma\\big)\\\\G\\sim IG\\Big(\\mu=\\frac{\\delta\\tau}{\\gamma},\\ \\lambda=(\\delta\\tau)^2\\Big)\\\\\\ln S_T=\\ln S_0+(r+\\omega)\\tau+\\beta G+\\sqrt{G}\\,Z\\\\\\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(S_T-K),0)\\big]",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "beta": "\\beta",
+      "delta": "\\delta",
+      "rate": "r",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "oas_option_adjusted_spread": {
+    "caveat": "Root-found (Brent) against the callable_bond_pricer tree price rather than expressed in closed form; the equation shown is the defining condition the solver satisfies, not an explicit OAS formula.",
+    "citation": null,
+    "formula_latex": "\\text{Solve } s^{*} \\text{ such that } P_{callable}\\big(F,c_r,r_0+s^{*},\\sigma_r,T,K_{call},m\\big)=P_{market}",
+    "symbol_map": {
+      "call_price": "K_{call}",
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "market_price": "P_{market}",
+      "maturity": "T",
+      "rate_vol": "\\sigma_r",
+      "short_rate": "r_0"
+    }
+  },
+  "ois_curve_sonia_sofr": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DF_i=\\frac{1-r_i A_{i-1}}{1+r_i\\tau},\\qquad A_i=A_{i-1}+\\tau\\,DF_i,\\qquad z_i=-\\frac{\\ln DF_i}{t_i},\\qquad \\tau=\\frac1m",
+    "symbol_map": {
+      "frequency": "m",
+      "maturities": "t_i",
+      "ois_rates": "r_i"
+    }
+  },
+  "omega_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Omega(\\theta) = \\frac{\\sum_t \\max(r_t - \\theta, 0)}{\\sum_t \\max(\\theta - r_t, 0)}",
+    "symbol_map": {
+      "returns": "r_t",
+      "threshold": "\\theta"
+    }
+  },
+  "operational_var_opvar": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "k = \\lfloor \\alpha n \\rfloor \\\\ OpVaR_\\alpha = L_{(k)}, \\quad ES_\\alpha = \\frac{1}{n-k}\\sum_{i=k}^{n-1} L_{(i)}, \\quad EL = \\overline{L}",
+    "symbol_map": {
+      "annual_losses": "L",
+      "confidence_level": "\\alpha"
+    }
+  },
+  "oprisk_capital_allocation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_i = \\frac{R_i}{\\sum_j R_j} \\times TC",
+    "symbol_map": {
+      "business_line_risks": "R_i",
+      "total_capital": "TC"
+    }
+  },
+  "oprisk_economic_capital": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "EC = \\max\\Big(\\max(OpVaR - EL,\\,0) - (IO + DB),\\,0\\Big)",
+    "symbol_map": {
+      "diversification_benefit": "DB",
+      "expected_loss": "EL",
+      "insurance_offset": "IO",
+      "opvar": "OpVaR"
+    }
+  },
+  "oprisk_heat_map_generator": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_i = L_i \\times I_i \\\\ \\text{Matrix}_{a,b} = \\#\\{\\,i : L_i=a,\\ I_i=b\\,\\}, \\quad a,b \\in \\{1,\\dots,5\\}",
+    "symbol_map": {
+      "impacts": "I_i",
+      "likelihoods": "L_i"
+    }
+  },
+  "oprisk_stress_testing": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "SC = B \\times (1+f) \\times (1+s)",
+    "symbol_map": {
+      "base_capital": "B",
+      "frequency_shock": "f",
+      "severity_shock": "s"
+    }
+  },
+  "option_risk_irrbb": {
+    "caveat": null,
+    "citation": "BCBS d368",
+    "formula_latex": "OptionRisk_{total}=V_{auto}+V_{behav},\\quad Ratio=\\dfrac{V_{auto}+V_{behav}}{N}",
+    "symbol_map": {
+      "automatic_option_value": "V_{auto}",
+      "behavioural_option_value": "V_{behav}",
+      "notional": "N"
+    }
+  },
+  "overnight_index_swap_ois": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "V=N\\,(r_{comp}-r_{fix})\\,\\tau\\,DF",
+    "symbol_map": {
+      "accrual": "\\tau",
+      "compounded_rate": "r_{comp}",
+      "discount_factor": "DF",
+      "fixed_rate": "r_{fix}",
+      "notional": "N"
+    }
+  },
+  "parametric_delta_normal_var": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha = z_\\alpha\\sqrt{w^\\top\\Sigma w}\\,\\sqrt{h}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "cov_matrix": "\\Sigma",
+      "horizon_days": "h",
+      "weights": "w"
+    }
+  },
+  "pillar_2a_capital": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Pillar2A_{capital} = \\sum_i addon_i \\\\ Pillar2A_{ratio} = \\frac{Pillar2A_{capital}}{RWA}",
+    "symbol_map": {
+      "risk_addons": "addon_i",
+      "risk_weighted_assets": "RWA"
+    }
+  },
+  "pillar_2b_stress_buffer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Pillar2B_{buffer} = \\max\\big(Stressed\\ Capital\\ Depletion,\\ 0\\big) \\\\ Buffer\\ ratio = \\frac{Pillar2B_{buffer}}{RWA}",
+    "symbol_map": {
+      "risk_weighted_assets": "RWA",
+      "stressed_capital_depletion": "Stressed\\ Capital\\ Depletion"
+    }
+  },
+  "pipeline_risk_measurement": {
+    "caveat": "rate_risk is a heuristic \u221atime-scaled volatility exposure proxy, not a rigorous option-pricing formula (the function's own docstring calls it a proxy).",
+    "citation": null,
+    "formula_latex": "E = N\\cdot p,\\quad RateRisk = E\\cdot\\sigma\\cdot\\sqrt{T}",
+    "symbol_map": {
+      "pipeline_notional": "N",
+      "pull_through_rate": "p",
+      "rate_lock_period": "T",
+      "rate_volatility": "\\sigma"
+    }
+  },
+  "pnl_attribution_test_frtb_pat": {
+    "caveat": null,
+    "citation": "BCBS FRTB \u00a79.5",
+    "formula_latex": "\\rho_s = \\text{Spearman}(RTPL, HPL),\\quad ratio = \\frac{\\sigma(RTPL)}{\\sigma(HPL)} \\\\ \\text{zone}=\\begin{cases}\\text{green} & |\\rho_s|\\ge0.80 \\text{ and } 0.8\\le ratio\\le1.2\\\\ \\text{amber} & |\\rho_s|\\ge0.70 \\text{ and } 0.6\\le ratio\\le1.5\\\\ \\text{red} & \\text{otherwise}\\end{cases}",
+    "symbol_map": {
+      "hypothetical_pnl": "HPL",
+      "risk_theoretical_pnl": "RTPL"
+    }
+  },
+  "point_in_time_pd_estimation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "z_{TTC} = \\Phi^{-1}(PD_{TTC}), \\quad z_{PIT} = z_{TTC} - \\beta\\,x, \\quad PD_{PIT} = \\Phi(z_{PIT})",
+    "symbol_map": {
+      "macro_index": "x",
+      "sensitivity": "\\beta",
+      "ttc_pd": "PD_{TTC}"
+    }
+  },
+  "portfolio_beta": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\beta = \\frac{\\text{Cov}(r, b)}{\\text{Var}(b)}, \\quad \\rho = \\frac{\\text{Cov}(r, b)}{\\sigma_r \\sigma_b}, \\quad R^2 = \\rho^2",
+    "symbol_map": {
+      "benchmark_returns": "b",
+      "returns": "r"
+    }
+  },
+  "portfolio_delta_aggregated": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Delta_{net}=\\sum_i \\delta_i q_i,\\quad \\Delta_{cash}=\\sum_i \\delta_i q_i S_i",
+    "symbol_map": {
+      "deltas": "\\delta_i",
+      "quantities": "q_i",
+      "spot_prices": "S_i"
+    }
+  },
+  "portfolio_turnover": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Turnover = \\frac{1}{2}\\sum_i \\left| w_i^{after} - w_i^{before} \\right|",
+    "symbol_map": {
+      "weights_after": "w_i^{after}",
+      "weights_before": "w_i^{before}"
+    }
+  },
+  "potential_future_exposure_pfe": {
+    "caveat": "Monte Carlo estimate: PFE(t) is the empirical quantile of the simulated positive-exposure distribution at each time step, not a closed-form expression.",
+    "citation": null,
+    "formula_latex": "V_t = V_0 + \\mu t + \\sigma\\sqrt{t}\\,Z,\\quad Z\\sim N(0,1) \\\\ PFE(t) = Q_q\\big(\\max(V_t,0)\\big)",
+    "symbol_map": {
+      "drift": "\\mu",
+      "initial_value": "V_0",
+      "quantile": "q",
+      "time_steps": "t",
+      "volatility": "\\sigma"
+    }
+  },
+  "prepayment_model_mortgages": {
+    "caveat": "Computed via a month-by-month recursive @njit loop (interest, scheduled principal, then prepayment on the remaining balance each month) -- the LaTeX shows the exact recursive relations rather than a single closed-form expression.",
+    "citation": null,
+    "formula_latex": "\\begin{aligned}PMT &= \\dfrac{P\\,r_m}{1-(1+r_m)^{-n}},\\ r_m=\\dfrac{r}{12},\\ n=12T,\\quad SMM = 1-(1-CPR)^{1/12}\\\\I_m &= B_{m-1}r_m,\\quad P_m^{sched}=\\min(PMT-I_m,\\,B_{m-1}),\\quad Prepay_m = SMM\\,(B_{m-1}-P_m^{sched})\\\\CF_m &= I_m+P_m^{sched}+Prepay_m,\\quad B_m = B_{m-1}-P_m^{sched}-Prepay_m\\\\WAL &= \\dfrac{\\sum_m (m/12)\\,CF_m}{\\sum_m CF_m}\\end{aligned}",
+    "symbol_map": {
+      "annual_rate": "r",
+      "cpr": "CPR",
+      "principal": "P",
+      "term_years": "T"
+    }
+  },
+  "principal_component_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Sigma v_k = \\lambda_k v_k \\\\ EVR_k = \\frac{\\lambda_k}{\\sum_j \\lambda_j}",
+    "symbol_map": {
+      "returns_matrix": "\\Sigma"
+    }
+  },
+  "probability_of_default_pd_estimation": {
+    "caveat": null,
+    "citation": "CRR Art. 160/163",
+    "formula_latex": "PD_{pooled} = \\min\\!\\left(\\max\\!\\left(\\frac{\\sum_i D_i}{\\sum_i N_i},\\ f\\right),\\ 1\\right)",
+    "symbol_map": {
+      "floor": "f",
+      "n_defaults": "D_i",
+      "n_obligors": "N_i"
+    }
+  },
+  "puttable_bond_pricer": {
+    "caveat": "Same simplified multiplicative short-rate lattice as callable_bond_pricer (fixed 0.5/0.5 branch probabilities, not calibrated to a market curve) \u2014 see that entry's caveat.",
+    "citation": null,
+    "formula_latex": "V_j^{(N)}=F+c;\\qquad V_j^{(k)}=\\max\\!\\left(K_{put},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right),\\qquad r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)},\\qquad \\text{Price}=V_0^{(0)}",
+    "symbol_map": {
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "maturity": "T",
+      "put_price": "K_{put}",
+      "rate_vol": "\\sigma_r",
+      "short_rate": "r_0"
+    }
+  },
+  "rainbow_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_{i,T}=S_{i,0}\\exp\\!\\big[(r-\\tfrac12\\sigma_i^2)\\tau+\\sigma_i\\sqrt\\tau\\,(LZ)_i\\big]\\\\\\text{ref}=\\max_i S_{i,T}\\ (\\text{best-of})\\ \\text{ or }\\ \\min_i S_{i,T}\\ (\\text{worst-of})\\\\\\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(\\text{ref}-K),0)\\big]",
+    "symbol_map": {
+      "correlation": "L\\ (\\text{Cholesky factor})",
+      "rate": "r",
+      "sigmas": "\\sigma_i",
+      "spots": "S_{i,0}",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "rates_pnl_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_{rates} = \\sum_t s_t\\cdot \\Delta y_t^{bp}",
+    "symbol_map": {
+      "key_rate_sensitivities": "s_t",
+      "yield_moves_bp": "\\Delta y_t^{bp}"
+    }
+  },
+  "ratings_migration_matrix": {
+    "caveat": "Rows with no observed obligors starting in that state are set to the identity (self-transition = 1) rather than left undefined, to keep the matrix row-stochastic.",
+    "citation": null,
+    "formula_latex": "P_{ij} = \\frac{\\#\\{k: f_k=i,\\ t_k=j\\}}{\\sum_j \\#\\{k: f_k=i,\\ t_k=j\\}}",
+    "symbol_map": {
+      "from_rating": "f_k",
+      "to_rating": "t_k"
+    }
+  },
+  "rcsa_control_effectiveness": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "E = w_D \\cdot D + (1-w_D) \\cdot O",
+    "symbol_map": {
+      "design_score": "D",
+      "design_weight": "w_D",
+      "operating_score": "O"
+    }
+  },
+  "rcsa_inherent_risk_scoring": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S = L \\times I",
+    "symbol_map": {
+      "impact": "I",
+      "likelihood": "L"
+    }
+  },
+  "rcsa_residual_risk_scoring": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "R = I \\times (1 - CE)",
+    "symbol_map": {
+      "control_effectiveness": "CE",
+      "inherent_score": "I"
+    }
+  },
+  "rcsa_risk_identification": {
+    "caveat": "Validation (checks risk_id/category keys and that category is one of the 7 Basel Level-1 types) plus a count-by-category aggregation, not a numeric formula; category is a per-entry dict key, not a top-level parameter, so symbol_map is empty.",
+    "citation": null,
+    "formula_latex": "\\text{by\\_category}[c] = \\sum_i \\mathbb{1}[\\text{category}_i = c]",
+    "symbol_map": {}
+  },
+  "realised_volatility": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "RV=\\sum_t r_t^2,\\quad \\sigma_{RV}=\\sqrt{RV},\\quad \\sigma_{ann}=\\sigma_{RV}\\sqrt{m}",
+    "symbol_map": {
+      "annualisation_factor": "m"
+    }
+  },
+  "rebalancing_optimiser": {
+    "caveat": "no_trade_band is a user-supplied absolute weight threshold, not one derived from cost/volatility parameters the way Leland (1999) or Donohue & Yip (2003) derive an optimal no-trade region; no published source reproduces this function's exact numbers.",
+    "citation": null,
+    "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i|",
+    "symbol_map": {
+      "cost_bps": "c_i",
+      "current_weights": "w_i^{cur}",
+      "no_trade_band": "b",
+      "target_weights": "w_i^{tgt}"
+    }
+  },
+  "recovery_rate_estimation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "RR = \\frac{\\sum_i R_i\\,DF_i}{\\sum_i EAD_i}, \\quad LGD = 1-RR",
+    "symbol_map": {
+      "discount_factors": "DF_i",
+      "exposure_amounts": "EAD_i",
+      "recovery_amounts": "R_i"
+    }
+  },
+  "regime_detection_hmm": {
+    "caveat": "Despite the _hmm name, this is a STATIONARY 2-component Gaussian mixture fit by EM (i.i.d. weights pi) -- there is no transition matrix, so regime persistence/switching probability is not modelled, only the marginal mixture; it is not a hidden Markov model.",
+    "citation": null,
+    "formula_latex": "p(x_i) = \\pi_0 \\mathcal{N}(x_i;\\mu_0,\\sigma_0^2) + \\pi_1 \\mathcal{N}(x_i;\\mu_1,\\sigma_1^2) \\\\ r_{i,k} = \\frac{\\pi_k \\mathcal{N}(x_i;\\mu_k,\\sigma_k^2)}{\\sum_j \\pi_j \\mathcal{N}(x_i;\\mu_j,\\sigma_j^2)} \\\\ \\mu_k = \\frac{\\sum_i r_{i,k}x_i}{\\sum_i r_{i,k}}, \\;\\; \\sigma_k^2 = \\frac{\\sum_i r_{i,k}(x_i-\\mu_k)^2}{\\sum_i r_{i,k}}, \\;\\; \\pi_k = \\frac{\\sum_i r_{i,k}}{n}",
+    "symbol_map": {
+      "returns": "x_i"
+    }
+  },
+  "regulatory_compliance_score": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Score = 100 \\times \\frac{\\sum_i w_i m_i}{\\sum_i w_i}",
+    "symbol_map": {
+      "requirements_met": "m_i",
+      "weights": "w_i"
+    }
+  },
+  "repo_market_stress_haircut": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "h^{stress}_i = \\min(h_i \\cdot m_i,\\ 1) \\\\ \\text{MarginCall}_i = V_i\\,(h^{stress}_i - h_i) \\\\ \\text{AdditionalMargin} = \\sum_i \\text{MarginCall}_i",
+    "symbol_map": {
+      "base_haircuts": "h_i",
+      "collateral_values": "V_i",
+      "stress_multipliers": "m_i"
+    }
+  },
+  "repricing_gap_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "gap_i = RSA_i-RSL_i,\\quad CumGap_k=\\sum_{i\\le k}gap_i",
+    "symbol_map": {
+      "bucket_assets": "RSA_i",
+      "bucket_liabilities": "RSL_i"
+    }
+  },
+  "repricing_maturity_profile": {
+    "caveat": "The bucket-profile allocation is a discrete binning operation (np.digitize against bucket_edges), not a closed-form sum in the usual sense; shown here as an indicator-weighted sum for clarity.",
+    "citation": null,
+    "formula_latex": "Profile_k = \\sum_{i:\\,t_i^{repr}\\in[e_k,e_{k+1})} B_i \\quad WAvg = \\dfrac{\\sum_i B_i\\,t_i^{repr}}{\\sum_i B_i}",
+    "symbol_map": {
+      "balances": "B_i",
+      "bucket_edges": "e_k",
+      "repricing_times": "t_i^{repr}"
+    }
+  },
+  "required_stable_funding_rsf_calc": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "RSF = \\sum_i A_i \\cdot \\beta_i",
+    "symbol_map": {
+      "asset_amounts": "A_i",
+      "rsf_factors": "\\beta_i"
+    }
+  },
+  "resampled_efficient_frontier": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\hat\\Sigma^{(k)} = \\text{Cov}\\big(\\text{sample}^{(k)}\\big), \\;\\; \\text{sample}^{(k)} \\sim \\mathcal{N}(\\mu, \\Sigma, n_{obs}) \\\\ w^{(k)*} = \\arg\\min_w\\; w^\\top \\hat\\Sigma^{(k)} w \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1 \\\\ \\bar w = \\frac{1}{K}\\sum_{k=1}^{K} w^{(k)*}",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "mean_returns": "\\mu",
+      "n_obs": "n_{obs}",
+      "n_resamples": "K"
+    }
+  },
+  "residual_pnl_unexplained": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Residual = PnL_{actual} - \\sum_i C_i,\\quad ratio = \\frac{\\sum_i C_i}{PnL_{actual}}",
+    "symbol_map": {
+      "actual_pnl": "PnL_{actual}",
+      "explained_components": "C_i"
+    }
+  },
+  "residual_risk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\beta = \\frac{\\text{Cov}(r, b)}{\\text{Var}(b)}, \\quad \\alpha = \\bar r - \\beta \\bar b \\\\ \\sigma_\\epsilon = \\sqrt{T} \\cdot \\text{std}(r_t - \\alpha - \\beta b_t)",
+    "symbol_map": {
+      "benchmark_returns": "b",
+      "periods_per_year": "T",
+      "returns": "r"
+    }
+  },
+  "retail_deposit_runoff_rate": {
+    "caveat": null,
+    "citation": "Basel LCR categories",
+    "formula_latex": "\\text{TotalRunoff} = \\sum_i B_i r_i \\\\ \\text{BlendedRate} = \\frac{\\sum_i B_i r_i}{\\sum_i B_i}",
+    "symbol_map": {
+      "deposit_balances": "B_i",
+      "runoff_rates": "r_i"
+    }
+  },
+  "retail_scorecard_pd_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{score} = b_0+\\sum_k v_k p_k, \\quad \\text{odds} = O_0\\cdot 2^{(\\text{score}-s_0)/PDO}, \\quad PD = \\frac{1}{1+\\text{odds}}",
+    "symbol_map": {
+      "base_odds": "O_0",
+      "base_points": "b_0",
+      "base_score": "s_0",
+      "feature_values": "v_k",
+      "pdo": "PDO",
+      "points_per_feature": "p_k"
+    }
+  },
+  "return_attribution_brinson": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_i = (w^p_i - w^b_i)(r^b_i - R^b) \\\\ S_i = w^b_i(r^p_i - r^b_i) \\\\ I_i = (w^p_i - w^b_i)(r^p_i - r^b_i) \\\\ R^{active} = \\sum_i (A_i + S_i + I_i) = R^p - R^b",
+    "symbol_map": {
+      "benchmark_returns": "r^b_i",
+      "benchmark_weights": "w^b_i",
+      "portfolio_returns": "r^p_i",
+      "portfolio_weights": "w^p_i"
+    }
+  },
+  "reverse_stress_testing": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "s^{*} = -\\frac{L}{e^\\top\\Sigma e}\\,\\Sigma e,\\quad m=\\frac{L}{\\sqrt{e^\\top\\Sigma e}}",
+    "symbol_map": {
+      "exposures": "e",
+      "factor_cov": "\\Sigma",
+      "target_loss": "L"
+    }
+  },
+  "rho_interest_rate": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\rho_{call}=K\\tau e^{-r\\tau}N(d_2),\\quad \\rho_{put}=-K\\tau e^{-r\\tau}N(-d_2)",
+    "symbol_map": {
+      "rate": "r",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "risk_appetite_statement_oprisk": {
+    "caveat": "When higher_is_worse=False the code reverses every inequality (status thresholds by >=) and computes utilisation as T/X instead of X/T; the formula above shows only the higher_is_worse=True branch.",
+    "citation": null,
+    "formula_latex": "\\text{status} = \\begin{cases} \\text{within\\_appetite} & X \\le A \\\\ \\text{within\\_tolerance} & A < X \\le T \\\\ \\text{breach} & X > T \\end{cases} \\quad (\\text{higher\\_is\\_worse=True}) \\\\ U = X/T",
+    "symbol_map": {
+      "appetite_limit": "A",
+      "current_metric": "X",
+      "tolerance_limit": "T"
+    }
+  },
+  "risk_factor_pca_decomposition": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Sigma = V\\Lambda V^\\top,\\quad EVR_k=\\frac{\\lambda_k}{\\sum_j\\lambda_j}",
+    "symbol_map": {
+      "n_components": "k",
+      "returns_matrix": "\\Sigma"
+    }
+  },
+  "risk_parity_portfolio": {
+    "caveat": "Equalises risk contributions via an all-pairs sum-of-squared-differences objective (a stronger SLSQP gradient signal than comparing each RC_i to the mean); both formulations converge to the same equal-risk-contribution solution.",
+    "citation": null,
+    "formula_latex": "RC_i = w_i (\\Sigma w)_i \\\\ \\min_w\\; \\sum_{i=1}^{n}\\sum_{j=1}^{n} (RC_i - RC_j)^2 \\quad \\text{s.t. } \\sum_i w_i = 1,\\; w_i \\ge 10^{-6}",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma"
+    }
+  },
+  "robust_portfolio_optimisation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\tilde\\mu = \\mu - \\kappa \\sqrt{\\text{diag}(\\Sigma)} \\\\ \\max_w\\; w^\\top \\tilde\\mu - \\frac{1}{2}\\lambda\\, w^\\top \\Sigma w \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1",
+    "symbol_map": {
+      "cov_matrix": "\\Sigma",
+      "mean_returns": "\\mu",
+      "risk_aversion": "\\lambda",
+      "uncertainty": "\\kappa"
+    }
+  },
+  "rolling_var_backtest": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_t = -\\big(\\mu_{t-w:t} - z_\\alpha\\,\\sigma_{t-w:t}\\big),\\quad z_\\alpha=\\Phi^{-1}(\\alpha) \\\\ n_{breaches}=\\sum_{t}\\mathbb{1}[-r_t > VaR_t],\\quad \\text{zone: green}<5,\\ \\text{yellow}\\ 5\\text{-}9,\\ \\text{red}\\ge10",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "returns": "r_t",
+      "window": "w"
+    }
+  },
+  "root_cause_analysis_template": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_k = \\frac{w_k}{\\sum_j w_j}, \\quad \\text{primary} = \\arg\\max_k A_k",
+    "symbol_map": {
+      "causal_factors": "w_k"
+    }
+  },
+  "rough_volatility_rbergomi_model": {
+    "caveat": "The variance applied at step k is deliberately PREDICTABLE \u2014 built only from the Volterra driver and discrete martingale-correction Var_disc evaluated at the PRIOR step (k-1), not the current step's own Brownian draw, per this module's fix for the correlated-variance bug (see module comments in engine/deriv_stoch_vol.py). Var_disc(t_k) = 2H * dt^{2H} * sum_{m=1}^{k} m^{2H-1} is the exact discrete replacement for the continuum correction t^{2H}, needed because the naive Riemann sum materially undershoots it at this model's default n_steps=50.",
+    "citation": null,
+    "formula_latex": "\\widetilde W(t_k)=\\sqrt{\\Delta t}\\sum_{j\\le k}(t_k-t_j)^{H-1/2}Z^v_j\\quad\\text{(Volterra driver, gap-weighted)}\\\\v_{t_k}=\\begin{cases}\\xi & k=0\\\\ \\xi\\exp\\!\\Big(\\eta\\sqrt{2H}\\,\\widetilde W(t_{k-1})-\\tfrac12\\eta^2\\,\\text{Var}_{disc}(t_{k-1})\\Big) & k>0\\end{cases}\\\\dS/S=r\\,dt+\\sqrt{v_t}\\,dW,\\qquad dW=\\rho\\,dZ^v+\\sqrt{1-\\rho^2}\\,dZ^s\\\\\\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(S_\\tau-K),0)\\big]",
+    "symbol_map": {
+      "eta": "\\eta",
+      "hurst": "H",
+      "n_steps": "n",
+      "rate": "r",
+      "rho": "\\rho",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau",
+      "xi": "\\xi"
+    }
+  },
+  "sabr_volatility_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "z=\\frac{\\nu}{\\alpha}(FK)^{(1-\\beta)/2}\\ln\\frac{F}{K},\\qquad \\chi(z)=\\ln\\!\\left(\\frac{\\sqrt{1-2\\rho z+z^2}+z-\\rho}{1-\\rho}\\right)\\\\\\sigma_B(K)=\\frac{\\alpha}{(FK)^{(1-\\beta)/2}\\Big[1+\\frac{(1-\\beta)^2}{24}\\ln^2\\frac{F}{K}+\\frac{(1-\\beta)^4}{1920}\\ln^4\\frac{F}{K}\\Big]}\\cdot\\frac{z}{\\chi(z)}\\cdot\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24(FK)^{1-\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4(FK)^{(1-\\beta)/2}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right]\\\\\\text{ATM }(F=K):\\quad \\sigma_B(F)=\\frac{\\alpha}{F^{1-\\beta}}\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24F^{2-2\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4F^{1-\\beta}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right]",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "beta": "\\beta",
+      "forward": "F",
+      "nu": "\\nu",
+      "rho": "\\rho",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "scenario_analysis_oprisk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "N_y \\sim \\text{Poisson}(\\lambda), \\quad X \\sim \\text{LogNormal}(\\mu,\\sigma), \\quad L_y = \\sum_{i=1}^{N_y} X_i \\\\ k = \\lfloor \\alpha n \\rfloor, \\quad \\text{ScenarioVaR}_\\alpha = L_{(k)} \\\\ EL = \\overline{L}, \\quad ES_\\alpha = \\frac{1}{n-k}\\sum_{i=k}^{n-1} L_{(i)}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "frequency_lambda": "\\lambda",
+      "n_years": "n",
+      "severity_mu": "\\mu",
+      "severity_sigma": "\\sigma"
+    }
+  },
+  "scenario_expert_elicitation_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "C = \\frac{\\sum_i w_i E_i}{\\sum_i w_i} \\\\ \\sigma_{disp} = \\sqrt{\\frac{\\sum_i w_i (E_i-C)^2}{\\sum_i w_i}}, \\quad CV = \\frac{\\sigma_{disp}}{C}",
+    "symbol_map": {
+      "expert_estimates": "E_i",
+      "expert_weights": "w_i"
+    }
+  },
+  "scenario_frequency_estimation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\lambda = \\begin{cases} \\dfrac{Occ}{Y} & \\text{occurrences supplied (empirical)} \\\\ \\lambda_0 & \\text{otherwise (expert)} \\end{cases}",
+    "symbol_map": {
+      "expected_events_per_year": "\\lambda_0",
+      "observation_years": "Y",
+      "occurrences": "Occ"
+    }
+  },
+  "scenario_severity_estimation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\mu = \\ln(TL) \\\\ z_p = \\Phi^{-1}(p), \\quad \\sigma = \\frac{\\ln(WL) - \\mu}{z_p} \\\\ E[X] = e^{\\mu + \\sigma^2/2}",
+    "symbol_map": {
+      "typical_loss": "TL",
+      "worst_case_loss": "WL",
+      "worst_case_percentile": "p"
+    }
+  },
+  "sector_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "A_i = (w^p_i - w^b_i)(r^b_i - R^b) \\\\ S_i = w^b_i(r^p_i - r^b_i) \\\\ I_i = (w^p_i - w^b_i)(r^p_i - r^b_i) \\\\ \\text{Total}_i = A_i + S_i + I_i",
+    "symbol_map": {
+      "benchmark_returns": "r^b_i",
+      "benchmark_weights": "w^b_i",
+      "portfolio_returns": "r^p_i",
+      "portfolio_weights": "w^p_i"
+    }
+  },
+  "sector_default_rate_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{rate}_i = \\frac{D_i}{O_i}, \\quad \\overline{\\text{rate}} = \\frac{\\sum_i D_i}{\\sum_i O_i}, \\quad \\text{lift}_i = \\frac{\\text{rate}_i}{\\overline{\\text{rate}}}",
+    "symbol_map": {
+      "sector_defaults": "D_i",
+      "sector_obligors": "O_i"
+    }
+  },
+  "sector_stress_scenario": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_{total}=\\sum_i e_i\\,s_i",
+    "symbol_map": {
+      "sector_exposures": "e_i",
+      "sector_shocks": "s_i"
+    }
+  },
+  "secured_funding_rollover_risk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{RolledAmount} = \\sum_i M_i \\rho_i \\\\ \\text{RolloverGap} = \\sum_i M_i(1-\\rho_i) \\\\ \\text{EffRolloverRate} = \\frac{\\sum_i M_i \\rho_i}{\\sum_i M_i}",
+    "symbol_map": {
+      "maturing_amounts": "M_i",
+      "rollover_rates": "\\rho_i"
+    }
+  },
+  "sensitivity_stress_profile": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL(s) = e_k\\cdot s,\\quad s\\in\\text{shock\\_grid}",
+    "symbol_map": {
+      "exposures": "e_k",
+      "factor_index": "k",
+      "shock_grid": "s"
+    }
+  },
+  "severity_distribution_fitting": {
+    "caveat": "Lognormal-only: the function raises ValueError for any distribution argument other than 'lognormal', so the formula shown is the only path the code actually executes.",
+    "citation": null,
+    "formula_latex": "\\hat\\mu = \\overline{\\ln X}, \\quad \\hat\\sigma = \\text{std}(\\ln X) \\\\ E[X] = e^{\\hat\\mu + \\hat\\sigma^2/2}",
+    "symbol_map": {
+      "loss_amounts": "X"
+    }
+  },
+  "sftr_securities_finance_report": {
+    "caveat": "Field-presence/format validator; checks a representative core subset (6 fields) of SFTR's full field set, not full schema coverage.",
+    "citation": null,
+    "formula_latex": "valid = (\\text{required fields present}) \\wedge \\big(sft\\_type \\in \\{repo, securities\\_lending, buy\\_sell\\_back, margin\\_lending\\}\\big) \\wedge (collateral\\_value \\ge 0)",
+    "symbol_map": {}
+  },
+  "sharpe_ratio": {
+    "caveat": "Volatility is the population standard deviation (divide by n) of per-period excess returns, not the n-1 sample standard deviation.",
+    "citation": null,
+    "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma(r - r_f)}",
+    "symbol_map": {
+      "periods_per_year": "T",
+      "returns": "r",
+      "risk_free": "r_f"
+    }
+  },
+  "sme_correlation_factor_basel": {
+    "caveat": null,
+    "citation": "CRE31.10",
+    "formula_latex": "R_{corp} = 0.12\\,w + 0.24\\,(1-w), \\quad w=\\frac{1-e^{-50PD}}{1-e^{-50}} \\\\ R_{SME} = R_{corp} - 0.04\\left(1-\\frac{S-5}{45}\\right),\\quad S\\in[5,50]",
+    "symbol_map": {
+      "annual_sales_millions": "S",
+      "pd": "PD"
+    }
+  },
+  "solvency_ii_scr_credit_risk": {
+    "caveat": "Per the function's own [LIMITATION] docstring, sigma is the intra-counterparty (independent-Bernoulli) variance term only; Art. 201's inter-counterparty correlation term (V_inter) is not computed, so the true Art. 201 SCR is at least as large as this result.",
+    "citation": "Delegated Regulation (EU) 2015/35 Art. 200(1)-(3)",
+    "formula_latex": "LGD_i = EAD_i \\times LGD^{rate}_i \\\\ TLGD = \\sum_i LGD_i \\\\ \\sigma = \\sqrt{\\sum_i LGD_i^2\\, PD_i (1 - PD_i)} \\\\ SCR = \\begin{cases} 3\\sigma & \\sigma / TLGD \\le 0.07 \\\\ 5\\sigma & 0.07 < \\sigma / TLGD \\le 0.20 \\\\ TLGD & \\sigma / TLGD > 0.20 \\end{cases}",
+    "symbol_map": {
+      "default_probabilities": "PD_i",
+      "exposures": "EAD_i",
+      "loss_given_default": "LGD^{rate}_i"
+    }
+  },
+  "solvency_ii_scr_market_risk": {
+    "caveat": null,
+    "citation": "Delegated Regulation 2015/35 Art. 164",
+    "formula_latex": "SCR_{market} = \\sqrt{\\mathbf{s}^\\top \\mathbf{C}\\, \\mathbf{s}} = \\sqrt{\\sum_i \\sum_j s_i\\, Corr_{ij}\\, s_j}",
+    "symbol_map": {
+      "correlation_matrix": "\\mathbf{C}",
+      "sub_module_charges": "\\mathbf{s}"
+    }
+  },
+  "sortino_ratio": {
+    "caveat": "The numerator's excess return is measured against risk_free while the downside-deviation denominator's threshold is the separate target (MAR) applied to raw (not risk-free-adjusted) returns; when target != risk_free these are two distinct reference rates by construction of this implementation.",
+    "citation": null,
+    "formula_latex": "Sortino = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{DD(MAR)} \\\\ DD(MAR) = \\sqrt{\\frac{1}{n}\\sum_{t:\\, r_t < MAR} (r_t - MAR)^2}",
+    "symbol_map": {
+      "periods_per_year": "T",
+      "returns": "r",
+      "risk_free": "r_f",
+      "target": "MAR"
+    }
+  },
+  "sovereign_credit_risk_assessment": {
+    "caveat": "Bespoke internal composite-indicator model, confirmed against BIS/EBA sources in the domain's reference-validation audit not to match any specific published sovereign-risk formula; treat as a reasonable internal model.",
+    "citation": null,
+    "formula_latex": "\\text{score} = \\text{clip}\\big(50-40D+200F+100CA+3FX+40G,\\ 0,\\ 100\\big), \\quad PD = \\frac{1}{1+e^{(\\text{score}-30)/12}}",
+    "symbol_map": {
+      "current_account_pct": "CA",
+      "debt_to_gdp": "D",
+      "fiscal_balance_pct": "F",
+      "fx_reserves_months": "FX",
+      "governance_score": "G"
+    }
+  },
+  "spectral_risk_measure": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "SRM = \\sum_{i=1}^{n} w_i\\,L_{(i)},\\quad w_i=\\frac{\\phi(p_i)}{\\sum_j \\phi(p_j)},\\ \\phi(p)=\\frac{k\\,e^{-k(1-p)}}{1-e^{-k}},\\ p_i=\\frac{i-0.5}{n}",
+    "symbol_map": {
+      "risk_aversion": "k"
+    }
+  },
+  "spread_option_kirk_approximation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_{eff}=\\sqrt{\\sigma_1^2-2\\rho\\sigma_1\\sigma_2 r_2+(\\sigma_2 r_2)^2},\\qquad r_2=\\frac{S_2}{S_2+K}\\\\d_1=\\frac{\\ln\\frac{S_1}{S_2+K}+\\tfrac12\\sigma_{eff}^2\\tau}{\\sigma_{eff}\\sqrt\\tau},\\qquad d_2=d_1-\\sigma_{eff}\\sqrt\\tau\\\\\\text{Call}=e^{-r\\tau}\\big[S_1N(d_1)-(S_2+K)N(d_2)\\big]",
+    "symbol_map": {
+      "rate": "r",
+      "rho": "\\rho",
+      "sigma1": "\\sigma_1",
+      "sigma2": "\\sigma_2",
+      "spot1": "S_1",
+      "spot2": "S_2",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "srep_capital_add_on": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Pillar2A_{capital} = pillar2a\\_addon\\_ratio \\times RWA \\\\ TSCR = Pillar1 + Pillar2A_{capital}",
+    "symbol_map": {
+      "pillar1_requirement": "Pillar1",
+      "pillar2a_addon_ratio": "pillar2a\\_addon\\_ratio",
+      "risk_weighted_assets": "RWA"
+    }
+  },
+  "standardised_approach_ccr_sa_ccr": {
+    "caveat": null,
+    "citation": "CRE52",
+    "formula_latex": "RC = \\max(MtM-C,\\ 0), \\quad \\text{mult} = \\min\\!\\left(1,\\ 0.05+0.95\\,e^{(MtM-C)/(1.9\\,AddOn)}\\right) \\\\ PFE = \\text{mult}\\cdot AddOn, \\quad EAD = \\alpha\\,(RC+PFE)",
+    "symbol_map": {
+      "add_on_aggregate": "AddOn",
+      "alpha": "\\alpha",
+      "collateral": "C",
+      "mark_to_market": "MtM"
+    }
+  },
+  "static_gap_analysis": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "gap_i=RSA_i-RSL_i,\\quad GapRatio=\\dfrac{\\sum_i RSA_i}{\\sum_i RSL_i}",
+    "symbol_map": {
+      "bucket_assets": "RSA_i",
+      "bucket_liabilities": "RSL_i"
+    }
+  },
+  "stressed_expected_shortfall": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "W = \\text{returns}[\\text{stress\\_start}:\\text{stress\\_end}] \\\\ ES_\\alpha^{stress} = \\frac{1}{|W|-\\lfloor\\alpha|W|\\rfloor}\\sum_{i=\\lfloor\\alpha|W|\\rfloor}^{|W|-1} L_{(i)}^{W}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "stress_end": "\\text{stress\\_end}",
+      "stress_start": "\\text{stress\\_start}"
+    }
+  },
+  "structural_hedge_optimisation": {
+    "caveat": "Solved numerically via SciPy bounded least-squares (scipy.optimize.lsq_linear), not a closed-form formula -- the LaTeX shows the objective being minimized subject to the per-instrument notional bounds.",
+    "citation": null,
+    "formula_latex": "x^{*} = \\arg\\min_{0\\le x_i\\le N_i^{max}}\\left(\\sum_i D_i x_i - N_{eq}D_{target}\\right)^2",
+    "symbol_map": {
+      "equity_notional": "N_{eq}",
+      "instrument_durations": "D_i",
+      "instrument_max_notional": "N_i^{max}",
+      "target_duration": "D_{target}"
+    }
+  },
+  "survival_horizon_calculator": {
+    "caveat": "survival_days is the 0-indexed day on which cumulative outflow first drives the buffer negative (so it equals the count of full days survived before breach); it equals len(daily_net_outflows) if the buffer never goes negative.",
+    "citation": null,
+    "formula_latex": "B_0 = HQLA \\\\ B_t = B_{t-1} - O_t \\\\ \\text{SurvivalDays} = \\min\\{t : B_t < 0\\} \\quad \\text{(or the full array length if the buffer never goes negative)}",
+    "symbol_map": {
+      "daily_net_outflows": "O_t",
+      "hqla": "HQLA"
+    }
+  },
+  "swap_rate_curve": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S_i=\\frac{1-DF_i}{\\sum_{j\\le i}\\tau\\,DF_j},\\qquad \\tau=\\frac1m",
+    "symbol_map": {
+      "discount_factors": "DF_i",
+      "frequency": "m",
+      "maturities": "t_i"
+    }
+  },
+  "swaption_pricer_black": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Price}_{payer}=N\\cdot A\\cdot\\big[FN(d_1)-KN(d_2)\\big],\\qquad \\text{Price}_{receiver}=N\\cdot A\\cdot\\big[KN(-d_2)-FN(-d_1)\\big]\\\\d_1=\\frac{\\ln(F/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\quad d_2=d_1-\\sigma\\sqrt T",
+    "symbol_map": {
+      "annuity": "A",
+      "expiry": "T",
+      "forward_swap_rate": "F",
+      "notional": "N",
+      "strike": "K",
+      "vol": "\\sigma"
+    }
+  },
+  "swaption_pricer_sabr": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_{SABR}=\\text{Hagan}(F,K,T,\\alpha,\\beta,\\rho,\\nu)\\ \\text{(see sabr\\_volatility\\_model)}\\\\\\text{Price}=N\\cdot A\\cdot\\text{Black}(F,K,\\sigma_{SABR},T)",
+    "symbol_map": {
+      "alpha": "\\alpha",
+      "annuity": "A",
+      "beta": "\\beta",
+      "expiry": "T",
+      "forward_swap_rate": "F",
+      "notional": "N",
+      "nu": "\\nu",
+      "rho": "\\rho",
+      "strike": "K"
+    }
+  },
+  "tail_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "TR = \\frac{\\left|Q_{1-\\tau}(r)\\right|}{\\left|Q_\\tau(r)\\right|}",
+    "symbol_map": {
+      "returns": "r",
+      "tail": "\\tau"
+    }
+  },
+  "tail_risk_scenario_oprisk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "k = \\lfloor \\alpha n \\rfloor \\\\ ES_{base} = \\frac{1}{n-k}\\sum_{i=k}^{n-1} L_{(i)} \\\\ ES_{stressed} = ES_{base} \\times m",
+    "symbol_map": {
+      "annual_losses": "L",
+      "severity_multiplier": "m",
+      "tail_confidence": "\\alpha"
+    }
+  },
+  "theta_carry_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\text{Carry PnL} = \\Theta\\,dt - FC",
+    "symbol_map": {
+      "funding_cost": "FC",
+      "theta": "\\Theta",
+      "time_step": "dt"
+    }
+  },
+  "theta_time_decay": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\Theta_{call} = -\\frac{Se^{-q\\tau}\\phi(d_1)\\sigma}{2\\sqrt\\tau} - rKe^{-r\\tau}N(d_2) + qSe^{-q\\tau}N(d_1) \\\\ \\Theta_{put} = -\\frac{Se^{-q\\tau}\\phi(d_1)\\sigma}{2\\sqrt\\tau} + rKe^{-r\\tau}N(-d_2) - qSe^{-q\\tau}N(-d_1)",
+    "symbol_map": {
+      "div_yield": "q",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "third_party_vendor_risk": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "S = 30\\,\\frac{Cr}{5} + 30(1-FH) + 20\\,Conc + 20(1-Sub)",
+    "symbol_map": {
+      "concentration": "Conc",
+      "criticality": "Cr",
+      "financial_health": "FH",
+      "substitutability": "Sub"
+    }
+  },
+  "through_the_cycle_pd_adjustment": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "z_{TTC} = (1-w)\\,\\Phi^{-1}(PD_{PIT}) + w\\,\\Phi^{-1}(PD_{LRA}), \\quad PD_{TTC} = \\Phi(z_{TTC})",
+    "symbol_map": {
+      "cyclicality": "w",
+      "long_run_average_pd": "PD_{LRA}",
+      "pit_pd": "PD_{PIT}"
+    }
+  },
+  "total_return_swap_trs": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "V=N\\,(R_{asset}-r_{fin}\\tau)\\,DF",
+    "symbol_map": {
+      "accrual": "\\tau",
+      "asset_return": "R_{asset}",
+      "discount_factor": "DF",
+      "financing_rate": "r_{fin}",
+      "notional": "N"
+    }
+  },
+  "tracking_error": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "TE = \\sqrt{T} \\cdot \\sigma(r_p - r_b)",
+    "symbol_map": {
+      "benchmark_returns": "r_b",
+      "periods_per_year": "T",
+      "returns": "r_p"
+    }
+  },
+  "traffic_light_backtesting": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "n_{breaches}=\\sum_{t=1}^{N}\\mathbb{1}\\big[-r_t > VaR_t\\big],\\quad \\text{zone}=\\begin{cases}\\text{green} & n_{breaches}<5\\\\ \\text{yellow} & 5\\le n_{breaches}\\le 9\\\\ \\text{red} & n_{breaches}\\ge 10\\end{cases}",
+    "symbol_map": {
+      "actual_returns": "r_t",
+      "var_estimates": "VaR_t"
+    }
+  },
+  "transaction_cost_analysis": {
+    "caveat": "Narrower than Perold's full implementation-shortfall decomposition -- no delay cost or unexecuted-share opportunity-cost leg; no published source reproduces this exact quantity.",
+    "citation": null,
+    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4",
+    "symbol_map": {
+      "benchmark_prices": "b_i",
+      "side": "s",
+      "trade_prices": "p_i",
+      "trade_quantities": "q_i"
+    }
+  },
+  "treynor_ratio": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\beta = \\frac{\\text{Cov}(r, b)}{\\text{Var}(b)} \\\\ Treynor = \\frac{T \\cdot \\overline{(r - r_f)}}{\\beta}",
+    "symbol_map": {
+      "benchmark_returns": "b",
+      "periods_per_year": "T",
+      "returns": "r",
+      "risk_free": "r_f"
+    }
+  },
+  "trinomial_tree_option_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "dx=\\sigma\\sqrt{3\\Delta t},\\quad u=e^{dx},\\quad \\nu=r-q-\\tfrac12\\sigma^2\\\\p_u=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}+\\frac{\\nu\\Delta t}{dx}\\Big),\\quad p_d=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}-\\frac{\\nu\\Delta t}{dx}\\Big),\\quad p_m=1-p_u-p_d\\\\V_j^{(k)}=e^{-r\\Delta t}\\big(p_dV_j^{(k+1)}+p_mV_{j+1}^{(k+1)}+p_uV_{j+2}^{(k+1)}\\big)\\ \\text{(+ American early-exercise check)}",
+    "symbol_map": {
+      "div_yield": "q",
+      "n_steps": "N",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau"
+    }
+  },
+  "ucits_kiid_risk_indicator": {
+    "caveat": "The SRRI class (1-7) is a bucket lookup of \\sigma_{ann} against fixed CESR volatility bands, not itself a closed-form equation -- shown above is the annualised volatility that feeds the lookup.",
+    "citation": "CESR 10-673",
+    "formula_latex": "\\sigma_{ann} = std(r,\\ ddof=1) \\times \\sqrt{periods\\_per\\_year}",
+    "symbol_map": {
+      "periods_per_year": "periods\\_per\\_year",
+      "returns": "r"
+    }
+  },
+  "ulcer_index": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "DD_t = 100 \\times \\frac{V_t - P_t}{P_t}, \\quad P_t = \\max_{s \\le t} V_s \\\\ UI = \\sqrt{\\frac{1}{n}\\sum_{t=1}^{n} DD_t^2}",
+    "symbol_map": {
+      "returns": "V_t"
+    }
+  },
+  "unexpected_loss_ul_computation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "UL_i = EAD_i\\cdot LGD_i\\cdot\\sqrt{PD_i(1-PD_i)}, \\quad UL_{sum} = \\sum_i UL_i",
+    "symbol_map": {
+      "ead": "EAD_i",
+      "lgd": "LGD_i",
+      "pd": "PD_i"
+    }
+  },
+  "vanna_delta_vega_cross": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Vanna = -e^{-q\\tau}\\phi(d_1)\\frac{d_2}{\\sigma}",
+    "symbol_map": {
+      "div_yield": "q",
+      "sigma": "\\sigma",
+      "tau": "\\tau"
+    }
+  },
+  "var_breach_cluster_analysis": {
+    "caveat": "This is an algorithmic run-length computation on the breach sequence rather than a closed-form statistic.",
+    "citation": null,
+    "formula_latex": "\\text{clusters} = \\{\\text{maximal runs of consecutive } b_t=1\\}\\\\ n_{clusters}=|\\text{clusters}|,\\quad \\max\\_len=\\max_i \\text{len}(run_i),\\quad \\overline{len}=\\frac{1}{n_{clusters}}\\sum_i \\text{len}(run_i)",
+    "symbol_map": {
+      "breaches": "b_t"
+    }
+  },
+  "var_by_risk_factor": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_i = z_\\alpha\\,\\frac{b_i(Fb)_i}{\\sigma_p},\\quad \\sigma_p=\\sqrt{b^\\top F b}",
+    "symbol_map": {
+      "confidence_level": "\\alpha",
+      "factor_cov": "F",
+      "factor_exposures": "b"
+    }
+  },
+  "var_fan_chart": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "VaR_\\alpha(h) = z_\\alpha\\sigma\\sqrt{h} - \\mu h,\\quad h = 1,\\dots,H",
+    "symbol_map": {
+      "confidence_levels": "\\alpha",
+      "horizon_days": "H"
+    }
+  },
+  "variance_gamma_model": {
+    "caveat": "theta here is the VG skew parameter (subordinated-drift), unrelated to the Greek theta (time decay) that greeks=True optionally adds to the output dict.",
+    "citation": null,
+    "formula_latex": "\\omega=\\frac1\\nu\\ln\\big(1-\\theta\\nu-\\tfrac12\\sigma^2\\nu\\big)\\\\G\\sim\\text{Gamma}(\\text{shape}=\\tau/\\nu,\\ \\text{scale}=\\nu)\\\\\\ln S_T=\\ln S_0+(r+\\omega)\\tau+\\theta G+\\sigma\\sqrt{G}\\,Z\\\\\\text{Price}=e^{-r\\tau}\\,\\mathbb E\\big[\\max(\\phi(S_T-K),0)\\big]",
+    "symbol_map": {
+      "nu": "\\nu",
+      "rate": "r",
+      "sigma": "\\sigma",
+      "spot": "S_0",
+      "strike": "K",
+      "tau": "\\tau",
+      "theta": "\\theta"
+    }
+  },
+  "vasicek_interest_rate_model": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW,\\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa},\\qquad A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big]\\\\P(0,T)=A\\,e^{-Br_0}",
+    "symbol_map": {
+      "kappa": "\\kappa",
+      "maturity": "T",
+      "r0": "r_0",
+      "sigma": "\\sigma",
+      "theta": "\\theta"
+    }
+  },
+  "vega_pnl_attribution": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "PnL_\\nu = \\nu\\,d\\sigma",
+    "symbol_map": {
+      "vega": "\\nu",
+      "vol_move": "d\\sigma"
+    }
+  },
+  "vega_surface_bucketed": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "Surface_{e,s} = \\sum_{k:\\,expiry_k=e,\\ strike_k=s} vega_k,\\quad \\sum_{e,s} Surface_{e,s} = \\sum_k vega_k",
+    "symbol_map": {
+      "expiry_buckets": "e",
+      "strike_buckets": "s",
+      "vegas": "vega_k"
+    }
+  },
+  "volatility_surface_implied_vol": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "\\sigma_{IV} : C_{BS}(S,K,r,\\sigma_{IV},\\tau) = P_{market}",
+    "symbol_map": {
+      "expiries": "\\tau",
+      "market_prices": "P_{market}",
+      "rate": "r",
+      "spot": "S",
+      "strikes": "K"
+    }
+  },
+  "volga_vega_convexity": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "vega = Se^{-q\\tau}\\phi(d_1)\\sqrt\\tau,\\quad Volga = vega\\cdot\\frac{d_1 d_2}{\\sigma}",
+    "symbol_map": {
+      "div_yield": "q",
+      "sigma": "\\sigma",
+      "spot": "S",
+      "tau": "\\tau"
+    }
+  },
+  "wholesale_funding_concentration": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "s_i = \\frac{A_i}{\\sum_j A_j} \\\\ HHI = \\sum_i s_i^2 \\\\ \\text{Top1Share} = \\max_i s_i, \\quad N_{eff} = \\frac{1}{HHI}",
+    "symbol_map": {
+      "counterparty_amounts": "A_i"
+    }
+  },
+  "wrong_way_risk_adjustment": {
+    "caveat": "First-order proxy multiplier, confirmed against the WWR literature (Hull & White 2012; Gregory, The xVA Challenge) in the domain's reference-validation audit not to reproduce a specific published WWR formula; treat as a reasonable internal approximation.",
+    "citation": null,
+    "formula_latex": "\\alpha = \\max(1+\\rho\\,\\sigma_E,\\ 0), \\quad CVA_{adj} = \\alpha\\cdot CVA_{base}",
+    "symbol_map": {
+      "base_cva": "CVA_{base}",
+      "correlation": "\\rho",
+      "exposure_volatility": "\\sigma_E"
+    }
+  },
+  "xva_aggregation": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "XVA_{tot} = CVA - DVA + FVA + KVA + MVA",
+    "symbol_map": {
+      "cva": "CVA",
+      "dva": "DVA",
+      "fva": "FVA",
+      "kva": "KVA",
+      "mva": "MVA"
+    }
+  },
+  "yield_to_call": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\\frac{K_{call}}{(1+y_{tc}/m)^{n}},\\qquad n=\\text{round}(T_{call}\\cdot m),\\ \\text{solved for } y_{tc}",
+    "symbol_map": {
+      "call_date": "T_{call}",
+      "call_price": "K_{call}",
+      "coupon_rate": "c_r",
+      "face_value": "F",
+      "frequency": "m",
+      "price": "P"
+    }
+  },
+  "yield_to_maturity": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k},\\quad \\text{solved for } y=YTM",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "price": "P",
+      "times": "t_k"
+    }
+  },
+  "z_spread_calculator": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=\\sum_k CF_k\\left(1+\\frac{z_{0,k}+z}{m}\\right)^{-m t_k},\\quad \\text{solved for } z=Z_{spread}",
+    "symbol_map": {
+      "cashflows": "CF_k",
+      "frequency": "m",
+      "price": "P",
+      "times": "t_k",
+      "zero_rates": "z_{0,k}"
+    }
+  },
+  "zero_coupon_bond_pricer": {
+    "caveat": null,
+    "citation": null,
+    "formula_latex": "P=F\\left(1+\\frac{y}{m}\\right)^{-mT}",
+    "symbol_map": {
+      "face_value": "F",
+      "frequency": "m",
+      "maturity": "T",
+      "yield_rate": "y"
+    }
+  }
+}
