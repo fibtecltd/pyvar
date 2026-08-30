@@ -313,14 +313,14 @@
   <div class="container">
     <div style="max-width:640px;margin:0 auto 40px;text-align:center" class="reveal">
       <div class="label" style="justify-content:center">positioning</div>
-      <h2 class="h2" style="margin-bottom:16px">Cost, speed, accuracy.<br/><em>An honest comparison, not a sales chart.</em></h2>
-      <p class="body-md">The "iron triangle" pyvar is built around, positioned against traditional enterprise risk vendors (Bloomberg, MSCI, Murex, Moody's Analytics and similar). This is a directional, illustrative self-assessment — not an independent or audited benchmark, and no vendor's product was tested to produce it.</p>
+      <h2 class="h2" style="margin-bottom:16px">Cost, speed, transparency.<br/><em>An honest comparison, not a sales chart.</em></h2>
+      <p class="body-md">pyvar is scored with Fibtec's shared Iron Triangle efficiency model — the same cost/time/quality-gap geometry used across Fibtec's product suite, shown here inverted so a bigger triangle reads as a better outcome — positioned against traditional enterprise risk vendors (Bloomberg, MSCI, Murex, Moody's Analytics and similar). This is a directional, illustrative self-assessment — not an independent or audited benchmark, and no vendor's product was tested to produce it.</p>
     </div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:56px;align-items:center;max-width:920px;margin:0 auto" class="reveal">
       <svg viewBox="0 0 400 330" width="360" height="297" role="img" aria-labelledby="triTitle triDesc" style="flex-shrink:0">
-        <title id="triTitle">Cost, speed and accuracy positioning chart</title>
-        <desc id="triDesc">Illustrative 1-to-5 positioning of pyvar versus traditional enterprise risk vendors across cost efficiency, speed and transparency/auditability. pyvar scores 5, 4 and 5; traditional vendors score approximately 1.5, 3.5 and 2.</desc>
-        <!-- grid rings (triangular, radius = score/5 * 150) -->
+        <title id="triTitle">Cost efficiency, speed and transparency positioning chart</title>
+        <desc id="triDesc">Illustrative positioning of pyvar versus traditional enterprise risk vendors across cost efficiency, speed and transparency/auditability, each normalised 0 to 1 and inverted so bigger is better. pyvar: 1.00, 0.80, 1.00 (efficiency score 10.0/10). Traditional vendors: 0.30, 0.70, 0.40 (efficiency score 7.3/10).</desc>
+        <!-- grid rings (triangular, radius = value * 150) -->
         <g fill="none" stroke="var(--border2)" stroke-width="1">
           <polygon points="200,40 329.9,265 70.1,265"/>
           <polygon points="200,70 303.9,250 96.1,250"/>
@@ -334,31 +334,38 @@
           <line x1="200" y1="190" x2="329.9" y2="265"/>
           <line x1="200" y1="190" x2="70.1" y2="265"/>
         </g>
-        <!-- traditional vendors: cost 1.5, speed 3.5, transparency 2 -->
-        <polygon points="200,145 290.9,242.5 148.0,220" fill="var(--blue)" fill-opacity="0.12" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5,4"/>
-        <!-- pyvar: cost 5, speed 4, transparency 5 -->
-        <polygon points="200,40 303.9,250 70.1,265" fill="var(--green)" fill-opacity="0.14" stroke="var(--green)" stroke-width="2.5"/>
-        <g fill="var(--green)"><circle cx="200" cy="40" r="3.5"/><circle cx="303.9" cy="250" r="3.5"/><circle cx="70.1" cy="265" r="3.5"/></g>
-        <g fill="var(--blue)"><circle cx="200" cy="145" r="3.5"/><circle cx="290.9" cy="242.5" r="3.5"/><circle cx="148.0" cy="220" r="3.5"/></g>
-        <!-- axis labels -->
+        <!-- traditional vendors: cost efficiency 0.30, speed 0.70, transparency 0.40 -->
+        <polygon points="200,145 251.96,220 109.07,242.5" fill="var(--blue)" fill-opacity="0.12" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5,4"/>
+        <!-- pyvar: cost efficiency 1.00, speed 0.80, transparency 1.00 -->
+        <polygon points="200,40 329.9,265 96.08,250" fill="var(--green)" fill-opacity="0.14" stroke="var(--green)" stroke-width="2.5"/>
+        <g fill="var(--green)"><circle cx="200" cy="40" r="3.5"/><circle cx="329.9" cy="265" r="3.5"/><circle cx="96.08" cy="250" r="3.5"/></g>
+        <g fill="var(--blue)"><circle cx="200" cy="145" r="3.5"/><circle cx="251.96" cy="220" r="3.5"/><circle cx="109.07" cy="242.5" r="3.5"/></g>
+        <!-- axis labels: top = cost efficiency, bottom-left = speed, bottom-right = transparency —
+             same axis order as the shared Iron Triangle model (cost/time/quality-gap, 120° apart) -->
         <g font-family="var(--mono)" font-size="11" fill="var(--text2)" text-anchor="middle">
           <text x="200" y="20">Cost efficiency</text>
-          <text x="351" y="284">Speed</text>
-          <text x="49" y="284">Transparency &amp;</text>
-          <text x="49" y="297">auditability</text>
+          <text x="49" y="284">Speed</text>
+          <text x="351" y="284">Transparency &amp;</text>
+          <text x="351" y="297">auditability</text>
         </g>
       </svg>
       <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-          <span style="width:22px;height:2.5px;background:var(--green);display:inline-block;border-radius:2px"></span>
-          <span style="font-size:13px;color:var(--text)">pyvar — free / open tier</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:22px;height:2.5px;background:var(--green);display:inline-block;border-radius:2px"></span>
+            <span style="font-size:13px;color:var(--text)">pyvar — free / open tier</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--green)">TES 10.0/10</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
-          <span style="width:22px;height:2.5px;background:var(--blue);display:inline-block;border-radius:2px;background-image:repeating-linear-gradient(90deg,var(--blue) 0 6px,transparent 6px 10px)"></span>
-          <span style="font-size:13px;color:var(--text)">Traditional enterprise vendors — typical</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:22px;height:2.5px;background:var(--blue);display:inline-block;border-radius:2px;background-image:repeating-linear-gradient(90deg,var(--blue) 0 6px,transparent 6px 10px)"></span>
+            <span style="font-size:13px;color:var(--text)">Traditional enterprise vendors — typical</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--blue)">TES 7.3/10</span>
         </div>
         <p class="body-md" style="margin-bottom:16px">MIT-licensed and free to enter; a Numba JIT-parallel Monte Carlo engine (100k paths in 2–10 seconds); and every formula publicly readable and cross-validated against the published Basel/FRTB reference documents — auditable correctness rather than trust in a brand.</p>
-        <p class="body-md" style="color:var(--dim);font-size:12px">Traditional vendors bring decades of regulatory acceptance and institutional trust this platform hasn't earned yet — this chart doesn't dispute that. Illustrative 1–5 qualitative positioning, not measured units or a named-product test.</p>
+        <p class="body-md" style="color:var(--dim);font-size:12px">Traditional vendors bring decades of regulatory acceptance and institutional trust this platform hasn't earned yet — this chart doesn't dispute that. Illustrative positioning, not measured units or a named-product test.</p>
       </div>
     </div>
   </div>
