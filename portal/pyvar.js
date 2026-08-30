@@ -510,6 +510,60 @@ function _tryitFieldHtml(p) {
 
 let _tryitTrigger = null;
 
+// ── Formula rendering (P11 item 5) ──────────────────────────────────────────
+// KaTeX is vendored (portal/vendor/katex/), not CDN-loaded -- same
+// self-contained-dependency convention as vendor/fuse.min.js. Lazy-loaded
+// only when a Try-it panel for a function that actually has a formula is
+// opened, so a page where a visitor never opens one never pays for it.
+let _katexLoadPromise = null;
+
+function _ensureKatex() {
+  if (_katexLoadPromise) return _katexLoadPromise;
+  if (typeof katex !== 'undefined') {
+    _katexLoadPromise = Promise.resolve();
+    return _katexLoadPromise;
+  }
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'vendor/katex/katex.min.css';
+  document.head.appendChild(link);
+  _katexLoadPromise = _loadScript('vendor/katex/katex.min.js');
+  return _katexLoadPromise;
+}
+
+function _formulaBlockHtml(fn) {
+  if (!fn.formula || !fn.formula.formula_latex) return '';
+  return '<div class="tryit-formula" id="tryitFormula"></div>';
+}
+
+async function _renderFormula(fn) {
+  const el = document.getElementById('tryitFormula');
+  if (!el || !fn.formula || !fn.formula.formula_latex) return;
+  await _ensureKatex();
+  const f = fn.formula;
+  let html;
+  try {
+    html = `<div class="tryit-formula-katex">${katex.renderToString(f.formula_latex, { throwOnError: false, displayMode: true })}</div>`;
+  } catch (e) {
+    return; // malformed LaTeX -- fail silently rather than break the panel
+  }
+  const legendEntries = Object.entries(f.symbol_map || {});
+  if (legendEntries.length) {
+    html += '<div class="tryit-formula-legend">' + legendEntries.map(([param, symbol]) => {
+      let symbolHtml = _escapeHtml(symbol);
+      try { symbolHtml = katex.renderToString(symbol, { throwOnError: false }); } catch (e) { /* fall back to escaped text above */ }
+      return `<span class="tryit-formula-legend-item">${symbolHtml} = ${_escapeHtml(param)}</span>`;
+    }).join('') + '</div>';
+  }
+  if (f.citation) {
+    html += `<div class="tryit-formula-citation">${_escapeHtml(f.citation)}</div>`;
+  }
+  if (f.caveat) {
+    html += `<div class="tryit-formula-caveat">⚠ ${_escapeHtml(f.caveat)}</div>`;
+  }
+  el.innerHTML = html;
+}
+
 function closeTryItPanel() {
   const panel = document.getElementById('tryitPanel');
   if (panel) panel.classList.remove('open');
@@ -556,6 +610,7 @@ function openTryItPanel(fn, triggerEl) {
         <button type="button" class="tryit-close" id="tryitClose" aria-label="Close try-it panel">Esc</button>
       </div>
       <div class="tryit-desc">${fn.summary}${fn.description ? ' — ' + fn.description.replace(/\n/g, ' ') : ''}</div>
+      ${_formulaBlockHtml(fn)}
       <div class="tryit-jwt-row">
         <input type="text" id="tryitJwt" class="tryit-jwt-input" placeholder="Paste your API key (JWT)…" value="${storedToken}"/>
         <a href="index.html#get-api-key" class="tryit-jwt-link">Get a free key →</a>
@@ -571,6 +626,7 @@ function openTryItPanel(fn, triggerEl) {
   document.getElementById('tryitClose').addEventListener('click', closeTryItPanel);
   document.getElementById('tryitForm').addEventListener('submit', e => _submitTryIt(e, fn));
   document.getElementById('tryitJwt').focus();
+  _renderFormula(fn);
 }
 
 async function _submitTryIt(e, fn) {

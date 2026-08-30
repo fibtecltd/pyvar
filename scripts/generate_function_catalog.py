@@ -29,6 +29,19 @@ Reasoning:
   domain functions the catalog is describing.
 - Run this whenever routes/schemas/engine docstrings change — it is not
   wired into CI; regenerate and commit portal/functions.json by hand.
+- formula field (P11 item 5, docs/p11-pre-launch-hardening.md §4): merged in
+  from scripts/data/function_formulas.json, a separate, hand-reviewed,
+  committed file keyed by function name -- NOT derived from the OpenAPI
+  schema or docstrings the way every other field here is, because no
+  formula/equation data exists anywhere in engine/'s docstrings today (each
+  formula had to be derived by reading the actual implementation code,
+  domain by domain, and independently verified against it -- a one-time
+  sourcing effort, not something this script can regenerate on its own).
+  Keeping it in a separate file rather than hardcoded inline here means
+  regenerating functions.json for an unrelated reason (a new function, a
+  changed parameter) merges the existing formulas back in automatically
+  instead of wiping them, and only genuinely new functions need a new
+  formula entry written by hand.
 """
 
 from __future__ import annotations
@@ -187,6 +200,15 @@ def _engine_docstring(module: Any, function_name: str) -> tuple[str, str]:
     return (summary, description)
 
 
+FORMULAS_PATH = REPO_ROOT / "scripts" / "data" / "function_formulas.json"
+
+
+def _load_formulas() -> dict[str, dict[str, Any]]:
+    if not FORMULAS_PATH.exists():
+        return {}
+    return json.loads(FORMULAS_PATH.read_text())
+
+
 def generate() -> list[dict[str, Any]]:
     from main import create_app
 
@@ -241,6 +263,14 @@ def generate() -> list[dict[str, Any]]:
     for fn in catalog:
         fn["display_name"] = _display_name(fn["name"], acronym_casing)
 
+    formulas = _load_formulas()
+    missing_formula: list[str] = []
+    for fn in catalog:
+        entry = formulas.get(fn["name"])
+        fn["formula"] = entry
+        if entry is None:
+            missing_formula.append(f"{fn['domain']}/{fn['name']}")
+
     catalog.sort(key=lambda f: (f["domain"], f["name"]))
 
     if unresolved_engine_alias:
@@ -250,6 +280,16 @@ def generate() -> list[dict[str, Any]]:
             file=sys.stderr,
         )
         for item in unresolved_engine_alias:
+            print(f"  - {item}", file=sys.stderr)
+
+    if missing_formula:
+        print(
+            f"WARNING: {len(missing_formula)} function(s) have no entry in "
+            f"{FORMULAS_PATH.relative_to(REPO_ROOT)} (formula field will be null) — "
+            "add one by hand, following the schema of an existing entry:",
+            file=sys.stderr,
+        )
+        for item in missing_formula:
             print(f"  - {item}", file=sys.stderr)
 
     return catalog
