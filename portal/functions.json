@@ -6485,8 +6485,8 @@
     "name": "barrier_option_pricer",
     "display_name": "Barrier Option Pricer",
     "path": "/api/v1/derivatives/barrier_option_pricer",
-    "summary": "Single-barrier option price (Reiner-Rubinstein closed form).",
-    "description": "Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four\nstandard combinations is supported. Rebates are not modelled (set to 0).\n\nNote: only the general Reiner-Rubinstein building blocks (A/B/C/D) are\nshown here \u2014 which combination prices the knock-in leg depends on\n``option_type``, ``barrier_type``, and whether strike exceeds barrier \u2014\nand a rebate-related lambda term is computed but never used, consistent\nwith rebates always pricing as 0.",
+    "summary": "Single-barrier option price (Reiner-Rubinstein closed form), with a",
+    "description": "modelled rebate leg.\n\nUses the in-out parity ``knock-in + knock-out = vanilla`` for the *pure*\n(no-rebate) option legs, so any of the four standard combinations is\nsupported. A nonzero ``rebate`` adds the standard Reiner-Rubinstein cash\nrebate term on top of that pure leg: for a knock-in, the rebate is paid\nat expiry if the barrier is never touched (the \"E\" term below); for a\nknock-out, the rebate is paid at the moment the barrier is touched (the\n\"F\" term below) -- the standard two rebate conventions (Haug, *The\nComplete Guide to Option Pricing Formulas*, \"Standard Barrier Options\").\n\nNote: only the general Reiner-Rubinstein building blocks (A/B/C/D) are\nshown here \u2014 which combination prices the knock-in leg depends on\n``option_type``, ``barrier_type``, and whether strike exceeds barrier.",
     "params": [
       {
         "name": "spot",
@@ -6600,13 +6600,14 @@
       }
     ],
     "formula": {
-      "caveat": "Reiner-Rubinstein closed form: x1,x2,y1,y2 are the standard barrier d-terms (phi=+-1 for call/put, eta=+-1 for down/up); the exact combination of A/B/C/D used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier \u2014 only the general building blocks are shown here rather than all eight case branches. The code also computes a rebate-related lambda term (sqrt(mu^2 + 2r/sigma^2)) that is never actually used in any of A/B/C/D \u2014 consistent with the rebate parameter being accepted but not modelled (always priced as 0).",
-      "citation": null,
-      "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\\\text{knock-in}\\in\\{A,B,C,D\\text{ combinations by type}\\},\\qquad \\text{knock-out}=\\text{vanilla}-\\text{knock-in}",
+      "caveat": "Only the general Reiner-Rubinstein building blocks (A/B/C/D) are shown here \u2014 the exact combination used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier, and is not spelled out in full (all eight case branches).",
+      "citation": "Reiner & Rubinstein (1991), \"Breaking Down the Barriers\"; Haug, The Complete Guide to Option Pricing Formulas",
+      "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2},\\qquad \\lambda=\\sqrt{\\mu^2+2r/\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\E=\\text{rebate}\\cdot e^{-r\\tau}\\big[N(\\eta x_2-\\eta\\sigma\\sqrt\\tau)-(H/S)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at expiry, knock-in)}\\\\F=\\text{rebate}\\big[(H/S)^{\\mu+\\lambda}N(\\eta z)+(H/S)^{\\mu-\\lambda}N(\\eta z-2\\eta\\lambda\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at touch, knock-out)}\\\\\\text{knock-in}=\\{A,B,C,D\\text{ combo}\\}+E,\\qquad \\text{knock-out}=(\\text{vanilla}-\\text{knock-in}_{\\text{no rebate}})+F",
       "symbol_map": {
         "barrier": "H",
         "div_yield": "q",
         "rate": "r",
+        "rebate": "\\text{rebate}",
         "sigma": "\\sigma",
         "spot": "S",
         "strike": "K",
@@ -7939,8 +7940,8 @@
     "name": "compound_option_pricer",
     "display_name": "Compound Option Pricer",
     "path": "/api/v1/derivatives/compound_option_pricer",
-    "summary": "Compound option (option-on-option) price via nested valuation / MC.",
-    "description": "Simulates the underlying asset to the compound expiry, computes the\nBlack-Scholes value of the underlying option there, then discounts the\ncompound payoff. Supports the four standard compound types.\n\nNote: despite the module docstring calling this the \"Geske\" compound\noption, the underlying option's value at the simulated compound expiry is\npriced analytically via Black-Scholes at each path, not via the classical\nGeske closed-form bivariate-normal formula.",
+    "summary": "Compound option (option-on-option) price via the Geske (1979) closed form.",
+    "description": "Supports the four standard compound types (call/put on call/put). See\n``_geske_compound_price`` for the exact d-term algebra and its citation.",
     "params": [
       {
         "name": "spot",
@@ -8076,16 +8077,16 @@
       }
     ],
     "formula": {
-      "caveat": "Monte Carlo: the underlying option's value at the compound expiry is priced analytically (Black-Scholes) at each simulated S_mid, not via the classical Geske closed-form bivariate normal \u2014 despite 'Geske' appearing in the module docstring, the code is MC + analytic-inner-value, not the exact Geske formula.",
-      "citation": null,
-      "formula_latex": "S_{mid}=S_0\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\tau_c+\\sigma\\sqrt{\\tau_c}\\,Z\\big]\\\\V_{under}(S_{mid})=\\text{BS}\\big(S_{mid},K_u,r,\\sigma,\\tau_u-\\tau_c\\big)\\\\\\text{Price}=e^{-r\\tau_c}\\,\\mathbb E\\big[\\max\\big(\\phi_{outer}(V_{under}-K_c),0\\big)\\big]",
+      "caveat": null,
+      "citation": "Geske (1979); Haug, The Complete Guide to Option Pricing Formulas, \"Compound options\"",
+      "formula_latex": "I:\\ V_{under}(I;K_2,\\tau_u-\\tau_c)=K_1\\ \\text{(critical price)}\\\\a_1=\\frac{\\ln(S/I)+(b+\\sigma^2/2)\\tau_c}{\\sigma\\sqrt{\\tau_c}},\\ a_2=a_1-\\sigma\\sqrt{\\tau_c}\\\\b_1=\\frac{\\ln(S/K_2)+(b+\\sigma^2/2)\\tau_u}{\\sigma\\sqrt{\\tau_u}},\\ b_2=b_1-\\sigma\\sqrt{\\tau_u},\\quad \\rho=\\sqrt{\\tau_c/\\tau_u}\\\\\\text{CallOnCall}=Se^{-q\\tau_u}M(a_1,b_1;\\rho)-K_2e^{-r\\tau_u}M(a_2,b_2;\\rho)-e^{-r\\tau_c}K_1N(a_2)",
       "symbol_map": {
         "div_yield": "q",
         "rate": "r",
         "sigma": "\\sigma",
-        "spot": "S_0",
-        "strike_compound": "K_c",
-        "strike_underlying": "K_u",
+        "spot": "S",
+        "strike_compound": "K_1",
+        "strike_underlying": "K_2",
         "tau_compound": "\\tau_c",
         "tau_underlying": "\\tau_u"
       }
@@ -8272,7 +8273,7 @@
     "display_name": "Cox Ingersoll Ross Model",
     "path": "/api/v1/derivatives/cox_ingersoll_ross_model",
     "summary": "CIR model: closed-form ZCB price + simulated (non-negative) short rate.",
-    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3\u221ar dW``. The square-root diffusion keeps ``r >= 0``. The\nFeller condition ``2\u03ba\u03b8 \u2265 \u03c3\u00b2`` guarantees strict positivity.\n\nNote: the Monte Carlo path uses full-truncation Euler discretisation (the\nrate is floored at 0 both inside the square root and for the terminal\noutput), not the exact non-central chi-squared CIR transition\ndistribution.",
+    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3\u221ar dW``. The square-root diffusion keeps ``r >= 0``. The\nFeller condition ``2\u03ba\u03b8 \u2265 \u03c3\u00b2`` guarantees strict positivity.\n\nThe Monte Carlo path uses the exact non-central chi-squared CIR\ntransition distribution (Broadie-Kaya / Glasserman \u00a73.4;\n``_cir_paths_exact_terminal``), not an Euler discretisation -- there is\nno discretisation bias here at any ``n_steps``, unlike the (retained,\nnon-production) full-truncation Euler scheme in ``_cir_paths_euler``.",
     "params": [
       {
         "name": "r0",
@@ -8364,9 +8365,9 @@
       }
     ],
     "formula": {
-      "caveat": "MC path uses full-truncation Euler (r floored at 0 both inside the sqrt and for the terminal output), not the exact non-central chi-squared CIR transition distribution.",
-      "citation": null,
-      "formula_latex": "\\gamma=\\sqrt{\\kappa^2+2\\sigma^2},\\qquad B=\\frac{2(e^{\\gamma T}-1)}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\\\A=\\left[\\frac{2\\gamma e^{(\\kappa+\\gamma)T/2}}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\right]^{2\\kappa\\theta/\\sigma^2},\\qquad P(0,T)=A\\,e^{-Br_0}\\\\dr=\\kappa(\\theta-r)\\,dt+\\sigma\\sqrt{r}\\,dW\\ \\text{(MC, full-truncation Euler)}",
+      "caveat": null,
+      "citation": "Broadie & Kaya (2006); Glasserman, Monte Carlo Methods in Financial Engineering, \u00a73.4",
+      "formula_latex": "\\gamma=\\sqrt{\\kappa^2+2\\sigma^2},\\qquad B=\\frac{2(e^{\\gamma T}-1)}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\\\A=\\left[\\frac{2\\gamma e^{(\\kappa+\\gamma)T/2}}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\right]^{2\\kappa\\theta/\\sigma^2},\\qquad P(0,T)=A\\,e^{-Br_0}\\\\c=\\frac{\\sigma^2(1-e^{-\\kappa\\,dt})}{4\\kappa},\\quad df=\\frac{4\\kappa\\theta}{\\sigma^2},\\quad nc=\\frac{r_t e^{-\\kappa\\,dt}}{c}\\\\r_{t+dt}=c\\cdot\\chi'^2(df,\\,nc)\\ \\text{(exact CIR transition, Broadie-Kaya)}",
       "symbol_map": {
         "kappa": "\\kappa",
         "maturity": "T",
@@ -8384,8 +8385,8 @@
     "name": "credit_default_swap_cds_pricer",
     "display_name": "Credit Default Swap CDS Pricer",
     "path": "/api/v1/derivatives/credit_default_swap_cds_pricer",
-    "summary": "Price a CDS via a flat-hazard-rate reduced-form model.",
-    "description": "Premium leg = ``spread \u00b7 \u03a3 \u03c4 \u00b7 DF \u00b7 Q``; protection leg =\n``(1\u2212R) \u00b7 \u03a3 DF \u00b7 (Q_{i\u22121} \u2212 Q_i)`` with survival ``Q(t)=e^{\u2212\u03bbt}``. The par\nspread zeroes the swap value.\n\nNote: default and coupon events are settled at each period end (``t_i``)\nrather than at the accrual midpoint \u2014 a deliberate discretisation choice\nvalidated by a convergence check against QuantLib's midpoint-settlement\nCDS engine, not an exact-match assertion.",
+    "summary": "Price a CDS via a flat-hazard-rate reduced-form model with",
+    "description": "accrual-midpoint default settlement.\n\nSurvival ``Q(t)=e^{\u2212\u03bbt}``. Default losses -- and the accrued premium a\nprotection buyer owes if default falls inside a coupon period -- are\nboth settled at each period's ACCRUAL MIDPOINT\n``t_mid,i = (t_{i\u22121}+t_i)/2``, discounted at ``DF(t_mid,i)``, following\nthe standard ISDA/JPMorgan reduced-form CDS convention also implemented\nby QuantLib's ``MidPointCdsEngine`` (which settles the same way by\ndefault: ``settlesAccrual=True``, ``paysAtDefaultTime=True`` --\nconfirmed by inspecting its NPV decomposition directly, since this is\nexactly what ``tests/validation/test_derivatives_ref.py`` cross-checks\nagainst). The regular coupon cashflow -- paid only while the name has\nsurvived to the period end -- is unaffected: ``spread \u00b7 \u03c4 \u00b7 \u03a3 DF(t_i) \u00b7\nQ(t_i)``.\n\nProtection leg = ``(1\u2212R) \u00b7 \u03a3 DF(t_mid,i) \u00b7 (Q_{i\u22121} \u2212 Q_i)``.\nAccrual-on-default rebate = ``spread \u00b7 \u03a3 (t_mid,i \u2212 t_{i\u22121}) \u00b7\nDF(t_mid,i) \u00b7 (Q_{i\u22121} \u2212 Q_i)``, added to the premium leg. The par\nspread zeroes the swap value.",
     "params": [
       {
         "name": "notional",
@@ -8466,9 +8467,9 @@
       }
     ],
     "formula": {
-      "caveat": "Flat-hazard-rate reduced-form model with default/coupon events settled at each period END (t_i), not at the accrual midpoint \u2014 a deliberate discretisation choice; see tests/validation for a convergence check against QuantLib's midpoint-settlement CDS engine, not an exact-match assertion.",
-      "citation": null,
-      "formula_latex": "Q_i=e^{-\\lambda t_i},\\qquad DF_i=e^{-r t_i},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)\\\\\\text{Premium leg}=s\\,\\tau\\sum_i DF_i Q_i\\cdot N,\\qquad \\text{Protection leg}=(1-R)\\,N\\sum_i DF_i(Q_{i-1}-Q_i)\\\\\\text{Value (buyer)}=\\text{Protection}-\\text{Premium},\\qquad s_{par}=\\frac{(1-R)\\sum_i DF_i(Q_{i-1}-Q_i)}{\\tau\\sum_i DF_i Q_i}",
+      "caveat": null,
+      "citation": "ISDA/JPMorgan standard reduced-form CDS model (accrual-midpoint default settlement); cf. QuantLib's MidPointCdsEngine",
+      "formula_latex": "Q_i=e^{-\\lambda t_i},\\qquad DF_i=e^{-r t_i},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)\\\\t_{mid,i}=\\tfrac12(t_{i-1}+t_i),\\qquad DF_{mid,i}=e^{-r\\,t_{mid,i}}\\\\\\text{Protection leg}=(1-R)\\,N\\sum_i DF_{mid,i}(Q_{i-1}-Q_i)\\\\\\text{Premium leg}=s\\,N\\Big[\\tau\\sum_i DF_i Q_i+\\sum_i(t_{mid,i}-t_{i-1})\\,DF_{mid,i}(Q_{i-1}-Q_i)\\Big]\\\\\\text{Value (buyer)}=\\text{Protection}-\\text{Premium}",
       "symbol_map": {
         "discount_rate": "r",
         "frequency": "m",
@@ -9874,7 +9875,7 @@
     "display_name": "Lmm BGM Rate Model",
     "path": "/api/v1/derivatives/lmm_bgm_rate_model",
     "summary": "LIBOR Market Model (BGM) forward-rate Monte Carlo simulation.",
-    "description": "Evolves a vector of forward LIBOR rates under the spot measure with the\nstandard log-normal BGM drift. Returns the mean terminal forward curve;\nrates stay positive (log-normal dynamics).\n\nNote: the drift for rate ``i`` sums over ``j = 0..i`` inclusive (including\nrate ``i`` itself) using each earlier rate's already-updated value from the\nsame time step rather than its start-of-step value, since rates are\noverwritten sequentially in place \u2014 a specific sequential log-Euler\ndiscretisation choice, not a fully simultaneous update.",
+    "description": "Evolves a vector of forward LIBOR rates under the spot measure with the\nstandard log-normal BGM drift, discretised via the Glasserman-Zhao\npredictor-corrector Euler scheme (see\n``_lmm_terminal_rates_predictor_corrector``). Returns the mean terminal\nforward curve; rates stay positive (log-normal dynamics).\n\nThe drift for rate ``i`` sums over ``j = 0..i`` inclusive (including rate\n``i`` itself), evaluated from a single consistent rate vector at each of\nthe predictor and corrector stages -- not a sequential same-step\noverwrite (see ``_lmm_terminal_rates_sequential_euler`` for the retained,\nnon-production former scheme).",
     "params": [
       {
         "name": "forward_rates",
@@ -9955,9 +9956,9 @@
       }
     ],
     "formula": {
-      "caveat": "Log-Euler discretisation of the standard log-normal BGM spot-measure drift; the drift sum for rate i includes j=i itself (range(i+1)) alongside all earlier-maturity rates j<i. Rates are updated sequentially within a step (f_i is overwritten immediately after being computed), so the drift for rate i actually uses the SAME step's already-updated f_j for j<i, not their start-of-step values \u2014 a specific sequential-Euler discretisation choice, not a fully simultaneous update.",
-      "citation": null,
-      "formula_latex": "f_i(t+\\Delta t)=f_i(t)\\exp\\!\\left[\\left(\\sum_{j\\le i}\\frac{\\tau f_j(t)\\sigma_j\\sigma_i}{1+\\tau f_j(t)}-\\tfrac12\\sigma_i^2\\right)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right],\\qquad \\Delta t=\\frac{T_{hz}}{n_{steps}}",
+      "caveat": null,
+      "citation": "Glasserman & Zhao (2000); Glasserman, Monte Carlo Methods in Financial Engineering, \u00a73.7 (predictor-corrector)",
+      "formula_latex": "\\mu_i(f)=\\sum_{j\\le i}\\frac{\\tau f_j\\sigma_j\\sigma_i}{1+\\tau f_j}\\\\f_i^{pred}=f_i(t)\\exp\\!\\left[(\\mu_i(f(t))-\\tfrac12\\sigma_i^2)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right]\\\\f_i(t+\\Delta t)=f_i(t)\\exp\\!\\left[\\Big(\\tfrac12(\\mu_i(f(t))+\\mu_i(f^{pred}))-\\tfrac12\\sigma_i^2\\Big)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right]",
       "symbol_map": {
         "forward_rates": "f_i(0)",
         "horizon": "T_{hz}",
@@ -9975,7 +9976,7 @@
     "display_name": "Local Volatility Dupire Model",
     "path": "/api/v1/derivatives/local_volatility_dupire_model",
     "summary": "Dupire local volatility surface from a call-price surface.",
-    "description": "Uses finite differences of the Dupire equation\n``\u03c3_loc\u00b2 = (\u2202C/\u2202T + r K \u2202C/\u2202K) / (\u00bd K\u00b2 \u2202\u00b2C/\u2202K\u00b2)`` on the supplied grid.\n\nNote: the partial derivatives are finite differences on the supplied\ndiscrete grid (a forward difference in maturity, central differences in\nstrike), computed only at interior grid points, and ``spot`` is used\nsolely for a positivity check rather than in the formula itself.",
+    "description": "Uses finite differences of the Dupire equation\n``\u03c3_loc\u00b2 = (\u2202C/\u2202T + r K \u2202C/\u2202K) / (\u00bd K\u00b2 \u2202\u00b2C/\u2202K\u00b2)`` on the supplied grid,\ncovering the FULL grid: central differences in strike at interior\npoints, one-sided (forward/backward) 2nd-order-accurate differences at\nthe two strike boundaries (exact non-uniform-grid Fornberg-style 3-point\nstencils -- exact for any quadratic, verified against hand-differentiated\npolynomials), and a forward/backward difference in maturity at the\nfirst/last maturity respectively (interior maturities also use the\nforward difference toward the next maturity).",
     "params": [
       {
         "name": "strikes",
@@ -10034,9 +10035,9 @@
       }
     ],
     "formula": {
-      "caveat": "Partial derivatives are finite differences on the supplied discrete (maturities x strikes) grid (forward difference in T, central differences in K), evaluated only at interior grid points; spot is used solely for a positivity check, not in the formula itself.",
-      "citation": null,
-      "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}",
+      "caveat": null,
+      "citation": "Dupire (1994), \"Pricing with a Smile\"; standard non-uniform-grid (Fornberg) one-sided finite differences at boundaries",
+      "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}\\\\\\text{interior}:\\ \\text{central differences};\\quad \\text{boundary}:\\ \\text{2nd-order one-sided 3-point stencils (exact for quadratics)}",
       "symbol_map": {
         "call_surface": "C(K,T)",
         "maturities": "T",
@@ -14137,7 +14138,7 @@
     "display_name": "Liquidity Gap Analysis",
     "path": "/api/v1/liquidity/liquidity_gap_analysis",
     "summary": "Maturity-bucket liquidity gap (assets vs liabilities).",
-    "description": "Computes the structural maturity mismatch: ``gap_i = assets_i -\nliabilities_i`` per bucket, plus the cumulative gap. A positive cumulative\ngap means more assets than liabilities mature by that point (a funding\nsurplus); a negative gap signals a refinancing need.\n\nUnlike the two cash-flow-ladder functions above, this cumulative gap is not\noffset by an opening balance \u2014 the function takes no such parameter.",
+    "description": "Computes the structural maturity mismatch: ``gap_i = assets_i -\nliabilities_i`` per bucket, plus the cumulative gap. A positive cumulative\ngap means more assets than liabilities mature by that point (a funding\nsurplus); a negative gap signals a refinancing need.\n\nLike the two cash-flow-ladder functions above, an optional opening balance\nis added to every cumulative-gap entry \u2014 the starting cash / HQLA position\ncarried into the first bucket. It defaults to 0.0, so existing callers see\nno change in behaviour.",
     "params": [
       {
         "name": "asset_maturities",
@@ -14174,12 +14175,13 @@
       }
     ],
     "formula": {
-      "caveat": "Unlike the two cash-flow-ladder functions, this cumulative gap is NOT offset by an opening balance (the function takes no such parameter).",
+      "caveat": null,
       "citation": null,
-      "formula_latex": "\\text{Gap}_i = A_i - L_i \\\\ \\text{CumulativeGap}_i = \\sum_{j \\le i} \\text{Gap}_j \\\\ \\text{GapRatio}_i = \\frac{A_i}{L_i}",
+      "formula_latex": "\\text{Gap}_i = A_i - L_i \\\\ \\text{CumulativeGap}_i = B_0 + \\sum_{j \\le i} \\text{Gap}_j \\\\ \\text{GapRatio}_i = \\frac{A_i}{L_i}",
       "symbol_map": {
         "asset_maturities": "A_i",
-        "liability_maturities": "L_i"
+        "liability_maturities": "L_i",
+        "opening_balance": "B_0"
       }
     }
   },
@@ -21432,7 +21434,7 @@
     "display_name": "Severity Distribution Fitting",
     "path": "/api/v1/operational/severity_distribution_fitting",
     "summary": "Fit a severity distribution to individual loss amounts.",
-    "description": "Supports the lognormal (default, the OpRisk industry standard) by MLE of the\nlog-loss mean/sigma. Returns the fitted parameters and the implied mean\nseverity.\n\nLognormal is the only distribution implemented; any other ``distribution``\nvalue raises ``ValueError`` rather than falling back or approximating.",
+    "description": "Supports four standard OpRisk severity families, all fit by maximum\nlikelihood with the location parameter pinned at zero (severities are\nstrictly positive, so a free location would let the MLE drift away from\nthe actual support):\n\n- ``\"lognormal\"`` (default, the OpRisk industry standard): closed-form MLE\n  of the log-loss mean/sigma, i.e. ``scipy.stats.lognorm.fit(x, floc=0)``\n  reparameterised as ``mu = log(scale)``, ``sigma = shape``.\n- ``\"gamma\"``: ``scipy.stats.gamma.fit(x, floc=0)`` \u2014 shape ``a`` and\n  ``scale``; commonly used for moderate, right-skewed severities.\n- ``\"weibull\"``: ``scipy.stats.weibull_min.fit(x, floc=0)`` \u2014 shape ``c``\n  and ``scale``; flexible hazard shape, another standard severity choice.\n- ``\"gpd\"`` (Generalized Pareto Distribution): ``scipy.stats.genpareto.fit(\n  x, floc=0)`` \u2014 shape ``xi`` and ``scale``; the standard EVT/POT model for\n  the tail of large losses (threshold-exceedance modelling). The mean is\n  only finite for ``xi < 1``; when ``xi >= 1`` ``mean_severity`` is\n  ``None`` rather than a misleading infinite/negative value.\n\nAny other ``distribution`` value raises ``ValueError`` rather than falling\nback or approximating.",
     "params": [
       {
         "name": "loss_amounts",
@@ -21458,7 +21460,7 @@
       }
     ],
     "formula": {
-      "caveat": "Lognormal-only: the function raises ValueError for any distribution argument other than 'lognormal', so the formula shown is the only path the code actually executes.",
+      "caveat": "Partially resolved: now supports 'lognormal' (default), 'gamma', 'weibull' and 'gpd' (Generalized Pareto), each fit by scipy.stats MLE with location pinned at 0. Any other distribution argument still raises ValueError. The formula shown below is the lognormal path; gamma/weibull/gpd have no closed-form MLE (fit numerically via scipy.stats.gamma.fit / weibull_min.fit / genpareto.fit) so no formula_latex is given for them here.",
       "citation": null,
       "formula_latex": "\\hat\\mu = \\overline{\\ln X}, \\quad \\hat\\sigma = \\text{std}(\\ln X) \\\\ E[X] = e^{\\hat\\mu + \\hat\\sigma^2/2}",
       "symbol_map": {
@@ -21834,7 +21836,7 @@
     "display_name": "Carbon Footprint Attribution",
     "path": "/api/v1/portfolio/carbon_footprint_attribution",
     "summary": "Carbon footprint attribution (WACI and financed emissions).",
-    "description": "Computes the Weighted Average Carbon Intensity (WACI) and attributes the\nfinanced emissions to each holding by its invested value. Contributions sum\nto the total financed emissions.\n\n``total_financed_emissions`` scales revenue-intensity by invested value\nper holding, which does not match the ownership-share method used by the\nTCFD/PCAF financed-emissions standards.",
+    "description": "Computes the Weighted Average Carbon Intensity (WACI) -- this leg matches\nTCFD's WACI definition regardless of mode.\n\nBy default (``company_total_emissions``/``company_value`` omitted,\nunchanged prior behaviour) ``total_financed_emissions`` scales\nrevenue-intensity by invested value per holding, which does NOT match\nthe ownership-share method used by the TCFD/PCAF financed-emissions\nstandards.\n\nSupplying BOTH ``company_total_emissions`` (each holding's investee\ncompany's total absolute Scope 1+2 emissions, tCO2e) and\n``company_value`` (each company's total enterprise value -- PCAF's EVIC,\nenterprise value including cash, or market cap -- same currency unit as\n``portfolio_value``) switches to the PCAF ownership-share method\n(Partnership for Carbon Accounting Financials, \"The Global GHG\nAccounting and Reporting Standard for the Financial Industry\", Part A,\n2020; the same method TCFD's 2017 recommendations point to for financed\nemissions):\n\n    ownership_share_i = invested_i / company_value_i\n    financed_emissions_i = ownership_share_i * company_total_emissions_i\n\nwhere ``invested_i = weights_i * portfolio_value`` is the investor's\noutstanding amount in company i. Unlike the default (revenue-intensity\nx invested-value) leg, this correctly represents \"the investor's\nproportional share of the company's own total emissions\" rather than an\nintensity-scaled quantity with no ownership interpretation -- an\ninvestor's ownership share can never legitimately attribute more than\nthe company's own total emissions (verified in tests).",
     "params": [
       {
         "name": "weights",
@@ -21879,14 +21881,38 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "company_total_emissions",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "company_value",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition. total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards -- flagged as a likely correctness question, not merely a citation gap.",
-      "citation": null,
-      "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ E_i = w_i \\cdot V_{port} \\cdot CI_i, \\quad E_{total} = \\sum_i E_i",
+      "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition in both modes. By default (company_total_emissions/company_value omitted) total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards. Pass both company_total_emissions and company_value to switch to PCAF's genuine ownership-share method.",
+      "citation": "Partnership for Carbon Accounting Financials (PCAF), \"The Global GHG Accounting and Reporting Standard for the Financial Industry\", Part A, 2020 (ownership-share / EVIC method)",
+      "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ \\text{(default)}\\;\\; E_i = w_i \\cdot V_{port} \\cdot CI_i \\\\ \\text{(PCAF, opt-in)}\\;\\; \\text{share}_i = \\frac{w_i V_{port}}{V^{company}_i}, \\quad E_i = \\text{share}_i \\cdot E^{company}_i, \\quad E_{total} = \\sum_i E_i",
       "symbol_map": {
         "carbon_intensities": "CI_i",
+        "company_total_emissions": "E^{company}_i",
+        "company_value": "V^{company}_i",
         "portfolio_value": "V_{port}",
         "weights": "w_i"
       }
@@ -22032,7 +22058,7 @@
     "display_name": "Correlation Clustering",
     "path": "/api/v1/portfolio/correlation_clustering",
     "summary": "Correlation-based clustering of assets.",
-    "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple\nsingle-linkage agglomerative clustering down to ``n_clusters`` groups \u2014\ngrouping assets that co-move.\n\nThe merge loop is hand-rolled here rather than calling scikit-learn's\n``AgglomerativeClustering`` or SciPy's ``linkage``, though it implements\nthe same single-linkage algorithm.",
+    "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs\nsingle-linkage agglomerative clustering down to ``n_clusters`` groups \u2014\ngrouping assets that co-move.\n\nThe merge itself is delegated to ``scipy.cluster.hierarchy.linkage``\n(``method='single'``) followed by ``fcluster(..., criterion='maxclust')``\nrather than a hand-rolled merge loop; this is the same single-linkage\nalgorithm (repeatedly merge the two clusters whose minimum pairwise\ndistance is smallest), just computed by SciPy's tested implementation.\nCluster *membership* is therefore identical to the earlier hand-rolled\nversion \u2014 only the arbitrary integer cluster-id labelling can differ.",
     "params": [
       {
         "name": "returns_matrix",
@@ -22058,8 +22084,8 @@
       }
     ],
     "formula": {
-      "caveat": "Hand-rolled single-linkage agglomerative clustering (not scikit-learn): repeatedly merges the two clusters with the smallest minimum pairwise correlation-distance until n_clusters groups remain.",
-      "citation": null,
+      "caveat": null,
+      "citation": "Sokal, R.R. & Michener, C.D. (1958), \"A statistical method for evaluating systematic relationships\" (single-linkage/nearest-neighbour hierarchical clustering, as implemented by scipy.cluster.hierarchy.linkage(method='single'))",
       "formula_latex": "d_{ij} = \\sqrt{2(1 - \\rho_{ij})} \\\\ D(A,B) = \\min_{i \\in A,\\, j \\in B} d_{ij} \\;\\; \\text{(single-linkage merge criterion)}",
       "symbol_map": {
         "returns_matrix": "\\rho_{ij}"
@@ -22106,8 +22132,8 @@
     "name": "currency_attribution",
     "display_name": "Currency Attribution",
     "path": "/api/v1/portfolio/currency_attribution",
-    "summary": "Currency attribution -- naive geometric local/FX decomposition.",
-    "description": "Splits the base-currency return into a local-market component and a currency\n(FX) component per holding, weighted by exposure, via the geometric\nidentity ``base = (1+local)(1+fx)-1`` with currency as the residual. The\ntotal reconciles to the weighted base-currency return.\n\nThis is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), \"The\nCurrency Dimension of Global Asset Management and Performance\nAttribution\", CFA Institute Research Foundation) -- that method requires\nlocal-currency return PREMIUMS (local return minus the local risk-free\nrate) and moves the interest-rate differential onto the currency side via\ncovered interest parity; this function takes no interest rates at all. A\nprior version of this docstring claimed \"Karnosky-Singer style\", which is\nthe same failure mode as this codebase's earlier false QuantLib\ncross-validation claim (correct arithmetic, fabricated provenance) --\nfound during the Tier 3 #2 audit. See Bacon, C. (2008), \"Practical\nPortfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6, which\npresents this naive geometric split as the baseline before introducing\nAnkrim-Hensel and Karnosky-Singer.",
+    "summary": "Currency attribution -- naive geometric split, or genuine Karnosky-Singer.",
+    "description": "By default (``local_risk_free``/``base_risk_free`` omitted, unchanged\nprior behaviour) this splits the base-currency return into a\nlocal-market component and a currency (FX) component per holding,\nweighted by exposure, via the geometric identity\n``base = (1+local)(1+fx)-1`` with currency as the residual. This naive\nsplit is NOT Karnosky-Singer -- see Bacon, C. (2008), \"Practical\nPortfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6,\nwhich presents it as the baseline before introducing Karnosky-Singer.\n\nSupplying BOTH ``local_risk_free`` (per-holding local-currency\nrisk-free/cash rate) and ``base_risk_free`` (the reporting/base\ncurrency's own risk-free rate) switches to Karnosky & Singer's (1994)\ngenuine decomposition (\"The Currency Dimension of Global Asset\nManagement and Performance Attribution\", CFA Institute Research\nFoundation): local returns are first netted against the *local*\nrisk-free rate into a local return PREMIUM (the market-selection\ncomponent the currency side must not re-capture), and the currency\nside is split into the base cash return and a currency SURPRISE --\nthe currency return net of the covered-interest-parity forward\npremium implied by the two risk-free rates -- rather than absorbing\nthe interest-rate differential as an unexplained residual:\n\n    premium_i = (1+local_i)/(1+local_rf_i) - 1\n    forward_premium_i = (1+base_rf)/(1+local_rf_i) - 1   (covered interest parity)\n    surprise_i = (1+fx_i)/(1+forward_premium_i) - 1\n\nThese combine via the exact geometric identity\n``(1+base_rf)(1+premium_i)(1+surprise_i) = (1+local_i)(1+fx_i)`` -- i.e.\nKarnosky-Singer re-partitions the *same* total base-currency return\nused by the naive split, it does not change it (verified in tests).\nThe ``currency_effect`` bucket is further broken into\n``base_cash_effect`` (``base_rf``, common to every holding),\n``currency_surprise_effect`` (``surprise_i``) and a small\n``currency_interaction_effect`` residual capturing the compounding\ncross-terms between the three multiplicative legs -- the same\nreconciling-residual pattern :func:`return_attribution_brinson` uses\nfor its own interaction effect, so the three currency sub-effects sum\nexactly to ``currency_effect`` (which itself sums with ``local_effect``\nto ``total_return``, as before).",
     "params": [
       {
         "name": "local_returns",
@@ -22152,15 +22178,39 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "local_risk_free",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "base_risk_free",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "Naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer, which nets local returns against the local risk-free rate; this function takes no interest rates at all.",
-      "citation": "Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
-      "formula_latex": "R^{local}_i = w_i r^{L}_i \\\\ R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ R_{total} = \\sum_i \\left(R^{local}_i + R^{fx}_i\\right)",
+      "caveat": "Default (local_risk_free/base_risk_free omitted) is the naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer. Pass both local_risk_free and base_risk_free to switch to Karnosky & Singer's (1994) genuine decomposition: local returns netted against the local risk-free rate into a return premium, and the currency side split into a base cash return plus a currency surprise (net of the covered-interest-parity forward premium), rather than absorbing the rate differential as an unexplained residual.",
+      "citation": "Karnosky, D. & Singer, B. (1994), \"The Currency Dimension of Global Asset Management and Performance Attribution\", CFA Institute Research Foundation; Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
+      "formula_latex": "\\text{(default)}\\;\\; R^{local}_i = w_i r^{L}_i, \\quad R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ \\text{(Karnosky-Singer, opt-in)}\\;\\; p_i = \\frac{1+r^L_i}{1+r^{L,f}_i}-1, \\quad f_i = \\frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\quad s_i = \\frac{1+r^{FX}_i}{1+f_i}-1 \\\\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)",
       "symbol_map": {
+        "base_risk_free": "r^{B,f}",
         "fx_returns": "r^{FX}_i",
         "local_returns": "r^{L}_i",
+        "local_risk_free": "r^{L,f}_i",
         "weights": "w_i"
       }
     }
@@ -22174,7 +22224,7 @@
     "display_name": "CVaR Constrained Optimisation",
     "path": "/api/v1/portfolio/cvar_constrained_optimisation",
     "summary": "CVaR-constrained portfolio optimisation (Rockafellar-Uryasev).",
-    "description": "Maximises expected return subject to the portfolio CVaR (at\n``confidence_level``) not exceeding ``cvar_limit``, long-only and fully\ninvested. CVaR is computed empirically over the supplied scenarios.\n\nCVaR is enforced as a direct nonlinear inequality constraint (the\nempirical mean of tail losses) solved by SLSQP, not via Rockafellar and\nUryasev's original auxiliary-variable linear-programming reformulation.",
+    "description": "Maximises expected return subject to the portfolio CVaR (at\n``confidence_level``) not exceeding ``cvar_limit``, long-only and fully\ninvested. CVaR is computed empirically over the supplied scenarios.\n\nSolved via Rockafellar & Uryasev's (2000) original auxiliary-variable\nlinear-programming reformulation, not a direct nonlinear CVaR\nconstraint. Introduce an auxiliary VaR estimate ``zeta`` and one\nnon-negative excess-loss variable ``u_s`` per scenario, then solve the\nconvex LP\n\n    minimize    -mu^T w\n    subject to  sum(w) = 1,  0 <= w_i <= 1\n                zeta + (1/(S(1-alpha))) * sum_s u_s <= cvar_limit\n                u_s >= -(scenario_s . w) - zeta,   u_s >= 0   (s=1..S)\n\nvia ``scipy.optimize.linprog`` (HiGHS). CVaR is a convex function of\n``w`` and both this LP and the retired SLSQP-on-empirical-CVaR\nformulation share the same feasible region and the same (convex)\nobjective, so they solve to the same global optimum \u2014 the LP just gets\nthere via Rockafellar-Uryasev's exact reformulation instead of SLSQP\nre-evaluating the empirical quantile/tail-mean at every iterate.",
     "params": [
       {
         "name": "scenario_returns",
@@ -22233,9 +22283,9 @@
       }
     ],
     "formula": {
-      "caveat": "CVaR is enforced as a nonlinear inequality constraint solved directly by SLSQP (empirical mean of tail losses), not via Rockafellar-Uryasev's original auxiliary-variable linear-programming reformulation.",
-      "citation": "Rockafellar-Uryasev",
-      "formula_latex": "\\max_w\\; w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1,\\; CVaR_\\alpha(w) \\le c \\\\ L(w) = -R w, \\quad VaR_\\alpha(w) = \\text{Quantile}_\\alpha\\big(L(w)\\big) \\\\ CVaR_\\alpha(w) = \\mathbb{E}\\big[L(w) \\mid L(w) \\ge VaR_\\alpha(w)\\big]",
+      "caveat": null,
+      "citation": "Rockafellar, R.T. & Uryasev, S. (2000), \"Optimization of Conditional Value-at-Risk\", Journal of Risk 2(3), 21-41",
+      "formula_latex": "\\min_{w,\\zeta,u}\\; -w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1 \\\\ \\zeta + \\frac{1}{S(1-\\alpha)}\\sum_s u_s \\le c, \\quad u_s \\ge L_s(w) - \\zeta,\\; u_s \\ge 0 \\\\ L_s(w) = -R_s w, \\quad CVaR_\\alpha(w) = \\zeta^* + \\frac{1}{S(1-\\alpha)}\\sum_s u_s^*",
       "symbol_map": {
         "confidence_level": "\\alpha",
         "cvar_limit": "c",
@@ -23651,7 +23701,7 @@
     "display_name": "Rebalancing Optimiser",
     "path": "/api/v1/portfolio/rebalancing_optimiser",
     "summary": "Rebalancing optimiser with a no-trade band.",
-    "description": "Computes the trades to move from current to target weights, suppressing\ntrades within ``no_trade_band`` to avoid churn, and reports turnover and\ntotal transaction cost.\n\n``no_trade_band`` is a user-supplied absolute weight threshold, not one\nderived from cost/volatility parameters the way Leland (1999) or Donohue\n& Yip (2003) construct an optimal no-trade region.",
+    "description": "Computes the trades to move from current to target weights, suppressing\ntrades within a no-trade band to avoid churn, and reports turnover and\ntotal transaction cost.\n\nBy default ``no_trade_band`` is a single user-supplied absolute weight\nthreshold applied uniformly to every asset (unchanged prior behaviour).\nSupplying both ``asset_volatility`` and ``risk_aversion`` instead\n*derives* a per-asset band from the classic Constantinides (1986) /\nDavis & Norman (1990) asymptotic no-trade-region half-width \u2014 the\nclosed-form cube-root result that Leland's (1999) mean-variance\ntracking-error approximation and Donohue & Yip's (2003) practitioner\nrebalancing-band heuristic both build on:\n\n    h_i = ( (3/4) * c_i * sigma_i^2 * w_i^tgt * (1 - w_i^tgt)^2 / gamma )^(1/3)\n\nwhere ``c_i`` is the proportional transaction cost (``cost_bps_i /\n1e4``), ``sigma_i`` is asset i's return volatility, ``w_i^tgt`` is asset\ni's target weight (the frictionless-optimal allocation the band is\ncentred on) and ``gamma`` is the investor's (CRRA) risk-aversion\ncoefficient. The half-width widens with cost and volatility (cube-root\nscaling) and narrows as risk aversion rises \u2014 more risk-averse investors\ntolerate less drift before trading. This is the classic single-risky-\nasset asymptotic result applied per-asset; it is not a reproduction of\nLeland's or Donohue & Yip's own published numerical examples (no\npublished table was available to cross-check exact figures against).\n\nWhen the derived-band mode is used, it *replaces* the scalar\n``no_trade_band`` for that call rather than combining with it; when\neither ``asset_volatility`` or ``risk_aversion`` is omitted, behaviour\nis unchanged \u2014 the scalar ``no_trade_band`` is used exactly as before.",
     "params": [
       {
         "name": "current_weights",
@@ -23696,16 +23746,40 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "asset_volatility",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "risk_aversion",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "no_trade_band is a user-supplied absolute weight threshold, not one derived from cost/volatility parameters the way Leland (1999) or Donohue & Yip (2003) derive an optimal no-trade region; no published source reproduces this function's exact numbers.",
-      "citation": null,
-      "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i|",
+      "caveat": "no_trade_band defaults to a user-supplied absolute weight threshold (unchanged for backward compatibility). Pass asset_volatility and risk_aversion together to instead derive a per-asset band from the classic Constantinides (1986)/Davis & Norman (1990) asymptotic no-trade-region half-width -- the closed form Leland (1999) and Donohue & Yip (2003) build their practical rebalancing-band heuristics on. This is the classic single-asset asymptotic applied per-asset, not a reproduction of Leland's or Donohue & Yip's own published numerical examples.",
+      "citation": "Constantinides, G.M. (1986), \"Capital Market Equilibrium with Transaction Costs\", Journal of Political Economy 94(4); Davis, M.H.A. & Norman, A.R. (1990), \"Portfolio Selection with Transaction Costs\", Mathematics of Operations Research 15(4); as applied by Leland, H. (1999) and Donohue, C. & Yip, K. (2003), \"Optimal Portfolio Rebalancing with Transaction Costs\", Journal of Portfolio Management 29(4)",
+      "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b_i) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i| \\\\ \\text{(derived band, opt-in)}\\;\\; h_i = \\left(\\frac{3}{4}\\, \\frac{c_i}{10^4}\\, \\sigma_i^2\\, w_i^{tgt}(1-w_i^{tgt})^2 \\,/\\, \\gamma\\right)^{1/3}",
       "symbol_map": {
+        "asset_volatility": "\\sigma_i",
         "cost_bps": "c_i",
         "current_weights": "w_i^{cur}",
-        "no_trade_band": "b",
+        "no_trade_band": "b_i",
+        "risk_aversion": "\\gamma",
         "target_weights": "w_i^{tgt}"
       }
     }
@@ -24199,7 +24273,7 @@
     "display_name": "Sharpe Ratio",
     "path": "/api/v1/portfolio/sharpe_ratio",
     "summary": "Annualised Sharpe ratio.",
-    "description": "Mean excess return divided by return volatility, annualised by\n``sqrt(periods_per_year)``.\n\nVolatility is the population standard deviation (divide by n) of\nper-period excess returns, not the n-1 sample standard deviation.",
+    "description": "Mean excess return divided by return volatility, annualised by\n``sqrt(periods_per_year)``.\n\nBy default (``ddof=0``, unchanged from prior behaviour) volatility is the\n*population* standard deviation (divide by n) of per-period excess\nreturns. Pass ``ddof=1`` to use the *sample* standard deviation (divide\nby n-1) instead \u2014 the usual unbiased-estimator convention when\n``returns`` is treated as a sample drawn from a larger population. The\n``n``-vs-``n-1`` divisor only matters materially for small samples; for\nthe sample sizes typical of return series (hundreds+ of observations)\nthe two converge.",
     "params": [
       {
         "name": "returns",
@@ -24233,13 +24307,25 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "ddof",
+        "type": "integer",
+        "required": false,
+        "default": 0,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "Volatility is the population standard deviation (divide by n) of per-period excess returns, not the n-1 sample standard deviation.",
+      "caveat": "Volatility defaults to the population standard deviation (ddof=0, divide by n) of per-period excess returns for backward compatibility. Pass ddof=1 to use the n-1 sample standard deviation instead.",
       "citation": null,
-      "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma(r - r_f)}",
+      "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma_{ddof}(r - r_f)}, \\quad \\sigma_0 = \\sqrt{\\tfrac{1}{n}\\sum(x-\\bar x)^2}, \\;\\; \\sigma_1 = \\sqrt{\\tfrac{1}{n-1}\\sum(x-\\bar x)^2}",
       "symbol_map": {
+        "ddof": "ddof",
         "periods_per_year": "T",
         "returns": "r",
         "risk_free": "r_f"
@@ -24423,7 +24509,7 @@
     "display_name": "Transaction Cost Analysis",
     "path": "/api/v1/portfolio/transaction_cost_analysis",
     "summary": "Transaction Cost Analysis (TCA) \u2014 implementation shortfall vs benchmark.",
-    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nThis is narrower than Perold's full implementation-shortfall\ndecomposition -- there is no delay-cost or unexecuted-share\nopportunity-cost leg, so the result is an execution-slippage metric, not\na complete IS attribution.",
+    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nBy default (``decision_price`` omitted, unchanged prior behaviour) this\nis narrower than Perold's (1988) full implementation-shortfall\ndecomposition -- it measures only execution slippage against the\n``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n\nPassing ``decision_price`` -- the price at the instant the investment\ndecision was made, Perold's \"paper\" price, distinct from the\narrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\nthe delay-cost leg: the cost incurred between the decision and the\norder reaching the market (``benchmark_prices``), *before* any\nexecution slippage is measured. Delay cost and execution slippage sum\nexactly to the executed-quantity implementation shortfall measured\ndirectly against the decision price:\n``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n* trade_quantities)``. This still omits Perold's unexecuted-share\nopportunity-cost leg (no cancellation price/quantity is modelled here),\nso even with ``decision_price`` supplied the result is a delay+\nexecution partial IS, not the complete four-component decomposition.",
     "params": [
       {
         "name": "trade_prices",
@@ -24468,14 +24554,26 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "decision_price",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "Narrower than Perold's full implementation-shortfall decomposition -- no delay cost or unexecuted-share opportunity-cost leg; no published source reproduces this exact quantity.",
-      "citation": null,
-      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4",
+      "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+      "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
+      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
       "symbol_map": {
         "benchmark_prices": "b_i",
+        "decision_price": "d_i",
         "side": "s",
         "trade_prices": "p_i",
         "trade_quantities": "q_i"
