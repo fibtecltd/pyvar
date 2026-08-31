@@ -45,7 +45,10 @@ def compute_rolling_var(
     confidence_level: float = 0.99,
 ) -> np.ndarray:
     """
-    Parametric (Gaussian) rolling VaR using a expanding window.
+    Parametric (Gaussian) rolling VaR using a fixed-length trailing window.
+    At each point, mean and volatility are estimated from only the most recent
+    `window` observations (returns[i - window : i]), not an expanding window
+    that grows from the start of the series.
     Fast approximation for backtesting — not the full Monte Carlo.
     Uses scipy.stats.norm for the quantile function.
 
