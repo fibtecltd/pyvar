@@ -60,6 +60,10 @@ def rebalancing_optimiser(
     trades within ``no_trade_band`` to avoid churn, and reports turnover and
     total transaction cost.
 
+    ``no_trade_band`` is a user-supplied absolute weight threshold, not one
+    derived from cost/volatility parameters the way Leland (1999) or Donohue
+    & Yip (2003) construct an optimal no-trade region.
+
     Args:
         current_weights: Current portfolio weights.
         target_weights: Desired target weights.
@@ -162,6 +166,10 @@ def carbon_footprint_attribution(
     Computes the Weighted Average Carbon Intensity (WACI) and attributes the
     financed emissions to each holding by its invested value. Contributions sum
     to the total financed emissions.
+
+    ``total_financed_emissions`` scales revenue-intensity by invested value
+    per holding, which does not match the ownership-share method used by the
+    TCFD/PCAF financed-emissions standards.
 
     Args:
         weights: Portfolio weights per holding (sum to 1).
