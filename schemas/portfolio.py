@@ -776,6 +776,7 @@ class TransactionCostAnalysisRequest(BaseModel):
     benchmark_prices: list[float] | list[list[float]]
     trade_quantities: list[float] | list[list[float]]
     side: int = 1
+    decision_price: float | list[float] | None = None
 
 
 class TransactionCostAnalysisResponse(BaseModel):
@@ -783,6 +784,10 @@ class TransactionCostAnalysisResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    delay_cost: Any = Field(default=None)
+    delay_cost_bps: Any = Field(default=None)
+    implementation_shortfall: Any = Field(default=None)
+    implementation_shortfall_bps: Any = Field(default=None)
     n_fills: Any = Field(default=None)
     slippage_bps: Any = Field(default=None)
     total_cost: Any = Field(default=None)

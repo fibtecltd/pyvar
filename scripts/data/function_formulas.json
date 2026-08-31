@@ -3749,11 +3749,12 @@
     }
   },
   "transaction_cost_analysis": {
-    "caveat": "Narrower than Perold's full implementation-shortfall decomposition -- no delay cost or unexecuted-share opportunity-cost leg; no published source reproduces this exact quantity.",
-    "citation": null,
-    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4",
+    "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+    "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
+    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
     "symbol_map": {
       "benchmark_prices": "b_i",
+      "decision_price": "d_i",
       "side": "s",
       "trade_prices": "p_i",
       "trade_quantities": "q_i"

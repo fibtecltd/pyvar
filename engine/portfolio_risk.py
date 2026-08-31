@@ -274,6 +274,7 @@ def transaction_cost_analysis(
     benchmark_prices: np.ndarray,
     trade_quantities: np.ndarray,
     side: int = 1,
+    decision_price: float | np.ndarray | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Transaction Cost Analysis (TCA) — implementation shortfall vs benchmark.
 
@@ -281,23 +282,49 @@ def transaction_cost_analysis(
     quantity-weighted average slippage in basis points. ``side`` is +1 for
     buys (paying above benchmark is a cost) and -1 for sells.
 
-    This is narrower than Perold's full implementation-shortfall
-    decomposition -- there is no delay-cost or unexecuted-share
-    opportunity-cost leg, so the result is an execution-slippage metric, not
-    a complete IS attribution.
+    By default (``decision_price`` omitted, unchanged prior behaviour) this
+    is narrower than Perold's (1988) full implementation-shortfall
+    decomposition -- it measures only execution slippage against the
+    ``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.
+
+    Passing ``decision_price`` -- the price at the instant the investment
+    decision was made, Perold's "paper" price, distinct from the
+    arrival/VWAP ``benchmark_prices`` used for execution slippage -- adds
+    the delay-cost leg: the cost incurred between the decision and the
+    order reaching the market (``benchmark_prices``), *before* any
+    execution slippage is measured. Delay cost and execution slippage sum
+    exactly to the executed-quantity implementation shortfall measured
+    directly against the decision price:
+    ``delay_cost + total_cost == sum(side * (trade_prices - decision_price)
+    * trade_quantities)``. This still omits Perold's unexecuted-share
+    opportunity-cost leg (no cancellation price/quantity is modelled here),
+    so even with ``decision_price`` supplied the result is a delay+
+    execution partial IS, not the complete four-component decomposition.
 
     Args:
         trade_prices: Executed prices per fill.
         benchmark_prices: Benchmark (arrival or VWAP) prices per fill.
         trade_quantities: Executed quantities per fill (non-negative).
         side: +1 for buy orders, -1 for sell orders.
+        decision_price: Optional price(s) at the investment-decision
+            instant (Perold's "paper" price). Pass a scalar (applied to
+            every fill) or a per-fill array matching ``trade_prices`` in
+            length. When supplied, adds ``delay_cost_bps``,
+            ``delay_cost``, ``implementation_shortfall_bps`` and
+            ``implementation_shortfall`` to the result. Omit for
+            unchanged (execution-slippage-only) behaviour.
 
     Returns:
-        Dict with ``slippage_bps`` (quantity-weighted), ``total_cost`` (cash)
-        and ``n_fills``.
+        Dict with ``slippage_bps`` (quantity-weighted), ``total_cost``
+        (cash), ``total_quantity`` and ``n_fills``. When ``decision_price``
+        is supplied, also includes ``delay_cost_bps``, ``delay_cost``,
+        ``implementation_shortfall_bps`` and ``implementation_shortfall``
+        (all quantity-weighted against the decision-price notional).
 
     Raises:
-        ValueError: If arrays differ in length, are empty, or ``side`` invalid.
+        ValueError: If arrays differ in length, are empty, ``side`` is
+            invalid, or ``decision_price`` is an array not matching
+            ``trade_prices`` in length.
     """
     p = np.asarray(trade_prices, dtype=np.float64)
     bench = np.asarray(benchmark_prices, dtype=np.float64)
@@ -313,12 +340,39 @@ def transaction_cost_analysis(
     cost_cash = float(np.sum(slippage * q))
     weighted_ref = float(np.sum(bench * q))
     slippage_bps = (cost_cash / weighted_ref) * 1e4 if weighted_ref > 0.0 else 0.0
-    return {
+    out: dict = {  # type: ignore[type-arg]
         "slippage_bps": round(slippage_bps, 6),
         "total_cost": round(cost_cash, 6),
         "total_quantity": round(total_qty, 6),
         "n_fills": int(p.size),
     }
+
+    if decision_price is not None:
+        if np.isscalar(decision_price):
+            dp = np.full(p.size, float(decision_price), dtype=np.float64)
+        else:
+            dp = np.asarray(decision_price, dtype=np.float64)
+            if dp.size != p.size:
+                raise ValueError("decision_price must be a scalar or match trade_prices in length")
+        # Delay cost: the price move between the decision instant and the
+        # order reaching the market (the arrival/VWAP benchmark).
+        delay = side * (bench - dp)
+        delay_cash = float(np.sum(delay * q))
+        weighted_decision_ref = float(np.sum(dp * q))
+        delay_bps = (
+            (delay_cash / weighted_decision_ref) * 1e4 if weighted_decision_ref > 0.0 else 0.0
+        )
+        total_shortfall_cash = delay_cash + cost_cash
+        is_bps = (
+            (total_shortfall_cash / weighted_decision_ref) * 1e4
+            if weighted_decision_ref > 0.0
+            else 0.0
+        )
+        out["delay_cost_bps"] = round(delay_bps, 6)
+        out["delay_cost"] = round(delay_cash, 6)
+        out["implementation_shortfall_bps"] = round(is_bps, 6)
+        out["implementation_shortfall"] = round(total_shortfall_cash, 6)
+    return out
 
 
 def marginal_contribution_to_risk(

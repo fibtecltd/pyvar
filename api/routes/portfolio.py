@@ -1181,6 +1181,8 @@ async def transaction_cost_analysis(
     kwargs["trade_prices"] = np.asarray(kwargs["trade_prices"], dtype=np.float64)
     kwargs["benchmark_prices"] = np.asarray(kwargs["benchmark_prices"], dtype=np.float64)
     kwargs["trade_quantities"] = np.asarray(kwargs["trade_quantities"], dtype=np.float64)
+    if isinstance(kwargs.get("decision_price"), list):
+        kwargs["decision_price"] = np.asarray(kwargs["decision_price"], dtype=np.float64)
     try:
         result: Any = _e_transaction_cost_analysis(**kwargs)
     except _INPUT_ERRORS as exc:
