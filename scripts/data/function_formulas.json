@@ -148,13 +148,14 @@
     }
   },
   "barrier_option_pricer": {
-    "caveat": "Reiner-Rubinstein closed form: x1,x2,y1,y2 are the standard barrier d-terms (phi=+-1 for call/put, eta=+-1 for down/up); the exact combination of A/B/C/D used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier \u2014 only the general building blocks are shown here rather than all eight case branches. The code also computes a rebate-related lambda term (sqrt(mu^2 + 2r/sigma^2)) that is never actually used in any of A/B/C/D \u2014 consistent with the rebate parameter being accepted but not modelled (always priced as 0).",
-    "citation": null,
-    "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\\\text{knock-in}\\in\\{A,B,C,D\\text{ combinations by type}\\},\\qquad \\text{knock-out}=\\text{vanilla}-\\text{knock-in}",
+    "caveat": "Only the general Reiner-Rubinstein building blocks (A/B/C/D) are shown here \u2014 the exact combination used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier, and is not spelled out in full (all eight case branches).",
+    "citation": "Reiner & Rubinstein (1991), \"Breaking Down the Barriers\"; Haug, The Complete Guide to Option Pricing Formulas",
+    "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2},\\qquad \\lambda=\\sqrt{\\mu^2+2r/\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\E=\\text{rebate}\\cdot e^{-r\\tau}\\big[N(\\eta x_2-\\eta\\sigma\\sqrt\\tau)-(H/S)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at expiry, knock-in)}\\\\F=\\text{rebate}\\big[(H/S)^{\\mu+\\lambda}N(\\eta z)+(H/S)^{\\mu-\\lambda}N(\\eta z-2\\eta\\lambda\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at touch, knock-out)}\\\\\\text{knock-in}=\\{A,B,C,D\\text{ combo}\\}+E,\\qquad \\text{knock-out}=(\\text{vanilla}-\\text{knock-in}_{\\text{no rebate}})+F",
     "symbol_map": {
       "barrier": "H",
       "div_yield": "q",
       "rate": "r",
+      "rebate": "\\text{rebate}",
       "sigma": "\\sigma",
       "spot": "S",
       "strike": "K",
@@ -652,16 +653,16 @@
     }
   },
   "compound_option_pricer": {
-    "caveat": "Monte Carlo: the underlying option's value at the compound expiry is priced analytically (Black-Scholes) at each simulated S_mid, not via the classical Geske closed-form bivariate normal \u2014 despite 'Geske' appearing in the module docstring, the code is MC + analytic-inner-value, not the exact Geske formula.",
-    "citation": null,
-    "formula_latex": "S_{mid}=S_0\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\tau_c+\\sigma\\sqrt{\\tau_c}\\,Z\\big]\\\\V_{under}(S_{mid})=\\text{BS}\\big(S_{mid},K_u,r,\\sigma,\\tau_u-\\tau_c\\big)\\\\\\text{Price}=e^{-r\\tau_c}\\,\\mathbb E\\big[\\max\\big(\\phi_{outer}(V_{under}-K_c),0\\big)\\big]",
+    "caveat": null,
+    "citation": "Geske (1979); Haug, The Complete Guide to Option Pricing Formulas, \"Compound options\"",
+    "formula_latex": "I:\\ V_{under}(I;K_2,\\tau_u-\\tau_c)=K_1\\ \\text{(critical price)}\\\\a_1=\\frac{\\ln(S/I)+(b+\\sigma^2/2)\\tau_c}{\\sigma\\sqrt{\\tau_c}},\\ a_2=a_1-\\sigma\\sqrt{\\tau_c}\\\\b_1=\\frac{\\ln(S/K_2)+(b+\\sigma^2/2)\\tau_u}{\\sigma\\sqrt{\\tau_u}},\\ b_2=b_1-\\sigma\\sqrt{\\tau_u},\\quad \\rho=\\sqrt{\\tau_c/\\tau_u}\\\\\\text{CallOnCall}=Se^{-q\\tau_u}M(a_1,b_1;\\rho)-K_2e^{-r\\tau_u}M(a_2,b_2;\\rho)-e^{-r\\tau_c}K_1N(a_2)",
     "symbol_map": {
       "div_yield": "q",
       "rate": "r",
       "sigma": "\\sigma",
-      "spot": "S_0",
-      "strike_compound": "K_c",
-      "strike_underlying": "K_u",
+      "spot": "S",
+      "strike_compound": "K_1",
+      "strike_underlying": "K_2",
       "tau_compound": "\\tau_c",
       "tau_underlying": "\\tau_u"
     }
@@ -891,9 +892,9 @@
     }
   },
   "cox_ingersoll_ross_model": {
-    "caveat": "MC path uses full-truncation Euler (r floored at 0 both inside the sqrt and for the terminal output), not the exact non-central chi-squared CIR transition distribution.",
-    "citation": null,
-    "formula_latex": "\\gamma=\\sqrt{\\kappa^2+2\\sigma^2},\\qquad B=\\frac{2(e^{\\gamma T}-1)}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\\\A=\\left[\\frac{2\\gamma e^{(\\kappa+\\gamma)T/2}}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\right]^{2\\kappa\\theta/\\sigma^2},\\qquad P(0,T)=A\\,e^{-Br_0}\\\\dr=\\kappa(\\theta-r)\\,dt+\\sigma\\sqrt{r}\\,dW\\ \\text{(MC, full-truncation Euler)}",
+    "caveat": null,
+    "citation": "Broadie & Kaya (2006); Glasserman, Monte Carlo Methods in Financial Engineering, \u00a73.4",
+    "formula_latex": "\\gamma=\\sqrt{\\kappa^2+2\\sigma^2},\\qquad B=\\frac{2(e^{\\gamma T}-1)}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\\\A=\\left[\\frac{2\\gamma e^{(\\kappa+\\gamma)T/2}}{(\\gamma+\\kappa)(e^{\\gamma T}-1)+2\\gamma}\\right]^{2\\kappa\\theta/\\sigma^2},\\qquad P(0,T)=A\\,e^{-Br_0}\\\\c=\\frac{\\sigma^2(1-e^{-\\kappa\\,dt})}{4\\kappa},\\quad df=\\frac{4\\kappa\\theta}{\\sigma^2},\\quad nc=\\frac{r_t e^{-\\kappa\\,dt}}{c}\\\\r_{t+dt}=c\\cdot\\chi'^2(df,\\,nc)\\ \\text{(exact CIR transition, Broadie-Kaya)}",
     "symbol_map": {
       "kappa": "\\kappa",
       "maturity": "T",
@@ -911,9 +912,9 @@
     }
   },
   "credit_default_swap_cds_pricer": {
-    "caveat": "Flat-hazard-rate reduced-form model with default/coupon events settled at each period END (t_i), not at the accrual midpoint \u2014 a deliberate discretisation choice; see tests/validation for a convergence check against QuantLib's midpoint-settlement CDS engine, not an exact-match assertion.",
-    "citation": null,
-    "formula_latex": "Q_i=e^{-\\lambda t_i},\\qquad DF_i=e^{-r t_i},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)\\\\\\text{Premium leg}=s\\,\\tau\\sum_i DF_i Q_i\\cdot N,\\qquad \\text{Protection leg}=(1-R)\\,N\\sum_i DF_i(Q_{i-1}-Q_i)\\\\\\text{Value (buyer)}=\\text{Protection}-\\text{Premium},\\qquad s_{par}=\\frac{(1-R)\\sum_i DF_i(Q_{i-1}-Q_i)}{\\tau\\sum_i DF_i Q_i}",
+    "caveat": null,
+    "citation": "ISDA/JPMorgan standard reduced-form CDS model (accrual-midpoint default settlement); cf. QuantLib's MidPointCdsEngine",
+    "formula_latex": "Q_i=e^{-\\lambda t_i},\\qquad DF_i=e^{-r t_i},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)\\\\t_{mid,i}=\\tfrac12(t_{i-1}+t_i),\\qquad DF_{mid,i}=e^{-r\\,t_{mid,i}}\\\\\\text{Protection leg}=(1-R)\\,N\\sum_i DF_{mid,i}(Q_{i-1}-Q_i)\\\\\\text{Premium leg}=s\\,N\\Big[\\tau\\sum_i DF_i Q_i+\\sum_i(t_{mid,i}-t_{i-1})\\,DF_{mid,i}(Q_{i-1}-Q_i)\\Big]\\\\\\text{Value (buyer)}=\\text{Protection}-\\text{Premium}",
     "symbol_map": {
       "discount_rate": "r",
       "frequency": "m",
@@ -2373,9 +2374,9 @@
     }
   },
   "lmm_bgm_rate_model": {
-    "caveat": "Log-Euler discretisation of the standard log-normal BGM spot-measure drift; the drift sum for rate i includes j=i itself (range(i+1)) alongside all earlier-maturity rates j<i. Rates are updated sequentially within a step (f_i is overwritten immediately after being computed), so the drift for rate i actually uses the SAME step's already-updated f_j for j<i, not their start-of-step values \u2014 a specific sequential-Euler discretisation choice, not a fully simultaneous update.",
-    "citation": null,
-    "formula_latex": "f_i(t+\\Delta t)=f_i(t)\\exp\\!\\left[\\left(\\sum_{j\\le i}\\frac{\\tau f_j(t)\\sigma_j\\sigma_i}{1+\\tau f_j(t)}-\\tfrac12\\sigma_i^2\\right)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right],\\qquad \\Delta t=\\frac{T_{hz}}{n_{steps}}",
+    "caveat": null,
+    "citation": "Glasserman & Zhao (2000); Glasserman, Monte Carlo Methods in Financial Engineering, \u00a73.7 (predictor-corrector)",
+    "formula_latex": "\\mu_i(f)=\\sum_{j\\le i}\\frac{\\tau f_j\\sigma_j\\sigma_i}{1+\\tau f_j}\\\\f_i^{pred}=f_i(t)\\exp\\!\\left[(\\mu_i(f(t))-\\tfrac12\\sigma_i^2)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right]\\\\f_i(t+\\Delta t)=f_i(t)\\exp\\!\\left[\\Big(\\tfrac12(\\mu_i(f(t))+\\mu_i(f^{pred}))-\\tfrac12\\sigma_i^2\\Big)\\Delta t+\\sigma_i\\sqrt{\\Delta t}\\,Z_i\\right]",
     "symbol_map": {
       "forward_rates": "f_i(0)",
       "horizon": "T_{hz}",
@@ -2393,9 +2394,9 @@
     }
   },
   "local_volatility_dupire_model": {
-    "caveat": "Partial derivatives are finite differences on the supplied discrete (maturities x strikes) grid (forward difference in T, central differences in K), evaluated only at interior grid points; spot is used solely for a positivity check, not in the formula itself.",
-    "citation": null,
-    "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}",
+    "caveat": null,
+    "citation": "Dupire (1994), \"Pricing with a Smile\"; standard non-uniform-grid (Fornberg) one-sided finite differences at boundaries",
+    "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}\\\\\\text{interior}:\\ \\text{central differences};\\quad \\text{boundary}:\\ \\text{2nd-order one-sided 3-point stencils (exact for quadratics)}",
     "symbol_map": {
       "call_surface": "C(K,T)",
       "maturities": "T",
