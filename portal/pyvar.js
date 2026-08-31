@@ -63,11 +63,11 @@ function buildFooter() {
               <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text)">py<span style="color:var(--green)">var</span>.com</div>
             </a>
           </div>
-          <p class="footer-tagline">Open-source financial and risk computation platform. 385 functions across 8 domains. Free forever.</p>
+          <p class="footer-tagline">Open-source financial and risk computation platform. 385 functions across 8 domains. Free to use.</p>
           <div class="footer-meta">
             <span>Built by <a href="https://fibtec.co.uk" target="_blank">Fibtec Limited</a> · UK</span>
             <a href="https://github.com/fibtecltd/pyvar" target="_blank">github.com/fibtecltd/pyvar ↗</a>
-            <a href="mailto:info@fibtec.co.uk">info@fibtec.co.uk</a>
+            <a href="mailto:info@pyvar.com">info@pyvar.com</a>
           </div>
         </div>
         <div class="footer-nav">
