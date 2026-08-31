@@ -246,13 +246,18 @@ def survival_horizon_calculator(
     counterbalancing capacity. The survival horizon is the last day on which the
     remaining buffer is still non-negative.
 
+    ``survival_days`` is the 0-indexed day on which cumulative outflow first
+    drives the buffer negative, so it equals the count of full days survived
+    before breach (0 if the very first day breaches).
+
     Args:
         hqla: Opening counterbalancing capacity (HQLA).
         daily_net_outflows: Array of daily net cash outflows (positive = drain).
 
     Returns:
-        Dict with ``survival_days`` (int; -1 if exhausted before day 1, or
-        ``len`` if it survives the whole path) and ``terminal_buffer``.
+        Dict with ``survival_days`` (int; 0 if exhausted on the first day, or
+        ``len(daily_net_outflows)`` if it survives the whole path) and
+        ``terminal_buffer``.
 
     Raises:
         ValueError: If the outflow path is empty.
@@ -375,6 +380,10 @@ def ilaap_stress_testing_framework(
     breached, and overall adequacy. Each scenario value must expose a
     ``surplus_deficit`` figure (as produced by the scenario functions above).
 
+    SD_k in the rendered formula denotes the ``surplus_deficit`` field each
+    named scenario dict must already carry — this function only aggregates
+    pre-computed values and performs no cash-flow arithmetic itself.
+
     Args:
         scenarios: Mapping ``name -> {"surplus_deficit": float, ...}``.
 
@@ -426,6 +435,12 @@ def liquidity_var_liqvar(
     Per CLAUDE.md §3.1 RULE 3 the N(0,1) shocks are pre-drawn in pure Python and
     passed to the JIT kernel; an analytic normal quantile is also returned for
     validation.
+
+    ``liqvar`` is a simulated order statistic of this floored-at-zero
+    normal-shock model, cross-validated only against its own analytic
+    counterpart ``liqvar_analytic`` rather than a regulatory reference, using
+    index ``floor(confidence_level * n_simulations)`` capped at
+    ``n_simulations - 1``.
 
     Args:
         base_outflow: Expected net cash outflow.

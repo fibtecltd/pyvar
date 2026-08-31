@@ -81,6 +81,10 @@ def contingency_funding_plan_trigger(
     e.g. LCR, survival days). Returns the list of breached triggers and the CFP
     activation decision.
 
+    This is a logical breach test, not an arithmetic formula, so it is shown on
+    the Try-it panel as an indicator function of the comparison rather than a
+    computed expression.
+
     Args:
         metrics: Mapping ``name -> current value``.
         thresholds: Mapping ``name -> minimum acceptable value``.
