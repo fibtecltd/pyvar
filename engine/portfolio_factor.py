@@ -343,25 +343,15 @@ def regime_detection_hmm(
     returns: np.ndarray,
     n_iter: int = 50,
 ) -> dict:  # type: ignore[type-arg]
-    """Two-state Gaussian regime detection via EM (function name overstates the method -- see below).
+    """Two-state Gaussian regime detection via EM.
+
+    Note: despite the name, this fits a stationary 2-component Gaussian
+    mixture (EM, i.i.d. weights) — there is no transition matrix, so it does
+    not model true HMM regime persistence/switching dynamics.
 
     Fits a two-component Gaussian mixture by EM and labels each observation by
     its most likely regime. The higher-variance component is reported as the
     "stress" regime — the standard calm/turbulent market characterisation.
-
-    Despite the ``_hmm`` in this function's name, this is a STATIONARY
-    Gaussian mixture (i.i.d. component weights ``pi``) -- there is no
-    transition matrix, so regime persistence/switching probabilities are not
-    modelled at all, only the marginal mixture. A genuine hidden Markov model
-    (Hamilton, J.D. (1989), "A New Approach to the Economic Analysis of
-    Nonstationary Time Series and the Business Cycle", Econometrica 57(2))
-    fits a Markov-switching autoregression with an explicit 2x2 transition
-    matrix and publishes reproducible parameter estimates on US GNP growth --
-    not applicable here since this function's inputs/outputs don't match that
-    structure. Renaming the function (and its REST route) is a larger,
-    separate change than this docstring fix; flagged here (Tier 3 #2 audit)
-    so nobody mistakes the current name for a claim of Markov-switching
-    behaviour.
 
     Args:
         returns: 1-D array of per-period returns.
