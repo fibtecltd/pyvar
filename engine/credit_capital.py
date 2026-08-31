@@ -118,6 +118,10 @@ def irb_foundation_approach_capital(
 ) -> dict:  # type: ignore[type-arg]
     """Basel IRB Foundation-Approach capital (CRE31).
 
+    Note: unlike :func:`irb_advanced_approach_capital`, F-IRB exposes no
+    override at all for the asset correlation R — it is always the Basel
+    corporate correlation function of PD.
+
     Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for
     senior unsecured and 75% for subordinated claims (CRE32). EAD and maturity
     are also supervisory (M defaults to 2.5 years).
@@ -160,6 +164,9 @@ def irb_advanced_approach_capital(
     correlation: float | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Basel IRB Advanced-Approach capital (CRE31).
+
+    Note: when ``correlation`` is not supplied it defaults to the Basel
+    corporate correlation function of PD, the same formula F-IRB always uses.
 
     Under A-IRB the bank supplies its own PD, LGD, EAD and effective maturity.
     The risk-weight function is identical to F-IRB; only the parameter sources
