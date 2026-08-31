@@ -14,3 +14,6 @@ __pycache__/
 pyvar-cdk/cdk.out/
 pyvar-cdk/_local_constructs_shadow_BAK/
 pyvar-cdk/cdk.context.json
+# Per-agent isolated git worktrees (Claude Code Agent tool, isolation: "worktree") -- scratch
+# space for background subagents, not repo content.
+.claude/worktrees/
