@@ -143,6 +143,11 @@ def behavioural_modelling_nmds(
 ) -> dict:  # type: ignore[type-arg]
     """Model non-maturity-deposit (NMD) run-off splitting core / non-core.
 
+    [LIMITATION] This is a bespoke core/non-core exponential-decay run-off
+    model, not an implementation of BCBS d368's standardised NMD slotting
+    methodology -- the BCBS d368 reference below names the regulatory context
+    this model addresses, not the calculation performed here.
+
     [REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay
     slowly; non-core (volatile) deposits run off quickly. Returns the projected
     surviving balance and the effective average life.
