@@ -128,6 +128,9 @@ def frtb_pl_attribution_test(
 ) -> dict:  # type: ignore[type-arg]
     """FRTB P&L Attribution Test (PAT) — Spearman correlation + variance ratio.
 
+    The green/amber/red zone is assigned by a fixed-threshold lookup on the
+    correlation and ratio values below, not a single closed-form equation.
+
     Jointly evaluates the Spearman rank correlation between risk-theoretical P&L
     (RTPL) and hypothetical P&L (HPL) and the volatility ratio
     ``std(RTPL)/std(HPL)``, assigning the Basel traffic-light zone. The

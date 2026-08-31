@@ -346,6 +346,10 @@ def combined_buffer_requirement(
 ) -> dict:  # type: ignore[type-arg]
     """Combined Buffer Requirement (CBR).
 
+    The max(G-SII, O-SII, SyRB) selection is expected to already be resolved
+    by the caller into ``systemic_buffer_ratio``; this function itself
+    performs only a straight sum of the three supplied buffer ratios.
+
     ``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the buffer
     ratios and (optionally) the capital amount on the supplied RWA.
 
