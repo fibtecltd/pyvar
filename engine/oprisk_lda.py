@@ -13,8 +13,11 @@ passed as flat arrays with an index layout the kernel sums.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from numba import njit
+from scipy import stats as _stats
 
 __all__ = [
     "frequency_distribution_fitting",
@@ -93,19 +96,38 @@ def severity_distribution_fitting(
 ) -> dict:  # type: ignore[type-arg]
     """Fit a severity distribution to individual loss amounts.
 
-    Supports the lognormal (default, the OpRisk industry standard) by MLE of the
-    log-loss mean/sigma. Returns the fitted parameters and the implied mean
-    severity.
+    Supports four standard OpRisk severity families, all fit by maximum
+    likelihood with the location parameter pinned at zero (severities are
+    strictly positive, so a free location would let the MLE drift away from
+    the actual support):
 
-    Lognormal is the only distribution implemented; any other ``distribution``
-    value raises ``ValueError`` rather than falling back or approximating.
+    - ``"lognormal"`` (default, the OpRisk industry standard): closed-form MLE
+      of the log-loss mean/sigma, i.e. ``scipy.stats.lognorm.fit(x, floc=0)``
+      reparameterised as ``mu = log(scale)``, ``sigma = shape``.
+    - ``"gamma"``: ``scipy.stats.gamma.fit(x, floc=0)`` — shape ``a`` and
+      ``scale``; commonly used for moderate, right-skewed severities.
+    - ``"weibull"``: ``scipy.stats.weibull_min.fit(x, floc=0)`` — shape ``c``
+      and ``scale``; flexible hazard shape, another standard severity choice.
+    - ``"gpd"`` (Generalized Pareto Distribution): ``scipy.stats.genpareto.fit(
+      x, floc=0)`` — shape ``xi`` and ``scale``; the standard EVT/POT model for
+      the tail of large losses (threshold-exceedance modelling). The mean is
+      only finite for ``xi < 1``; when ``xi >= 1`` ``mean_severity`` is
+      ``None`` rather than a misleading infinite/negative value.
+
+    Any other ``distribution`` value raises ``ValueError`` rather than falling
+    back or approximating.
 
     Args:
         loss_amounts: Strictly positive individual loss amounts.
-        distribution: Severity family; currently ``"lognormal"``.
+        distribution: Severity family; one of ``"lognormal"``, ``"gamma"``,
+            ``"weibull"`` or ``"gpd"``.
 
     Returns:
-        Dict with ``distribution``, ``mu``, ``sigma`` and ``mean_severity``.
+        For ``"lognormal"``: dict with ``distribution``, ``mu``, ``sigma`` and
+        ``mean_severity``. For ``"gamma"`` and ``"weibull"``: dict with
+        ``distribution``, ``shape``, ``scale`` and ``mean_severity``. For
+        ``"gpd"``: dict with ``distribution``, ``shape`` (``xi``), ``scale``
+        and ``mean_severity`` (``None`` if ``xi >= 1``).
 
     Raises:
         ValueError: If losses are non-positive or the family is unsupported.
@@ -113,19 +135,50 @@ def severity_distribution_fitting(
     losses = np.asarray(loss_amounts, dtype=np.float64)
     if losses.size == 0 or np.any(losses <= 0):
         raise ValueError("loss_amounts must be non-empty and strictly positive")
-    if distribution != "lognormal":
-        raise ValueError("only 'lognormal' severity is currently supported")
 
-    log_losses = np.log(losses)
-    mu = float(np.mean(log_losses))
-    sigma = float(np.std(log_losses))
-    mean_sev = float(np.exp(mu + 0.5 * sigma**2))
-    return {
-        "distribution": "lognormal",
-        "mu": round(mu, 6),
-        "sigma": round(sigma, 6),
-        "mean_severity": round(mean_sev, 4),
-    }
+    if distribution == "lognormal":
+        log_losses = np.log(losses)
+        mu = float(np.mean(log_losses))
+        sigma = float(np.std(log_losses))
+        mean_sev = float(np.exp(mu + 0.5 * sigma**2))
+        return {
+            "distribution": "lognormal",
+            "mu": round(mu, 6),
+            "sigma": round(sigma, 6),
+            "mean_severity": round(mean_sev, 4),
+        }
+
+    if distribution == "gamma":
+        shape_a, _loc, scale = _stats.gamma.fit(losses, floc=0)
+        mean_sev = float(shape_a * scale)
+        return {
+            "distribution": "gamma",
+            "shape": round(float(shape_a), 6),
+            "scale": round(float(scale), 6),
+            "mean_severity": round(mean_sev, 4),
+        }
+
+    if distribution == "weibull":
+        shape_c, _loc, scale = _stats.weibull_min.fit(losses, floc=0)
+        mean_sev = float(scale * math.gamma(1.0 + 1.0 / shape_c))
+        return {
+            "distribution": "weibull",
+            "shape": round(float(shape_c), 6),
+            "scale": round(float(scale), 6),
+            "mean_severity": round(mean_sev, 4),
+        }
+
+    if distribution == "gpd":
+        shape_xi, _loc, scale = _stats.genpareto.fit(losses, floc=0)
+        mean_gpd = float(scale / (1.0 - shape_xi)) if shape_xi < 1.0 else None
+        return {
+            "distribution": "gpd",
+            "shape": round(float(shape_xi), 6),
+            "scale": round(float(scale), 6),
+            "mean_severity": round(mean_gpd, 4) if mean_gpd is not None else None,
+        }
+
+    raise ValueError("distribution must be one of 'lognormal', 'gamma', 'weibull' or 'gpd'")
 
 
 def compound_loss_distribution(

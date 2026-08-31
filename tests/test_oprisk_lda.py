@@ -7,6 +7,7 @@ confidence, and the frequency ⊗ severity compound structure.
 
 import numpy as np
 import pytest
+from scipy import stats
 
 from engine.oprisk_lda import (
     advanced_measurement_approach_ama,
@@ -54,6 +55,59 @@ def test_severity_fit_nonpositive_raises():
 def test_severity_fit_unsupported_raises():
     with pytest.raises(ValueError):
         severity_distribution_fitting(np.array([1.0]), distribution="pareto")
+
+
+def test_severity_fit_gamma_recovers_true_params():
+    # Synthetic data actually drawn from a gamma(a, scale) — proves the MLE
+    # fit is correct, not just that it runs.
+    true_shape, true_scale = 3.0, 1500.0
+    losses = stats.gamma.rvs(
+        a=true_shape, scale=true_scale, size=5000, random_state=np.random.default_rng(7)
+    )
+    r = severity_distribution_fitting(losses, distribution="gamma")
+    assert r["distribution"] == "gamma"
+    assert abs(r["shape"] - true_shape) < 0.3
+    assert abs(r["scale"] - true_scale) < 200.0
+    assert r["mean_severity"] > 0
+    assert abs(r["mean_severity"] - r["shape"] * r["scale"]) < 1e-3
+
+
+def test_severity_fit_weibull_recovers_true_params():
+    true_shape, true_scale = 1.8, 2000.0
+    losses = stats.weibull_min.rvs(
+        c=true_shape, scale=true_scale, size=5000, random_state=np.random.default_rng(11)
+    )
+    r = severity_distribution_fitting(losses, distribution="weibull")
+    assert r["distribution"] == "weibull"
+    assert abs(r["shape"] - true_shape) < 0.2
+    assert abs(r["scale"] - true_scale) < 200.0
+    assert r["mean_severity"] > 0
+
+
+def test_severity_fit_gpd_recovers_true_params():
+    true_shape, true_scale = 0.25, 800.0
+    losses = stats.genpareto.rvs(
+        c=true_shape, scale=true_scale, size=5000, random_state=np.random.default_rng(13)
+    )
+    r = severity_distribution_fitting(losses, distribution="gpd")
+    assert r["distribution"] == "gpd"
+    assert abs(r["shape"] - true_shape) < 0.2
+    assert abs(r["scale"] - true_scale) < 200.0
+    assert r["mean_severity"] is not None
+    assert abs(r["mean_severity"] - r["scale"] / (1.0 - r["shape"])) < 1e-3
+
+
+def test_severity_fit_gpd_infinite_mean_is_none():
+    # xi >= 1 => the GPD mean is undefined/infinite; the wrapper must report
+    # None rather than a misleading (or crashing) numeric value.
+    losses = stats.genpareto.rvs(
+        c=1.6, scale=500.0, size=3000, random_state=np.random.default_rng(17)
+    )
+    r = severity_distribution_fitting(losses, distribution="gpd")
+    if r["shape"] >= 1.0:
+        assert r["mean_severity"] is None
+    else:
+        assert abs(r["mean_severity"] - r["scale"] / (1.0 - r["shape"])) < 1e-3
 
 
 def test_compound_distribution_deterministic():
