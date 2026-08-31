@@ -199,6 +199,10 @@ def potential_future_exposure_pfe(
     and reports the per-step PFE (high quantile of positive exposure) and the
     peak PFE. Randomness is pre-drawn in pure Python (RULE 3).
 
+    PFE at each time step is the empirical quantile of the simulated exposure
+    distribution rather than a closed-form expression, so results carry
+    Monte Carlo sampling noise that varies with ``n_paths`` and ``seed``.
+
     Args:
         initial_value: Current netting-set value V_0.
         volatility: Per-sqrt-time value volatility sigma (>= 0).

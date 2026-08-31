@@ -133,6 +133,9 @@ def logistic_regression_pd_model(
     term stabilises the Hessian on separable / collinear data. An intercept is
     added automatically.
 
+    Coefficients are found by iterative Newton-Raphson (IRLS) convergence to
+    the maximum-likelihood estimate, not a closed-form solution.
+
     Args:
         features: ``(n_samples, n_features)`` design matrix (no intercept col).
         defaults: ``(n_samples,)`` binary default indicator in ``{0, 1}``.
@@ -198,6 +201,9 @@ def machine_learning_pd_calibration(
     scores. Platt scaling fits a one-dimensional logistic map
     ``PD = sigmoid(a * score + b)`` so the output is a true probability. The fit
     reuses the Newton-Raphson logistic solver on the single score feature.
+
+    No scikit-learn or other ML library is involved anywhere in this module —
+    the calibration is a hand-rolled fit on top of this file's own solver.
 
     Args:
         raw_scores: ``(n_samples,)`` uncalibrated model scores.
@@ -321,6 +327,10 @@ def ratings_migration_matrix(
     distribution. Empty rows (no obligors observed in that state) are set to the
     identity (a self-transition), keeping the matrix row-stochastic.
 
+    This identity substitution for empty rows is a modelling convention, not an
+    observed transition — it exists purely so the returned matrix stays
+    row-stochastic and is safe to chain into further calculations.
+
     Args:
         from_rating: Integer start-of-period rating index per obligor in
             ``[0, n_states)``.
@@ -417,6 +427,11 @@ def corporate_credit_scoring_model(
     strength, then maps to PD via ``PD = pd_anchor * (1 - strength)`` floored at
     ``pd_floor``. A perfectly strong borrower hits the floor.
 
+    This is a bespoke internal weighted-factor model, confirmed against
+    BIS/EBA sources not to match any specific published or regulatory
+    scoring formula, so treat it as a reasonable internal model rather than
+    a reproduction of one.
+
     Args:
         factor_scores: ``(k,)`` factor strengths in ``[0, 1]`` (1 = best).
         factor_weights: ``(k,)`` non-negative weights (normalised internally).
@@ -462,6 +477,10 @@ def sovereign_credit_risk_assessment(
     score (higher = stronger): high debt/GDP and twin deficits reduce the score;
     larger FX reserves and stronger governance raise it. The score is mapped to
     an indicative PD via a logistic transform.
+
+    This is a bespoke internal composite-indicator model, confirmed against
+    BIS/EBA sources not to match any specific published sovereign-risk
+    methodology (e.g. a rating-agency or IMF framework).
 
     Args:
         debt_to_gdp: General-government debt / GDP (e.g. 0.6 = 60%).
