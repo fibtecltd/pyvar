@@ -281,6 +281,11 @@ def transaction_cost_analysis(
     quantity-weighted average slippage in basis points. ``side`` is +1 for
     buys (paying above benchmark is a cost) and -1 for sells.
 
+    This is narrower than Perold's full implementation-shortfall
+    decomposition -- there is no delay-cost or unexecuted-share
+    opportunity-cost leg, so the result is an execution-slippage metric, not
+    a complete IS attribution.
+
     Args:
         trade_prices: Executed prices per fill.
         benchmark_prices: Benchmark (arrival or VWAP) prices per fill.
