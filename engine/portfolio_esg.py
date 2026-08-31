@@ -219,29 +219,68 @@ def carbon_footprint_attribution(
     carbon_intensities: np.ndarray,
     portfolio_value: float,
     asset_names: list[str] | None = None,
+    company_total_emissions: np.ndarray | None = None,
+    company_value: np.ndarray | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Carbon footprint attribution (WACI and financed emissions).
 
-    Computes the Weighted Average Carbon Intensity (WACI) and attributes the
-    financed emissions to each holding by its invested value. Contributions sum
-    to the total financed emissions.
+    Computes the Weighted Average Carbon Intensity (WACI) -- this leg matches
+    TCFD's WACI definition regardless of mode.
 
-    ``total_financed_emissions`` scales revenue-intensity by invested value
-    per holding, which does not match the ownership-share method used by the
-    TCFD/PCAF financed-emissions standards.
+    By default (``company_total_emissions``/``company_value`` omitted,
+    unchanged prior behaviour) ``total_financed_emissions`` scales
+    revenue-intensity by invested value per holding, which does NOT match
+    the ownership-share method used by the TCFD/PCAF financed-emissions
+    standards.
+
+    Supplying BOTH ``company_total_emissions`` (each holding's investee
+    company's total absolute Scope 1+2 emissions, tCO2e) and
+    ``company_value`` (each company's total enterprise value -- PCAF's EVIC,
+    enterprise value including cash, or market cap -- same currency unit as
+    ``portfolio_value``) switches to the PCAF ownership-share method
+    (Partnership for Carbon Accounting Financials, "The Global GHG
+    Accounting and Reporting Standard for the Financial Industry", Part A,
+    2020; the same method TCFD's 2017 recommendations point to for financed
+    emissions):
+
+        ownership_share_i = invested_i / company_value_i
+        financed_emissions_i = ownership_share_i * company_total_emissions_i
+
+    where ``invested_i = weights_i * portfolio_value`` is the investor's
+    outstanding amount in company i. Unlike the default (revenue-intensity
+    x invested-value) leg, this correctly represents "the investor's
+    proportional share of the company's own total emissions" rather than an
+    intensity-scaled quantity with no ownership interpretation -- an
+    investor's ownership share can never legitimately attribute more than
+    the company's own total emissions (verified in tests).
 
     Args:
         weights: Portfolio weights per holding (sum to 1).
-        carbon_intensities: Carbon intensity per holding (tCO2e per $M, say).
+        carbon_intensities: Carbon intensity per holding (tCO2e per $M, say)
+            -- used for the WACI leg in both modes.
         portfolio_value: Total portfolio value in $M consistent with intensity.
         asset_names: Optional labels; defaults to ``asset_0, ...``.
+        company_total_emissions: Optional per-holding investee company total
+            absolute emissions (tCO2e). Supply together with
+            ``company_value`` to use the PCAF ownership-share method.
+        company_value: Optional per-holding investee company total value
+            (PCAF's EVIC or market cap), in the same currency unit as
+            ``portfolio_value``. Supply together with
+            ``company_total_emissions`` to use the PCAF ownership-share
+            method.
 
     Returns:
         Dict with ``waci``, ``total_financed_emissions``, ``contributions``
-        (name -> emissions) and the ``largest_contributor``.
+        (name -> emissions) and the ``largest_contributor``. When the PCAF
+        mode is used, also includes per-holding ``ownership_share`` and its
+        ``method`` set to ``"pcaf_ownership_share"`` (``"revenue_intensity"``
+        otherwise).
 
     Raises:
-        ValueError: If the arrays differ in length or are empty.
+        ValueError: If the arrays differ in length or are empty, if exactly
+            one of ``company_total_emissions``/``company_value`` is
+            supplied, if their lengths don't match ``weights``, or if any
+            ``company_value`` entry is not positive.
     """
     w = np.asarray(weights, dtype=np.float64)
     ci = np.asarray(carbon_intensities, dtype=np.float64)
@@ -253,13 +292,42 @@ def carbon_footprint_attribution(
 
     waci = float(np.sum(w * ci))
     invested = w * portfolio_value
-    emissions = invested * ci  # per-holding financed emissions
+
+    use_pcaf = company_total_emissions is not None or company_value is not None
+    if use_pcaf:
+        if company_total_emissions is None or company_value is None:
+            raise ValueError(
+                "company_total_emissions and company_value must both be supplied "
+                "together to use the PCAF ownership-share method"
+            )
+        comp_emissions = np.asarray(company_total_emissions, dtype=np.float64)
+        comp_value = np.asarray(company_value, dtype=np.float64)
+        if comp_emissions.size != n or comp_value.size != n:
+            raise ValueError(
+                "company_total_emissions and company_value must match weights in length"
+            )
+        if np.any(comp_value <= 0.0):
+            raise ValueError("company_value entries must all be positive")
+
+        ownership_share = invested / comp_value
+        emissions = ownership_share * comp_emissions
+        method = "pcaf_ownership_share"
+    else:
+        emissions = invested * ci  # per-holding financed emissions (revenue-intensity method)
+        method = "revenue_intensity"
+
     total = float(np.sum(emissions))
     contrib = {asset_names[i]: round(float(emissions[i]), 6) for i in range(n)}
     largest = max(contrib, key=lambda k: contrib[k]) if contrib else ""
-    return {
+    out: dict = {  # type: ignore[type-arg]
         "waci": round(waci, 8),
         "total_financed_emissions": round(total, 6),
         "contributions": contrib,
         "largest_contributor": largest,
+        "method": method,
     }
+    if use_pcaf:
+        out["ownership_share"] = {
+            asset_names[i]: round(float(ownership_share[i]), 10) for i in range(n)
+        }
+    return out

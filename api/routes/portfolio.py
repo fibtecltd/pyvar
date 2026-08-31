@@ -1415,6 +1415,12 @@ async def carbon_footprint_attribution(
     kwargs = body.model_dump()
     kwargs["weights"] = np.asarray(kwargs["weights"], dtype=np.float64)
     kwargs["carbon_intensities"] = np.asarray(kwargs["carbon_intensities"], dtype=np.float64)
+    if kwargs.get("company_total_emissions") is not None:
+        kwargs["company_total_emissions"] = np.asarray(
+            kwargs["company_total_emissions"], dtype=np.float64
+        )
+    if kwargs.get("company_value") is not None:
+        kwargs["company_value"] = np.asarray(kwargs["company_value"], dtype=np.float64)
     try:
         result: Any = _e_carbon_footprint_attribution(**kwargs)
     except _INPUT_ERRORS as exc:

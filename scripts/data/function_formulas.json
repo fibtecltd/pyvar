@@ -468,11 +468,13 @@
     }
   },
   "carbon_footprint_attribution": {
-    "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition. total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards -- flagged as a likely correctness question, not merely a citation gap.",
-    "citation": null,
-    "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ E_i = w_i \\cdot V_{port} \\cdot CI_i, \\quad E_{total} = \\sum_i E_i",
+    "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition in both modes. By default (company_total_emissions/company_value omitted) total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards. Pass both company_total_emissions and company_value to switch to PCAF's genuine ownership-share method.",
+    "citation": "Partnership for Carbon Accounting Financials (PCAF), \"The Global GHG Accounting and Reporting Standard for the Financial Industry\", Part A, 2020 (ownership-share / EVIC method)",
+    "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ \\text{(default)}\\;\\; E_i = w_i \\cdot V_{port} \\cdot CI_i \\\\ \\text{(PCAF, opt-in)}\\;\\; \\text{share}_i = \\frac{w_i V_{port}}{V^{company}_i}, \\quad E_i = \\text{share}_i \\cdot E^{company}_i, \\quad E_{total} = \\sum_i E_i",
     "symbol_map": {
       "carbon_intensities": "CI_i",
+      "company_total_emissions": "E^{company}_i",
+      "company_value": "V^{company}_i",
       "portfolio_value": "V_{port}",
       "weights": "w_i"
     }

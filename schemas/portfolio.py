@@ -982,6 +982,8 @@ class CarbonFootprintAttributionRequest(BaseModel):
     carbon_intensities: list[float] | list[list[float]]
     portfolio_value: float
     asset_names: list[str] | None = None
+    company_total_emissions: list[float] | list[list[float]] | None = None
+    company_value: list[float] | list[list[float]] | None = None
 
 
 class CarbonFootprintAttributionResponse(BaseModel):
@@ -991,5 +993,7 @@ class CarbonFootprintAttributionResponse(BaseModel):
 
     contributions: Any = Field(default=None)
     largest_contributor: Any = Field(default=None)
+    method: Any = Field(default=None)
+    ownership_share: Any = Field(default=None)
     total_financed_emissions: Any = Field(default=None)
     waci: Any = Field(default=None)
