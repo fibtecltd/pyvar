@@ -139,6 +139,11 @@ def monte_carlo_expected_shortfall(
     Runs the parametric-normal Monte Carlo engine and reads the ES (CVaR) from
     the simulated loss distribution. Deterministic for a fixed seed.
 
+    Internally this delegates to ``engine.montecarlo.run_monte_carlo_var`` and
+    returns its ``cvar_pct``/``cvar_abs`` fields; the simulation's mean and
+    volatility (mu, sigma) are fitted directly from the ``returns`` argument,
+    not supplied as separate distribution parameters.
+
     Args:
         returns: 1-D array of historical portfolio returns (fits mu, sigma).
         portfolio_value: Current portfolio value in base currency.
