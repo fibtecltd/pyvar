@@ -59,6 +59,10 @@ def basel_standardised_measurement_sma(
     (ILM) scales by the bank's historical loss experience:
     ``ILM = ln(e − 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.
 
+    The ILM = 1.0 case (``use_ilm=False``, bucket-1 BI, or non-positive BIC) is
+    an explicit override in code rather than a value the log formula itself
+    produces.
+
     Args:
         business_indicator: Business Indicator (BI) in base currency.
         loss_component: Loss Component (15 × average annual losses).

@@ -97,6 +97,9 @@ def severity_distribution_fitting(
     log-loss mean/sigma. Returns the fitted parameters and the implied mean
     severity.
 
+    Lognormal is the only distribution implemented; any other ``distribution``
+    value raises ``ValueError`` rather than falling back or approximating.
+
     Args:
         loss_amounts: Strictly positive individual loss amounts.
         distribution: Severity family; currently ``"lognormal"``.
@@ -273,6 +276,10 @@ def loss_distribution_approach_lda(
     historical data, simulates the compound distribution and reads OpVaR /
     capital at the regulatory confidence — the full LDA pipeline in one call.
 
+    This is a composed pipeline, not a single closed-form equation; ``n_years``
+    and ``seed`` only control the internal Monte Carlo simulation, not the
+    capital figure itself.
+
     Args:
         annual_event_counts: Historical annual loss-event counts.
         loss_amounts: Historical individual loss amounts (positive).
@@ -326,6 +333,10 @@ def advanced_measurement_approach_ama(
     demonstrate that expected loss (EL) is already captured in its provisioning /
     pricing, capital may be set to unexpected loss only (OpVaR − EL); otherwise
     capital equals the full OpVaR.
+
+    OpVaR and EL are not supplied by the caller — both are computed internally by
+    running the full LDA pipeline (frequency/severity MLE fit, then a Monte Carlo
+    quantile) over ``annual_event_counts`` and ``loss_amounts``.
 
     Args:
         annual_event_counts: Historical annual loss-event counts.

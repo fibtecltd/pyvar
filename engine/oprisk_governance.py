@@ -136,6 +136,10 @@ def model_risk_assessment(
     then discounts by validation quality (in [0, 1]) to a residual model-risk
     tier (SR 11-7 / PRA SS1/23 style).
 
+    SR 11-7 / PRA SS1/23 are named only for the general materiality x complexity
+    tiering style this follows; the specific 1-5 scale, multiplication, and RAG
+    thresholds are pyvar's own, not values prescribed by either document.
+
     Args:
         materiality: Model materiality rating 1-5.
         complexity: Model complexity rating 1-5.
@@ -302,6 +306,10 @@ def near_miss_capture_framework(
     Validates events and summarises the count and aggregate potential loss — a
     leading indicator of control weakness.
 
+    This is a rule-based filter/count over ``events``; ``actual_loss`` and
+    ``potential_loss`` are per-event dict keys rather than top-level function
+    parameters.
+
     Args:
         events: List of events, each with ``actual_loss`` and ``potential_loss``.
 
@@ -377,6 +385,10 @@ def risk_appetite_statement_oprisk(
     against a two-tier limit structure: appetite (the desired ceiling) and
     tolerance (the absolute maximum before escalation).
 
+    When ``higher_is_worse=False`` every inequality is reversed and utilisation
+    is computed as ``tolerance_limit / current_metric`` rather than the
+    ``current_metric / tolerance_limit`` used in the higher-is-worse case.
+
     Args:
         current_metric: Current value of the OpRisk metric.
         appetite_limit: Risk-appetite limit.
@@ -421,6 +433,11 @@ def escalation_threshold_calculation(
 
     Maps a loss amount to the highest governance tier whose threshold it meets or
     exceeds (e.g. ``{"team": 1e3, "head": 1e4, "exco": 1e5, "board": 1e6}``).
+
+    This is a rule-based lookup: it selects the triggered tier with the
+    numerically largest threshold value, not necessarily the dict's declared
+    "highest" tier by name or insertion order, so it relies on ``thresholds``
+    being ordered monotonically with severity.
 
     Args:
         loss_amount: Loss amount to route (>= 0).
