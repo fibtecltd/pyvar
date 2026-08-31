@@ -533,6 +533,8 @@ class CurrencyAttributionRequest(BaseModel):
     fx_returns: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
     currency_names: list[str] | None = None
+    local_risk_free: list[float] | list[list[float]] | None = None
+    base_risk_free: float | None = None
 
 
 class CurrencyAttributionResponse(BaseModel):
@@ -540,9 +542,15 @@ class CurrencyAttributionResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    base_cash_effect: Any = Field(default=None)
     currency_effect: Any = Field(default=None)
+    currency_interaction_effect: Any = Field(default=None)
+    currency_surprise_effect: Any = Field(default=None)
     local_effect: Any = Field(default=None)
+    total_base_cash: Any = Field(default=None)
     total_currency: Any = Field(default=None)
+    total_currency_interaction: Any = Field(default=None)
+    total_currency_surprise: Any = Field(default=None)
     total_local: Any = Field(default=None)
     total_return: Any = Field(default=None)
 

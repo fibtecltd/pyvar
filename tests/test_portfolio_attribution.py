@@ -81,6 +81,87 @@ def test_currency_attribution_reconciles():
     assert abs(r["total_return"] - expected_total) < 1e-10
 
 
+def test_currency_attribution_default_unaffected_by_karnosky_singer_feature():
+    """Omitting the new risk-free params reproduces the exact pre-change output."""
+    lr = np.array([0.05, 0.02])
+    fx = np.array([0.01, -0.02])
+    w = np.array([0.6, 0.4])
+    r = currency_attribution(lr, fx, w)
+    assert set(r.keys()) == {
+        "local_effect",
+        "currency_effect",
+        "total_local",
+        "total_currency",
+        "total_return",
+    }
+
+
+def test_currency_attribution_karnosky_singer_local_effect_is_local_premium():
+    """local_effect uses the local return PREMIUM (netted against the local
+    risk-free rate), per Karnosky & Singer (1994) -- not the raw local
+    return, unlike the naive default mode.
+    """
+    lr = np.array([0.05, 0.02])
+    fx = np.array([0.01, -0.02])
+    w = np.array([0.6, 0.4])
+    local_rf = np.array([0.01, 0.005])
+    base_rf = 0.02
+
+    r = currency_attribution(lr, fx, w, local_risk_free=local_rf, base_risk_free=base_rf)
+    premium = (1.0 + lr) / (1.0 + local_rf) - 1.0
+    expected_local = w * premium
+    actual_local = np.array([r["local_effect"]["ccy_0"], r["local_effect"]["ccy_1"]])
+    assert actual_local == pytest.approx(expected_local, rel=1e-8)
+    # The premium strictly nets the local risk-free rate out -- differs from
+    # the naive (non-netted) local_effect for the same inputs.
+    naive = currency_attribution(lr, fx, w)
+    assert not np.allclose(actual_local, list(naive["local_effect"].values()))
+
+
+def test_currency_attribution_karnosky_singer_reconciles_same_total_as_naive():
+    """Karnosky-Singer re-partitions the SAME exact geometric total return
+    the naive split reports -- it does not change the total, only how it is
+    attributed between local/currency (and currency's own sub-effects).
+    """
+    rng = np.random.default_rng(11)
+    lr = rng.normal(0.01, 0.03, size=6)
+    fx = rng.normal(0.0, 0.02, size=6)
+    w = np.full(6, 1.0 / 6)
+    local_rf = rng.uniform(0.0, 0.03, size=6)
+    base_rf = 0.015
+
+    naive = currency_attribution(lr, fx, w)
+    ks = currency_attribution(lr, fx, w, local_risk_free=local_rf, base_risk_free=base_rf)
+
+    assert ks["total_return"] == pytest.approx(naive["total_return"], abs=1e-10)
+
+    # currency_effect's three sub-effects reconcile exactly to currency_effect.
+    for i in range(6):
+        name = f"ccy_{i}"
+        sub_total = (
+            ks["base_cash_effect"][name]
+            + ks["currency_surprise_effect"][name]
+            + ks["currency_interaction_effect"][name]
+        )
+        assert sub_total == pytest.approx(ks["currency_effect"][name], abs=1e-9)
+
+    assert ks["total_base_cash"] + ks["total_currency_surprise"] + ks[
+        "total_currency_interaction"
+    ] == pytest.approx(ks["total_currency"], abs=1e-8)
+
+
+def test_currency_attribution_karnosky_singer_requires_both_rf_params():
+    lr = np.array([0.02, 0.01])
+    fx = np.array([0.005, -0.003])
+    w = np.array([0.6, 0.4])
+    with pytest.raises(ValueError):
+        currency_attribution(lr, fx, w, local_risk_free=np.array([0.01, 0.01]))
+    with pytest.raises(ValueError):
+        currency_attribution(lr, fx, w, base_risk_free=0.01)
+    with pytest.raises(ValueError):
+        currency_attribution(lr, fx, w, local_risk_free=np.array([0.01]), base_risk_free=0.01)
+
+
 # ── GICS sector exposure ──────────────────────────────────────────────────────
 
 

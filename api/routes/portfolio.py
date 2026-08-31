@@ -848,6 +848,8 @@ async def currency_attribution(
     kwargs["local_returns"] = np.asarray(kwargs["local_returns"], dtype=np.float64)
     kwargs["fx_returns"] = np.asarray(kwargs["fx_returns"], dtype=np.float64)
     kwargs["weights"] = np.asarray(kwargs["weights"], dtype=np.float64)
+    if kwargs.get("local_risk_free") is not None:
+        kwargs["local_risk_free"] = np.asarray(kwargs["local_risk_free"], dtype=np.float64)
     try:
         result: Any = _e_currency_attribution(**kwargs)
     except _INPUT_ERRORS as exc:

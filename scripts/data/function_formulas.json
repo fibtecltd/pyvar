@@ -1073,12 +1073,14 @@
     }
   },
   "currency_attribution": {
-    "caveat": "Naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer, which nets local returns against the local risk-free rate; this function takes no interest rates at all.",
-    "citation": "Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
-    "formula_latex": "R^{local}_i = w_i r^{L}_i \\\\ R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ R_{total} = \\sum_i \\left(R^{local}_i + R^{fx}_i\\right)",
+    "caveat": "Default (local_risk_free/base_risk_free omitted) is the naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer. Pass both local_risk_free and base_risk_free to switch to Karnosky & Singer's (1994) genuine decomposition: local returns netted against the local risk-free rate into a return premium, and the currency side split into a base cash return plus a currency surprise (net of the covered-interest-parity forward premium), rather than absorbing the rate differential as an unexplained residual.",
+    "citation": "Karnosky, D. & Singer, B. (1994), \"The Currency Dimension of Global Asset Management and Performance Attribution\", CFA Institute Research Foundation; Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
+    "formula_latex": "\\text{(default)}\\;\\; R^{local}_i = w_i r^{L}_i, \\quad R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ \\text{(Karnosky-Singer, opt-in)}\\;\\; p_i = \\frac{1+r^L_i}{1+r^{L,f}_i}-1, \\quad f_i = \\frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\quad s_i = \\frac{1+r^{FX}_i}{1+f_i}-1 \\\\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)",
     "symbol_map": {
+      "base_risk_free": "r^{B,f}",
       "fx_returns": "r^{FX}_i",
       "local_returns": "r^{L}_i",
+      "local_risk_free": "r^{L,f}_i",
       "weights": "w_i"
     }
   },
