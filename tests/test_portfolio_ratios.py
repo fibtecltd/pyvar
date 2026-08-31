@@ -56,6 +56,33 @@ def test_sharpe_empty_raises():
         sharpe_ratio(np.array([]))
 
 
+def test_sharpe_default_ddof_unchanged(returns):
+    """ddof defaults to 0 (population std) — identical to pre-ddof behaviour."""
+    r = sharpe_ratio(returns, risk_free=0.0001, periods_per_year=252)
+    assert r["ddof"] == 0
+    excess = returns - 0.0001
+    expected_vol_pop = float(np.std(excess, ddof=0))
+    assert abs(r["volatility"] - expected_vol_pop) < 1e-8
+
+
+def test_sharpe_ddof1_matches_numpy_sample_std(returns):
+    r0 = sharpe_ratio(returns, risk_free=0.0001, periods_per_year=252, ddof=0)
+    r1 = sharpe_ratio(returns, risk_free=0.0001, periods_per_year=252, ddof=1)
+    excess = returns - 0.0001
+    expected_vol_sample = float(np.std(excess, ddof=1))
+    assert abs(r1["volatility"] - expected_vol_sample) < 1e-8
+    # Sample std >= population std always (n/(n-1) > 1), so ddof=1 sharpe
+    # magnitude is <= ddof=0 sharpe magnitude for the same mean excess.
+    assert abs(r1["sharpe"]) <= abs(r0["sharpe"])
+    expected_sharpe1 = float(np.mean(excess) / expected_vol_sample * np.sqrt(252))
+    assert abs(r1["sharpe"] - expected_sharpe1) < 1e-6
+
+
+def test_sharpe_invalid_ddof_raises(returns):
+    with pytest.raises(ValueError):
+        sharpe_ratio(returns, ddof=2)
+
+
 # ── Sortino ─────────────────────────────────────────────────────────────────
 
 

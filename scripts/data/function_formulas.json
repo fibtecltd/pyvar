@@ -469,11 +469,13 @@
     }
   },
   "carbon_footprint_attribution": {
-    "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition. total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards -- flagged as a likely correctness question, not merely a citation gap.",
-    "citation": null,
-    "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ E_i = w_i \\cdot V_{port} \\cdot CI_i, \\quad E_{total} = \\sum_i E_i",
+    "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition in both modes. By default (company_total_emissions/company_value omitted) total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards. Pass both company_total_emissions and company_value to switch to PCAF's genuine ownership-share method.",
+    "citation": "Partnership for Carbon Accounting Financials (PCAF), \"The Global GHG Accounting and Reporting Standard for the Financial Industry\", Part A, 2020 (ownership-share / EVIC method)",
+    "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ \\text{(default)}\\;\\; E_i = w_i \\cdot V_{port} \\cdot CI_i \\\\ \\text{(PCAF, opt-in)}\\;\\; \\text{share}_i = \\frac{w_i V_{port}}{V^{company}_i}, \\quad E_i = \\text{share}_i \\cdot E^{company}_i, \\quad E_{total} = \\sum_i E_i",
     "symbol_map": {
       "carbon_intensities": "CI_i",
+      "company_total_emissions": "E^{company}_i",
+      "company_value": "V^{company}_i",
       "portfolio_value": "V_{port}",
       "weights": "w_i"
     }
@@ -848,8 +850,8 @@
     }
   },
   "correlation_clustering": {
-    "caveat": "Hand-rolled single-linkage agglomerative clustering (not scikit-learn): repeatedly merges the two clusters with the smallest minimum pairwise correlation-distance until n_clusters groups remain.",
-    "citation": null,
+    "caveat": null,
+    "citation": "Sokal, R.R. & Michener, C.D. (1958), \"A statistical method for evaluating systematic relationships\" (single-linkage/nearest-neighbour hierarchical clustering, as implemented by scipy.cluster.hierarchy.linkage(method='single'))",
     "formula_latex": "d_{ij} = \\sqrt{2(1 - \\rho_{ij})} \\\\ D(A,B) = \\min_{i \\in A,\\, j \\in B} d_{ij} \\;\\; \\text{(single-linkage merge criterion)}",
     "symbol_map": {
       "returns_matrix": "\\rho_{ij}"
@@ -1074,12 +1076,14 @@
     }
   },
   "currency_attribution": {
-    "caveat": "Naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer, which nets local returns against the local risk-free rate; this function takes no interest rates at all.",
-    "citation": "Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
-    "formula_latex": "R^{local}_i = w_i r^{L}_i \\\\ R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ R_{total} = \\sum_i \\left(R^{local}_i + R^{fx}_i\\right)",
+    "caveat": "Default (local_risk_free/base_risk_free omitted) is the naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer. Pass both local_risk_free and base_risk_free to switch to Karnosky & Singer's (1994) genuine decomposition: local returns netted against the local risk-free rate into a return premium, and the currency side split into a base cash return plus a currency surprise (net of the covered-interest-parity forward premium), rather than absorbing the rate differential as an unexplained residual.",
+    "citation": "Karnosky, D. & Singer, B. (1994), \"The Currency Dimension of Global Asset Management and Performance Attribution\", CFA Institute Research Foundation; Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
+    "formula_latex": "\\text{(default)}\\;\\; R^{local}_i = w_i r^{L}_i, \\quad R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ \\text{(Karnosky-Singer, opt-in)}\\;\\; p_i = \\frac{1+r^L_i}{1+r^{L,f}_i}-1, \\quad f_i = \\frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\quad s_i = \\frac{1+r^{FX}_i}{1+f_i}-1 \\\\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)",
     "symbol_map": {
+      "base_risk_free": "r^{B,f}",
       "fx_returns": "r^{FX}_i",
       "local_returns": "r^{L}_i",
+      "local_risk_free": "r^{L,f}_i",
       "weights": "w_i"
     }
   },
@@ -1103,9 +1107,9 @@
     }
   },
   "cvar_constrained_optimisation": {
-    "caveat": "CVaR is enforced as a nonlinear inequality constraint solved directly by SLSQP (empirical mean of tail losses), not via Rockafellar-Uryasev's original auxiliary-variable linear-programming reformulation.",
-    "citation": "Rockafellar-Uryasev",
-    "formula_latex": "\\max_w\\; w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1,\\; CVaR_\\alpha(w) \\le c \\\\ L(w) = -R w, \\quad VaR_\\alpha(w) = \\text{Quantile}_\\alpha\\big(L(w)\\big) \\\\ CVaR_\\alpha(w) = \\mathbb{E}\\big[L(w) \\mid L(w) \\ge VaR_\\alpha(w)\\big]",
+    "caveat": null,
+    "citation": "Rockafellar, R.T. & Uryasev, S. (2000), \"Optimization of Conditional Value-at-Risk\", Journal of Risk 2(3), 21-41",
+    "formula_latex": "\\min_{w,\\zeta,u}\\; -w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1 \\\\ \\zeta + \\frac{1}{S(1-\\alpha)}\\sum_s u_s \\le c, \\quad u_s \\ge L_s(w) - \\zeta,\\; u_s \\ge 0 \\\\ L_s(w) = -R_s w, \\quad CVaR_\\alpha(w) = \\zeta^* + \\frac{1}{S(1-\\alpha)}\\sum_s u_s^*",
     "symbol_map": {
       "confidence_level": "\\alpha",
       "cvar_limit": "c",
@@ -3123,13 +3127,15 @@
     }
   },
   "rebalancing_optimiser": {
-    "caveat": "no_trade_band is a user-supplied absolute weight threshold, not one derived from cost/volatility parameters the way Leland (1999) or Donohue & Yip (2003) derive an optimal no-trade region; no published source reproduces this function's exact numbers.",
-    "citation": null,
-    "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i|",
+    "caveat": "no_trade_band defaults to a user-supplied absolute weight threshold (unchanged for backward compatibility). Pass asset_volatility and risk_aversion together to instead derive a per-asset band from the classic Constantinides (1986)/Davis & Norman (1990) asymptotic no-trade-region half-width -- the closed form Leland (1999) and Donohue & Yip (2003) build their practical rebalancing-band heuristics on. This is the classic single-asset asymptotic applied per-asset, not a reproduction of Leland's or Donohue & Yip's own published numerical examples.",
+    "citation": "Constantinides, G.M. (1986), \"Capital Market Equilibrium with Transaction Costs\", Journal of Political Economy 94(4); Davis, M.H.A. & Norman, A.R. (1990), \"Portfolio Selection with Transaction Costs\", Mathematics of Operations Research 15(4); as applied by Leland, H. (1999) and Donohue, C. & Yip, K. (2003), \"Optimal Portfolio Rebalancing with Transaction Costs\", Journal of Portfolio Management 29(4)",
+    "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b_i) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i| \\\\ \\text{(derived band, opt-in)}\\;\\; h_i = \\left(\\frac{3}{4}\\, \\frac{c_i}{10^4}\\, \\sigma_i^2\\, w_i^{tgt}(1-w_i^{tgt})^2 \\,/\\, \\gamma\\right)^{1/3}",
     "symbol_map": {
+      "asset_volatility": "\\sigma_i",
       "cost_bps": "c_i",
       "current_weights": "w_i^{cur}",
-      "no_trade_band": "b",
+      "no_trade_band": "b_i",
+      "risk_aversion": "\\gamma",
       "target_weights": "w_i^{tgt}"
     }
   },
@@ -3471,10 +3477,11 @@
     "symbol_map": {}
   },
   "sharpe_ratio": {
-    "caveat": "Volatility is the population standard deviation (divide by n) of per-period excess returns, not the n-1 sample standard deviation.",
+    "caveat": "Volatility defaults to the population standard deviation (ddof=0, divide by n) of per-period excess returns for backward compatibility. Pass ddof=1 to use the n-1 sample standard deviation instead.",
     "citation": null,
-    "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma(r - r_f)}",
+    "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma_{ddof}(r - r_f)}, \\quad \\sigma_0 = \\sqrt{\\tfrac{1}{n}\\sum(x-\\bar x)^2}, \\;\\; \\sigma_1 = \\sqrt{\\tfrac{1}{n-1}\\sum(x-\\bar x)^2}",
     "symbol_map": {
+      "ddof": "ddof",
       "periods_per_year": "T",
       "returns": "r",
       "risk_free": "r_f"
@@ -3748,11 +3755,12 @@
     }
   },
   "transaction_cost_analysis": {
-    "caveat": "Narrower than Perold's full implementation-shortfall decomposition -- no delay cost or unexecuted-share opportunity-cost leg; no published source reproduces this exact quantity.",
-    "citation": null,
-    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4",
+    "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+    "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
+    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
     "symbol_map": {
       "benchmark_prices": "b_i",
+      "decision_price": "d_i",
       "side": "s",
       "trade_prices": "p_i",
       "trade_quantities": "q_i"

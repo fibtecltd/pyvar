@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import numpy as np
 from numba import njit
-from scipy.optimize import minimize
+from scipy.optimize import linprog, minimize
 
 __all__ = [
     "mean_variance_optimisation",
@@ -505,9 +505,23 @@ def cvar_constrained_optimisation(
     ``confidence_level``) not exceeding ``cvar_limit``, long-only and fully
     invested. CVaR is computed empirically over the supplied scenarios.
 
-    CVaR is enforced as a direct nonlinear inequality constraint (the
-    empirical mean of tail losses) solved by SLSQP, not via Rockafellar and
-    Uryasev's original auxiliary-variable linear-programming reformulation.
+    Solved via Rockafellar & Uryasev's (2000) original auxiliary-variable
+    linear-programming reformulation, not a direct nonlinear CVaR
+    constraint. Introduce an auxiliary VaR estimate ``zeta`` and one
+    non-negative excess-loss variable ``u_s`` per scenario, then solve the
+    convex LP
+
+        minimize    -mu^T w
+        subject to  sum(w) = 1,  0 <= w_i <= 1
+                    zeta + (1/(S(1-alpha))) * sum_s u_s <= cvar_limit
+                    u_s >= -(scenario_s . w) - zeta,   u_s >= 0   (s=1..S)
+
+    via ``scipy.optimize.linprog`` (HiGHS). CVaR is a convex function of
+    ``w`` and both this LP and the retired SLSQP-on-empirical-CVaR
+    formulation share the same feasible region and the same (convex)
+    objective, so they solve to the same global optimum — the LP just gets
+    there via Rockafellar-Uryasev's exact reformulation instead of SLSQP
+    re-evaluating the empirical quantile/tail-mean at every iterate.
 
     Args:
         scenario_returns: (n_scenarios, n_assets) scenario return matrix.
@@ -517,7 +531,13 @@ def cvar_constrained_optimisation(
         periods_per_year: Annualisation factor for the reported return.
 
     Returns:
-        Dict with ``weights``, ``expected_return``, ``cvar`` and ``success``.
+        Dict with ``weights``, ``expected_return``, ``cvar`` (recomputed
+        empirically at the optimal weights, for continuity with the prior
+        implementation), ``var`` (the matching empirical VaR quantile at
+        the optimal weights -- *not* the LP's raw auxiliary ``zeta``,
+        which is a valid but non-unique feasible point whenever the CVaR
+        constraint has slack, not reliably the tight quantile) and
+        ``success``.
 
     Raises:
         ValueError: If the scenario matrix is not 2-D with >= 1 asset.
@@ -526,6 +546,7 @@ def cvar_constrained_optimisation(
     if scen.ndim != 2 or scen.shape[1] < 1:
         raise ValueError("scenario_returns must be (n_scenarios, n_assets)")
     n = scen.shape[1]
+    n_scen = scen.shape[0]
     mu = scen.mean(axis=0) if mean_returns is None else np.asarray(mean_returns, dtype=np.float64)
 
     def portfolio_cvar(w: np.ndarray) -> float:
@@ -534,25 +555,51 @@ def cvar_constrained_optimisation(
         tail = losses[losses >= var]
         return float(np.mean(tail)) if tail.size > 0 else float(var)
 
-    def neg_return(w: np.ndarray) -> float:
-        return -float(w @ mu)
+    # Rockafellar-Uryasev (2000) auxiliary-variable LP. Decision vector:
+    # x = [w_1..w_n, zeta, u_1..u_{n_scen}].
+    n_vars = n + 1 + n_scen
+    scenario_losses = -scen  # loss_s(w) = scenario_losses[s, :] @ w
 
-    constraints = (
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: cvar_limit - portfolio_cvar(w)},
-    )
-    res = minimize(
-        neg_return,
-        np.full(n, 1.0 / n),
-        method="SLSQP",
-        bounds=[(0.0, 1.0)] * n,
-        constraints=constraints,
-    )
-    w = res.x
+    c = np.zeros(n_vars, dtype=np.float64)
+    c[:n] = -mu  # minimise -mu^T w == maximise expected return
+
+    a_eq = np.zeros((1, n_vars), dtype=np.float64)
+    a_eq[0, :n] = 1.0
+    b_eq = np.array([1.0], dtype=np.float64)
+
+    tail_scale = 1.0 / (n_scen * (1.0 - confidence_level))
+    a_ub = np.zeros((1 + n_scen, n_vars), dtype=np.float64)
+    b_ub = np.zeros(1 + n_scen, dtype=np.float64)
+    # CVaR constraint: zeta + tail_scale * sum(u_s) <= cvar_limit.
+    a_ub[0, n] = 1.0
+    a_ub[0, n + 1 :] = tail_scale
+    b_ub[0] = cvar_limit
+    # Excess-loss constraints: loss_s(w) - zeta - u_s <= 0  (u_s >= loss_s - zeta).
+    a_ub[1:, :n] = scenario_losses
+    a_ub[1:, n] = -1.0
+    a_ub[1:, n + 1 :] = -np.eye(n_scen, dtype=np.float64)
+
+    bounds = [(0.0, 1.0)] * n + [(None, None)] + [(0.0, None)] * n_scen
+
+    res = linprog(c, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds, method="highs")
+
+    if res.x is not None:
+        w = res.x[:n]
+    else:
+        w = np.full(n, 1.0 / n)
+
+    # The LP's raw auxiliary zeta is a valid feasible point but not
+    # guaranteed to be the tight VaR quantile whenever the CVaR constraint
+    # has slack (the objective never optimises zeta itself, only requires
+    # it feasible) -- so report the actual empirical quantile at w instead,
+    # computed the same way portfolio_cvar() computes its tail threshold.
+    var_at_w = float(np.quantile(-(scen @ w), confidence_level))
+
     return {
         "weights": [round(float(x), 8) for x in w],
         "expected_return": round(float(w @ mu) * periods_per_year, 8),
         "cvar": round(portfolio_cvar(w), 8),
+        "var": round(var_at_w, 8),
         "success": bool(res.success),
     }
 

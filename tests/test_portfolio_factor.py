@@ -112,6 +112,72 @@ def test_clustering_invalid_n_raises():
         correlation_clustering(m, n_clusters=5)
 
 
+def _old_hand_rolled_single_linkage(returns_matrix: np.ndarray, n_clusters: int) -> np.ndarray:
+    """Independent re-implementation of the pre-SciPy hand-rolled merge loop.
+
+    Kept only in this test file (not in engine/) as the ground truth that the
+    SciPy-based ``correlation_clustering`` must reproduce membership-for-
+    membership (same single-linkage algorithm, SciPy computes it instead of a
+    Python triple-nested loop).
+    """
+    m = np.asarray(returns_matrix, dtype=np.float64)
+    n_assets = m.shape[1]
+    corr = np.atleast_2d(np.corrcoef(m, rowvar=False))
+    dist = np.sqrt(np.clip(2.0 * (1.0 - corr), 0.0, None))
+    clusters: list[list[int]] = [[i] for i in range(n_assets)]
+    while len(clusters) > n_clusters:
+        best = (float("inf"), 0, 1)
+        for a in range(len(clusters)):
+            for b in range(a + 1, len(clusters)):
+                d = min(dist[i, j] for i in clusters[a] for j in clusters[b])
+                if d < best[0]:
+                    best = (d, a, b)
+        _, a, b = best
+        clusters[a].extend(clusters[b])
+        clusters.pop(b)
+    labels = np.empty(n_assets, dtype=np.int64)
+    for cid, members in enumerate(clusters):
+        for i in members:
+            labels[i] = cid
+    return labels
+
+
+def _same_partition(l1: np.ndarray, l2: list[int]) -> bool:
+    """True iff two label arrays induce the same partition (ids may differ)."""
+    n = len(l1)
+    for i in range(n):
+        for j in range(n):
+            if (l1[i] == l1[j]) != (l2[i] == l2[j]):
+                return False
+    return True
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+def test_clustering_scipy_matches_hand_rolled_membership(seed):
+    """The SciPy linkage/fcluster reimplementation must reproduce the exact
+    cluster membership of the retired hand-rolled merge loop (task #17,
+    portfolio-analytics caveat triage) — only arbitrary label ids may differ.
+    """
+    rng = np.random.default_rng(seed)
+    n_assets = int(rng.integers(3, 8))
+    n_obs = int(rng.integers(40, 200))
+    m = rng.normal(size=(n_obs, n_assets))
+    if n_assets >= 4:
+        d1 = rng.normal(size=n_obs)
+        d2 = rng.normal(size=n_obs)
+        half = n_assets // 2
+        cols = [d1 + 0.05 * rng.normal(size=n_obs) for _ in range(half)]
+        cols += [d2 + 0.05 * rng.normal(size=n_obs) for _ in range(n_assets - half)]
+        m = np.column_stack(cols)
+    n_clusters = int(rng.integers(1, n_assets + 1))
+
+    old_labels = _old_hand_rolled_single_linkage(m, n_clusters)
+    new_out = correlation_clustering(m, n_clusters=n_clusters)
+
+    assert _same_partition(old_labels, new_out["labels"])
+    assert new_out["n_clusters"] == len(set(old_labels.tolist()))
+
+
 # ── Regime detection ──────────────────────────────────────────────────────────
 
 

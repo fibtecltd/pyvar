@@ -95,35 +95,53 @@ def sharpe_ratio(
     returns: np.ndarray,
     risk_free: float = 0.0,
     periods_per_year: int = 252,
+    ddof: int = 0,
 ) -> dict:  # type: ignore[type-arg]
     """Annualised Sharpe ratio.
 
     Mean excess return divided by return volatility, annualised by
     ``sqrt(periods_per_year)``.
 
-    Volatility is the population standard deviation (divide by n) of
-    per-period excess returns, not the n-1 sample standard deviation.
+    By default (``ddof=0``, unchanged from prior behaviour) volatility is the
+    *population* standard deviation (divide by n) of per-period excess
+    returns. Pass ``ddof=1`` to use the *sample* standard deviation (divide
+    by n-1) instead — the usual unbiased-estimator convention when
+    ``returns`` is treated as a sample drawn from a larger population. The
+    ``n``-vs-``n-1`` divisor only matters materially for small samples; for
+    the sample sizes typical of return series (hundreds+ of observations)
+    the two converge.
 
     Args:
         returns: 1-D array of per-period simple returns.
         risk_free: Per-period risk-free rate (same period as returns).
         periods_per_year: Annualisation factor (252 daily, 12 monthly).
+        ddof: Delta degrees of freedom for the volatility divisor: ``0``
+            (default, population std, divide by n) or ``1`` (sample std,
+            divide by n-1). Any other value raises ``ValueError``.
 
     Returns:
         Dict with ``sharpe`` (annualised), ``sharpe_period`` (un-annualised),
-        ``mean_excess`` and ``volatility``.
+        ``mean_excess``, ``volatility`` and the ``ddof`` used.
 
     Raises:
-        ValueError: If ``returns`` is empty.
+        ValueError: If ``returns`` is empty or ``ddof`` is not 0 or 1.
     """
     r = np.asarray(returns, dtype=np.float64)
     if r.size == 0:
         raise ValueError("returns must be non-empty")
+    if ddof not in (0, 1):
+        raise ValueError("ddof must be 0 (population) or 1 (sample)")
 
     excess = r - risk_free
     stats_arr = _mean_std(excess)
     mean_excess = float(stats_arr[0])
-    vol = float(stats_arr[1])
+    vol = float(stats_arr[1])  # population std (ddof=0), from the JIT kernel
+    n = r.size
+    if ddof == 1:
+        # Exact population-to-sample std conversion: both share the same sum
+        # of squared deviations, only the divisor (n vs n-1) differs, so
+        # sigma_sample = sigma_population * sqrt(n / (n - 1)).
+        vol = vol * float(np.sqrt(n / (n - 1))) if n > 1 else 0.0
     sharpe_period = mean_excess / vol if vol > 0.0 else 0.0
     sharpe = sharpe_period * np.sqrt(periods_per_year)
     return {
@@ -132,6 +150,7 @@ def sharpe_ratio(
         "mean_excess": round(mean_excess, 10),
         "volatility": round(vol, 10),
         "periods_per_year": periods_per_year,
+        "ddof": ddof,
     }
 
 
