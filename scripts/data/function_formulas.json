@@ -3469,10 +3469,11 @@
     "symbol_map": {}
   },
   "sharpe_ratio": {
-    "caveat": "Volatility is the population standard deviation (divide by n) of per-period excess returns, not the n-1 sample standard deviation.",
+    "caveat": "Volatility defaults to the population standard deviation (ddof=0, divide by n) of per-period excess returns for backward compatibility. Pass ddof=1 to use the n-1 sample standard deviation instead.",
     "citation": null,
-    "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma(r - r_f)}",
+    "formula_latex": "S = \\sqrt{T} \\cdot \\frac{\\overline{r - r_f}}{\\sigma_{ddof}(r - r_f)}, \\quad \\sigma_0 = \\sqrt{\\tfrac{1}{n}\\sum(x-\\bar x)^2}, \\;\\; \\sigma_1 = \\sqrt{\\tfrac{1}{n-1}\\sum(x-\\bar x)^2}",
     "symbol_map": {
+      "ddof": "ddof",
       "periods_per_year": "T",
       "returns": "r",
       "risk_free": "r_f"

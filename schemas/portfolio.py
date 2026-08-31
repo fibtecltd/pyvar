@@ -219,6 +219,7 @@ class SharpeRatioRequest(BaseModel):
     returns: list[float] | list[list[float]]
     risk_free: float = 0.0
     periods_per_year: int = 252
+    ddof: int = 0
 
 
 class SharpeRatioResponse(BaseModel):
@@ -226,6 +227,7 @@ class SharpeRatioResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    ddof: Any = Field(default=None)
     mean_excess: Any = Field(default=None)
     periods_per_year: Any = Field(default=None)
     sharpe: Any = Field(default=None)
