@@ -174,16 +174,17 @@ class LiquidityNamespace:
     ) -> dict[str, Any]:
         """Combined idiosyncratic + market-wide stress scenario.
 
+        This is NOT the BCBS 238 reference combined scenario: BCBS 238's own
+        combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off
+        the LCR's own regulator-set retail run-off categories (3%/5%/10%
+        depending on deposit stability), whereas this function applies its own
+        flat 15% retail / 100% wholesale run-off convention instead.
+
         Models a firm-specific shock occurring inside a market-wide crisis:
         liability run-off is aggravated (default 15% retail, 100% wholesale)
         *and* HQLA value is reduced by stressed market haircuts, simultaneously.
-
-        NOT the Basel/EBA reference scenario, despite a prior version of this
-        docstring claiming that: BCBS 238's own combined idiosyncratic +
-        market-wide scenario (§II paras 19-20) runs off the LCR's own regulator-
-        set retail run-off categories (3%/5%/10% depending on deposit
-        stability), not a flat 15% -- the 15%/100% defaults here are an internal
-        convention, not the Basel figures. Found during the Tier 3 #2 audit.
+        (Found during the Tier 3 #2 audit — a prior version of this docstring
+        incorrectly claimed this was the Basel/EBA reference scenario.)
 
         Returns:
             The raw API response as a dict.
@@ -211,6 +212,10 @@ class LiquidityNamespace:
         e.g. LCR, survival days). Returns the list of breached triggers and the CFP
         activation decision.
 
+        This is a logical breach test, not an arithmetic formula, so it is shown on
+        the Try-it panel as an indicator function of the comparison rather than a
+        computed expression.
+
         Returns:
             The raw API response as a dict.
         """
@@ -227,6 +232,10 @@ class LiquidityNamespace:
         ccf: list[float] | list[list[float]] | None = None,
     ) -> dict[str, Any]:
         """Contingent liquidity risk from undrawn commitments and guarantees.
+
+        When ``ccf`` is not supplied it defaults to 1.0 for every commitment,
+        i.e. full drawdown of each commitment is assumed in the expected-outflow
+        calculation unless a lower conversion factor is explicitly passed.
 
         Estimates the expected contingent outflow as ``commitment * draw_probability
         * credit-conversion-factor`` — the liquidity that off-balance-sheet
@@ -308,6 +317,10 @@ class LiquidityNamespace:
         spread; ``"lower_breach"`` means below threshold is a warning, e.g. LCR). The
         aggregate signal escalates with the number of triggered indicators.
 
+        This is a direction-dependent logical breach test per indicator, not a
+        single arithmetic formula, and the aggregate signal buckets are exact:
+        normal (0 triggers), watch (1-2) and alert (3 or more).
+
         Returns:
             The raw API response as a dict.
         """
@@ -380,6 +393,9 @@ class LiquidityNamespace:
     ) -> dict[str, Any]:
         """Classify and value Level 1 HQLA.
 
+        When ``haircuts`` is not supplied it defaults to all zeros, i.e. no
+        haircut is applied and every asset is valued at full market value.
+
         Level 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign debt)
         receive a 0% haircut by default and have no composition cap (BCBS 238 §50).
 
@@ -396,6 +412,10 @@ class LiquidityNamespace:
     ) -> dict[str, Any]:
         """Classify and value Level 2A HQLA.
 
+        Unlike Level 1's zero-by-default haircut array, ``haircut`` here is a
+        single scalar applied uniformly to every asset in ``asset_values``, and
+        the function enforces a minimum of 15%.
+
         Level 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-
         grade corporates) carry a minimum 15% haircut (BCBS 238 §52).
 
@@ -411,6 +431,11 @@ class LiquidityNamespace:
         self, *, asset_values: list[float] | list[list[float]], haircut: float = 0.25
     ) -> dict[str, Any]:
         """Classify and value Level 2B HQLA.
+
+        As with Level 2A, ``haircut`` is a single scalar applied uniformly to
+        every asset in ``asset_values`` rather than a per-asset array; the
+        function enforces a minimum of 25% (pass 0.50 for the lower-grade
+        corporate/equity sub-bucket).
 
         Level 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying
         equities 50% haircut) carry a minimum 25% haircut (BCBS 238 §54).
@@ -487,6 +512,10 @@ class LiquidityNamespace:
         breached, and overall adequacy. Each scenario value must expose a
         ``surplus_deficit`` figure (as produced by the scenario functions above).
 
+        SD_k in the rendered formula denotes the ``surplus_deficit`` field each
+        named scenario dict must already carry — this function only aggregates
+        pre-computed values and performs no cash-flow arithmetic itself.
+
         Returns:
             The raw API response as a dict.
         """
@@ -504,10 +533,14 @@ class LiquidityNamespace:
     ) -> dict[str, Any]:
         """Intraday liquidity monitor (BCBS 248).
 
+        Of the two figures reported, only ``net_debit_peak`` (the largest negative
+        cumulative position) is the genuine BCBS 248 "largest net debit position"
+        monitoring tool — ``max_usage`` is this codebase's own additional metric,
+        not one of BCBS 248's own monitoring tools.
+
         Tracks the intraday liquidity position from time-stamped net payment flows
         and reports the peak usage (largest negative intraday position relative to
-        the opening balance) and the largest net debit position — the BCBS 248
-        monitoring tools.
+        the opening balance) and the largest net debit position.
 
         Returns:
             The raw API response as a dict.
@@ -530,6 +563,11 @@ class LiquidityNamespace:
         inflow_delay_shock: float = 0.0,
     ) -> dict[str, Any]:
         """Intraday liquidity stress test (BCBS 248 stress scenarios).
+
+        This is this codebase's own internal stress design — delaying a fraction
+        of positive intraday inflows — set in the context of BCBS 248's intraday-
+        liquidity monitoring framework; it is not BCBS 248's own prescribed stress
+        design.
 
         Stresses the intraday profile by delaying a fraction of *inflows* (positive
         flows): a ``delay_factor`` of expected inflows is removed from the intraday
@@ -624,6 +662,11 @@ class LiquidityNamespace:
         gap means more assets than liabilities mature by that point (a funding
         surplus); a negative gap signals a refinancing need.
 
+        Like the two cash-flow-ladder functions above, an optional opening balance
+        is added to every cumulative-gap entry — the starting cash / HQLA position
+        carried into the first bucket. It defaults to 0.0, so existing callers see
+        no change in behaviour.
+
         Returns:
             The raw API response as a dict.
         """
@@ -649,6 +692,11 @@ class LiquidityNamespace:
         For ``higher_is_better`` metrics (LCR, NSFR, survival days) green is at or
         above ``green_threshold`` and red below ``amber_threshold``. For
         lower-is-better metrics (e.g. funding concentration) the comparison inverts.
+
+        This is a piecewise categorical rule rather than a continuous formula, and
+        the Try-it panel's rendered formula shows only the higher-is-better
+        direction; the comparison flips (green <= amber <= metric) when
+        ``higher_is_better`` is False.
 
         Returns:
             The raw API response as a dict.
@@ -755,6 +803,12 @@ class LiquidityNamespace:
         Per CLAUDE.md §3.1 RULE 3 the N(0,1) shocks are pre-drawn in pure Python and
         passed to the JIT kernel; an analytic normal quantile is also returned for
         validation.
+
+        ``liqvar`` is a simulated order statistic of this floored-at-zero
+        normal-shock model, cross-validated only against its own analytic
+        counterpart ``liqvar_analytic`` rather than a regulatory reference, using
+        index ``floor(confidence_level * n_simulations)`` capped at
+        ``n_simulations - 1``.
 
         Returns:
             The raw API response as a dict.
@@ -906,6 +960,10 @@ class LiquidityNamespace:
         Walks forward through the daily net-outflow path subtracting from the HQLA
         counterbalancing capacity. The survival horizon is the last day on which the
         remaining buffer is still non-negative.
+
+        ``survival_days`` is the 0-indexed day on which cumulative outflow first
+        drives the buffer negative, so it equals the count of full days survived
+        before breach (0 if the very first day breaches).
 
         Returns:
             The raw API response as a dict.

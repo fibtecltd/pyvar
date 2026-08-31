@@ -30,6 +30,9 @@ class RegulatoryNamespace:
     ) -> dict[str, Any]:
         """AIFMD Annex IV risk metrics — leverage and (optional) VaR.
 
+        "Substantially leveraged" here is a simple threshold flag (commitment
+        leverage > 3x NAV), not AIFMD's full leverage-calculation methodology.
+
         Computes leverage under the gross method and the commitment method (each as
         a multiple of NAV) per Delegated Regulation 231/2013 Art. 7-8. A fund is
         "substantially leveraged" when commitment leverage exceeds 3x NAV.
@@ -158,6 +161,10 @@ class RegulatoryNamespace:
     ) -> dict[str, Any]:
         """Combined Buffer Requirement (CBR).
 
+        The max(G-SII, O-SII, SyRB) selection is expected to already be resolved
+        by the caller into ``systemic_buffer_ratio``; this function itself
+        performs only a straight sum of the three supplied buffer ratios.
+
         ``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the buffer
         ratios and (optionally) the capital amount on the supplied RWA.
 
@@ -203,9 +210,12 @@ class RegulatoryNamespace:
     ) -> dict[str, Any]:
         """CRR2 large exposure limit (Art. 395).
 
+        This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR
+        150m absolute alternative threshold for institutions is not applied.
+
         A single client / group exposure must not exceed 25% of Tier 1 capital
-        (or EUR 150m for institutions, whichever is higher — simplified to the 25%
-        ratio test here). Reports the exposure ratio and any breach amount.
+        (or EUR 150m for institutions, whichever is higher). Reports the exposure
+        ratio and any breach amount.
 
         Returns:
             The raw API response as a dict.
@@ -284,6 +294,9 @@ class RegulatoryNamespace:
     def emir_trade_repository_report(self, *, trade: dict[str, Any]) -> dict[str, Any]:
         """EMIR trade repository report builder/validator.
 
+        This validates a representative core subset of 6 fields, not full-schema
+        coverage of EMIR REFIT's roughly 200 reportable fields.
+
         Validates the core EMIR reporting fields (counterparty LEIs, UTI, notional,
         asset class) and echoes a normalised report.
 
@@ -332,6 +345,9 @@ class RegulatoryNamespace:
         hypothetical_pnl: list[float] | list[list[float]],
     ) -> dict[str, Any]:
         """FRTB P&L Attribution Test (PAT) — Spearman correlation + variance ratio.
+
+        The green/amber/red zone is assigned by a fixed-threshold lookup on the
+        correlation and ratio values below, not a single closed-form equation.
 
         Jointly evaluates the Spearman rank correlation between risk-theoretical P&L
         (RTPL) and hypothetical P&L (HPL) and the volatility ratio
@@ -423,6 +439,9 @@ class RegulatoryNamespace:
     def mifid_ii_algorithm_documentation(self, *, documentation: dict[str, Any]) -> dict[str, Any]:
         """MiFID II RTS 6 algorithmic-trading documentation completeness check.
 
+        The 6-item checklist below is this codebase's own internal choice, not a
+        checklist published by RTS 6 itself.
+
         Verifies that the mandatory governance and control documentation items for
         an algorithmic trading strategy are present.
 
@@ -443,6 +462,10 @@ class RegulatoryNamespace:
         side: int = 1,
     ) -> dict[str, Any]:
         """MiFID II best-execution TCA metric -- internal, NOT an RTS 27/28 figure.
+
+        This is an internal TCA (transaction cost analysis) metric only; neither
+        RTS 27 nor RTS 28 defines a prescribed quantitative figure that this
+        function reproduces.
 
         Computes the quantity-weighted price improvement (or slippage) of executions
         versus a reference (e.g. EBBO) price, in basis points. Positive means price
@@ -521,6 +544,9 @@ class RegulatoryNamespace:
     def mifid_ii_transaction_report_validator(self, *, report: dict[str, Any]) -> dict[str, Any]:
         """MiFID II / RTS 22 transaction report field validator.
 
+        This checks a representative core subset of 9 fields, not full-schema
+        coverage of RTS 22's roughly 65 mandatory transaction-report fields.
+
         Checks the presence and basic validity of the mandatory transaction-report
         fields (LEI length, ISIN length, positive price/quantity).
 
@@ -568,6 +594,9 @@ class RegulatoryNamespace:
     def sftr_securities_finance_report(self, *, transaction: dict[str, Any]) -> dict[str, Any]:
         """SFTR securities-financing transaction report builder/validator.
 
+        This validates a representative core subset of 6 fields, not full-schema
+        coverage of SFTR's complete field set.
+
         Validates the core SFTR fields for an SFT (repo, securities lending, buy-
         sell back, margin lending): counterparties, UTI, collateral and the SFT
         type.
@@ -588,6 +617,12 @@ class RegulatoryNamespace:
         default_probabilities: list[float] | list[list[float]],
     ) -> dict[str, Any]:
         """Solvency II SCR counterparty default (credit) risk — Type 1 exposures.
+
+        The sigma used here is the intra-counterparty (independent-Bernoulli)
+        variance term only; Delegated Regulation (EU) 2015/35 Art. 201's
+        inter-counterparty correlation term is not implemented, so the true
+        Art. 201 variance (and SCR) is at least as large as what this function
+        returns.
 
         [REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the
         capital charge as a TIERED multiplier on the standard deviation (sigma) of
@@ -677,6 +712,9 @@ class RegulatoryNamespace:
         self, *, returns: list[float] | list[list[float]], periods_per_year: int = 52
     ) -> dict[str, Any]:
         """UCITS KIID Synthetic Risk and Reward Indicator (SRRI), 1-7.
+
+        The SRRI class itself is a bucket lookup of the annualised volatility
+        against fixed CESR volatility bands, not a closed-form equation.
 
         Maps the annualised volatility of (weekly by default) returns to the SRRI
         bucket per CESR 10-673: class 1 (< 0.5%) up to class 7 (>= 25%).

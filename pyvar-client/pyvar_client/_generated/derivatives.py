@@ -40,6 +40,12 @@ class DerivativesNamespace:
         Allows early exercise at every time step. The price must be >= the European
         price of the same option.
 
+        Note: the continuation value at each exercise date is fit by quadratic OLS
+        regression on in-the-money paths rather than evaluated from a closed-form
+        formula, and the opt-in Greeks use a spot bump roughly 30x larger than
+        this module's smooth-payoff pricers because that regression-based
+        exercise decision is discontinuous in spot.
+
         Deliberately has no qmc option (task #15 Phase 2 evaluated and rejected
         it for this function specifically -- see _price_by_qmc_replicates'
         docstring). Randomized-QMC replicates work cleanly for asian_option_pricer
@@ -141,6 +147,11 @@ class DerivativesNamespace:
         annuity of the swap's fixed-leg PV01:
         ``ASW = (PV_bond − par) / annuity``, expressed in basis points.
 
+        Note: ``bond_price`` is accepted for API-compatibility but does not
+        affect the result — ``PV_bond`` in the formula above is derived
+        internally by discounting ``cashflows``/``times`` at ``swap_rates``,
+        not from the observed ``bond_price`` passed in.
+
         Returns:
             The raw API response as a dict.
         """
@@ -170,10 +181,22 @@ class DerivativesNamespace:
         div_yield: float = 0.0,
         rebate: float = 0.0,
     ) -> dict[str, Any]:
-        """Single-barrier option price (Reiner-Rubinstein closed form).
+        """Single-barrier option price (Reiner-Rubinstein closed form), with a
 
-        Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four
-        standard combinations is supported. Rebates are not modelled (set to 0).
+        modelled rebate leg.
+
+        Uses the in-out parity ``knock-in + knock-out = vanilla`` for the *pure*
+        (no-rebate) option legs, so any of the four standard combinations is
+        supported. A nonzero ``rebate`` adds the standard Reiner-Rubinstein cash
+        rebate term on top of that pure leg: for a knock-in, the rebate is paid
+        at expiry if the barrier is never touched (the "E" term below); for a
+        knock-out, the rebate is paid at the moment the barrier is touched (the
+        "F" term below) -- the standard two rebate conventions (Haug, *The
+        Complete Guide to Option Pricing Formulas*, "Standard Barrier Options").
+
+        Note: only the general Reiner-Rubinstein building blocks (A/B/C/D) are
+        shown here — which combination prices the knock-in leg depends on
+        ``option_type``, ``barrier_type``, and whether strike exceeds barrier.
 
         Returns:
             The raw API response as a dict.
@@ -254,6 +277,10 @@ class DerivativesNamespace:
 
         Early exercise is allowed only on an evenly-spaced subset of the time grid.
         Price lies between the European and American values.
+
+        Note: uses the same Longstaff-Schwartz regression-based exercise decision
+        as ``american_option_lsm`` (no closed form), restricted to an
+        evenly-spaced subset of roughly ``n_steps / exercise_dates`` grid points.
 
         Returns:
             The raw API response as a dict.
@@ -421,6 +448,13 @@ class DerivativesNamespace:
         date with discount rates equal to the reference rates, an FRN prices near
         par plus the PV of the spread.
 
+        Note: the number of coupon periods actually priced is
+        ``len(reference_rates)`` (and ``discount_rates`` must match that length).
+        ``maturity`` is only used for input validation (``maturity > 0``) here —
+        it does not determine the coupon schedule, so a caller-supplied
+        ``maturity`` inconsistent with ``len(reference_rates) / frequency`` is
+        not detected or reconciled.
+
         Returns:
             The raw API response as a dict.
         """
@@ -477,6 +511,11 @@ class DerivativesNamespace:
 
         A callable bond is worth no more than the equivalent straight bond — the
         embedded call belongs to the issuer.
+
+        Note: the short-rate tree is a simplified multiplicative lattice with
+        fixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree calibrated
+        to an initial term structure, and the coupon is added at every node on
+        every step.
 
         Returns:
             The raw API response as a dict.
@@ -607,11 +646,10 @@ class DerivativesNamespace:
         seed: int = 81,
         greeks: bool = False,
     ) -> dict[str, Any]:
-        """Compound option (option-on-option) price via nested valuation / MC.
+        """Compound option (option-on-option) price via the Geske (1979) closed form.
 
-        Simulates the underlying asset to the compound expiry, computes the
-        Black-Scholes value of the underlying option there, then discounts the
-        compound payoff. Supports the four standard compound types.
+        Supports the four standard compound types (call/put on call/put). See
+        ``_geske_compound_price`` for the exact d-term algebra and its citation.
 
         Returns:
             The raw API response as a dict.
@@ -650,6 +688,10 @@ class DerivativesNamespace:
         Value = max(straight bond floor, conversion value), a simple but standard
         lower-bound decomposition. The convertible is always worth at least its
         conversion value and at least its bond floor.
+
+        Note: this lower-bound decomposition does not model conversion
+        optionality, equity volatility, or embedded call/put features of a real
+        convertible bond.
 
         Returns:
             The raw API response as a dict.
@@ -709,6 +751,12 @@ class DerivativesNamespace:
         ``dr = κ(θ−r)dt + σ√r dW``. The square-root diffusion keeps ``r >= 0``. The
         Feller condition ``2κθ ≥ σ²`` guarantees strict positivity.
 
+        The Monte Carlo path uses the exact non-central chi-squared CIR
+        transition distribution (Broadie-Kaya / Glasserman §3.4;
+        ``_cir_paths_exact_terminal``), not an Euler discretisation -- there is
+        no discretisation bias here at any ``n_steps``, unlike the (retained,
+        non-production) full-truncation Euler scheme in ``_cir_paths_euler``.
+
         Returns:
             The raw API response as a dict.
         """
@@ -737,10 +785,26 @@ class DerivativesNamespace:
         discount_rate: float,
         frequency: int = 4,
     ) -> dict[str, Any]:
-        """Price a CDS via a flat-hazard-rate reduced-form model.
+        """Price a CDS via a flat-hazard-rate reduced-form model with
 
-        Premium leg = ``spread · Σ τ · DF · Q``; protection leg =
-        ``(1−R) · Σ DF · (Q_{i−1} − Q_i)`` with survival ``Q(t)=e^{−λt}``. The par
+        accrual-midpoint default settlement.
+
+        Survival ``Q(t)=e^{−λt}``. Default losses -- and the accrued premium a
+        protection buyer owes if default falls inside a coupon period -- are
+        both settled at each period's ACCRUAL MIDPOINT
+        ``t_mid,i = (t_{i−1}+t_i)/2``, discounted at ``DF(t_mid,i)``, following
+        the standard ISDA/JPMorgan reduced-form CDS convention also implemented
+        by QuantLib's ``MidPointCdsEngine`` (which settles the same way by
+        default: ``settlesAccrual=True``, ``paysAtDefaultTime=True`` --
+        confirmed by inspecting its NPV decomposition directly, since this is
+        exactly what ``tests/validation/test_derivatives_ref.py`` cross-checks
+        against). The regular coupon cashflow -- paid only while the name has
+        survived to the period end -- is unaffected: ``spread · τ · Σ DF(t_i) ·
+        Q(t_i)``.
+
+        Protection leg = ``(1−R) · Σ DF(t_mid,i) · (Q_{i−1} − Q_i)``.
+        Accrual-on-default rebate = ``spread · Σ (t_mid,i − t_{i−1}) ·
+        DF(t_mid,i) · (Q_{i−1} − Q_i)``, added to the premium leg. The par
         spread zeroes the swap value.
 
         Returns:
@@ -1113,6 +1177,10 @@ class DerivativesNamespace:
         closed-form ZCB price coincides with Vasicek. Returns the analytic bond
         price and a Monte Carlo cross-check.
 
+        Note: with ``theta_const`` held constant this function literally delegates
+        to ``vasicek_interest_rate_model`` — it is not a genuine time-dependent
+        Hull-White model calibrated to fit an observed market forward curve.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1206,8 +1274,16 @@ class DerivativesNamespace:
         """LIBOR Market Model (BGM) forward-rate Monte Carlo simulation.
 
         Evolves a vector of forward LIBOR rates under the spot measure with the
-        standard log-normal BGM drift. Returns the mean terminal forward curve;
-        rates stay positive (log-normal dynamics).
+        standard log-normal BGM drift, discretised via the Glasserman-Zhao
+        predictor-corrector Euler scheme (see
+        ``_lmm_terminal_rates_predictor_corrector``). Returns the mean terminal
+        forward curve; rates stay positive (log-normal dynamics).
+
+        The drift for rate ``i`` sums over ``j = 0..i`` inclusive (including rate
+        ``i`` itself), evaluated from a single consistent rate vector at each of
+        the predictor and corrector stages -- not a sequential same-step
+        overwrite (see ``_lmm_terminal_rates_sequential_euler`` for the retained,
+        non-production former scheme).
 
         Returns:
             The raw API response as a dict.
@@ -1237,7 +1313,14 @@ class DerivativesNamespace:
         """Dupire local volatility surface from a call-price surface.
 
         Uses finite differences of the Dupire equation
-        ``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid.
+        ``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid,
+        covering the FULL grid: central differences in strike at interior
+        points, one-sided (forward/backward) 2nd-order-accurate differences at
+        the two strike boundaries (exact non-uniform-grid Fornberg-style 3-point
+        stencils -- exact for any quadratic, verified against hand-differentiated
+        polynomials), and a forward/backward difference in maturity at the
+        first/last maturity respectively (interior maturities also use the
+        forward difference toward the next maturity).
 
         Returns:
             The raw API response as a dict.
@@ -1465,6 +1548,11 @@ class DerivativesNamespace:
         reprices the callable bond to its market price — stripping out the embedded
         option so spreads are comparable across bonds.
 
+        Note: the spread is root-found (Brent's method) against
+        ``callable_bond_pricer``'s tree price rather than expressed in closed
+        form — the equation above is the condition the solver satisfies, not an
+        explicit OAS formula.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1547,6 +1635,10 @@ class DerivativesNamespace:
 
         A puttable bond is worth at least the equivalent straight bond — the
         embedded put belongs to the holder.
+
+        Note: uses the same simplified multiplicative short-rate lattice as
+        ``callable_bond_pricer`` — fixed 0.5/0.5 branch probabilities, not
+        calibrated to a market curve.
 
         Returns:
             The raw API response as a dict.
@@ -1921,6 +2013,10 @@ class DerivativesNamespace:
         greeks: bool = False,
     ) -> dict[str, Any]:
         """Variance Gamma European option price via Monte Carlo.
+
+        Note: the ``theta`` parameter here is the VG skew parameter
+        (subordinated-drift), unrelated to the Greek theta (time decay)
+        optionally returned when ``greeks=True``.
 
         Time-changes Brownian motion by a Gamma subordinator (mean 1, variance
         ``nu``). The martingale drift correction ``omega`` is computed in closed
