@@ -3049,7 +3049,7 @@
       }
     ],
     "formula": {
-      "caveat": "Solved by a greedy water-filling allocation onto the highest risk-adjusted score rather than a generic LP solver; the docstring states this is the exact optimum under these box + simplex constraints for a linear objective.",
+      "caveat": "Solved by a greedy water-filling allocation onto the highest risk-adjusted score rather than a generic LP solver. The docstring's claim that this is the exact optimum under these box + simplex constraints for a linear objective is now test-verified, not just asserted: tests/validation/test_credit_ref.py cross-checks it against scipy.optimize.linprog(method='highs') on both fixed cases and a 200-trial randomised sweep, confirming exact utility and allocation equivalence -- greedy is kept as the production implementation since it is provably optimal for this problem shape and faster than a generic LP solve.",
       "citation": null,
       "formula_latex": "\\max_{w}\\ \\sum_i w_i\\,(r_i-\\gamma\\,EL_i) \\quad \\text{s.t.}\\ \\sum_i w_i=1,\\ 0\\le w_i\\le w_{max}",
       "symbol_map": {
