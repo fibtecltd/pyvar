@@ -346,7 +346,11 @@ def charm_delta_decay(
     """Charm — sensitivity of delta to time to maturity (∂Δ/∂τ).
 
     Computed in the time-to-maturity convention so that a finite-difference of
-    delta with respect to τ reproduces this value.
+    delta with respect to τ reproduces this value. Note the sign: this is
+    +∂Δ/∂τ (time-to-maturity), the opposite sign from the calendar-time charm
+    convention −∂Δ/∂t (decay per day of calendar time elapsed) more commonly
+    quoted on trading desks and in textbooks — do not assume the calendar-time
+    sign without checking which convention a comparison source uses.
 
     Args:
         spot: Underlying spot price.
