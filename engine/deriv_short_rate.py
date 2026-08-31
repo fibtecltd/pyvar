@@ -15,6 +15,7 @@ import math
 
 import numpy as np
 from numba import njit, prange
+from scipy import stats
 
 __all__ = [
     "vasicek_interest_rate_model",
@@ -93,10 +94,16 @@ def vasicek_interest_rate_model(
 
 
 @njit(cache=True, parallel=True)
-def _cir_paths(
+def _cir_paths_euler(
     r0: float, kappa: float, theta: float, sigma: float, tau: float, normals: np.ndarray
 ) -> np.ndarray:
-    """Terminal short rates for CIR (full-truncation Euler) from normals."""
+    """Terminal short rates for CIR (full-truncation Euler) from normals.
+
+    Retained (no longer the production path -- see
+    ``_cir_paths_exact_terminal``) as the discretisation-biased reference
+    used by ``tests/validation/test_derivatives_ref.py`` to demonstrate the
+    exact scheme's lower bias at matched path/step counts.
+    """
     n_paths, n_steps = normals.shape
     dt = tau / n_steps
     sqdt = math.sqrt(dt)
@@ -108,6 +115,46 @@ def _cir_paths(
             r = r + kappa * (theta - r) * dt + sigma * math.sqrt(r_pos) * sqdt * normals[p, k]
         out[p] = r if r > 0.0 else 0.0
     return out
+
+
+def _cir_paths_exact_terminal(
+    r0: float,
+    kappa: float,
+    theta: float,
+    sigma: float,
+    tau: float,
+    n_steps: int,
+    n_simulations: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Terminal short rates for CIR via exact non-central chi-squared
+    transition sampling (Broadie-Kaya / Glasserman, *Monte Carlo Methods in
+    Financial Engineering*, §3.4).
+
+    Given ``r_t``, the transition to ``r_{t+dt}`` is exactly
+    ``c * ncx2.rvs(df, nc)`` with::
+
+        c  = sigma^2 * (1 - exp(-kappa*dt)) / (4*kappa)
+        df = 4*kappa*theta / sigma^2
+        nc = r_t * exp(-kappa*dt) / c
+
+    This has NO discretisation bias at any step size -- ``df`` is constant
+    across paths/steps so each step is one vectorised
+    ``scipy.stats.ncx2.rvs`` call over all paths at once (``nc`` varies per
+    path, ``df`` does not), not a per-path Python loop. Not @njit: scipy's
+    ncx2 sampler is not available inside Numba's restricted random API
+    (CLAUDE.md §3.1 rule 3), so this step -- unlike the Gaussian-driven
+    kernels elsewhere in this module -- runs in pure Python/NumPy.
+    """
+    dt = tau / n_steps
+    disc = math.exp(-kappa * dt)
+    c = sigma * sigma * (1.0 - disc) / (4.0 * kappa)
+    df = 4.0 * kappa * theta / (sigma * sigma)
+    r = np.full(int(n_simulations), r0, dtype=np.float64)
+    for _ in range(int(n_steps)):
+        nc = r * disc / c
+        r = c * stats.ncx2.rvs(df, nc, size=r.shape, random_state=rng)
+    return r
 
 
 def cox_ingersoll_ross_model(
@@ -125,10 +172,11 @@ def cox_ingersoll_ross_model(
     ``dr = κ(θ−r)dt + σ√r dW``. The square-root diffusion keeps ``r >= 0``. The
     Feller condition ``2κθ ≥ σ²`` guarantees strict positivity.
 
-    Note: the Monte Carlo path uses full-truncation Euler discretisation (the
-    rate is floored at 0 both inside the square root and for the terminal
-    output), not the exact non-central chi-squared CIR transition
-    distribution.
+    The Monte Carlo path uses the exact non-central chi-squared CIR
+    transition distribution (Broadie-Kaya / Glasserman §3.4;
+    ``_cir_paths_exact_terminal``), not an Euler discretisation -- there is
+    no discretisation bias here at any ``n_steps``, unlike the (retained,
+    non-production) full-truncation Euler scheme in ``_cir_paths_euler``.
 
     Args:
         r0: Initial short rate (>= 0).
@@ -136,7 +184,8 @@ def cox_ingersoll_ross_model(
         theta: Long-run mean (> 0).
         sigma: Volatility (> 0).
         maturity: Bond maturity in years (> 0).
-        n_steps: MC time steps.
+        n_steps: MC time steps (exact scheme -- affects only path
+            granularity, not terminal-distribution accuracy).
         n_simulations: MC paths.
         seed: RNG seed.
 
@@ -158,8 +207,9 @@ def cox_ingersoll_ross_model(
     bond_price = a * math.exp(-b * r0)
 
     rng = np.random.default_rng(seed)
-    normals = rng.standard_normal((int(n_simulations), int(n_steps))).astype(np.float64)
-    terminal = _cir_paths(r0, kappa, theta, sigma, maturity, normals)
+    terminal = _cir_paths_exact_terminal(
+        r0, kappa, theta, sigma, maturity, n_steps, n_simulations, rng
+    )
     return {
         "bond_price": round(float(bond_price), 8),
         "mc_mean_rate": round(float(np.mean(terminal)), 8),
@@ -213,18 +263,21 @@ def hull_white_short_rate_model(
 
 
 @njit(cache=True, parallel=True)
-def _lmm_terminal_rates(
+def _lmm_terminal_rates_sequential_euler(
     fwd0: np.ndarray,
     vols: np.ndarray,
     tenor: float,
     tau: float,
     normals: np.ndarray,
 ) -> np.ndarray:
-    """Evolve LMM forward rates under the spot measure to ``tau``.
+    """Evolve LMM forward rates under the spot measure to ``tau`` via
+    sequential log-Euler (each rate's drift uses earlier rates' already-
+    updated, same-step values -- see the module's former caveat).
 
     ``normals`` is ``(n_paths, n_steps, n_rates)``. Returns ``(n_paths, n_rates)``
-    terminal forward rates. Uses a simple log-Euler scheme with drift under the
-    spot LIBOR measure.
+    terminal forward rates. Retained (no longer the production path -- see
+    ``_lmm_terminal_rates_predictor_corrector``) as the discretisation-biased
+    reference used by ``tests/validation/test_derivatives_ref.py``.
     """
     n_paths, n_steps, n_rates = normals.shape
     dt = tau / n_steps
@@ -245,6 +298,67 @@ def _lmm_terminal_rates(
     return out
 
 
+@njit(cache=True, parallel=True)
+def _lmm_terminal_rates_predictor_corrector(
+    fwd0: np.ndarray,
+    vols: np.ndarray,
+    tenor: float,
+    tau: float,
+    normals: np.ndarray,
+) -> np.ndarray:
+    """Evolve LMM forward rates under the spot measure to ``tau`` via the
+    Glasserman-Zhao predictor-corrector Euler scheme (Glasserman & Zhao
+    2000, "Arbitrage-free discretization of lognormal forward Libor and
+    swap rate models"; also Glasserman, *Monte Carlo Methods in Financial
+    Engineering*, §3.7).
+
+    Each step: (1) compute every rate's drift from the SAME start-of-step
+    rate vector (simultaneous, not sequentially overwritten); (2) take a
+    predictor Euler step using that drift; (3) recompute every rate's drift
+    from the predicted end-of-step vector; (4) take the real step using the
+    AVERAGE of the start- and predicted-drift, reusing the same normal draw
+    (common random numbers) as the predictor. Unlike sequential log-Euler,
+    no rate's drift ever depends on a partially-updated value from the same
+    step.
+
+    ``normals`` is ``(n_paths, n_steps, n_rates)``. Returns ``(n_paths, n_rates)``
+    terminal forward rates.
+    """
+    n_paths, n_steps, n_rates = normals.shape
+    dt = tau / n_steps
+    sqdt = math.sqrt(dt)
+    out = np.empty((n_paths, n_rates), dtype=np.float64)
+    for p in prange(n_paths):
+        f = fwd0.copy()
+        drift0 = np.empty(n_rates, dtype=np.float64)
+        drift1 = np.empty(n_rates, dtype=np.float64)
+        f_pred = np.empty(n_rates, dtype=np.float64)
+        for step in range(n_steps):
+            for i in range(n_rates):
+                d = 0.0
+                for j in range(i + 1):
+                    d += (tenor * f[j] * vols[j] * vols[i]) / (1.0 + tenor * f[j])
+                drift0[i] = d
+            for i in range(n_rates):
+                f_pred[i] = f[i] * math.exp(
+                    (drift0[i] - 0.5 * vols[i] * vols[i]) * dt
+                    + vols[i] * sqdt * normals[p, step, i]
+                )
+            for i in range(n_rates):
+                d = 0.0
+                for j in range(i + 1):
+                    d += (tenor * f_pred[j] * vols[j] * vols[i]) / (1.0 + tenor * f_pred[j])
+                drift1[i] = d
+            for i in range(n_rates):
+                f[i] = f[i] * math.exp(
+                    (0.5 * (drift0[i] + drift1[i]) - 0.5 * vols[i] * vols[i]) * dt
+                    + vols[i] * sqdt * normals[p, step, i]
+                )
+        for i in range(n_rates):
+            out[p, i] = f[i]
+    return out
+
+
 def lmm_bgm_rate_model(
     forward_rates: np.ndarray,
     vols: np.ndarray,
@@ -257,14 +371,16 @@ def lmm_bgm_rate_model(
     """LIBOR Market Model (BGM) forward-rate Monte Carlo simulation.
 
     Evolves a vector of forward LIBOR rates under the spot measure with the
-    standard log-normal BGM drift. Returns the mean terminal forward curve;
-    rates stay positive (log-normal dynamics).
+    standard log-normal BGM drift, discretised via the Glasserman-Zhao
+    predictor-corrector Euler scheme (see
+    ``_lmm_terminal_rates_predictor_corrector``). Returns the mean terminal
+    forward curve; rates stay positive (log-normal dynamics).
 
-    Note: the drift for rate ``i`` sums over ``j = 0..i`` inclusive (including
-    rate ``i`` itself) using each earlier rate's already-updated value from the
-    same time step rather than its start-of-step value, since rates are
-    overwritten sequentially in place — a specific sequential log-Euler
-    discretisation choice, not a fully simultaneous update.
+    The drift for rate ``i`` sums over ``j = 0..i`` inclusive (including rate
+    ``i`` itself), evaluated from a single consistent rate vector at each of
+    the predictor and corrector stages -- not a sequential same-step
+    overwrite (see ``_lmm_terminal_rates_sequential_euler`` for the retained,
+    non-production former scheme).
 
     Args:
         forward_rates: Initial forward rates per tenor (decimal, > 0).
@@ -292,7 +408,7 @@ def lmm_bgm_rate_model(
 
     rng = np.random.default_rng(seed)
     normals = rng.standard_normal((int(n_simulations), int(n_steps), f0.size)).astype(np.float64)
-    terminal = _lmm_terminal_rates(f0, v, tenor, horizon, normals)
+    terminal = _lmm_terminal_rates_predictor_corrector(f0, v, tenor, horizon, normals)
     mean_rates = np.mean(terminal, axis=0)
     return {
         "mean_terminal_rates": [round(float(r), 8) for r in mean_rates],
