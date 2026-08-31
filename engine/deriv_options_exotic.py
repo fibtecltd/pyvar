@@ -105,6 +105,12 @@ def barrier_option_pricer(
     Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four
     standard combinations is supported. Rebates are not modelled (set to 0).
 
+    Note: only the general Reiner-Rubinstein building blocks (A/B/C/D) are
+    shown here — which combination prices the knock-in leg depends on
+    ``option_type``, ``barrier_type``, and whether strike exceeds barrier —
+    and a rebate-related lambda term is computed but never used, consistent
+    with rebates always pricing as 0.
+
     Args:
         spot: Underlying spot.
         strike: Strike.
@@ -807,6 +813,12 @@ def american_option_lsm(
     Allows early exercise at every time step. The price must be >= the European
     price of the same option.
 
+    Note: the continuation value at each exercise date is fit by quadratic OLS
+    regression on in-the-money paths rather than evaluated from a closed-form
+    formula, and the opt-in Greeks use a spot bump roughly 30x larger than
+    this module's smooth-payoff pricers because that regression-based
+    exercise decision is discontinuous in spot.
+
     Deliberately has no qmc option (task #15 Phase 2 evaluated and rejected
     it for this function specifically -- see _price_by_qmc_replicates'
     docstring). Randomized-QMC replicates work cleanly for asian_option_pricer
@@ -915,6 +927,10 @@ def bermudan_option_pricer(
 
     Early exercise is allowed only on an evenly-spaced subset of the time grid.
     Price lies between the European and American values.
+
+    Note: uses the same Longstaff-Schwartz regression-based exercise decision
+    as ``american_option_lsm`` (no closed form), restricted to an
+    evenly-spaced subset of roughly ``n_steps / exercise_dates`` grid points.
 
     Args:
         spot: Underlying spot.
@@ -1365,6 +1381,11 @@ def compound_option_pricer(
     Simulates the underlying asset to the compound expiry, computes the
     Black-Scholes value of the underlying option there, then discounts the
     compound payoff. Supports the four standard compound types.
+
+    Note: despite the module docstring calling this the "Geske" compound
+    option, the underlying option's value at the simulated compound expiry is
+    priced analytically via Black-Scholes at each path, not via the classical
+    Geske closed-form bivariate-normal formula.
 
     Args:
         spot: Underlying spot.

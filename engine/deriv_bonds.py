@@ -244,6 +244,11 @@ def callable_bond_pricer(
     A callable bond is worth no more than the equivalent straight bond — the
     embedded call belongs to the issuer.
 
+    Note: the short-rate tree is a simplified multiplicative lattice with
+    fixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree calibrated
+    to an initial term structure, and the coupon is added at every node on
+    every step.
+
     Args:
         face_value: Par value.
         coupon_rate: Annual coupon rate (decimal).
@@ -284,6 +289,10 @@ def puttable_bond_pricer(
 
     A puttable bond is worth at least the equivalent straight bond — the
     embedded put belongs to the holder.
+
+    Note: uses the same simplified multiplicative short-rate lattice as
+    ``callable_bond_pricer`` — fixed 0.5/0.5 branch probabilities, not
+    calibrated to a market curve.
 
     Args:
         face_value: Par value.
@@ -328,6 +337,10 @@ def convertible_bond_pricer(
     Value = max(straight bond floor, conversion value), a simple but standard
     lower-bound decomposition. The convertible is always worth at least its
     conversion value and at least its bond floor.
+
+    Note: this lower-bound decomposition does not model conversion
+    optionality, equity volatility, or embedded call/put features of a real
+    convertible bond.
 
     Args:
         face_value: Par value.

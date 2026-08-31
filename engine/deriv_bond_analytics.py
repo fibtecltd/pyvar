@@ -374,6 +374,11 @@ def oas_option_adjusted_spread(
     reprices the callable bond to its market price — stripping out the embedded
     option so spreads are comparable across bonds.
 
+    Note: the spread is root-found (Brent's method) against
+    ``callable_bond_pricer``'s tree price rather than expressed in closed
+    form — the equation above is the condition the solver satisfies, not an
+    explicit OAS formula.
+
     Args:
         market_price: Observed market price of the callable bond.
         face_value: Par value.
