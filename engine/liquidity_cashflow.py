@@ -140,6 +140,9 @@ def liquidity_gap_analysis(
     gap means more assets than liabilities mature by that point (a funding
     surplus); a negative gap signals a refinancing need.
 
+    Unlike the two cash-flow-ladder functions above, this cumulative gap is not
+    offset by an opening balance — the function takes no such parameter.
+
     Args:
         asset_maturities: Asset cash inflows maturing in each bucket.
         liability_maturities: Liability cash outflows maturing in each bucket.
