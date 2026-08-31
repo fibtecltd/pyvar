@@ -538,6 +538,8 @@ class CoreDepositDurationResponse(BaseModel):
 
     core_deposit_duration: Any = Field(default=None)
     present_value: Any = Field(default=None)
+    closed_form_duration: Any = Field(default=None)
+    closed_form_present_value: Any = Field(default=None)
 
 
 class FundsTransferPricingFtpRequest(BaseModel):

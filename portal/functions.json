@@ -8,7 +8,7 @@
     "display_name": "ALM Stress Test",
     "path": "/api/v1/alm/alm_stress_test",
     "summary": "Run an ALM stress test: worst-case EVE decline vs Tier-1 capital.",
-    "description": "[REGULATORY] BCBS d368. Computes \u0394EVE across the six standard shocks and\nexpresses the worst-case loss as a fraction of Tier-1 capital (the\nsupervisory outlier ratio).",
+    "description": "Note: the per-scenario \u0394EVE values are computed entirely inside\n:func:`~engine.alm_nii_eve.eve_sensitivity_analysis` (the same PV formula\nused by ``economic_value_of_equity_eve``); this function only adds the\nTier-1 capital ratio and the 15% outlier-test check on top.\n\n[REGULATORY] BCBS d368. Computes \u0394EVE across the six standard shocks and\nexpresses the worst-case loss as a fraction of Tier-1 capital (the\nsupervisory outlier ratio).",
     "params": [
       {
         "name": "net_cashflows",
@@ -324,7 +324,7 @@
     "display_name": "Behavioural Modelling NMDs",
     "path": "/api/v1/alm/behavioural_modelling_nmds",
     "summary": "Model non-maturity-deposit (NMD) run-off splitting core / non-core.",
-    "description": "[REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay\nslowly; non-core (volatile) deposits run off quickly. Returns the projected\nsurviving balance and the effective average life.",
+    "description": "[LIMITATION] This is a bespoke core/non-core exponential-decay run-off\nmodel, not an implementation of BCBS d368's standardised NMD slotting\nmethodology -- the BCBS d368 reference below names the regulatory context\nthis model addresses, not the calculation performed here.\n\n[REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay\nslowly; non-core (volatile) deposits run off quickly. Returns the projected\nsurviving balance and the effective average life.",
     "params": [
       {
         "name": "total_balance",
@@ -472,7 +472,7 @@
     "display_name": "Core Deposit Duration",
     "path": "/api/v1/alm/core_deposit_duration",
     "summary": "Effective duration of core deposits modelled as a decaying annuity.",
-    "description": "Core deposits run off at ``decay_rate`` (exponential). The duration is the\nPV-weighted average life of the run-off cashflows discounted at\n``discount_rate`` \u2014 typically multi-year, which is why NMDs anchor the\nliability side of the duration gap.",
+    "description": "``core_deposit_duration`` (the primary, default figure) is a discrete\nmonthly Riemann sum over the exponential run-off schedule, truncated at\n``max_years``:\n``D = sum_t[t*B*decay_rate*e^{-(decay_rate+discount_rate)t}]\n      / sum_t[B*decay_rate*e^{-(decay_rate+discount_rate)t}]``\nfor ``t = 1/12, 2/12, ..., max_years``.\n\nA genuine closed form exists for the *untruncated* (``max_years`` ->\ninfinity) continuous-time version of the same model: the run-off density\n``core_balance*decay_rate*e^{-decay_rate*t}`` is the density of an\nExponential(``decay_rate``) survival distribution, and PV-weighting it by\n``e^{-discount_rate*t}`` is equivalent to re-weighting by\nExponential(``decay_rate + discount_rate``) \u2014 whose mean is exactly\n``1 / (decay_rate + discount_rate)``. That value, plus its closed-form PV\n``core_balance*decay_rate / (decay_rate + discount_rate)``, is returned as\n``closed_form_duration`` / ``closed_form_present_value`` for reference,\nbut is NOT used for the primary ``core_deposit_duration`` figure.\n\nWhy the truncated discrete sum stays the default instead of switching to\nthe closed form (validated numerically \u2014 see\n``tests/test_alm_behavioural.py::test_core_deposit_duration_closed_form``):\nthe two diverge materially whenever ``max_years`` is not several multiples\nof the implied continuous duration ``1/(decay_rate+discount_rate)``. For\nthe slow-decaying \"sticky\" core books this function exists to model, that\nratio is often well under 3x at the ``max_years=30`` default \u2014 e.g.\n``decay_rate=0.05, discount_rate=0.02`` implies a 14.3y continuous\nduration against a 30y truncation, and the discrete figure understates\nthe closed form by ~29%. So ``max_years`` is a real, user-set truncation\nof the run-off horizon here, not just a numerical implementation detail,\nand silently dropping it would change the model's economics, not just its\nnumerics. Even where truncation is immaterial\n(``max_years >> 1/(decay_rate+discount_rate)``), the monthly\nright-Riemann-sum quadrature itself carries a systematic +dt/2 (~0.042y)\nbias relative to the continuous integral, which is non-negligible against\na 0.1-0.5% tolerance for short-duration books (e.g. ``decay_rate=0.30,\ndiscount_rate=0.10`` -> ~1.7% bias even with a generous horizon).\n\nCore deposits run off at ``decay_rate`` (exponential). The duration is the\nPV-weighted average life of the run-off cashflows discounted at\n``discount_rate`` \u2014 typically multi-year, which is why NMDs anchor the\nliability side of the duration gap.",
     "params": [
       {
         "name": "core_balance",
@@ -1940,7 +1940,7 @@
     "display_name": "Pipeline Risk Measurement",
     "path": "/api/v1/alm/pipeline_risk_measurement",
     "summary": "Pipeline risk of rate-locked mortgage commitments not yet on balance.",
-    "description": "Exposure = ``notional \u00b7 pull_through``; the rate risk scales with the\nrate-lock period and rate volatility (a \u221atime vol exposure proxy).",
+    "description": "Note: ``rate_risk`` is a heuristic \u221atime-scaled volatility exposure\nproxy, not a rigorous option-pricing valuation of the rate-lock\noptionality.\n\nExposure = ``notional \u00b7 pull_through``; the rate risk scales with the\nrate-lock period and rate volatility (a \u221atime vol exposure proxy).",
     "params": [
       {
         "name": "pipeline_notional",
@@ -2008,7 +2008,7 @@
     "display_name": "Prepayment Model Mortgages",
     "path": "/api/v1/alm/prepayment_model_mortgages",
     "summary": "Project mortgage cashflows under a constant CPR prepayment assumption.",
-    "description": "Higher CPR shortens the weighted-average life (WAL) of the pool.",
+    "description": "Note: cashflows come from a month-by-month recursive amortisation loop\n(interest, then scheduled principal, then prepayment on the remaining\nbalance each month), not a single closed-form cashflow expression.\n\nHigher CPR shortens the weighted-average life (WAL) of the pool.",
     "params": [
       {
         "name": "principal",
@@ -2131,7 +2131,7 @@
     "display_name": "Repricing Maturity Profile",
     "path": "/api/v1/alm/repricing_maturity_profile",
     "summary": "Allocate balances into repricing-time buckets.",
-    "description": "",
+    "description": "Note: bucket allocation is a discrete binning operation (``np.digitize``\nagainst ``bucket_edges``), not a closed-form sum in the usual sense.",
     "params": [
       {
         "name": "balances",
@@ -2242,7 +2242,7 @@
     "display_name": "Structural Hedge Optimisation",
     "path": "/api/v1/alm/structural_hedge_optimisation",
     "summary": "Optimise a structural hedge to a target equity duration.",
-    "description": "Solves for non-negative hedge notionals (bounded by per-instrument caps)\nthat bring the dollar-duration of the hedge as close as possible to the\ntarget ``equity_notional \u00b7 target_duration``.",
+    "description": "Note: hedge notionals are solved numerically via SciPy bounded\nleast-squares (``scipy.optimize.lsq_linear``), not a closed-form\nallocation formula.\n\nSolves for non-negative hedge notionals (bounded by per-instrument caps)\nthat bring the dollar-duration of the hedge as close as possible to the\ntarget ``equity_notional \u00b7 target_duration``.",
     "params": [
       {
         "name": "target_duration",
@@ -2754,7 +2754,7 @@
     "display_name": "Corporate Credit Scoring Model",
     "path": "/api/v1/credit-risk/corporate_credit_scoring_model",
     "summary": "Weighted-factor corporate credit score mapped to a PD.",
-    "description": "Combines normalised factor scores (e.g. leverage, coverage, profitability,\neach in ``[0, 1]`` with 1 = strongest) into a composite ``[0, 1]`` rating\nstrength, then maps to PD via ``PD = pd_anchor * (1 - strength)`` floored at\n``pd_floor``. A perfectly strong borrower hits the floor.",
+    "description": "Combines normalised factor scores (e.g. leverage, coverage, profitability,\neach in ``[0, 1]`` with 1 = strongest) into a composite ``[0, 1]`` rating\nstrength, then maps to PD via ``PD = pd_anchor * (1 - strength)`` floored at\n``pd_floor``. A perfectly strong borrower hits the floor.\n\nThis is a bespoke internal weighted-factor model, confirmed against\nBIS/EBA sources not to match any specific published or regulatory\nscoring formula, so treat it as a reasonable internal model rather than\na reproduction of one.",
     "params": [
       {
         "name": "factor_scores",
@@ -3001,7 +3001,7 @@
     "display_name": "Credit Portfolio Optimisation",
     "path": "/api/v1/credit-risk/credit_portfolio_optimisation",
     "summary": "Single-period credit-portfolio weight optimisation (return vs expected loss).",
-    "description": "Maximises a mean-EL utility ``sum_i w_i (r_i - risk_aversion * EL_i)`` subject\nto ``sum w = 1`` and ``0 <= w_i <= max_weight``. With these box + simplex\nconstraints the solution is a greedy water-filling onto the highest\nrisk-adjusted scores, which is the exact optimum for a linear objective.",
+    "description": "Maximises a mean-EL utility ``sum_i w_i (r_i - risk_aversion * EL_i)`` subject\nto ``sum w = 1`` and ``0 <= w_i <= max_weight``. With these box + simplex\nconstraints the solution is a greedy water-filling onto the highest\nrisk-adjusted scores, which is the exact optimum for a linear objective.\n\nNo generic LP/QP solver is called anywhere in this function \u2014 the\nclosed-form greedy allocation coded here is exact for this specific\nlinear-objective, box-plus-simplex problem shape only.",
     "params": [
       {
         "name": "expected_returns",
@@ -3125,7 +3125,7 @@
     "display_name": "Credit Stress Testing",
     "path": "/api/v1/credit-risk/credit_stress_testing",
     "summary": "Credit stress test: multiplicative PD/LGD shocks on the loss profile.",
-    "description": "Applies a supervisory-style stress (e.g. EBA adverse scenario) by scaling\nPD and LGD, clipping to ``[0, 1]``, and reports the baseline vs stressed\nexpected loss and the incremental impairment.",
+    "description": "Applies a supervisory-style stress (e.g. EBA adverse scenario) by scaling\nPD and LGD, clipping to ``[0, 1]``, and reports the baseline vs stressed\nexpected loss and the incremental impairment.\n\nThe baseline EL leg is the definitional ``PD*LGD*EAD``, but the\nmultiplicative PD/LGD shock structure itself is a bespoke internal\nstress design, confirmed against BIS/EBA sources not to reproduce any\nspecific published adverse-scenario formula.",
     "params": [
       {
         "name": "pd",
@@ -3467,7 +3467,7 @@
     "display_name": "CreditMetrics Portfolio Model",
     "path": "/api/v1/credit-risk/creditmetrics_portfolio_model",
     "summary": "Simplified CreditMetrics (two-state) portfolio loss distribution.",
-    "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model\nuses a multi-state rating-migration matrix \u2014 handled separately by\n:func:`engine.credit_scoring.ratings_migration_matrix` \u2014 but the loss tail is\ndominated by the default state captured here.",
+    "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model\nuses a multi-state rating-migration matrix \u2014 handled separately by\n:func:`engine.credit_scoring.ratings_migration_matrix` \u2014 but the loss tail is\ndominated by the default state captured here.\n\nIn implementation this is a direct pass-through to the same one-factor\nGaussian-copula Monte Carlo engine used by\n:func:`credit_var_monte_carlo` (identical formula, identical code path),\nnot a separately coded multi-state model.",
     "params": [
       {
         "name": "exposures",
@@ -3713,7 +3713,7 @@
     "display_name": "Debt Valuation Adjustment DVA",
     "path": "/api/v1/credit-risk/debt_valuation_adjustment_dva",
     "summary": "Debit Valuation Adjustment \u2014 the symmetric own-default benefit.",
-    "description": "DVA mirrors CVA using the *negative* expected exposure (the amount the bank\nowes) and the bank's *own* credit spread. It is a gain to the reporting\nentity (own default extinguishes a liability).",
+    "description": "DVA mirrors CVA using the *negative* expected exposure (the amount the bank\nowes) and the bank's *own* credit spread. It is a gain to the reporting\nentity (own default extinguishes a liability).\n\nUnder the hood this simply calls :func:`credit_valuation_adjustment_cva`\non the negative-exposure profile with the bank's own spread and recovery\nsubstituted in, rather than a separately derived formula.",
     "params": [
       {
         "name": "expected_negative_exposure",
@@ -3837,7 +3837,7 @@
     "display_name": "Downturn LGD Adjustment",
     "path": "/api/v1/credit-risk/downturn_lgd_adjustment",
     "summary": "Basel downturn-LGD adjustment of a long-run average LGD.",
-    "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when these\nare more conservative than the long-run average. The supervisory-style\nadditive add-on (EBA GL) is applied as\n``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is\n*not* used here; instead a transparent multiplicative scaling is applied and\nclipped to ``[floor, 1]`` so the result never under-states the long-run LGD.",
+    "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\nEBA/GL/2019/03's additive fallback approach \u2014 see CRR Art. 181 for the\nunderlying requirement.\n\nCRR Art. 181 requires LGD to reflect economic-downturn conditions when these\nare more conservative than the long-run average. The supervisory-style\nadditive add-on (EBA GL) is applied as\n``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is\n*not* used here; instead a transparent multiplicative scaling is applied and\nclipped to ``[floor, 1]`` so the result never under-states the long-run LGD.",
     "params": [
       {
         "name": "lgd_long_run",
@@ -4093,7 +4093,7 @@
     "display_name": "Funding Valuation Adjustment FVA",
     "path": "/api/v1/credit-risk/funding_valuation_adjustment_fva",
     "summary": "Funding Valuation Adjustment \u2014 cost of funding uncollateralised exposure.",
-    "description": "``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` \u2014 the present\nvalue of the funding-spread carry on the expected exposure over each\ninterval, conditional on counterparty survival.",
+    "description": "Note: when ``survival_probability`` is omitted it defaults to 1 at every\nbucket, i.e. the FVA is computed with no counterparty-default\nconditioning applied.\n\n``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` \u2014 the present\nvalue of the funding-spread carry on the expected exposure over each\ninterval, conditional on counterparty survival.",
     "params": [
       {
         "name": "expected_exposure",
@@ -4444,7 +4444,7 @@
     "display_name": "IFRS 9 Staging Criteria Assessment",
     "path": "/api/v1/credit-risk/ifrs_9_staging_criteria_assessment",
     "summary": "Full IFRS 9 staging assessment combining quantitative and qualitative SICR.",
-    "description": "Extends the PD-threshold rule with qualitative backstops required by IFRS 9:\nforbearance and internal watchlist status force at least Stage 2, while\n90+ days past due forces Stage 3. The final stage is the most severe of all\ntriggered criteria.",
+    "description": "Extends the PD-threshold rule with qualitative backstops required by IFRS 9:\nforbearance and internal watchlist status force at least Stage 2, while\n90+ days past due forces Stage 3. The final stage is the most severe of all\ntriggered criteria.\n\nThe quantitative leg reuses\n:func:`ifrs_9_stage_classification_pd_threshold`'s PD-threshold rule\ndirectly (including its ``sicr_relative_threshold`` parameter) rather\nthan an independently coded SICR test.",
     "params": [
       {
         "name": "pd_current",
@@ -4535,7 +4535,7 @@
     "display_name": "IRB Advanced Approach Capital",
     "path": "/api/v1/credit-risk/irb_advanced_approach_capital",
     "summary": "Basel IRB Advanced-Approach capital (CRE31).",
-    "description": "Under A-IRB the bank supplies its own PD, LGD, EAD and effective maturity.\nThe risk-weight function is identical to F-IRB; only the parameter sources\ndiffer.",
+    "description": "Note: when ``correlation`` is not supplied it defaults to the Basel\ncorporate correlation function of PD, the same formula F-IRB always uses.\n\nUnder A-IRB the bank supplies its own PD, LGD, EAD and effective maturity.\nThe risk-weight function is identical to F-IRB; only the parameter sources\ndiffer.",
     "params": [
       {
         "name": "pd",
@@ -4615,7 +4615,7 @@
     "display_name": "IRB Foundation Approach Capital",
     "path": "/api/v1/credit-risk/irb_foundation_approach_capital",
     "summary": "Basel IRB Foundation-Approach capital (CRE31).",
-    "description": "Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for\nsenior unsecured and 75% for subordinated claims (CRE32). EAD and maturity\nare also supervisory (M defaults to 2.5 years).",
+    "description": "Note: unlike :func:`irb_advanced_approach_capital`, F-IRB exposes no\noverride at all for the asset correlation R \u2014 it is always the Basel\ncorporate correlation function of PD.\n\nUnder F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for\nsenior unsecured and 75% for subordinated claims (CRE32). EAD and maturity\nare also supervisory (M defaults to 2.5 years).",
     "params": [
       {
         "name": "pd",
@@ -4694,7 +4694,7 @@
     "display_name": "KMV Merton Distance To Default",
     "path": "/api/v1/credit-risk/kmv_merton_distance_to_default",
     "summary": "Merton / KMV distance-to-default and implied PD.",
-    "description": "In the structural Merton model the firm defaults at horizon T if asset value\nfalls below the debt face value. The distance-to-default is\n``DD = (ln(V/D) + (mu - 0.5 sigma^2) T) / (sigma sqrt(T))`` and the model PD\n(expected default frequency) is ``N(-DD)``.",
+    "description": "Note: when ``asset_drift`` is omitted, the asset drift mu used in the\ndistance-to-default formula defaults to ``risk_free_rate`` (a\nrisk-neutral assumption), not an estimate of the firm's actual expected\nasset return.\n\nIn the structural Merton model the firm defaults at horizon T if asset value\nfalls below the debt face value. The distance-to-default is\n``DD = (ln(V/D) + (mu - 0.5 sigma^2) T) / (sigma sqrt(T))`` and the model PD\n(expected default frequency) is ``N(-DD)``.",
     "params": [
       {
         "name": "asset_value",
@@ -4786,7 +4786,7 @@
     "display_name": "Logistic Regression PD Model",
     "path": "/api/v1/credit-risk/logistic_regression_pd_model",
     "summary": "Fit a logistic-regression PD model by Newton-Raphson (IRLS) MLE.",
-    "description": "Estimates ``PD = sigmoid(b0 + x\u00b7b)`` from a default indicator. A small ridge\nterm stabilises the Hessian on separable / collinear data. An intercept is\nadded automatically.",
+    "description": "Estimates ``PD = sigmoid(b0 + x\u00b7b)`` from a default indicator. A small ridge\nterm stabilises the Hessian on separable / collinear data. An intercept is\nadded automatically.\n\nCoefficients are found by iterative Newton-Raphson (IRLS) convergence to\nthe maximum-likelihood estimate, not a closed-form solution.",
     "params": [
       {
         "name": "features",
@@ -4920,7 +4920,7 @@
     "display_name": "Machine Learning PD Calibration",
     "path": "/api/v1/credit-risk/machine_learning_pd_calibration",
     "summary": "Platt-scaling calibration of raw ML scores into well-calibrated PDs.",
-    "description": "Many ML classifiers (gradient boosting, random forests) emit uncalibrated\nscores. Platt scaling fits a one-dimensional logistic map\n``PD = sigmoid(a * score + b)`` so the output is a true probability. The fit\nreuses the Newton-Raphson logistic solver on the single score feature.",
+    "description": "Many ML classifiers (gradient boosting, random forests) emit uncalibrated\nscores. Platt scaling fits a one-dimensional logistic map\n``PD = sigmoid(a * score + b)`` so the output is a true probability. The fit\nreuses the Newton-Raphson logistic solver on the single score feature.\n\nNo scikit-learn or other ML library is involved anywhere in this module \u2014\nthe calibration is a hand-rolled fit on top of this file's own solver.",
     "params": [
       {
         "name": "raw_scores",
@@ -4985,7 +4985,7 @@
     "display_name": "Macroeconomic Overlays ECL",
     "path": "/api/v1/credit-risk/macroeconomic_overlays_ecl",
     "summary": "Apply forward-looking macroeconomic overlays to a base ECL.",
-    "description": "Adjusts ECL for projected macro deviations via a multiplicative factor\n``adj = 1 + sum_j sensitivity_j * factor_j`` (clamped at 0), then adds a\ndiscretionary management overlay. Captures the IFRS 9 requirement to\nincorporate forward-looking information not in the through-the-cycle model.",
+    "description": "Adjusts ECL for projected macro deviations via a multiplicative factor\n``adj = 1 + sum_j sensitivity_j * factor_j`` (clamped at 0), then adds a\ndiscretionary management overlay. Captures the IFRS 9 requirement to\nincorporate forward-looking information not in the through-the-cycle model.\n\nThis multiplicative overlay structure is a bespoke internal design\nchoice, confirmed against BIS/EBA sources not to reproduce a specific\npublished or regulatory ECL-overlay formula.",
     "params": [
       {
         "name": "base_ecl",
@@ -5221,7 +5221,7 @@
     "display_name": "Potential Future Exposure PFE",
     "path": "/api/v1/credit-risk/potential_future_exposure_pfe",
     "summary": "Potential Future Exposure profile via Monte-Carlo (arithmetic BM proxy).",
-    "description": "Simulates the netting-set value as ``V_t = V_0 + drift*t + sigma*sqrt(t)*Z``\nand reports the per-step PFE (high quantile of positive exposure) and the\npeak PFE. Randomness is pre-drawn in pure Python (RULE 3).",
+    "description": "Simulates the netting-set value as ``V_t = V_0 + drift*t + sigma*sqrt(t)*Z``\nand reports the per-step PFE (high quantile of positive exposure) and the\npeak PFE. Randomness is pre-drawn in pure Python (RULE 3).\n\nPFE at each time step is the empirical quantile of the simulated exposure\ndistribution rather than a closed-form expression, so results carry\nMonte Carlo sampling noise that varies with ``n_paths`` and ``seed``.",
     "params": [
       {
         "name": "initial_value",
@@ -5379,7 +5379,7 @@
     "display_name": "Ratings Migration Matrix",
     "path": "/api/v1/credit-risk/ratings_migration_matrix",
     "summary": "Estimate a row-stochastic ratings-migration matrix (cohort method).",
-    "description": "Counts observed transitions and normalises each row to a probability\ndistribution. Empty rows (no obligors observed in that state) are set to the\nidentity (a self-transition), keeping the matrix row-stochastic.",
+    "description": "Counts observed transitions and normalises each row to a probability\ndistribution. Empty rows (no obligors observed in that state) are set to the\nidentity (a self-transition), keeping the matrix row-stochastic.\n\nThis identity substitution for empty rows is a modelling convention, not an\nobserved transition \u2014 it exists purely so the returned matrix stays\nrow-stochastic and is safe to chain into further calculations.",
     "params": [
       {
         "name": "from_rating",
@@ -5681,7 +5681,7 @@
     "display_name": "Sovereign Credit Risk Assessment",
     "path": "/api/v1/credit-risk/sovereign_credit_risk_assessment",
     "summary": "Composite sovereign credit-risk score from macro-fiscal indicators.",
-    "description": "Maps standard sovereign indicators into a ``[0, 100]`` creditworthiness\nscore (higher = stronger): high debt/GDP and twin deficits reduce the score;\nlarger FX reserves and stronger governance raise it. The score is mapped to\nan indicative PD via a logistic transform.",
+    "description": "Maps standard sovereign indicators into a ``[0, 100]`` creditworthiness\nscore (higher = stronger): high debt/GDP and twin deficits reduce the score;\nlarger FX reserves and stronger governance raise it. The score is mapped to\nan indicative PD via a logistic transform.\n\nThis is a bespoke internal composite-indicator model, confirmed against\nBIS/EBA sources not to match any specific published sovereign-risk\nmethodology (e.g. a rating-agency or IMF framework).",
     "params": [
       {
         "name": "debt_to_gdp",
@@ -5941,7 +5941,7 @@
     "display_name": "Wrong Way Risk Adjustment",
     "path": "/api/v1/credit-risk/wrong_way_risk_adjustment",
     "summary": "Wrong-way-risk (WWR) multiplicative adjustment to CVA.",
-    "description": "When exposure rises as the counterparty's credit deteriorates (positive\ncorrelation), CVA is understated. A first-order alpha multiplier\n``alpha = 1 + correlation * exposure_volatility`` (clamped >= 0) scales the\nbase CVA; negative correlation gives right-way risk (alpha < 1).",
+    "description": "When exposure rises as the counterparty's credit deteriorates (positive\ncorrelation), CVA is understated. A first-order alpha multiplier\n``alpha = 1 + correlation * exposure_volatility`` (clamped >= 0) scales the\nbase CVA; negative correlation gives right-way risk (alpha < 1).\n\nThis is a first-order proxy multiplier, confirmed against the WWR\nliterature (Hull & White 2012; Gregory, *The xVA Challenge*) not to\nreproduce a specific published WWR model \u2014 treat it as a reasonable\ninternal approximation.",
     "params": [
       {
         "name": "base_cva",
@@ -6077,7 +6077,7 @@
     "display_name": "American Option LSM",
     "path": "/api/v1/derivatives/american_option_lsm",
     "summary": "American option price via Longstaff-Schwartz Monte Carlo (LSM).",
-    "description": "Allows early exercise at every time step. The price must be >= the European\nprice of the same option.\n\nDeliberately has no qmc option (task #15 Phase 2 evaluated and rejected\nit for this function specifically -- see _price_by_qmc_replicates'\ndocstring). Randomized-QMC replicates work cleanly for asian_option_pricer\nand lookback_option_pricer (simple path-average / path-extremum\nestimators) but introduce a real, non-vanishing pricing bias here: LSM's\nbackward-induction step fits a cross-sectional OLS regression of\ncontinuation value against in-the-money paths at each exercise date, and\nthat regression implicitly assumes the sampled points are independent.\nScrambled Sobol paths are deliberately correlated (that correlation is\nexactly what gives QMC its variance reduction elsewhere), which biases\nthe regression fit and, through it, the exercise decision. Measured at\nS=K=100, r=5%, sigma=20%, tau=1, n_steps=50 against a 200k-path plain-MC\nreference (~6.024): plain MC at n_simulations=6,000/20,000 is biased by\nonly +0.03-0.04 (LSM's well-known small-sample low bias), while QMC\nreplicates at the same total budget were biased by +0.08 to +0.31\ndepending on replicate count/size -- shrinking as per-replicate path\ncount grows into the thousands, but not vanishing by n_simulations=20k\nthe way it does for Asian/lookback. Revisit only with a fix for the\nunderlying regression-bias interaction (e.g. an in-sample/out-of-sample\nsplit for the regression fit), not by retuning replicate count alone.",
+    "description": "Allows early exercise at every time step. The price must be >= the European\nprice of the same option.\n\nNote: the continuation value at each exercise date is fit by quadratic OLS\nregression on in-the-money paths rather than evaluated from a closed-form\nformula, and the opt-in Greeks use a spot bump roughly 30x larger than\nthis module's smooth-payoff pricers because that regression-based\nexercise decision is discontinuous in spot.\n\nDeliberately has no qmc option (task #15 Phase 2 evaluated and rejected\nit for this function specifically -- see _price_by_qmc_replicates'\ndocstring). Randomized-QMC replicates work cleanly for asian_option_pricer\nand lookback_option_pricer (simple path-average / path-extremum\nestimators) but introduce a real, non-vanishing pricing bias here: LSM's\nbackward-induction step fits a cross-sectional OLS regression of\ncontinuation value against in-the-money paths at each exercise date, and\nthat regression implicitly assumes the sampled points are independent.\nScrambled Sobol paths are deliberately correlated (that correlation is\nexactly what gives QMC its variance reduction elsewhere), which biases\nthe regression fit and, through it, the exercise decision. Measured at\nS=K=100, r=5%, sigma=20%, tau=1, n_steps=50 against a 200k-path plain-MC\nreference (~6.024): plain MC at n_simulations=6,000/20,000 is biased by\nonly +0.03-0.04 (LSM's well-known small-sample low bias), while QMC\nreplicates at the same total budget were biased by +0.08 to +0.31\ndepending on replicate count/size -- shrinking as per-replicate path\ncount grows into the thousands, but not vanishing by n_simulations=20k\nthe way it does for Asian/lookback. Revisit only with a fix for the\nunderlying regression-bias interaction (e.g. an in-sample/out-of-sample\nsplit for the regression fit), not by retuning replicate count alone.",
     "params": [
       {
         "name": "spot",
@@ -6395,7 +6395,7 @@
     "display_name": "Asset Swap Spread",
     "path": "/api/v1/derivatives/asset_swap_spread",
     "summary": "Par-par asset-swap spread.",
-    "description": "The spread equating the bond's net present value (relative to par) to an\nannuity of the swap's fixed-leg PV01:\n``ASW = (PV_bond \u2212 par) / annuity``, expressed in basis points.",
+    "description": "The spread equating the bond's net present value (relative to par) to an\nannuity of the swap's fixed-leg PV01:\n``ASW = (PV_bond \u2212 par) / annuity``, expressed in basis points.\n\nNote: ``bond_price`` is accepted for API-compatibility but does not\naffect the result \u2014 ``PV_bond`` in the formula above is derived\ninternally by discounting ``cashflows``/``times`` at ``swap_rates``,\nnot from the observed ``bond_price`` passed in.",
     "params": [
       {
         "name": "bond_price",
@@ -6486,7 +6486,7 @@
     "display_name": "Barrier Option Pricer",
     "path": "/api/v1/derivatives/barrier_option_pricer",
     "summary": "Single-barrier option price (Reiner-Rubinstein closed form).",
-    "description": "Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four\nstandard combinations is supported. Rebates are not modelled (set to 0).",
+    "description": "Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four\nstandard combinations is supported. Rebates are not modelled (set to 0).\n\nNote: only the general Reiner-Rubinstein building blocks (A/B/C/D) are\nshown here \u2014 which combination prices the knock-in leg depends on\n``option_type``, ``barrier_type``, and whether strike exceeds barrier \u2014\nand a rebate-related lambda term is computed but never used, consistent\nwith rebates always pricing as 0.",
     "params": [
       {
         "name": "spot",
@@ -6771,7 +6771,7 @@
     "display_name": "Bermudan Option Pricer",
     "path": "/api/v1/derivatives/bermudan_option_pricer",
     "summary": "Bermudan option price via LSM with discrete exercise dates.",
-    "description": "Early exercise is allowed only on an evenly-spaced subset of the time grid.\nPrice lies between the European and American values.",
+    "description": "Early exercise is allowed only on an evenly-spaced subset of the time grid.\nPrice lies between the European and American values.\n\nNote: uses the same Longstaff-Schwartz regression-based exercise decision\nas ``american_option_lsm`` (no closed form), restricted to an\nevenly-spaced subset of roughly ``n_steps / exercise_dates`` grid points.",
     "params": [
       {
         "name": "spot",
@@ -7343,7 +7343,7 @@
     "display_name": "Bond Pricer Floating Rate",
     "path": "/api/v1/derivatives/bond_pricer_floating_rate",
     "summary": "Price a floating-rate note (FRN) from projected forward rates.",
-    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.",
+    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.\n\nNote: the number of coupon periods actually priced is\n``len(reference_rates)`` (and ``discount_rates`` must match that length).\n``maturity`` is only used for input validation (``maturity > 0``) here \u2014\nit does not determine the coupon schedule, so a caller-supplied\n``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\nnot detected or reconciled.",
     "params": [
       {
         "name": "face_value",
@@ -7502,7 +7502,7 @@
     "display_name": "Callable Bond Pricer",
     "path": "/api/v1/derivatives/callable_bond_pricer",
     "summary": "Price a callable bond (issuer's option) on a short-rate binomial tree.",
-    "description": "A callable bond is worth no more than the equivalent straight bond \u2014 the\nembedded call belongs to the issuer.",
+    "description": "A callable bond is worth no more than the equivalent straight bond \u2014 the\nembedded call belongs to the issuer.\n\nNote: the short-rate tree is a simplified multiplicative lattice with\nfixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree calibrated\nto an initial term structure, and the coupon is added at every node on\nevery step.",
     "params": [
       {
         "name": "face_value",
@@ -7940,7 +7940,7 @@
     "display_name": "Compound Option Pricer",
     "path": "/api/v1/derivatives/compound_option_pricer",
     "summary": "Compound option (option-on-option) price via nested valuation / MC.",
-    "description": "Simulates the underlying asset to the compound expiry, computes the\nBlack-Scholes value of the underlying option there, then discounts the\ncompound payoff. Supports the four standard compound types.",
+    "description": "Simulates the underlying asset to the compound expiry, computes the\nBlack-Scholes value of the underlying option there, then discounts the\ncompound payoff. Supports the four standard compound types.\n\nNote: despite the module docstring calling this the \"Geske\" compound\noption, the underlying option's value at the simulated compound expiry is\npriced analytically via Black-Scholes at each path, not via the classical\nGeske closed-form bivariate-normal formula.",
     "params": [
       {
         "name": "spot",
@@ -8100,7 +8100,7 @@
     "display_name": "Convertible Bond Pricer",
     "path": "/api/v1/derivatives/convertible_bond_pricer",
     "summary": "Price a convertible bond via the bond-floor + conversion-value maximum.",
-    "description": "Value = max(straight bond floor, conversion value), a simple but standard\nlower-bound decomposition. The convertible is always worth at least its\nconversion value and at least its bond floor.",
+    "description": "Value = max(straight bond floor, conversion value), a simple but standard\nlower-bound decomposition. The convertible is always worth at least its\nconversion value and at least its bond floor.\n\nNote: this lower-bound decomposition does not model conversion\noptionality, equity volatility, or embedded call/put features of a real\nconvertible bond.",
     "params": [
       {
         "name": "face_value",
@@ -8272,7 +8272,7 @@
     "display_name": "Cox Ingersoll Ross Model",
     "path": "/api/v1/derivatives/cox_ingersoll_ross_model",
     "summary": "CIR model: closed-form ZCB price + simulated (non-negative) short rate.",
-    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3\u221ar dW``. The square-root diffusion keeps ``r >= 0``. The\nFeller condition ``2\u03ba\u03b8 \u2265 \u03c3\u00b2`` guarantees strict positivity.",
+    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3\u221ar dW``. The square-root diffusion keeps ``r >= 0``. The\nFeller condition ``2\u03ba\u03b8 \u2265 \u03c3\u00b2`` guarantees strict positivity.\n\nNote: the Monte Carlo path uses full-truncation Euler discretisation (the\nrate is floored at 0 both inside the square root and for the terminal\noutput), not the exact non-central chi-squared CIR transition\ndistribution.",
     "params": [
       {
         "name": "r0",
@@ -8385,7 +8385,7 @@
     "display_name": "Credit Default Swap CDS Pricer",
     "path": "/api/v1/derivatives/credit_default_swap_cds_pricer",
     "summary": "Price a CDS via a flat-hazard-rate reduced-form model.",
-    "description": "Premium leg = ``spread \u00b7 \u03a3 \u03c4 \u00b7 DF \u00b7 Q``; protection leg =\n``(1\u2212R) \u00b7 \u03a3 DF \u00b7 (Q_{i\u22121} \u2212 Q_i)`` with survival ``Q(t)=e^{\u2212\u03bbt}``. The par\nspread zeroes the swap value.",
+    "description": "Premium leg = ``spread \u00b7 \u03a3 \u03c4 \u00b7 DF \u00b7 Q``; protection leg =\n``(1\u2212R) \u00b7 \u03a3 DF \u00b7 (Q_{i\u22121} \u2212 Q_i)`` with survival ``Q(t)=e^{\u2212\u03bbt}``. The par\nspread zeroes the swap value.\n\nNote: default and coupon events are settled at each period end (``t_i``)\nrather than at the accrual midpoint \u2014 a deliberate discretisation choice\nvalidated by a convergence check against QuantLib's midpoint-settlement\nCDS engine, not an exact-match assertion.",
     "params": [
       {
         "name": "notional",
@@ -9578,7 +9578,7 @@
     "display_name": "Hull White Short Rate Model",
     "path": "/api/v1/derivatives/hull_white_short_rate_model",
     "summary": "Hull-White one-factor model with a constant mean-reversion level.",
-    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3 dW`` \u2014 the extended-Vasicek form; with a constant \u03b8 the\nclosed-form ZCB price coincides with Vasicek. Returns the analytic bond\nprice and a Monte Carlo cross-check.",
+    "description": "``dr = \u03ba(\u03b8\u2212r)dt + \u03c3 dW`` \u2014 the extended-Vasicek form; with a constant \u03b8 the\nclosed-form ZCB price coincides with Vasicek. Returns the analytic bond\nprice and a Monte Carlo cross-check.\n\nNote: with ``theta_const`` held constant this function literally delegates\nto ``vasicek_interest_rate_model`` \u2014 it is not a genuine time-dependent\nHull-White model calibrated to fit an observed market forward curve.",
     "params": [
       {
         "name": "r0",
@@ -9874,7 +9874,7 @@
     "display_name": "Lmm BGM Rate Model",
     "path": "/api/v1/derivatives/lmm_bgm_rate_model",
     "summary": "LIBOR Market Model (BGM) forward-rate Monte Carlo simulation.",
-    "description": "Evolves a vector of forward LIBOR rates under the spot measure with the\nstandard log-normal BGM drift. Returns the mean terminal forward curve;\nrates stay positive (log-normal dynamics).",
+    "description": "Evolves a vector of forward LIBOR rates under the spot measure with the\nstandard log-normal BGM drift. Returns the mean terminal forward curve;\nrates stay positive (log-normal dynamics).\n\nNote: the drift for rate ``i`` sums over ``j = 0..i`` inclusive (including\nrate ``i`` itself) using each earlier rate's already-updated value from the\nsame time step rather than its start-of-step value, since rates are\noverwritten sequentially in place \u2014 a specific sequential log-Euler\ndiscretisation choice, not a fully simultaneous update.",
     "params": [
       {
         "name": "forward_rates",
@@ -9975,7 +9975,7 @@
     "display_name": "Local Volatility Dupire Model",
     "path": "/api/v1/derivatives/local_volatility_dupire_model",
     "summary": "Dupire local volatility surface from a call-price surface.",
-    "description": "Uses finite differences of the Dupire equation\n``\u03c3_loc\u00b2 = (\u2202C/\u2202T + r K \u2202C/\u2202K) / (\u00bd K\u00b2 \u2202\u00b2C/\u2202K\u00b2)`` on the supplied grid.",
+    "description": "Uses finite differences of the Dupire equation\n``\u03c3_loc\u00b2 = (\u2202C/\u2202T + r K \u2202C/\u2202K) / (\u00bd K\u00b2 \u2202\u00b2C/\u2202K\u00b2)`` on the supplied grid.\n\nNote: the partial derivatives are finite differences on the supplied\ndiscrete grid (a forward difference in maturity, central differences in\nstrike), computed only at interior grid points, and ``spot`` is used\nsolely for a positivity check rather than in the formula itself.",
     "params": [
       {
         "name": "strikes",
@@ -10683,10 +10683,10 @@
     "domain_page": "domain-derivatives.html",
     "domain_color": "#c47a2a",
     "name": "oas_option_adjusted_spread",
-    "display_name": "Oas Option Adjusted Spread",
+    "display_name": "OAS Option Adjusted Spread",
     "path": "/api/v1/derivatives/oas_option_adjusted_spread",
     "summary": "Option-adjusted spread of a callable bond.",
-    "description": "Finds the constant spread added to the short rate on the pricing tree that\nreprices the callable bond to its market price \u2014 stripping out the embedded\noption so spreads are comparable across bonds.",
+    "description": "Finds the constant spread added to the short rate on the pricing tree that\nreprices the callable bond to its market price \u2014 stripping out the embedded\noption so spreads are comparable across bonds.\n\nNote: the spread is root-found (Brent's method) against\n``callable_bond_pricer``'s tree price rather than expressed in closed\nform \u2014 the equation above is the condition the solver satisfies, not an\nexplicit OAS formula.",
     "params": [
       {
         "name": "market_price",
@@ -10949,7 +10949,7 @@
     "display_name": "Puttable Bond Pricer",
     "path": "/api/v1/derivatives/puttable_bond_pricer",
     "summary": "Price a puttable bond (holder's option) on a short-rate binomial tree.",
-    "description": "A puttable bond is worth at least the equivalent straight bond \u2014 the\nembedded put belongs to the holder.",
+    "description": "A puttable bond is worth at least the equivalent straight bond \u2014 the\nembedded put belongs to the holder.\n\nNote: uses the same simplified multiplicative short-rate lattice as\n``callable_bond_pricer`` \u2014 fixed 0.5/0.5 branch probabilities, not\ncalibrated to a market curve.",
     "params": [
       {
         "name": "face_value",
@@ -12129,7 +12129,7 @@
     "display_name": "Variance Gamma Model",
     "path": "/api/v1/derivatives/variance_gamma_model",
     "summary": "Variance Gamma European option price via Monte Carlo.",
-    "description": "Time-changes Brownian motion by a Gamma subordinator (mean 1, variance\n``nu``). The martingale drift correction ``omega`` is computed in closed\nform so the discounted spot is a martingale.",
+    "description": "Note: the ``theta`` parameter here is the VG skew parameter\n(subordinated-drift), unrelated to the Greek theta (time decay)\noptionally returned when ``greeks=True``.\n\nTime-changes Brownian motion by a Gamma subordinator (mean 1, variance\n``nu``). The martingale drift correction ``omega`` is computed in closed\nform so the discounted spot is a martingale.",
     "params": [
       {
         "name": "spot",
@@ -13033,7 +13033,7 @@
     "display_name": "Combined Stress Scenario",
     "path": "/api/v1/liquidity/combined_stress_scenario",
     "summary": "Combined idiosyncratic + market-wide stress scenario.",
-    "description": "Models a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n\nNOT the Basel/EBA reference scenario, despite a prior version of this\ndocstring claiming that: BCBS 238's own combined idiosyncratic +\nmarket-wide scenario (\u00a7II paras 19-20) runs off the LCR's own regulator-\nset retail run-off categories (3%/5%/10% depending on deposit\nstability), not a flat 15% -- the 15%/100% defaults here are an internal\nconvention, not the Basel figures. Found during the Tier 3 #2 audit.",
+    "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\ncombined idiosyncratic + market-wide scenario (\u00a7II paras 19-20) runs off\nthe LCR's own regulator-set retail run-off categories (3%/5%/10%\ndepending on deposit stability), whereas this function applies its own\nflat 15% retail / 100% wholesale run-off convention instead.\n\nModels a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n(Found during the Tier 3 #2 audit \u2014 a prior version of this docstring\nincorrectly claimed this was the Basel/EBA reference scenario.)",
     "params": [
       {
         "name": "retail_deposits",
@@ -13137,7 +13137,7 @@
     "display_name": "Contingency Funding Plan Trigger",
     "path": "/api/v1/liquidity/contingency_funding_plan_trigger",
     "summary": "Evaluate Contingency Funding Plan (CFP) activation triggers.",
-    "description": "Compares current early-warning metrics against their activation thresholds.\nA metric breaches when its value falls *below* the threshold (lower = worse;\ne.g. LCR, survival days). Returns the list of breached triggers and the CFP\nactivation decision.",
+    "description": "Compares current early-warning metrics against their activation thresholds.\nA metric breaches when its value falls *below* the threshold (lower = worse;\ne.g. LCR, survival days). Returns the list of breached triggers and the CFP\nactivation decision.\n\nThis is a logical breach test, not an arithmetic formula, so it is shown on\nthe Try-it panel as an indicator function of the comparison rather than a\ncomputed expression.",
     "params": [
       {
         "name": "metrics",
@@ -13181,7 +13181,7 @@
     "display_name": "Contingent Liquidity Risk",
     "path": "/api/v1/liquidity/contingent_liquidity_risk",
     "summary": "Contingent liquidity risk from undrawn commitments and guarantees.",
-    "description": "Estimates the expected contingent outflow as ``commitment * draw_probability\n* credit-conversion-factor`` \u2014 the liquidity that off-balance-sheet\ncommitments (undrawn lines, guarantees) could absorb in stress.",
+    "description": "When ``ccf`` is not supplied it defaults to 1.0 for every commitment,\ni.e. full drawdown of each commitment is assumed in the expected-outflow\ncalculation unless a lower conversion factor is explicitly passed.\n\nEstimates the expected contingent outflow as ``commitment * draw_probability\n* credit-conversion-factor`` \u2014 the liquidity that off-balance-sheet\ncommitments (undrawn lines, guarantees) could absorb in stress.",
     "params": [
       {
         "name": "commitment_amounts",
@@ -13371,7 +13371,7 @@
     "display_name": "Early Warning Indicator Liquidity",
     "path": "/api/v1/liquidity/early_warning_indicator_liquidity",
     "summary": "Liquidity early-warning indicator (EWI) dashboard.",
-    "description": "Evaluates each EWI against its threshold and a per-indicator direction\n(``\"higher_breach\"`` means a value above threshold is a warning, e.g. funding\nspread; ``\"lower_breach\"`` means below threshold is a warning, e.g. LCR). The\naggregate signal escalates with the number of triggered indicators.",
+    "description": "Evaluates each EWI against its threshold and a per-indicator direction\n(``\"higher_breach\"`` means a value above threshold is a warning, e.g. funding\nspread; ``\"lower_breach\"`` means below threshold is a warning, e.g. LCR). The\naggregate signal escalates with the number of triggered indicators.\n\nThis is a direction-dependent logical breach test per indicator, not a\nsingle arithmetic formula, and the aggregate signal buckets are exact:\nnormal (0 triggers), watch (1-2) and alert (3 or more).",
     "params": [
       {
         "name": "indicators",
@@ -13558,7 +13558,7 @@
     "display_name": "HQLA Level 1 Asset Classifier",
     "path": "/api/v1/liquidity/hqla_level_1_asset_classifier",
     "summary": "Classify and value Level 1 HQLA.",
-    "description": "Level 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign debt)\nreceive a 0% haircut by default and have no composition cap (BCBS 238 \u00a750).",
+    "description": "When ``haircuts`` is not supplied it defaults to all zeros, i.e. no\nhaircut is applied and every asset is valued at full market value.\n\nLevel 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign debt)\nreceive a 0% haircut by default and have no composition cap (BCBS 238 \u00a750).",
     "params": [
       {
         "name": "asset_values",
@@ -13602,7 +13602,7 @@
     "display_name": "HQLA Level 2a Asset Classifier",
     "path": "/api/v1/liquidity/hqla_level_2a_asset_classifier",
     "summary": "Classify and value Level 2A HQLA.",
-    "description": "Level 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-\ngrade corporates) carry a minimum 15% haircut (BCBS 238 \u00a752).",
+    "description": "Unlike Level 1's zero-by-default haircut array, ``haircut`` here is a\nsingle scalar applied uniformly to every asset in ``asset_values``, and\nthe function enforces a minimum of 15%.\n\nLevel 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-\ngrade corporates) carry a minimum 15% haircut (BCBS 238 \u00a752).",
     "params": [
       {
         "name": "asset_values",
@@ -13646,7 +13646,7 @@
     "display_name": "HQLA Level 2b Asset Classifier",
     "path": "/api/v1/liquidity/hqla_level_2b_asset_classifier",
     "summary": "Classify and value Level 2B HQLA.",
-    "description": "Level 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying\nequities 50% haircut) carry a minimum 25% haircut (BCBS 238 \u00a754).",
+    "description": "As with Level 2A, ``haircut`` is a single scalar applied uniformly to\nevery asset in ``asset_values`` rather than a per-asset array; the\nfunction enforces a minimum of 25% (pass 0.50 for the lower-grade\ncorporate/equity sub-bucket).\n\nLevel 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying\nequities 50% haircut) carry a minimum 25% haircut (BCBS 238 \u00a754).",
     "params": [
       {
         "name": "asset_values",
@@ -13838,7 +13838,7 @@
     "display_name": "ILAAP Stress Testing Framework",
     "path": "/api/v1/liquidity/ilaap_stress_testing_framework",
     "summary": "ILAAP stress-testing framework aggregator.",
-    "description": "Aggregates the outcomes of multiple named liquidity stress scenarios into an\nILAAP-style summary: the binding (worst) scenario, the count of scenarios\nbreached, and overall adequacy. Each scenario value must expose a\n``surplus_deficit`` figure (as produced by the scenario functions above).",
+    "description": "Aggregates the outcomes of multiple named liquidity stress scenarios into an\nILAAP-style summary: the binding (worst) scenario, the count of scenarios\nbreached, and overall adequacy. Each scenario value must expose a\n``surplus_deficit`` figure (as produced by the scenario functions above).\n\nSD_k in the rendered formula denotes the ``surplus_deficit`` field each\nnamed scenario dict must already carry \u2014 this function only aggregates\npre-computed values and performs no cash-flow arithmetic itself.",
     "params": [
       {
         "name": "scenarios",
@@ -13870,7 +13870,7 @@
     "display_name": "Intraday Liquidity Monitor",
     "path": "/api/v1/liquidity/intraday_liquidity_monitor",
     "summary": "Intraday liquidity monitor (BCBS 248).",
-    "description": "Tracks the intraday liquidity position from time-stamped net payment flows\nand reports the peak usage (largest negative intraday position relative to\nthe opening balance) and the largest net debit position \u2014 the BCBS 248\nmonitoring tools.",
+    "description": "Of the two figures reported, only ``net_debit_peak`` (the largest negative\ncumulative position) is the genuine BCBS 248 \"largest net debit position\"\nmonitoring tool \u2014 ``max_usage`` is this codebase's own additional metric,\nnot one of BCBS 248's own monitoring tools.\n\nTracks the intraday liquidity position from time-stamped net payment flows\nand reports the peak usage (largest negative intraday position relative to\nthe opening balance) and the largest net debit position.",
     "params": [
       {
         "name": "timestamps",
@@ -13925,7 +13925,7 @@
     "display_name": "Intraday Liquidity Stress Test",
     "path": "/api/v1/liquidity/intraday_liquidity_stress_test",
     "summary": "Intraday liquidity stress test (BCBS 248 stress scenarios).",
-    "description": "Stresses the intraday profile by delaying a fraction of *inflows* (positive\nflows): a ``delay_factor`` of expected inflows is removed from the intraday\npath, sharpening the peak liquidity requirement. Reports the stressed peak\nusage and whether the opening buffer plus any additional shock survives.",
+    "description": "This is this codebase's own internal stress design \u2014 delaying a fraction\nof positive intraday inflows \u2014 set in the context of BCBS 248's intraday-\nliquidity monitoring framework; it is not BCBS 248's own prescribed stress\ndesign.\n\nStresses the intraday profile by delaying a fraction of *inflows* (positive\nflows): a ``delay_factor`` of expected inflows is removed from the intraday\npath, sharpening the peak liquidity requirement. Reports the stressed peak\nusage and whether the opening buffer plus any additional shock survives.",
     "params": [
       {
         "name": "net_flows",
@@ -14137,7 +14137,7 @@
     "display_name": "Liquidity Gap Analysis",
     "path": "/api/v1/liquidity/liquidity_gap_analysis",
     "summary": "Maturity-bucket liquidity gap (assets vs liabilities).",
-    "description": "Computes the structural maturity mismatch: ``gap_i = assets_i -\nliabilities_i`` per bucket, plus the cumulative gap. A positive cumulative\ngap means more assets than liabilities mature by that point (a funding\nsurplus); a negative gap signals a refinancing need.",
+    "description": "Computes the structural maturity mismatch: ``gap_i = assets_i -\nliabilities_i`` per bucket, plus the cumulative gap. A positive cumulative\ngap means more assets than liabilities mature by that point (a funding\nsurplus); a negative gap signals a refinancing need.\n\nUnlike the two cash-flow-ladder functions above, this cumulative gap is not\noffset by an opening balance \u2014 the function takes no such parameter.",
     "params": [
       {
         "name": "asset_maturities",
@@ -14192,7 +14192,7 @@
     "display_name": "Liquidity Risk Appetite Threshold",
     "path": "/api/v1/liquidity/liquidity_risk_appetite_threshold",
     "summary": "Map a liquidity metric to a RAG (red/amber/green) risk-appetite zone.",
-    "description": "For ``higher_is_better`` metrics (LCR, NSFR, survival days) green is at or\nabove ``green_threshold`` and red below ``amber_threshold``. For\nlower-is-better metrics (e.g. funding concentration) the comparison inverts.",
+    "description": "For ``higher_is_better`` metrics (LCR, NSFR, survival days) green is at or\nabove ``green_threshold`` and red below ``amber_threshold``. For\nlower-is-better metrics (e.g. funding concentration) the comparison inverts.\n\nThis is a piecewise categorical rule rather than a continuous formula, and\nthe Try-it panel's rendered formula shows only the higher-is-better\ndirection; the comparison flips (green <= amber <= metric) when\n``higher_is_better`` is False.",
     "params": [
       {
         "name": "metric_value",
@@ -14451,7 +14451,7 @@
     "display_name": "Liquidity VaR LiqVaR",
     "path": "/api/v1/liquidity/liquidity_var_liqvar",
     "summary": "Liquidity VaR (LiqVaR) by Monte Carlo simulation of stressed net outflows.",
-    "description": "Simulates the distribution of stressed net cash outflows as\n``base_outflow * (1 + vol * Z)`` and reads the loss quantile at the\nconfidence level. LiqVaR is the outflow level not exceeded with the given\nconfidence \u2014 the liquidity analogue of market VaR.\n\nPer CLAUDE.md \u00a73.1 RULE 3 the N(0,1) shocks are pre-drawn in pure Python and\npassed to the JIT kernel; an analytic normal quantile is also returned for\nvalidation.",
+    "description": "Simulates the distribution of stressed net cash outflows as\n``base_outflow * (1 + vol * Z)`` and reads the loss quantile at the\nconfidence level. LiqVaR is the outflow level not exceeded with the given\nconfidence \u2014 the liquidity analogue of market VaR.\n\nPer CLAUDE.md \u00a73.1 RULE 3 the N(0,1) shocks are pre-drawn in pure Python and\npassed to the JIT kernel; an analytic normal quantile is also returned for\nvalidation.\n\n``liqvar`` is a simulated order statistic of this floored-at-zero\nnormal-shock model, cross-validated only against its own analytic\ncounterpart ``liqvar_analytic`` rather than a regulatory reference, using\nindex ``floor(confidence_level * n_simulations)`` capped at\n``n_simulations - 1``.",
     "params": [
       {
         "name": "base_outflow",
@@ -14817,7 +14817,7 @@
     "display_name": "Survival Horizon Calculator",
     "path": "/api/v1/liquidity/survival_horizon_calculator",
     "summary": "Survival horizon \u2014 days until cumulative net outflow exhausts HQLA.",
-    "description": "Walks forward through the daily net-outflow path subtracting from the HQLA\ncounterbalancing capacity. The survival horizon is the last day on which the\nremaining buffer is still non-negative.",
+    "description": "Walks forward through the daily net-outflow path subtracting from the HQLA\ncounterbalancing capacity. The survival horizon is the last day on which the\nremaining buffer is still non-negative.\n\n``survival_days`` is the 0-indexed day on which cumulative outflow first\ndrives the buffer negative, so it equals the count of full days survived\nbefore breach (0 if the very first day breaches).",
     "params": [
       {
         "name": "hqla",
@@ -14925,7 +14925,7 @@
     "display_name": "Charm Delta Decay",
     "path": "/api/v1/market-risk/charm_delta_decay",
     "summary": "Charm \u2014 sensitivity of delta to time to maturity (\u2202\u0394/\u2202\u03c4).",
-    "description": "Computed in the time-to-maturity convention so that a finite-difference of\ndelta with respect to \u03c4 reproduces this value.",
+    "description": "Computed in the time-to-maturity convention so that a finite-difference of\ndelta with respect to \u03c4 reproduces this value. Note the sign: this is\n+\u2202\u0394/\u2202\u03c4 (time-to-maturity), the opposite sign from the calendar-time charm\nconvention \u2212\u2202\u0394/\u2202t (decay per day of calendar time elapsed) more commonly\nquoted on trading desks and in textbooks \u2014 do not assume the calendar-time\nsign without checking which convention a comparison source uses.",
     "params": [
       {
         "name": "spot",
@@ -15028,7 +15028,7 @@
     "display_name": "Christoffersen Independence Test",
     "path": "/api/v1/market-risk/christoffersen_independence_test",
     "summary": "Christoffersen independence (clustering) test.",
-    "description": "Likelihood-ratio test that breaches are serially independent (no\nclustering), via a first-order Markov transition model. Chi-squared with\n1 dof at the 95% critical value.",
+    "description": "Likelihood-ratio test that breaches are serially independent (no\nclustering), via a first-order Markov transition model. Chi-squared with\n1 dof at the 95% critical value.\n\nThe four transition counts (n00, n01, n10, n11) that drive the likelihood\nratio are derived internally from the ``breaches`` sequence itself, not\nsupplied as separate arguments.",
     "params": [
       {
         "name": "breaches",
@@ -15302,8 +15302,8 @@
     "name": "compute_rolling_var",
     "display_name": "Compute Rolling VaR",
     "path": "/api/v1/market-risk/compute_rolling_var",
-    "summary": "Parametric (Gaussian) rolling VaR using a expanding window.",
-    "description": "Fast approximation for backtesting \u2014 not the full Monte Carlo.\nUses scipy.stats.norm for the quantile function.\n\nReturns array of VaR estimates, same length as returns (NaN for first window obs).",
+    "summary": "Parametric (Gaussian) rolling VaR using a fixed-length trailing window.",
+    "description": "At each point, mean and volatility are estimated from only the most recent\n`window` observations (returns[i - window : i]), not an expanding window\nthat grows from the start of the series.\nFast approximation for backtesting \u2014 not the full Monte Carlo.\nUses scipy.stats.norm for the quantile function.\n\nReturns array of VaR estimates, same length as returns (NaN for first window obs).",
     "params": [
       {
         "name": "returns",
@@ -16528,7 +16528,7 @@
     "display_name": "FRTB SA Sensitivity Based Method",
     "path": "/api/v1/market-risk/frtb_sa_sensitivity_based_method",
     "summary": "FRTB SA Sensitivities-Based Method (delta) risk charge.",
-    "description": "Within each bucket the risk position is\n``Kb = sqrt(\u03a3 WS_i\u00b2 + \u03a3_{i\u2260j} \u03c1\u00b7WS_i\u00b7WS_j)``; the charge aggregates buckets\nas ``sqrt(\u03a3 Kb\u00b2 + \u03a3_{b\u2260c} \u03b3\u00b7S_b\u00b7S_c)`` with ``S_b = \u03a3_i WS_i`` (MAR21).",
+    "description": "Within each bucket the risk position is\n``Kb = sqrt(\u03a3 WS_i\u00b2 + \u03a3_{i\u2260j} \u03c1\u00b7WS_i\u00b7WS_j)``; the charge aggregates buckets\nas ``sqrt(\u03a3 Kb\u00b2 + \u03a3_{b\u2260c} \u03b3\u00b7S_b\u00b7S_c)`` with ``S_b = \u03a3_i WS_i`` (MAR21).\n\nBoth the per-bucket ``Kb\u00b2`` term and the aggregate sum under the final\nsquare root are floored at 0 before the square root is taken, guarding\nagainst a negative value under extreme correlation inputs \u2014 a safeguard\nnot shown in the MAR21 formula above.",
     "params": [
       {
         "name": "bucket_weighted_sensitivities",
@@ -17300,7 +17300,7 @@
     "display_name": "Kupiec POF Test",
     "path": "/api/v1/market-risk/kupiec_pof_test",
     "summary": "Kupiec Proportion-of-Failures (POF) unconditional coverage test.",
-    "description": "Likelihood-ratio test that the observed breach rate matches the expected\n``p = 1 \u2212 confidence_level``. The statistic is chi-squared with 1 dof;\nrejection uses the 95% critical value.",
+    "description": "Likelihood-ratio test that the observed breach rate matches the expected\n``p = 1 \u2212 confidence_level``. The statistic is chi-squared with 1 dof;\nrejection uses the 95% critical value.\n\nAt the boundary cases ``x = 0`` or ``x = n`` (zero or 100% observed breach\nrate) the likelihood ratio is computed with a simplified one-sided form to\navoid ``ln(0)``; the general two-sided expression applies for ``0 < x < n``.",
     "params": [
       {
         "name": "n_breaches",
@@ -17535,7 +17535,7 @@
     "display_name": "Monte Carlo Expected Shortfall",
     "path": "/api/v1/market-risk/monte_carlo_expected_shortfall",
     "summary": "Monte Carlo Expected Shortfall.",
-    "description": "Runs the parametric-normal Monte Carlo engine and reads the ES (CVaR) from\nthe simulated loss distribution. Deterministic for a fixed seed.",
+    "description": "Runs the parametric-normal Monte Carlo engine and reads the ES (CVaR) from\nthe simulated loss distribution. Deterministic for a fixed seed.\n\nInternally this delegates to ``engine.montecarlo.run_monte_carlo_var`` and\nreturns its ``cvar_pct``/``cvar_abs`` fields; the simulation's mean and\nvolatility (mu, sigma) are fitted directly from the ``returns`` argument,\nnot supplied as separate distribution parameters.",
     "params": [
       {
         "name": "returns",
@@ -18725,7 +18725,7 @@
     "display_name": "VaR Breach Cluster Analysis",
     "path": "/api/v1/market-risk/var_breach_cluster_analysis",
     "summary": "Analyse the clustering of VaR breaches.",
-    "description": "Reports the number of breach clusters (maximal runs of consecutive\nbreaches), the longest run, and the mean run length \u2014 diagnostics for the\nindependence assumption that the Christoffersen test formalises.",
+    "description": "Reports the number of breach clusters (maximal runs of consecutive\nbreaches), the longest run, and the mean run length \u2014 diagnostics for the\nindependence assumption that the Christoffersen test formalises.\n\nThis is an algorithmic run-length computation over the breach sequence,\nnot a closed-form statistic.",
     "params": [
       {
         "name": "breaches",
@@ -19208,7 +19208,7 @@
     "display_name": "Advanced Measurement Approach AMA",
     "path": "/api/v1/operational/advanced_measurement_approach_ama",
     "summary": "Advanced Measurement Approach (AMA) capital charge \u2014 retired under Basel III/IV.",
-    "description": "Superseded by the Standardised Measurement Approach for Basel III/IV\nregulatory capital (see ``basel_standardised_measurement_sma``); retained\nhere for economic-capital, internal scenario analysis, and jurisdictions\nstill on earlier timelines only.\n\nThe AMA permits the LDA internal model. Under Basel II \u00a7669(b), if a bank can\ndemonstrate that expected loss (EL) is already captured in its provisioning /\npricing, capital may be set to unexpected loss only (OpVaR \u2212 EL); otherwise\ncapital equals the full OpVaR.",
+    "description": "Superseded by the Standardised Measurement Approach for Basel III/IV\nregulatory capital (see ``basel_standardised_measurement_sma``); retained\nhere for economic-capital, internal scenario analysis, and jurisdictions\nstill on earlier timelines only.\n\nThe AMA permits the LDA internal model. Under Basel II \u00a7669(b), if a bank can\ndemonstrate that expected loss (EL) is already captured in its provisioning /\npricing, capital may be set to unexpected loss only (OpVaR \u2212 EL); otherwise\ncapital equals the full OpVaR.\n\nOpVaR and EL are not supplied by the caller \u2014 both are computed internally by\nrunning the full LDA pipeline (frequency/severity MLE fit, then a Monte Carlo\nquantile) over ``annual_event_counts`` and ``loss_amounts``.",
     "params": [
       {
         "name": "annual_event_counts",
@@ -19349,7 +19349,7 @@
     "display_name": "Basel Standardised Measurement SMA",
     "path": "/api/v1/operational/basel_standardised_measurement_sma",
     "summary": "Basel III Standardised Measurement Approach (SMA) capital.",
-    "description": "SMA capital = BIC \u00d7 ILM, where the Business Indicator Component (BIC) is a\npiecewise-linear function of the Business Indicator (12%/15%/18% marginal\ncoefficients across the three buckets) and the Internal Loss Multiplier\n(ILM) scales by the bank's historical loss experience:\n``ILM = ln(e \u2212 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.",
+    "description": "SMA capital = BIC \u00d7 ILM, where the Business Indicator Component (BIC) is a\npiecewise-linear function of the Business Indicator (12%/15%/18% marginal\ncoefficients across the three buckets) and the Internal Loss Multiplier\n(ILM) scales by the bank's historical loss experience:\n``ILM = ln(e \u2212 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.\n\nThe ILM = 1.0 case (``use_ilm=False``, bucket-1 BI, or non-positive BIC) is\nan explicit override in code rather than a value the log formula itself\nproduces.",
     "params": [
       {
         "name": "business_indicator",
@@ -19403,8 +19403,8 @@
     "name": "business_continuity_risk_score",
     "display_name": "Business Continuity Risk Score",
     "path": "/api/v1/operational/business_continuity_risk_score",
-    "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
-    "description": "Flags where the recovery time objective (RTO) exceeds the maximum tolerable\ndowntime (MTD) and discounts the residual risk by BCP maturity. A breach of\nMTD is the dominant driver.",
+    "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
+    "description": "Flags where the recovery time objective (RTO) exceeds the maximum tolerable\ndowntime (MTD) and discounts the residual risk by BCP maturity. A breach of\nMTD is the dominant driver.\n\nNote:\n    ``rpo_hours`` is accepted as an input (and range-validated) but does\n    not currently affect the computed score \u2014 only ``rto_hours`` versus\n    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n    for the triage of this dead parameter.",
     "params": [
       {
         "name": "rto_hours",
@@ -19830,7 +19830,7 @@
     "display_name": "Escalation Threshold Calculation",
     "path": "/api/v1/operational/escalation_threshold_calculation",
     "summary": "Determine the escalation level for a loss against tiered thresholds.",
-    "description": "Maps a loss amount to the highest governance tier whose threshold it meets or\nexceeds (e.g. ``{\"team\": 1e3, \"head\": 1e4, \"exco\": 1e5, \"board\": 1e6}``).",
+    "description": "Maps a loss amount to the highest governance tier whose threshold it meets or\nexceeds (e.g. ``{\"team\": 1e3, \"head\": 1e4, \"exco\": 1e5, \"board\": 1e6}``).\n\nThis is a rule-based lookup: it selects the triggered tier with the\nnumerically largest threshold value, not necessarily the dict's declared\n\"highest\" tier by name or insertion order, so it relies on ``thresholds``\nbeing ordered monotonically with severity.",
     "params": [
       {
         "name": "loss_amount",
@@ -20142,7 +20142,7 @@
     "display_name": "Key Risk Indicator KRI Library",
     "path": "/api/v1/operational/key_risk_indicator_kri_library",
     "summary": "Validate and index a KRI library.",
-    "description": "Each KRI definition must carry a ``name``, a numeric ``amber_threshold`` and\n``red_threshold``, and a ``direction`` (``\"higher_breach\"`` or\n``\"lower_breach\"``). Returns a validated registry keyed by name.",
+    "description": "Each KRI definition must carry a ``name``, a numeric ``amber_threshold`` and\n``red_threshold``, and a ``direction`` (``\"higher_breach\"`` or\n``\"lower_breach\"``). Returns a validated registry keyed by name.\n\nThis is a pure validation/indexing pass \u2014 it checks required keys and builds\nthe keyed registry, with no numeric computation involved.",
     "params": [
       {
         "name": "kri_definitions",
@@ -20172,7 +20172,7 @@
     "display_name": "KRI Threshold Breach Detection",
     "path": "/api/v1/operational/kri_threshold_breach_detection",
     "summary": "Classify a KRI value into a green/amber/red status.",
-    "description": "For ``higher_breach`` KRIs (higher = worse, e.g. failed trades) the value\ncrosses amber then red as it rises; for ``lower_breach`` KRIs (lower = worse,\ne.g. staffing level) it crosses as it falls.",
+    "description": "For ``higher_breach`` KRIs (higher = worse, e.g. failed trades) the value\ncrosses amber then red as it rises; for ``lower_breach`` KRIs (lower = worse,\ne.g. staffing level) it crosses as it falls.\n\nFor ``lower_breach`` every inequality above is reversed (red at or below the\nred threshold, amber between red and amber, green above amber).",
     "params": [
       {
         "name": "value",
@@ -20239,7 +20239,7 @@
     "display_name": "KRI Trend Analysis",
     "path": "/api/v1/operational/kri_trend_analysis",
     "summary": "Linear-trend analysis of a KRI time series.",
-    "description": "Fits an OLS slope to the observation series and classifies the trend as\n``\"deteriorating\"``, ``\"improving\"`` or ``\"stable\"`` based on the slope sign\nand the metric direction.",
+    "description": "Fits an OLS slope to the observation series and classifies the trend as\n``\"deteriorating\"``, ``\"improving\"`` or ``\"stable\"`` based on the slope sign\nand the metric direction.\n\n\"Stable\" is a scale-relative rule (``|slope| < 1e-4 * mean(|observations|)``),\nnot a fixed absolute tolerance, and the deteriorating/improving call flips\nwith ``higher_is_worse``.",
     "params": [
       {
         "name": "observations",
@@ -20325,7 +20325,7 @@
     "display_name": "Loss Distribution Approach LDA",
     "path": "/api/v1/operational/loss_distribution_approach_lda",
     "summary": "End-to-end Loss Distribution Approach capital estimate.",
-    "description": "Fits the frequency (Poisson) and severity (lognormal) distributions from\nhistorical data, simulates the compound distribution and reads OpVaR /\ncapital at the regulatory confidence \u2014 the full LDA pipeline in one call.",
+    "description": "Fits the frequency (Poisson) and severity (lognormal) distributions from\nhistorical data, simulates the compound distribution and reads OpVaR /\ncapital at the regulatory confidence \u2014 the full LDA pipeline in one call.\n\nThis is a composed pipeline, not a single closed-form equation; ``n_years``\nand ``seed`` only control the internal Monte Carlo simulation, not the\ncapital figure itself.",
     "params": [
       {
         "name": "annual_event_counts",
@@ -20403,7 +20403,7 @@
     "display_name": "Loss Event Classification Basel",
     "path": "/api/v1/operational/loss_event_classification_basel",
     "summary": "Classify a loss event into a Basel II Level-1 event-type category.",
-    "description": "Validates the event type against the seven Basel II Level-1 categories\n(BCBS 128, Annex 9) and returns its ordinal index for downstream bucketing.",
+    "description": "Validates the event type against the seven Basel II Level-1 categories\n(BCBS 128, Annex 9) and returns its ordinal index for downstream bucketing.\n\nThis is a membership lookup against the fixed seven Basel II categories, not\na numeric equation.",
     "params": [
       {
         "name": "event_type",
@@ -20435,7 +20435,7 @@
     "display_name": "Model Risk Assessment",
     "path": "/api/v1/operational/model_risk_assessment",
     "summary": "Model risk tier from materiality, complexity, and validation quality.",
-    "description": "Combines model materiality and complexity (1-5 each) into an inherent score,\nthen discounts by validation quality (in [0, 1]) to a residual model-risk\ntier (SR 11-7 / PRA SS1/23 style).",
+    "description": "Combines model materiality and complexity (1-5 each) into an inherent score,\nthen discounts by validation quality (in [0, 1]) to a residual model-risk\ntier (SR 11-7 / PRA SS1/23 style).\n\nSR 11-7 / PRA SS1/23 are named only for the general materiality x complexity\ntiering style this follows; the specific 1-5 scale, multiplication, and RAG\nthresholds are pyvar's own, not values prescribed by either document.",
     "params": [
       {
         "name": "materiality",
@@ -20582,7 +20582,7 @@
     "display_name": "Near Miss Capture Framework",
     "path": "/api/v1/operational/near_miss_capture_framework",
     "summary": "Summarise captured near-miss events.",
-    "description": "A near-miss is an event with zero actual loss but a non-zero potential loss.\nValidates events and summarises the count and aggregate potential loss \u2014 a\nleading indicator of control weakness.",
+    "description": "A near-miss is an event with zero actual loss but a non-zero potential loss.\nValidates events and summarises the count and aggregate potential loss \u2014 a\nleading indicator of control weakness.\n\nThis is a rule-based filter/count over ``events``; ``actual_loss`` and\n``potential_loss`` are per-event dict keys rather than top-level function\nparameters.",
     "params": [
       {
         "name": "events",
@@ -21012,7 +21012,7 @@
     "display_name": "RCSA Risk Identification",
     "path": "/api/v1/operational/rcsa_risk_identification",
     "summary": "Validate and summarise an RCSA risk register.",
-    "description": "Checks each risk entry exposes a ``risk_id`` and a Basel ``category`` and\nsummarises counts by category \u2014 the identification step of the RCSA cycle.",
+    "description": "Checks each risk entry exposes a ``risk_id`` and a Basel ``category`` and\nsummarises counts by category \u2014 the identification step of the RCSA cycle.\n\nThis is validation plus a count-by-category aggregation, not a numeric\nformula; ``category`` is a per-entry dict key rather than a top-level\nfunction parameter.",
     "params": [
       {
         "name": "risk_register",
@@ -21086,7 +21086,7 @@
     "display_name": "Risk Appetite Statement OpRisk",
     "path": "/api/v1/operational/risk_appetite_statement_oprisk",
     "summary": "Assess an OpRisk metric against appetite and tolerance limits.",
-    "description": "Maps a metric to ``within_appetite`` / ``within_tolerance`` / ``breach``\nagainst a two-tier limit structure: appetite (the desired ceiling) and\ntolerance (the absolute maximum before escalation).",
+    "description": "Maps a metric to ``within_appetite`` / ``within_tolerance`` / ``breach``\nagainst a two-tier limit structure: appetite (the desired ceiling) and\ntolerance (the absolute maximum before escalation).\n\nWhen ``higher_is_worse=False`` every inequality is reversed and utilisation\nis computed as ``tolerance_limit / current_metric`` rather than the\n``current_metric / tolerance_limit`` used in the higher-is-worse case.",
     "params": [
       {
         "name": "current_metric",
@@ -21432,7 +21432,7 @@
     "display_name": "Severity Distribution Fitting",
     "path": "/api/v1/operational/severity_distribution_fitting",
     "summary": "Fit a severity distribution to individual loss amounts.",
-    "description": "Supports the lognormal (default, the OpRisk industry standard) by MLE of the\nlog-loss mean/sigma. Returns the fitted parameters and the implied mean\nseverity.",
+    "description": "Supports the lognormal (default, the OpRisk industry standard) by MLE of the\nlog-loss mean/sigma. Returns the fitted parameters and the implied mean\nseverity.\n\nLognormal is the only distribution implemented; any other ``distribution``\nvalue raises ``ValueError`` rather than falling back or approximating.",
     "params": [
       {
         "name": "loss_amounts",
@@ -21834,7 +21834,7 @@
     "display_name": "Carbon Footprint Attribution",
     "path": "/api/v1/portfolio/carbon_footprint_attribution",
     "summary": "Carbon footprint attribution (WACI and financed emissions).",
-    "description": "Computes the Weighted Average Carbon Intensity (WACI) and attributes the\nfinanced emissions to each holding by its invested value. Contributions sum\nto the total financed emissions.",
+    "description": "Computes the Weighted Average Carbon Intensity (WACI) and attributes the\nfinanced emissions to each holding by its invested value. Contributions sum\nto the total financed emissions.\n\n``total_financed_emissions`` scales revenue-intensity by invested value\nper holding, which does not match the ownership-share method used by the\nTCFD/PCAF financed-emissions standards.",
     "params": [
       {
         "name": "weights",
@@ -22032,7 +22032,7 @@
     "display_name": "Correlation Clustering",
     "path": "/api/v1/portfolio/correlation_clustering",
     "summary": "Correlation-based clustering of assets.",
-    "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple\nsingle-linkage agglomerative clustering down to ``n_clusters`` groups \u2014\ngrouping assets that co-move.",
+    "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple\nsingle-linkage agglomerative clustering down to ``n_clusters`` groups \u2014\ngrouping assets that co-move.\n\nThe merge loop is hand-rolled here rather than calling scikit-learn's\n``AgglomerativeClustering`` or SciPy's ``linkage``, though it implements\nthe same single-linkage algorithm.",
     "params": [
       {
         "name": "returns_matrix",
@@ -22174,7 +22174,7 @@
     "display_name": "CVaR Constrained Optimisation",
     "path": "/api/v1/portfolio/cvar_constrained_optimisation",
     "summary": "CVaR-constrained portfolio optimisation (Rockafellar-Uryasev).",
-    "description": "Maximises expected return subject to the portfolio CVaR (at\n``confidence_level``) not exceeding ``cvar_limit``, long-only and fully\ninvested. CVaR is computed empirically over the supplied scenarios.",
+    "description": "Maximises expected return subject to the portfolio CVaR (at\n``confidence_level``) not exceeding ``cvar_limit``, long-only and fully\ninvested. CVaR is computed empirically over the supplied scenarios.\n\nCVaR is enforced as a direct nonlinear inequality constraint (the\nempirical mean of tail losses) solved by SLSQP, not via Rockafellar and\nUryasev's original auxiliary-variable linear-programming reformulation.",
     "params": [
       {
         "name": "scenario_returns",
@@ -23651,7 +23651,7 @@
     "display_name": "Rebalancing Optimiser",
     "path": "/api/v1/portfolio/rebalancing_optimiser",
     "summary": "Rebalancing optimiser with a no-trade band.",
-    "description": "Computes the trades to move from current to target weights, suppressing\ntrades within ``no_trade_band`` to avoid churn, and reports turnover and\ntotal transaction cost.",
+    "description": "Computes the trades to move from current to target weights, suppressing\ntrades within ``no_trade_band`` to avoid churn, and reports turnover and\ntotal transaction cost.\n\n``no_trade_band`` is a user-supplied absolute weight threshold, not one\nderived from cost/volatility parameters the way Leland (1999) or Donohue\n& Yip (2003) construct an optimal no-trade region.",
     "params": [
       {
         "name": "current_weights",
@@ -23716,10 +23716,10 @@
     "domain_page": "domain-portfolio-analytics.html",
     "domain_color": "#7060d4",
     "name": "regime_detection_hmm",
-    "display_name": "Regime Detection Hmm",
+    "display_name": "Regime Detection HMM",
     "path": "/api/v1/portfolio/regime_detection_hmm",
-    "summary": "Two-state Gaussian regime detection via EM (function name overstates the method -- see below).",
-    "description": "Fits a two-component Gaussian mixture by EM and labels each observation by\nits most likely regime. The higher-variance component is reported as the\n\"stress\" regime \u2014 the standard calm/turbulent market characterisation.\n\nDespite the ``_hmm`` in this function's name, this is a STATIONARY\nGaussian mixture (i.i.d. component weights ``pi``) -- there is no\ntransition matrix, so regime persistence/switching probabilities are not\nmodelled at all, only the marginal mixture. A genuine hidden Markov model\n(Hamilton, J.D. (1989), \"A New Approach to the Economic Analysis of\nNonstationary Time Series and the Business Cycle\", Econometrica 57(2))\nfits a Markov-switching autoregression with an explicit 2x2 transition\nmatrix and publishes reproducible parameter estimates on US GNP growth --\nnot applicable here since this function's inputs/outputs don't match that\nstructure. Renaming the function (and its REST route) is a larger,\nseparate change than this docstring fix; flagged here (Tier 3 #2 audit)\nso nobody mistakes the current name for a claim of Markov-switching\nbehaviour.",
+    "summary": "Two-state Gaussian regime detection via EM.",
+    "description": "Note: despite the name, this fits a stationary 2-component Gaussian\nmixture (EM, i.i.d. weights) \u2014 there is no transition matrix, so it does\nnot model true HMM regime persistence/switching dynamics.\n\nFits a two-component Gaussian mixture by EM and labels each observation by\nits most likely regime. The higher-variance component is reported as the\n\"stress\" regime \u2014 the standard calm/turbulent market characterisation.",
     "params": [
       {
         "name": "returns",
@@ -23976,7 +23976,7 @@
     "display_name": "Risk Parity Portfolio",
     "path": "/api/v1/portfolio/risk_parity_portfolio",
     "summary": "Equal risk contribution (risk parity) portfolio.",
-    "description": "Finds long-only weights so each asset contributes equally to portfolio\nvariance, by minimising the dispersion of risk contributions.",
+    "description": "Finds long-only weights so each asset contributes equally to portfolio\nvariance, by minimising the dispersion of risk contributions.\n\nDispersion is measured as the sum of squared pairwise differences\nbetween all assets' risk contributions rather than each asset's\ndeviation from the mean contribution -- a stronger gradient signal for\nSLSQP that converges to the same equal-risk-contribution solution.",
     "params": [
       {
         "name": "cov_matrix",
@@ -24199,7 +24199,7 @@
     "display_name": "Sharpe Ratio",
     "path": "/api/v1/portfolio/sharpe_ratio",
     "summary": "Annualised Sharpe ratio.",
-    "description": "Mean excess return divided by return volatility, annualised by\n``sqrt(periods_per_year)``.",
+    "description": "Mean excess return divided by return volatility, annualised by\n``sqrt(periods_per_year)``.\n\nVolatility is the population standard deviation (divide by n) of\nper-period excess returns, not the n-1 sample standard deviation.",
     "params": [
       {
         "name": "returns",
@@ -24255,7 +24255,7 @@
     "display_name": "Sortino Ratio",
     "path": "/api/v1/portfolio/sortino_ratio",
     "summary": "Annualised Sortino ratio.",
-    "description": "Like Sharpe but penalises only downside deviation below ``target``, so\nupside volatility is not treated as risk.",
+    "description": "Like Sharpe but penalises only downside deviation below ``target``, so\nupside volatility is not treated as risk.\n\nThe numerator's excess return is measured against ``risk_free`` while\nthe downside-deviation denominator measures shortfalls of the raw (not\nrisk-free-adjusted) returns below the separate ``target``, so when\n``target != risk_free`` the two are distinct reference rates by\nconstruction.",
     "params": [
       {
         "name": "returns",
@@ -24423,7 +24423,7 @@
     "display_name": "Transaction Cost Analysis",
     "path": "/api/v1/portfolio/transaction_cost_analysis",
     "summary": "Transaction Cost Analysis (TCA) \u2014 implementation shortfall vs benchmark.",
-    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.",
+    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nThis is narrower than Perold's full implementation-shortfall\ndecomposition -- there is no delay-cost or unexecuted-share\nopportunity-cost leg, so the result is an execution-slippage metric, not\na complete IS attribution.",
     "params": [
       {
         "name": "trade_prices",
@@ -24602,7 +24602,7 @@
     "display_name": "AIFMD Risk Metrics",
     "path": "/api/v1/regulatory/aifmd_risk_metrics",
     "summary": "AIFMD Annex IV risk metrics \u2014 leverage and (optional) VaR.",
-    "description": "Computes leverage under the gross method and the commitment method (each as\na multiple of NAV) per Delegated Regulation 231/2013 Art. 7-8. A fund is\n\"substantially leveraged\" when commitment leverage exceeds 3x NAV.",
+    "description": "\"Substantially leveraged\" here is a simple threshold flag (commitment\nleverage > 3x NAV), not AIFMD's full leverage-calculation methodology.\n\nComputes leverage under the gross method and the commitment method (each as\na multiple of NAV) per Delegated Regulation 231/2013 Art. 7-8. A fund is\n\"substantially leveraged\" when commitment leverage exceeds 3x NAV.",
     "params": [
       {
         "name": "gross_exposure",
@@ -24957,7 +24957,7 @@
     "display_name": "Combined Buffer Requirement",
     "path": "/api/v1/regulatory/combined_buffer_requirement",
     "summary": "Combined Buffer Requirement (CBR).",
-    "description": "``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the buffer\nratios and (optionally) the capital amount on the supplied RWA.",
+    "description": "The max(G-SII, O-SII, SyRB) selection is expected to already be resolved\nby the caller into ``systemic_buffer_ratio``; this function itself\nperforms only a straight sum of the three supplied buffer ratios.\n\n``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the buffer\nratios and (optionally) the capital amount on the supplied RWA.",
     "params": [
       {
         "name": "capital_conservation_buffer_ratio",
@@ -25081,7 +25081,7 @@
     "display_name": "CRR2 Large Exposure Limit",
     "path": "/api/v1/regulatory/crr2_large_exposure_limit",
     "summary": "CRR2 large exposure limit (Art. 395).",
-    "description": "A single client / group exposure must not exceed 25% of Tier 1 capital\n(or EUR 150m for institutions, whichever is higher \u2014 simplified to the 25%\nratio test here). Reports the exposure ratio and any breach amount.",
+    "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n150m absolute alternative threshold for institutions is not applied.\n\nA single client / group exposure must not exceed 25% of Tier 1 capital\n(or EUR 150m for institutions, whichever is higher). Reports the exposure\nratio and any breach amount.",
     "params": [
       {
         "name": "exposure_value",
@@ -25259,7 +25259,7 @@
     "display_name": "EMIR Trade Repository Report",
     "path": "/api/v1/regulatory/emir_trade_repository_report",
     "summary": "EMIR trade repository report builder/validator.",
-    "description": "Validates the core EMIR reporting fields (counterparty LEIs, UTI, notional,\nasset class) and echoes a normalised report.",
+    "description": "This validates a representative core subset of 6 fields, not full-schema\ncoverage of EMIR REFIT's roughly 200 reportable fields.\n\nValidates the core EMIR reporting fields (counterparty LEIs, UTI, notional,\nasset class) and echoes a normalised report.",
     "params": [
       {
         "name": "trade",
@@ -25369,7 +25369,7 @@
     "display_name": "FRTB Pl Attribution Test",
     "path": "/api/v1/regulatory/frtb_pl_attribution_test",
     "summary": "FRTB P&L Attribution Test (PAT) \u2014 Spearman correlation + variance ratio.",
-    "description": "Jointly evaluates the Spearman rank correlation between risk-theoretical P&L\n(RTPL) and hypothetical P&L (HPL) and the volatility ratio\n``std(RTPL)/std(HPL)``, assigning the Basel traffic-light zone. The\nthresholds are mandated by BCBS d457 and CLAUDE.md \u00a74.4:\ngreen ``|corr|>=0.80 AND 0.8<=ratio<=1.2``;\namber ``|corr|>=0.70 AND 0.6<=ratio<=1.5``; otherwise red (IMA loss).",
+    "description": "The green/amber/red zone is assigned by a fixed-threshold lookup on the\ncorrelation and ratio values below, not a single closed-form equation.\n\nJointly evaluates the Spearman rank correlation between risk-theoretical P&L\n(RTPL) and hypothetical P&L (HPL) and the volatility ratio\n``std(RTPL)/std(HPL)``, assigning the Basel traffic-light zone. The\nthresholds are mandated by BCBS d457 and CLAUDE.md \u00a74.4:\ngreen ``|corr|>=0.80 AND 0.8<=ratio<=1.2``;\namber ``|corr|>=0.70 AND 0.6<=ratio<=1.5``; otherwise red (IMA loss).",
     "params": [
       {
         "name": "risk_theoretical_pnl",
@@ -25581,7 +25581,7 @@
     "display_name": "MiFID II Algorithm Documentation",
     "path": "/api/v1/regulatory/mifid_ii_algorithm_documentation",
     "summary": "MiFID II RTS 6 algorithmic-trading documentation completeness check.",
-    "description": "Verifies that the mandatory governance and control documentation items for\nan algorithmic trading strategy are present.",
+    "description": "The 6-item checklist below is this codebase's own internal choice, not a\nchecklist published by RTS 6 itself.\n\nVerifies that the mandatory governance and control documentation items for\nan algorithmic trading strategy are present.",
     "params": [
       {
         "name": "documentation",
@@ -25611,7 +25611,7 @@
     "display_name": "MiFID II Best Execution Metric",
     "path": "/api/v1/regulatory/mifid_ii_best_execution_metric",
     "summary": "MiFID II best-execution TCA metric -- internal, NOT an RTS 27/28 figure.",
-    "description": "Computes the quantity-weighted price improvement (or slippage) of executions\nversus a reference (e.g. EBBO) price, in basis points. Positive means price\nimprovement for the client.\n\nThis does not correspond to any specific RTS 27/28 field: RTS 27\n(Commission Delegated Regulation (EU) 2017/575) requires simple-average\nand volume-weighted transaction prices/spreads/best-bid-offer (Annex\nTables 1-9), and RTS 28 (DR (EU) 2017/576) requires execution-venue\nrankings -- neither defines a quantity-weighted price-improvement-in-bps\nmetric like this one. RTS 27 was also repealed by the 2024 MiFIR review.\nA prior version of this docstring cited \"RTS 27/28\" directly; corrected\nduring the Tier 3 #2 audit. This remains a reasonable internal TCA\nmetric, just not a regulatory-prescribed one.",
+    "description": "This is an internal TCA (transaction cost analysis) metric only; neither\nRTS 27 nor RTS 28 defines a prescribed quantitative figure that this\nfunction reproduces.\n\nComputes the quantity-weighted price improvement (or slippage) of executions\nversus a reference (e.g. EBBO) price, in basis points. Positive means price\nimprovement for the client.\n\nThis does not correspond to any specific RTS 27/28 field: RTS 27\n(Commission Delegated Regulation (EU) 2017/575) requires simple-average\nand volume-weighted transaction prices/spreads/best-bid-offer (Annex\nTables 1-9), and RTS 28 (DR (EU) 2017/576) requires execution-venue\nrankings -- neither defines a quantity-weighted price-improvement-in-bps\nmetric like this one. RTS 27 was also repealed by the 2024 MiFIR review.\nA prior version of this docstring cited \"RTS 27/28\" directly; corrected\nduring the Tier 3 #2 audit. This remains a reasonable internal TCA\nmetric, just not a regulatory-prescribed one.",
     "params": [
       {
         "name": "executed_prices",
@@ -25802,7 +25802,7 @@
     "display_name": "MiFID II Transaction Report Validator",
     "path": "/api/v1/regulatory/mifid_ii_transaction_report_validator",
     "summary": "MiFID II / RTS 22 transaction report field validator.",
-    "description": "Checks the presence and basic validity of the mandatory transaction-report\nfields (LEI length, ISIN length, positive price/quantity).",
+    "description": "This checks a representative core subset of 9 fields, not full-schema\ncoverage of RTS 22's roughly 65 mandatory transaction-report fields.\n\nChecks the presence and basic validity of the mandatory transaction-report\nfields (LEI length, ISIN length, positive price/quantity).",
     "params": [
       {
         "name": "report",
@@ -25920,7 +25920,7 @@
     "display_name": "SFTR Securities Finance Report",
     "path": "/api/v1/regulatory/sftr_securities_finance_report",
     "summary": "SFTR securities-financing transaction report builder/validator.",
-    "description": "Validates the core SFTR fields for an SFT (repo, securities lending, buy-\nsell back, margin lending): counterparties, UTI, collateral and the SFT\ntype.",
+    "description": "This validates a representative core subset of 6 fields, not full-schema\ncoverage of SFTR's complete field set.\n\nValidates the core SFTR fields for an SFT (repo, securities lending, buy-\nsell back, margin lending): counterparties, UTI, collateral and the SFT\ntype.",
     "params": [
       {
         "name": "transaction",
@@ -25950,7 +25950,7 @@
     "display_name": "Solvency II SCR Credit Risk",
     "path": "/api/v1/regulatory/solvency_ii_scr_credit_risk",
     "summary": "Solvency II SCR counterparty default (credit) risk \u2014 Type 1 exposures.",
-    "description": "[REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the\ncapital charge as a TIERED multiplier on the standard deviation (sigma) of\nthe loss distribution, not a flat 3x: SCR = 3*sigma while\nsigma <= 7% of total LGD; SCR = 5*sigma while 7% < sigma/TLGD <= 20%; SCR =\ntotal LGD (fully capped) once sigma/TLGD exceeds 20%. An earlier version of\nthis function exposed a caller-configurable ``risk_factor`` defaulting to a\nflat 3.0 \u2014 that understated capital by ~79% on a representative 2-exposure\ncase (807 vs. the correct ~1449, entirely from missing the 5x/TLGD tiers).\nThe multiplier is fixed by the Delegated Regulation, so it is intentionally\nnot a parameter here (same reasoning as CLAUDE.md \u00a74.3/\u00a74.4's Basel\nthresholds: never parameterise regulator-set constants).\n\n[LIMITATION] The variance (sigma^2) computed here is the intra-counterparty\nterm only \u2014 an independent-Bernoulli approximation summing each\ncounterparty's own default-loss variance. Art. 201's full formula also adds\nan inter-counterparty correlation term (V_inter) between exposures carrying\ndifferent default probabilities, which this implementation does NOT\ncompute \u2014 that term is generally positive, so the true Art. 201 variance\n(and therefore the true SCR) is at least as large as what this function\nreturns. Do not rely on this for statutory Solvency II reporting without an\nactuarial review of that gap.",
+    "description": "The sigma used here is the intra-counterparty (independent-Bernoulli)\nvariance term only; Delegated Regulation (EU) 2015/35 Art. 201's\ninter-counterparty correlation term is not implemented, so the true\nArt. 201 variance (and SCR) is at least as large as what this function\nreturns.\n\n[REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the\ncapital charge as a TIERED multiplier on the standard deviation (sigma) of\nthe loss distribution, not a flat 3x: SCR = 3*sigma while\nsigma <= 7% of total LGD; SCR = 5*sigma while 7% < sigma/TLGD <= 20%; SCR =\ntotal LGD (fully capped) once sigma/TLGD exceeds 20%. An earlier version of\nthis function exposed a caller-configurable ``risk_factor`` defaulting to a\nflat 3.0 \u2014 that understated capital by ~79% on a representative 2-exposure\ncase (807 vs. the correct ~1449, entirely from missing the 5x/TLGD tiers).\nThe multiplier is fixed by the Delegated Regulation, so it is intentionally\nnot a parameter here (same reasoning as CLAUDE.md \u00a74.3/\u00a74.4's Basel\nthresholds: never parameterise regulator-set constants).\n\n[LIMITATION] The variance (sigma^2) computed here is the intra-counterparty\nterm only \u2014 an independent-Bernoulli approximation summing each\ncounterparty's own default-loss variance. Art. 201's full formula also adds\nan inter-counterparty correlation term (V_inter) between exposures carrying\ndifferent default probabilities, which this implementation does NOT\ncompute \u2014 that term is generally positive, so the true Art. 201 variance\n(and therefore the true SCR) is at least as large as what this function\nreturns. Do not rely on this for statutory Solvency II reporting without an\nactuarial review of that gap.",
     "params": [
       {
         "name": "exposures",
@@ -26117,7 +26117,7 @@
     "display_name": "UCITS KIID Risk Indicator",
     "path": "/api/v1/regulatory/ucits_kiid_risk_indicator",
     "summary": "UCITS KIID Synthetic Risk and Reward Indicator (SRRI), 1-7.",
-    "description": "Maps the annualised volatility of (weekly by default) returns to the SRRI\nbucket per CESR 10-673: class 1 (< 0.5%) up to class 7 (>= 25%).",
+    "description": "The SRRI class itself is a bucket lookup of the annualised volatility\nagainst fixed CESR volatility bands, not a closed-form equation.\n\nMaps the annualised volatility of (weekly by default) returns to the SRRI\nbucket per CESR 10-673: class 1 (< 0.5%) up to class 7 (>= 25%).",
     "params": [
       {
         "name": "returns",
