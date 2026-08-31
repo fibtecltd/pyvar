@@ -847,8 +847,8 @@
     }
   },
   "correlation_clustering": {
-    "caveat": "Hand-rolled single-linkage agglomerative clustering (not scikit-learn): repeatedly merges the two clusters with the smallest minimum pairwise correlation-distance until n_clusters groups remain.",
-    "citation": null,
+    "caveat": null,
+    "citation": "Sokal, R.R. & Michener, C.D. (1958), \"A statistical method for evaluating systematic relationships\" (single-linkage/nearest-neighbour hierarchical clustering, as implemented by scipy.cluster.hierarchy.linkage(method='single'))",
     "formula_latex": "d_{ij} = \\sqrt{2(1 - \\rho_{ij})} \\\\ D(A,B) = \\min_{i \\in A,\\, j \\in B} d_{ij} \\;\\; \\text{(single-linkage merge criterion)}",
     "symbol_map": {
       "returns_matrix": "\\rho_{ij}"
