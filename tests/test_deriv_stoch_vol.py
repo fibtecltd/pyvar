@@ -65,8 +65,59 @@ def test_dupire_surface_shape_and_nonneg():
             surface[i, j] = black_scholes_european_option(100.0, k, 0.02, 0.2, t, "call")["price"]
     res = local_volatility_dupire_model(strikes, maturities, surface, rate=0.02, spot=100.0)
     loc = np.array(res["local_vol"])
-    assert loc.shape == (2, 3)
+    # Task: extend to grid boundaries via one-sided finite differences --
+    # the full (n_maturities, n_strikes) grid is now populated, not just the
+    # interior.
+    assert loc.shape == (3, 5)
     assert np.all(loc >= 0)
+    assert np.all(np.isfinite(loc))
+    assert res["strikes_full"] == pytest.approx(list(strikes))
+    assert res["maturities_full"] == pytest.approx(list(maturities))
+
+
+def test_dupire_boundary_points_populated_and_smooth():
+    """Task: previously boundary strikes/maturities were left unfilled
+    (0.0, indistinguishable from a genuinely-zero interior local vol).
+    Boundary points must now be nonzero and in the right ballpark of the
+    KNOWN true constant vol (0.22) -- a direct, independent check, not just
+    self-consistency -- and must not jump by more than a modest factor
+    relative to their nearest interior neighbour. Some residual boundary
+    error vs. the true vol / vs. interior points is expected and legitimate
+    (one-sided differences are inherently noisier deep in the wings, where
+    the call-price curvature is small and the FD ratio is more sensitive to
+    discretization -- this is a known property of the numerical method, not
+    a defect); the point of this test is "populated and in the right
+    ballpark", not "as tight as the interior"."""
+    strikes = np.array([80.0, 90.0, 100.0, 110.0, 120.0, 130.0])
+    maturities = np.array([0.4, 0.7, 1.0, 1.3])
+    true_vol = 0.22
+    surface = np.zeros((4, 6))
+    for i, t in enumerate(maturities):
+        for j, k in enumerate(strikes):
+            surface[i, j] = black_scholes_european_option(100.0, k, 0.02, true_vol, t, "call")[
+                "price"
+            ]
+    res = local_volatility_dupire_model(strikes, maturities, surface, rate=0.02, spot=100.0)
+    loc = np.array(res["local_vol"])
+
+    # every boundary point (first/last strike column, first/last maturity
+    # row) must be populated with a genuine positive local vol
+    boundary_mask = np.zeros_like(loc, dtype=bool)
+    boundary_mask[0, :] = boundary_mask[-1, :] = True
+    boundary_mask[:, 0] = boundary_mask[:, -1] = True
+    assert np.all(loc[boundary_mask] > 0)
+    assert np.all(np.isfinite(loc[boundary_mask]))
+
+    # in the right ballpark of the known true vol -- not a tight match (see
+    # docstring), but nowhere near zero, NaN-like, or an order of magnitude off
+    assert np.all(np.abs(loc[boundary_mask] - true_vol) < 0.5 * true_vol)
+
+    # no wild discontinuity relative to the nearest interior neighbour
+    # (same order of magnitude, not an exact match)
+    assert np.all(loc[:, 0] > 0.4 * loc[:, 1])
+    assert np.all(loc[:, -1] > 0.4 * loc[:, -2])
+    assert np.all(loc[0, :] > 0.4 * loc[1, :])
+    assert np.all(loc[-1, :] > 0.4 * loc[-2, :])
 
 
 def test_rbergomi_price_positive_and_deterministic():
