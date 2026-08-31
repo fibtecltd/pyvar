@@ -52,6 +52,9 @@ def aifmd_risk_metrics(
 ) -> dict:  # type: ignore[type-arg]
     """AIFMD Annex IV risk metrics — leverage and (optional) VaR.
 
+    "Substantially leveraged" here is a simple threshold flag (commitment
+    leverage > 3x NAV), not AIFMD's full leverage-calculation methodology.
+
     Computes leverage under the gross method and the commitment method (each as
     a multiple of NAV) per Delegated Regulation 231/2013 Art. 7-8. A fund is
     "substantially leveraged" when commitment leverage exceeds 3x NAV.
@@ -165,6 +168,12 @@ def solvency_ii_scr_credit_risk(
     default_probabilities: np.ndarray,
 ) -> dict:  # type: ignore[type-arg]
     """Solvency II SCR counterparty default (credit) risk — Type 1 exposures.
+
+    The sigma used here is the intra-counterparty (independent-Bernoulli)
+    variance term only; Delegated Regulation (EU) 2015/35 Art. 201's
+    inter-counterparty correlation term is not implemented, so the true
+    Art. 201 variance (and SCR) is at least as large as what this function
+    returns.
 
     [REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the
     capital charge as a TIERED multiplier on the standard deviation (sigma) of

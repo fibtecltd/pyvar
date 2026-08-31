@@ -455,9 +455,12 @@ def crr2_large_exposure_limit(
 ) -> dict:  # type: ignore[type-arg]
     """CRR2 large exposure limit (Art. 395).
 
+    This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR
+    150m absolute alternative threshold for institutions is not applied.
+
     A single client / group exposure must not exceed 25% of Tier 1 capital
-    (or EUR 150m for institutions, whichever is higher — simplified to the 25%
-    ratio test here). Reports the exposure ratio and any breach amount.
+    (or EUR 150m for institutions, whichever is higher). Reports the exposure
+    ratio and any breach amount.
 
     Args:
         exposure_value: Exposure value to a single client/group (post-CRM).
