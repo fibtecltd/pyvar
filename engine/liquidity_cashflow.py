@@ -132,6 +132,7 @@ def liquidity_gap_analysis(
     asset_maturities: np.ndarray,
     liability_maturities: np.ndarray,
     buckets: list[str] | None = None,
+    opening_balance: float = 0.0,
 ) -> dict:  # type: ignore[type-arg]
     """Maturity-bucket liquidity gap (assets vs liabilities).
 
@@ -140,17 +141,22 @@ def liquidity_gap_analysis(
     gap means more assets than liabilities mature by that point (a funding
     surplus); a negative gap signals a refinancing need.
 
-    Unlike the two cash-flow-ladder functions above, this cumulative gap is not
-    offset by an opening balance — the function takes no such parameter.
+    Like the two cash-flow-ladder functions above, an optional opening balance
+    is added to every cumulative-gap entry — the starting cash / HQLA position
+    carried into the first bucket. It defaults to 0.0, so existing callers see
+    no change in behaviour.
 
     Args:
         asset_maturities: Asset cash inflows maturing in each bucket.
         liability_maturities: Liability cash outflows maturing in each bucket.
         buckets: Optional bucket labels; defaults to the standard 8-bucket set.
+        opening_balance: Starting cash / HQLA balance carried into the first
+            bucket. Added to every cumulative-gap entry. Defaults to 0.0.
 
     Returns:
-        Dict with ``buckets``, ``periodic_gap``, ``cumulative_gap`` and the
-        ``gap_ratio`` (assets / liabilities) per bucket.
+        Dict with ``buckets``, ``periodic_gap``, ``cumulative_gap`` (including
+        ``opening_balance``) and the ``gap_ratio`` (assets / liabilities) per
+        bucket.
 
     Raises:
         ValueError: If lengths differ or mismatch the bucket labels.
@@ -165,13 +171,14 @@ def liquidity_gap_analysis(
         raise ValueError("array length must match number of buckets")
 
     gap = _cumulative_gap(assets, liabilities)
+    cumulative = gap[1] + opening_balance
     ratio = np.where(
         liabilities != 0.0, assets / np.where(liabilities != 0.0, liabilities, 1.0), np.inf
     )
     return {
         "buckets": list(buckets),
         "periodic_gap": [round(float(x), 2) for x in gap[0]],
-        "cumulative_gap": [round(float(x), 2) for x in gap[1]],
+        "cumulative_gap": [round(float(x), 2) for x in cumulative],
         "gap_ratio": [round(float(x), 6) if np.isfinite(x) else None for x in ratio],
     }
 
