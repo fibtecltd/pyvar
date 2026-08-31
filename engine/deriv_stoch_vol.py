@@ -842,6 +842,10 @@ def variance_gamma_model(
 ) -> dict:  # type: ignore[type-arg]
     """Variance Gamma European option price via Monte Carlo.
 
+    Note: the ``theta`` parameter here is the VG skew parameter
+    (subordinated-drift), unrelated to the Greek theta (time decay)
+    optionally returned when ``greeks=True``.
+
     Time-changes Brownian motion by a Gamma subordinator (mean 1, variance
     ``nu``). The martingale drift correction ``omega`` is computed in closed
     form so the discounted spot is a martingale.

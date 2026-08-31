@@ -92,12 +92,21 @@ def bond_pricer_floating_rate(
     date with discount rates equal to the reference rates, an FRN prices near
     par plus the PV of the spread.
 
+    Note: the number of coupon periods actually priced is
+    ``len(reference_rates)`` (and ``discount_rates`` must match that length).
+    ``maturity`` is only used for input validation (``maturity > 0``) here —
+    it does not determine the coupon schedule, so a caller-supplied
+    ``maturity`` inconsistent with ``len(reference_rates) / frequency`` is
+    not detected or reconciled.
+
     Args:
         face_value: Redemption (par) value.
         reference_rates: Projected forward index rate per period (decimal).
+            Its length sets the number of coupon periods priced.
         spread: Quoted margin over the index (decimal).
         discount_rates: Per-period zero discount rate (decimal, annualised).
-        maturity: Time to maturity in years.
+        maturity: Time to maturity in years. Used only for input validation
+            (see note above) — not to derive the coupon schedule.
         frequency: Coupon payments per year.
 
     Returns:
