@@ -250,6 +250,11 @@ def creditmetrics_portfolio_model(
     :func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail is
     dominated by the default state captured here.
 
+    In implementation this is a direct pass-through to the same one-factor
+    Gaussian-copula Monte Carlo engine used by
+    :func:`credit_var_monte_carlo` (identical formula, identical code path),
+    not a separately coded multi-state model.
+
     Args:
         exposures: Per-obligor exposure (>= 0).
         pd: Per-obligor PD in ``(0, 1)``.
