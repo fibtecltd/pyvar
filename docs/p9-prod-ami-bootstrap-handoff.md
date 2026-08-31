@@ -65,15 +65,16 @@ Copy the prompt below into a session with real credentials.
 ```
 Context: pyvar.com (fibtecltd/pyvar) needs its prod worker AMI bake
 pipeline bootstrapped before the P9 launch sequence's "Day -7: Prod CDK
-deploy via CodePipeline" step (docs/pyvar_release_plan.md). Two things
-changed on branch claude/gracious-babbage-R7ywK (commits a6d37f7, 1cfa165,
-cde41d1, c3b3e8a — pull this branch, or wait until it's merged to master):
+deploy via CodePipeline" step (docs/pyvar_release_plan.md), and before the
+Day 0 public-repo flip this bootstrap is now a named gate for.
 
-1. pyvar-cdk/config.py: prod now sets worker_use_baked_ami=True.
+The automation itself is NOT what you're checking — it is already merged to
+master:
+1. pyvar-cdk/config.py: prod sets worker_use_baked_ami=True.
    compute_stack.py resolves the worker AMI via
    ec2.MachineImage.lookup(name="pyvar-prod-worker-*", ...) at CDK synth
    time -- this FAILS the synth outright if no matching AMI exists yet.
-2. pyvar-cdk/stacks/pipeline_stack.py: the shared Synth ShellStep now
+2. pyvar-cdk/stacks/pipeline_stack.py: the shared Synth ShellStep already
    automatically triggers and waits for a fresh prod AMI bake (via
    aws imagebuilder start-image-pipeline-execution against
    pyvar-prod-worker-pipeline) whenever pyvar-cdk/stacks/ami_stack.py's
@@ -82,8 +83,9 @@ cde41d1, c3b3e8a — pull this branch, or wait until it's merged to master):
    the whole pipeline run) if the pipeline doesn't exist, the bake fails,
    or it times out after 30 minutes.
 
-Neither of those can work yet because pyvar-prod-ami (the AmiStack that
-actually defines pyvar-prod-worker-pipeline) has never been deployed --
+What you're actually here to do: confirm (or perform) the one-time
+bootstrap. pyvar-prod-ami (the AmiStack that actually defines
+pyvar-prod-worker-pipeline) may never have been deployed --
 it's a standalone stack in app.py, deliberately NOT part of the
 self-mutating CDK Pipeline's per-push Dev/Prod stages (see
 pipeline_stack.py's _ami_bake_commands docstring for why: the AMI has to
@@ -95,17 +97,21 @@ docstring).
 
 Your task, in order:
 
+0. Check first whether this has already been done, rather than assuming it
+   hasn't: `aws cloudformation describe-stacks --stack-name pyvar-prod-ami`
+   (or check the CloudFormation console). If it returns CREATE_COMPLETE /
+   UPDATE_COMPLETE, skip straight to step 6 (verification) -- do not
+   redeploy a stack that already exists.
+
 1. Confirm you have real AWS credentials for the correct account:
    `aws sts get-caller-identity`. Do not proceed if this fails or if
    you're unsure it's the right (prod-capable) Fibtec account -- ask
    first rather than guessing the account ID. Do not hardcode or invent
    an account number anywhere; read it from this command's output.
 
-2. Pull the branch (or confirm master already has these commits):
-   `git fetch origin claude/gracious-babbage-R7ywK && git checkout
-   claude/gracious-babbage-R7ywK` -- or, if already merged, just make
-   sure your checkout of master includes commits a6d37f7 and 1cfa165
-   (`git log --oneline | grep -E "a6d37f7|1cfa165"`).
+2. Check out master (the automation is already there -- no feature branch to
+   find): `git fetch origin master && git checkout master`. Sanity-check
+   `_ami_bake_commands` exists: `grep -n "_ami_bake_commands" pyvar-cdk/stacks/pipeline_stack.py`.
 
 3. cd pyvar-cdk && pip install -r requirements.txt
 

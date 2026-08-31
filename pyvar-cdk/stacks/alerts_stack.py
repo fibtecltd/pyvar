@@ -51,19 +51,20 @@ from config import PyvarConfig
 # figure is discoverable in one place rather than buried in the tree. Denominated
 # in USD: AWS Budgets rejects other units in this account (billing currency USD).
 #
-# Raised 250 -> 400 (P7 Task 7 follow-up, docs/p7-cost-review.md): Cost Explorer's
-# RECORD_TYPE breakdown showed a -$75.88 credit currently offsetting ~34% of gross
-# usage this period; extrapolating GROSS usage (not the credited net) projects to
-# ~$390-410/month. 400 is sized to the gross-cost run-rate, not the current
-# credited net, since the credit's recurrence/expiry could not be confirmed via
-# CLI (see docs/p7-cost-review.md) -- this budget should not assume it persists.
-# The original ~£150/month release-plan target is unchanged; this is headroom to
-# avoid false-negative budget health while that target is reconciled separately.
-MONTHLY_BUDGET_USD = 400
+# Raised 250 -> 400 (P7 Task 7 follow-up, docs/p7-cost-review.md) -> 1400
+# (this revision, docs/p9-scenario-volume-cost-audit.md "Real invoice update"):
+# the 400 figure was a dev-environment, near-zero-traffic, 17-day extrapolation --
+# never cross-checked against a real bill. A real prod invoice has since confirmed
+# actual monthly spend of $900-1000, more than double that estimate. 1400 gives
+# ~40-55% headroom above the confirmed $900-1000 range so the 80%-actual alarm
+# (below) sits above normal observed spend and doesn't fire on routine billing,
+# while still catching a genuine cost blow-out early. Revisit once more than one
+# real invoice cycle is available -- one data point is a start, not a trend.
+MONTHLY_BUDGET_USD = 1400
 # Both thresholds are PERCENTAGE-based (see notifications_with_subscribers below),
 # so they rescale automatically with MONTHLY_BUDGET_USD -- no separate edit needed.
-BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% ($320)
-BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed $400
+BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% ($1,120)
+BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed $1,400
 
 
 class AlertsStack(Stack):
