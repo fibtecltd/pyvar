@@ -315,7 +315,7 @@ def z_spread_calculator(
 
 
 def asset_swap_spread(
-    bond_price: float,
+    bond_price: float,  # accepted but currently unused, see docstring note
     cashflows: np.ndarray,
     times: np.ndarray,
     swap_rates: np.ndarray,
@@ -328,8 +328,13 @@ def asset_swap_spread(
     annuity of the swap's fixed-leg PV01:
     ``ASW = (PV_bond − par) / annuity``, expressed in basis points.
 
+    Note: ``bond_price`` is accepted for API-compatibility but does not
+    affect the result — ``PV_bond`` in the formula above is derived
+    internally by discounting ``cashflows``/``times`` at ``swap_rates``,
+    not from the observed ``bond_price`` passed in.
+
     Args:
-        bond_price: Bond dirty price.
+        bond_price: Bond dirty price. Currently unused — see note above.
         cashflows: Bond cashflows.
         times: Cashflow times (years).
         swap_rates: Per-period swap zero rate (decimal).

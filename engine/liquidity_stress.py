@@ -190,16 +190,17 @@ def combined_stress_scenario(
 ) -> dict:  # type: ignore[type-arg]
     """Combined idiosyncratic + market-wide stress scenario.
 
+    This is NOT the BCBS 238 reference combined scenario: BCBS 238's own
+    combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off
+    the LCR's own regulator-set retail run-off categories (3%/5%/10%
+    depending on deposit stability), whereas this function applies its own
+    flat 15% retail / 100% wholesale run-off convention instead.
+
     Models a firm-specific shock occurring inside a market-wide crisis:
     liability run-off is aggravated (default 15% retail, 100% wholesale)
     *and* HQLA value is reduced by stressed market haircuts, simultaneously.
-
-    NOT the Basel/EBA reference scenario, despite a prior version of this
-    docstring claiming that: BCBS 238's own combined idiosyncratic +
-    market-wide scenario (§II paras 19-20) runs off the LCR's own regulator-
-    set retail run-off categories (3%/5%/10% depending on deposit
-    stability), not a flat 15% -- the 15%/100% defaults here are an internal
-    convention, not the Basel figures. Found during the Tier 3 #2 audit.
+    (Found during the Tier 3 #2 audit — a prior version of this docstring
+    incorrectly claimed this was the Basel/EBA reference scenario.)
 
     Args:
         retail_deposits: Retail deposit balance.
@@ -282,10 +283,14 @@ def intraday_liquidity_monitor(
 ) -> dict:  # type: ignore[type-arg]
     """Intraday liquidity monitor (BCBS 248).
 
+    Of the two figures reported, only ``net_debit_peak`` (the largest negative
+    cumulative position) is the genuine BCBS 248 "largest net debit position"
+    monitoring tool — ``max_usage`` is this codebase's own additional metric,
+    not one of BCBS 248's own monitoring tools.
+
     Tracks the intraday liquidity position from time-stamped net payment flows
     and reports the peak usage (largest negative intraday position relative to
-    the opening balance) and the largest net debit position — the BCBS 248
-    monitoring tools.
+    the opening balance) and the largest net debit position.
 
     Args:
         timestamps: Monotonic intraday timestamps (seconds/minutes from open).
@@ -327,6 +332,11 @@ def intraday_liquidity_stress_test(
     inflow_delay_shock: float = 0.0,
 ) -> dict:  # type: ignore[type-arg]
     """Intraday liquidity stress test (BCBS 248 stress scenarios).
+
+    This is this codebase's own internal stress design — delaying a fraction
+    of positive intraday inflows — set in the context of BCBS 248's intraday-
+    liquidity monitoring framework; it is not BCBS 248's own prescribed stress
+    design.
 
     Stresses the intraday profile by delaying a fraction of *inflows* (positive
     flows): a ``delay_factor`` of expected inflows is removed from the intraday

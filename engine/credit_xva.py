@@ -181,6 +181,10 @@ def funding_valuation_adjustment_fva(
 ) -> dict:  # type: ignore[type-arg]
     """Funding Valuation Adjustment — cost of funding uncollateralised exposure.
 
+    Note: when ``survival_probability`` is omitted it defaults to 1 at every
+    bucket, i.e. the FVA is computed with no counterparty-default
+    conditioning applied.
+
     ``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` — the present
     value of the funding-spread carry on the expected exposure over each
     interval, conditional on counterparty survival.

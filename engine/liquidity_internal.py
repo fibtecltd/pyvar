@@ -206,6 +206,10 @@ def contingent_liquidity_risk(
 ) -> dict:  # type: ignore[type-arg]
     """Contingent liquidity risk from undrawn commitments and guarantees.
 
+    When ``ccf`` is not supplied it defaults to 1.0 for every commitment,
+    i.e. full drawdown of each commitment is assumed in the expected-outflow
+    calculation unless a lower conversion factor is explicitly passed.
+
     Estimates the expected contingent outflow as ``commitment * draw_probability
     * credit-conversion-factor`` — the liquidity that off-balance-sheet
     commitments (undrawn lines, guarantees) could absorb in stress.

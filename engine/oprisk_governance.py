@@ -257,15 +257,23 @@ def business_continuity_risk_score(
     max_tolerable_downtime: float,
     bcp_maturity: float,
 ) -> dict:  # type: ignore[type-arg]
-    """Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.
+    """Business-continuity risk from RTO versus tolerance and BCP maturity.
 
     Flags where the recovery time objective (RTO) exceeds the maximum tolerable
     downtime (MTD) and discounts the residual risk by BCP maturity. A breach of
     MTD is the dominant driver.
 
+    Note:
+        ``rpo_hours`` is accepted as an input (and range-validated) but does
+        not currently affect the computed score — only ``rto_hours`` versus
+        ``max_tolerable_downtime`` and ``bcp_maturity`` drive
+        ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)
+        for the triage of this dead parameter.
+
     Args:
         rto_hours: Recovery time objective in hours.
-        rpo_hours: Recovery point objective in hours.
+        rpo_hours: Recovery point objective in hours. Validated but not
+            currently used in the score computation (see Note above).
         max_tolerable_downtime: Maximum tolerable downtime in hours (> 0).
         bcp_maturity: BCP programme maturity in [0, 1].
 

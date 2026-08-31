@@ -51,6 +51,9 @@ def mifid_ii_transaction_report_validator(
 ) -> dict:  # type: ignore[type-arg]
     """MiFID II / RTS 22 transaction report field validator.
 
+    This checks a representative core subset of 9 fields, not full-schema
+    coverage of RTS 22's roughly 65 mandatory transaction-report fields.
+
     Checks the presence and basic validity of the mandatory transaction-report
     fields (LEI length, ISIN length, positive price/quantity).
 
@@ -160,6 +163,10 @@ def mifid_ii_best_execution_metric(
 ) -> dict:  # type: ignore[type-arg]
     """MiFID II best-execution TCA metric -- internal, NOT an RTS 27/28 figure.
 
+    This is an internal TCA (transaction cost analysis) metric only; neither
+    RTS 27 nor RTS 28 defines a prescribed quantitative figure that this
+    function reproduces.
+
     Computes the quantity-weighted price improvement (or slippage) of executions
     versus a reference (e.g. EBBO) price, in basis points. Positive means price
     improvement for the client.
@@ -216,6 +223,9 @@ def mifid_ii_algorithm_documentation(
 ) -> dict:  # type: ignore[type-arg]
     """MiFID II RTS 6 algorithmic-trading documentation completeness check.
 
+    The 6-item checklist below is this codebase's own internal choice, not a
+    checklist published by RTS 6 itself.
+
     Verifies that the mandatory governance and control documentation items for
     an algorithmic trading strategy are present.
 
@@ -247,6 +257,9 @@ def emir_trade_repository_report(
     trade: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """EMIR trade repository report builder/validator.
+
+    This validates a representative core subset of 6 fields, not full-schema
+    coverage of EMIR REFIT's roughly 200 reportable fields.
 
     Validates the core EMIR reporting fields (counterparty LEIs, UTI, notional,
     asset class) and echoes a normalised report.
@@ -388,6 +401,9 @@ def sftr_securities_finance_report(
     transaction: dict,  # type: ignore[type-arg]
 ) -> dict:  # type: ignore[type-arg]
     """SFTR securities-financing transaction report builder/validator.
+
+    This validates a representative core subset of 6 fields, not full-schema
+    coverage of SFTR's complete field set.
 
     Validates the core SFTR fields for an SFT (repo, securities lending, buy-
     sell back, margin lending): counterparties, UTI, collateral and the SFT

@@ -198,6 +198,9 @@ def hqla_level_1_asset_classifier(
 ) -> dict:  # type: ignore[type-arg]
     """Classify and value Level 1 HQLA.
 
+    When ``haircuts`` is not supplied it defaults to all zeros, i.e. no
+    haircut is applied and every asset is valued at full market value.
+
     Level 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign debt)
     receive a 0% haircut by default and have no composition cap (BCBS 238 §50).
 
@@ -236,6 +239,10 @@ def hqla_level_2a_asset_classifier(
 ) -> dict:  # type: ignore[type-arg]
     """Classify and value Level 2A HQLA.
 
+    Unlike Level 1's zero-by-default haircut array, ``haircut`` here is a
+    single scalar applied uniformly to every asset in ``asset_values``, and
+    the function enforces a minimum of 15%.
+
     Level 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-
     grade corporates) carry a minimum 15% haircut (BCBS 238 §52).
 
@@ -266,6 +273,11 @@ def hqla_level_2b_asset_classifier(
     haircut: float = _HAIRCUT_2B_MIN,
 ) -> dict:  # type: ignore[type-arg]
     """Classify and value Level 2B HQLA.
+
+    As with Level 2A, ``haircut`` is a single scalar applied uniformly to
+    every asset in ``asset_values`` rather than a per-asset array; the
+    function enforces a minimum of 25% (pass 0.50 for the lower-grade
+    corporate/equity sub-bucket).
 
     Level 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying
     equities 50% haircut) carry a minimum 25% haircut (BCBS 238 §54).
