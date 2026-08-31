@@ -228,7 +228,14 @@ async function submitRegistration() {
       body: JSON.stringify({ email }),
     });
     if (!res.ok) throw new Error('request failed');
-    statusEl.textContent = "Check your email for a verification link (if it doesn't arrive — no email transport is wired up yet in dev; ask an operator to check the API logs).";
+    // Show the API's own message (schemas/auth.py::RegisterResponse) rather
+    // than a hardcoded guess — it was previously a leftover dev-only string
+    // ("no email transport is wired up yet in dev...") shown verbatim in
+    // prod regardless of whether the email actually sent, which masked a
+    // real prod delivery failure instead of surfacing it.
+    const data = await res.json().catch(() => ({}));
+    statusEl.textContent =
+      data.message || "Check your email for a verification link.";
     statusEl.className = 'get-key-status get-key-ok';
     input.value = '';
   } catch (e) {
