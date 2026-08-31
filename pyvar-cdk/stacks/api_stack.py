@@ -277,6 +277,26 @@ class ApiStack(Stack):
                 "S3_BUCKET": data.result_bucket.bucket_name,
                 "PUBLIC_DATA_BUCKET": public_data_bucket_name,
                 "CELERY_RESULT_BACKEND": f"rediss://{data.cache.attr_endpoint_address}:6379/0?ssl_cert_reqs=CERT_NONE",
+                # Was missing entirely -- config.py's ses_sender_email default
+                # ("noreply@pyvar.com") was silently used in every environment,
+                # including prod, which is granted SendEmail on a DIFFERENT SES
+                # identity (cfg.ses_domain_name == "mail.pyvar.com" -- ses_stack.py
+                # -- chosen specifically because dev already owns the pyvar.com
+                # identity). Every prod registration therefore 403'd on SES with
+                # "not authorized to perform ses:SendEmail on resource
+                # .../identity/pyvar.com" (send_verification_email's own
+                # deliberately-non-fatal except swallowed it, so /auth/register
+                # still returned 202 with no email ever sent). Deriving this from
+                # cfg.ses_domain_name -- the SAME field ses_stack.py/api_stack.py's
+                # IAM grant already key off -- instead of hardcoding a second
+                # "mail.pyvar.com" literal here ties sender address and granted
+                # identity together permanently; they cannot drift apart again.
+                # "noreply@" needs no real inbox to exist -- SES's identity grant
+                # authorizes the DOMAIN for sending, not any particular mailbox,
+                # and outbound-only transactional mail was never going to accept
+                # replies anyway (dev has sent successfully from noreply@pyvar.com
+                # this whole time with no real inbox behind it either).
+                "SES_SENDER_EMAIL": f"noreply@{cfg.ses_domain_name}",
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).
