@@ -1,16 +1,49 @@
-# Official Claude Code marketplace — submission content
+# Claude Code plugin marketplace — submission content
 
-**Purpose:** prepared content for submitting pyvar's plugin marketplace to
-Anthropic's official, curated Claude Code plugin marketplace
-(`anthropics/claude-plugins-official`), distinct from the self-hosted
-marketplace pyvar already ships (`.claude-plugin/marketplace.json`,
-installable today via `/plugin marketplace add fibtecltd/pyvar`).
+**Correction (2026-08-31):** this document's original premise was wrong and
+is corrected here rather than silently rewritten, since the wrong premise
+was already acted on once (P11 item 7 called it a submission to "the
+official marketplace"). Verified directly against
+https://code.claude.com/docs/en/plugins ("Submit your plugin to the
+community marketplace" section):
 
-**Submission form:** https://clau.de/plugin-directory-submission — this is
-very likely gated behind an authenticated action tied to the submitter's
-GitHub identity/repo ownership. This session cannot complete the form itself;
-the content below is prepared for whoever does (the user, or their
-separately-delegated agent).
+- **`claude-plugins-official`** (the one this doc originally targeted) has
+  **no submission process at all**. It's curated entirely at Anthropic's own
+  discretion — quoting the docs verbatim: *"There is no application process,
+  and the submission form does not add plugins to the official
+  marketplace."* The `clau.de/plugin-directory-submission` URL this doc
+  previously cited does not resolve to a form; it redirects to the docs page
+  above.
+- **`claude-plugins-community`** is the real, submittable public
+  marketplace — third-party submissions land there after review. This is
+  what the content below now targets.
+- Distinct from both: the self-hosted marketplace pyvar already ships
+  (`.claude-plugin/marketplace.json`), installable today via
+  `/plugin marketplace add fibtecltd/pyvar` — unaffected by any of this.
+
+**Real submission mechanism, two authenticated in-app forms (pick one):**
+- **claude.ai**: https://claude.ai/admin-settings/directory/submissions/plugins/new
+  — requires a Team/Enterprise organization and directory management access
+  (org Owners have this by default).
+- **Console**: https://platform.claude.com/plugins/submit — for individual
+  authors not part of a Team/Enterprise org.
+
+Both are authenticated web forms tied to the submitter's own claude.ai/Console
+identity — **not something a Claude Code session can complete on the user's
+behalf**, and not something to request credentials for. What this session
+*can* and did do: run the same local check the review pipeline runs before
+accepting a submission —
+
+```
+claude plugin validate ./plugins/<name>
+```
+
+against all 13 real plugin directories (`plugins/arch/` itself is a grouping
+folder, not a plugin — its 5 subdirectories are the real ones). **All 13
+pass cleanly** (`✔ Validation passed`, `mcp` included) — confirmed
+2026-08-31. The content below is prepared for whoever completes the actual
+form (the user, or their separately-delegated agent with access to the
+user's claude.ai/Console identity).
 
 ---
 
