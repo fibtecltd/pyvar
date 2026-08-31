@@ -165,6 +165,11 @@ def credit_default_swap_cds_pricer(
     ``(1−R) · Σ DF · (Q_{i−1} − Q_i)`` with survival ``Q(t)=e^{−λt}``. The par
     spread zeroes the swap value.
 
+    Note: default and coupon events are settled at each period end (``t_i``)
+    rather than at the accrual midpoint — a deliberate discretisation choice
+    validated by a convergence check against QuantLib's midpoint-settlement
+    CDS engine, not an exact-match assertion.
+
     Args:
         notional: CDS notional.
         spread: Contractual spread (decimal, annual).
