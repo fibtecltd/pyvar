@@ -95,6 +95,10 @@ def kupiec_pof_test(
     ``p = 1 − confidence_level``. The statistic is chi-squared with 1 dof;
     rejection uses the 95% critical value.
 
+    At the boundary cases ``x = 0`` or ``x = n`` (zero or 100% observed breach
+    rate) the likelihood ratio is computed with a simplified one-sided form to
+    avoid ``ln(0)``; the general two-sided expression applies for ``0 < x < n``.
+
     Args:
         n_breaches: Number of VaR breaches observed.
         n_observations: Number of backtest observations.
@@ -139,6 +143,10 @@ def christoffersen_independence_test(breaches: np.ndarray) -> dict:  # type: ign
     Likelihood-ratio test that breaches are serially independent (no
     clustering), via a first-order Markov transition model. Chi-squared with
     1 dof at the 95% critical value.
+
+    The four transition counts (n00, n01, n10, n11) that drive the likelihood
+    ratio are derived internally from the ``breaches`` sequence itself, not
+    supplied as separate arguments.
 
     Args:
         breaches: Binary breach sequence (1 = breach, 0 = no breach).
@@ -307,6 +315,9 @@ def var_breach_cluster_analysis(breaches: np.ndarray) -> dict:  # type: ignore[t
     Reports the number of breach clusters (maximal runs of consecutive
     breaches), the longest run, and the mean run length — diagnostics for the
     independence assumption that the Christoffersen test formalises.
+
+    This is an algorithmic run-length computation over the breach sequence,
+    not a closed-form statistic.
 
     Args:
         breaches: Binary breach sequence (1 = breach, 0 = no breach).
