@@ -1,9 +1,10 @@
 """engine/deriv_options_exotic.py — Exotic option pricers (Derivatives & Pricing).
 
-Digital, barrier (closed-form Reiner-Rubinstein), Asian (MC arithmetic average),
-lookback (MC floating strike), American (Longstaff-Schwartz LSM), Bermudan
-(discrete-exercise LSM), rainbow (best/worst-of, MC), basket (MC), spread (Kirk
-approximation), compound (Geske, MC), and chooser options.
+Digital, barrier (closed-form Reiner-Rubinstein, with a modelled rebate leg),
+Asian (MC arithmetic average), lookback (MC floating strike), American
+(Longstaff-Schwartz LSM), Bermudan (discrete-exercise LSM), rainbow
+(best/worst-of, MC), basket (MC), spread (Kirk approximation), compound
+(Geske 1979 exact closed form), and chooser options.
 
 Numba rules (CLAUDE.md §3.1): MC path kernels are stateless @njit(cache=True)
 consuming pre-drawn normals. The LSM regression is done in pure Python (NumPy
@@ -17,6 +18,7 @@ import math
 import numpy as np
 from numba import njit, prange
 from scipy import stats
+from scipy.optimize import brentq
 
 from engine.deriv_options_vanilla import black_scholes_european_option
 
@@ -100,16 +102,21 @@ def barrier_option_pricer(
     div_yield: float = 0.0,
     rebate: float = 0.0,
 ) -> dict:  # type: ignore[type-arg]
-    """Single-barrier option price (Reiner-Rubinstein closed form).
+    """Single-barrier option price (Reiner-Rubinstein closed form), with a
+    modelled rebate leg.
 
-    Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the four
-    standard combinations is supported. Rebates are not modelled (set to 0).
+    Uses the in-out parity ``knock-in + knock-out = vanilla`` for the *pure*
+    (no-rebate) option legs, so any of the four standard combinations is
+    supported. A nonzero ``rebate`` adds the standard Reiner-Rubinstein cash
+    rebate term on top of that pure leg: for a knock-in, the rebate is paid
+    at expiry if the barrier is never touched (the "E" term below); for a
+    knock-out, the rebate is paid at the moment the barrier is touched (the
+    "F" term below) -- the standard two rebate conventions (Haug, *The
+    Complete Guide to Option Pricing Formulas*, "Standard Barrier Options").
 
     Note: only the general Reiner-Rubinstein building blocks (A/B/C/D) are
     shown here — which combination prices the knock-in leg depends on
-    ``option_type``, ``barrier_type``, and whether strike exceeds barrier —
-    and a rebate-related lambda term is computed but never used, consistent
-    with rebates always pricing as 0.
+    ``option_type``, ``barrier_type``, and whether strike exceeds barrier.
 
     Args:
         spot: Underlying spot.
@@ -122,10 +129,13 @@ def barrier_option_pricer(
         barrier_type: One of ``down-and-out``, ``down-and-in``, ``up-and-out``,
             ``up-and-in``.
         div_yield: Continuous dividend yield.
-        rebate: Unused placeholder (kept for API compatibility).
+        rebate: Cash amount paid if the option ends up worthless because of
+            the barrier -- at expiry (no touch) for a knock-in, at the touch
+            time for a knock-out. 0 (default) reproduces the no-rebate price.
 
     Returns:
-        Dict with ``price`` and the vanilla reference ``vanilla``.
+        Dict with ``price`` (pure option leg plus the rebate leg) and the
+        vanilla reference ``vanilla``.
 
     Raises:
         ValueError: If inputs are invalid.
@@ -142,10 +152,11 @@ def barrier_option_pricer(
     is_down = barrier_type.startswith("down")
     eta = 1.0 if is_down else -1.0
     mu = (rate - div_yield - 0.5 * sigma * sigma) / (sigma * sigma)
-    _lam = math.sqrt(mu * mu + 2.0 * rate / (sigma * sigma))
+    lam = math.sqrt(mu * mu + 2.0 * rate / (sigma * sigma))
     sqrt_t = math.sqrt(tau)
     disc_q = math.exp(-div_yield * tau)
     disc_r = math.exp(-rate * tau)
+    h_over_s = barrier / spot
 
     def _cnd(x: float) -> float:
         return float(stats.norm.cdf(x))
@@ -157,6 +168,7 @@ def barrier_option_pricer(
         + (1.0 + mu) * sigma * sqrt_t
     )
     y2 = math.log(barrier / spot) / (sigma * sqrt_t) + (1.0 + mu) * sigma * sqrt_t
+    z = math.log(h_over_s) / (sigma * sqrt_t) + lam * sigma * sqrt_t
 
     a = phi * spot * disc_q * _cnd(phi * x1) - phi * strike * disc_r * _cnd(
         phi * x1 - phi * sigma * sqrt_t
@@ -175,33 +187,45 @@ def barrier_option_pricer(
         eta * y2 - eta * sigma * sqrt_t
     )
 
+    # Reiner-Rubinstein rebate terms: E is paid at expiry (knock-in, only if
+    # never touched); F is paid at the touch time (knock-out, only if
+    # touched). Both are 0 when rebate == 0.
+    rebate_at_expiry = (
+        rebate
+        * disc_r
+        * (
+            _cnd(eta * x2 - eta * sigma * sqrt_t)
+            - h_over_s ** (2.0 * mu) * _cnd(eta * y2 - eta * sigma * sqrt_t)
+        )
+    )
+    rebate_at_touch = rebate * (
+        h_over_s ** (mu + lam) * _cnd(eta * z)
+        + h_over_s ** (mu - lam) * _cnd(eta * z - 2.0 * eta * lam * sigma * sqrt_t)
+    )
+
     vanilla = black_scholes_european_option(spot, strike, rate, sigma, tau, option_type, div_yield)[
         "price"
     ]
     strike_gt_barrier = strike > barrier
 
-    # Knock-in closed forms (Haug tables); knock-out by in-out parity.
-    if barrier_type == "down-and-in":
+    # Pure (no-rebate) knock-in closed form (Haug tables); the pure
+    # knock-out leg follows by in-out parity, independent of the rebate.
+    if is_down:
         if option_type == "call":
-            ki = c if strike_gt_barrier else a - b + d
+            ki_pure = c if strike_gt_barrier else a - b + d
         else:
-            ki = b - c + d if strike_gt_barrier else a
-    elif barrier_type == "up-and-in":
-        if option_type == "call":
-            ki = a if strike_gt_barrier else b - c + d
-        else:
-            ki = a - b + d if strike_gt_barrier else c
+            ki_pure = b - c + d if strike_gt_barrier else a
     else:
-        ki = None
+        if option_type == "call":
+            ki_pure = a if strike_gt_barrier else b - c + d
+        else:
+            ki_pure = a - b + d if strike_gt_barrier else c
 
     if barrier_type.endswith("in"):
-        price = ki
-    else:  # knock-out via parity
-        in_type = barrier_type.replace("out", "in")
-        ki_price = barrier_option_pricer(
-            spot, strike, barrier, rate, sigma, tau, option_type, in_type, div_yield
-        )["price"]
-        price = vanilla - ki_price
+        price = ki_pure + rebate_at_expiry
+    else:
+        ko_pure = vanilla - ki_pure
+        price = ko_pure + rebate_at_touch
     return {"price": round(float(max(price, 0.0)), 8), "vanilla": round(float(vanilla), 8)}
 
 
@@ -1362,6 +1386,191 @@ def spread_option_kirk_approximation(
     return {"price": round(float(max(price, 0.0)), 8)}
 
 
+def _compound_bivariate_cdf(x: float, y: float, rho: float) -> float:
+    """Standard bivariate normal CDF ``M(x, y; rho)`` (Geske's compound formula
+    building block). Symmetric in ``x``/``y`` for fixed ``rho``.
+    """
+    cov = [[1.0, rho], [rho, 1.0]]
+    return float(stats.multivariate_normal(mean=[0.0, 0.0], cov=cov).cdf([x, y]))
+
+
+def _compound_critical_price(
+    strike_underlying: float,
+    strike_compound: float,
+    rate: float,
+    sigma: float,
+    tau_resid: float,
+    under_type: str,
+    div_yield: float,
+) -> float:
+    """Critical spot ``I`` at the compound expiry s.t. the underlying option's
+    Black-Scholes value there equals ``strike_compound`` (Geske 1979's ``S*``).
+
+    The underlying value is monotonic in spot (increasing for a call,
+    decreasing for a put), so a Brent root always exists once the bracket is
+    wide enough -- expanded geometrically until it brackets a sign change.
+    """
+
+    def _f(spot_: float) -> float:
+        return (
+            black_scholes_european_option(
+                spot_, strike_underlying, rate, sigma, tau_resid, under_type, div_yield
+            )["price"]
+            - strike_compound
+        )
+
+    lo, hi = 1e-8, max(strike_underlying, 1.0) * 4.0
+    f_lo, f_hi = _f(lo), _f(hi)
+    tries = 0
+    while f_lo * f_hi > 0.0 and tries < 60:
+        hi *= 2.0
+        f_hi = _f(hi)
+        tries += 1
+    if f_lo * f_hi > 0.0:
+        raise ValueError(
+            "compound_option_pricer: no critical price found for these inputs "
+            "-- strike_compound is outside the underlying option's attainable "
+            "value range"
+        )
+    return float(brentq(_f, lo, hi, xtol=1e-10, rtol=1e-12, maxiter=200))
+
+
+def _geske_compound_price(
+    spot: float,
+    strike_underlying: float,
+    strike_compound: float,
+    rate: float,
+    sigma: float,
+    tau_compound: float,
+    tau_underlying: float,
+    compound_type: str,
+    div_yield: float,
+) -> float:
+    """Geske (1979) closed-form compound-option price (all four types).
+
+    d-terms follow the standard restatement (e.g. Haug, *The Complete Guide
+    to Option Pricing Formulas*, "Compound options"; Hull, *Options, Futures
+    and Other Derivatives*, ch. "Exotic options"): with ``I`` the critical
+    spot at ``tau_compound`` where the underlying option is worth
+    ``strike_compound``,
+
+        a1 = [ln(S/I) + (b + sigma^2/2) tau_c] / (sigma sqrt(tau_c)), a2 = a1 - sigma sqrt(tau_c)
+        b1 = [ln(S/K2) + (b + sigma^2/2) tau_u] / (sigma sqrt(tau_u)), b2 = b1 - sigma sqrt(tau_u)
+        rho = sqrt(tau_c / tau_u),  b = rate - div_yield
+
+    and ``M`` the bivariate normal CDF. Verified internally via the
+    compound put-call parity identity ``CallOnX - PutOnX = V_under(S) -
+    e^{-r tau_c} K1`` (true because a European option's discounted price
+    process is itself a martingale under the risk-neutral measure) -- see
+    ``tests/validation/test_derivatives_ref.py``.
+    """
+    under_type = "call" if compound_type.endswith("call") else "put"
+    outer_is_call = compound_type.startswith("call")
+    tau_resid = tau_underlying - tau_compound
+
+    crit = _compound_critical_price(
+        strike_underlying, strike_compound, rate, sigma, tau_resid, under_type, div_yield
+    )
+
+    sqrt_t1 = math.sqrt(tau_compound)
+    sqrt_t2 = math.sqrt(tau_underlying)
+    rho = sqrt_t1 / sqrt_t2
+    b = rate - div_yield
+
+    a1 = (math.log(spot / crit) + (b + 0.5 * sigma * sigma) * tau_compound) / (sigma * sqrt_t1)
+    a2 = a1 - sigma * sqrt_t1
+    b1 = (math.log(spot / strike_underlying) + (b + 0.5 * sigma * sigma) * tau_underlying) / (
+        sigma * sqrt_t2
+    )
+    b2 = b1 - sigma * sqrt_t2
+
+    disc_q2 = math.exp((b - rate) * tau_underlying)  # = e^{-div_yield * tau_underlying}
+    disc_r2 = math.exp(-rate * tau_underlying)
+    disc_r1 = math.exp(-rate * tau_compound)
+    n_cdf = stats.norm.cdf
+
+    if outer_is_call and under_type == "call":  # call-on-call
+        price = (
+            spot * disc_q2 * _compound_bivariate_cdf(a1, b1, rho)
+            - strike_underlying * disc_r2 * _compound_bivariate_cdf(a2, b2, rho)
+            - disc_r1 * strike_compound * float(n_cdf(a2))
+        )
+    elif not outer_is_call and under_type == "call":  # put-on-call
+        price = (
+            strike_underlying * disc_r2 * _compound_bivariate_cdf(-a2, b2, -rho)
+            - spot * disc_q2 * _compound_bivariate_cdf(-a1, b1, -rho)
+            + disc_r1 * strike_compound * float(n_cdf(-a2))
+        )
+    elif outer_is_call and under_type == "put":  # call-on-put
+        price = (
+            strike_underlying * disc_r2 * _compound_bivariate_cdf(-a2, -b2, rho)
+            - spot * disc_q2 * _compound_bivariate_cdf(-a1, -b1, rho)
+            - disc_r1 * strike_compound * float(n_cdf(-a2))
+        )
+    else:  # put-on-put
+        price = (
+            spot * disc_q2 * _compound_bivariate_cdf(a1, -b1, -rho)
+            - strike_underlying * disc_r2 * _compound_bivariate_cdf(a2, -b2, -rho)
+            + disc_r1 * strike_compound * float(n_cdf(a2))
+        )
+    return float(max(price, 0.0))
+
+
+def _compound_option_pricer_mc(
+    spot: float,
+    strike_underlying: float,
+    strike_compound: float,
+    rate: float,
+    sigma: float,
+    tau_compound: float,
+    tau_underlying: float,
+    compound_type: str,
+    div_yield: float,
+    n_simulations: int,
+    seed: int,
+) -> dict:  # type: ignore[type-arg]
+    """Monte Carlo cross-check for ``compound_option_pricer``: simulate the
+    underlying asset to the compound expiry, price the underlying option
+    analytically (Black-Scholes) at each path, then discount the compound
+    payoff. This was the production implementation before the Geske
+    closed-form (below) replaced it; kept here as an independent numerical
+    reference for ``tests/validation/test_derivatives_ref.py``, not part of
+    the public API.
+    """
+    under_type = "call" if compound_type.endswith("call") else "put"
+    outer_is_call = compound_type.startswith("call")
+    z = np.random.default_rng(seed).standard_normal(int(n_simulations))
+
+    tau_resid = tau_underlying - tau_compound
+    drift = (rate - div_yield - 0.5 * sigma * sigma) * tau_compound
+    vol = sigma * math.sqrt(tau_compound)
+    s_mid = spot * np.exp(drift + vol * z)
+    sqrt_r = math.sqrt(tau_resid)
+    d1 = (np.log(s_mid / strike_underlying) + (rate - div_yield + 0.5 * sigma**2) * tau_resid) / (
+        sigma * sqrt_r
+    )
+    d2 = d1 - sigma * sqrt_r
+    disc_r = math.exp(-rate * tau_resid)
+    disc_q = math.exp(-div_yield * tau_resid)
+    if under_type == "call":
+        under_val = s_mid * disc_q * stats.norm.cdf(
+            d1
+        ) - strike_underlying * disc_r * stats.norm.cdf(d2)
+    else:
+        under_val = strike_underlying * disc_r * stats.norm.cdf(
+            -d2
+        ) - s_mid * disc_q * stats.norm.cdf(-d1)
+    pay = (
+        np.maximum(under_val - strike_compound, 0.0)
+        if outer_is_call
+        else np.maximum(strike_compound - under_val, 0.0)
+    )
+    disc_payoff = np.asarray(math.exp(-rate * tau_compound) * pay, dtype=np.float64)
+    price = float(np.mean(disc_payoff))
+    se = float(np.std(disc_payoff) / math.sqrt(n_simulations))
+    return {"price": round(price, 8), "std_error": round(se, 8)}
+
+
 def compound_option_pricer(
     spot: float,
     strike_underlying: float,
@@ -1376,16 +1585,10 @@ def compound_option_pricer(
     seed: int = 81,
     greeks: bool = False,
 ) -> dict:  # type: ignore[type-arg]
-    """Compound option (option-on-option) price via nested valuation / MC.
+    """Compound option (option-on-option) price via the Geske (1979) closed form.
 
-    Simulates the underlying asset to the compound expiry, computes the
-    Black-Scholes value of the underlying option there, then discounts the
-    compound payoff. Supports the four standard compound types.
-
-    Note: despite the module docstring calling this the "Geske" compound
-    option, the underlying option's value at the simulated compound expiry is
-    priced analytically via Black-Scholes at each path, not via the classical
-    Geske closed-form bivariate-normal formula.
+    Supports the four standard compound types (call/put on call/put). See
+    ``_geske_compound_price`` for the exact d-term algebra and its citation.
 
     Args:
         spot: Underlying spot.
@@ -1395,23 +1598,31 @@ def compound_option_pricer(
         sigma: Volatility (> 0).
         tau_compound: Time to the compound option expiry.
         tau_underlying: Time to the underlying option expiry (> tau_compound).
-        n_simulations: Number of paths.
+        n_simulations: Unused by the closed-form price; retained for
+            backward-compatible call signatures (was the MC path count
+            before this function switched from Monte Carlo to the exact
+            Geske formula -- see ``_compound_option_pricer_mc`` for that
+            retained reference implementation).
         compound_type: ``call-on-call``, ``call-on-put``, ``put-on-call``,
             ``put-on-put``.
         div_yield: Continuous dividend yield.
-        seed: RNG seed.
+        seed: Unused by the closed-form price; retained for the same reason
+            as ``n_simulations``.
         greeks: Also compute delta/gamma/vega/theta/rho via bump-and-reprice
-            (see ``_bump_reprice_greeks``) on the same pre-drawn normals used
-            for the base price. theta bumps ``tau_compound`` (the compound
-            leg's own time to expiry) while holding ``tau_underlying`` fixed
-            -- i.e. both the compound's remaining life and the underlying
-            option's residual tenor from that later date shrink together, the
-            usual "time passing today" interpretation. Defaults to False so
-            existing callers/results are unaffected.
+            on the exact closed-form price (deterministic -- no Monte Carlo
+            noise to correlate away). theta bumps ``tau_compound`` (the
+            compound leg's own time to expiry) while holding
+            ``tau_underlying`` fixed -- i.e. both the compound's remaining
+            life and the underlying option's residual tenor from that later
+            date shrink together, the usual "time passing today"
+            interpretation. Defaults to False so existing callers/results
+            are unaffected.
 
     Returns:
-        Dict with ``price``, ``std_error``, and if ``greeks=True`` also
-        ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
+        Dict with ``price``, ``std_error`` (always ``0.0`` -- the price is
+        now exact, not simulated; kept for response-shape compatibility),
+        and if ``greeks=True`` also ``delta``, ``gamma``, ``vega``, ``theta``,
+        ``rho``.
 
     Raises:
         ValueError: If inputs are invalid.
@@ -1424,52 +1635,23 @@ def compound_option_pricer(
     if tau_underlying <= tau_compound:
         raise ValueError("tau_underlying must exceed tau_compound")
 
-    under_type = "call" if compound_type.endswith("call") else "put"
-    outer_is_call = compound_type.startswith("call")
-
-    z = np.random.default_rng(seed).standard_normal(int(n_simulations))
-
-    def _compound_disc_payoff(
-        spot_: float, rate_: float, sigma_: float, tau_compound_: float
-    ) -> np.ndarray:
-        tau_resid_ = tau_underlying - tau_compound_
-        drift_ = (rate_ - div_yield - 0.5 * sigma_ * sigma_) * tau_compound_
-        vol_ = sigma_ * math.sqrt(tau_compound_)
-        s_mid_ = spot_ * np.exp(drift_ + vol_ * z)
-        sqrt_r_ = math.sqrt(tau_resid_)
-        d1_ = (
-            np.log(s_mid_ / strike_underlying) + (rate_ - div_yield + 0.5 * sigma_**2) * tau_resid_
-        ) / (sigma_ * sqrt_r_)
-        d2_ = d1_ - sigma_ * sqrt_r_
-        disc_r_ = math.exp(-rate_ * tau_resid_)
-        disc_q_ = math.exp(-div_yield * tau_resid_)
-        if under_type == "call":
-            under_val_ = s_mid_ * disc_q_ * stats.norm.cdf(
-                d1_
-            ) - strike_underlying * disc_r_ * stats.norm.cdf(d2_)
-        else:
-            under_val_ = strike_underlying * disc_r_ * stats.norm.cdf(
-                -d2_
-            ) - s_mid_ * disc_q_ * stats.norm.cdf(-d1_)
-        pay_ = (
-            np.maximum(under_val_ - strike_compound, 0.0)
-            if outer_is_call
-            else np.maximum(strike_compound - under_val_, 0.0)
+    def _compound_price(spot_: float, rate_: float, sigma_: float, tau_compound_: float) -> float:
+        return _geske_compound_price(
+            spot_,
+            strike_underlying,
+            strike_compound,
+            rate_,
+            sigma_,
+            tau_compound_,
+            tau_underlying,
+            compound_type,
+            div_yield,
         )
-        return np.asarray(math.exp(-rate_ * tau_compound_) * pay_, dtype=np.float64)
 
-    disc_payoff = _compound_disc_payoff(spot, rate, sigma, tau_compound)
-    price = float(np.mean(disc_payoff))
-    se = float(np.std(disc_payoff) / math.sqrt(n_simulations))
-    result = {"price": round(price, 8), "std_error": round(se, 8)}
+    price = _compound_price(spot, rate, sigma, tau_compound)
+    result = {"price": round(price, 8), "std_error": 0.0}
 
     if greeks:
-
-        def _compound_price(
-            spot_: float, rate_: float, sigma_: float, tau_compound_: float
-        ) -> float:
-            return float(np.mean(_compound_disc_payoff(spot_, rate_, sigma_, tau_compound_)))
-
         result.update(
             _bump_reprice_greeks(
                 _compound_price,
