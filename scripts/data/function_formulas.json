@@ -3455,7 +3455,7 @@
     }
   },
   "severity_distribution_fitting": {
-    "caveat": "Lognormal-only: the function raises ValueError for any distribution argument other than 'lognormal', so the formula shown is the only path the code actually executes.",
+    "caveat": "Partially resolved: now supports 'lognormal' (default), 'gamma', 'weibull' and 'gpd' (Generalized Pareto), each fit by scipy.stats MLE with location pinned at 0. Any other distribution argument still raises ValueError. The formula shown below is the lognormal path; gamma/weibull/gpd have no closed-form MLE (fit numerically via scipy.stats.gamma.fit / weibull_min.fit / genpareto.fit) so no formula_latex is given for them here.",
     "citation": null,
     "formula_latex": "\\hat\\mu = \\overline{\\ln X}, \\quad \\hat\\sigma = \\text{std}(\\ln X) \\\\ E[X] = e^{\\hat\\mu + \\hat\\sigma^2/2}",
     "symbol_map": {
