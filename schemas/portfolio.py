@@ -928,6 +928,8 @@ class RebalancingOptimiserRequest(BaseModel):
     target_weights: list[float] | list[list[float]]
     cost_bps: list[float] | list[list[float]]
     no_trade_band: float = 0.0
+    asset_volatility: list[float] | list[list[float]] | None = None
+    risk_aversion: float | None = None
 
 
 class RebalancingOptimiserResponse(BaseModel):
@@ -935,6 +937,7 @@ class RebalancingOptimiserResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    derived_no_trade_band: Any = Field(default=None)
     new_weights: Any = Field(default=None)
     total_cost: Any = Field(default=None)
     trades: Any = Field(default=None)

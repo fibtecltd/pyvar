@@ -3121,13 +3121,15 @@
     }
   },
   "rebalancing_optimiser": {
-    "caveat": "no_trade_band is a user-supplied absolute weight threshold, not one derived from cost/volatility parameters the way Leland (1999) or Donohue & Yip (2003) derive an optimal no-trade region; no published source reproduces this function's exact numbers.",
-    "citation": null,
-    "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i|",
+    "caveat": "no_trade_band defaults to a user-supplied absolute weight threshold (unchanged for backward compatibility). Pass asset_volatility and risk_aversion together to instead derive a per-asset band from the classic Constantinides (1986)/Davis & Norman (1990) asymptotic no-trade-region half-width -- the closed form Leland (1999) and Donohue & Yip (2003) build their practical rebalancing-band heuristics on. This is the classic single-asset asymptotic applied per-asset, not a reproduction of Leland's or Donohue & Yip's own published numerical examples.",
+    "citation": "Constantinides, G.M. (1986), \"Capital Market Equilibrium with Transaction Costs\", Journal of Political Economy 94(4); Davis, M.H.A. & Norman, A.R. (1990), \"Portfolio Selection with Transaction Costs\", Mathematics of Operations Research 15(4); as applied by Leland, H. (1999) and Donohue, C. & Yip, K. (2003), \"Optimal Portfolio Rebalancing with Transaction Costs\", Journal of Portfolio Management 29(4)",
+    "formula_latex": "\\Delta_i = w_i^{tgt} - w_i^{cur} \\;\\; (\\text{set } 0 \\text{ if } |\\Delta_i| < b_i) \\\\ Cost = \\sum_i |\\Delta_i| \\cdot \\frac{c_i}{10^4} \\\\ Turnover = \\frac{1}{2}\\sum_i |\\Delta_i| \\\\ \\text{(derived band, opt-in)}\\;\\; h_i = \\left(\\frac{3}{4}\\, \\frac{c_i}{10^4}\\, \\sigma_i^2\\, w_i^{tgt}(1-w_i^{tgt})^2 \\,/\\, \\gamma\\right)^{1/3}",
     "symbol_map": {
+      "asset_volatility": "\\sigma_i",
       "cost_bps": "c_i",
       "current_weights": "w_i^{cur}",
-      "no_trade_band": "b",
+      "no_trade_band": "b_i",
+      "risk_aversion": "\\gamma",
       "target_weights": "w_i^{tgt}"
     }
   },

@@ -53,29 +53,64 @@ def rebalancing_optimiser(
     target_weights: np.ndarray,
     cost_bps: np.ndarray,
     no_trade_band: float = 0.0,
+    asset_volatility: np.ndarray | None = None,
+    risk_aversion: float | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Rebalancing optimiser with a no-trade band.
 
     Computes the trades to move from current to target weights, suppressing
-    trades within ``no_trade_band`` to avoid churn, and reports turnover and
+    trades within a no-trade band to avoid churn, and reports turnover and
     total transaction cost.
 
-    ``no_trade_band`` is a user-supplied absolute weight threshold, not one
-    derived from cost/volatility parameters the way Leland (1999) or Donohue
-    & Yip (2003) construct an optimal no-trade region.
+    By default ``no_trade_band`` is a single user-supplied absolute weight
+    threshold applied uniformly to every asset (unchanged prior behaviour).
+    Supplying both ``asset_volatility`` and ``risk_aversion`` instead
+    *derives* a per-asset band from the classic Constantinides (1986) /
+    Davis & Norman (1990) asymptotic no-trade-region half-width — the
+    closed-form cube-root result that Leland's (1999) mean-variance
+    tracking-error approximation and Donohue & Yip's (2003) practitioner
+    rebalancing-band heuristic both build on:
+
+        h_i = ( (3/4) * c_i * sigma_i^2 * w_i^tgt * (1 - w_i^tgt)^2 / gamma )^(1/3)
+
+    where ``c_i`` is the proportional transaction cost (``cost_bps_i /
+    1e4``), ``sigma_i`` is asset i's return volatility, ``w_i^tgt`` is asset
+    i's target weight (the frictionless-optimal allocation the band is
+    centred on) and ``gamma`` is the investor's (CRRA) risk-aversion
+    coefficient. The half-width widens with cost and volatility (cube-root
+    scaling) and narrows as risk aversion rises — more risk-averse investors
+    tolerate less drift before trading. This is the classic single-risky-
+    asset asymptotic result applied per-asset; it is not a reproduction of
+    Leland's or Donohue & Yip's own published numerical examples (no
+    published table was available to cross-check exact figures against).
+
+    When the derived-band mode is used, it *replaces* the scalar
+    ``no_trade_band`` for that call rather than combining with it; when
+    either ``asset_volatility`` or ``risk_aversion`` is omitted, behaviour
+    is unchanged — the scalar ``no_trade_band`` is used exactly as before.
 
     Args:
         current_weights: Current portfolio weights.
         target_weights: Desired target weights.
         cost_bps: Proportional cost in basis points per asset.
-        no_trade_band: Absolute weight threshold below which no trade is made.
+        no_trade_band: Absolute weight threshold below which no trade is
+            made. Ignored when the derived-band mode is active.
+        asset_volatility: Optional per-asset return volatility (sigma_i).
+            Supply together with ``risk_aversion`` to derive the no-trade
+            band instead of using the scalar ``no_trade_band``.
+        risk_aversion: Optional CRRA risk-aversion coefficient (gamma > 0).
+            Supply together with ``asset_volatility`` to derive the band.
 
     Returns:
-        Dict with ``trades`` (per asset), ``total_cost``, ``turnover`` and the
-        post-trade ``new_weights``.
+        Dict with ``trades`` (per asset), ``total_cost``, ``turnover`` and
+        the post-trade ``new_weights``. When the derived-band mode is used,
+        also includes ``derived_no_trade_band`` (per-asset list).
 
     Raises:
-        ValueError: If the arrays differ in length or are empty.
+        ValueError: If the weight/cost arrays differ in length or are
+            empty, if exactly one of ``asset_volatility``/``risk_aversion``
+            is supplied, if ``risk_aversion`` is not positive, or if
+            ``asset_volatility`` does not match the number of assets.
     """
     cur = np.asarray(current_weights, dtype=np.float64)
     tgt = np.asarray(target_weights, dtype=np.float64)
@@ -84,19 +119,43 @@ def rebalancing_optimiser(
     if n == 0 or not (tgt.size == cost.size == n):
         raise ValueError("weight/cost arrays must be non-empty and equal length")
 
+    use_derived_band = asset_volatility is not None or risk_aversion is not None
+    if use_derived_band:
+        if asset_volatility is None or risk_aversion is None:
+            raise ValueError(
+                "asset_volatility and risk_aversion must both be supplied together "
+                "to derive the no-trade band"
+            )
+        if risk_aversion <= 0.0:
+            raise ValueError("risk_aversion must be positive")
+        vol = np.asarray(asset_volatility, dtype=np.float64)
+        if vol.size != n:
+            raise ValueError("asset_volatility must match the number of assets")
+        cost_frac = cost / 1.0e4
+        # Clip to non-negative: the closed form is derived for w in (0, 1);
+        # a target weight outside that range (short/leveraged) would
+        # otherwise drive the bracketed term negative.
+        weight_term = np.clip(tgt * (1.0 - tgt) ** 2, 0.0, None)
+        band_vec = np.cbrt(0.75 * cost_frac * vol**2 * weight_term / risk_aversion)
+    else:
+        band_vec = np.full(n, no_trade_band, dtype=np.float64)
+
     res = _rebalance_trades(cur, tgt, cost)
     trades = res[0].copy()
     # Apply the no-trade band: small drifts are not traded.
-    mask = np.abs(trades) < no_trade_band
+    mask = np.abs(trades) < band_vec
     trades[mask] = 0.0
     costs = np.abs(trades) * cost / 1.0e4
     new_weights = cur + trades
-    return {
+    out: dict = {  # type: ignore[type-arg]
         "trades": [round(float(t), 8) for t in trades],
         "new_weights": [round(float(w), 8) for w in new_weights],
         "total_cost": round(float(np.sum(costs)), 10),
         "turnover": round(0.5 * float(np.sum(np.abs(trades))), 8),
     }
+    if use_derived_band:
+        out["derived_no_trade_band"] = [round(float(b), 8) for b in band_vec]
+    return out
 
 
 def esg_score_integration(

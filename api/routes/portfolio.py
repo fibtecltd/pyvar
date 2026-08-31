@@ -1359,6 +1359,8 @@ async def rebalancing_optimiser(
     kwargs["current_weights"] = np.asarray(kwargs["current_weights"], dtype=np.float64)
     kwargs["target_weights"] = np.asarray(kwargs["target_weights"], dtype=np.float64)
     kwargs["cost_bps"] = np.asarray(kwargs["cost_bps"], dtype=np.float64)
+    if kwargs.get("asset_volatility") is not None:
+        kwargs["asset_volatility"] = np.asarray(kwargs["asset_volatility"], dtype=np.float64)
     try:
         result: Any = _e_rebalancing_optimiser(**kwargs)
     except _INPUT_ERRORS as exc:
