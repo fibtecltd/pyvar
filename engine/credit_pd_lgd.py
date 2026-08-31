@@ -341,6 +341,10 @@ def downturn_lgd_adjustment(
 ) -> dict:  # type: ignore[type-arg]
     """Basel downturn-LGD adjustment of a long-run average LGD.
 
+    Note: uses a multiplicative downturn scaling, a deliberate departure from
+    EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the
+    underlying requirement.
+
     CRR Art. 181 requires LGD to reflect economic-downturn conditions when these
     are more conservative than the long-run average. The supervisory-style
     additive add-on (EBA GL) is applied as

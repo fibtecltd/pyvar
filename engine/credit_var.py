@@ -287,6 +287,11 @@ def kmv_merton_distance_to_default(
 ) -> dict:  # type: ignore[type-arg]
     """Merton / KMV distance-to-default and implied PD.
 
+    Note: when ``asset_drift`` is omitted, the asset drift mu used in the
+    distance-to-default formula defaults to ``risk_free_rate`` (a
+    risk-neutral assumption), not an estimate of the firm's actual expected
+    asset return.
+
     In the structural Merton model the firm defaults at horizon T if asset value
     falls below the debt face value. The distance-to-default is
     ``DD = (ln(V/D) + (mu - 0.5 sigma^2) T) / (sigma sqrt(T))`` and the model PD
