@@ -348,22 +348,30 @@ enterprise services, not risk functions) is a different site.
 
 ---
 
-## 6. Item 7 — official Claude Code marketplace submission
+## 6. Item 7 — Claude Code plugin marketplace submission
 
-Researched directly rather than assumed: Anthropic maintains an official,
-curated plugin marketplace (`anthropics/claude-plugins-official`), distinct
-from the fully decentralized `/plugin marketplace add <any-repo>` mechanism
-pyvar already uses. Third-party plugins are submitted via a form
-(`clau.de/plugin-directory-submission`) and go through a quality/security
-review before appearing under `/external_plugins`.
+**Correction (2026-08-31):** re-verified directly against
+https://code.claude.com/docs/en/plugins rather than left as originally
+researched. The premise below was wrong: `claude-plugins-official` has **no
+submission process at all** — it's curated entirely at Anthropic's
+discretion, no application, and the submission form does not add plugins to
+it. `clau.de/plugin-directory-submission` doesn't resolve to a form; it
+redirects to that same docs page. The real submittable public marketplace is
+**`claude-plugins-community`**, via one of two authenticated in-app forms
+(claude.ai's directory-submissions page for Team/Enterprise orgs, or the
+Console's plugin-submit page for individual authors) — both gated behind the
+submitter's own identity, not completable by this session. Full correction
+and both real URLs: `docs/proposals/marketplace-submission-content.md`.
 
-This session prepares the submission content (what the form will ask for —
-plugin descriptions, security/trust disclosure, links) as part of PR A. The
-actual form submission is very likely gated behind an authenticated action
-tied to the submitter's identity/repo ownership, which this session cannot
-perform on the user's behalf — the user (or their separately-delegated
-agent) completes the form itself using the prepared content and the link
-above.
+This session prepared the submission content (what the form asks for —
+plugin descriptions, security/trust disclosure, links) as part of PR A, and
+separately ran `claude plugin validate` (the same check the real review
+pipeline runs) against all 13 real plugin directories — all pass cleanly.
+The actual form submission remains an authenticated action tied to the
+submitter's claude.ai/Console identity, which this session cannot perform on
+the user's behalf — the user (or their separately-delegated agent, with
+access to that identity) completes the form itself using the prepared
+content and the real URLs above.
 
 ---
 

@@ -154,6 +154,51 @@ only ~10 jobs).
    billed** — everything prod-shaped here is `dev` data rescaled using
    `config.py`'s override deltas, not an observed bill.
 
+## Real invoice update (2026-08-31) — this audit's estimate was ~2.2x too low
+
+A real AWS invoice for the prod account is now available, confirming actual
+monthly spend of **$900-1000/month** — more than double this audit's
+bottom-up estimate of $349-430/month (Hard Gap 1 above flagged exactly this
+risk: "No cost data at any of the three requested volumes... its durability
+was never confirmed").
+
+This audit's per-tier conclusion — that 10k/100k/1M scenarios/month are
+cost-indistinguishable, because every dominant cost line is provisioned
+independently of job volume — is **not** contradicted by the real invoice;
+nothing here suggests volume-driven cost was the miscalibration (the
+sub-cent-per-scenario compute finding, backed by two independent repo
+benchmarks, stands). The gap is almost certainly in the **fixed-baseline
+estimate** ($349-430/mo) itself, extrapolated from a 17-day *dev*-environment
+window at near-zero traffic. Candidate explanations, none yet confirmed
+against an itemized bill:
+
+- ElastiCache Serverless cost at real (not "low/spiky dev") traffic pattern
+  — flagged as **Hard Gap 5** above, exactly the kind of line that scales
+  non-linearly with sustained usage in ways a 17-day near-idle window can't
+  surface.
+- Aurora ACU-hour actual rate vs. the inferred rate used here (**Hard Gap
+  4**) — a 2x uncertainty band was already flagged; the real number may sit
+  at the top of or above that band.
+- NAT Gateway data-processing charges (not just the flat per-hour charge
+  used in this estimate) scale with actual egress volume, which a
+  near-zero-traffic dev window would not reveal.
+- Real EC2 Spot market pricing vs. the configured ceiling (**Hard Gap 6**).
+
+**Action taken this revision:** `pyvar-cdk/stacks/alerts_stack.py`'s
+`MONTHLY_BUDGET_USD` raised from 400 to 1400 (see that file's own comment)
+so the budget alarm's 80%/100% thresholds sit above the now-confirmed
+$900-1000 real range instead of below it — the old $400 ceiling would have
+had the 80%-actual alarm firing constantly on completely normal spend,
+which defeats its purpose (a constantly-firing alarm gets ignored).
+
+**Not done in this revision, flagged as follow-up:** an itemized breakdown
+of the real invoice against the line items in the "Fixed infrastructure
+baseline" table above, to identify which specific line(s) diverged and by
+how much. That requires direct AWS Cost Explorer access with the real
+invoice in hand (this audit, like the original, is repo-artifact-only) —
+worth a short follow-up pass once a second invoice cycle confirms the
+$900-1000 range is stable rather than a one-off spike.
+
 ## Bottom line
 
 Treat every number above as directionally useful for a rough order-of-magnitude

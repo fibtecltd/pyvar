@@ -267,15 +267,19 @@ class PyvarConfig:
                 # entirely, since it was already ISSUED well ahead of time.
                 certificate_arn="arn:aws:acm:us-east-1:347228921290:certificate/a18950da-05cc-49fa-81d9-78828e512f3e",
                 worker_use_baked_ami=True,  # CLAUDE.md §11: "in production, pre-bake AMI"
-                # PRECONDITION — not yet automated (no post-deploy trigger wires up
-                # AmiStack's pipeline, see pipeline_stack.py): before the next `cdk
-                # deploy --context env=prod`, a pyvar-prod-worker-* AMI must already
-                # exist, or compute_stack.py's ec2.MachineImage.lookup(...) fails at
-                # synth time. Trigger it manually first:
-                #   aws imagebuilder start-image-pipeline-execution \
-                #     --image-pipeline-arn <pyvar-prod-worker-pipeline ARN>
-                # and wait for it to complete (check the Image Builder console or
-                # CloudWatch Logs /aws/imagebuilder/pyvar-prod-worker) before deploying.
+                # PRECONDITION — the bake-and-wait trigger itself IS automated now:
+                # pipeline_stack.py's shared Synth ShellStep (_ami_bake_commands) hashes
+                # ami_stack.py, and on a change triggers+waits on an Image Builder bake
+                # before `cdk synth` runs (see CLAUDE.md §11 and
+                # docs/p9-scenario-volume-cost-audit.md for the full design). The one
+                # thing that automation cannot do is create its own target: the
+                # pyvar-prod-worker-pipeline resource (AmiStack / `pyvar-prod-ami`) must
+                # be bootstrapped once, out of band, before the trigger has anything to
+                # call — otherwise ec2.MachineImage.lookup(...) still fails at synth
+                # time. One-time bootstrap, not done on every deploy:
+                #   cdk deploy pyvar-prod-ami --context env=prod --context account=ACCOUNT
+                # See docs/p9-prod-ami-bootstrap-handoff.md for the full verification
+                # checklist (requires real prod AWS credentials this repo's CI doesn't have).
             ),
         }
         return cls(**{**base, **overrides.get(env_name, {})})
