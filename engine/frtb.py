@@ -40,6 +40,11 @@ def frtb_sa_sensitivity_based_method(
     ``Kb = sqrt(Σ WS_i² + Σ_{i≠j} ρ·WS_i·WS_j)``; the charge aggregates buckets
     as ``sqrt(Σ Kb² + Σ_{b≠c} γ·S_b·S_c)`` with ``S_b = Σ_i WS_i`` (MAR21).
 
+    Both the per-bucket ``Kb²`` term and the aggregate sum under the final
+    square root are floored at 0 before the square root is taken, guarding
+    against a negative value under extreme correlation inputs — a safeguard
+    not shown in the MAR21 formula above.
+
     Args:
         bucket_weighted_sensitivities: Per-bucket lists of weighted
             sensitivities (risk weight already applied).

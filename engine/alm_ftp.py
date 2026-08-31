@@ -107,6 +107,10 @@ def structural_hedge_optimisation(
 ) -> dict:  # type: ignore[type-arg]
     """Optimise a structural hedge to a target equity duration.
 
+    Note: hedge notionals are solved numerically via SciPy bounded
+    least-squares (``scipy.optimize.lsq_linear``), not a closed-form
+    allocation formula.
+
     Solves for non-negative hedge notionals (bounded by per-instrument caps)
     that bring the dollar-duration of the hedge as close as possible to the
     target ``equity_notional · target_duration``.
@@ -154,6 +158,11 @@ def alm_stress_test(
     parallel_bps: float = 200.0,
 ) -> dict:  # type: ignore[type-arg]
     """Run an ALM stress test: worst-case EVE decline vs Tier-1 capital.
+
+    Note: the per-scenario ΔEVE values are computed entirely inside
+    :func:`~engine.alm_nii_eve.eve_sensitivity_analysis` (the same PV formula
+    used by ``economic_value_of_equity_eve``); this function only adds the
+    Tier-1 capital ratio and the 15% outlier-test check on top.
 
     [REGULATORY] BCBS d368. Computes ΔEVE across the six standard shocks and
     expresses the worst-case loss as a fraction of Tier-1 capital (the

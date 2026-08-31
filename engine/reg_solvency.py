@@ -92,6 +92,9 @@ def ucits_kiid_risk_indicator(
 ) -> dict:  # type: ignore[type-arg]
     """UCITS KIID Synthetic Risk and Reward Indicator (SRRI), 1-7.
 
+    The SRRI class itself is a bucket lookup of the annualised volatility
+    against fixed CESR volatility bands, not a closed-form equation.
+
     Maps the annualised volatility of (weekly by default) returns to the SRRI
     bucket per CESR 10-673: class 1 (< 0.5%) up to class 7 (>= 25%).
 

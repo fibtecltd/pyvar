@@ -28,6 +28,9 @@ def key_risk_indicator_kri_library(
     ``red_threshold``, and a ``direction`` (``"higher_breach"`` or
     ``"lower_breach"``). Returns a validated registry keyed by name.
 
+    This is a pure validation/indexing pass — it checks required keys and builds
+    the keyed registry, with no numeric computation involved.
+
     Args:
         kri_definitions: List of KRI definition dicts.
 
@@ -61,6 +64,9 @@ def kri_threshold_breach_detection(
     For ``higher_breach`` KRIs (higher = worse, e.g. failed trades) the value
     crosses amber then red as it rises; for ``lower_breach`` KRIs (lower = worse,
     e.g. staffing level) it crosses as it falls.
+
+    For ``lower_breach`` every inequality above is reversed (red at or below the
+    red threshold, amber between red and amber, green above amber).
 
     Args:
         value: Current KRI observation.
@@ -108,6 +114,10 @@ def kri_trend_analysis(
     Fits an OLS slope to the observation series and classifies the trend as
     ``"deteriorating"``, ``"improving"`` or ``"stable"`` based on the slope sign
     and the metric direction.
+
+    "Stable" is a scale-relative rule (``|slope| < 1e-4 * mean(|observations|)``),
+    not a fixed absolute tolerance, and the deteriorating/improving call flips
+    with ``higher_is_worse``.
 
     Args:
         observations: Ordered KRI observations (oldest first).

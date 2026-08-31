@@ -261,6 +261,9 @@ def repricing_maturity_profile(
 ) -> dict:  # type: ignore[type-arg]
     """Allocate balances into repricing-time buckets.
 
+    Note: bucket allocation is a discrete binning operation (``np.digitize``
+    against ``bucket_edges``), not a closed-form sum in the usual sense.
+
     Args:
         balances: Balance per instrument.
         repricing_times: Next repricing time per instrument (years).
@@ -434,6 +437,10 @@ def pipeline_risk_measurement(
     rate_volatility: float,
 ) -> dict:  # type: ignore[type-arg]
     """Pipeline risk of rate-locked mortgage commitments not yet on balance.
+
+    Note: ``rate_risk`` is a heuristic √time-scaled volatility exposure
+    proxy, not a rigorous option-pricing valuation of the rate-lock
+    optionality.
 
     Exposure = ``notional · pull_through``; the rate risk scales with the
     rate-lock period and rate volatility (a √time vol exposure proxy).

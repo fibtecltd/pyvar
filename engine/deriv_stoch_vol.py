@@ -216,6 +216,11 @@ def local_volatility_dupire_model(
     Uses finite differences of the Dupire equation
     ``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid.
 
+    Note: the partial derivatives are finite differences on the supplied
+    discrete grid (a forward difference in maturity, central differences in
+    strike), computed only at interior grid points, and ``spot`` is used
+    solely for a positivity check rather than in the formula itself.
+
     Args:
         strikes: 1-D ascending strike grid.
         maturities: 1-D ascending maturity grid (years).

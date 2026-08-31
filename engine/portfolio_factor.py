@@ -286,6 +286,10 @@ def correlation_clustering(
     single-linkage agglomerative clustering down to ``n_clusters`` groups —
     grouping assets that co-move.
 
+    The merge loop is hand-rolled here rather than calling scikit-learn's
+    ``AgglomerativeClustering`` or SciPy's ``linkage``, though it implements
+    the same single-linkage algorithm.
+
     Args:
         returns_matrix: (n_obs, n_assets) return matrix.
         n_clusters: Target number of clusters.

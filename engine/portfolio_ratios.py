@@ -101,6 +101,9 @@ def sharpe_ratio(
     Mean excess return divided by return volatility, annualised by
     ``sqrt(periods_per_year)``.
 
+    Volatility is the population standard deviation (divide by n) of
+    per-period excess returns, not the n-1 sample standard deviation.
+
     Args:
         returns: 1-D array of per-period simple returns.
         risk_free: Per-period risk-free rate (same period as returns).
@@ -142,6 +145,12 @@ def sortino_ratio(
 
     Like Sharpe but penalises only downside deviation below ``target``, so
     upside volatility is not treated as risk.
+
+    The numerator's excess return is measured against ``risk_free`` while
+    the downside-deviation denominator measures shortfalls of the raw (not
+    risk-free-adjusted) returns below the separate ``target``, so when
+    ``target != risk_free`` the two are distinct reference rates by
+    construction.
 
     Args:
         returns: 1-D array of per-period simple returns.

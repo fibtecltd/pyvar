@@ -99,6 +99,10 @@ def prepayment_model_mortgages(
 ) -> dict:  # type: ignore[type-arg]
     """Project mortgage cashflows under a constant CPR prepayment assumption.
 
+    Note: cashflows come from a month-by-month recursive amortisation loop
+    (interest, then scheduled principal, then prepayment on the remaining
+    balance each month), not a single closed-form cashflow expression.
+
     Higher CPR shortens the weighted-average life (WAL) of the pool.
 
     Args:
@@ -232,6 +236,10 @@ def core_deposit_duration(
     max_years: float = 30.0,
 ) -> dict:  # type: ignore[type-arg]
     """Effective duration of core deposits modelled as a decaying annuity.
+
+    Note: duration is computed as a discrete monthly Riemann sum over the
+    exponential run-off schedule, not a closed-form integral of the
+    continuous decay function.
 
     Core deposits run off at ``decay_rate`` (exponential). The duration is the
     PV-weighted average life of the run-off cashflows discounted at

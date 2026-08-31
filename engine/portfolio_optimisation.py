@@ -251,6 +251,11 @@ def risk_parity_portfolio(
     Finds long-only weights so each asset contributes equally to portfolio
     variance, by minimising the dispersion of risk contributions.
 
+    Dispersion is measured as the sum of squared pairwise differences
+    between all assets' risk contributions rather than each asset's
+    deviation from the mean contribution -- a stronger gradient signal for
+    SLSQP that converges to the same equal-risk-contribution solution.
+
     Args:
         cov_matrix: Per-period covariance matrix.
         mean_returns: Optional per-period returns for reporting Sharpe.
@@ -499,6 +504,10 @@ def cvar_constrained_optimisation(
     Maximises expected return subject to the portfolio CVaR (at
     ``confidence_level``) not exceeding ``cvar_limit``, long-only and fully
     invested. CVaR is computed empirically over the supplied scenarios.
+
+    CVaR is enforced as a direct nonlinear inequality constraint (the
+    empirical mean of tail losses) solved by SLSQP, not via Rockafellar and
+    Uryasev's original auxiliary-variable linear-programming reformulation.
 
     Args:
         scenario_returns: (n_scenarios, n_assets) scenario return matrix.

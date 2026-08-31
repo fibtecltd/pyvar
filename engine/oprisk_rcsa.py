@@ -56,6 +56,10 @@ def rcsa_risk_identification(
     Checks each risk entry exposes a ``risk_id`` and a Basel ``category`` and
     summarises counts by category — the identification step of the RCSA cycle.
 
+    This is validation plus a count-by-category aggregation, not a numeric
+    formula; ``category`` is a per-entry dict key rather than a top-level
+    function parameter.
+
     Args:
         risk_register: List of risk dicts, each with ``risk_id`` and
             ``category``.
@@ -279,6 +283,9 @@ def loss_event_classification_basel(
 
     Validates the event type against the seven Basel II Level-1 categories
     (BCBS 128, Annex 9) and returns its ordinal index for downstream bucketing.
+
+    This is a membership lookup against the fixed seven Basel II categories, not
+    a numeric equation.
 
     Args:
         event_type: Candidate Basel Level-1 event-type key.

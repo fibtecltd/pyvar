@@ -74,6 +74,11 @@ def liquidity_risk_appetite_threshold(
     above ``green_threshold`` and red below ``amber_threshold``. For
     lower-is-better metrics (e.g. funding concentration) the comparison inverts.
 
+    This is a piecewise categorical rule rather than a continuous formula, and
+    the Try-it panel's rendered formula shows only the higher-is-better
+    direction; the comparison flips (green <= amber <= metric) when
+    ``higher_is_better`` is False.
+
     Args:
         metric_value: Current metric value.
         green_threshold: Boundary for the green zone.
@@ -119,6 +124,10 @@ def early_warning_indicator_liquidity(
     (``"higher_breach"`` means a value above threshold is a warning, e.g. funding
     spread; ``"lower_breach"`` means below threshold is a warning, e.g. LCR). The
     aggregate signal escalates with the number of triggered indicators.
+
+    This is a direction-dependent logical breach test per indicator, not a
+    single arithmetic formula, and the aggregate signal buckets are exact:
+    normal (0 triggers), watch (1-2) and alert (3 or more).
 
     Args:
         indicators: Mapping ``name -> current value``.

@@ -243,6 +243,10 @@ def macroeconomic_overlays_ecl(
     discretionary management overlay. Captures the IFRS 9 requirement to
     incorporate forward-looking information not in the through-the-cycle model.
 
+    This multiplicative overlay structure is a bespoke internal design
+    choice, confirmed against BIS/EBA sources not to reproduce a specific
+    published or regulatory ECL-overlay formula.
+
     Args:
         base_ecl: Model base-case ECL (>= 0).
         macro_factors: ``(k,)`` standardised macro deviations (e.g. GDP, unemp).
@@ -287,6 +291,11 @@ def ifrs_9_staging_criteria_assessment(
     forbearance and internal watchlist status force at least Stage 2, while
     90+ days past due forces Stage 3. The final stage is the most severe of all
     triggered criteria.
+
+    The quantitative leg reuses
+    :func:`ifrs_9_stage_classification_pd_threshold`'s PD-threshold rule
+    directly (including its ``sicr_relative_threshold`` parameter) rather
+    than an independently coded SICR test.
 
     Args:
         pd_current: Current lifetime PD in ``[0, 1]``.
@@ -343,6 +352,10 @@ def credit_portfolio_optimisation(
     to ``sum w = 1`` and ``0 <= w_i <= max_weight``. With these box + simplex
     constraints the solution is a greedy water-filling onto the highest
     risk-adjusted scores, which is the exact optimum for a linear objective.
+
+    No generic LP/QP solver is called anywhere in this function — the
+    closed-form greedy allocation coded here is exact for this specific
+    linear-objective, box-plus-simplex problem shape only.
 
     Args:
         expected_returns: ``(n,)`` per-asset expected returns.
@@ -402,6 +415,11 @@ def credit_stress_testing(
     Applies a supervisory-style stress (e.g. EBA adverse scenario) by scaling
     PD and LGD, clipping to ``[0, 1]``, and reports the baseline vs stressed
     expected loss and the incremental impairment.
+
+    The baseline EL leg is the definitional ``PD*LGD*EAD``, but the
+    multiplicative PD/LGD shock structure itself is a bespoke internal
+    stress design, confirmed against BIS/EBA sources not to reproduce any
+    specific published adverse-scenario formula.
 
     Args:
         pd: ``(n,)`` baseline PD per exposure in ``[0, 1]``.

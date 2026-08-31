@@ -125,6 +125,11 @@ def cox_ingersoll_ross_model(
     ``dr = κ(θ−r)dt + σ√r dW``. The square-root diffusion keeps ``r >= 0``. The
     Feller condition ``2κθ ≥ σ²`` guarantees strict positivity.
 
+    Note: the Monte Carlo path uses full-truncation Euler discretisation (the
+    rate is floored at 0 both inside the square root and for the terminal
+    output), not the exact non-central chi-squared CIR transition
+    distribution.
+
     Args:
         r0: Initial short rate (>= 0).
         kappa: Mean-reversion speed (> 0).
@@ -177,6 +182,10 @@ def hull_white_short_rate_model(
     ``dr = κ(θ−r)dt + σ dW`` — the extended-Vasicek form; with a constant θ the
     closed-form ZCB price coincides with Vasicek. Returns the analytic bond
     price and a Monte Carlo cross-check.
+
+    Note: with ``theta_const`` held constant this function literally delegates
+    to ``vasicek_interest_rate_model`` — it is not a genuine time-dependent
+    Hull-White model calibrated to fit an observed market forward curve.
 
     Args:
         r0: Initial short rate.
@@ -250,6 +259,12 @@ def lmm_bgm_rate_model(
     Evolves a vector of forward LIBOR rates under the spot measure with the
     standard log-normal BGM drift. Returns the mean terminal forward curve;
     rates stay positive (log-normal dynamics).
+
+    Note: the drift for rate ``i`` sums over ``j = 0..i`` inclusive (including
+    rate ``i`` itself) using each earlier rate's already-updated value from the
+    same time step rather than its start-of-step value, since rates are
+    overwritten sequentially in place — a specific sequential log-Euler
+    discretisation choice, not a fully simultaneous update.
 
     Args:
         forward_rates: Initial forward rates per tenor (decimal, > 0).

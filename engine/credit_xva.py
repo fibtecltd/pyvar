@@ -143,6 +143,10 @@ def debt_valuation_adjustment_dva(
     owes) and the bank's *own* credit spread. It is a gain to the reporting
     entity (own default extinguishes a liability).
 
+    Under the hood this simply calls :func:`credit_valuation_adjustment_cva`
+    on the negative-exposure profile with the bank's own spread and recovery
+    substituted in, rather than a separately derived formula.
+
     Args:
         expected_negative_exposure: ``(n,)`` ENE per bucket (>= 0, magnitude).
         time_steps: ``(n,)`` strictly increasing bucket end-times.
@@ -408,6 +412,11 @@ def wrong_way_risk_adjustment(
     correlation), CVA is understated. A first-order alpha multiplier
     ``alpha = 1 + correlation * exposure_volatility`` (clamped >= 0) scales the
     base CVA; negative correlation gives right-way risk (alpha < 1).
+
+    This is a first-order proxy multiplier, confirmed against the WWR
+    literature (Hull & White 2012; Gregory, *The xVA Challenge*) not to
+    reproduce a specific published WWR model — treat it as a reasonable
+    internal approximation.
 
     Args:
         base_cva: Independence-assumption CVA (>= 0).
