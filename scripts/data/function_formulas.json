@@ -1102,9 +1102,9 @@
     }
   },
   "cvar_constrained_optimisation": {
-    "caveat": "CVaR is enforced as a nonlinear inequality constraint solved directly by SLSQP (empirical mean of tail losses), not via Rockafellar-Uryasev's original auxiliary-variable linear-programming reformulation.",
-    "citation": "Rockafellar-Uryasev",
-    "formula_latex": "\\max_w\\; w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1,\\; CVaR_\\alpha(w) \\le c \\\\ L(w) = -R w, \\quad VaR_\\alpha(w) = \\text{Quantile}_\\alpha\\big(L(w)\\big) \\\\ CVaR_\\alpha(w) = \\mathbb{E}\\big[L(w) \\mid L(w) \\ge VaR_\\alpha(w)\\big]",
+    "caveat": null,
+    "citation": "Rockafellar, R.T. & Uryasev, S. (2000), \"Optimization of Conditional Value-at-Risk\", Journal of Risk 2(3), 21-41",
+    "formula_latex": "\\min_{w,\\zeta,u}\\; -w^\\top \\mu \\quad \\text{s.t. } \\sum_i w_i = 1,\\; 0 \\le w_i \\le 1 \\\\ \\zeta + \\frac{1}{S(1-\\alpha)}\\sum_s u_s \\le c, \\quad u_s \\ge L_s(w) - \\zeta,\\; u_s \\ge 0 \\\\ L_s(w) = -R_s w, \\quad CVaR_\\alpha(w) = \\zeta^* + \\frac{1}{S(1-\\alpha)}\\sum_s u_s^*",
     "symbol_map": {
       "confidence_level": "\\alpha",
       "cvar_limit": "c",

@@ -189,6 +189,7 @@ class CvarConstrainedOptimisationResponse(BaseModel):
     cvar: Any = Field(default=None)
     expected_return: Any = Field(default=None)
     success: Any = Field(default=None)
+    var: Any = Field(default=None)
     weights: Any = Field(default=None)
 
 
