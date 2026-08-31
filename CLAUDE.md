@@ -488,16 +488,21 @@ FIX:   AUTOMATED as of this entry — pyvar-cdk/stacks/pipeline_stack.py's
        closed (exits 1) if the bake can't start or fails/times out — never
        silently deploys without a fresh bake. No-ops (one hash compare) on
        every push that doesn't touch ami_stack.py.
-       REMAINING MANUAL STEP (one-time only): the Image Builder pipeline
-       resource itself (pyvar-prod-ami / AmiStack) must be bootstrapped once,
-       out of band, before this can trigger anything —
-         cdk deploy pyvar-prod-ami --context env=prod --context account=ACCOUNT
-       — same category as bootstrapping pyvar-pipeline itself (app.py's own
-       docstring). AmiStack is deliberately NOT part of the per-push
-       CDK Pipeline stage (see pipeline_stack.py's _ami_bake_commands
-       docstring for the ordering reason). See
-       docs/p9-scenario-volume-cost-audit.md for the full writeup and the
-       tradeoffs considered before automating (incl. why the trigger has to
-       run pre-synth, coupling a Prod-only AMI change to the Dev deploy in
-       the same pipeline run).
+       ONE-TIME BOOTSTRAP: DONE. Confirmed 2026-08-31 against the real
+       Fibtec prod account (347228921290): pyvar-prod-ami stack is
+       UPDATE_COMPLETE (created 2026-08-08); its ImagePipeline
+       (pyvar-prod-worker-pipeline) is ENABLED with 2 AVAILABLE image
+       builds, and matching pyvar-prod-worker-* AMIs exist and are
+       `available` in EC2 (so ec2.MachineImage.lookup resolves). The
+       automated trigger-and-wait logic above has been proven end-to-end on
+       real pipeline runs, both branches: SSM /pyvar/prod/last-baked-ami-hash
+       was written once (2026-08-08T17:07:33Z, right after that day's bake
+       reached AVAILABLE) confirming the bake branch; every Synth run since
+       — including one on 2026-08-31 — has logged "No AMI-relevant changes
+       since the last bake — skipping." confirming the skip branch. Full
+       evidence trail in docs/p9-prod-ami-bootstrap-handoff.md's closure
+       note. See docs/p9-scenario-volume-cost-audit.md for the original
+       design writeup and tradeoffs considered before automating (incl. why
+       the trigger has to run pre-synth, coupling a Prod-only AMI change to
+       the Dev deploy in the same pipeline run).
 ```

@@ -1,5 +1,51 @@
 # Handoff: bootstrap `pyvar-prod-ami` and confirm the bake trigger
 
+## Status: CLOSED — confirmed done, 2026-08-31
+
+Checked against the real Fibtec prod account (`347228921290`, via
+`aws sts get-caller-identity`) rather than assumed:
+
+- `aws cloudformation describe-stacks --stack-name pyvar-prod-ami` →
+  `UPDATE_COMPLETE` (created 2026-08-08T08:18:27Z, last updated
+  2026-08-08T15:38:27Z). Someone already ran the bootstrap deploy from
+  this handoff's step 5 before this check.
+- `aws imagebuilder get-image-pipeline` on the stack's
+  `ImagePipelineArn` output → `pyvar-prod-worker-pipeline`, `status:
+  ENABLED`, `lastRunStatus: AVAILABLE`.
+- `aws imagebuilder list-image-pipeline-images` → 2 builds, both
+  `AVAILABLE` (2026-08-08T08:23:31Z and 2026-08-08T16:49:58Z).
+- `aws ec2 describe-images --owners self` → matching
+  `pyvar-prod-worker-*` AMIs exist and are `available`
+  (`ami-060d943f002425bf5`, `ami-0baf1ccb10f4856ae`) — confirms
+  `ec2.MachineImage.lookup(name="pyvar-prod-worker-*", ...)` in
+  `compute_stack.py` resolves successfully at synth time.
+- Step 6's end-to-end trigger verification (both branches) is also
+  confirmed, not just the static bootstrap:
+  - **Bake branch**: `aws ssm get-parameter-history` on
+    `/pyvar/prod/last-baked-ami-hash` shows exactly one write, at
+    `2026-08-08T17:07:33Z` — right after the second AMI build above
+    reached `AVAILABLE` at `16:49:58Z`. That timing match is the
+    automated Synth-step logic (trigger bake → poll → `ssm
+    put-parameter` on success) having actually run for real, not the
+    stubbed dry-run this handoff was written against.
+  - **Skip branch**: pulled the CodeBuild logs for the most recent
+    `pyvar-dev-pipeline` Synth run (2026-08-31, build
+    `PipelineBuildSynthCdkBuildP-5irl7k2WBhfr:77c41e85-eab1-451a-a380-cd13a13f9a77`)
+    and found, verbatim: `AMI recipe hash:
+    7cc34f9908d309e47e8f5f58449dbf7cc3ceb342881fcc068613527dcfe74e50`,
+    `Last recorded AMI recipe hash:` (same value), then `No
+    AMI-relevant changes since the last bake — skipping.` — matches the
+    SSM value exactly, confirming the no-op path also works for real on
+    an ordinary push, weeks after the initial bake.
+
+Both control paths in `pipeline_stack.py`'s AMI-bake gate are proven
+against real AWS, not just static analysis. No further action needed on
+this handoff. `CLAUDE.md` §11's "REMAINING MANUAL STEP" note has been
+updated to reflect this. The prompt below is left as-is as the historical
+record of what was asked and why — it does not need to be re-run.
+
+---
+
 Self-contained prompt for a Claude Code session (or human operator) that has
 **real AWS deploy credentials for the Fibtec prod account**. This session
 does not — `aws sts get-caller-identity` returns `InvalidClientTokenId` here,
