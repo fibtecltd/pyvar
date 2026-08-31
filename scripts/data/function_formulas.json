@@ -2313,12 +2313,13 @@
     }
   },
   "liquidity_gap_analysis": {
-    "caveat": "Unlike the two cash-flow-ladder functions, this cumulative gap is NOT offset by an opening balance (the function takes no such parameter).",
+    "caveat": null,
     "citation": null,
-    "formula_latex": "\\text{Gap}_i = A_i - L_i \\\\ \\text{CumulativeGap}_i = \\sum_{j \\le i} \\text{Gap}_j \\\\ \\text{GapRatio}_i = \\frac{A_i}{L_i}",
+    "formula_latex": "\\text{Gap}_i = A_i - L_i \\\\ \\text{CumulativeGap}_i = B_0 + \\sum_{j \\le i} \\text{Gap}_j \\\\ \\text{GapRatio}_i = \\frac{A_i}{L_i}",
     "symbol_map": {
       "asset_maturities": "A_i",
-      "liability_maturities": "L_i"
+      "liability_maturities": "L_i",
+      "opening_balance": "B_0"
     }
   },
   "liquidity_risk_appetite_threshold": {
