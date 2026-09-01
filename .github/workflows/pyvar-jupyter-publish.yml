@@ -1,0 +1,49 @@
+name: pyvar-jupyter publish
+
+# Triggered by pushing a tag like pyvar-jupyter-v0.1.0 -- deliberately its
+# own tag scheme, same reasoning as pyvar-client-publish.yml's own comment:
+# this package's SemVer is independent of both the main API's and
+# pyvar-client's own versioning.
+#
+# ONE-TIME MANUAL BOOTSTRAP REQUIRED before this can actually publish
+# anything -- same as pyvar-client-publish.yml needed (see that workflow's
+# own comment, and CLAUDE.md's AmiStack entry for the general pattern): the
+# "pyvar-jupyter" project must exist on PyPI with Trusted Publishing
+# configured for this exact repo/workflow/environment (fibtecltd/pyvar,
+# pyvar-jupyter-publish.yml, "pypi") BEFORE the first tag push -- or use
+# PyPI's "pending publisher" flow (configured from the PyPI UI) to let this
+# workflow create the project on first publish. No API token is stored
+# here by design -- OIDC trusted publishing needs none.
+
+on:
+  push:
+    tags:
+      - "pyvar-jupyter-v*"
+
+jobs:
+  build-and-publish:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC) -- no API token needed
+      contents: read # required by actions/checkout -- declaring `permissions:` at all
+      # zeroes every unlisted scope, so without this the default GITHUB_TOKEN can't
+      # even read this (private) repo and checkout fails with "Repository not found"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Build
+        working-directory: pyvar-jupyter
+        run: |
+          pip install build
+          python3 -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: pyvar-jupyter/dist
