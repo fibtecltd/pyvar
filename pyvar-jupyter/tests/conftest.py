@@ -56,4 +56,9 @@ def magics_with_shell() -> PyvarMagics:
     against."""
     from IPython.testing.globalipapp import get_ipython
 
-    return PyvarMagics(shell=get_ipython())
+    # nosec B604 -- bandit flags any call with a `shell=` kwarg as a possible
+    # subprocess shell-injection risk. This isn't one: `shell` here is
+    # IPython's own Magics.__init__(self, shell=None, ...) parameter -- an
+    # InteractiveShell instance, not a subprocess flag. No command execution
+    # anywhere in this line.
+    return PyvarMagics(shell=get_ipython())  # nosec B604
