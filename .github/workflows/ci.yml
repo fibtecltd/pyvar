@@ -10,6 +10,13 @@ on:
   push:
     branches-ignore: [master]
 
+# Declaring `permissions:` at all zeroes every unlisted scope on the default
+# GITHUB_TOKEN. Every job here only checks out and reads (lint, test, a
+# no-deploy CDK synth, a docker build with push: false) -- contents: read
+# covers all five.
+permissions:
+  contents: read
+
 env:
   PYTHON_VERSION: "3.11"
 

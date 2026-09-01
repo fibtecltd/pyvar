@@ -44,6 +44,12 @@ on:
       - "scripts/generate_mcp_tools.py"
       - ".github/workflows/plugins-ci.yml"
 
+# Declaring `permissions:` at all zeroes every unlisted scope on the default
+# GITHUB_TOKEN. Both jobs only check out, regenerate locally, and diff/test
+# -- neither pushes, comments, or touches anything but its own checkout.
+permissions:
+  contents: read
+
 jobs:
   plugins-drift-check:
     name: Skills plugins drift check

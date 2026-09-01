@@ -36,6 +36,12 @@ on:
       - "requirements-heavy.txt"
       - ".github/workflows/pyvar-local-ci.yml"
 
+# Declaring `permissions:` at all zeroes every unlisted scope on the default
+# GITHUB_TOKEN. The single job only builds a Docker image locally (push:
+# false) and runs tests inside it -- contents: read is all it needs.
+permissions:
+  contents: read
+
 jobs:
   docker-build-and-test:
     name: pyvar Local Docker build + test
