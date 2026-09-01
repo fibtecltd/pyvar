@@ -40,6 +40,15 @@ line-length = 100
 [tool.isort]
 profile = "black"
 line_length = 100
+# pyvar_client is a real runtime dependency (installed from PyPI or a local
+# editable checkout), so isort's own auto-detection classifies it as
+# third-party when linting is scoped to just this directory. The repo
+# root's pyproject.toml treats it as first-party instead (root-level
+# `isort --check-only .`, the main CI lint job, has pyvar_client in its own
+# known_first_party -- see that file's comment on why). Matching that here
+# means both invocations agree on import grouping/blank-line placement
+# instead of fighting each other.
+known_first_party = ["pyvar_client"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

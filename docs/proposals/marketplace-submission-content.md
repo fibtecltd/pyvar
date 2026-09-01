@@ -21,6 +21,16 @@ community marketplace" section):
   (`.claude-plugin/marketplace.json`), installable today via
   `/plugin marketplace add fibtecltd/pyvar` — unaffected by any of this.
 
+**Correction (2026-09-01):** this document's Licence field said MIT
+throughout — wrong, and already acted on: the real submission (P11 item 7,
+received by the review team) carried "License MIT" too. pyvar's actual
+license, root `LICENSE` file, is Apache-2.0 — every occurrence of MIT below
+is fixed in this pass, alongside the same mistake in `scripts/
+generate_plugins.py` (fed into all 14 generated `plugin.json` files),
+`plugins/mcp/pyproject.toml`, and the portal's own footer text. The already-
+submitted form itself is not something this repo can retroactively fix —
+flagged for a human decision on whether the review team needs a correction.
+
 **Real submission mechanism, two authenticated in-app forms (pick one):**
 - **claude.ai**: https://claude.ai/admin-settings/directory/submissions/plugins/new
   — requires a Team/Enterprise organization and directory management access
@@ -53,7 +63,7 @@ user's claude.ai/Console identity).
 - **Owner:** Fibtec Limited (https://fibtec.co.uk)
 - **Repository:** https://github.com/fibtecltd/pyvar
 - **Homepage:** https://pyvar.com
-- **Licence:** MIT
+- **Licence:** Apache-2.0
 
 ## One-line pitch
 
@@ -64,7 +74,7 @@ auditable API.
 
 ## Description (longer form)
 
-pyvar.com is an open-source (MIT-licensed) financial and risk computation
+pyvar.com is an open-source (Apache-2.0-licensed) financial and risk computation
 platform. This marketplace ships two kinds of Claude Code plugin:
 
 - **13 skills** — 8 domain skills (one per risk domain: market risk, credit
@@ -112,7 +122,7 @@ hand-maintained separately from the code it describes.
   `anyio`) are not yet auto-installed by the plugin install flow — a
   one-time `pip install -e plugins/mcp` is required and documented in
   `plugins/mcp/README.md`. Flagged here for transparency, not glossed over.
-- **Open source, MIT-licensed, publicly auditable** — every tool's
+- **Open source, Apache-2.0-licensed, publicly auditable** — every tool's
   behaviour is generated from and traceable to the actual REST API route it
   calls; nothing is closed-source or obfuscated.
 

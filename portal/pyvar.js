@@ -104,16 +104,16 @@ function buildFooter() {
             <div class="footer-col-links">
               <a href="https://fibtec.co.uk" target="_blank">fibtec.co.uk ↗</a>
               <a href="https://fibtec.co.uk#contact" target="_blank">Enterprise support</a>
-              <a href="#">Licence (MIT)</a>
+              <a href="#">Licence (Apache-2.0)</a>
               <a href="#">Contributing</a>
             </div>
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <div class="footer-copy">© 2026 Fibtec Limited · pyvar.com is MIT licensed · fibtec.co.uk</div>
+        <div class="footer-copy">© 2026 Fibtec Limited · pyvar.com is Apache-2.0 licensed · fibtec.co.uk</div>
         <div class="footer-legal">
-          <a href="#">Privacy</a><a href="#">Terms</a><a href="#">MIT Licence</a>
+          <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Apache-2.0 Licence</a>
         </div>
       </div>
     </div>

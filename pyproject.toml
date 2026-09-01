@@ -1,15 +1,16 @@
 [tool.isort]
 profile = "black"
 line_length = 100
-# pyvar_client (pyvar-client/pyvar_client/) and pyvar_mcp (plugins/mcp/
-# pyvar_mcp/) are both nested two levels under repo root, not direct
-# top-level packages -- isort's default first-party auto-detection (scans
-# src_paths, default ".") only finds them when cwd is their own package
-# root (neither pyvar-client/ nor plugins/mcp/'s own pyproject.toml needs
+# pyvar_client (pyvar-client/pyvar_client/), pyvar_mcp (plugins/mcp/
+# pyvar_mcp/), and pyvar_jupyter (pyvar-jupyter/pyvar_jupyter/) are all
+# nested two levels under repo root, not direct top-level packages --
+# isort's default first-party auto-detection (scans src_paths, default ".")
+# only finds them when cwd is their own package root (none of
+# pyvar-client/, plugins/mcp/, or pyvar-jupyter/'s own pyproject.toml needs
 # this override for exactly that reason). Root-level `isort --check-only .`
 # (the main CI lint job) doesn't find them that way and misclassifies their
 # imports as third-party -- explicit here so both invocations agree.
-known_first_party = ["pyvar_client", "pyvar_mcp"]
+known_first_party = ["pyvar_client", "pyvar_mcp", "pyvar_jupyter"]
 
 [tool.black]
 line-length = 100

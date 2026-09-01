@@ -13,8 +13,8 @@ from typing import Any
 
 import httpx
 import pytest
-from pyvar_client import Client
 
+from pyvar_client import Client
 from pyvar_jupyter._magics import PyvarMagics
 
 

@@ -22,10 +22,10 @@ import json
 import os
 
 from IPython.core.magic import Magics, line_cell_magic, line_magic, magics_class
+
 from pyvar_client import Client
 from pyvar_client._client import DEFAULT_BASE_URL
 from pyvar_client.exceptions import PyvarError
-
 from pyvar_jupyter._dispatch import (
     PyvarDispatchError,
     format_signature,
