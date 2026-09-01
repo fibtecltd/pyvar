@@ -9,7 +9,7 @@ them responsibly rather than through a public GitHub issue.
 
 **Do not open a public issue or PR for a security vulnerability.**
 
-Email **hello@fibtec.co.uk** with:
+Email **security@fibtec.co.uk** with:
 
 - A description of the vulnerability and its potential impact.
 - Steps to reproduce (a minimal request payload, function name, or PR
