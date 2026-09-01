@@ -7,7 +7,7 @@ name = "pyvar-mcp"
 version = "0.1.0"
 description = "MCP server exposing pyvar.com's 385 risk functions as Claude Code tools"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [{ name = "Fibtec Limited" }]
 requires-python = ">=3.11"
 # mcp is the one real runtime dependency -- the actual pyvar API calls use
@@ -18,7 +18,7 @@ dependencies = ["mcp>=2.1.0,<3", "anyio>=4.0"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business :: Financial",

@@ -42,7 +42,7 @@ for the originally-envisioned fuller scope.
 
 ## Licensing note
 
-The code in this image is the same MIT-licensed `engine/` published in this
+The code in this image is the same Apache-2.0-licensed `engine/` published in this
 repository — nothing about running it locally requires a purchase. What a
 `pyvar Local` subscription is proposed to actually cover (see the
 monetization strategy document) is the signed/tested release itself, a

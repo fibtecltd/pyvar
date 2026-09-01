@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyvar-jupyter"
+version = "0.1.0"
+description = "%pyvar / %%pyvar IPython magics and rich display for pyvar.com's risk computation API"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Fibtec Limited" }]
+requires-python = ">=3.11"
+# pyvar-client does all the actual HTTP/auth/error-mapping work -- this
+# package only adds the IPython magic layer on top, not a second API client.
+dependencies = ["pyvar-client>=0.1.2", "ipython>=8.0"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Framework :: Jupyter",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
+
+[project.urls]
+Homepage = "https://www.pyvar.com"
+Repository = "https://github.com/fibtecltd/pyvar"
+"Bug Tracker" = "https://github.com/fibtecltd/pyvar/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov", "black==26.5.1", "isort==8.0.1", "ruff==0.15.22"]
+
+[tool.setuptools.packages.find]
+include = ["pyvar_jupyter*"]
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
+# pyvar_client is a real runtime dependency (installed from PyPI or a local
+# editable checkout), so isort's own auto-detection classifies it as
+# third-party when linting is scoped to just this directory. The repo
+# root's pyproject.toml treats it as first-party instead (root-level
+# `isort --check-only .`, the main CI lint job, has pyvar_client in its own
+# known_first_party -- see that file's comment on why). Matching that here
+# means both invocations agree on import grouping/blank-line placement
+# instead of fighting each other.
+known_first_party = ["pyvar_client"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Same reasoning as pyvar-client/pyproject.toml's identical setting: makes
+# tests/ importable as `tests.conftest` regardless of how pytest is invoked
+# (CI's plain `pytest` entry point does not auto-add cwd to sys.path).
+pythonpath = ["."]

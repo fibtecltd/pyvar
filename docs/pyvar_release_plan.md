@@ -656,7 +656,21 @@ Prod deployment healthy for 48h. All 8 domain smoke tests passing. All 13 `.clau
 ### v0.2.0 roadmap (post-launch)
 The following additions are scoped for v0.2.0, informed by usage statistics from P6:
 - Real-time market data ingestion (Bloomberg/Refinitiv API connector via IntegratePro)
-- Jupyter notebook integration (pyvar-jupyter kernel)
+- ~~Jupyter notebook integration (pyvar-jupyter kernel)~~ — **done, not v0.2.0
+  scope anymore.** Shipped ahead of schedule as `pyvar-jupyter` v0.1.0:
+  `%pyvar`/`%%pyvar` IPython magics plus a rich-HTML display helper, built
+  on top of `pyvar-client` rather than a second API client (no duplicated
+  HTTP/auth/error-mapping logic). "Kernel" in this bullet's original wording
+  turned out to mean an IPython extension providing magics inside the
+  standard Python kernel, not a custom Jupyter kernel — the far more common
+  pattern for a domain-specific tool like this (matches e.g. the BigQuery
+  and SQL magics). LaTeX formula rendering (the portal's KaTeX treatment)
+  was deliberately left out of v1 -- that metadata lives in
+  `portal/functions.json` server-side with no client-facing source yet; see
+  `pyvar-jupyter/README.md`'s own "Not in v1" note. See
+  `pyvar-jupyter/README.md` for actual usage — that's now the source of
+  truth for this item, not the one-line design sketch this bullet used to
+  carry.
 - Additional functions based on GitHub Discussions demand
 - ~~`pyvar-client` CLI, built on top of the SDK~~ — **done, not v0.2.0 scope
   anymore.** Both halves of this item shipped ahead of schedule instead of

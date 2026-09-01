@@ -97,7 +97,7 @@ def main() -> None:
             "author": {"name": "Fibtec Limited", "url": "https://pyvar.com"},
             "homepage": "https://pyvar.com",
             "repository": "https://github.com/fibtecltd/pyvar",
-            "license": "MIT",
+            "license": "Apache-2.0",
         }
         (plugin_dir / ".claude-plugin" / "plugin.json").write_text(
             json.dumps(plugin_json, indent=2) + "\n"
