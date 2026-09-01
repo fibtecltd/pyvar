@@ -8,6 +8,12 @@ DOMAIN_GATE_RESULT.md
 scripts/hooks/__pycache__/
 scripts/claude/__pycache__/
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
 .DS_Store
 .coverage
 __pycache__/
