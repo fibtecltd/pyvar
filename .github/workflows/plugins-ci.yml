@@ -44,14 +44,20 @@ on:
       - "scripts/generate_mcp_tools.py"
       - ".github/workflows/plugins-ci.yml"
 
+# Declaring `permissions:` at all zeroes every unlisted scope on the default
+# GITHUB_TOKEN. Both jobs only check out, regenerate locally, and diff/test
+# -- neither pushes, comments, or touches anything but its own checkout.
+permissions:
+  contents: read
+
 jobs:
   plugins-drift-check:
     name: Skills plugins drift check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -110,9 +116,9 @@ jobs:
     name: pyvar-mcp lint & tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: pip

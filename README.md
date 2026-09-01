@@ -200,6 +200,33 @@ Estimated AWS cost at ~500 jobs/day: **~£126/month**
 
 ---
 
+## Disclaimer
+
+pyvar computes risk metrics referenced by real regulatory frameworks (Basel
+III/IV, FRTB, MiFID II, EMIR, ICAAP/ILAAP) — but **this is not regulatory,
+financial, or legal advice, and pyvar's output is not a substitute for your
+own institution's model validation, independent challenge, or regulatory
+sign-off.** You are responsible for validating any function's output against
+your own requirements before relying on it for a real risk, capital, or
+compliance decision.
+
+Where pyvar's implementation is a simplification of, or diverges from, the
+textbook or regulatory-standard method, that is documented rather than
+hidden: see each function's `caveat` field in `portal/functions.json`
+(surfaced in the portal's Try-it panel) and `docs/p11-caveat-triage-plan.md`
+for the full triage. As of this writing roughly a quarter of functions carry
+such a caveat — read it before depending on that function.
+
+Licensed under the [Apache License 2.0](LICENSE), which includes its own
+express disclaimer of warranty and limitation of liability (§7–8) — the
+above is a plain-English summary of what that means for this specific
+project, not an additional or different legal term.
+
+See [`SECURITY.md`](SECURITY.md) to report a security or numerical
+correctness issue.
+
+---
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the function-implementation

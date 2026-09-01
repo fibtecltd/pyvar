@@ -330,7 +330,9 @@ def test_check7_no_external_data_egress_from_app_code():
                 host = m.group(1)
                 lineno = text[: m.start()].count("\n") + 1
                 # boto3/AWS SDK endpoints are in-region AWS, not third parties.
-                if host.endswith("amazonaws.com"):
+                # Dot-boundary check, not a bare endswith: "evilamazonaws.com"
+                # or "notamazonaws.com" would otherwise pass as a false negative.
+                if host == "amazonaws.com" or host.endswith(".amazonaws.com"):
                     continue
                 # docstring/comment example URLs (e.g. schema refs) are not egress calls,
                 # but we still surface them for the audit trail.

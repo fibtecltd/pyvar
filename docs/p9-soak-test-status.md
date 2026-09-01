@@ -237,7 +237,7 @@ deployed"). Both gaps are now closed.
 | Topic | Endpoint | Status |
 |---|---|---|
 | `pyvar-dev-alerts` | `filippo.b@fibtec.co.uk` | **Confirmed** — already existed before this rollout, dev has not been unmonitored |
-| `pyvar-prod-alerts` | `filippo.buchicchio@gmail.com` | **Confirmed** — click-through completed, verified directly via `aws sns get-subscription-attributes` (`PendingConfirmation: false`), not inferred from the subscribe call |
+| `pyvar-prod-alerts` | *(personal address, redacted for public release — see internal runbook)* | **Confirmed** — click-through completed, verified directly via `aws sns get-subscription-attributes` (`PendingConfirmation: false`), not inferred from the subscribe call |
 
 **Closed.** Both dev and prod alert topics have confirmed subscribers.
 Prod alarm notifications (`WorkerErrorAlarm`, `ApiLatencyP95Alarm`,
