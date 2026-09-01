@@ -1170,6 +1170,55 @@ def test_credit_portfolio_optimisation_cross_validated_against_linprog():
     assert res["utility"] == pytest.approx(-lp.fun, abs=1e-6)
 
 
+def test_credit_portfolio_optimisation_random_lp_equivalence():
+    """Randomised regression sweep (P11 credit-risk caveat re-check): confirms
+    the caveat plan's claim -- that the greedy water-fill is exact for this
+    box + simplex, linear-objective problem shape -- across many independent
+    random instances, not just one hand-picked case.
+
+    Each trial draws a fresh n, max_weight, risk_aversion and score vector,
+    formulates the identical LP (maximise w.score s.t. sum(w)=1, 0<=w<=max_weight)
+    and solves it with scipy.optimize.linprog(method="highs") -- a genuinely
+    different algorithm (interior-point/simplex) from the engine's greedy
+    argsort loop. If greedy were ever suboptimal for this shape, some trial
+    would show a lower utility or an infeasible/mismatched allocation; it
+    never does, so this is now a standing proof-by-test rather than an
+    unverified docstring assertion.
+    """
+    rng = np.random.default_rng(20260415)
+    for _ in range(200):
+        n = int(rng.integers(2, 9))
+        max_weight = float(rng.uniform(1.0 / n, 1.0))
+        risk_aversion = float(rng.uniform(0.0, 3.0))
+        expected_returns = rng.uniform(-0.05, 0.20, size=n)
+        expected_losses = rng.uniform(0.0, 0.10, size=n)
+        score = expected_returns - risk_aversion * expected_losses
+
+        res = credit_portfolio_optimisation(
+            expected_returns, expected_losses, max_weight=max_weight, risk_aversion=risk_aversion
+        )
+        lp = linprog(
+            c=-score,
+            A_eq=[np.ones(n)],
+            b_eq=[1.0],
+            bounds=[(0.0, max_weight)] * n,
+            method="highs",
+        )
+        assert lp.status == 0
+        # Utility must match regardless of tie-breaking (always well-defined).
+        assert res["utility"] == pytest.approx(-lp.fun, abs=1e-6)
+        # The allocation itself must match too whenever scores are distinct
+        # enough that the LP optimum is unique (ties can yield alternative
+        # optima with the same utility but a different weight vector).
+        gaps = np.diff(np.sort(score))
+        if gaps.size == 0 or np.min(np.abs(gaps)) > 1e-9:
+            np.testing.assert_allclose(res["weights"], lp.x, atol=1e-6)
+        assert sum(res["weights"]) == pytest.approx(1.0, abs=1e-6)
+        # Engine rounds each weight to 8dp for display, so allow that much slack
+        # against the (unrounded) max_weight bound.
+        assert all(-1e-7 <= w <= max_weight + 1e-7 for w in res["weights"])
+
+
 def test_credit_stress_testing():
     """closed-form: stressed EL = sum(clip(PD*mp) * clip(LGD*ml) * EAD).
 

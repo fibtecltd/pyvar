@@ -15,7 +15,12 @@ from typing import Any
 # input_schema (JSON Schema, mapped directly from functions.json's params list).
 FUNCTIONS: list[dict[str, Any]] = [
     {
-        "description": "[REGULATORY] BCBS d368. Computes ΔEVE across the six standard shocks and\n"
+        "description": "Note: the per-scenario ΔEVE values are computed entirely inside\n"
+        ":func:`~engine.alm_nii_eve.eve_sensitivity_analysis` (the same PV formula\n"
+        "used by ``economic_value_of_equity_eve``); this function only adds the\n"
+        "Tier-1 capital ratio and the 15% outlier-test check on top.\n"
+        "\n"
+        "[REGULATORY] BCBS d368. Computes ΔEVE across the six standard shocks and\n"
         "expresses the worst-case loss as a fraction of Tier-1 capital (the\n"
         "supervisory outlier ratio).",
         "domain": "alm",
@@ -115,7 +120,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "basis_risk_irrbb",
     },
     {
-        "description": "[REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay\n"
+        "description": "[LIMITATION] This is a bespoke core/non-core exponential-decay run-off\n"
+        "model, not an implementation of BCBS d368's standardised NMD slotting\n"
+        "methodology -- the BCBS d368 reference below names the regulatory context\n"
+        "this model addresses, not the calculation performed here.\n"
+        "\n"
+        "[REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay\n"
         "slowly; non-core (volatile) deposits run off quickly. Returns the "
         "projected\n"
         "surviving balance and the effective average life.",
@@ -166,7 +176,46 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "convexity_gap",
     },
     {
-        "description": "Core deposits run off at ``decay_rate`` (exponential). The duration is "
+        "description": "``core_deposit_duration`` (the primary, default figure) is a discrete\n"
+        "monthly Riemann sum over the exponential run-off schedule, truncated at\n"
+        "``max_years``:\n"
+        "``D = sum_t[t*B*decay_rate*e^{-(decay_rate+discount_rate)t}]\n"
+        "      / sum_t[B*decay_rate*e^{-(decay_rate+discount_rate)t}]``\n"
+        "for ``t = 1/12, 2/12, ..., max_years``.\n"
+        "\n"
+        "A genuine closed form exists for the *untruncated* (``max_years`` ->\n"
+        "infinity) continuous-time version of the same model: the run-off density\n"
+        "``core_balance*decay_rate*e^{-decay_rate*t}`` is the density of an\n"
+        "Exponential(``decay_rate``) survival distribution, and PV-weighting it by\n"
+        "``e^{-discount_rate*t}`` is equivalent to re-weighting by\n"
+        "Exponential(``decay_rate + discount_rate``) — whose mean is exactly\n"
+        "``1 / (decay_rate + discount_rate)``. That value, plus its closed-form PV\n"
+        "``core_balance*decay_rate / (decay_rate + discount_rate)``, is returned "
+        "as\n"
+        "``closed_form_duration`` / ``closed_form_present_value`` for reference,\n"
+        "but is NOT used for the primary ``core_deposit_duration`` figure.\n"
+        "\n"
+        "Why the truncated discrete sum stays the default instead of switching to\n"
+        "the closed form (validated numerically — see\n"
+        "``tests/test_alm_behavioural.py::test_core_deposit_duration_closed_form``):\n"
+        "the two diverge materially whenever ``max_years`` is not several "
+        "multiples\n"
+        "of the implied continuous duration ``1/(decay_rate+discount_rate)``. For\n"
+        'the slow-decaying "sticky" core books this function exists to model, that\n'
+        "ratio is often well under 3x at the ``max_years=30`` default — e.g.\n"
+        "``decay_rate=0.05, discount_rate=0.02`` implies a 14.3y continuous\n"
+        "duration against a 30y truncation, and the discrete figure understates\n"
+        "the closed form by ~29%. So ``max_years`` is a real, user-set truncation\n"
+        "of the run-off horizon here, not just a numerical implementation detail,\n"
+        "and silently dropping it would change the model's economics, not just its\n"
+        "numerics. Even where truncation is immaterial\n"
+        "(``max_years >> 1/(decay_rate+discount_rate)``), the monthly\n"
+        "right-Riemann-sum quadrature itself carries a systematic +dt/2 (~0.042y)\n"
+        "bias relative to the continuous integral, which is non-negligible against\n"
+        "a 0.1-0.5% tolerance for short-duration books (e.g. ``decay_rate=0.30,\n"
+        "discount_rate=0.10`` -> ~1.7% bias even with a generous horizon).\n"
+        "\n"
+        "Core deposits run off at ``decay_rate`` (exponential). The duration is "
         "the\n"
         "PV-weighted average life of the run-off cashflows discounted at\n"
         "``discount_rate`` — typically multi-year, which is why NMDs anchor the\n"
@@ -629,7 +678,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "option_risk_irrbb",
     },
     {
-        "description": "Exposure = ``notional · pull_through``; the rate risk scales with the\n"
+        "description": "Note: ``rate_risk`` is a heuristic √time-scaled volatility exposure\n"
+        "proxy, not a rigorous option-pricing valuation of the rate-lock\n"
+        "optionality.\n"
+        "\n"
+        "Exposure = ``notional · pull_through``; the rate risk scales with the\n"
         "rate-lock period and rate volatility (a √time vol exposure proxy).",
         "domain": "alm",
         "function_name": "pipeline_risk_measurement",
@@ -653,7 +706,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "pipeline_risk_measurement",
     },
     {
-        "description": "Higher CPR shortens the weighted-average life (WAL) of the pool.",
+        "description": "Note: cashflows come from a month-by-month recursive amortisation loop\n"
+        "(interest, then scheduled principal, then prepayment on the remaining\n"
+        "balance each month), not a single closed-form cashflow expression.\n"
+        "\n"
+        "Higher CPR shortens the weighted-average life (WAL) of the pool.",
         "domain": "alm",
         "function_name": "prepayment_model_mortgages",
         "input_schema": {
@@ -688,7 +745,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "repricing_gap_analysis",
     },
     {
-        "description": "",
+        "description": "Note: bucket allocation is a discrete binning operation (``np.digitize``\n"
+        "against ``bucket_edges``), not a closed-form sum in the usual sense.",
         "domain": "alm",
         "function_name": "repricing_maturity_profile",
         "input_schema": {
@@ -722,7 +780,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "static_gap_analysis",
     },
     {
-        "description": "Solves for non-negative hedge notionals (bounded by per-instrument caps)\n"
+        "description": "Note: hedge notionals are solved numerically via SciPy bounded\n"
+        "least-squares (``scipy.optimize.lsq_linear``), not a closed-form\n"
+        "allocation formula.\n"
+        "\n"
+        "Solves for non-negative hedge notionals (bounded by per-instrument caps)\n"
         "that bring the dollar-duration of the hedge as close as possible to the\n"
         "target ``equity_notional · target_duration``.",
         "domain": "alm",
@@ -899,7 +961,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "each in ``[0, 1]`` with 1 = strongest) into a composite ``[0, 1]`` rating\n"
         "strength, then maps to PD via ``PD = pd_anchor * (1 - strength)`` floored "
         "at\n"
-        "``pd_floor``. A perfectly strong borrower hits the floor.",
+        "``pd_floor``. A perfectly strong borrower hits the floor.\n"
+        "\n"
+        "This is a bespoke internal weighted-factor model, confirmed against\n"
+        "BIS/EBA sources not to match any specific published or regulatory\n"
+        "scoring formula, so treat it as a reasonable internal model rather than\n"
+        "a reproduction of one.",
         "domain": "credit-risk",
         "function_name": "corporate_credit_scoring_model",
         "input_schema": {
@@ -979,7 +1046,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "subject\n"
         "to ``sum w = 1`` and ``0 <= w_i <= max_weight``. With these box + simplex\n"
         "constraints the solution is a greedy water-filling onto the highest\n"
-        "risk-adjusted scores, which is the exact optimum for a linear objective.",
+        "risk-adjusted scores, which is the exact optimum for a linear objective.\n"
+        "\n"
+        "No generic LP/QP solver is called anywhere in this function — the\n"
+        "closed-form greedy allocation coded here is exact for this specific\n"
+        "linear-objective, box-plus-simplex problem shape only.",
         "domain": "credit-risk",
         "function_name": "credit_portfolio_optimisation",
         "input_schema": {
@@ -1022,7 +1093,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Applies a supervisory-style stress (e.g. EBA adverse scenario) by scaling\n"
         "PD and LGD, clipping to ``[0, 1]``, and reports the baseline vs stressed\n"
-        "expected loss and the incremental impairment.",
+        "expected loss and the incremental impairment.\n"
+        "\n"
+        "The baseline EL leg is the definitional ``PD*LGD*EAD``, but the\n"
+        "multiplicative PD/LGD shock structure itself is a bespoke internal\n"
+        "stress design, confirmed against BIS/EBA sources not to reproduce any\n"
+        "specific published adverse-scenario formula.",
         "domain": "credit-risk",
         "function_name": "credit_stress_testing",
         "input_schema": {
@@ -1122,7 +1198,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "uses a multi-state rating-migration matrix — handled separately by\n"
         ":func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail "
         "is\n"
-        "dominated by the default state captured here.",
+        "dominated by the default state captured here.\n"
+        "\n"
+        "In implementation this is a direct pass-through to the same one-factor\n"
+        "Gaussian-copula Monte Carlo engine used by\n"
+        ":func:`credit_var_monte_carlo` (identical formula, identical code path),\n"
+        "not a separately coded multi-state model.",
         "domain": "credit-risk",
         "function_name": "creditmetrics_portfolio_model",
         "input_schema": {
@@ -1193,7 +1274,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "DVA mirrors CVA using the *negative* expected exposure (the amount the "
         "bank\n"
         "owes) and the bank's *own* credit spread. It is a gain to the reporting\n"
-        "entity (own default extinguishes a liability).",
+        "entity (own default extinguishes a liability).\n"
+        "\n"
+        "Under the hood this simply calls :func:`credit_valuation_adjustment_cva`\n"
+        "on the negative-exposure profile with the bank's own spread and recovery\n"
+        "substituted in, rather than a separately derived formula.",
         "domain": "credit-risk",
         "function_name": "debt_valuation_adjustment_dva",
         "input_schema": {
@@ -1234,7 +1319,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "default_correlation_matrix",
     },
     {
-        "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when "
+        "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\n"
+        "EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the\n"
+        "underlying requirement.\n"
+        "\n"
+        "CRR Art. 181 requires LGD to reflect economic-downturn conditions when "
         "these\n"
         "are more conservative than the long-run average. The supervisory-style\n"
         "additive add-on (EBA GL) is applied as\n"
@@ -1338,7 +1427,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "exposure_at_default_ead_calculator",
     },
     {
-        "description": "``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` — the present\n"
+        "description": "Note: when ``survival_probability`` is omitted it defaults to 1 at every\n"
+        "bucket, i.e. the FVA is computed with no counterparty-default\n"
+        "conditioning applied.\n"
+        "\n"
+        "``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` — the present\n"
         "value of the funding-spread carry on the expected exposure over each\n"
         "interval, conditional on counterparty survival.",
         "domain": "credit-risk",
@@ -1453,7 +1546,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "forbearance and internal watchlist status force at least Stage 2, while\n"
         "90+ days past due forces Stage 3. The final stage is the most severe of "
         "all\n"
-        "triggered criteria.",
+        "triggered criteria.\n"
+        "\n"
+        "The quantitative leg reuses\n"
+        ":func:`ifrs_9_stage_classification_pd_threshold`'s PD-threshold rule\n"
+        "directly (including its ``sicr_relative_threshold`` parameter) rather\n"
+        "than an independently coded SICR test.",
         "domain": "credit-risk",
         "function_name": "ifrs_9_staging_criteria_assessment",
         "input_schema": {
@@ -1473,7 +1571,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "ifrs_9_staging_criteria_assessment",
     },
     {
-        "description": "Under A-IRB the bank supplies its own PD, LGD, EAD and effective "
+        "description": "Note: when ``correlation`` is not supplied it defaults to the Basel\n"
+        "corporate correlation function of PD, the same formula F-IRB always uses.\n"
+        "\n"
+        "Under A-IRB the bank supplies its own PD, LGD, EAD and effective "
         "maturity.\n"
         "The risk-weight function is identical to F-IRB; only the parameter "
         "sources\n"
@@ -1496,7 +1597,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "irb_advanced_approach_capital",
     },
     {
-        "description": "Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% "
+        "description": "Note: unlike :func:`irb_advanced_approach_capital`, F-IRB exposes no\n"
+        "override at all for the asset correlation R — it is always the Basel\n"
+        "corporate correlation function of PD.\n"
+        "\n"
+        "Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% "
         "for\n"
         "senior unsecured and 75% for subordinated claims (CRE32). EAD and "
         "maturity\n"
@@ -1519,7 +1624,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "irb_foundation_approach_capital",
     },
     {
-        "description": "In the structural Merton model the firm defaults at horizon T if asset "
+        "description": "Note: when ``asset_drift`` is omitted, the asset drift mu used in the\n"
+        "distance-to-default formula defaults to ``risk_free_rate`` (a\n"
+        "risk-neutral assumption), not an estimate of the firm's actual expected\n"
+        "asset return.\n"
+        "\n"
+        "In the structural Merton model the firm defaults at horizon T if asset "
         "value\n"
         "falls below the debt face value. The distance-to-default is\n"
         "``DD = (ln(V/D) + (mu - 0.5 sigma^2) T) / (sigma sqrt(T))`` and the model "
@@ -1548,7 +1658,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "ridge\n"
         "term stabilises the Hessian on separable / collinear data. An intercept "
         "is\n"
-        "added automatically.",
+        "added automatically.\n"
+        "\n"
+        "Coefficients are found by iterative Newton-Raphson (IRLS) convergence to\n"
+        "the maximum-likelihood estimate, not a closed-form solution.",
         "domain": "credit-risk",
         "function_name": "logistic_regression_pd_model",
         "input_schema": {
@@ -1589,7 +1702,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "scores. Platt scaling fits a one-dimensional logistic map\n"
         "``PD = sigmoid(a * score + b)`` so the output is a true probability. The "
         "fit\n"
-        "reuses the Newton-Raphson logistic solver on the single score feature.",
+        "reuses the Newton-Raphson logistic solver on the single score feature.\n"
+        "\n"
+        "No scikit-learn or other ML library is involved anywhere in this module —\n"
+        "the calibration is a hand-rolled fit on top of this file's own solver.",
         "domain": "credit-risk",
         "function_name": "machine_learning_pd_calibration",
         "input_schema": {
@@ -1611,7 +1727,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "``adj = 1 + sum_j sensitivity_j * factor_j`` (clamped at 0), then adds a\n"
         "discretionary management overlay. Captures the IFRS 9 requirement to\n"
         "incorporate forward-looking information not in the through-the-cycle "
-        "model.",
+        "model.\n"
+        "\n"
+        "This multiplicative overlay structure is a bespoke internal design\n"
+        "choice, confirmed against BIS/EBA sources not to reproduce a specific\n"
+        "published or regulatory ECL-overlay formula.",
         "domain": "credit-risk",
         "function_name": "macroeconomic_overlays_ecl",
         "input_schema": {
@@ -1695,7 +1815,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Simulates the netting-set value as ``V_t = V_0 + drift*t + "
         "sigma*sqrt(t)*Z``\n"
         "and reports the per-step PFE (high quantile of positive exposure) and the\n"
-        "peak PFE. Randomness is pre-drawn in pure Python (RULE 3).",
+        "peak PFE. Randomness is pre-drawn in pure Python (RULE 3).\n"
+        "\n"
+        "PFE at each time step is the empirical quantile of the simulated exposure\n"
+        "distribution rather than a closed-form expression, so results carry\n"
+        "Monte Carlo sampling noise that varies with ``n_paths`` and ``seed``.",
         "domain": "credit-risk",
         "function_name": "potential_future_exposure_pfe",
         "input_schema": {
@@ -1738,7 +1862,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Counts observed transitions and normalises each row to a probability\n"
         "distribution. Empty rows (no obligors observed in that state) are set to "
         "the\n"
-        "identity (a self-transition), keeping the matrix row-stochastic.",
+        "identity (a self-transition), keeping the matrix row-stochastic.\n"
+        "\n"
+        "This identity substitution for empty rows is a modelling convention, not "
+        "an\n"
+        "observed transition — it exists purely so the returned matrix stays\n"
+        "row-stochastic and is safe to chain into further calculations.",
         "domain": "credit-risk",
         "function_name": "ratings_migration_matrix",
         "input_schema": {
@@ -1840,7 +1969,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "score;\n"
         "larger FX reserves and stronger governance raise it. The score is mapped "
         "to\n"
-        "an indicative PD via a logistic transform.",
+        "an indicative PD via a logistic transform.\n"
+        "\n"
+        "This is a bespoke internal composite-indicator model, confirmed against\n"
+        "BIS/EBA sources not to match any specific published sovereign-risk\n"
+        "methodology (e.g. a rating-agency or IMF framework).",
         "domain": "credit-risk",
         "function_name": "sovereign_credit_risk_assessment",
         "input_schema": {
@@ -1934,7 +2067,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "correlation), CVA is understated. A first-order alpha multiplier\n"
         "``alpha = 1 + correlation * exposure_volatility`` (clamped >= 0) scales "
         "the\n"
-        "base CVA; negative correlation gives right-way risk (alpha < 1).",
+        "base CVA; negative correlation gives right-way risk (alpha < 1).\n"
+        "\n"
+        "This is a first-order proxy multiplier, confirmed against the WWR\n"
+        "literature (Hull & White 2012; Gregory, *The xVA Challenge*) not to\n"
+        "reproduce a specific published WWR model — treat it as a reasonable\n"
+        "internal approximation.",
         "domain": "credit-risk",
         "function_name": "wrong_way_risk_adjustment",
         "input_schema": {
@@ -1977,6 +2115,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Allows early exercise at every time step. The price must be >= the "
         "European\n"
         "price of the same option.\n"
+        "\n"
+        "Note: the continuation value at each exercise date is fit by quadratic "
+        "OLS\n"
+        "regression on in-the-money paths rather than evaluated from a closed-form\n"
+        "formula, and the opt-in Greeks use a spot bump roughly 30x larger than\n"
+        "this module's smooth-payoff pricers because that regression-based\n"
+        "exercise decision is discontinuous in spot.\n"
         "\n"
         "Deliberately has no qmc option (task #15 Phase 2 evaluated and rejected\n"
         "it for this function specifically -- see _price_by_qmc_replicates'\n"
@@ -2054,7 +2199,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "The spread equating the bond's net present value (relative to par) to an\n"
         "annuity of the swap's fixed-leg PV01:\n"
-        "``ASW = (PV_bond − par) / annuity``, expressed in basis points.",
+        "``ASW = (PV_bond − par) / annuity``, expressed in basis points.\n"
+        "\n"
+        "Note: ``bond_price`` is accepted for API-compatibility but does not\n"
+        "affect the result — ``PV_bond`` in the formula above is derived\n"
+        "internally by discounting ``cashflows``/``times`` at ``swap_rates``,\n"
+        "not from the observed ``bond_price`` passed in.",
         "domain": "derivatives",
         "function_name": "asset_swap_spread",
         "input_schema": {
@@ -2074,9 +2224,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "asset_swap_spread",
     },
     {
-        "description": "Uses the in-out parity ``knock-in + knock-out = vanilla`` so any of the "
-        "four\n"
-        "standard combinations is supported. Rebates are not modelled (set to 0).",
+        "description": "modelled rebate leg.\n"
+        "\n"
+        "Uses the in-out parity ``knock-in + knock-out = vanilla`` for the *pure*\n"
+        "(no-rebate) option legs, so any of the four standard combinations is\n"
+        "supported. A nonzero ``rebate`` adds the standard Reiner-Rubinstein cash\n"
+        "rebate term on top of that pure leg: for a knock-in, the rebate is paid\n"
+        'at expiry if the barrier is never touched (the "E" term below); for a\n'
+        "knock-out, the rebate is paid at the moment the barrier is touched (the\n"
+        '"F" term below) -- the standard two rebate conventions (Haug, *The\n'
+        'Complete Guide to Option Pricing Formulas*, "Standard Barrier Options").\n'
+        "\n"
+        "Note: only the general Reiner-Rubinstein building blocks (A/B/C/D) are\n"
+        "shown here — which combination prices the knock-in leg depends on\n"
+        "``option_type``, ``barrier_type``, and whether strike exceeds barrier.",
         "domain": "derivatives",
         "function_name": "barrier_option_pricer",
         "input_schema": {
@@ -2096,7 +2257,7 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/derivatives/barrier_option_pricer",
-        "summary": "Single-barrier option price (Reiner-Rubinstein closed form).",
+        "summary": "Single-barrier option price (Reiner-Rubinstein closed form), with a",
         "tool_name": "barrier_option_pricer",
     },
     {
@@ -2129,7 +2290,11 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Early exercise is allowed only on an evenly-spaced subset of the time "
         "grid.\n"
-        "Price lies between the European and American values.",
+        "Price lies between the European and American values.\n"
+        "\n"
+        "Note: uses the same Longstaff-Schwartz regression-based exercise decision\n"
+        "as ``american_option_lsm`` (no closed form), restricted to an\n"
+        "evenly-spaced subset of roughly ``n_steps / exercise_dates`` grid points.",
         "domain": "derivatives",
         "function_name": "bermudan_option_pricer",
         "input_schema": {
@@ -2249,7 +2414,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Each coupon is ``(reference_rate + spread) / frequency · face``. On a "
         "reset\n"
         "date with discount rates equal to the reference rates, an FRN prices near\n"
-        "par plus the PV of the spread.",
+        "par plus the PV of the spread.\n"
+        "\n"
+        "Note: the number of coupon periods actually priced is\n"
+        "``len(reference_rates)`` (and ``discount_rates`` must match that length).\n"
+        "``maturity`` is only used for input validation (``maturity > 0``) here —\n"
+        "it does not determine the coupon schedule, so a caller-supplied\n"
+        "``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\n"
+        "not detected or reconciled.",
         "domain": "derivatives",
         "function_name": "bond_pricer_floating_rate",
         "input_schema": {
@@ -2290,7 +2462,13 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "A callable bond is worth no more than the equivalent straight bond — the\n"
-        "embedded call belongs to the issuer.",
+        "embedded call belongs to the issuer.\n"
+        "\n"
+        "Note: the short-rate tree is a simplified multiplicative lattice with\n"
+        "fixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree "
+        "calibrated\n"
+        "to an initial term structure, and the coupon is added at every node on\n"
+        "every step.",
         "domain": "derivatives",
         "function_name": "callable_bond_pricer",
         "input_schema": {
@@ -2403,9 +2581,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "chooser_option_pricer",
     },
     {
-        "description": "Simulates the underlying asset to the compound expiry, computes the\n"
-        "Black-Scholes value of the underlying option there, then discounts the\n"
-        "compound payoff. Supports the four standard compound types.",
+        "description": "Supports the four standard compound types (call/put on call/put). See\n"
+        "``_geske_compound_price`` for the exact d-term algebra and its citation.",
         "domain": "derivatives",
         "function_name": "compound_option_pricer",
         "input_schema": {
@@ -2435,13 +2612,17 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/derivatives/compound_option_pricer",
-        "summary": "Compound option (option-on-option) price via nested valuation / MC.",
+        "summary": "Compound option (option-on-option) price via the Geske (1979) closed form.",
         "tool_name": "compound_option_pricer",
     },
     {
         "description": "Value = max(straight bond floor, conversion value), a simple but standard\n"
         "lower-bound decomposition. The convertible is always worth at least its\n"
-        "conversion value and at least its bond floor.",
+        "conversion value and at least its bond floor.\n"
+        "\n"
+        "Note: this lower-bound decomposition does not model conversion\n"
+        "optionality, equity volatility, or embedded call/put features of a real\n"
+        "convertible bond.",
         "domain": "derivatives",
         "function_name": "convertible_bond_pricer",
         "input_schema": {
@@ -2491,7 +2672,13 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "``dr = κ(θ−r)dt + σ√r dW``. The square-root diffusion keeps ``r >= 0``. "
         "The\n"
-        "Feller condition ``2κθ ≥ σ²`` guarantees strict positivity.",
+        "Feller condition ``2κθ ≥ σ²`` guarantees strict positivity.\n"
+        "\n"
+        "The Monte Carlo path uses the exact non-central chi-squared CIR\n"
+        "transition distribution (Broadie-Kaya / Glasserman §3.4;\n"
+        "``_cir_paths_exact_terminal``), not an Euler discretisation -- there is\n"
+        "no discretisation bias here at any ``n_steps``, unlike the (retained,\n"
+        "non-production) full-truncation Euler scheme in ``_cir_paths_euler``.",
         "domain": "derivatives",
         "function_name": "cox_ingersoll_ross_model",
         "input_schema": {
@@ -2513,9 +2700,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "cox_ingersoll_ross_model",
     },
     {
-        "description": "Premium leg = ``spread · Σ τ · DF · Q``; protection leg =\n"
-        "``(1−R) · Σ DF · (Q_{i−1} − Q_i)`` with survival ``Q(t)=e^{−λt}``. The "
-        "par\n"
+        "description": "accrual-midpoint default settlement.\n"
+        "\n"
+        "Survival ``Q(t)=e^{−λt}``. Default losses -- and the accrued premium a\n"
+        "protection buyer owes if default falls inside a coupon period -- are\n"
+        "both settled at each period's ACCRUAL MIDPOINT\n"
+        "``t_mid,i = (t_{i−1}+t_i)/2``, discounted at ``DF(t_mid,i)``, following\n"
+        "the standard ISDA/JPMorgan reduced-form CDS convention also implemented\n"
+        "by QuantLib's ``MidPointCdsEngine`` (which settles the same way by\n"
+        "default: ``settlesAccrual=True``, ``paysAtDefaultTime=True`` --\n"
+        "confirmed by inspecting its NPV decomposition directly, since this is\n"
+        "exactly what ``tests/validation/test_derivatives_ref.py`` cross-checks\n"
+        "against). The regular coupon cashflow -- paid only while the name has\n"
+        "survived to the period end -- is unaffected: ``spread · τ · Σ DF(t_i) ·\n"
+        "Q(t_i)``.\n"
+        "\n"
+        "Protection leg = ``(1−R) · Σ DF(t_mid,i) · (Q_{i−1} − Q_i)``.\n"
+        "Accrual-on-default rebate = ``spread · Σ (t_mid,i − t_{i−1}) ·\n"
+        "DF(t_mid,i) · (Q_{i−1} − Q_i)``, added to the premium leg. The par\n"
         "spread zeroes the swap value.",
         "domain": "derivatives",
         "function_name": "credit_default_swap_cds_pricer",
@@ -2540,7 +2742,7 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/derivatives/credit_default_swap_cds_pricer",
-        "summary": "Price a CDS via a flat-hazard-rate reduced-form model.",
+        "summary": "Price a CDS via a flat-hazard-rate reduced-form model with",
         "tool_name": "credit_default_swap_cds_pricer",
     },
     {
@@ -2803,7 +3005,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "``dr = κ(θ−r)dt + σ dW`` — the extended-Vasicek form; with a constant θ "
         "the\n"
         "closed-form ZCB price coincides with Vasicek. Returns the analytic bond\n"
-        "price and a Monte Carlo cross-check.",
+        "price and a Monte Carlo cross-check.\n"
+        "\n"
+        "Note: with ``theta_const`` held constant this function literally "
+        "delegates\n"
+        "to ``vasicek_interest_rate_model`` — it is not a genuine time-dependent\n"
+        "Hull-White model calibrated to fit an observed market forward curve.",
         "domain": "derivatives",
         "function_name": "hull_white_short_rate_model",
         "input_schema": {
@@ -2876,8 +3083,16 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Evolves a vector of forward LIBOR rates under the spot measure with the\n"
-        "standard log-normal BGM drift. Returns the mean terminal forward curve;\n"
-        "rates stay positive (log-normal dynamics).",
+        "standard log-normal BGM drift, discretised via the Glasserman-Zhao\n"
+        "predictor-corrector Euler scheme (see\n"
+        "``_lmm_terminal_rates_predictor_corrector``). Returns the mean terminal\n"
+        "forward curve; rates stay positive (log-normal dynamics).\n"
+        "\n"
+        "The drift for rate ``i`` sums over ``j = 0..i`` inclusive (including rate\n"
+        "``i`` itself), evaluated from a single consistent rate vector at each of\n"
+        "the predictor and corrector stages -- not a sequential same-step\n"
+        "overwrite (see ``_lmm_terminal_rates_sequential_euler`` for the retained,\n"
+        "non-production former scheme).",
         "domain": "derivatives",
         "function_name": "lmm_bgm_rate_model",
         "input_schema": {
@@ -2899,7 +3114,14 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Uses finite differences of the Dupire equation\n"
-        "``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid.",
+        "``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid,\n"
+        "covering the FULL grid: central differences in strike at interior\n"
+        "points, one-sided (forward/backward) 2nd-order-accurate differences at\n"
+        "the two strike boundaries (exact non-uniform-grid Fornberg-style 3-point\n"
+        "stencils -- exact for any quadratic, verified against hand-differentiated\n"
+        "polynomials), and a forward/backward difference in maturity at the\n"
+        "first/last maturity respectively (interior maturities also use the\n"
+        "forward difference toward the next maturity).",
         "domain": "derivatives",
         "function_name": "local_volatility_dupire_model",
         "input_schema": {
@@ -3060,7 +3282,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "that\n"
         "reprices the callable bond to its market price — stripping out the "
         "embedded\n"
-        "option so spreads are comparable across bonds.",
+        "option so spreads are comparable across bonds.\n"
+        "\n"
+        "Note: the spread is root-found (Brent's method) against\n"
+        "``callable_bond_pricer``'s tree price rather than expressed in closed\n"
+        "form — the equation above is the condition the solver satisfies, not an\n"
+        "explicit OAS formula.",
         "domain": "derivatives",
         "function_name": "oas_option_adjusted_spread",
         "input_schema": {
@@ -3131,7 +3358,11 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "A puttable bond is worth at least the equivalent straight bond — the\n"
-        "embedded put belongs to the holder.",
+        "embedded put belongs to the holder.\n"
+        "\n"
+        "Note: uses the same simplified multiplicative short-rate lattice as\n"
+        "``callable_bond_pricer`` — fixed 0.5/0.5 branch probabilities, not\n"
+        "calibrated to a market curve.",
         "domain": "derivatives",
         "function_name": "puttable_bond_pricer",
         "input_schema": {
@@ -3423,7 +3654,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "trinomial_tree_option_pricer",
     },
     {
-        "description": "Time-changes Brownian motion by a Gamma subordinator (mean 1, variance\n"
+        "description": "Note: the ``theta`` parameter here is the VG skew parameter\n"
+        "(subordinated-drift), unrelated to the Greek theta (time decay)\n"
+        "optionally returned when ``greeks=True``.\n"
+        "\n"
+        "Time-changes Brownian motion by a Gamma subordinator (mean 1, variance\n"
         "``nu``). The martingale drift correction ``omega`` is computed in closed\n"
         "form so the discounted spot is a martingale.",
         "domain": "derivatives",
@@ -3675,16 +3910,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "collateral_availability_analysis",
     },
     {
-        "description": "Models a firm-specific shock occurring inside a market-wide crisis:\n"
+        "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\n"
+        "combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off\n"
+        "the LCR's own regulator-set retail run-off categories (3%/5%/10%\n"
+        "depending on deposit stability), whereas this function applies its own\n"
+        "flat 15% retail / 100% wholesale run-off convention instead.\n"
+        "\n"
+        "Models a firm-specific shock occurring inside a market-wide crisis:\n"
         "liability run-off is aggravated (default 15% retail, 100% wholesale)\n"
         "*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n"
-        "\n"
-        "NOT the Basel/EBA reference scenario, despite a prior version of this\n"
-        "docstring claiming that: BCBS 238's own combined idiosyncratic +\n"
-        "market-wide scenario (§II paras 19-20) runs off the LCR's own regulator-\n"
-        "set retail run-off categories (3%/5%/10% depending on deposit\n"
-        "stability), not a flat 15% -- the 15%/100% defaults here are an internal\n"
-        "convention, not the Basel figures. Found during the Tier 3 #2 audit.",
+        "(Found during the Tier 3 #2 audit — a prior version of this docstring\n"
+        "incorrectly claimed this was the Basel/EBA reference scenario.)",
         "domain": "liquidity",
         "function_name": "combined_stress_scenario",
         "input_schema": {
@@ -3716,7 +3952,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "worse;\n"
         "e.g. LCR, survival days). Returns the list of breached triggers and the "
         "CFP\n"
-        "activation decision.",
+        "activation decision.\n"
+        "\n"
+        "This is a logical breach test, not an arithmetic formula, so it is shown "
+        "on\n"
+        "the Try-it panel as an indicator function of the comparison rather than a\n"
+        "computed expression.",
         "domain": "liquidity",
         "function_name": "contingency_funding_plan_trigger",
         "input_schema": {
@@ -3729,7 +3970,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "contingency_funding_plan_trigger",
     },
     {
-        "description": "Estimates the expected contingent outflow as ``commitment * "
+        "description": "When ``ccf`` is not supplied it defaults to 1.0 for every commitment,\n"
+        "i.e. full drawdown of each commitment is assumed in the expected-outflow\n"
+        "calculation unless a lower conversion factor is explicitly passed.\n"
+        "\n"
+        "Estimates the expected contingent outflow as ``commitment * "
         "draw_probability\n"
         "* credit-conversion-factor`` — the liquidity that off-balance-sheet\n"
         "commitments (undrawn lines, guarantees) could absorb in stress.",
@@ -3806,7 +4051,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "funding\n"
         'spread; ``"lower_breach"`` means below threshold is a warning, e.g. LCR). '
         "The\n"
-        "aggregate signal escalates with the number of triggered indicators.",
+        "aggregate signal escalates with the number of triggered indicators.\n"
+        "\n"
+        "This is a direction-dependent logical breach test per indicator, not a\n"
+        "single arithmetic formula, and the aggregate signal buckets are exact:\n"
+        "normal (0 triggers), watch (1-2) and alert (3 or more).",
         "domain": "liquidity",
         "function_name": "early_warning_indicator_liquidity",
         "input_schema": {
@@ -3877,7 +4126,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "fx_liquidity_risk_by_currency",
     },
     {
-        "description": "Level 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign "
+        "description": "When ``haircuts`` is not supplied it defaults to all zeros, i.e. no\n"
+        "haircut is applied and every asset is valued at full market value.\n"
+        "\n"
+        "Level 1 assets (cash, central-bank reserves, 0%-risk-weight sovereign "
         "debt)\n"
         "receive a 0% haircut by default and have no composition cap (BCBS 238 "
         "§50).",
@@ -3893,7 +4145,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "hqla_level_1_asset_classifier",
     },
     {
-        "description": "Level 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-\n"
+        "description": "Unlike Level 1's zero-by-default haircut array, ``haircut`` here is a\n"
+        "single scalar applied uniformly to every asset in ``asset_values``, and\n"
+        "the function enforces a minimum of 15%.\n"
+        "\n"
+        "Level 2A assets (20%-risk-weight sovereigns, certain covered bonds, high-\n"
         "grade corporates) carry a minimum 15% haircut (BCBS 238 §52).",
         "domain": "liquidity",
         "function_name": "hqla_level_2a_asset_classifier",
@@ -3910,7 +4166,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "hqla_level_2a_asset_classifier",
     },
     {
-        "description": "Level 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying\n"
+        "description": "As with Level 2A, ``haircut`` is a single scalar applied uniformly to\n"
+        "every asset in ``asset_values`` rather than a per-asset array; the\n"
+        "function enforces a minimum of 25% (pass 0.50 for the lower-grade\n"
+        "corporate/equity sub-bucket).\n"
+        "\n"
+        "Level 2B assets (RMBS 25% haircut, lower-grade corporates and qualifying\n"
         "equities 50% haircut) carry a minimum 25% haircut (BCBS 238 §54).",
         "domain": "liquidity",
         "function_name": "hqla_level_2b_asset_classifier",
@@ -3972,7 +4233,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "an\n"
         "ILAAP-style summary: the binding (worst) scenario, the count of scenarios\n"
         "breached, and overall adequacy. Each scenario value must expose a\n"
-        "``surplus_deficit`` figure (as produced by the scenario functions above).",
+        "``surplus_deficit`` figure (as produced by the scenario functions above).\n"
+        "\n"
+        "SD_k in the rendered formula denotes the ``surplus_deficit`` field each\n"
+        "named scenario dict must already carry — this function only aggregates\n"
+        "pre-computed values and performs no cash-flow arithmetic itself.",
         "domain": "liquidity",
         "function_name": "ilaap_stress_testing_framework",
         "input_schema": {
@@ -3985,12 +4250,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "ilaap_stress_testing_framework",
     },
     {
-        "description": "Tracks the intraday liquidity position from time-stamped net payment "
+        "description": "Of the two figures reported, only ``net_debit_peak`` (the largest "
+        "negative\n"
+        'cumulative position) is the genuine BCBS 248 "largest net debit position"\n'
+        "monitoring tool — ``max_usage`` is this codebase's own additional metric,\n"
+        "not one of BCBS 248's own monitoring tools.\n"
+        "\n"
+        "Tracks the intraday liquidity position from time-stamped net payment "
         "flows\n"
         "and reports the peak usage (largest negative intraday position relative "
         "to\n"
-        "the opening balance) and the largest net debit position — the BCBS 248\n"
-        "monitoring tools.",
+        "the opening balance) and the largest net debit position.",
         "domain": "liquidity",
         "function_name": "intraday_liquidity_monitor",
         "input_schema": {
@@ -4007,7 +4277,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "intraday_liquidity_monitor",
     },
     {
-        "description": "Stresses the intraday profile by delaying a fraction of *inflows* "
+        "description": "This is this codebase's own internal stress design — delaying a fraction\n"
+        "of positive intraday inflows — set in the context of BCBS 248's intraday-\n"
+        "liquidity monitoring framework; it is not BCBS 248's own prescribed "
+        "stress\n"
+        "design.\n"
+        "\n"
+        "Stresses the intraday profile by delaying a fraction of *inflows* "
         "(positive\n"
         "flows): a ``delay_factor`` of expected inflows is removed from the "
         "intraday\n"
@@ -4091,7 +4367,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "liabilities_i`` per bucket, plus the cumulative gap. A positive "
         "cumulative\n"
         "gap means more assets than liabilities mature by that point (a funding\n"
-        "surplus); a negative gap signals a refinancing need.",
+        "surplus); a negative gap signals a refinancing need.\n"
+        "\n"
+        "Like the two cash-flow-ladder functions above, an optional opening "
+        "balance\n"
+        "is added to every cumulative-gap entry — the starting cash / HQLA "
+        "position\n"
+        "carried into the first bucket. It defaults to 0.0, so existing callers "
+        "see\n"
+        "no change in behaviour.",
         "domain": "liquidity",
         "function_name": "liquidity_gap_analysis",
         "input_schema": {
@@ -4112,7 +4396,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "or\n"
         "above ``green_threshold`` and red below ``amber_threshold``. For\n"
         "lower-is-better metrics (e.g. funding concentration) the comparison "
-        "inverts.",
+        "inverts.\n"
+        "\n"
+        "This is a piecewise categorical rule rather than a continuous formula, "
+        "and\n"
+        "the Try-it panel's rendered formula shows only the higher-is-better\n"
+        "direction; the comparison flips (green <= amber <= metric) when\n"
+        "``higher_is_better`` is False.",
         "domain": "liquidity",
         "function_name": "liquidity_risk_appetite_threshold",
         "input_schema": {
@@ -4197,7 +4487,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "and\n"
         "passed to the JIT kernel; an analytic normal quantile is also returned "
         "for\n"
-        "validation.",
+        "validation.\n"
+        "\n"
+        "``liqvar`` is a simulated order statistic of this floored-at-zero\n"
+        "normal-shock model, cross-validated only against its own analytic\n"
+        "counterpart ``liqvar_analytic`` rather than a regulatory reference, using\n"
+        "index ``floor(confidence_level * n_simulations)`` capped at\n"
+        "``n_simulations - 1``.",
         "domain": "liquidity",
         "function_name": "liquidity_var_liqvar",
         "input_schema": {
@@ -4333,7 +4629,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "HQLA\n"
         "counterbalancing capacity. The survival horizon is the last day on which "
         "the\n"
-        "remaining buffer is still non-negative.",
+        "remaining buffer is still non-negative.\n"
+        "\n"
+        "``survival_days`` is the 0-indexed day on which cumulative outflow first\n"
+        "drives the buffer negative, so it equals the count of full days survived\n"
+        "before breach (0 if the very first day breaches).",
         "domain": "liquidity",
         "function_name": "survival_horizon_calculator",
         "input_schema": {
@@ -4380,7 +4680,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Computed in the time-to-maturity convention so that a finite-difference "
         "of\n"
-        "delta with respect to τ reproduces this value.",
+        "delta with respect to τ reproduces this value. Note the sign: this is\n"
+        "+∂Δ/∂τ (time-to-maturity), the opposite sign from the calendar-time charm\n"
+        "convention −∂Δ/∂t (decay per day of calendar time elapsed) more commonly\n"
+        "quoted on trading desks and in textbooks — do not assume the "
+        "calendar-time\n"
+        "sign without checking which convention a comparison source uses.",
         "domain": "market-risk",
         "function_name": "charm_delta_decay",
         "input_schema": {
@@ -4403,7 +4708,11 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Likelihood-ratio test that breaches are serially independent (no\n"
         "clustering), via a first-order Markov transition model. Chi-squared with\n"
-        "1 dof at the 95% critical value.",
+        "1 dof at the 95% critical value.\n"
+        "\n"
+        "The four transition counts (n00, n01, n10, n11) that drive the likelihood\n"
+        "ratio are derived internally from the ``breaches`` sequence itself, not\n"
+        "supplied as separate arguments.",
         "domain": "market-risk",
         "function_name": "christoffersen_independence_test",
         "input_schema": {
@@ -4505,7 +4814,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "compute_loss_percentiles",
     },
     {
-        "description": "Fast approximation for backtesting — not the full Monte Carlo.\n"
+        "description": "At each point, mean and volatility are estimated from only the most "
+        "recent\n"
+        "`window` observations (returns[i - window : i]), not an expanding window\n"
+        "that grows from the start of the series.\n"
+        "Fast approximation for backtesting — not the full Monte Carlo.\n"
         "Uses scipy.stats.norm for the quantile function.\n"
         "\n"
         "Returns array of VaR estimates, same length as returns (NaN for first "
@@ -4522,7 +4835,7 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/market-risk/compute_rolling_var",
-        "summary": "Parametric (Gaussian) rolling VaR using a expanding window.",
+        "summary": "Parametric (Gaussian) rolling VaR using a fixed-length trailing window.",
         "tool_name": "compute_rolling_var",
     },
     {
@@ -4924,7 +5237,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Within each bucket the risk position is\n"
         "``Kb = sqrt(Σ WS_i² + Σ_{i≠j} ρ·WS_i·WS_j)``; the charge aggregates "
         "buckets\n"
-        "as ``sqrt(Σ Kb² + Σ_{b≠c} γ·S_b·S_c)`` with ``S_b = Σ_i WS_i`` (MAR21).",
+        "as ``sqrt(Σ Kb² + Σ_{b≠c} γ·S_b·S_c)`` with ``S_b = Σ_i WS_i`` (MAR21).\n"
+        "\n"
+        "Both the per-bucket ``Kb²`` term and the aggregate sum under the final\n"
+        "square root are floored at 0 before the square root is taken, guarding\n"
+        "against a negative value under extreme correlation inputs — a safeguard\n"
+        "not shown in the MAR21 formula above.",
         "domain": "market-risk",
         "function_name": "frtb_sa_sensitivity_based_method",
         "input_schema": {
@@ -5163,7 +5481,14 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Likelihood-ratio test that the observed breach rate matches the expected\n"
         "``p = 1 − confidence_level``. The statistic is chi-squared with 1 dof;\n"
-        "rejection uses the 95% critical value.",
+        "rejection uses the 95% critical value.\n"
+        "\n"
+        "At the boundary cases ``x = 0`` or ``x = n`` (zero or 100% observed "
+        "breach\n"
+        "rate) the likelihood ratio is computed with a simplified one-sided form "
+        "to\n"
+        "avoid ``ln(0)``; the general two-sided expression applies for ``0 < x < "
+        "n``.",
         "domain": "market-risk",
         "function_name": "kupiec_pof_test",
         "input_schema": {
@@ -5247,7 +5572,13 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Runs the parametric-normal Monte Carlo engine and reads the ES (CVaR) "
         "from\n"
-        "the simulated loss distribution. Deterministic for a fixed seed.",
+        "the simulated loss distribution. Deterministic for a fixed seed.\n"
+        "\n"
+        "Internally this delegates to ``engine.montecarlo.run_monte_carlo_var`` "
+        "and\n"
+        "returns its ``cvar_pct``/``cvar_abs`` fields; the simulation's mean and\n"
+        "volatility (mu, sigma) are fitted directly from the ``returns`` argument,\n"
+        "not supplied as separate distribution parameters.",
         "domain": "market-risk",
         "function_name": "monte_carlo_expected_shortfall",
         "input_schema": {
@@ -5623,7 +5954,10 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Reports the number of breach clusters (maximal runs of consecutive\n"
         "breaches), the longest run, and the mean run length — diagnostics for the\n"
-        "independence assumption that the Christoffersen test formalises.",
+        "independence assumption that the Christoffersen test formalises.\n"
+        "\n"
+        "This is an algorithmic run-length computation over the breach sequence,\n"
+        "not a closed-form statistic.",
         "domain": "market-risk",
         "function_name": "var_breach_cluster_analysis",
         "input_schema": {
@@ -5769,7 +6103,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "provisioning /\n"
         "pricing, capital may be set to unexpected loss only (OpVaR − EL); "
         "otherwise\n"
-        "capital equals the full OpVaR.",
+        "capital equals the full OpVaR.\n"
+        "\n"
+        "OpVaR and EL are not supplied by the caller — both are computed internally "
+        "by\n"
+        "running the full LDA pipeline (frequency/severity MLE fit, then a Monte "
+        "Carlo\n"
+        "quantile) over ``annual_event_counts`` and ``loss_amounts``.",
         "domain": "operational",
         "function_name": "advanced_measurement_approach_ama",
         "input_schema": {
@@ -5813,7 +6153,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "piecewise-linear function of the Business Indicator (12%/15%/18% marginal\n"
         "coefficients across the three buckets) and the Internal Loss Multiplier\n"
         "(ILM) scales by the bank's historical loss experience:\n"
-        "``ILM = ln(e − 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.",
+        "``ILM = ln(e − 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.\n"
+        "\n"
+        "The ILM = 1.0 case (``use_ilm=False``, bucket-1 BI, or non-positive BIC) "
+        "is\n"
+        "an explicit override in code rather than a value the log formula itself\n"
+        "produces.",
         "domain": "operational",
         "function_name": "basel_standardised_measurement_sma",
         "input_schema": {
@@ -5834,7 +6179,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tolerable\n"
         "downtime (MTD) and discounts the residual risk by BCP maturity. A breach "
         "of\n"
-        "MTD is the dominant driver.",
+        "MTD is the dominant driver.\n"
+        "\n"
+        "Note:\n"
+        "    ``rpo_hours`` is accepted as an input (and range-validated) but does\n"
+        "    not currently affect the computed score — only ``rto_hours`` versus\n"
+        "    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n"
+        "    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n"
+        "    for the triage of this dead parameter.",
         "domain": "operational",
         "function_name": "business_continuity_risk_score",
         "input_schema": {
@@ -5848,7 +6200,7 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/operational/business_continuity_risk_score",
-        "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
+        "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
         "tool_name": "business_continuity_risk_score",
     },
     {
@@ -5978,7 +6330,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Maps a loss amount to the highest governance tier whose threshold it meets "
         "or\n"
-        'exceeds (e.g. ``{"team": 1e3, "head": 1e4, "exco": 1e5, "board": 1e6}``).',
+        'exceeds (e.g. ``{"team": 1e3, "head": 1e4, "exco": 1e5, "board": 1e6}``).\n'
+        "\n"
+        "This is a rule-based lookup: it selects the triggered tier with the\n"
+        "numerically largest threshold value, not necessarily the dict's declared\n"
+        '"highest" tier by name or insertion order, so it relies on ``thresholds``\n'
+        "being ordered monotonically with severity.",
         "domain": "operational",
         "function_name": "escalation_threshold_calculation",
         "input_schema": {
@@ -6093,7 +6450,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Each KRI definition must carry a ``name``, a numeric ``amber_threshold`` "
         "and\n"
         '``red_threshold``, and a ``direction`` (``"higher_breach"`` or\n'
-        '``"lower_breach"``). Returns a validated registry keyed by name.',
+        '``"lower_breach"``). Returns a validated registry keyed by name.\n'
+        "\n"
+        "This is a pure validation/indexing pass — it checks required keys and "
+        "builds\n"
+        "the keyed registry, with no numeric computation involved.",
         "domain": "operational",
         "function_name": "key_risk_indicator_kri_library",
         "input_schema": {
@@ -6109,7 +6470,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "For ``higher_breach`` KRIs (higher = worse, e.g. failed trades) the value\n"
         "crosses amber then red as it rises; for ``lower_breach`` KRIs (lower = "
         "worse,\n"
-        "e.g. staffing level) it crosses as it falls.",
+        "e.g. staffing level) it crosses as it falls.\n"
+        "\n"
+        "For ``lower_breach`` every inequality above is reversed (red at or below "
+        "the\n"
+        "red threshold, amber between red and amber, green above amber).",
         "domain": "operational",
         "function_name": "kri_threshold_breach_detection",
         "input_schema": {
@@ -6130,7 +6495,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Fits an OLS slope to the observation series and classifies the trend as\n"
         '``"deteriorating"``, ``"improving"`` or ``"stable"`` based on the slope '
         "sign\n"
-        "and the metric direction.",
+        "and the metric direction.\n"
+        "\n"
+        '"Stable" is a scale-relative rule (``|slope| < 1e-4 * '
+        "mean(|observations|)``),\n"
+        "not a fixed absolute tolerance, and the deteriorating/improving call "
+        "flips\n"
+        "with ``higher_is_worse``.",
         "domain": "operational",
         "function_name": "kri_trend_analysis",
         "input_schema": {
@@ -6166,7 +6537,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Fits the frequency (Poisson) and severity (lognormal) distributions from\n"
         "historical data, simulates the compound distribution and reads OpVaR /\n"
-        "capital at the regulatory confidence — the full LDA pipeline in one call.",
+        "capital at the regulatory confidence — the full LDA pipeline in one call.\n"
+        "\n"
+        "This is a composed pipeline, not a single closed-form equation; "
+        "``n_years``\n"
+        "and ``seed`` only control the internal Monte Carlo simulation, not the\n"
+        "capital figure itself.",
         "domain": "operational",
         "function_name": "loss_distribution_approach_lda",
         "input_schema": {
@@ -6187,7 +6563,11 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Validates the event type against the seven Basel II Level-1 categories\n"
         "(BCBS 128, Annex 9) and returns its ordinal index for downstream "
-        "bucketing.",
+        "bucketing.\n"
+        "\n"
+        "This is a membership lookup against the fixed seven Basel II categories, "
+        "not\n"
+        "a numeric equation.",
         "domain": "operational",
         "function_name": "loss_event_classification_basel",
         "input_schema": {
@@ -6203,7 +6583,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "description": "Combines model materiality and complexity (1-5 each) into an inherent "
         "score,\n"
         "then discounts by validation quality (in [0, 1]) to a residual model-risk\n"
-        "tier (SR 11-7 / PRA SS1/23 style).",
+        "tier (SR 11-7 / PRA SS1/23 style).\n"
+        "\n"
+        "SR 11-7 / PRA SS1/23 are named only for the general materiality x "
+        "complexity\n"
+        "tiering style this follows; the specific 1-5 scale, multiplication, and "
+        "RAG\n"
+        "thresholds are pyvar's own, not values prescribed by either document.",
         "domain": "operational",
         "function_name": "model_risk_assessment",
         "input_schema": {
@@ -6247,7 +6633,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "loss.\n"
         "Validates events and summarises the count and aggregate potential loss — "
         "a\n"
-        "leading indicator of control weakness.",
+        "leading indicator of control weakness.\n"
+        "\n"
+        "This is a rule-based filter/count over ``events``; ``actual_loss`` and\n"
+        "``potential_loss`` are per-event dict keys rather than top-level function\n"
+        "parameters.",
         "domain": "operational",
         "function_name": "near_miss_capture_framework",
         "input_schema": {
@@ -6410,7 +6800,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Checks each risk entry exposes a ``risk_id`` and a Basel ``category`` and\n"
-        "summarises counts by category — the identification step of the RCSA cycle.",
+        "summarises counts by category — the identification step of the RCSA "
+        "cycle.\n"
+        "\n"
+        "This is validation plus a count-by-category aggregation, not a numeric\n"
+        "formula; ``category`` is a per-entry dict key rather than a top-level\n"
+        "function parameter.",
         "domain": "operational",
         "function_name": "rcsa_risk_identification",
         "input_schema": {
@@ -6442,7 +6837,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Maps a metric to ``within_appetite`` / ``within_tolerance`` / ``breach``\n"
         "against a two-tier limit structure: appetite (the desired ceiling) and\n"
-        "tolerance (the absolute maximum before escalation).",
+        "tolerance (the absolute maximum before escalation).\n"
+        "\n"
+        "When ``higher_is_worse=False`` every inequality is reversed and "
+        "utilisation\n"
+        "is computed as ``tolerance_limit / current_metric`` rather than the\n"
+        "``current_metric / tolerance_limit`` used in the higher-is-worse case.",
         "domain": "operational",
         "function_name": "risk_appetite_statement_oprisk",
         "input_schema": {
@@ -6561,10 +6961,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "scenario_severity_estimation",
     },
     {
-        "description": "Supports the lognormal (default, the OpRisk industry standard) by MLE of "
-        "the\n"
-        "log-loss mean/sigma. Returns the fitted parameters and the implied mean\n"
-        "severity.",
+        "description": "Supports four standard OpRisk severity families, all fit by maximum\n"
+        "likelihood with the location parameter pinned at zero (severities are\n"
+        "strictly positive, so a free location would let the MLE drift away from\n"
+        "the actual support):\n"
+        "\n"
+        '- ``"lognormal"`` (default, the OpRisk industry standard): closed-form '
+        "MLE\n"
+        "  of the log-loss mean/sigma, i.e. ``scipy.stats.lognorm.fit(x, floc=0)``\n"
+        "  reparameterised as ``mu = log(scale)``, ``sigma = shape``.\n"
+        '- ``"gamma"``: ``scipy.stats.gamma.fit(x, floc=0)`` — shape ``a`` and\n'
+        "  ``scale``; commonly used for moderate, right-skewed severities.\n"
+        '- ``"weibull"``: ``scipy.stats.weibull_min.fit(x, floc=0)`` — shape ``c``\n'
+        "  and ``scale``; flexible hazard shape, another standard severity choice.\n"
+        '- ``"gpd"`` (Generalized Pareto Distribution): '
+        "``scipy.stats.genpareto.fit(\n"
+        "  x, floc=0)`` — shape ``xi`` and ``scale``; the standard EVT/POT model "
+        "for\n"
+        "  the tail of large losses (threshold-exceedance modelling). The mean is\n"
+        "  only finite for ``xi < 1``; when ``xi >= 1`` ``mean_severity`` is\n"
+        "  ``None`` rather than a misleading infinite/negative value.\n"
+        "\n"
+        "Any other ``distribution`` value raises ``ValueError`` rather than "
+        "falling\n"
+        "back or approximating.",
         "domain": "operational",
         "function_name": "severity_distribution_fitting",
         "input_schema": {
@@ -6692,16 +7112,43 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "calmar_ratio",
     },
     {
-        "description": "Computes the Weighted Average Carbon Intensity (WACI) and attributes the\n"
-        "financed emissions to each holding by its invested value. Contributions "
-        "sum\n"
-        "to the total financed emissions.",
+        "description": "Computes the Weighted Average Carbon Intensity (WACI) -- this leg matches\n"
+        "TCFD's WACI definition regardless of mode.\n"
+        "\n"
+        "By default (``company_total_emissions``/``company_value`` omitted,\n"
+        "unchanged prior behaviour) ``total_financed_emissions`` scales\n"
+        "revenue-intensity by invested value per holding, which does NOT match\n"
+        "the ownership-share method used by the TCFD/PCAF financed-emissions\n"
+        "standards.\n"
+        "\n"
+        "Supplying BOTH ``company_total_emissions`` (each holding's investee\n"
+        "company's total absolute Scope 1+2 emissions, tCO2e) and\n"
+        "``company_value`` (each company's total enterprise value -- PCAF's EVIC,\n"
+        "enterprise value including cash, or market cap -- same currency unit as\n"
+        "``portfolio_value``) switches to the PCAF ownership-share method\n"
+        '(Partnership for Carbon Accounting Financials, "The Global GHG\n'
+        'Accounting and Reporting Standard for the Financial Industry", Part A,\n'
+        "2020; the same method TCFD's 2017 recommendations point to for financed\n"
+        "emissions):\n"
+        "\n"
+        "    ownership_share_i = invested_i / company_value_i\n"
+        "    financed_emissions_i = ownership_share_i * company_total_emissions_i\n"
+        "\n"
+        "where ``invested_i = weights_i * portfolio_value`` is the investor's\n"
+        "outstanding amount in company i. Unlike the default (revenue-intensity\n"
+        "x invested-value) leg, this correctly represents \"the investor's\n"
+        "proportional share of the company's own total emissions\" rather than an\n"
+        "intensity-scaled quantity with no ownership interpretation -- an\n"
+        "investor's ownership share can never legitimately attribute more than\n"
+        "the company's own total emissions (verified in tests).",
         "domain": "portfolio",
         "function_name": "carbon_footprint_attribution",
         "input_schema": {
             "properties": {
                 "asset_names": {"type": "object"},
                 "carbon_intensities": {"type": "object"},
+                "company_total_emissions": {"type": "object"},
+                "company_value": {"type": "object"},
                 "portfolio_value": {"type": "number"},
                 "weights": {"type": "object"},
             },
@@ -6761,9 +7208,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "conditional_drawdown_at_risk",
     },
     {
-        "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple\n"
+        "description": "Builds the correlation distance ``sqrt(2(1 - rho))`` and performs\n"
         "single-linkage agglomerative clustering down to ``n_clusters`` groups —\n"
-        "grouping assets that co-move.",
+        "grouping assets that co-move.\n"
+        "\n"
+        "The merge itself is delegated to ``scipy.cluster.hierarchy.linkage``\n"
+        "(``method='single'``) followed by ``fcluster(..., criterion='maxclust')``\n"
+        "rather than a hand-rolled merge loop; this is the same single-linkage\n"
+        "algorithm (repeatedly merge the two clusters whose minimum pairwise\n"
+        "distance is smallest), just computed by SciPy's tested implementation.\n"
+        "Cluster *membership* is therefore identical to the earlier hand-rolled\n"
+        "version — only the arbitrary integer cluster-id labelling can differ.",
         "domain": "portfolio",
         "function_name": "correlation_clustering",
         "input_schema": {
@@ -6792,45 +7247,86 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "correlation_matrix_portfolio",
     },
     {
-        "description": "Splits the base-currency return into a local-market component and a "
-        "currency\n"
-        "(FX) component per holding, weighted by exposure, via the geometric\n"
-        "identity ``base = (1+local)(1+fx)-1`` with currency as the residual. The\n"
-        "total reconciles to the weighted base-currency return.\n"
+        "description": "By default (``local_risk_free``/``base_risk_free`` omitted, unchanged\n"
+        "prior behaviour) this splits the base-currency return into a\n"
+        "local-market component and a currency (FX) component per holding,\n"
+        "weighted by exposure, via the geometric identity\n"
+        "``base = (1+local)(1+fx)-1`` with currency as the residual. This naive\n"
+        'split is NOT Karnosky-Singer -- see Bacon, C. (2008), "Practical\n'
+        'Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6,\n'
+        "which presents it as the baseline before introducing Karnosky-Singer.\n"
         "\n"
-        'This is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), "The\n'
-        "Currency Dimension of Global Asset Management and Performance\n"
-        'Attribution", CFA Institute Research Foundation) -- that method requires\n'
-        "local-currency return PREMIUMS (local return minus the local risk-free\n"
-        "rate) and moves the interest-rate differential onto the currency side via\n"
-        "covered interest parity; this function takes no interest rates at all. A\n"
-        'prior version of this docstring claimed "Karnosky-Singer style", which is\n'
-        "the same failure mode as this codebase's earlier false QuantLib\n"
-        "cross-validation claim (correct arithmetic, fabricated provenance) --\n"
-        'found during the Tier 3 #2 audit. See Bacon, C. (2008), "Practical\n'
-        'Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6, which\n'
-        "presents this naive geometric split as the baseline before introducing\n"
-        "Ankrim-Hensel and Karnosky-Singer.",
+        "Supplying BOTH ``local_risk_free`` (per-holding local-currency\n"
+        "risk-free/cash rate) and ``base_risk_free`` (the reporting/base\n"
+        "currency's own risk-free rate) switches to Karnosky & Singer's (1994)\n"
+        'genuine decomposition ("The Currency Dimension of Global Asset\n'
+        'Management and Performance Attribution", CFA Institute Research\n'
+        "Foundation): local returns are first netted against the *local*\n"
+        "risk-free rate into a local return PREMIUM (the market-selection\n"
+        "component the currency side must not re-capture), and the currency\n"
+        "side is split into the base cash return and a currency SURPRISE --\n"
+        "the currency return net of the covered-interest-parity forward\n"
+        "premium implied by the two risk-free rates -- rather than absorbing\n"
+        "the interest-rate differential as an unexplained residual:\n"
+        "\n"
+        "    premium_i = (1+local_i)/(1+local_rf_i) - 1\n"
+        "    forward_premium_i = (1+base_rf)/(1+local_rf_i) - 1   (covered interest "
+        "parity)\n"
+        "    surprise_i = (1+fx_i)/(1+forward_premium_i) - 1\n"
+        "\n"
+        "These combine via the exact geometric identity\n"
+        "``(1+base_rf)(1+premium_i)(1+surprise_i) = (1+local_i)(1+fx_i)`` -- i.e.\n"
+        "Karnosky-Singer re-partitions the *same* total base-currency return\n"
+        "used by the naive split, it does not change it (verified in tests).\n"
+        "The ``currency_effect`` bucket is further broken into\n"
+        "``base_cash_effect`` (``base_rf``, common to every holding),\n"
+        "``currency_surprise_effect`` (``surprise_i``) and a small\n"
+        "``currency_interaction_effect`` residual capturing the compounding\n"
+        "cross-terms between the three multiplicative legs -- the same\n"
+        "reconciling-residual pattern :func:`return_attribution_brinson` uses\n"
+        "for its own interaction effect, so the three currency sub-effects sum\n"
+        "exactly to ``currency_effect`` (which itself sums with ``local_effect``\n"
+        "to ``total_return``, as before).",
         "domain": "portfolio",
         "function_name": "currency_attribution",
         "input_schema": {
             "properties": {
+                "base_risk_free": {"type": "object"},
                 "currency_names": {"type": "object"},
                 "fx_returns": {"type": "object"},
                 "local_returns": {"type": "object"},
+                "local_risk_free": {"type": "object"},
                 "weights": {"type": "object"},
             },
             "required": ["local_returns", "fx_returns", "weights"],
             "type": "object",
         },
         "path": "/api/v1/portfolio/currency_attribution",
-        "summary": "Currency attribution -- naive geometric local/FX decomposition.",
+        "summary": "Currency attribution -- naive geometric split, or genuine Karnosky-Singer.",
         "tool_name": "currency_attribution",
     },
     {
         "description": "Maximises expected return subject to the portfolio CVaR (at\n"
         "``confidence_level``) not exceeding ``cvar_limit``, long-only and fully\n"
-        "invested. CVaR is computed empirically over the supplied scenarios.",
+        "invested. CVaR is computed empirically over the supplied scenarios.\n"
+        "\n"
+        "Solved via Rockafellar & Uryasev's (2000) original auxiliary-variable\n"
+        "linear-programming reformulation, not a direct nonlinear CVaR\n"
+        "constraint. Introduce an auxiliary VaR estimate ``zeta`` and one\n"
+        "non-negative excess-loss variable ``u_s`` per scenario, then solve the\n"
+        "convex LP\n"
+        "\n"
+        "    minimize    -mu^T w\n"
+        "    subject to  sum(w) = 1,  0 <= w_i <= 1\n"
+        "                zeta + (1/(S(1-alpha))) * sum_s u_s <= cvar_limit\n"
+        "                u_s >= -(scenario_s . w) - zeta,   u_s >= 0   (s=1..S)\n"
+        "\n"
+        "via ``scipy.optimize.linprog`` (HiGHS). CVaR is a convex function of\n"
+        "``w`` and both this LP and the retired SLSQP-on-empirical-CVaR\n"
+        "formulation share the same feasible region and the same (convex)\n"
+        "objective, so they solve to the same global optimum — the LP just gets\n"
+        "there via Rockafellar-Uryasev's exact reformulation instead of SLSQP\n"
+        "re-evaluating the empirical quantile/tail-mean at every iterate.",
         "domain": "portfolio",
         "function_name": "cvar_constrained_optimisation",
         "input_schema": {
@@ -7265,15 +7761,45 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Computes the trades to move from current to target weights, suppressing\n"
-        "trades within ``no_trade_band`` to avoid churn, and reports turnover and\n"
-        "total transaction cost.",
+        "trades within a no-trade band to avoid churn, and reports turnover and\n"
+        "total transaction cost.\n"
+        "\n"
+        "By default ``no_trade_band`` is a single user-supplied absolute weight\n"
+        "threshold applied uniformly to every asset (unchanged prior behaviour).\n"
+        "Supplying both ``asset_volatility`` and ``risk_aversion`` instead\n"
+        "*derives* a per-asset band from the classic Constantinides (1986) /\n"
+        "Davis & Norman (1990) asymptotic no-trade-region half-width — the\n"
+        "closed-form cube-root result that Leland's (1999) mean-variance\n"
+        "tracking-error approximation and Donohue & Yip's (2003) practitioner\n"
+        "rebalancing-band heuristic both build on:\n"
+        "\n"
+        "    h_i = ( (3/4) * c_i * sigma_i^2 * w_i^tgt * (1 - w_i^tgt)^2 / gamma "
+        ")^(1/3)\n"
+        "\n"
+        "where ``c_i`` is the proportional transaction cost (``cost_bps_i /\n"
+        "1e4``), ``sigma_i`` is asset i's return volatility, ``w_i^tgt`` is asset\n"
+        "i's target weight (the frictionless-optimal allocation the band is\n"
+        "centred on) and ``gamma`` is the investor's (CRRA) risk-aversion\n"
+        "coefficient. The half-width widens with cost and volatility (cube-root\n"
+        "scaling) and narrows as risk aversion rises — more risk-averse investors\n"
+        "tolerate less drift before trading. This is the classic single-risky-\n"
+        "asset asymptotic result applied per-asset; it is not a reproduction of\n"
+        "Leland's or Donohue & Yip's own published numerical examples (no\n"
+        "published table was available to cross-check exact figures against).\n"
+        "\n"
+        "When the derived-band mode is used, it *replaces* the scalar\n"
+        "``no_trade_band`` for that call rather than combining with it; when\n"
+        "either ``asset_volatility`` or ``risk_aversion`` is omitted, behaviour\n"
+        "is unchanged — the scalar ``no_trade_band`` is used exactly as before.",
         "domain": "portfolio",
         "function_name": "rebalancing_optimiser",
         "input_schema": {
             "properties": {
+                "asset_volatility": {"type": "object"},
                 "cost_bps": {"type": "object"},
                 "current_weights": {"type": "object"},
                 "no_trade_band": {"default": 0.0, "type": "number"},
+                "risk_aversion": {"type": "object"},
                 "target_weights": {"type": "object"},
             },
             "required": ["current_weights", "target_weights", "cost_bps"],
@@ -7284,24 +7810,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "rebalancing_optimiser",
     },
     {
-        "description": "Fits a two-component Gaussian mixture by EM and labels each observation "
+        "description": "Note: despite the name, this fits a stationary 2-component Gaussian\n"
+        "mixture (EM, i.i.d. weights) — there is no transition matrix, so it does\n"
+        "not model true HMM regime persistence/switching dynamics.\n"
+        "\n"
+        "Fits a two-component Gaussian mixture by EM and labels each observation "
         "by\n"
         "its most likely regime. The higher-variance component is reported as the\n"
-        '"stress" regime — the standard calm/turbulent market characterisation.\n'
-        "\n"
-        "Despite the ``_hmm`` in this function's name, this is a STATIONARY\n"
-        "Gaussian mixture (i.i.d. component weights ``pi``) -- there is no\n"
-        "transition matrix, so regime persistence/switching probabilities are not\n"
-        "modelled at all, only the marginal mixture. A genuine hidden Markov model\n"
-        '(Hamilton, J.D. (1989), "A New Approach to the Economic Analysis of\n'
-        'Nonstationary Time Series and the Business Cycle", Econometrica 57(2))\n'
-        "fits a Markov-switching autoregression with an explicit 2x2 transition\n"
-        "matrix and publishes reproducible parameter estimates on US GNP growth --\n"
-        "not applicable here since this function's inputs/outputs don't match that\n"
-        "structure. Renaming the function (and its REST route) is a larger,\n"
-        "separate change than this docstring fix; flagged here (Tier 3 #2 audit)\n"
-        "so nobody mistakes the current name for a claim of Markov-switching\n"
-        "behaviour.",
+        '"stress" regime — the standard calm/turbulent market characterisation.',
         "domain": "portfolio",
         "function_name": "regime_detection_hmm",
         "input_schema": {
@@ -7313,8 +7829,7 @@ FUNCTIONS: list[dict[str, Any]] = [
             "type": "object",
         },
         "path": "/api/v1/portfolio/regime_detection_hmm",
-        "summary": "Two-state Gaussian regime detection via EM (function name overstates the "
-        "method -- see below).",
+        "summary": "Two-state Gaussian regime detection via EM.",
         "tool_name": "regime_detection_hmm",
     },
     {
@@ -7388,7 +7903,12 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Finds long-only weights so each asset contributes equally to portfolio\n"
-        "variance, by minimising the dispersion of risk contributions.",
+        "variance, by minimising the dispersion of risk contributions.\n"
+        "\n"
+        "Dispersion is measured as the sum of squared pairwise differences\n"
+        "between all assets' risk contributions rather than each asset's\n"
+        "deviation from the mean contribution -- a stronger gradient signal for\n"
+        "SLSQP that converges to the same equal-risk-contribution solution.",
         "domain": "portfolio",
         "function_name": "risk_parity_portfolio",
         "input_schema": {
@@ -7456,11 +7976,21 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Mean excess return divided by return volatility, annualised by\n"
-        "``sqrt(periods_per_year)``.",
+        "``sqrt(periods_per_year)``.\n"
+        "\n"
+        "By default (``ddof=0``, unchanged from prior behaviour) volatility is the\n"
+        "*population* standard deviation (divide by n) of per-period excess\n"
+        "returns. Pass ``ddof=1`` to use the *sample* standard deviation (divide\n"
+        "by n-1) instead — the usual unbiased-estimator convention when\n"
+        "``returns`` is treated as a sample drawn from a larger population. The\n"
+        "``n``-vs-``n-1`` divisor only matters materially for small samples; for\n"
+        "the sample sizes typical of return series (hundreds+ of observations)\n"
+        "the two converge.",
         "domain": "portfolio",
         "function_name": "sharpe_ratio",
         "input_schema": {
             "properties": {
+                "ddof": {"default": 0, "type": "integer"},
                 "periods_per_year": {"default": 252, "type": "integer"},
                 "returns": {"type": "object"},
                 "risk_free": {"default": 0.0, "type": "number"},
@@ -7474,7 +8004,13 @@ FUNCTIONS: list[dict[str, Any]] = [
     },
     {
         "description": "Like Sharpe but penalises only downside deviation below ``target``, so\n"
-        "upside volatility is not treated as risk.",
+        "upside volatility is not treated as risk.\n"
+        "\n"
+        "The numerator's excess return is measured against ``risk_free`` while\n"
+        "the downside-deviation denominator measures shortfalls of the raw (not\n"
+        "risk-free-adjusted) returns below the separate ``target``, so when\n"
+        "``target != risk_free`` the two are distinct reference rates by\n"
+        "construction.",
         "domain": "portfolio",
         "function_name": "sortino_ratio",
         "input_schema": {
@@ -7529,12 +8065,32 @@ FUNCTIONS: list[dict[str, Any]] = [
     {
         "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\n"
         "quantity-weighted average slippage in basis points. ``side`` is +1 for\n"
-        "buys (paying above benchmark is a cost) and -1 for sells.",
+        "buys (paying above benchmark is a cost) and -1 for sells.\n"
+        "\n"
+        "By default (``decision_price`` omitted, unchanged prior behaviour) this\n"
+        "is narrower than Perold's (1988) full implementation-shortfall\n"
+        "decomposition -- it measures only execution slippage against the\n"
+        "``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n"
+        "\n"
+        "Passing ``decision_price`` -- the price at the instant the investment\n"
+        'decision was made, Perold\'s "paper" price, distinct from the\n'
+        "arrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\n"
+        "the delay-cost leg: the cost incurred between the decision and the\n"
+        "order reaching the market (``benchmark_prices``), *before* any\n"
+        "execution slippage is measured. Delay cost and execution slippage sum\n"
+        "exactly to the executed-quantity implementation shortfall measured\n"
+        "directly against the decision price:\n"
+        "``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n"
+        "* trade_quantities)``. This still omits Perold's unexecuted-share\n"
+        "opportunity-cost leg (no cancellation price/quantity is modelled here),\n"
+        "so even with ``decision_price`` supplied the result is a delay+\n"
+        "execution partial IS, not the complete four-component decomposition.",
         "domain": "portfolio",
         "function_name": "transaction_cost_analysis",
         "input_schema": {
             "properties": {
                 "benchmark_prices": {"type": "object"},
+                "decision_price": {"type": "object"},
                 "side": {"default": 1, "type": "integer"},
                 "trade_prices": {"type": "object"},
                 "trade_quantities": {"type": "object"},
@@ -7582,7 +8138,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "ulcer_index",
     },
     {
-        "description": "Computes leverage under the gross method and the commitment method (each "
+        "description": '"Substantially leveraged" here is a simple threshold flag (commitment\n'
+        "leverage > 3x NAV), not AIFMD's full leverage-calculation methodology.\n"
+        "\n"
+        "Computes leverage under the gross method and the commitment method (each "
         "as\n"
         "a multiple of NAV) per Delegated Regulation 231/2013 Art. 7-8. A fund is\n"
         '"substantially leveraged" when commitment leverage exceeds 3x NAV.',
@@ -7707,7 +8266,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "capital_conservation_buffer",
     },
     {
-        "description": "``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the "
+        "description": "The max(G-SII, O-SII, SyRB) selection is expected to already be resolved\n"
+        "by the caller into ``systemic_buffer_ratio``; this function itself\n"
+        "performs only a straight sum of the three supplied buffer ratios.\n"
+        "\n"
+        "``CBR = CCoB + CCyB + max(G-SII, O-SII, SyRB)`` per CRD IV. Sums the "
         "buffer\n"
         "ratios and (optionally) the capital amount on the supplied RWA.",
         "domain": "regulatory",
@@ -7744,10 +8307,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "countercyclical_capital_buffer",
     },
     {
-        "description": "A single client / group exposure must not exceed 25% of Tier 1 capital\n"
-        "(or EUR 150m for institutions, whichever is higher — simplified to the "
-        "25%\n"
-        "ratio test here). Reports the exposure ratio and any breach amount.",
+        "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n"
+        "150m absolute alternative threshold for institutions is not applied.\n"
+        "\n"
+        "A single client / group exposure must not exceed 25% of Tier 1 capital\n"
+        "(or EUR 150m for institutions, whichever is higher). Reports the exposure\n"
+        "ratio and any breach amount.",
         "domain": "regulatory",
         "function_name": "crr2_large_exposure_limit",
         "input_schema": {
@@ -7816,7 +8381,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "emir_margin_requirement",
     },
     {
-        "description": "Validates the core EMIR reporting fields (counterparty LEIs, UTI, "
+        "description": "This validates a representative core subset of 6 fields, not full-schema\n"
+        "coverage of EMIR REFIT's roughly 200 reportable fields.\n"
+        "\n"
+        "Validates the core EMIR reporting fields (counterparty LEIs, UTI, "
         "notional,\n"
         "asset class) and echoes a normalised report.",
         "domain": "regulatory",
@@ -7853,7 +8421,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "frtb_ima_market_risk_capital",
     },
     {
-        "description": "Jointly evaluates the Spearman rank correlation between risk-theoretical "
+        "description": "The green/amber/red zone is assigned by a fixed-threshold lookup on the\n"
+        "correlation and ratio values below, not a single closed-form equation.\n"
+        "\n"
+        "Jointly evaluates the Spearman rank correlation between risk-theoretical "
         "P&L\n"
         "(RTPL) and hypothetical P&L (HPL) and the volatility ratio\n"
         "``std(RTPL)/std(HPL)``, assigning the Basel traffic-light zone. The\n"
@@ -7937,7 +8508,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "icaap_capital_assessment",
     },
     {
-        "description": "Verifies that the mandatory governance and control documentation items "
+        "description": "The 6-item checklist below is this codebase's own internal choice, not a\n"
+        "checklist published by RTS 6 itself.\n"
+        "\n"
+        "Verifies that the mandatory governance and control documentation items "
         "for\n"
         "an algorithmic trading strategy are present.",
         "domain": "regulatory",
@@ -7952,7 +8526,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "mifid_ii_algorithm_documentation",
     },
     {
-        "description": "Computes the quantity-weighted price improvement (or slippage) of "
+        "description": "This is an internal TCA (transaction cost analysis) metric only; neither\n"
+        "RTS 27 nor RTS 28 defines a prescribed quantitative figure that this\n"
+        "function reproduces.\n"
+        "\n"
+        "Computes the quantity-weighted price improvement (or slippage) of "
         "executions\n"
         "versus a reference (e.g. EBBO) price, in basis points. Positive means "
         "price\n"
@@ -8023,7 +8601,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "mifid_ii_pre_trade_transparency",
     },
     {
-        "description": "Checks the presence and basic validity of the mandatory "
+        "description": "This checks a representative core subset of 9 fields, not full-schema\n"
+        "coverage of RTS 22's roughly 65 mandatory transaction-report fields.\n"
+        "\n"
+        "Checks the presence and basic validity of the mandatory "
         "transaction-report\n"
         "fields (LEI length, ISIN length, positive price/quantity).",
         "domain": "regulatory",
@@ -8072,7 +8653,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "pillar_2b_stress_buffer",
     },
     {
-        "description": "Validates the core SFTR fields for an SFT (repo, securities lending, buy-\n"
+        "description": "This validates a representative core subset of 6 fields, not full-schema\n"
+        "coverage of SFTR's complete field set.\n"
+        "\n"
+        "Validates the core SFTR fields for an SFT (repo, securities lending, buy-\n"
         "sell back, margin lending): counterparties, UTI, collateral and the SFT\n"
         "type.",
         "domain": "regulatory",
@@ -8087,7 +8671,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "sftr_securities_finance_report",
     },
     {
-        "description": "[REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the\n"
+        "description": "The sigma used here is the intra-counterparty (independent-Bernoulli)\n"
+        "variance term only; Delegated Regulation (EU) 2015/35 Art. 201's\n"
+        "inter-counterparty correlation term is not implemented, so the true\n"
+        "Art. 201 variance (and SCR) is at least as large as what this function\n"
+        "returns.\n"
+        "\n"
+        "[REGULATORY] Delegated Regulation (EU) 2015/35 Art. 200(1)-(3) fixes the\n"
         "capital charge as a TIERED multiplier on the standard deviation (sigma) "
         "of\n"
         "the loss distribution, not a flat 3x: SCR = 3*sigma while\n"
@@ -8175,7 +8765,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "srep_capital_add_on",
     },
     {
-        "description": "Maps the annualised volatility of (weekly by default) returns to the SRRI\n"
+        "description": "The SRRI class itself is a bucket lookup of the annualised volatility\n"
+        "against fixed CESR volatility bands, not a closed-form equation.\n"
+        "\n"
+        "Maps the annualised volatility of (weekly by default) returns to the SRRI\n"
         "bucket per CESR 10-673: class 1 (< 0.5%) up to class 7 (>= 25%).",
         "domain": "regulatory",
         "function_name": "ucits_kiid_risk_indicator",

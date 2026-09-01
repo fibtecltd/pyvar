@@ -159,16 +159,26 @@ def credit_default_swap_cds_pricer(
     discount_rate: float,
     frequency: int = 4,
 ) -> dict:  # type: ignore[type-arg]
-    """Price a CDS via a flat-hazard-rate reduced-form model.
+    """Price a CDS via a flat-hazard-rate reduced-form model with
+    accrual-midpoint default settlement.
 
-    Premium leg = ``spread · Σ τ · DF · Q``; protection leg =
-    ``(1−R) · Σ DF · (Q_{i−1} − Q_i)`` with survival ``Q(t)=e^{−λt}``. The par
+    Survival ``Q(t)=e^{−λt}``. Default losses -- and the accrued premium a
+    protection buyer owes if default falls inside a coupon period -- are
+    both settled at each period's ACCRUAL MIDPOINT
+    ``t_mid,i = (t_{i−1}+t_i)/2``, discounted at ``DF(t_mid,i)``, following
+    the standard ISDA/JPMorgan reduced-form CDS convention also implemented
+    by QuantLib's ``MidPointCdsEngine`` (which settles the same way by
+    default: ``settlesAccrual=True``, ``paysAtDefaultTime=True`` --
+    confirmed by inspecting its NPV decomposition directly, since this is
+    exactly what ``tests/validation/test_derivatives_ref.py`` cross-checks
+    against). The regular coupon cashflow -- paid only while the name has
+    survived to the period end -- is unaffected: ``spread · τ · Σ DF(t_i) ·
+    Q(t_i)``.
+
+    Protection leg = ``(1−R) · Σ DF(t_mid,i) · (Q_{i−1} − Q_i)``.
+    Accrual-on-default rebate = ``spread · Σ (t_mid,i − t_{i−1}) ·
+    DF(t_mid,i) · (Q_{i−1} − Q_i)``, added to the premium leg. The par
     spread zeroes the swap value.
-
-    Note: default and coupon events are settled at each period end (``t_i``)
-    rather than at the accrual midpoint — a deliberate discretisation choice
-    validated by a convergence check against QuantLib's midpoint-settlement
-    CDS engine, not an exact-match assertion.
 
     Args:
         notional: CDS notional.
@@ -180,8 +190,9 @@ def credit_default_swap_cds_pricer(
         frequency: Premium payment frequency per year.
 
     Returns:
-        Dict with ``value`` (to protection buyer), ``premium_leg``,
-        ``protection_leg``, ``par_spread``.
+        Dict with ``value`` (to protection buyer), ``premium_leg`` (full
+        coupon plus the accrual-on-default rebate), ``protection_leg``,
+        ``par_spread``.
 
     Raises:
         ValueError: If inputs are invalid.
@@ -192,17 +203,25 @@ def credit_default_swap_cds_pricer(
         raise ValueError("recovery_rate must be in [0, 1)")
 
     n = max(int(round(maturity * frequency)), 1)
-    times = np.array([(i + 1) / frequency for i in range(n)], dtype=np.float64)
     tau = 1.0 / frequency
+    times = np.array([(i + 1) / frequency for i in range(n)], dtype=np.float64)
+    times_prev: np.ndarray = np.concatenate((np.array([0.0], dtype=np.float64), times[:-1]))
+    times_mid = 0.5 * (times_prev + times)
+
     df = np.exp(-discount_rate * times)
+    df_mid = np.exp(-discount_rate * times_mid)
     surv = np.exp(-hazard_rate * times)
     surv_prev: np.ndarray = np.concatenate((np.array([1.0], dtype=np.float64), surv[:-1]))
+    default_prob = surv_prev - surv
 
-    premium_leg = spread * tau * float(np.sum(df * surv)) * notional
-    protection_leg = (1.0 - recovery_rate) * float(np.sum(df * (surv_prev - surv))) * notional
-    annuity = tau * float(np.sum(df * surv))
+    coupon_pv = tau * float(np.sum(df * surv))
+    accrual_pv = float(np.sum((times_mid - times_prev) * df_mid * default_prob))
+    premium_leg = spread * (coupon_pv + accrual_pv) * notional
+    protection_leg = (1.0 - recovery_rate) * float(np.sum(df_mid * default_prob)) * notional
+
+    annuity = coupon_pv + accrual_pv
     par_spread = (
-        (1.0 - recovery_rate) * float(np.sum(df * (surv_prev - surv))) / annuity
+        (1.0 - recovery_rate) * float(np.sum(df_mid * default_prob)) / annuity
         if annuity > 0
         else 0.0
     )

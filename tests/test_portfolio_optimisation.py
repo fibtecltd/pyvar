@@ -166,6 +166,109 @@ def test_cvar_constrained_respects_limit():
         assert r["cvar"] <= 0.04 + 1e-4
 
 
+def test_cvar_lp_matches_brute_force_grid_search():
+    """The Rockafellar-Uryasev LP reformulation reaches the true constrained
+    optimum: cross-checked against an independent brute-force grid search
+    over the 2-asset weight simplex (task #17 portfolio-analytics reimpl).
+    """
+    rng = np.random.default_rng(99)
+    scen = rng.normal(0.001, 0.02, size=(500, 2))
+    mu = scen.mean(axis=0)
+    conf = 0.95
+    limit = 0.03
+
+    def port_cvar(w):
+        losses = -(scen @ w)
+        var = np.quantile(losses, conf)
+        tail = losses[losses >= var]
+        return float(np.mean(tail)) if tail.size else float(var)
+
+    best_ret, best_w = -np.inf, None
+    for w1 in np.linspace(0.0, 1.0, 5001):
+        w = np.array([w1, 1.0 - w1])
+        if port_cvar(w) <= limit + 1e-9:
+            ret = float(w @ mu)
+            if ret > best_ret:
+                best_ret, best_w = ret, w
+
+    out = cvar_constrained_optimisation(
+        scen, confidence_level=conf, cvar_limit=limit, periods_per_year=1
+    )
+    assert out["success"]
+    assert out["weights"][0] == pytest.approx(best_w[0], abs=2e-4)
+    assert out["expected_return"] == pytest.approx(best_ret, abs=1e-5)
+    assert out["cvar"] <= limit + 1e-6
+
+
+def test_cvar_lp_reconciles_var_leq_cvar():
+    """CVaR_alpha >= VaR_alpha must hold at the optimum -- a property of the
+    tail-mean definition itself, independent of the LP reformulation.
+    """
+    rng = np.random.default_rng(5)
+    scen = rng.normal(0.0005, 0.015, size=(1000, 4))
+    out = cvar_constrained_optimisation(scen, confidence_level=0.975, cvar_limit=0.05)
+    assert out["var"] <= out["cvar"] + 1e-6
+
+
+def test_cvar_lp_outperforms_retired_slsqp_on_repo_fixture():
+    """Documents a real discrepancy found during the R-U LP migration (task
+    #17): on this repo's own pre-existing fixture (test_cvar_constrained_
+    respects_limit's rng/scenario setup), the retired SLSQP-on-empirical-
+    CVaR implementation terminated after a single non-improving iteration
+    at the equal-weight initial guess (SLSQP's finite-difference Jacobian
+    of the quantile-based CVaR constraint is effectively flat at that
+    point), reporting success=True despite ~40% CVaR budget left unused and
+    a materially lower expected return than the true optimum. The LP finds
+    the actual constrained optimum (CVaR binds at the limit, higher
+    return) -- so the two do NOT numerically match on this fixture; the LP
+    result is the correct one (independently confirmed against a brute-
+    force grid search in test_cvar_lp_matches_brute_force_grid_search).
+    """
+    rng = np.random.default_rng(3)
+    scen = rng.normal(0.0008, 0.02, size=(2000, 3))
+    mu = scen.mean(axis=0)
+    conf, limit = 0.95, 0.04
+
+    def port_cvar(w):
+        losses = -(scen @ w)
+        var = np.quantile(losses, conf)
+        tail = losses[losses >= var]
+        return float(np.mean(tail)) if tail.size else float(var)
+
+    # The retired implementation, reproduced verbatim for this regression check.
+    from scipy.optimize import minimize
+
+    def neg_return(w):
+        return -float(w @ mu)
+
+    constraints = (
+        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
+        {"type": "ineq", "fun": lambda w: limit - port_cvar(w)},
+    )
+    old_res = minimize(
+        neg_return,
+        np.full(3, 1.0 / 3),
+        method="SLSQP",
+        bounds=[(0.0, 1.0)] * 3,
+        constraints=constraints,
+    )
+    old_ret = float(old_res.x @ mu)
+    old_cvar = port_cvar(old_res.x)
+
+    new_out = cvar_constrained_optimisation(
+        scen, confidence_level=conf, cvar_limit=limit, periods_per_year=1
+    )
+
+    # The retired solver got stuck at its initial guess on this fixture.
+    assert old_res.nit == 1
+    assert np.allclose(old_res.x, np.full(3, 1.0 / 3))
+    assert old_cvar < limit * 0.7  # far from binding -- budget left on the table
+
+    # The LP finds a strictly better, constraint-binding optimum.
+    assert new_out["cvar"] == pytest.approx(limit, abs=1e-6)
+    assert new_out["expected_return"] > old_ret + 1e-4
+
+
 # ── Factor-based ──────────────────────────────────────────────────────────────
 
 

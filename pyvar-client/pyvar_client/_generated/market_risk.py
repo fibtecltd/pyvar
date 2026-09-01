@@ -49,7 +49,11 @@ class MarketRiskNamespace:
         """Charm — sensitivity of delta to time to maturity (∂Δ/∂τ).
 
         Computed in the time-to-maturity convention so that a finite-difference of
-        delta with respect to τ reproduces this value.
+        delta with respect to τ reproduces this value. Note the sign: this is
+        +∂Δ/∂τ (time-to-maturity), the opposite sign from the calendar-time charm
+        convention −∂Δ/∂t (decay per day of calendar time elapsed) more commonly
+        quoted on trading desks and in textbooks — do not assume the calendar-time
+        sign without checking which convention a comparison source uses.
 
         Returns:
             The raw API response as a dict.
@@ -75,6 +79,10 @@ class MarketRiskNamespace:
         Likelihood-ratio test that breaches are serially independent (no
         clustering), via a first-order Markov transition model. Chi-squared with
         1 dof at the 95% critical value.
+
+        The four transition counts (n00, n01, n10, n11) that drive the likelihood
+        ratio are derived internally from the ``breaches`` sequence itself, not
+        supplied as separate arguments.
 
         Returns:
             The raw API response as a dict.
@@ -184,8 +192,11 @@ class MarketRiskNamespace:
         window: int = 250,
         confidence_level: float = 0.99,
     ) -> dict[str, Any]:
-        """Parametric (Gaussian) rolling VaR using a expanding window.
+        """Parametric (Gaussian) rolling VaR using a fixed-length trailing window.
 
+        At each point, mean and volatility are estimated from only the most recent
+        `window` observations (returns[i - window : i]), not an expanding window
+        that grows from the start of the series.
         Fast approximation for backtesting — not the full Monte Carlo.
         Uses scipy.stats.norm for the quantile function.
 
@@ -670,6 +681,11 @@ class MarketRiskNamespace:
         ``Kb = sqrt(Σ WS_i² + Σ_{i≠j} ρ·WS_i·WS_j)``; the charge aggregates buckets
         as ``sqrt(Σ Kb² + Σ_{b≠c} γ·S_b·S_c)`` with ``S_b = Σ_i WS_i`` (MAR21).
 
+        Both the per-bucket ``Kb²`` term and the aggregate sum under the final
+        square root are floored at 0 before the square root is taken, guarding
+        against a negative value under extreme correlation inputs — a safeguard
+        not shown in the MAR21 formula above.
+
         Returns:
             The raw API response as a dict.
         """
@@ -942,6 +958,10 @@ class MarketRiskNamespace:
         ``p = 1 − confidence_level``. The statistic is chi-squared with 1 dof;
         rejection uses the 95% critical value.
 
+        At the boundary cases ``x = 0`` or ``x = n`` (zero or 100% observed breach
+        rate) the likelihood ratio is computed with a simplified one-sided form to
+        avoid ``ln(0)``; the general two-sided expression applies for ``0 < x < n``.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1036,6 +1056,11 @@ class MarketRiskNamespace:
 
         Runs the parametric-normal Monte Carlo engine and reads the ES (CVaR) from
         the simulated loss distribution. Deterministic for a fixed seed.
+
+        Internally this delegates to ``engine.montecarlo.run_monte_carlo_var`` and
+        returns its ``cvar_pct``/``cvar_abs`` fields; the simulation's mean and
+        volatility (mu, sigma) are fitted directly from the ``returns`` argument,
+        not supplied as separate distribution parameters.
 
         Returns:
             The raw API response as a dict.
@@ -1459,6 +1484,9 @@ class MarketRiskNamespace:
         Reports the number of breach clusters (maximal runs of consecutive
         breaches), the longest run, and the mean run length — diagnostics for the
         independence assumption that the Christoffersen test formalises.
+
+        This is an algorithmic run-length computation over the breach sequence,
+        not a closed-form statistic.
 
         Returns:
             The raw API response as a dict.

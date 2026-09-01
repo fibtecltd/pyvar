@@ -63,6 +63,34 @@ def test_gap_analysis_ratio():
     assert r["gap_ratio"][1] is None  # 0 liabilities
 
 
+def test_gap_analysis_opening_balance_shifts_cumulative_gap_uniformly():
+    assets = np.array([100.0, 50.0, 0, 0, 0, 0, 0, 0])
+    liab = np.array([60.0, 80.0, 0, 0, 0, 0, 0, 0])
+    baseline = liquidity_gap_analysis(assets, liab)
+    shifted = liquidity_gap_analysis(assets, liab, opening_balance=25.0)
+    # Every cumulative-gap entry is shifted by exactly the opening balance;
+    # periodic_gap and gap_ratio (which don't depend on the running balance)
+    # are unaffected.
+    assert shifted["cumulative_gap"] == [round(x + 25.0, 2) for x in baseline["cumulative_gap"]]
+    assert shifted["periodic_gap"] == baseline["periodic_gap"]
+    assert shifted["gap_ratio"] == baseline["gap_ratio"]
+
+
+def test_gap_analysis_default_opening_balance_matches_omitted_and_explicit_zero():
+    # [independent hand-calc, mirrors test_gap_analysis_periodic_and_cumulative]
+    assets = np.array([100.0, 50.0, 0, 0, 0, 0, 0, 0])
+    liab = np.array([60.0, 80.0, 0, 0, 0, 0, 0, 0])
+    omitted = liquidity_gap_analysis(assets, liab)
+    explicit_zero = liquidity_gap_analysis(assets, liab, opening_balance=0.0)
+    assert omitted == explicit_zero
+    # Pre-change output reproduced exactly: periodic_gap = [40.0, -30.0, ...],
+    # cumulative_gap = [40.0, 10.0, ...].
+    assert omitted["periodic_gap"][0] == 40.0
+    assert omitted["periodic_gap"][1] == -30.0
+    assert omitted["cumulative_gap"][0] == 40.0
+    assert omitted["cumulative_gap"][1] == 10.0
+
+
 def test_funding_tenor_weighted_avg():
     r = funding_tenor_analysis(np.array([100.0, 100.0]), np.array([30.0, 90.0]))
     assert r["weighted_avg_tenor_days"] == 60.0

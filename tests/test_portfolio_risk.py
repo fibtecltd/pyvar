@@ -121,6 +121,69 @@ def test_tca_sell_below_benchmark_positive_cost():
     assert r["slippage_bps"] > 0
 
 
+def test_tca_default_unaffected_by_decision_price_feature():
+    """Omitting decision_price reproduces the exact pre-change output."""
+    p = np.array([100.5, 101.0, 99.8])
+    bench = np.array([100.0, 100.0, 100.0])
+    q = np.array([10.0, 5.0, 20.0])
+    r = transaction_cost_analysis(p, bench, q, side=1)
+    assert "delay_cost_bps" not in r
+    assert "implementation_shortfall_bps" not in r
+    assert set(r.keys()) == {"slippage_bps", "total_cost", "total_quantity", "n_fills"}
+
+
+def test_tca_delay_cost_scalar_decision_price():
+    p = np.array([101.0, 102.0])
+    bench = np.array([100.5, 100.5])
+    q = np.array([10.0, 5.0])
+    decision = 100.0  # scalar decision price shared by both fills
+    side = 1
+
+    r = transaction_cost_analysis(p, bench, q, side=side, decision_price=decision)
+
+    dp = np.full(2, decision)
+    delay = side * (bench - dp)
+    delay_cash = float(np.sum(delay * q))
+    weighted_decision_ref = float(np.sum(dp * q))
+    expected_delay_bps = delay_cash / weighted_decision_ref * 1e4
+
+    exec_cash = float(np.sum(side * (p - bench) * q))
+    expected_is_cash = delay_cash + exec_cash
+    expected_is_bps = expected_is_cash / weighted_decision_ref * 1e4
+
+    assert r["delay_cost"] == pytest.approx(delay_cash, rel=1e-8)
+    assert r["delay_cost_bps"] == pytest.approx(expected_delay_bps, rel=1e-8)
+    assert r["implementation_shortfall"] == pytest.approx(expected_is_cash, rel=1e-8)
+    assert r["implementation_shortfall_bps"] == pytest.approx(expected_is_bps, rel=1e-8)
+
+    # Reconciling identity: delay + execution cash == direct decision-price
+    # shortfall (Perold's IS for the executed portion).
+    direct_shortfall = float(np.sum(side * (p - dp) * q))
+    assert r["implementation_shortfall"] == pytest.approx(direct_shortfall, rel=1e-8)
+
+
+def test_tca_delay_cost_per_fill_decision_price():
+    p = np.array([101.0, 99.0])
+    bench = np.array([100.5, 99.5])
+    q = np.array([10.0, 20.0])
+    decision = np.array([100.0, 99.8])
+    side = 1
+
+    r = transaction_cost_analysis(p, bench, q, side=side, decision_price=decision)
+    direct_shortfall = float(np.sum(side * (p - decision) * q))
+    assert r["implementation_shortfall"] == pytest.approx(direct_shortfall, rel=1e-8)
+
+
+def test_tca_decision_price_length_mismatch_raises():
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(
+            trade_prices=np.array([101.0, 102.0]),
+            benchmark_prices=np.array([100.0, 100.0]),
+            trade_quantities=np.array([10.0, 10.0]),
+            decision_price=np.array([99.0]),
+        )
+
+
 # ── Marginal contribution to risk ─────────────────────────────────────────────
 
 

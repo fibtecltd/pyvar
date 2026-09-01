@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import numpy as np
 from numba import njit
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
 
 __all__ = [
     "fama_french_3_factor_model",
@@ -282,13 +284,17 @@ def correlation_clustering(
 ) -> dict:  # type: ignore[type-arg]
     """Correlation-based clustering of assets.
 
-    Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple
+    Builds the correlation distance ``sqrt(2(1 - rho))`` and performs
     single-linkage agglomerative clustering down to ``n_clusters`` groups —
     grouping assets that co-move.
 
-    The merge loop is hand-rolled here rather than calling scikit-learn's
-    ``AgglomerativeClustering`` or SciPy's ``linkage``, though it implements
-    the same single-linkage algorithm.
+    The merge itself is delegated to ``scipy.cluster.hierarchy.linkage``
+    (``method='single'``) followed by ``fcluster(..., criterion='maxclust')``
+    rather than a hand-rolled merge loop; this is the same single-linkage
+    algorithm (repeatedly merge the two clusters whose minimum pairwise
+    distance is smallest), just computed by SciPy's tested implementation.
+    Cluster *membership* is therefore identical to the earlier hand-rolled
+    version — only the arbitrary integer cluster-id labelling can differ.
 
     Args:
         returns_matrix: (n_obs, n_assets) return matrix.
@@ -310,35 +316,39 @@ def correlation_clustering(
 
     corr = np.atleast_2d(np.corrcoef(m, rowvar=False))
     dist = np.sqrt(np.clip(2.0 * (1.0 - corr), 0.0, None))
+    # Symmetrise and zero the diagonal exactly — floating-point round-trip
+    # through corrcoef can leave sub-epsilon asymmetry that squareform rejects.
+    np.fill_diagonal(dist, 0.0)
+    dist = (dist + dist.T) / 2.0
 
-    # Single-linkage agglomerative clustering.
-    clusters: list[list[int]] = [[i] for i in range(n_assets)]
-    while len(clusters) > n_clusters:
-        best = (float("inf"), 0, 1)
-        for a in range(len(clusters)):
-            for b in range(a + 1, len(clusters)):
-                d = min(dist[i, j] for i in clusters[a] for j in clusters[b])
-                if d < best[0]:
-                    best = (d, a, b)
-        _, a, b = best
-        clusters[a].extend(clusters[b])
-        clusters.pop(b)
+    if n_assets == 1:
+        labels = np.zeros(1, dtype=np.int64)
+    else:
+        condensed = squareform(dist, checks=False)
+        z = linkage(condensed, method="single")
+        labels_raw = fcluster(z, t=n_clusters, criterion="maxclust")
+        # Relabel to a deterministic 0-indexed id ordered by first appearance
+        # (fcluster's own ids are otherwise arbitrary and 1-indexed).
+        labels = np.empty(n_assets, dtype=np.int64)
+        seen: dict[int, int] = {}
+        for i, lbl in enumerate(labels_raw):
+            if lbl not in seen:
+                seen[lbl] = len(seen)
+            labels[i] = seen[int(lbl)]
 
-    labels = np.empty(n_assets, dtype=np.int64)
-    for cid, members in enumerate(clusters):
-        for i in members:
-            labels[i] = cid
+    n_clusters_actual = int(np.unique(labels).size)
 
     # Average intra-cluster correlation.
     intra_vals: list[float] = []
-    for members in clusters:
+    for cid in range(n_clusters_actual):
+        members = [i for i in range(n_assets) if labels[i] == cid]
         for ii in range(len(members)):
             for jj in range(ii + 1, len(members)):
                 intra_vals.append(float(corr[members[ii], members[jj]]))
     avg_intra = float(np.mean(intra_vals)) if intra_vals else 1.0
     return {
         "labels": [int(x) for x in labels],
-        "n_clusters": int(len(clusters)),
+        "n_clusters": n_clusters_actual,
         "average_intra_correlation": round(avg_intra, 8),
     }
 

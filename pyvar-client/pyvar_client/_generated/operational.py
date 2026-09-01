@@ -42,6 +42,10 @@ class OperationalNamespace:
         pricing, capital may be set to unexpected loss only (OpVaR − EL); otherwise
         capital equals the full OpVaR.
 
+        OpVaR and EL are not supplied by the caller — both are computed internally by
+        running the full LDA pipeline (frequency/severity MLE fit, then a Monte Carlo
+        quantile) over ``annual_event_counts`` and ``loss_amounts``.
+
         Returns:
             The raw API response as a dict.
         """
@@ -84,6 +88,10 @@ class OperationalNamespace:
         (ILM) scales by the bank's historical loss experience:
         ``ILM = ln(e − 1 + (LC / BIC)^0.8)``. Bucket-1 banks may set ILM = 1.
 
+        The ILM = 1.0 case (``use_ilm=False``, bucket-1 BI, or non-positive BIC) is
+        an explicit override in code rather than a value the log formula itself
+        produces.
+
         Returns:
             The raw API response as a dict.
         """
@@ -104,11 +112,18 @@ class OperationalNamespace:
         max_tolerable_downtime: float,
         bcp_maturity: float,
     ) -> dict[str, Any]:
-        """Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.
+        """Business-continuity risk from RTO versus tolerance and BCP maturity.
 
         Flags where the recovery time objective (RTO) exceeds the maximum tolerable
         downtime (MTD) and discounts the residual risk by BCP maturity. A breach of
         MTD is the dominant driver.
+
+        Note:
+            ``rpo_hours`` is accepted as an input (and range-validated) but does
+            not currently affect the computed score — only ``rto_hours`` versus
+            ``max_tolerable_downtime`` and ``bcp_maturity`` drive
+            ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)
+            for the triage of this dead parameter.
 
         Returns:
             The raw API response as a dict.
@@ -266,6 +281,11 @@ class OperationalNamespace:
         Maps a loss amount to the highest governance tier whose threshold it meets or
         exceeds (e.g. ``{"team": 1e3, "head": 1e4, "exco": 1e5, "board": 1e6}``).
 
+        This is a rule-based lookup: it selects the triggered tier with the
+        numerically largest threshold value, not necessarily the dict's declared
+        "highest" tier by name or insertion order, so it relies on ``thresholds``
+        being ordered monotonically with severity.
+
         Returns:
             The raw API response as a dict.
         """
@@ -388,6 +408,9 @@ class OperationalNamespace:
         ``red_threshold``, and a ``direction`` (``"higher_breach"`` or
         ``"lower_breach"``). Returns a validated registry keyed by name.
 
+        This is a pure validation/indexing pass — it checks required keys and builds
+        the keyed registry, with no numeric computation involved.
+
         Returns:
             The raw API response as a dict.
         """
@@ -410,6 +433,9 @@ class OperationalNamespace:
         crosses amber then red as it rises; for ``lower_breach`` KRIs (lower = worse,
         e.g. staffing level) it crosses as it falls.
 
+        For ``lower_breach`` every inequality above is reversed (red at or below the
+        red threshold, amber between red and amber, green above amber).
+
         Returns:
             The raw API response as a dict.
         """
@@ -431,6 +457,10 @@ class OperationalNamespace:
         Fits an OLS slope to the observation series and classifies the trend as
         ``"deteriorating"``, ``"improving"`` or ``"stable"`` based on the slope sign
         and the metric direction.
+
+        "Stable" is a scale-relative rule (``|slope| < 1e-4 * mean(|observations|)``),
+        not a fixed absolute tolerance, and the deteriorating/improving call flips
+        with ``higher_is_worse``.
 
         Returns:
             The raw API response as a dict.
@@ -471,6 +501,10 @@ class OperationalNamespace:
         historical data, simulates the compound distribution and reads OpVaR /
         capital at the regulatory confidence — the full LDA pipeline in one call.
 
+        This is a composed pipeline, not a single closed-form equation; ``n_years``
+        and ``seed`` only control the internal Monte Carlo simulation, not the
+        capital figure itself.
+
         Returns:
             The raw API response as a dict.
         """
@@ -491,6 +525,9 @@ class OperationalNamespace:
         Validates the event type against the seven Basel II Level-1 categories
         (BCBS 128, Annex 9) and returns its ordinal index for downstream bucketing.
 
+        This is a membership lookup against the fixed seven Basel II categories, not
+        a numeric equation.
+
         Returns:
             The raw API response as a dict.
         """
@@ -507,6 +544,10 @@ class OperationalNamespace:
         Combines model materiality and complexity (1-5 each) into an inherent score,
         then discounts by validation quality (in [0, 1]) to a residual model-risk
         tier (SR 11-7 / PRA SS1/23 style).
+
+        SR 11-7 / PRA SS1/23 are named only for the general materiality x complexity
+        tiering style this follows; the specific 1-5 scale, multiplication, and RAG
+        thresholds are pyvar's own, not values prescribed by either document.
 
         Returns:
             The raw API response as a dict.
@@ -557,6 +598,10 @@ class OperationalNamespace:
         A near-miss is an event with zero actual loss but a non-zero potential loss.
         Validates events and summarises the count and aggregate potential loss — a
         leading indicator of control weakness.
+
+        This is a rule-based filter/count over ``events``; ``actual_loss`` and
+        ``potential_loss`` are per-event dict keys rather than top-level function
+        parameters.
 
         Returns:
             The raw API response as a dict.
@@ -725,6 +770,10 @@ class OperationalNamespace:
         Checks each risk entry exposes a ``risk_id`` and a Basel ``category`` and
         summarises counts by category — the identification step of the RCSA cycle.
 
+        This is validation plus a count-by-category aggregation, not a numeric
+        formula; ``category`` is a per-entry dict key rather than a top-level
+        function parameter.
+
         Returns:
             The raw API response as a dict.
         """
@@ -766,6 +815,10 @@ class OperationalNamespace:
         Maps a metric to ``within_appetite`` / ``within_tolerance`` / ``breach``
         against a two-tier limit structure: appetite (the desired ceiling) and
         tolerance (the absolute maximum before escalation).
+
+        When ``higher_is_worse=False`` every inequality is reversed and utilisation
+        is computed as ``tolerance_limit / current_metric`` rather than the
+        ``current_metric / tolerance_limit`` used in the higher-is-worse case.
 
         Returns:
             The raw API response as a dict.
@@ -900,9 +953,26 @@ class OperationalNamespace:
     ) -> dict[str, Any]:
         """Fit a severity distribution to individual loss amounts.
 
-        Supports the lognormal (default, the OpRisk industry standard) by MLE of the
-        log-loss mean/sigma. Returns the fitted parameters and the implied mean
-        severity.
+        Supports four standard OpRisk severity families, all fit by maximum
+        likelihood with the location parameter pinned at zero (severities are
+        strictly positive, so a free location would let the MLE drift away from
+        the actual support):
+
+        - ``"lognormal"`` (default, the OpRisk industry standard): closed-form MLE
+          of the log-loss mean/sigma, i.e. ``scipy.stats.lognorm.fit(x, floc=0)``
+          reparameterised as ``mu = log(scale)``, ``sigma = shape``.
+        - ``"gamma"``: ``scipy.stats.gamma.fit(x, floc=0)`` — shape ``a`` and
+          ``scale``; commonly used for moderate, right-skewed severities.
+        - ``"weibull"``: ``scipy.stats.weibull_min.fit(x, floc=0)`` — shape ``c``
+          and ``scale``; flexible hazard shape, another standard severity choice.
+        - ``"gpd"`` (Generalized Pareto Distribution): ``scipy.stats.genpareto.fit(
+          x, floc=0)`` — shape ``xi`` and ``scale``; the standard EVT/POT model for
+          the tail of large losses (threshold-exceedance modelling). The mean is
+          only finite for ``xi < 1``; when ``xi >= 1`` ``mean_severity`` is
+          ``None`` rather than a misleading infinite/negative value.
+
+        Any other ``distribution`` value raises ``ValueError`` rather than falling
+        back or approximating.
 
         Returns:
             The raw API response as a dict.

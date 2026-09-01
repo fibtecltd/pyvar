@@ -214,23 +214,27 @@ def local_volatility_dupire_model(
     """Dupire local volatility surface from a call-price surface.
 
     Uses finite differences of the Dupire equation
-    ``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid.
-
-    Note: the partial derivatives are finite differences on the supplied
-    discrete grid (a forward difference in maturity, central differences in
-    strike), computed only at interior grid points, and ``spot`` is used
-    solely for a positivity check rather than in the formula itself.
+    ``σ_loc² = (∂C/∂T + r K ∂C/∂K) / (½ K² ∂²C/∂K²)`` on the supplied grid,
+    covering the FULL grid: central differences in strike at interior
+    points, one-sided (forward/backward) 2nd-order-accurate differences at
+    the two strike boundaries (exact non-uniform-grid Fornberg-style 3-point
+    stencils -- exact for any quadratic, verified against hand-differentiated
+    polynomials), and a forward/backward difference in maturity at the
+    first/last maturity respectively (interior maturities also use the
+    forward difference toward the next maturity).
 
     Args:
         strikes: 1-D ascending strike grid.
         maturities: 1-D ascending maturity grid (years).
         call_surface: ``(len(maturities), len(strikes))`` call prices.
         rate: Risk-free rate (continuous).
-        spot: Underlying spot (validation only).
+        spot: Underlying spot (validation only; not used in the formula).
 
     Returns:
-        Dict with ``local_vol`` (interior-grid surface), ``strikes_inner`` and
-        ``maturities_inner``.
+        Dict with ``local_vol`` (full ``(len(maturities), len(strikes))``
+        surface -- every grid point populated, including boundaries),
+        ``strikes_full`` and ``maturities_full`` (the same grids passed in,
+        echoed back for convenience).
 
     Raises:
         ValueError: If the surface shape is inconsistent or grids too small.
@@ -245,23 +249,57 @@ def local_volatility_dupire_model(
     if spot <= 0:
         raise ValueError("spot must be positive")
 
-    loc = np.zeros((t.size - 1, k.size - 2), dtype=np.float64)
-    for i in range(t.size - 1):
-        dt = t[i + 1] - t[i]
-        for j in range(1, k.size - 1):
-            dk_up = k[j + 1] - k[j]
-            dk_dn = k[j] - k[j - 1]
-            dc_dt = (c[i + 1, j] - c[i, j]) / dt
-            dc_dk = (c[i, j + 1] - c[i, j - 1]) / (dk_up + dk_dn)
-            d2c_dk2 = (c[i, j + 1] - 2.0 * c[i, j] + c[i, j - 1]) / (0.5 * (dk_up + dk_dn)) ** 2
-            numer = dc_dt + rate * k[j] * dc_dk
+    n_t, n_k = t.size, k.size
+
+    def _strike_derivs(row: np.ndarray, j: int) -> tuple[float, float]:
+        """(dC/dK, d2C/dK2) at strike index j of one maturity row, via
+        central differences in the interior and 2nd-order-accurate one-sided
+        (Fornberg 3-point) differences at the two boundaries."""
+        if 0 < j < n_k - 1:
+            h_dn = k[j] - k[j - 1]
+            h_up = k[j + 1] - k[j]
+            dc_dk = (row[j + 1] - row[j - 1]) / (h_dn + h_up)
+            d2c_dk2 = (row[j + 1] - 2.0 * row[j] + row[j - 1]) / (0.5 * (h_dn + h_up)) ** 2
+        elif j == 0:
+            h1 = k[1] - k[0]
+            h2 = k[2] - k[1]
+            f0, f1, f2 = row[0], row[1], row[2]
+            dc_dk = (
+                -((2.0 * h1 + h2) / (h1 * (h1 + h2))) * f0
+                + ((h1 + h2) / (h1 * h2)) * f1
+                - (h1 / (h2 * (h1 + h2))) * f2
+            )
+            d2c_dk2 = 2.0 * (f0 / (h1 * (h1 + h2)) - f1 / (h1 * h2) + f2 / (h2 * (h1 + h2)))
+        else:  # j == n_k - 1
+            h1 = k[j - 1] - k[j - 2]
+            h2 = k[j] - k[j - 1]
+            fm2, fm1, f0 = row[j - 2], row[j - 1], row[j]
+            dc_dk = (
+                (h2 / (h1 * (h1 + h2))) * fm2
+                - ((h1 + h2) / (h1 * h2)) * fm1
+                + ((2.0 * h2 + h1) / (h2 * (h1 + h2))) * f0
+            )
+            d2c_dk2 = 2.0 * (fm2 / (h1 * (h1 + h2)) - fm1 / (h1 * h2) + f0 / (h2 * (h1 + h2)))
+        return float(dc_dk), float(d2c_dk2)
+
+    loc = np.zeros((n_t, n_k), dtype=np.float64)
+    for i in range(n_t):
+        if i < n_t - 1:
+            dt = t[i + 1] - t[i]
+            row_dt = (c[i + 1, :] - c[i, :]) / dt
+        else:  # last maturity: backward difference
+            dt = t[i] - t[i - 1]
+            row_dt = (c[i, :] - c[i - 1, :]) / dt
+        for j in range(n_k):
+            dc_dk, d2c_dk2 = _strike_derivs(c[i, :], j)
+            numer = row_dt[j] + rate * k[j] * dc_dk
             denom = 0.5 * k[j] ** 2 * d2c_dk2
             var = numer / denom if denom > 1e-12 else 0.0
-            loc[i, j - 1] = math.sqrt(var) if var > 0 else 0.0
+            loc[i, j] = math.sqrt(var) if var > 0 else 0.0
     return {
         "local_vol": loc.tolist(),
-        "strikes_inner": k[1:-1].tolist(),
-        "maturities_inner": t[:-1].tolist(),
+        "strikes_full": k.tolist(),
+        "maturities_full": t.tolist(),
     }
 
 

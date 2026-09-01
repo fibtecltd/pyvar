@@ -189,6 +189,7 @@ class CvarConstrainedOptimisationResponse(BaseModel):
     cvar: Any = Field(default=None)
     expected_return: Any = Field(default=None)
     success: Any = Field(default=None)
+    var: Any = Field(default=None)
     weights: Any = Field(default=None)
 
 
@@ -219,6 +220,7 @@ class SharpeRatioRequest(BaseModel):
     returns: list[float] | list[list[float]]
     risk_free: float = 0.0
     periods_per_year: int = 252
+    ddof: int = 0
 
 
 class SharpeRatioResponse(BaseModel):
@@ -226,6 +228,7 @@ class SharpeRatioResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    ddof: Any = Field(default=None)
     mean_excess: Any = Field(default=None)
     periods_per_year: Any = Field(default=None)
     sharpe: Any = Field(default=None)
@@ -530,6 +533,8 @@ class CurrencyAttributionRequest(BaseModel):
     fx_returns: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
     currency_names: list[str] | None = None
+    local_risk_free: list[float] | list[list[float]] | None = None
+    base_risk_free: float | None = None
 
 
 class CurrencyAttributionResponse(BaseModel):
@@ -537,9 +542,15 @@ class CurrencyAttributionResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    base_cash_effect: Any = Field(default=None)
     currency_effect: Any = Field(default=None)
+    currency_interaction_effect: Any = Field(default=None)
+    currency_surprise_effect: Any = Field(default=None)
     local_effect: Any = Field(default=None)
+    total_base_cash: Any = Field(default=None)
     total_currency: Any = Field(default=None)
+    total_currency_interaction: Any = Field(default=None)
+    total_currency_surprise: Any = Field(default=None)
     total_local: Any = Field(default=None)
     total_return: Any = Field(default=None)
 
@@ -774,6 +785,7 @@ class TransactionCostAnalysisRequest(BaseModel):
     benchmark_prices: list[float] | list[list[float]]
     trade_quantities: list[float] | list[list[float]]
     side: int = 1
+    decision_price: float | list[float] | None = None
 
 
 class TransactionCostAnalysisResponse(BaseModel):
@@ -781,6 +793,10 @@ class TransactionCostAnalysisResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    delay_cost: Any = Field(default=None)
+    delay_cost_bps: Any = Field(default=None)
+    implementation_shortfall: Any = Field(default=None)
+    implementation_shortfall_bps: Any = Field(default=None)
     n_fills: Any = Field(default=None)
     slippage_bps: Any = Field(default=None)
     total_cost: Any = Field(default=None)
@@ -926,6 +942,8 @@ class RebalancingOptimiserRequest(BaseModel):
     target_weights: list[float] | list[list[float]]
     cost_bps: list[float] | list[list[float]]
     no_trade_band: float = 0.0
+    asset_volatility: list[float] | list[list[float]] | None = None
+    risk_aversion: float | None = None
 
 
 class RebalancingOptimiserResponse(BaseModel):
@@ -933,6 +951,7 @@ class RebalancingOptimiserResponse(BaseModel):
 
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
+    derived_no_trade_band: Any = Field(default=None)
     new_weights: Any = Field(default=None)
     total_cost: Any = Field(default=None)
     trades: Any = Field(default=None)
@@ -963,6 +982,8 @@ class CarbonFootprintAttributionRequest(BaseModel):
     carbon_intensities: list[float] | list[list[float]]
     portfolio_value: float
     asset_names: list[str] | None = None
+    company_total_emissions: list[float] | list[list[float]] | None = None
+    company_value: list[float] | list[list[float]] | None = None
 
 
 class CarbonFootprintAttributionResponse(BaseModel):
@@ -972,5 +993,7 @@ class CarbonFootprintAttributionResponse(BaseModel):
 
     contributions: Any = Field(default=None)
     largest_contributor: Any = Field(default=None)
+    method: Any = Field(default=None)
+    ownership_share: Any = Field(default=None)
     total_financed_emissions: Any = Field(default=None)
     waci: Any = Field(default=None)

@@ -1253,8 +1253,8 @@ class LocalVolatilityDupireModelResponse(BaseModel):
     model_config = ConfigDict(extra="allow", protected_namespaces=())
 
     local_vol: Any = Field(default=None)
-    maturities_inner: Any = Field(default=None)
-    strikes_inner: Any = Field(default=None)
+    maturities_full: Any = Field(default=None)
+    strikes_full: Any = Field(default=None)
 
 
 class RoughVolatilityRbergomiModelRequest(BaseModel):

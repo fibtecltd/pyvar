@@ -99,12 +99,40 @@ class PortfolioNamespace:
         carbon_intensities: list[float] | list[list[float]],
         portfolio_value: float,
         asset_names: list[str] | None = None,
+        company_total_emissions: list[float] | list[list[float]] | None = None,
+        company_value: list[float] | list[list[float]] | None = None,
     ) -> dict[str, Any]:
         """Carbon footprint attribution (WACI and financed emissions).
 
-        Computes the Weighted Average Carbon Intensity (WACI) and attributes the
-        financed emissions to each holding by its invested value. Contributions sum
-        to the total financed emissions.
+        Computes the Weighted Average Carbon Intensity (WACI) -- this leg matches
+        TCFD's WACI definition regardless of mode.
+
+        By default (``company_total_emissions``/``company_value`` omitted,
+        unchanged prior behaviour) ``total_financed_emissions`` scales
+        revenue-intensity by invested value per holding, which does NOT match
+        the ownership-share method used by the TCFD/PCAF financed-emissions
+        standards.
+
+        Supplying BOTH ``company_total_emissions`` (each holding's investee
+        company's total absolute Scope 1+2 emissions, tCO2e) and
+        ``company_value`` (each company's total enterprise value -- PCAF's EVIC,
+        enterprise value including cash, or market cap -- same currency unit as
+        ``portfolio_value``) switches to the PCAF ownership-share method
+        (Partnership for Carbon Accounting Financials, "The Global GHG
+        Accounting and Reporting Standard for the Financial Industry", Part A,
+        2020; the same method TCFD's 2017 recommendations point to for financed
+        emissions):
+
+            ownership_share_i = invested_i / company_value_i
+            financed_emissions_i = ownership_share_i * company_total_emissions_i
+
+        where ``invested_i = weights_i * portfolio_value`` is the investor's
+        outstanding amount in company i. Unlike the default (revenue-intensity
+        x invested-value) leg, this correctly represents "the investor's
+        proportional share of the company's own total emissions" rather than an
+        intensity-scaled quantity with no ownership interpretation -- an
+        investor's ownership share can never legitimately attribute more than
+        the company's own total emissions (verified in tests).
 
         Returns:
             The raw API response as a dict.
@@ -114,6 +142,8 @@ class PortfolioNamespace:
             "carbon_intensities": carbon_intensities,
             "portfolio_value": portfolio_value,
             "asset_names": asset_names,
+            "company_total_emissions": company_total_emissions,
+            "company_value": company_value,
         }
         return self._client._request(
             "POST", "/api/v1/portfolio/carbon_footprint_attribution", json_body=body
@@ -181,9 +211,17 @@ class PortfolioNamespace:
     ) -> dict[str, Any]:
         """Correlation-based clustering of assets.
 
-        Builds the correlation distance ``sqrt(2(1 - rho))`` and performs simple
+        Builds the correlation distance ``sqrt(2(1 - rho))`` and performs
         single-linkage agglomerative clustering down to ``n_clusters`` groups —
         grouping assets that co-move.
+
+        The merge itself is delegated to ``scipy.cluster.hierarchy.linkage``
+        (``method='single'``) followed by ``fcluster(..., criterion='maxclust')``
+        rather than a hand-rolled merge loop; this is the same single-linkage
+        algorithm (repeatedly merge the two clusters whose minimum pairwise
+        distance is smallest), just computed by SciPy's tested implementation.
+        Cluster *membership* is therefore identical to the earlier hand-rolled
+        version — only the arbitrary integer cluster-id labelling can differ.
 
         Returns:
             The raw API response as a dict.
@@ -213,27 +251,50 @@ class PortfolioNamespace:
         fx_returns: list[float] | list[list[float]],
         weights: list[float] | list[list[float]],
         currency_names: list[str] | None = None,
+        local_risk_free: list[float] | list[list[float]] | None = None,
+        base_risk_free: float | None = None,
     ) -> dict[str, Any]:
-        """Currency attribution -- naive geometric local/FX decomposition.
+        """Currency attribution -- naive geometric split, or genuine Karnosky-Singer.
 
-        Splits the base-currency return into a local-market component and a currency
-        (FX) component per holding, weighted by exposure, via the geometric
-        identity ``base = (1+local)(1+fx)-1`` with currency as the residual. The
-        total reconciles to the weighted base-currency return.
+        By default (``local_risk_free``/``base_risk_free`` omitted, unchanged
+        prior behaviour) this splits the base-currency return into a
+        local-market component and a currency (FX) component per holding,
+        weighted by exposure, via the geometric identity
+        ``base = (1+local)(1+fx)-1`` with currency as the residual. This naive
+        split is NOT Karnosky-Singer -- see Bacon, C. (2008), "Practical
+        Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6,
+        which presents it as the baseline before introducing Karnosky-Singer.
 
-        This is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), "The
-        Currency Dimension of Global Asset Management and Performance
-        Attribution", CFA Institute Research Foundation) -- that method requires
-        local-currency return PREMIUMS (local return minus the local risk-free
-        rate) and moves the interest-rate differential onto the currency side via
-        covered interest parity; this function takes no interest rates at all. A
-        prior version of this docstring claimed "Karnosky-Singer style", which is
-        the same failure mode as this codebase's earlier false QuantLib
-        cross-validation claim (correct arithmetic, fabricated provenance) --
-        found during the Tier 3 #2 audit. See Bacon, C. (2008), "Practical
-        Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6, which
-        presents this naive geometric split as the baseline before introducing
-        Ankrim-Hensel and Karnosky-Singer.
+        Supplying BOTH ``local_risk_free`` (per-holding local-currency
+        risk-free/cash rate) and ``base_risk_free`` (the reporting/base
+        currency's own risk-free rate) switches to Karnosky & Singer's (1994)
+        genuine decomposition ("The Currency Dimension of Global Asset
+        Management and Performance Attribution", CFA Institute Research
+        Foundation): local returns are first netted against the *local*
+        risk-free rate into a local return PREMIUM (the market-selection
+        component the currency side must not re-capture), and the currency
+        side is split into the base cash return and a currency SURPRISE --
+        the currency return net of the covered-interest-parity forward
+        premium implied by the two risk-free rates -- rather than absorbing
+        the interest-rate differential as an unexplained residual:
+
+            premium_i = (1+local_i)/(1+local_rf_i) - 1
+            forward_premium_i = (1+base_rf)/(1+local_rf_i) - 1   (covered interest parity)
+            surprise_i = (1+fx_i)/(1+forward_premium_i) - 1
+
+        These combine via the exact geometric identity
+        ``(1+base_rf)(1+premium_i)(1+surprise_i) = (1+local_i)(1+fx_i)`` -- i.e.
+        Karnosky-Singer re-partitions the *same* total base-currency return
+        used by the naive split, it does not change it (verified in tests).
+        The ``currency_effect`` bucket is further broken into
+        ``base_cash_effect`` (``base_rf``, common to every holding),
+        ``currency_surprise_effect`` (``surprise_i``) and a small
+        ``currency_interaction_effect`` residual capturing the compounding
+        cross-terms between the three multiplicative legs -- the same
+        reconciling-residual pattern :func:`return_attribution_brinson` uses
+        for its own interaction effect, so the three currency sub-effects sum
+        exactly to ``currency_effect`` (which itself sums with ``local_effect``
+        to ``total_return``, as before).
 
         Returns:
             The raw API response as a dict.
@@ -243,6 +304,8 @@ class PortfolioNamespace:
             "fx_returns": fx_returns,
             "weights": weights,
             "currency_names": currency_names,
+            "local_risk_free": local_risk_free,
+            "base_risk_free": base_risk_free,
         }
         return self._client._request(
             "POST", "/api/v1/portfolio/currency_attribution", json_body=body
@@ -262,6 +325,24 @@ class PortfolioNamespace:
         Maximises expected return subject to the portfolio CVaR (at
         ``confidence_level``) not exceeding ``cvar_limit``, long-only and fully
         invested. CVaR is computed empirically over the supplied scenarios.
+
+        Solved via Rockafellar & Uryasev's (2000) original auxiliary-variable
+        linear-programming reformulation, not a direct nonlinear CVaR
+        constraint. Introduce an auxiliary VaR estimate ``zeta`` and one
+        non-negative excess-loss variable ``u_s`` per scenario, then solve the
+        convex LP
+
+            minimize    -mu^T w
+            subject to  sum(w) = 1,  0 <= w_i <= 1
+                        zeta + (1/(S(1-alpha))) * sum_s u_s <= cvar_limit
+                        u_s >= -(scenario_s . w) - zeta,   u_s >= 0   (s=1..S)
+
+        via ``scipy.optimize.linprog`` (HiGHS). CVaR is a convex function of
+        ``w`` and both this LP and the retired SLSQP-on-empirical-CVaR
+        formulation share the same feasible region and the same (convex)
+        objective, so they solve to the same global optimum — the LP just gets
+        there via Rockafellar-Uryasev's exact reformulation instead of SLSQP
+        re-evaluating the empirical quantile/tail-mean at every iterate.
 
         Returns:
             The raw API response as a dict.
@@ -786,12 +867,41 @@ class PortfolioNamespace:
         target_weights: list[float] | list[list[float]],
         cost_bps: list[float] | list[list[float]],
         no_trade_band: float = 0.0,
+        asset_volatility: list[float] | list[list[float]] | None = None,
+        risk_aversion: float | None = None,
     ) -> dict[str, Any]:
         """Rebalancing optimiser with a no-trade band.
 
         Computes the trades to move from current to target weights, suppressing
-        trades within ``no_trade_band`` to avoid churn, and reports turnover and
+        trades within a no-trade band to avoid churn, and reports turnover and
         total transaction cost.
+
+        By default ``no_trade_band`` is a single user-supplied absolute weight
+        threshold applied uniformly to every asset (unchanged prior behaviour).
+        Supplying both ``asset_volatility`` and ``risk_aversion`` instead
+        *derives* a per-asset band from the classic Constantinides (1986) /
+        Davis & Norman (1990) asymptotic no-trade-region half-width — the
+        closed-form cube-root result that Leland's (1999) mean-variance
+        tracking-error approximation and Donohue & Yip's (2003) practitioner
+        rebalancing-band heuristic both build on:
+
+            h_i = ( (3/4) * c_i * sigma_i^2 * w_i^tgt * (1 - w_i^tgt)^2 / gamma )^(1/3)
+
+        where ``c_i`` is the proportional transaction cost (``cost_bps_i /
+        1e4``), ``sigma_i`` is asset i's return volatility, ``w_i^tgt`` is asset
+        i's target weight (the frictionless-optimal allocation the band is
+        centred on) and ``gamma`` is the investor's (CRRA) risk-aversion
+        coefficient. The half-width widens with cost and volatility (cube-root
+        scaling) and narrows as risk aversion rises — more risk-averse investors
+        tolerate less drift before trading. This is the classic single-risky-
+        asset asymptotic result applied per-asset; it is not a reproduction of
+        Leland's or Donohue & Yip's own published numerical examples (no
+        published table was available to cross-check exact figures against).
+
+        When the derived-band mode is used, it *replaces* the scalar
+        ``no_trade_band`` for that call rather than combining with it; when
+        either ``asset_volatility`` or ``risk_aversion`` is omitted, behaviour
+        is unchanged — the scalar ``no_trade_band`` is used exactly as before.
 
         Returns:
             The raw API response as a dict.
@@ -801,6 +911,8 @@ class PortfolioNamespace:
             "target_weights": target_weights,
             "cost_bps": cost_bps,
             "no_trade_band": no_trade_band,
+            "asset_volatility": asset_volatility,
+            "risk_aversion": risk_aversion,
         }
         return self._client._request(
             "POST", "/api/v1/portfolio/rebalancing_optimiser", json_body=body
@@ -809,25 +921,15 @@ class PortfolioNamespace:
     def regime_detection_hmm(
         self, *, returns: list[float] | list[list[float]], n_iter: int = 50
     ) -> dict[str, Any]:
-        """Two-state Gaussian regime detection via EM (function name overstates the method -- see below).
+        """Two-state Gaussian regime detection via EM.
+
+        Note: despite the name, this fits a stationary 2-component Gaussian
+        mixture (EM, i.i.d. weights) — there is no transition matrix, so it does
+        not model true HMM regime persistence/switching dynamics.
 
         Fits a two-component Gaussian mixture by EM and labels each observation by
         its most likely regime. The higher-variance component is reported as the
         "stress" regime — the standard calm/turbulent market characterisation.
-
-        Despite the ``_hmm`` in this function's name, this is a STATIONARY
-        Gaussian mixture (i.i.d. component weights ``pi``) -- there is no
-        transition matrix, so regime persistence/switching probabilities are not
-        modelled at all, only the marginal mixture. A genuine hidden Markov model
-        (Hamilton, J.D. (1989), "A New Approach to the Economic Analysis of
-        Nonstationary Time Series and the Business Cycle", Econometrica 57(2))
-        fits a Markov-switching autoregression with an explicit 2x2 transition
-        matrix and publishes reproducible parameter estimates on US GNP growth --
-        not applicable here since this function's inputs/outputs don't match that
-        structure. Renaming the function (and its REST route) is a larger,
-        separate change than this docstring fix; flagged here (Tier 3 #2 audit)
-        so nobody mistakes the current name for a claim of Markov-switching
-        behaviour.
 
         Returns:
             The raw API response as a dict.
@@ -931,6 +1033,11 @@ class PortfolioNamespace:
         Finds long-only weights so each asset contributes equally to portfolio
         variance, by minimising the dispersion of risk contributions.
 
+        Dispersion is measured as the sum of squared pairwise differences
+        between all assets' risk contributions rather than each asset's
+        deviation from the mean contribution -- a stronger gradient signal for
+        SLSQP that converges to the same equal-risk-contribution solution.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1006,16 +1113,31 @@ class PortfolioNamespace:
         returns: list[float] | list[list[float]],
         risk_free: float = 0.0,
         periods_per_year: int = 252,
+        ddof: int = 0,
     ) -> dict[str, Any]:
         """Annualised Sharpe ratio.
 
         Mean excess return divided by return volatility, annualised by
         ``sqrt(periods_per_year)``.
 
+        By default (``ddof=0``, unchanged from prior behaviour) volatility is the
+        *population* standard deviation (divide by n) of per-period excess
+        returns. Pass ``ddof=1`` to use the *sample* standard deviation (divide
+        by n-1) instead — the usual unbiased-estimator convention when
+        ``returns`` is treated as a sample drawn from a larger population. The
+        ``n``-vs-``n-1`` divisor only matters materially for small samples; for
+        the sample sizes typical of return series (hundreds+ of observations)
+        the two converge.
+
         Returns:
             The raw API response as a dict.
         """
-        body = {"returns": returns, "risk_free": risk_free, "periods_per_year": periods_per_year}
+        body = {
+            "returns": returns,
+            "risk_free": risk_free,
+            "periods_per_year": periods_per_year,
+            "ddof": ddof,
+        }
         return self._client._request("POST", "/api/v1/portfolio/sharpe_ratio", json_body=body)
 
     def sortino_ratio(
@@ -1030,6 +1152,12 @@ class PortfolioNamespace:
 
         Like Sharpe but penalises only downside deviation below ``target``, so
         upside volatility is not treated as risk.
+
+        The numerator's excess return is measured against ``risk_free`` while
+        the downside-deviation denominator measures shortfalls of the raw (not
+        risk-free-adjusted) returns below the separate ``target``, so when
+        ``target != risk_free`` the two are distinct reference rates by
+        construction.
 
         Returns:
             The raw API response as a dict.
@@ -1082,12 +1210,32 @@ class PortfolioNamespace:
         benchmark_prices: list[float] | list[list[float]],
         trade_quantities: list[float] | list[list[float]],
         side: int = 1,
+        decision_price: float | list[float] | None = None,
     ) -> dict[str, Any]:
         """Transaction Cost Analysis (TCA) — implementation shortfall vs benchmark.
 
         Computes per-trade slippage against an arrival/VWAP benchmark and the
         quantity-weighted average slippage in basis points. ``side`` is +1 for
         buys (paying above benchmark is a cost) and -1 for sells.
+
+        By default (``decision_price`` omitted, unchanged prior behaviour) this
+        is narrower than Perold's (1988) full implementation-shortfall
+        decomposition -- it measures only execution slippage against the
+        ``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.
+
+        Passing ``decision_price`` -- the price at the instant the investment
+        decision was made, Perold's "paper" price, distinct from the
+        arrival/VWAP ``benchmark_prices`` used for execution slippage -- adds
+        the delay-cost leg: the cost incurred between the decision and the
+        order reaching the market (``benchmark_prices``), *before* any
+        execution slippage is measured. Delay cost and execution slippage sum
+        exactly to the executed-quantity implementation shortfall measured
+        directly against the decision price:
+        ``delay_cost + total_cost == sum(side * (trade_prices - decision_price)
+        * trade_quantities)``. This still omits Perold's unexecuted-share
+        opportunity-cost leg (no cancellation price/quantity is modelled here),
+        so even with ``decision_price`` supplied the result is a delay+
+        execution partial IS, not the complete four-component decomposition.
 
         Returns:
             The raw API response as a dict.
@@ -1097,6 +1245,7 @@ class PortfolioNamespace:
             "benchmark_prices": benchmark_prices,
             "trade_quantities": trade_quantities,
             "side": side,
+            "decision_price": decision_price,
         }
         return self._client._request(
             "POST", "/api/v1/portfolio/transaction_cost_analysis", json_body=body

@@ -197,40 +197,77 @@ def currency_attribution(
     fx_returns: np.ndarray,
     weights: np.ndarray,
     currency_names: list[str] | None = None,
+    local_risk_free: np.ndarray | None = None,
+    base_risk_free: float | None = None,
 ) -> dict:  # type: ignore[type-arg]
-    """Currency attribution -- naive geometric local/FX decomposition.
+    """Currency attribution -- naive geometric split, or genuine Karnosky-Singer.
 
-    Splits the base-currency return into a local-market component and a currency
-    (FX) component per holding, weighted by exposure, via the geometric
-    identity ``base = (1+local)(1+fx)-1`` with currency as the residual. The
-    total reconciles to the weighted base-currency return.
+    By default (``local_risk_free``/``base_risk_free`` omitted, unchanged
+    prior behaviour) this splits the base-currency return into a
+    local-market component and a currency (FX) component per holding,
+    weighted by exposure, via the geometric identity
+    ``base = (1+local)(1+fx)-1`` with currency as the residual. This naive
+    split is NOT Karnosky-Singer -- see Bacon, C. (2008), "Practical
+    Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6,
+    which presents it as the baseline before introducing Karnosky-Singer.
 
-    This is NOT Karnosky-Singer (Karnosky, D. & Singer, B. (1994), "The
-    Currency Dimension of Global Asset Management and Performance
-    Attribution", CFA Institute Research Foundation) -- that method requires
-    local-currency return PREMIUMS (local return minus the local risk-free
-    rate) and moves the interest-rate differential onto the currency side via
-    covered interest parity; this function takes no interest rates at all. A
-    prior version of this docstring claimed "Karnosky-Singer style", which is
-    the same failure mode as this codebase's earlier false QuantLib
-    cross-validation claim (correct arithmetic, fabricated provenance) --
-    found during the Tier 3 #2 audit. See Bacon, C. (2008), "Practical
-    Portfolio Performance Measurement and Attribution", 2nd ed., Ch. 6, which
-    presents this naive geometric split as the baseline before introducing
-    Ankrim-Hensel and Karnosky-Singer.
+    Supplying BOTH ``local_risk_free`` (per-holding local-currency
+    risk-free/cash rate) and ``base_risk_free`` (the reporting/base
+    currency's own risk-free rate) switches to Karnosky & Singer's (1994)
+    genuine decomposition ("The Currency Dimension of Global Asset
+    Management and Performance Attribution", CFA Institute Research
+    Foundation): local returns are first netted against the *local*
+    risk-free rate into a local return PREMIUM (the market-selection
+    component the currency side must not re-capture), and the currency
+    side is split into the base cash return and a currency SURPRISE --
+    the currency return net of the covered-interest-parity forward
+    premium implied by the two risk-free rates -- rather than absorbing
+    the interest-rate differential as an unexplained residual:
+
+        premium_i = (1+local_i)/(1+local_rf_i) - 1
+        forward_premium_i = (1+base_rf)/(1+local_rf_i) - 1   (covered interest parity)
+        surprise_i = (1+fx_i)/(1+forward_premium_i) - 1
+
+    These combine via the exact geometric identity
+    ``(1+base_rf)(1+premium_i)(1+surprise_i) = (1+local_i)(1+fx_i)`` -- i.e.
+    Karnosky-Singer re-partitions the *same* total base-currency return
+    used by the naive split, it does not change it (verified in tests).
+    The ``currency_effect`` bucket is further broken into
+    ``base_cash_effect`` (``base_rf``, common to every holding),
+    ``currency_surprise_effect`` (``surprise_i``) and a small
+    ``currency_interaction_effect`` residual capturing the compounding
+    cross-terms between the three multiplicative legs -- the same
+    reconciling-residual pattern :func:`return_attribution_brinson` uses
+    for its own interaction effect, so the three currency sub-effects sum
+    exactly to ``currency_effect`` (which itself sums with ``local_effect``
+    to ``total_return``, as before).
 
     Args:
         local_returns: Local-currency return per holding.
         fx_returns: Currency (FX) return per holding (base vs local).
         weights: Portfolio weight per holding (sum to 1).
         currency_names: Optional labels; defaults to ``ccy_0, ...``.
+        local_risk_free: Optional per-holding local-currency risk-free
+            rate. Supply together with ``base_risk_free`` to switch to the
+            Karnosky-Singer decomposition.
+        base_risk_free: Optional reporting/base-currency risk-free rate
+            (a single rate, common to every holding). Supply together with
+            ``local_risk_free`` to switch to the Karnosky-Singer
+            decomposition.
 
     Returns:
         Dict with ``local_effect``, ``currency_effect`` (per holding),
-        ``total_local``, ``total_currency`` and the reconciled ``total_return``.
+        ``total_local``, ``total_currency`` and the reconciled
+        ``total_return``. When the Karnosky-Singer mode is used, also
+        includes per-holding ``base_cash_effect``, ``currency_surprise_effect``
+        and ``currency_interaction_effect`` (summing exactly to
+        ``currency_effect``), plus their totals.
 
     Raises:
-        ValueError: If the arrays differ in length or are empty.
+        ValueError: If the arrays differ in length or are empty, or if
+            exactly one of ``local_risk_free``/``base_risk_free`` is
+            supplied, or ``local_risk_free`` does not match the number of
+            holdings.
     """
     lr = np.asarray(local_returns, dtype=np.float64)
     fx = np.asarray(fx_returns, dtype=np.float64)
@@ -241,13 +278,37 @@ def currency_attribution(
     if currency_names is None:
         currency_names = [f"ccy_{i}" for i in range(n)]
 
-    local_effect = w * lr
-    # Base return ≈ (1+local)(1+fx)-1; currency effect is the residual.
+    # Exact geometric base-currency return -- identical in both modes, so
+    # Karnosky-Singer re-partitions this total rather than changing it.
     base_ret = (1.0 + lr) * (1.0 + fx) - 1.0
-    currency_effect = w * (base_ret - lr)
+
+    use_karnosky_singer = local_risk_free is not None or base_risk_free is not None
+    if use_karnosky_singer:
+        if local_risk_free is None or base_risk_free is None:
+            raise ValueError(
+                "local_risk_free and base_risk_free must both be supplied together "
+                "to use the Karnosky-Singer decomposition"
+            )
+        rf_local = np.asarray(local_risk_free, dtype=np.float64)
+        if rf_local.size != n:
+            raise ValueError("local_risk_free must match the number of holdings")
+
+        premium = (1.0 + lr) / (1.0 + rf_local) - 1.0
+        forward_premium = (1.0 + base_risk_free) / (1.0 + rf_local) - 1.0
+        surprise = (1.0 + fx) / (1.0 + forward_premium) - 1.0
+
+        local_effect = w * premium
+        currency_effect = w * (base_ret - premium)
+        base_cash_effect = w * base_risk_free
+        currency_surprise_effect = w * surprise
+        currency_interaction_effect = currency_effect - base_cash_effect - currency_surprise_effect
+    else:
+        local_effect = w * lr
+        currency_effect = w * (base_ret - lr)
+
     total_local = float(np.sum(local_effect))
     total_currency = float(np.sum(currency_effect))
-    return {
+    out: dict = {  # type: ignore[type-arg]
         "local_effect": {currency_names[i]: round(float(local_effect[i]), 10) for i in range(n)},
         "currency_effect": {
             currency_names[i]: round(float(currency_effect[i]), 10) for i in range(n)
@@ -256,6 +317,20 @@ def currency_attribution(
         "total_currency": round(total_currency, 10),
         "total_return": round(total_local + total_currency, 10),
     }
+    if use_karnosky_singer:
+        out["base_cash_effect"] = {
+            currency_names[i]: round(float(base_cash_effect[i]), 10) for i in range(n)
+        }
+        out["currency_surprise_effect"] = {
+            currency_names[i]: round(float(currency_surprise_effect[i]), 10) for i in range(n)
+        }
+        out["currency_interaction_effect"] = {
+            currency_names[i]: round(float(currency_interaction_effect[i]), 10) for i in range(n)
+        }
+        out["total_base_cash"] = round(float(np.sum(base_cash_effect)), 10)
+        out["total_currency_surprise"] = round(float(np.sum(currency_surprise_effect)), 10)
+        out["total_currency_interaction"] = round(float(np.sum(currency_interaction_effect)), 10)
+    return out
 
 
 def gics_sector_exposure(

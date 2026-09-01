@@ -848,6 +848,8 @@ async def currency_attribution(
     kwargs["local_returns"] = np.asarray(kwargs["local_returns"], dtype=np.float64)
     kwargs["fx_returns"] = np.asarray(kwargs["fx_returns"], dtype=np.float64)
     kwargs["weights"] = np.asarray(kwargs["weights"], dtype=np.float64)
+    if kwargs.get("local_risk_free") is not None:
+        kwargs["local_risk_free"] = np.asarray(kwargs["local_risk_free"], dtype=np.float64)
     try:
         result: Any = _e_currency_attribution(**kwargs)
     except _INPUT_ERRORS as exc:
@@ -1181,6 +1183,8 @@ async def transaction_cost_analysis(
     kwargs["trade_prices"] = np.asarray(kwargs["trade_prices"], dtype=np.float64)
     kwargs["benchmark_prices"] = np.asarray(kwargs["benchmark_prices"], dtype=np.float64)
     kwargs["trade_quantities"] = np.asarray(kwargs["trade_quantities"], dtype=np.float64)
+    if isinstance(kwargs.get("decision_price"), list):
+        kwargs["decision_price"] = np.asarray(kwargs["decision_price"], dtype=np.float64)
     try:
         result: Any = _e_transaction_cost_analysis(**kwargs)
     except _INPUT_ERRORS as exc:
@@ -1359,6 +1363,8 @@ async def rebalancing_optimiser(
     kwargs["current_weights"] = np.asarray(kwargs["current_weights"], dtype=np.float64)
     kwargs["target_weights"] = np.asarray(kwargs["target_weights"], dtype=np.float64)
     kwargs["cost_bps"] = np.asarray(kwargs["cost_bps"], dtype=np.float64)
+    if kwargs.get("asset_volatility") is not None:
+        kwargs["asset_volatility"] = np.asarray(kwargs["asset_volatility"], dtype=np.float64)
     try:
         result: Any = _e_rebalancing_optimiser(**kwargs)
     except _INPUT_ERRORS as exc:
@@ -1409,6 +1415,12 @@ async def carbon_footprint_attribution(
     kwargs = body.model_dump()
     kwargs["weights"] = np.asarray(kwargs["weights"], dtype=np.float64)
     kwargs["carbon_intensities"] = np.asarray(kwargs["carbon_intensities"], dtype=np.float64)
+    if kwargs.get("company_total_emissions") is not None:
+        kwargs["company_total_emissions"] = np.asarray(
+            kwargs["company_total_emissions"], dtype=np.float64
+        )
+    if kwargs.get("company_value") is not None:
+        kwargs["company_value"] = np.asarray(kwargs["company_value"], dtype=np.float64)
     try:
         result: Any = _e_carbon_footprint_attribution(**kwargs)
     except _INPUT_ERRORS as exc:

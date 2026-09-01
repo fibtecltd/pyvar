@@ -31,6 +31,11 @@ class AlmNamespace:
     ) -> dict[str, Any]:
         """Run an ALM stress test: worst-case EVE decline vs Tier-1 capital.
 
+        Note: the per-scenario ΔEVE values are computed entirely inside
+        :func:`~engine.alm_nii_eve.eve_sensitivity_analysis` (the same PV formula
+        used by ``economic_value_of_equity_eve``); this function only adds the
+        Tier-1 capital ratio and the 15% outlier-test check on top.
+
         [REGULATORY] BCBS d368. Computes ΔEVE across the six standard shocks and
         expresses the worst-case loss as a fraction of Tier-1 capital (the
         supervisory outlier ratio).
@@ -140,6 +145,11 @@ class AlmNamespace:
     ) -> dict[str, Any]:
         """Model non-maturity-deposit (NMD) run-off splitting core / non-core.
 
+        [LIMITATION] This is a bespoke core/non-core exponential-decay run-off
+        model, not an implementation of BCBS d368's standardised NMD slotting
+        methodology -- the BCBS d368 reference below names the regulatory context
+        this model addresses, not the calculation performed here.
+
         [REGULATORY] BCBS d368 NMD treatment. Core deposits are stable and decay
         slowly; non-core (volatile) deposits run off quickly. Returns the projected
         surviving balance and the effective average life.
@@ -191,6 +201,43 @@ class AlmNamespace:
         max_years: float = 30.0,
     ) -> dict[str, Any]:
         """Effective duration of core deposits modelled as a decaying annuity.
+
+        ``core_deposit_duration`` (the primary, default figure) is a discrete
+        monthly Riemann sum over the exponential run-off schedule, truncated at
+        ``max_years``:
+        ``D = sum_t[t*B*decay_rate*e^{-(decay_rate+discount_rate)t}]
+              / sum_t[B*decay_rate*e^{-(decay_rate+discount_rate)t}]``
+        for ``t = 1/12, 2/12, ..., max_years``.
+
+        A genuine closed form exists for the *untruncated* (``max_years`` ->
+        infinity) continuous-time version of the same model: the run-off density
+        ``core_balance*decay_rate*e^{-decay_rate*t}`` is the density of an
+        Exponential(``decay_rate``) survival distribution, and PV-weighting it by
+        ``e^{-discount_rate*t}`` is equivalent to re-weighting by
+        Exponential(``decay_rate + discount_rate``) — whose mean is exactly
+        ``1 / (decay_rate + discount_rate)``. That value, plus its closed-form PV
+        ``core_balance*decay_rate / (decay_rate + discount_rate)``, is returned as
+        ``closed_form_duration`` / ``closed_form_present_value`` for reference,
+        but is NOT used for the primary ``core_deposit_duration`` figure.
+
+        Why the truncated discrete sum stays the default instead of switching to
+        the closed form (validated numerically — see
+        ``tests/test_alm_behavioural.py::test_core_deposit_duration_closed_form``):
+        the two diverge materially whenever ``max_years`` is not several multiples
+        of the implied continuous duration ``1/(decay_rate+discount_rate)``. For
+        the slow-decaying "sticky" core books this function exists to model, that
+        ratio is often well under 3x at the ``max_years=30`` default — e.g.
+        ``decay_rate=0.05, discount_rate=0.02`` implies a 14.3y continuous
+        duration against a 30y truncation, and the discrete figure understates
+        the closed form by ~29%. So ``max_years`` is a real, user-set truncation
+        of the run-off horizon here, not just a numerical implementation detail,
+        and silently dropping it would change the model's economics, not just its
+        numerics. Even where truncation is immaterial
+        (``max_years >> 1/(decay_rate+discount_rate)``), the monthly
+        right-Riemann-sum quadrature itself carries a systematic +dt/2 (~0.042y)
+        bias relative to the continuous integral, which is non-negligible against
+        a 0.1-0.5% tolerance for short-duration books (e.g. ``decay_rate=0.30,
+        discount_rate=0.10`` -> ~1.7% bias even with a generous horizon).
 
         Core deposits run off at ``decay_rate`` (exponential). The duration is the
         PV-weighted average life of the run-off cashflows discounted at
@@ -693,6 +740,10 @@ class AlmNamespace:
     ) -> dict[str, Any]:
         """Pipeline risk of rate-locked mortgage commitments not yet on balance.
 
+        Note: ``rate_risk`` is a heuristic √time-scaled volatility exposure
+        proxy, not a rigorous option-pricing valuation of the rate-lock
+        optionality.
+
         Exposure = ``notional · pull_through``; the rate risk scales with the
         rate-lock period and rate volatility (a √time vol exposure proxy).
 
@@ -713,6 +764,10 @@ class AlmNamespace:
         self, *, principal: float, annual_rate: float, term_years: int, cpr: float
     ) -> dict[str, Any]:
         """Project mortgage cashflows under a constant CPR prepayment assumption.
+
+        Note: cashflows come from a month-by-month recursive amortisation loop
+        (interest, then scheduled principal, then prepayment on the remaining
+        balance each month), not a single closed-form cashflow expression.
 
         Higher CPR shortens the weighted-average life (WAL) of the pool.
 
@@ -760,6 +815,9 @@ class AlmNamespace:
     ) -> dict[str, Any]:
         """Allocate balances into repricing-time buckets.
 
+        Note: bucket allocation is a discrete binning operation (``np.digitize``
+        against ``bucket_edges``), not a closed-form sum in the usual sense.
+
         Returns:
             The raw API response as a dict.
         """
@@ -796,6 +854,10 @@ class AlmNamespace:
         equity_notional: float,
     ) -> dict[str, Any]:
         """Optimise a structural hedge to a target equity duration.
+
+        Note: hedge notionals are solved numerically via SciPy bounded
+        least-squares (``scipy.optimize.lsq_linear``), not a closed-form
+        allocation formula.
 
         Solves for non-negative hedge notionals (bounded by per-instrument caps)
         that bring the dollar-duration of the hedge as close as possible to the

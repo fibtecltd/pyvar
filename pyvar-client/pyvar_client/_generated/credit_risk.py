@@ -191,6 +191,11 @@ class CreditRiskNamespace:
         strength, then maps to PD via ``PD = pd_anchor * (1 - strength)`` floored at
         ``pd_floor``. A perfectly strong borrower hits the floor.
 
+        This is a bespoke internal weighted-factor model, confirmed against
+        BIS/EBA sources not to match any specific published or regulatory
+        scoring formula, so treat it as a reasonable internal model rather than
+        a reproduction of one.
+
         Returns:
             The raw API response as a dict.
         """
@@ -284,6 +289,10 @@ class CreditRiskNamespace:
         constraints the solution is a greedy water-filling onto the highest
         risk-adjusted scores, which is the exact optimum for a linear objective.
 
+        No generic LP/QP solver is called anywhere in this function — the
+        closed-form greedy allocation coded here is exact for this specific
+        linear-objective, box-plus-simplex problem shape only.
+
         Returns:
             The raw API response as a dict.
         """
@@ -334,6 +343,11 @@ class CreditRiskNamespace:
         Applies a supervisory-style stress (e.g. EBA adverse scenario) by scaling
         PD and LGD, clipping to ``[0, 1]``, and reports the baseline vs stressed
         expected loss and the incremental impairment.
+
+        The baseline EL leg is the definitional ``PD*LGD*EAD``, but the
+        multiplicative PD/LGD shock structure itself is a bespoke internal
+        stress design, confirmed against BIS/EBA sources not to reproduce any
+        specific published adverse-scenario formula.
 
         Returns:
             The raw API response as a dict.
@@ -462,6 +476,11 @@ class CreditRiskNamespace:
         :func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail is
         dominated by the default state captured here.
 
+        In implementation this is a direct pass-through to the same one-factor
+        Gaussian-copula Monte Carlo engine used by
+        :func:`credit_var_monte_carlo` (identical formula, identical code path),
+        not a separately coded multi-state model.
+
         Returns:
             The raw API response as a dict.
         """
@@ -549,6 +568,10 @@ class CreditRiskNamespace:
         owes) and the bank's *own* credit spread. It is a gain to the reporting
         entity (own default extinguishes a liability).
 
+        Under the hood this simply calls :func:`credit_valuation_adjustment_cva`
+        on the negative-exposure profile with the bank's own spread and recovery
+        substituted in, rather than a separately derived formula.
+
         Returns:
             The raw API response as a dict.
         """
@@ -588,6 +611,10 @@ class CreditRiskNamespace:
         self, *, lgd_long_run: float, downturn_multiplier: float = 1.0, floor: float = 0.0
     ) -> dict[str, Any]:
         """Basel downturn-LGD adjustment of a long-run average LGD.
+
+        Note: uses a multiplicative downturn scaling, a deliberate departure from
+        EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the
+        underlying requirement.
 
         CRR Art. 181 requires LGD to reflect economic-downturn conditions when these
         are more conservative than the long-run average. The supervisory-style
@@ -692,6 +719,10 @@ class CreditRiskNamespace:
         survival_probability: list[float] | list[list[float]] | None = None,
     ) -> dict[str, Any]:
         """Funding Valuation Adjustment — cost of funding uncollateralised exposure.
+
+        Note: when ``survival_probability`` is omitted it defaults to 1 at every
+        bucket, i.e. the FVA is computed with no counterparty-default
+        conditioning applied.
 
         ``FVA = funding_spread * sum_k EPE_k * DF_k * S_k * dt_k`` — the present
         value of the funding-spread carry on the expected exposure over each
@@ -826,6 +857,11 @@ class CreditRiskNamespace:
         90+ days past due forces Stage 3. The final stage is the most severe of all
         triggered criteria.
 
+        The quantitative leg reuses
+        :func:`ifrs_9_stage_classification_pd_threshold`'s PD-threshold rule
+        directly (including its ``sicr_relative_threshold`` parameter) rather
+        than an independently coded SICR test.
+
         Returns:
             The raw API response as a dict.
         """
@@ -852,6 +888,9 @@ class CreditRiskNamespace:
     ) -> dict[str, Any]:
         """Basel IRB Advanced-Approach capital (CRE31).
 
+        Note: when ``correlation`` is not supplied it defaults to the Basel
+        corporate correlation function of PD, the same formula F-IRB always uses.
+
         Under A-IRB the bank supplies its own PD, LGD, EAD and effective maturity.
         The risk-weight function is identical to F-IRB; only the parameter sources
         differ.
@@ -874,6 +913,10 @@ class CreditRiskNamespace:
         seniority: str = "senior_unsecured",
     ) -> dict[str, Any]:
         """Basel IRB Foundation-Approach capital (CRE31).
+
+        Note: unlike :func:`irb_advanced_approach_capital`, F-IRB exposes no
+        override at all for the asset correlation R — it is always the Basel
+        corporate correlation function of PD.
 
         Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for
         senior unsecured and 75% for subordinated claims (CRE32). EAD and maturity
@@ -898,6 +941,11 @@ class CreditRiskNamespace:
         horizon: float = 1.0,
     ) -> dict[str, Any]:
         """Merton / KMV distance-to-default and implied PD.
+
+        Note: when ``asset_drift`` is omitted, the asset drift mu used in the
+        distance-to-default formula defaults to ``risk_free_rate`` (a
+        risk-neutral assumption), not an estimate of the firm's actual expected
+        asset return.
 
         In the structural Merton model the firm defaults at horizon T if asset value
         falls below the debt face value. The distance-to-default is
@@ -933,6 +981,9 @@ class CreditRiskNamespace:
         Estimates ``PD = sigmoid(b0 + x·b)`` from a default indicator. A small ridge
         term stabilises the Hessian on separable / collinear data. An intercept is
         added automatically.
+
+        Coefficients are found by iterative Newton-Raphson (IRLS) convergence to
+        the maximum-likelihood estimate, not a closed-form solution.
 
         Returns:
             The raw API response as a dict.
@@ -987,6 +1038,9 @@ class CreditRiskNamespace:
         ``PD = sigmoid(a * score + b)`` so the output is a true probability. The fit
         reuses the Newton-Raphson logistic solver on the single score feature.
 
+        No scikit-learn or other ML library is involved anywhere in this module —
+        the calibration is a hand-rolled fit on top of this file's own solver.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1009,6 +1063,10 @@ class CreditRiskNamespace:
         ``adj = 1 + sum_j sensitivity_j * factor_j`` (clamped at 0), then adds a
         discretionary management overlay. Captures the IFRS 9 requirement to
         incorporate forward-looking information not in the through-the-cycle model.
+
+        This multiplicative overlay structure is a bespoke internal design
+        choice, confirmed against BIS/EBA sources not to reproduce a specific
+        published or regulatory ECL-overlay formula.
 
         Returns:
             The raw API response as a dict.
@@ -1099,6 +1157,10 @@ class CreditRiskNamespace:
         and reports the per-step PFE (high quantile of positive exposure) and the
         peak PFE. Randomness is pre-drawn in pure Python (RULE 3).
 
+        PFE at each time step is the empirical quantile of the simulated exposure
+        distribution rather than a closed-form expression, so results carry
+        Monte Carlo sampling noise that varies with ``n_paths`` and ``seed``.
+
         Returns:
             The raw API response as a dict.
         """
@@ -1148,6 +1210,10 @@ class CreditRiskNamespace:
         Counts observed transitions and normalises each row to a probability
         distribution. Empty rows (no obligors observed in that state) are set to the
         identity (a self-transition), keeping the matrix row-stochastic.
+
+        This identity substitution for empty rows is a modelling convention, not an
+        observed transition — it exists purely so the returned matrix stays
+        row-stochastic and is safe to chain into further calculations.
 
         Returns:
             The raw API response as a dict.
@@ -1271,6 +1337,10 @@ class CreditRiskNamespace:
         larger FX reserves and stronger governance raise it. The score is mapped to
         an indicative PD via a logistic transform.
 
+        This is a bespoke internal composite-indicator model, confirmed against
+        BIS/EBA sources not to match any specific published sovereign-risk
+        methodology (e.g. a rating-agency or IMF framework).
+
         Returns:
             The raw API response as a dict.
         """
@@ -1368,6 +1438,11 @@ class CreditRiskNamespace:
         correlation), CVA is understated. A first-order alpha multiplier
         ``alpha = 1 + correlation * exposure_volatility`` (clamped >= 0) scales the
         base CVA; negative correlation gives right-way risk (alpha < 1).
+
+        This is a first-order proxy multiplier, confirmed against the WWR
+        literature (Hull & White 2012; Gregory, *The xVA Challenge*) not to
+        reproduce a specific published WWR model — treat it as a reasonable
+        internal approximation.
 
         Returns:
             The raw API response as a dict.

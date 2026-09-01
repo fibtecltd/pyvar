@@ -237,9 +237,42 @@ def core_deposit_duration(
 ) -> dict:  # type: ignore[type-arg]
     """Effective duration of core deposits modelled as a decaying annuity.
 
-    Note: duration is computed as a discrete monthly Riemann sum over the
-    exponential run-off schedule, not a closed-form integral of the
-    continuous decay function.
+    ``core_deposit_duration`` (the primary, default figure) is a discrete
+    monthly Riemann sum over the exponential run-off schedule, truncated at
+    ``max_years``:
+    ``D = sum_t[t*B*decay_rate*e^{-(decay_rate+discount_rate)t}]
+          / sum_t[B*decay_rate*e^{-(decay_rate+discount_rate)t}]``
+    for ``t = 1/12, 2/12, ..., max_years``.
+
+    A genuine closed form exists for the *untruncated* (``max_years`` ->
+    infinity) continuous-time version of the same model: the run-off density
+    ``core_balance*decay_rate*e^{-decay_rate*t}`` is the density of an
+    Exponential(``decay_rate``) survival distribution, and PV-weighting it by
+    ``e^{-discount_rate*t}`` is equivalent to re-weighting by
+    Exponential(``decay_rate + discount_rate``) — whose mean is exactly
+    ``1 / (decay_rate + discount_rate)``. That value, plus its closed-form PV
+    ``core_balance*decay_rate / (decay_rate + discount_rate)``, is returned as
+    ``closed_form_duration`` / ``closed_form_present_value`` for reference,
+    but is NOT used for the primary ``core_deposit_duration`` figure.
+
+    Why the truncated discrete sum stays the default instead of switching to
+    the closed form (validated numerically — see
+    ``tests/test_alm_behavioural.py::test_core_deposit_duration_closed_form``):
+    the two diverge materially whenever ``max_years`` is not several multiples
+    of the implied continuous duration ``1/(decay_rate+discount_rate)``. For
+    the slow-decaying "sticky" core books this function exists to model, that
+    ratio is often well under 3x at the ``max_years=30`` default — e.g.
+    ``decay_rate=0.05, discount_rate=0.02`` implies a 14.3y continuous
+    duration against a 30y truncation, and the discrete figure understates
+    the closed form by ~29%. So ``max_years`` is a real, user-set truncation
+    of the run-off horizon here, not just a numerical implementation detail,
+    and silently dropping it would change the model's economics, not just its
+    numerics. Even where truncation is immaterial
+    (``max_years >> 1/(decay_rate+discount_rate)``), the monthly
+    right-Riemann-sum quadrature itself carries a systematic +dt/2 (~0.042y)
+    bias relative to the continuous integral, which is non-negligible against
+    a 0.1-0.5% tolerance for short-duration books (e.g. ``decay_rate=0.30,
+    discount_rate=0.10`` -> ~1.7% bias even with a generous horizon).
 
     Core deposits run off at ``decay_rate`` (exponential). The duration is the
     PV-weighted average life of the run-off cashflows discounted at
@@ -253,7 +286,11 @@ def core_deposit_duration(
         max_years: Truncation horizon for the run-off integral.
 
     Returns:
-        Dict with ``core_deposit_duration`` (years) and ``present_value``.
+        Dict with ``core_deposit_duration`` (years, discrete/truncated — the
+        primary figure) and ``present_value`` (discrete/truncated), plus the
+        untruncated closed-form reference values ``closed_form_duration``
+        (``1/(decay_rate+discount_rate)``) and ``closed_form_present_value``
+        (``core_balance*decay_rate/(decay_rate+discount_rate)``).
 
     Raises:
         ValueError: If ``decay_rate`` is non-positive.
@@ -269,4 +306,18 @@ def core_deposit_duration(
     pv = runoff * df
     total_pv = float(np.sum(pv))
     duration = float(np.sum(times * pv) / total_pv) if total_pv > 0 else 0.0
-    return {"core_deposit_duration": round(duration, 6), "present_value": round(total_pv, 6)}
+
+    # Closed-form, untruncated (max_years -> infinity) reference: the PV-weighted
+    # run-off kernel decay_rate*exp(-(decay_rate+discount_rate)*t) is the density
+    # of Exponential(decay_rate+discount_rate), whose mean is 1/(decay_rate+
+    # discount_rate) -- see docstring for why this is not the default figure.
+    combined_rate = decay_rate + discount_rate
+    closed_form_duration = 1.0 / combined_rate
+    closed_form_pv = core_balance * decay_rate / combined_rate
+
+    return {
+        "core_deposit_duration": round(duration, 6),
+        "present_value": round(total_pv, 6),
+        "closed_form_duration": round(float(closed_form_duration), 6),
+        "closed_form_present_value": round(float(closed_form_pv), 6),
+    }
