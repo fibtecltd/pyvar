@@ -103,13 +103,29 @@ def send_verification_email(email: str, token: str) -> None:
         )
         logger.info("verification_email_sent", email=email)
     except Exception:  # noqa: BLE001 — best-effort send, see docstring for why
-        logger.error(
-            "verification_email_send_failed",
-            email=email,
-            token=token,
-            verify_url=verify_url,
-            exc_info=True,
-        )
+        if cfg.app_env == "development":
+            # Dev-only: no real AWS/SES credentials locally, so this is the
+            # only way to recover the token for manual testing (the exact
+            # case this function's own docstring describes). Never do this
+            # outside development — see the redacted branch below.
+            logger.error(
+                "verification_email_send_failed",
+                email=email,
+                token=token,
+                verify_url=verify_url,
+                exc_info=True,
+            )
+        else:
+            # staging/production: never log a live bearer credential in
+            # clear text — whoever can read these logs (CloudWatch access
+            # is broader than "trusted operators only" for a real
+            # customer-facing service, and logs can be shipped to
+            # third-party aggregators) could otherwise complete email
+            # verification for this account without owning the inbox. The
+            # token is still recoverable from the `users` table's
+            # verification_token column for legitimate manual recovery,
+            # without duplicating a working secret into logs.
+            logger.error("verification_email_send_failed", email=email, exc_info=True)
 
 
 @router.post(

@@ -25,6 +25,12 @@ on:
       - "schemas/**"
       - ".github/workflows/pyvar-client-ci.yml"
 
+# Declaring `permissions:` at all zeroes every unlisted scope on the default
+# GITHUB_TOKEN. Both jobs only check out, test, and diff a local codegen
+# regen -- neither pushes or touches anything but its own checkout.
+permissions:
+  contents: read
+
 env:
   PYTHON_VERSION: "3.11"
 

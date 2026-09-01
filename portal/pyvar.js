@@ -280,8 +280,14 @@ async function renderDashboard() {
       setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
     });
   } catch (e) {
+    // e.message can trace back to window.location.search (the ?token=...
+    // this function reads above) via the fetch URL and any error text a
+    // browser or server derives from it -- escape before reinterpreting as
+    // HTML, same rule as the comment above _escapeHtml() states for API
+    // response text.
+    const safeMessage = _escapeHtml((e && e.message) || 'The link may be invalid or expired.');
     card.innerHTML = '<div class="dash-title">Verification failed</div>'
-      + `<div class="dash-body dash-error">${(e && e.message) || 'The link may be invalid or expired.'} <a href="index.html#get-api-key">Register again</a>.</div>`;
+      + `<div class="dash-body dash-error">${safeMessage} <a href="index.html#get-api-key">Register again</a>.</div>`;
   }
 }
 
