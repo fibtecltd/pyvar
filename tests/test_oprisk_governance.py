@@ -91,6 +91,72 @@ def test_bcp_mature_reduces_score():
     assert low < high
 
 
+# ── rpo_target_hours opt-in (caveat-triage batch 1) ──────────────────────────
+# docs/p11-caveat-triage-plan.md Tier 1: rpo_hours was accepted and
+# range-validated but had no effect on the score at all. Default (omitted)
+# behaviour must stay byte-identical to before; rpo_target_hours is the new
+# opt-in that actually scores it.
+
+
+def test_bcp_default_omits_rpo_breach_and_matches_pre_change_output():
+    r = business_continuity_risk_score(48.0, 4.0, max_tolerable_downtime=24.0, bcp_maturity=0.0)
+    assert "rpo_breach" not in r
+    assert r == {"mtd_breach": True, "bc_risk_score": 100.0, "rating": "red"}
+
+
+def test_bcp_rpo_breach_detected_and_drives_score_when_worse_than_rto():
+    # RTO is fine (well inside MTD) but RPO badly breaches its own target --
+    # the RPO axis alone must drive bc_risk_score up, not get diluted away
+    # by the healthy RTO side.
+    r = business_continuity_risk_score(
+        rto_hours=1.0,
+        rpo_hours=48.0,
+        max_tolerable_downtime=24.0,
+        bcp_maturity=0.0,
+        rpo_target_hours=4.0,
+    )
+    assert r["mtd_breach"] is False
+    assert r["rpo_breach"] is True
+    assert r["bc_risk_score"] > 50.0
+
+
+def test_bcp_rpo_within_target_no_breach():
+    r = business_continuity_risk_score(
+        rto_hours=1.0,
+        rpo_hours=2.0,
+        max_tolerable_downtime=24.0,
+        bcp_maturity=0.0,
+        rpo_target_hours=4.0,
+    )
+    assert r["mtd_breach"] is False
+    assert r["rpo_breach"] is False
+
+
+def test_bcp_score_is_worse_of_rto_and_rpo_not_an_average():
+    # Both axes breach, RPO worse -- score must match the RPO-only-breach
+    # case (the max), not something diluted between the two.
+    both_breach = business_continuity_risk_score(
+        rto_hours=25.0,
+        rpo_hours=100.0,
+        max_tolerable_downtime=24.0,
+        bcp_maturity=0.0,
+        rpo_target_hours=4.0,
+    )
+    rpo_only = business_continuity_risk_score(
+        rto_hours=1.0,
+        rpo_hours=100.0,
+        max_tolerable_downtime=24.0,
+        bcp_maturity=0.0,
+        rpo_target_hours=4.0,
+    )
+    assert both_breach["bc_risk_score"] == rpo_only["bc_risk_score"]
+
+
+def test_bcp_invalid_rpo_target_raises():
+    with pytest.raises(ValueError):
+        business_continuity_risk_score(1.0, 1.0, 24.0, 0.0, rpo_target_hours=0.0)
+
+
 def test_near_miss_capture():
     events = [
         {"actual_loss": 0.0, "potential_loss": 1000.0},

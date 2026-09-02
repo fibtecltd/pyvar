@@ -466,20 +466,38 @@ class CreditRiskNamespace:
         confidence_level: float = 0.99,
         n_simulations: int = 20000,
         seed: int = 2024,
+        transition_matrix: list[list[float]] | None = None,
+        current_rating: list[int] | None = None,
+        state_loss_pct: list[float] | None = None,
     ) -> dict[str, Any]:
-        """Simplified CreditMetrics (two-state) portfolio loss distribution.
+        """CreditMetrics portfolio loss distribution — two-state or genuine multi-state.
 
-        A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset
+        By default (the three transition-matrix arguments omitted) this is a
+        default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset
         returns are driven by a single common factor; an obligor defaults when its
-        return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model
-        uses a multi-state rating-migration matrix — handled separately by
-        :func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail is
-        dominated by the default state captured here.
+        return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this mode
+        it is a direct pass-through to the same one-factor Gaussian-copula Monte
+        Carlo engine used by :func:`credit_var_monte_carlo` (identical formula,
+        identical code path) — unchanged from before this function supported the
+        multi-state mode below.
 
-        In implementation this is a direct pass-through to the same one-factor
-        Gaussian-copula Monte Carlo engine used by
-        :func:`credit_var_monte_carlo` (identical formula, identical code path),
-        not a separately coded multi-state model.
+        Pass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``
+        together to switch to the genuine multi-state CreditMetrics model: each
+        obligor's simulated asset return is mapped through *its own*
+        transition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics
+        Technical Document's asset-return discretisation) to a migrated rating
+        state — not just default/survive — and the loss for that path is that
+        state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the
+        migration lands in default). ``pd``/``lgd`` still drive the two-state
+        default threshold, so the default state's boundary and loss are always
+        obligor-specific even in multi-state mode; only the non-default migration
+        structure comes from ``transition_matrix``.
+
+        Rating-state convention (matches
+        :func:`engine.credit_scoring.ratings_migration_matrix`'s own "n_states,
+        including default as the last"): index 0 is the best rating, index
+        ``n_states - 2`` the worst non-default rating, and index ``n_states - 1``
+        is always default.
 
         Returns:
             The raw API response as a dict.
@@ -492,6 +510,9 @@ class CreditRiskNamespace:
             "confidence_level": confidence_level,
             "n_simulations": n_simulations,
             "seed": seed,
+            "transition_matrix": transition_matrix,
+            "current_rating": current_rating,
+            "state_loss_pct": state_loss_pct,
         }
         return self._client._request(
             "POST", "/api/v1/credit-risk/creditmetrics_portfolio_model", json_body=body
@@ -608,20 +629,30 @@ class CreditRiskNamespace:
         )
 
     def downturn_lgd_adjustment(
-        self, *, lgd_long_run: float, downturn_multiplier: float = 1.0, floor: float = 0.0
+        self,
+        *,
+        lgd_long_run: float,
+        downturn_multiplier: float = 1.0,
+        floor: float = 0.0,
+        method: str = "multiplicative",
     ) -> dict[str, Any]:
         """Basel downturn-LGD adjustment of a long-run average LGD.
 
-        Note: uses a multiplicative downturn scaling, a deliberate departure from
-        EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the
-        underlying requirement.
+        CRR Art. 181 requires LGD to reflect economic-downturn conditions when
+        these are more conservative than the long-run average. Two scaling
+        methods are available:
 
-        CRR Art. 181 requires LGD to reflect economic-downturn conditions when these
-        are more conservative than the long-run average. The supervisory-style
-        additive add-on (EBA GL) is applied as
-        ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is
-        *not* used here; instead a transparent multiplicative scaling is applied and
-        clipped to ``[floor, 1]`` so the result never under-states the long-run LGD.
+        - ``"multiplicative"`` (default, backward-compatible): a transparent
+          multiplicative scaling, ``LGD_LR * multiplier``, clipped to
+          ``[floor, 1]`` so the result never under-states the long-run LGD.
+          Calibrate ``downturn_multiplier`` to your own downturn analysis —
+          this is not itself a formula prescribed by CRR Art. 181 or EBA GL.
+        - ``"additive"``: the EBA/GL/2019/03 supervisory-style fallback add-on,
+          ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``
+          — here ``downturn_multiplier`` plays the same "how severe" role as in
+          the multiplicative method, scaling how much of the remaining
+          loss-given-default headroom (``1 - LGD_LR``) the downturn add-on
+          consumes, rather than scaling ``LGD_LR`` itself directly.
 
         Returns:
             The raw API response as a dict.
@@ -630,6 +661,7 @@ class CreditRiskNamespace:
             "lgd_long_run": lgd_long_run,
             "downturn_multiplier": downturn_multiplier,
             "floor": floor,
+            "method": method,
         }
         return self._client._request(
             "POST", "/api/v1/credit-risk/downturn_lgd_adjustment", json_body=body

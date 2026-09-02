@@ -17,6 +17,8 @@ Conventions (skill guidance):
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from numba import njit
 
@@ -338,32 +340,42 @@ def downturn_lgd_adjustment(
     lgd_long_run: float,
     downturn_multiplier: float = 1.0,
     floor: float = 0.0,
+    method: str = "multiplicative",
 ) -> dict:  # type: ignore[type-arg]
     """Basel downturn-LGD adjustment of a long-run average LGD.
 
-    Note: uses a multiplicative downturn scaling, a deliberate departure from
-    EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the
-    underlying requirement.
+    CRR Art. 181 requires LGD to reflect economic-downturn conditions when
+    these are more conservative than the long-run average. Two scaling
+    methods are available:
 
-    CRR Art. 181 requires LGD to reflect economic-downturn conditions when these
-    are more conservative than the long-run average. The supervisory-style
-    additive add-on (EBA GL) is applied as
-    ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is
-    *not* used here; instead a transparent multiplicative scaling is applied and
-    clipped to ``[floor, 1]`` so the result never under-states the long-run LGD.
+    - ``"multiplicative"`` (default, backward-compatible): a transparent
+      multiplicative scaling, ``LGD_LR * multiplier``, clipped to
+      ``[floor, 1]`` so the result never under-states the long-run LGD.
+      Calibrate ``downturn_multiplier`` to your own downturn analysis —
+      this is not itself a formula prescribed by CRR Art. 181 or EBA GL.
+    - ``"additive"``: the EBA/GL/2019/03 supervisory-style fallback add-on,
+      ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``
+      — here ``downturn_multiplier`` plays the same "how severe" role as in
+      the multiplicative method, scaling how much of the remaining
+      loss-given-default headroom (``1 - LGD_LR``) the downturn add-on
+      consumes, rather than scaling ``LGD_LR`` itself directly.
 
     Args:
         lgd_long_run: Long-run average LGD in ``[0, 1]``.
         downturn_multiplier: Multiplier (>= 1) reflecting downturn severity.
         floor: Regulatory LGD floor (e.g. 0.05 for retail mortgages, CRR
             Art. 164).
+        method: ``"multiplicative"`` (default) or ``"additive"``.
 
     Returns:
-        Dict with ``lgd_downturn`` (clipped), ``lgd_long_run`` and the applied
-        ``multiplier``.
+        Dict with ``lgd_downturn`` (clipped), ``lgd_long_run``, the applied
+        ``multiplier`` and ``floor``. Also includes ``method`` when it is
+        ``"additive"`` (omitted for the default ``"multiplicative"`` path, so
+        the dict shape is unchanged for callers that never pass ``method``).
 
     Raises:
-        ValueError: If LGD is out of range or the multiplier is below 1.
+        ValueError: If LGD is out of range, the multiplier is below 1, or
+            ``method`` is not one of the two supported values.
     """
     if not 0.0 <= lgd_long_run <= 1.0:
         raise ValueError("lgd_long_run must be in [0, 1]")
@@ -371,12 +383,21 @@ def downturn_lgd_adjustment(
         raise ValueError("downturn_multiplier must be >= 1 (downturn is more severe)")
     if not 0.0 <= floor <= 1.0:
         raise ValueError("floor must be in [0, 1]")
+    if method not in ("multiplicative", "additive"):
+        raise ValueError('method must be "multiplicative" or "additive"')
 
-    lgd_dt = min(lgd_long_run * downturn_multiplier, 1.0)
+    if method == "multiplicative":
+        lgd_dt = lgd_long_run * downturn_multiplier
+    else:
+        lgd_dt = lgd_long_run + max(0.0, downturn_multiplier - 1.0) * (1.0 - lgd_long_run) * 0.5
+    lgd_dt = min(lgd_dt, 1.0)
     lgd_dt = max(lgd_dt, floor, lgd_long_run)
-    return {
+    result: dict[str, Any] = {
         "lgd_downturn": round(lgd_dt, 10),
         "lgd_long_run": lgd_long_run,
         "multiplier": downturn_multiplier,
         "floor": floor,
     }
+    if method != "multiplicative":
+        result["method"] = method
+    return result

@@ -3466,8 +3466,8 @@
     "name": "creditmetrics_portfolio_model",
     "display_name": "CreditMetrics Portfolio Model",
     "path": "/api/v1/credit-risk/creditmetrics_portfolio_model",
-    "summary": "Simplified CreditMetrics (two-state) portfolio loss distribution.",
-    "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model\nuses a multi-state rating-migration matrix \u2014 handled separately by\n:func:`engine.credit_scoring.ratings_migration_matrix` \u2014 but the loss tail is\ndominated by the default state captured here.\n\nIn implementation this is a direct pass-through to the same one-factor\nGaussian-copula Monte Carlo engine used by\n:func:`credit_var_monte_carlo` (identical formula, identical code path),\nnot a separately coded multi-state model.",
+    "summary": "CreditMetrics portfolio loss distribution \u2014 two-state or genuine multi-state.",
+    "description": "By default (the three transition-matrix arguments omitted) this is a\ndefault/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this mode\nit is a direct pass-through to the same one-factor Gaussian-copula Monte\nCarlo engine used by :func:`credit_var_monte_carlo` (identical formula,\nidentical code path) \u2014 unchanged from before this function supported the\nmulti-state mode below.\n\nPass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``\ntogether to switch to the genuine multi-state CreditMetrics model: each\nobligor's simulated asset return is mapped through *its own*\ntransition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics\nTechnical Document's asset-return discretisation) to a migrated rating\nstate \u2014 not just default/survive \u2014 and the loss for that path is that\nstate's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the\nmigration lands in default). ``pd``/``lgd`` still drive the two-state\ndefault threshold, so the default state's boundary and loss are always\nobligor-specific even in multi-state mode; only the non-default migration\nstructure comes from ``transition_matrix``.\n\nRating-state convention (matches\n:func:`engine.credit_scoring.ratings_migration_matrix`'s own \"n_states,\nincluding default as the last\"): index 0 is the best rating, index\n``n_states - 2`` the worst non-default rating, and index ``n_states - 1``\nis always default.",
     "params": [
       {
         "name": "exposures",
@@ -3545,11 +3545,44 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "transition_matrix",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "current_rating",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "state_loss_pct",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "This function is a direct pass-through to the identical one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo (same formula, same code path) \u2014 it is not a distinct multi-state CreditMetrics rating-migration model; migration itself is handled separately by ratings_migration_matrix.",
-      "citation": null,
+      "caveat": "By default (transition_matrix/current_rating/state_loss_pct omitted) this is still a direct pass-through to the same one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo \u2014 unchanged from before. Pass all three together to switch to a genuine multi-state CreditMetrics model: each obligor's simulated asset return migrates through its own transition-matrix row to a rating state (not just default/survive), verified to reduce bit-for-bit to the two-state pass-through in the degenerate case where every obligor has its own single-rating, single-transition-probability row (see tests/test_credit_var.py).",
+      "citation": "Gupton, Finger & Bhatia (1997), CreditMetrics \u2014 Technical Document, J.P. Morgan (asset-return discretisation of a rating-transition matrix).",
       "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
       "symbol_map": {
         "asset_correlation": "\\rho_i",
@@ -3837,7 +3870,7 @@
     "display_name": "Downturn LGD Adjustment",
     "path": "/api/v1/credit-risk/downturn_lgd_adjustment",
     "summary": "Basel downturn-LGD adjustment of a long-run average LGD.",
-    "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\nEBA/GL/2019/03's additive fallback approach \u2014 see CRR Art. 181 for the\nunderlying requirement.\n\nCRR Art. 181 requires LGD to reflect economic-downturn conditions when these\nare more conservative than the long-run average. The supervisory-style\nadditive add-on (EBA GL) is applied as\n``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is\n*not* used here; instead a transparent multiplicative scaling is applied and\nclipped to ``[floor, 1]`` so the result never under-states the long-run LGD.",
+    "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when\nthese are more conservative than the long-run average. Two scaling\nmethods are available:\n\n- ``\"multiplicative\"`` (default, backward-compatible): a transparent\n  multiplicative scaling, ``LGD_LR * multiplier``, clipped to\n  ``[floor, 1]`` so the result never under-states the long-run LGD.\n  Calibrate ``downturn_multiplier`` to your own downturn analysis \u2014\n  this is not itself a formula prescribed by CRR Art. 181 or EBA GL.\n- ``\"additive\"``: the EBA/GL/2019/03 supervisory-style fallback add-on,\n  ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``\n  \u2014 here ``downturn_multiplier`` plays the same \"how severe\" role as in\n  the multiplicative method, scaling how much of the remaining\n  loss-given-default headroom (``1 - LGD_LR``) the downturn add-on\n  consumes, rather than scaling ``LGD_LR`` itself directly.",
     "params": [
       {
         "name": "lgd_long_run",
@@ -3871,10 +3904,21 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "method",
+        "type": "string",
+        "required": false,
+        "default": "multiplicative",
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "CRR Art. 181 requires downturn-conservative LGD, but this specific multiplicative scaling is a deliberate departure from the EBA/GL/2019/03 additive fallback (+15pp) \u2014 the docstring itself states that additive formula is 'not used here'. Calibrate downturn_multiplier to your own downturn analysis rather than assuming regulatory grounding for the exact formula.",
+      "caveat": "Default (method omitted or \"multiplicative\") is unchanged: a transparent multiplicative scaling not itself prescribed by CRR Art. 181 or EBA GL \u2014 calibrate downturn_multiplier to your own downturn analysis. Pass method=\"additive\" to use the EBA/GL/2019/03 supervisory-style fallback add-on this function's own docstring already documented but did not implement until now.",
       "citation": null,
       "formula_latex": "LGD_{DT} = \\max\\big(\\min(LGD_{LR}\\cdot m,\\ 1),\\ f,\\ LGD_{LR}\\big)",
       "symbol_map": {
@@ -19405,8 +19449,8 @@
     "name": "business_continuity_risk_score",
     "display_name": "Business Continuity Risk Score",
     "path": "/api/v1/operational/business_continuity_risk_score",
-    "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
-    "description": "Flags where the recovery time objective (RTO) exceeds the maximum tolerable\ndowntime (MTD) and discounts the residual risk by BCP maturity. A breach of\nMTD is the dominant driver.\n\nNote:\n    ``rpo_hours`` is accepted as an input (and range-validated) but does\n    not currently affect the computed score \u2014 only ``rto_hours`` versus\n    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n    for the triage of this dead parameter.",
+    "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
+    "description": "Flags where the recovery time objective (RTO) exceeds the maximum\ntolerable downtime (MTD) and discounts the residual risk by BCP maturity.\nA breach of either recovery objective is the dominant driver.\n\nBy default (``rpo_target_hours`` omitted) this is byte-identical to the\noriginal RTO-only scoring: ``rpo_hours`` is still range-validated but does\nnot affect ``bc_risk_score``, since RPO risk has nothing to be measured\nagainst without a target to compare it to. Pass ``rpo_target_hours`` (the\nmaximum tolerable period of data loss, per ISO 22301 / DRI International\nBCM practice) to additionally score potential data loss: RTO and RPO are\nindependently critical recovery objectives \u2014 a plan can fail on either\naxis \u2014 so the pre-BCP-maturity risk is the *worse* of the two, not an\naverage of them, consistent with this function's existing \"a breach is\nthe dominant driver\" philosophy for RTO alone.",
     "params": [
       {
         "name": "rto_hours",
@@ -19451,10 +19495,21 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "rpo_target_hours",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "rpo_hours is accepted as a parameter but is not used anywhere in the score computation in the code \u2014 only RTO vs MTD and bcp_maturity drive the score.",
+      "caveat": "Default (rpo_target_hours omitted) is unchanged: rpo_hours is still range-validated but does not affect bc_risk_score, since RPO risk has nothing to be measured against without a target. Pass rpo_target_hours (the maximum tolerable period of data loss, ISO 22301 / DRI International BCM practice) to also score potential data loss \u2014 the pre-BCP-maturity risk is then the worse of the RTO and RPO breach severities, not an average of them.",
       "citation": null,
       "formula_latex": "G = \\min\\!\\left(\\frac{RTO}{MTD},\\,2\\right)\\Big/2 \\\\ Raw = 50\\cdot\\mathbb{1}[RTO>MTD] + 50\\,G \\\\ Score = \\min\\big(Raw\\times(1-0.5\\,M),\\,100\\big)",
       "symbol_map": {

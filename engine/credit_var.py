@@ -78,6 +78,74 @@ def _simulate_portfolio_losses(
     return losses
 
 
+@njit(parallel=True, cache=True)
+def _simulate_portfolio_losses_multistate(
+    lgd: np.ndarray,
+    ead: np.ndarray,
+    sqrt_rho: np.ndarray,
+    thresholds: np.ndarray,
+    state_loss_pct: np.ndarray,
+    systematic: np.ndarray,
+    idiosyncratic: np.ndarray,
+) -> np.ndarray:
+    """Multi-state (full CreditMetrics) one-factor Gaussian-copula simulation.
+
+    Same asset-return construction as :func:`_simulate_portfolio_losses`, but
+    each obligor's simulated asset return is mapped through its OWN
+    transition-matrix row (via pre-computed per-obligor thresholds, RULE 3)
+    to a migrated rating state, not just a binary default/survive outcome.
+
+    ``thresholds[i, k]`` are ascending per-obligor cutoffs derived from
+    obligor ``i``'s transition-matrix row, cumulated from the worst state
+    (default) upward: an asset draw below ``thresholds[i, 0]`` means default;
+    below ``thresholds[i, 1]`` means the worst non-default state; and so on,
+    with an asset draw at or above ``thresholds[i, n_thresh-1]`` landing in
+    the best rating (state 0). This exactly inverts how ``ratings_migration_
+    matrix``-style transition probabilities are ordered (index 0 = best
+    rating, last index = default) into the asset-return space a one-factor
+    Gaussian copula needs.
+
+    Args:
+        lgd: Per-obligor LGD, used only for the default-state loss.
+        ead: Per-obligor exposure.
+        sqrt_rho: Per-obligor sqrt of asset correlation.
+        thresholds: ``(n_obligors, n_states-1)`` ascending per-obligor
+            migration thresholds.
+        state_loss_pct: ``(n_states-1,)`` loss percentage of exposure per
+            non-default rating state (index 0 = best rating).
+        systematic: ``(n_sims,)`` systematic factor draws.
+        idiosyncratic: ``(n_sims, n_obligors)`` idiosyncratic draws.
+
+    Returns:
+        Float64 array of portfolio losses, one per simulation (RULE 5).
+    """
+    n_sims = systematic.shape[0]
+    n_obligors = lgd.shape[0]
+    n_thresh = thresholds.shape[1]
+    losses = np.zeros(n_sims, dtype=np.float64)
+    for s in prange(n_sims):
+        total = 0.0
+        m = systematic[s]
+        for i in range(n_obligors):
+            sqrt_one_minus = np.sqrt(1.0 - sqrt_rho[i] * sqrt_rho[i])
+            asset = sqrt_rho[i] * m + sqrt_one_minus * idiosyncratic[s, i]
+            state = 0
+            found = False
+            for k in range(n_thresh):
+                if asset < thresholds[i, k]:
+                    state = n_thresh - k
+                    found = True
+                    break
+            if not found:
+                state = 0
+            if state == n_thresh:
+                total += lgd[i] * ead[i]
+            else:
+                total += state_loss_pct[state] * ead[i]
+        losses[s] = total
+    return losses
+
+
 @njit(cache=True)
 def _var_es_from_sorted(sorted_losses: np.ndarray, confidence_level: float) -> np.ndarray:
     """VaR and ES (mean beyond VaR) from an ascending sorted loss array."""
@@ -240,46 +308,149 @@ def creditmetrics_portfolio_model(
     confidence_level: float = 0.99,
     n_simulations: int = 20_000,
     seed: int = 2024,
+    transition_matrix: np.ndarray | None = None,
+    current_rating: np.ndarray | None = None,
+    state_loss_pct: np.ndarray | None = None,
 ) -> dict:  # type: ignore[type-arg]
-    """Simplified CreditMetrics (two-state) portfolio loss distribution.
+    """CreditMetrics portfolio loss distribution — two-state or genuine multi-state.
 
-    A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset
+    By default (the three transition-matrix arguments omitted) this is a
+    default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset
     returns are driven by a single common factor; an obligor defaults when its
-    return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model
-    uses a multi-state rating-migration matrix — handled separately by
-    :func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail is
-    dominated by the default state captured here.
+    return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this mode
+    it is a direct pass-through to the same one-factor Gaussian-copula Monte
+    Carlo engine used by :func:`credit_var_monte_carlo` (identical formula,
+    identical code path) — unchanged from before this function supported the
+    multi-state mode below.
 
-    In implementation this is a direct pass-through to the same one-factor
-    Gaussian-copula Monte Carlo engine used by
-    :func:`credit_var_monte_carlo` (identical formula, identical code path),
-    not a separately coded multi-state model.
+    Pass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``
+    together to switch to the genuine multi-state CreditMetrics model: each
+    obligor's simulated asset return is mapped through *its own*
+    transition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics
+    Technical Document's asset-return discretisation) to a migrated rating
+    state — not just default/survive — and the loss for that path is that
+    state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the
+    migration lands in default). ``pd``/``lgd`` still drive the two-state
+    default threshold, so the default state's boundary and loss are always
+    obligor-specific even in multi-state mode; only the non-default migration
+    structure comes from ``transition_matrix``.
+
+    Rating-state convention (matches
+    :func:`engine.credit_scoring.ratings_migration_matrix`'s own "n_states,
+    including default as the last"): index 0 is the best rating, index
+    ``n_states - 2`` the worst non-default rating, and index ``n_states - 1``
+    is always default.
 
     Args:
         exposures: Per-obligor exposure (>= 0).
-        pd: Per-obligor PD in ``(0, 1)``.
-        lgd: Per-obligor LGD in ``[0, 1]``.
+        pd: Per-obligor PD in ``(0, 1)`` — always used for the default
+            threshold, in both modes.
+        lgd: Per-obligor LGD in ``[0, 1]`` — always used for the default-state
+            loss, in both modes.
         asset_correlation: Common-factor asset correlation in ``[0, 1)``.
         confidence_level: VaR confidence in ``[0.90, 0.9999]``.
         n_simulations: Number of Monte-Carlo paths.
         seed: RNG seed.
+        transition_matrix: Multi-state only. Row-stochastic ``(n_states,
+            n_states)`` rating transition matrix (rows sum to 1).
+        current_rating: Multi-state only. Per-obligor starting rating index
+            in ``[0, n_states - 1)`` (an obligor cannot start already in
+            default).
+        state_loss_pct: Multi-state only. ``(n_states - 1,)`` loss percentage
+            of exposure if migrated to each non-default state (index 0 = best
+            rating). The default state's loss always comes from that
+            obligor's own ``lgd``, not from this array.
 
     Returns:
         Dict with ``var``, ``cvar`` (mean beyond VaR), ``el``, ``ul`` and
         ``loss_std``.
 
     Raises:
-        ValueError: If shapes mismatch or parameters are out of range.
+        ValueError: If shapes mismatch, parameters are out of range, or the
+            three multi-state arguments are only partially supplied.
     """
-    return credit_var_monte_carlo(
-        pd=pd,
-        lgd=lgd,
-        ead=exposures,
-        asset_correlation=asset_correlation,
-        confidence_level=confidence_level,
-        n_simulations=n_simulations,
-        seed=seed,
+    multistate_args = (transition_matrix, current_rating, state_loss_pct)
+    n_supplied = sum(a is not None for a in multistate_args)
+    if n_supplied == 0:
+        return credit_var_monte_carlo(
+            pd=pd,
+            lgd=lgd,
+            ead=exposures,
+            asset_correlation=asset_correlation,
+            confidence_level=confidence_level,
+            n_simulations=n_simulations,
+            seed=seed,
+        )
+    if n_supplied != 3:
+        raise ValueError(
+            "transition_matrix, current_rating and state_loss_pct must be supplied together"
+        )
+
+    p = np.asarray(pd, dtype=np.float64)
+    lgd_arr = np.asarray(lgd, dtype=np.float64)
+    e = np.asarray(exposures, dtype=np.float64)
+    if not (p.shape == lgd_arr.shape == e.shape) or p.size == 0:
+        raise ValueError("pd, lgd, exposures must share the same non-empty shape")
+    if np.any((p <= 0.0) | (p >= 1.0)):
+        raise ValueError("pd must lie in (0, 1)")
+    if not 0.0 <= asset_correlation < 1.0:
+        raise ValueError("asset_correlation must lie in [0, 1)")
+    if not 0.90 <= confidence_level <= 0.9999:
+        raise ValueError("confidence_level must be in [0.90, 0.9999]")
+
+    tm = np.asarray(transition_matrix, dtype=np.float64)
+    if tm.ndim != 2 or tm.shape[0] != tm.shape[1] or tm.shape[0] < 2:
+        raise ValueError(
+            "transition_matrix must be a square (n_states, n_states) array, n_states >= 2"
+        )
+    n_states = tm.shape[0]
+    if not np.allclose(tm.sum(axis=1), 1.0, atol=1e-6):
+        raise ValueError("transition_matrix rows must each sum to 1")
+
+    cr = np.asarray(current_rating, dtype=np.int64)
+    if cr.shape != p.shape:
+        raise ValueError("current_rating must match pd/lgd/exposures shape")
+    if np.any((cr < 0) | (cr >= n_states - 1)):
+        raise ValueError("current_rating must lie in [0, n_states - 1) -- cannot start in default")
+
+    slp = np.asarray(state_loss_pct, dtype=np.float64)
+    if slp.shape != (n_states - 1,):
+        raise ValueError("state_loss_pct must have shape (n_states - 1,)")
+    if np.any((slp < 0.0) | (slp > 1.0)):
+        raise ValueError("state_loss_pct entries must lie in [0, 1]")
+
+    n = p.size
+    rho = np.full(n, float(asset_correlation), dtype=np.float64)
+    sqrt_rho = np.sqrt(rho)
+
+    # Per-obligor migration thresholds: gather each obligor's own transition
+    # row, cumulate probability from the worst state (default) upward, and
+    # invert through the standard normal to get ascending asset-return
+    # cutoffs -- see _simulate_portfolio_losses_multistate's docstring.
+    n_thresh = n_states - 1
+    rows = tm[cr]  # (n_obligors, n_states)
+    cum_from_worst = np.cumsum(rows[:, ::-1], axis=1)[:, :n_thresh]
+    thresholds = stats.norm.ppf(cum_from_worst).astype(np.float64)
+
+    rng = np.random.default_rng(seed)
+    systematic = rng.standard_normal(n_simulations).astype(np.float64)
+    idiosyncratic = rng.standard_normal((n_simulations, n)).astype(np.float64)
+
+    losses = _simulate_portfolio_losses_multistate(
+        lgd_arr, e, sqrt_rho, thresholds, slp, systematic, idiosyncratic
     )
+    sorted_losses = np.sort(losses)
+    var, es = _var_es_from_sorted(sorted_losses, confidence_level)
+    el = float(np.mean(losses))
+    return {
+        "var": round(float(var), 6),
+        "cvar": round(float(es), 6),
+        "el": round(el, 6),
+        "ul": round(float(var) - el, 6),
+        "loss_std": round(float(np.std(losses)), 6),
+        "confidence_level": confidence_level,
+        "n_simulations": int(n_simulations),
+    }
 
 
 def kmv_merton_distance_to_default(

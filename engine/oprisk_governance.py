@@ -260,49 +260,72 @@ def business_continuity_risk_score(
     rpo_hours: float,
     max_tolerable_downtime: float,
     bcp_maturity: float,
+    rpo_target_hours: float | None = None,
 ) -> dict:  # type: ignore[type-arg]
-    """Business-continuity risk from RTO versus tolerance and BCP maturity.
+    """Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.
 
-    Flags where the recovery time objective (RTO) exceeds the maximum tolerable
-    downtime (MTD) and discounts the residual risk by BCP maturity. A breach of
-    MTD is the dominant driver.
+    Flags where the recovery time objective (RTO) exceeds the maximum
+    tolerable downtime (MTD) and discounts the residual risk by BCP maturity.
+    A breach of either recovery objective is the dominant driver.
 
-    Note:
-        ``rpo_hours`` is accepted as an input (and range-validated) but does
-        not currently affect the computed score — only ``rto_hours`` versus
-        ``max_tolerable_downtime`` and ``bcp_maturity`` drive
-        ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)
-        for the triage of this dead parameter.
+    By default (``rpo_target_hours`` omitted) this is byte-identical to the
+    original RTO-only scoring: ``rpo_hours`` is still range-validated but does
+    not affect ``bc_risk_score``, since RPO risk has nothing to be measured
+    against without a target to compare it to. Pass ``rpo_target_hours`` (the
+    maximum tolerable period of data loss, per ISO 22301 / DRI International
+    BCM practice) to additionally score potential data loss: RTO and RPO are
+    independently critical recovery objectives — a plan can fail on either
+    axis — so the pre-BCP-maturity risk is the *worse* of the two, not an
+    average of them, consistent with this function's existing "a breach is
+    the dominant driver" philosophy for RTO alone.
 
     Args:
         rto_hours: Recovery time objective in hours.
-        rpo_hours: Recovery point objective in hours. Validated but not
-            currently used in the score computation (see Note above).
+        rpo_hours: Recovery point objective in hours (maximum acceptable data
+            loss window). Always range-validated; only scored when
+            ``rpo_target_hours`` is supplied (see above).
         max_tolerable_downtime: Maximum tolerable downtime in hours (> 0).
         bcp_maturity: BCP programme maturity in [0, 1].
+        rpo_target_hours: Maximum tolerable period of data loss in hours
+            (> 0), i.e. the RPO's own tolerance threshold, analogous to
+            ``max_tolerable_downtime`` for RTO. When omitted, RPO risk is not
+            scored (default, backward-compatible) behaviour.
 
     Returns:
         Dict with ``mtd_breach`` (RTO > MTD), ``bc_risk_score`` (0-100) and
-        ``rating``.
+        ``rating``. When ``rpo_target_hours`` is supplied, also includes
+        ``rpo_breach`` (RPO > rpo_target_hours).
 
     Raises:
-        ValueError: If times are negative, MTD non-positive, or maturity out of
-            range.
+        ValueError: If times are negative, MTD/RPO target non-positive, or
+            maturity out of range.
     """
     if rto_hours < 0 or rpo_hours < 0 or max_tolerable_downtime <= 0:
         raise ValueError("times must be non-negative and MTD positive")
     if not 0.0 <= bcp_maturity <= 1.0:
         raise ValueError("bcp_maturity must lie in [0, 1]")
-    breach = rto_hours > max_tolerable_downtime
-    coverage_gap = min(rto_hours / max_tolerable_downtime, 2.0) / 2.0  # 0..1
-    raw = (50.0 if breach else 0.0) + coverage_gap * 50.0
+    if rpo_target_hours is not None and rpo_target_hours <= 0:
+        raise ValueError("rpo_target_hours must be positive")
+
+    rto_breach = rto_hours > max_tolerable_downtime
+    rto_coverage_gap = min(rto_hours / max_tolerable_downtime, 2.0) / 2.0  # 0..1
+    rto_raw = (50.0 if rto_breach else 0.0) + rto_coverage_gap * 50.0
+
+    result: dict = {"mtd_breach": bool(rto_breach)}  # type: ignore[type-arg]
+    if rpo_target_hours is None:
+        raw = rto_raw
+    else:
+        rpo_breach = rpo_hours > rpo_target_hours
+        rpo_coverage_gap = min(rpo_hours / rpo_target_hours, 2.0) / 2.0  # 0..1
+        rpo_raw = (50.0 if rpo_breach else 0.0) + rpo_coverage_gap * 50.0
+        raw = max(rto_raw, rpo_raw)
+        result["rpo_breach"] = bool(rpo_breach)
+
     score = raw * (1.0 - 0.5 * bcp_maturity)  # mature BCP halves residual at most
     score = min(score, 100.0)
-    return {
-        "mtd_breach": bool(breach),
-        "bc_risk_score": round(float(score), 4),
-        "rating": "red" if score > 50.0 else ("amber" if score > 20.0 else "green"),
-    }
+    result["bc_risk_score"] = round(float(score), 4)
+    result["rating"] = "red" if score > 50.0 else ("amber" if score > 20.0 else "green")
+    return result
 
 
 def near_miss_capture_framework(
