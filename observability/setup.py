@@ -21,7 +21,6 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
-from urllib.parse import urlsplit
 
 import structlog
 from prometheus_client import Histogram
@@ -107,24 +106,6 @@ def _resolve_sentry_dsn() -> str:
         return ""
 
 
-def _redact_dsn(dsn: str) -> str:
-    """Mask a Sentry DSN's public key before it ever reaches a log line.
-
-    A Sentry DSN embeds a credential-shaped value (its public key) in the
-    URL userinfo component -- CodeQL's py/clear-text-logging-sensitive-data
-    correctly flags logging it verbatim. Keeps scheme/host/path (useful for
-    diagnosing "wrong project" or "malformed DSN" without a debugger) and
-    replaces the key itself.
-    """
-    try:
-        parsed = urlsplit(dsn)
-    except ValueError:
-        return "***"
-    if not parsed.hostname:
-        return "***"
-    return f"{parsed.scheme}://***@{parsed.hostname}{parsed.path}"
-
-
 def setup_sentry() -> None:
     """Initialise Sentry SDK if a valid DSN is configured. No-op in development,
     and no-op (never a crash) on a malformed DSN -- Sentry is optional
@@ -172,9 +153,16 @@ def setup_sentry() -> None:
         # -- main.py's setup_observability() and worker.py's module-level
         # calls -- order it that way), so stdlib logging is already
         # configured here.
+        # No part of `dsn` is logged, even redacted -- CodeQL's
+        # py/clear-text-logging-sensitive-data taint tracking flags any
+        # value *derived* from a secret-bearing source reaching a log call,
+        # not just the raw secret itself, so a masked-but-still-DSN-derived
+        # string (e.g. scheme+host+path) still trips it. `exc_info=True`
+        # already gives the real diagnostic detail (including, from the
+        # SDK's own exception message, what was wrong with the DSN) without
+        # this function needing to echo any of it back out itself.
         logging.getLogger(__name__).warning(
-            "Sentry initialisation failed with dsn=%r -- continuing without it",
-            _redact_dsn(dsn),
+            "Sentry initialisation failed -- continuing without it",
             exc_info=True,
         )
 
