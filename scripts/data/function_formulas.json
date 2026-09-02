@@ -1056,7 +1056,7 @@
     }
   },
   "crr2_large_exposure_limit": {
-    "caveat": "Simplified to the 25%-of-Tier-1 ratio test only; the EUR 150m absolute alternative threshold for institutions is not applied, per the function's own docstring.",
+    "caveat": "Now implements both CRR2 Art. 395(1) tests for an institution counterparty (is_institution=True): the applicable limit is the higher of 25% of Tier 1 capital or EUR 150m. Does not check Art. 395(1)'s further connected-client-group condition (that the institution's exposure to non-institution clients connected to this counterparty stays within the plain 25% limit), since that spans a group of exposures, not the single exposure this function scores. Figures are assumed EUR-denominated, matching Art. 395(1)'s own absolute figure; no currency conversion is performed.",
     "citation": "CRR2 Art. 395",
     "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Excess = \\max\\big(exposure\\_value - 0.25 \\times tier1\\_capital,\\ 0\\big)",
     "symbol_map": {

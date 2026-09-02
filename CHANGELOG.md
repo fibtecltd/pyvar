@@ -7,6 +7,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`crr2_large_exposure_limit`** — `is_institution` was accepted (its own
+  docstring said it "affects the absolute alternative limit") but never
+  actually applied: the function only ever ran the 25%-of-Tier-1 ratio
+  test. CRR2 Art. 395(1) requires, for an institution counterparty (or a
+  connected-client group including one), the limit to be the HIGHER of
+  25% of Tier 1 capital or EUR 150m — now implemented. Default
+  (`is_institution=False`) is unchanged. Verified against Art. 395(1) via
+  two independent secondary sources after this environment's network
+  egress proxy blocked direct fetches of every primary EU-legislation
+  host tried.
+
 ### Added
 
 - **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a
