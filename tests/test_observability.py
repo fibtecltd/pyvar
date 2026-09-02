@@ -76,6 +76,32 @@ def test_setup_sentry_survives_init_exception(_no_sentry_in_tests):
     _no_sentry_in_tests.assert_called_once()
 
 
+# ── Sentry init-failure log content (CodeQL py/clear-text-logging-sensitive-data) ──
+# The init-failure warning below used to log the raw DSN, embedded public key
+# and all -- and a first fix that masked the key but still built the logged
+# string from the DSN's own host/path (_redact_dsn) *still* tripped the same
+# CodeQL query, because it flags any value derived from a secret-bearing
+# source reaching a log call, not just the literal secret. The real fix: log
+# a fixed string with nothing DSN-derived in it at all -- exc_info=True
+# already carries the real diagnostic detail.
+#
+# The regression assertion below is an exact `==` check on the log record,
+# deliberately not a substring/`in` check against a hostname-shaped literal
+# -- that shape is its own separately-flagged CodeQL pattern
+# (py/incomplete-url-substring-sanitization), which an earlier version of
+# this test tripped by asserting `"o456.ingest.sentry.io" in logged_text`.
+
+
+def test_setup_sentry_init_failure_log_never_contains_dsn(_no_sentry_in_tests, caplog):
+    _no_sentry_in_tests.side_effect = ValueError("Invalid Sentry DSN")
+    raw_dsn = "https://super-secret-key@o456.ingest.sentry.io/789"
+    with patch.object(cfg, "sentry_dsn", raw_dsn), caplog.at_level(logging.WARNING):
+        setup_sentry()
+
+    assert len(caplog.records) == 1
+    assert caplog.records[0].getMessage() == "Sentry initialisation failed -- continuing without it"
+
+
 # ── traces_sample_rate (task #45) ────────────────────────────────────────────
 # api_stack.py injects APP_ENV=cfg.env_name, the SHORT form CDK uses
 # everywhere ("dev"/"staging"/"prod"), not the long form "production" this

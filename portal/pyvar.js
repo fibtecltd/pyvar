@@ -612,7 +612,11 @@ function openTryItPanel(fn, triggerEl) {
   }
   panel.setAttribute('aria-label', `Try ${fn.display_name}`);
 
-  const storedToken = localStorage.getItem('pyvar_jwt') || '';
+  // storedToken is read back out of localStorage -- a page-controlled DOM
+  // source, not developer-authored markup -- so it must be escaped before
+  // reaching innerHTML the same way API-echoed input already is elsewhere
+  // in this file (see _escapeHtml's own comment above).
+  const storedToken = _escapeHtml(localStorage.getItem('pyvar_jwt') || '');
   panel.innerHTML = `
     <div class="tryit-card" style="--rc:${fn.domain_color}">
       <div class="tryit-header">

@@ -153,9 +153,16 @@ def setup_sentry() -> None:
         # -- main.py's setup_observability() and worker.py's module-level
         # calls -- order it that way), so stdlib logging is already
         # configured here.
+        # No part of `dsn` is logged, even redacted -- CodeQL's
+        # py/clear-text-logging-sensitive-data taint tracking flags any
+        # value *derived* from a secret-bearing source reaching a log call,
+        # not just the raw secret itself, so a masked-but-still-DSN-derived
+        # string (e.g. scheme+host+path) still trips it. `exc_info=True`
+        # already gives the real diagnostic detail (including, from the
+        # SDK's own exception message, what was wrong with the DSN) without
+        # this function needing to echo any of it back out itself.
         logging.getLogger(__name__).warning(
-            "Sentry initialisation failed with dsn=%r -- continuing without it",
-            dsn,
+            "Sentry initialisation failed -- continuing without it",
             exc_info=True,
         )
 
