@@ -6395,7 +6395,7 @@
     "display_name": "Asset Swap Spread",
     "path": "/api/v1/derivatives/asset_swap_spread",
     "summary": "Par-par asset-swap spread.",
-    "description": "The spread equating the bond's net present value (relative to par) to an\nannuity of the swap's fixed-leg PV01:\n``ASW = (PV_bond \u2212 par) / annuity``, expressed in basis points.\n\nNote: ``bond_price`` is accepted for API-compatibility but does not\naffect the result \u2014 ``PV_bond`` in the formula above is derived\ninternally by discounting ``cashflows``/``times`` at ``swap_rates``,\nnot from the observed ``bond_price`` passed in.",
+    "description": "The spread equating the bond's net present value to an annuity of the\nswap's fixed-leg PV01: ``ASW = (PV_bond \u2212 reference_price) / annuity``,\nexpressed in basis points.\n\nBy default (``use_market_price=False``), ``reference_price`` is\n``face_value`` (par) \u2014 this reproduces the function's original,\npar-referenced behaviour exactly and is unchanged for any existing\ncaller. Set ``use_market_price=True`` to use the bond's actual dirty\nprice instead, matching the standard market convention (O'Kane, 2000,\n\"Introduction to Asset Swaps\", Lehman Brothers): the spread is only\nequal to the par-referenced figure when the bond happens to trade at\npar, so for any bond away from par the market-convention spread and\nthe par-referenced spread differ.",
     "params": [
       {
         "name": "bond_price",
@@ -6462,18 +6462,31 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "use_market_price",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "The bond_price argument is accepted but never used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates instead, so the formula shown is what the code actually evaluates, not one using the passed-in bond_price.",
+      "caveat": "By default (use_market_price=False), bond_price is accepted but not used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates and compared against face_value (par), matching this function\u2019s original par-referenced behaviour exactly. Set use_market_price=True to compare PV_bond against the actual bond_price (dirty price) instead, matching the standard market asset-swap convention (O\u2019Kane 2000) \u2014 the two only agree when the bond happens to trade at par.",
       "citation": null,
-      "formula_latex": "ASW = \\frac{PV_{bond} - F}{\\text{Annuity}\\cdot F},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+      "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F},\\qquad R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
       "symbol_map": {
+        "bond_price": "P_{bond}",
         "cashflows": "CF_i",
         "face_value": "F",
         "frequency": "m",
         "swap_rates": "s_i",
-        "times": "t_i"
+        "times": "t_i",
+        "use_market_price": "switches R between F and P_{bond}"
       }
     }
   },
@@ -7344,7 +7357,7 @@
     "display_name": "Bond Pricer Floating Rate",
     "path": "/api/v1/derivatives/bond_pricer_floating_rate",
     "summary": "Price a floating-rate note (FRN) from projected forward rates.",
-    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.\n\nNote: the number of coupon periods actually priced is\n``len(reference_rates)`` (and ``discount_rates`` must match that length).\n``maturity`` is only used for input validation (``maturity > 0``) here \u2014\nit does not determine the coupon schedule, so a caller-supplied\n``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\nnot detected or reconciled.",
+    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.\n\nThe coupon schedule actually priced is derived from\n``len(reference_rates)`` (``discount_rates`` must match that length).\n``maturity`` must be consistent with ``len(reference_rates) / frequency``\n\u2014 a caller-supplied ``maturity`` that implies a different number of\nperiods is rejected rather than silently ignored.",
     "params": [
       {
         "name": "face_value",
@@ -7414,7 +7427,7 @@
       }
     ],
     "formula": {
-      "caveat": "n (the number of coupon periods) is taken from len(reference_rates), not from maturity\u00b7frequency \u2014 the maturity argument is only used for input validation (must be > 0) and does not otherwise drive the cashflow schedule.",
+      "caveat": "n (the number of coupon periods) is taken from len(reference_rates). maturity must equal len(reference_rates)/frequency \u2014 a caller-supplied maturity implying a different period count now raises ValueError instead of being silently ignored.",
       "citation": null,
       "formula_latex": "P=\\sum_{i=1}^{n} CF_i\\left(1+\\frac{d_i}{m}\\right)^{-i},\\qquad CF_i=F\\frac{r_i+s}{m}\\ (\\text{plus } F \\text{ at } i=n)",
       "symbol_map": {

@@ -315,31 +315,44 @@ def z_spread_calculator(
 
 
 def asset_swap_spread(
-    bond_price: float,  # accepted but currently unused, see docstring note
+    bond_price: float,
     cashflows: np.ndarray,
     times: np.ndarray,
     swap_rates: np.ndarray,
     face_value: float = 100.0,
     frequency: int = 2,
+    use_market_price: bool = False,
 ) -> dict:  # type: ignore[type-arg]
     """Par-par asset-swap spread.
 
-    The spread equating the bond's net present value (relative to par) to an
-    annuity of the swap's fixed-leg PV01:
-    ``ASW = (PV_bond − par) / annuity``, expressed in basis points.
+    The spread equating the bond's net present value to an annuity of the
+    swap's fixed-leg PV01: ``ASW = (PV_bond − reference_price) / annuity``,
+    expressed in basis points.
 
-    Note: ``bond_price`` is accepted for API-compatibility but does not
-    affect the result — ``PV_bond`` in the formula above is derived
-    internally by discounting ``cashflows``/``times`` at ``swap_rates``,
-    not from the observed ``bond_price`` passed in.
+    By default (``use_market_price=False``), ``reference_price`` is
+    ``face_value`` (par) — this reproduces the function's original,
+    par-referenced behaviour exactly and is unchanged for any existing
+    caller. Set ``use_market_price=True`` to use the bond's actual dirty
+    price instead, matching the standard market convention (O'Kane, 2000,
+    "Introduction to Asset Swaps", Lehman Brothers): the spread is only
+    equal to the par-referenced figure when the bond happens to trade at
+    par, so for any bond away from par the market-convention spread and
+    the par-referenced spread differ.
 
     Args:
-        bond_price: Bond dirty price. Currently unused — see note above.
+        bond_price: Bond dirty price. Used as the reference price only when
+            ``use_market_price=True``; otherwise accepted but ignored (the
+            default preserves this function's original par-referenced
+            behaviour).
         cashflows: Bond cashflows.
         times: Cashflow times (years).
         swap_rates: Per-period swap zero rate (decimal).
-        face_value: Par value.
+        face_value: Par value. Used as the reference price when
+            ``use_market_price=False`` (the default).
         frequency: Payment frequency per year.
+        use_market_price: If True, use ``bond_price`` (the actual dirty
+            price) as the reference price instead of ``face_value``. Default
+            False preserves prior behaviour exactly.
 
     Returns:
         Dict with ``asset_swap_spread`` (decimal) and ``..._bps``.
@@ -356,7 +369,8 @@ def asset_swap_spread(
     df = (1.0 + sr / frequency) ** (-(t * frequency))
     pv_bond = float(np.sum(cf * df))
     annuity = float(np.sum(df)) / frequency  # PV of 1 per annum
-    asw = (pv_bond - face_value) / (annuity * face_value)
+    reference_price = bond_price if use_market_price else face_value
+    asw = (pv_bond - reference_price) / (annuity * face_value)
     return {
         "asset_swap_spread": round(float(asw), 10),
         "asset_swap_spread_bps": round(float(asw) * 1e4, 4),
