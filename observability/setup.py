@@ -21,6 +21,7 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
+from urllib.parse import urlsplit
 
 import structlog
 from prometheus_client import Histogram
@@ -106,6 +107,24 @@ def _resolve_sentry_dsn() -> str:
         return ""
 
 
+def _redact_dsn(dsn: str) -> str:
+    """Mask a Sentry DSN's public key before it ever reaches a log line.
+
+    A Sentry DSN embeds a credential-shaped value (its public key) in the
+    URL userinfo component -- CodeQL's py/clear-text-logging-sensitive-data
+    correctly flags logging it verbatim. Keeps scheme/host/path (useful for
+    diagnosing "wrong project" or "malformed DSN" without a debugger) and
+    replaces the key itself.
+    """
+    try:
+        parsed = urlsplit(dsn)
+    except ValueError:
+        return "***"
+    if not parsed.hostname:
+        return "***"
+    return f"{parsed.scheme}://***@{parsed.hostname}{parsed.path}"
+
+
 def setup_sentry() -> None:
     """Initialise Sentry SDK if a valid DSN is configured. No-op in development,
     and no-op (never a crash) on a malformed DSN -- Sentry is optional
@@ -155,7 +174,7 @@ def setup_sentry() -> None:
         # configured here.
         logging.getLogger(__name__).warning(
             "Sentry initialisation failed with dsn=%r -- continuing without it",
-            dsn,
+            _redact_dsn(dsn),
             exc_info=True,
         )
 

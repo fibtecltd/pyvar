@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch
 
 import structlog
 
-from observability.setup import _resolve_sentry_dsn, cfg, setup_logging, setup_sentry
+from observability.setup import _redact_dsn, _resolve_sentry_dsn, cfg, setup_logging, setup_sentry
 
 
 def test_setup_sentry_noop_with_no_dsn(_no_sentry_in_tests):
@@ -74,6 +74,40 @@ def test_setup_sentry_survives_init_exception(_no_sentry_in_tests):
         setup_sentry()  # must not raise
 
     _no_sentry_in_tests.assert_called_once()
+
+
+# ── _redact_dsn (CodeQL py/clear-text-logging-sensitive-data) ───────────────
+# The init-failure warning below used to log the raw DSN, embedded public
+# key and all. Regression coverage: the failure path must still log
+# *something* useful (the host, for "wrong project" triage) but never the
+# credential-shaped value CodeQL correctly flagged.
+
+
+def test_redact_dsn_keeps_host_masks_key():
+    redacted = _redact_dsn("https://abc123def@o456.ingest.sentry.io/789")
+    assert redacted == "https://***@o456.ingest.sentry.io/789"
+    assert "abc123def" not in redacted
+
+
+def test_redact_dsn_handles_malformed_input():
+    # Must never raise -- this runs inside an `except Exception:` handler
+    # that's already reacting to a DSN failure; a second exception here
+    # would replace a warning log with a crash.
+    assert _redact_dsn("not-a-url-at-all") == "***"
+    assert _redact_dsn("") == "***"
+
+
+def test_setup_sentry_init_failure_log_never_contains_raw_dsn(_no_sentry_in_tests, caplog):
+    """The actual regression this alert was about: assert the log record
+    text itself, not just that _redact_dsn works in isolation."""
+    _no_sentry_in_tests.side_effect = ValueError("Invalid Sentry DSN")
+    raw_dsn = "https://super-secret-key@o456.ingest.sentry.io/789"
+    with patch.object(cfg, "sentry_dsn", raw_dsn), caplog.at_level(logging.WARNING):
+        setup_sentry()
+
+    logged_text = "\n".join(caplog.messages)
+    assert "super-secret-key" not in logged_text
+    assert "o456.ingest.sentry.io" in logged_text
 
 
 # ── traces_sample_rate (task #45) ────────────────────────────────────────────
