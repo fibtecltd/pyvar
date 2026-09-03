@@ -19,6 +19,14 @@ Reasoning:
   treated as a cache miss (fail open). Same philosophy as _emit_job_metric in
   tasks/var_task.py, whose CloudWatch namespace and IAM scope this module
   reuses directly rather than duplicating.
+- The async client is a long-lived singleton (_redis_client), so pooled
+  connections sit idle between requests — long enough that ElastiCache
+  Serverless's proxy layer silently drops them, and the next command hits a
+  bare ConnectionResetError on write (Sentry issue a5ebcb89, dev, 2026-09-03).
+  health_check_interval PINGs idle connections before reuse so most of these
+  are caught before they hit application code, and a short-capped retry (2
+  attempts, <=0.2s backoff) absorbs the rest without violating the "never
+  slow a request" rule above.
 - The API task role's cloudwatch:PutMetricData grant (api_stack.py) is already
   scoped to the "pyvar" namespace with no resource restriction beyond that
   condition, so CacheHit/CacheMiss metrics need no new IAM grant.
@@ -56,8 +64,19 @@ def _get_redis_client() -> Any:
     if _redis_client is None:
         try:
             import redis.asyncio as aioredis
+            from redis.backoff import ExponentialBackoff
+            from redis.exceptions import ConnectionError as RedisConnectionError
+            from redis.exceptions import TimeoutError as RedisTimeoutError
+            from redis.retry import Retry
 
-            _redis_client = aioredis.from_url(redis_url(), decode_responses=True)
+            _redis_client = aioredis.from_url(
+                redis_url(),
+                decode_responses=True,
+                socket_keepalive=True,
+                health_check_interval=30,
+                retry=Retry(ExponentialBackoff(cap=0.2, base=0.02), retries=2),
+                retry_on_error=[RedisConnectionError, RedisTimeoutError],
+            )
         except Exception:  # noqa: BLE001 — cache must never block a request
             logger.warning("Redis cache client unavailable — caching disabled for this call")
             return None

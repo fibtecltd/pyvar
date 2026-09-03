@@ -49,6 +49,16 @@ Reasoning:
   blip must not turn into "no user can compute anything." Same philosophy
   already used for tasks/var_task.py's _emit_job_metric and
   api/routes/caching.py's cache reads/writes.
+- storage_options below carries the same health_check_interval/retry tuning
+  api/routes/caching.py's async client needed (Sentry issue a5ebcb89, dev,
+  2026-09-03: ElastiCache Serverless's proxy layer silently drops client
+  connections that sit idle, and the next command hits a bare
+  ConnectionResetError). This module's Limiter is a single long-lived
+  module-level instance for the same reason caching.py's client is a
+  singleton, so it's exposed to the identical staleness window. RedisStorage
+  forwards **options straight to redis.Redis.from_url() (limits/storage/
+  redis.py), so the same kwargs apply verbatim even though this is the sync
+  `redis` client, not `redis.asyncio`.
 - Tiers: "enterprise" and "internal" are unconditionally exempt. "internal" is
   the service JWT pyvar-cdk/lambda/public_data_publisher/handler.py mints
   every 15 minutes to refresh the homepage demo — kept distinct from
@@ -63,6 +73,10 @@ import time
 
 import limits
 from fastapi import Depends, HTTPException, Request, status
+from redis.backoff import ExponentialBackoff
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
+from redis.retry import Retry
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -87,6 +101,12 @@ _limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=redis_url(),
     key_prefix="pyvar-ratelimit",
+    storage_options={
+        "socket_keepalive": True,
+        "health_check_interval": 30,
+        "retry": Retry(ExponentialBackoff(cap=0.2, base=0.02), retries=2),
+        "retry_on_error": [RedisConnectionError, RedisTimeoutError],
+    },
 )
 
 
