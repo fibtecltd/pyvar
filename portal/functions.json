@@ -25234,7 +25234,7 @@
     "display_name": "CRR2 Large Exposure Limit",
     "path": "/api/v1/regulatory/crr2_large_exposure_limit",
     "summary": "CRR2 large exposure limit (Art. 395).",
-    "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n150m absolute alternative threshold for institutions is not applied.\n\nA single client / group exposure must not exceed 25% of Tier 1 capital\n(or EUR 150m for institutions, whichever is higher). Reports the exposure\nratio and any breach amount.",
+    "description": "A single client / group exposure must not exceed 25% of Tier 1 capital,\nor \u2014 where the counterparty is an institution (or a group of connected\nclients including one) \u2014 the HIGHER of 25% of Tier 1 capital or EUR 150m\n(``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution\nalternative. ``exposure_value``/``tier1_capital`` are assumed\nEUR-denominated, matching Art. 395(1)'s own absolute figure \u2014 this\nfunction does not itself perform currency conversion.\n\nNote: Art. 395(1)'s EUR 150m alternative additionally requires that the\ninstitution's total exposure to non-institution clients connected to\nthis counterparty stays within the plain 25% limit \u2014 a condition that\nspans a connected-client group, not a single exposure, so it is out of\nscope for this single-exposure function and not checked here.",
     "params": [
       {
         "name": "exposure_value",
@@ -25271,11 +25271,12 @@
       }
     ],
     "formula": {
-      "caveat": "Simplified to the 25%-of-Tier-1 ratio test only; the EUR 150m absolute alternative threshold for institutions is not applied, per the function's own docstring.",
+      "caveat": "Now implements both CRR2 Art. 395(1) tests for an institution counterparty (is_institution=True): the applicable limit is the higher of 25% of Tier 1 capital or EUR 150m. Does not check Art. 395(1)'s further connected-client-group condition (that the institution's exposure to non-institution clients connected to this counterparty stays within the plain 25% limit), since that spans a group of exposures, not the single exposure this function scores. Figures are assumed EUR-denominated, matching Art. 395(1)'s own absolute figure; no currency conversion is performed.",
       "citation": "CRR2 Art. 395",
-      "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Excess = \\max\\big(exposure\\_value - 0.25 \\times tier1\\_capital,\\ 0\\big)",
+      "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Limit = \\begin{cases} 0.25 \\times tier1\\_capital & is\\_institution=False \\\\ \\max\\big(0.25 \\times tier1\\_capital,\\ 150{,}000{,}000\\big) & is\\_institution=True \\end{cases} \\\\ Excess = \\max\\big(exposure\\_value - Limit,\\ 0\\big)",
       "symbol_map": {
         "exposure_value": "exposure\\_value",
+        "is_institution": "is\\_institution",
         "tier1_capital": "tier1\\_capital"
       }
     }

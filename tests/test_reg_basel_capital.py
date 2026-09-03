@@ -157,3 +157,60 @@ def test_large_exposure_breach():
     r = crr2_large_exposure_limit(exposure_value=30.0, tier1_capital=100.0)
     assert r["within_limit"] is False
     assert r["excess"] == 5.0  # 30 - 25% * 100
+
+
+# ── CRR2 Art. 395(1) institution absolute alternative (caveat-triage batch 2) ──
+# reg/* per CLAUDE.md s8/s10: this changes real capital-limit logic, not just
+# an opt-in parameter default. is_institution already existed on the
+# signature (its own docstring said "affects the absolute alternative limit")
+# but the ratio test never actually used it -- default (is_institution=False,
+# unchanged from every existing test above) is untouched; only
+# is_institution=True behaviour changes, to match what the parameter always
+# claimed to do.
+
+
+def test_large_exposure_institution_uses_eur150m_when_higher_than_25pct():
+    # 25% of a 100 Tier-1 institution is 25 -- far below EUR 150m, so the
+    # absolute alternative is the binding (higher) limit.
+    r = crr2_large_exposure_limit(
+        exposure_value=140_000_000.0, tier1_capital=100.0, is_institution=True
+    )
+    assert r["within_limit"] is True  # under EUR150m, even though it dwarfs 25% of tier1_capital
+    assert r["excess"] == 0.0
+
+
+def test_large_exposure_institution_breach_above_eur150m():
+    r = crr2_large_exposure_limit(
+        exposure_value=160_000_000.0, tier1_capital=100.0, is_institution=True
+    )
+    assert r["within_limit"] is False
+    assert r["excess"] == 10_000_000.0  # 160m - 150m
+
+
+def test_large_exposure_institution_uses_25pct_when_higher_than_eur150m():
+    # A well-capitalised institution counterparty where 25% of Tier 1 already
+    # exceeds EUR 150m -- the 25% test remains binding, per "whichever is
+    # higher".
+    tier1 = 1_000_000_000.0  # 25% = 250m > EUR 150m
+    r = crr2_large_exposure_limit(
+        exposure_value=200_000_000.0, tier1_capital=tier1, is_institution=True
+    )
+    assert r["within_limit"] is True  # 200m < 250m (the binding 25% limit)
+    r2 = crr2_large_exposure_limit(
+        exposure_value=300_000_000.0, tier1_capital=tier1, is_institution=True
+    )
+    assert r2["within_limit"] is False
+    assert r2["excess"] == 50_000_000.0  # 300m - 250m
+
+
+def test_large_exposure_default_unaffected_by_institution_fix():
+    # is_institution=False (the default) must be byte-identical to before
+    # this fix -- same case as test_large_exposure_breach, non-institution.
+    r = crr2_large_exposure_limit(exposure_value=30.0, tier1_capital=100.0, is_institution=False)
+    assert r == {
+        "exposure_ratio": 0.3,
+        "limit": 0.25,
+        "within_limit": False,
+        "excess": 5.0,
+        "is_institution": False,
+    }

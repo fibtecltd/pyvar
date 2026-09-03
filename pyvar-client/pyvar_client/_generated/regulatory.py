@@ -210,12 +210,19 @@ class RegulatoryNamespace:
     ) -> dict[str, Any]:
         """CRR2 large exposure limit (Art. 395).
 
-        This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR
-        150m absolute alternative threshold for institutions is not applied.
+        A single client / group exposure must not exceed 25% of Tier 1 capital,
+        or — where the counterparty is an institution (or a group of connected
+        clients including one) — the HIGHER of 25% of Tier 1 capital or EUR 150m
+        (``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution
+        alternative. ``exposure_value``/``tier1_capital`` are assumed
+        EUR-denominated, matching Art. 395(1)'s own absolute figure — this
+        function does not itself perform currency conversion.
 
-        A single client / group exposure must not exceed 25% of Tier 1 capital
-        (or EUR 150m for institutions, whichever is higher). Reports the exposure
-        ratio and any breach amount.
+        Note: Art. 395(1)'s EUR 150m alternative additionally requires that the
+        institution's total exposure to non-institution clients connected to
+        this counterparty stays within the plain 25% limit — a condition that
+        spans a connected-client group, not a single exposure, so it is out of
+        scope for this single-exposure function and not checked here.
 
         Returns:
             The raw API response as a dict.

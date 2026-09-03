@@ -8335,12 +8335,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "countercyclical_capital_buffer",
     },
     {
-        "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n"
-        "150m absolute alternative threshold for institutions is not applied.\n"
+        "description": "A single client / group exposure must not exceed 25% of Tier 1 capital,\n"
+        "or — where the counterparty is an institution (or a group of connected\n"
+        "clients including one) — the HIGHER of 25% of Tier 1 capital or EUR 150m\n"
+        "(``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution\n"
+        "alternative. ``exposure_value``/``tier1_capital`` are assumed\n"
+        "EUR-denominated, matching Art. 395(1)'s own absolute figure — this\n"
+        "function does not itself perform currency conversion.\n"
         "\n"
-        "A single client / group exposure must not exceed 25% of Tier 1 capital\n"
-        "(or EUR 150m for institutions, whichever is higher). Reports the exposure\n"
-        "ratio and any breach amount.",
+        "Note: Art. 395(1)'s EUR 150m alternative additionally requires that the\n"
+        "institution's total exposure to non-institution clients connected to\n"
+        "this counterparty stays within the plain 25% limit — a condition that\n"
+        "spans a connected-client group, not a single exposure, so it is out of\n"
+        "scope for this single-exposure function and not checked here.",
         "domain": "regulatory",
         "function_name": "crr2_large_exposure_limit",
         "input_schema": {
