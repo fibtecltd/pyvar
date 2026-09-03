@@ -275,6 +275,8 @@ def transaction_cost_analysis(
     trade_quantities: np.ndarray,
     side: int = 1,
     decision_price: float | np.ndarray | None = None,
+    unexecuted_quantity: float | None = None,
+    cancellation_price: float | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Transaction Cost Analysis (TCA) — implementation shortfall vs benchmark.
 
@@ -296,10 +298,19 @@ def transaction_cost_analysis(
     exactly to the executed-quantity implementation shortfall measured
     directly against the decision price:
     ``delay_cost + total_cost == sum(side * (trade_prices - decision_price)
-    * trade_quantities)``. This still omits Perold's unexecuted-share
-    opportunity-cost leg (no cancellation price/quantity is modelled here),
-    so even with ``decision_price`` supplied the result is a delay+
-    execution partial IS, not the complete four-component decomposition.
+    * trade_quantities)``.
+
+    Additionally passing ``unexecuted_quantity`` and ``cancellation_price``
+    together adds the opportunity-cost leg for shares that were never
+    executed: the paper cost of the price move between the decision instant
+    and the price at which the unexecuted portion of the order was marked
+    at cancellation/expiry, ``side * (cancellation_price - decision_price) *
+    unexecuted_quantity``. Delay cost + execution slippage + opportunity
+    cost together are the full-order implementation shortfall against the
+    decision price, covering every share of the original order (executed
+    and unexecuted alike) -- this function still does not model any
+    explicit commission/fee leg, which some treatments of Perold's
+    decomposition include as a further, separate component.
 
     Args:
         trade_prices: Executed prices per fill.
@@ -313,18 +324,35 @@ def transaction_cost_analysis(
             ``delay_cost``, ``implementation_shortfall_bps`` and
             ``implementation_shortfall`` to the result. Omit for
             unchanged (execution-slippage-only) behaviour.
+        unexecuted_quantity: Optional quantity of the original order that
+            was never executed (>= 0). Must be supplied together with
+            ``cancellation_price``, and requires ``decision_price`` to also
+            be supplied as a single scalar (the opportunity-cost leg has
+            one order-level decision price, not a per-fill one).
+        cancellation_price: Optional price at which the unexecuted portion
+            of the order was marked when cancelled/expired. Must be
+            supplied together with ``unexecuted_quantity``.
 
     Returns:
         Dict with ``slippage_bps`` (quantity-weighted), ``total_cost``
         (cash), ``total_quantity`` and ``n_fills``. When ``decision_price``
         is supplied, also includes ``delay_cost_bps``, ``delay_cost``,
         ``implementation_shortfall_bps`` and ``implementation_shortfall``
-        (all quantity-weighted against the decision-price notional).
+        (all quantity-weighted against the decision-price notional). When
+        ``unexecuted_quantity``/``cancellation_price`` are also supplied,
+        additionally includes ``opportunity_cost_bps``, ``opportunity_cost``,
+        ``total_implementation_shortfall_bps`` and
+        ``total_implementation_shortfall`` (quantity-weighted against the
+        full order's decision-price notional, executed + unexecuted).
 
     Raises:
         ValueError: If arrays differ in length, are empty, ``side`` is
-            invalid, or ``decision_price`` is an array not matching
-            ``trade_prices`` in length.
+            invalid, ``decision_price`` is an array not matching
+            ``trade_prices`` in length, ``unexecuted_quantity`` and
+            ``cancellation_price`` are not both supplied together, either
+            is supplied without ``decision_price``, ``decision_price`` is
+            not a scalar when they are supplied, or ``unexecuted_quantity``
+            is negative.
     """
     p = np.asarray(trade_prices, dtype=np.float64)
     bench = np.asarray(benchmark_prices, dtype=np.float64)
@@ -372,6 +400,39 @@ def transaction_cost_analysis(
         out["delay_cost"] = round(delay_cash, 6)
         out["implementation_shortfall_bps"] = round(is_bps, 6)
         out["implementation_shortfall"] = round(total_shortfall_cash, 6)
+
+        opp_supplied = sum(a is not None for a in (unexecuted_quantity, cancellation_price))
+        if opp_supplied == 1:
+            raise ValueError("unexecuted_quantity and cancellation_price must be supplied together")
+        if opp_supplied == 2:
+            if not np.isscalar(decision_price):
+                raise ValueError(
+                    "decision_price must be a scalar when unexecuted_quantity/"
+                    "cancellation_price are supplied"
+                )
+            if unexecuted_quantity < 0.0:  # type: ignore[operator]
+                raise ValueError("unexecuted_quantity must be non-negative")
+            dp_scalar = float(decision_price)
+            unexec_qty = float(unexecuted_quantity)  # type: ignore[arg-type]
+            opportunity_cash = side * (float(cancellation_price) - dp_scalar) * unexec_qty  # type: ignore[arg-type]
+            full_shortfall_cash = total_shortfall_cash + opportunity_cash
+            full_order_notional = weighted_decision_ref + dp_scalar * unexec_qty
+            opportunity_bps = (
+                (opportunity_cash / full_order_notional) * 1e4 if full_order_notional > 0.0 else 0.0
+            )
+            full_shortfall_bps = (
+                (full_shortfall_cash / full_order_notional) * 1e4
+                if full_order_notional > 0.0
+                else 0.0
+            )
+            out["opportunity_cost"] = round(opportunity_cash, 6)
+            out["opportunity_cost_bps"] = round(opportunity_bps, 6)
+            out["total_implementation_shortfall"] = round(full_shortfall_cash, 6)
+            out["total_implementation_shortfall_bps"] = round(full_shortfall_bps, 6)
+    elif unexecuted_quantity is not None or cancellation_price is not None:
+        raise ValueError(
+            "unexecuted_quantity/cancellation_price require decision_price to also be supplied"
+        )
     return out
 
 

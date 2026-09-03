@@ -786,6 +786,8 @@ class TransactionCostAnalysisRequest(BaseModel):
     trade_quantities: list[float] | list[list[float]]
     side: int = 1
     decision_price: float | list[float] | None = None
+    unexecuted_quantity: float | None = None
+    cancellation_price: float | None = None
 
 
 class TransactionCostAnalysisResponse(BaseModel):

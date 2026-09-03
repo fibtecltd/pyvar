@@ -741,6 +741,7 @@ class AssetSwapSpreadRequest(BaseModel):
     swap_rates: list[float] | list[list[float]]
     face_value: float = 100.0
     frequency: int = 2
+    use_market_price: bool = False
 
 
 class AssetSwapSpreadResponse(BaseModel):

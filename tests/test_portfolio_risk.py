@@ -184,6 +184,100 @@ def test_tca_decision_price_length_mismatch_raises():
         )
 
 
+def test_tca_opportunity_cost_adds_to_delay_and_execution():
+    p = np.array([101.0, 102.0])
+    bench = np.array([100.5, 100.5])
+    q = np.array([10.0, 5.0])
+    decision = 100.0
+    side = 1
+    unexecuted_quantity = 20.0
+    cancellation_price = 103.0  # price rose further before the rest was cancelled
+
+    r = transaction_cost_analysis(
+        p,
+        bench,
+        q,
+        side=side,
+        decision_price=decision,
+        unexecuted_quantity=unexecuted_quantity,
+        cancellation_price=cancellation_price,
+    )
+
+    expected_opportunity_cash = side * (cancellation_price - decision) * unexecuted_quantity
+    assert r["opportunity_cost"] == pytest.approx(expected_opportunity_cash, rel=1e-8)
+    assert expected_opportunity_cash > 0.0  # price rose after cancellation -> real cost
+
+    expected_total = r["implementation_shortfall"] + expected_opportunity_cash
+    assert r["total_implementation_shortfall"] == pytest.approx(expected_total, rel=1e-8)
+
+    full_notional = float(np.sum(np.full(2, decision) * q)) + decision * unexecuted_quantity
+    expected_total_bps = expected_total / full_notional * 1e4
+    assert r["total_implementation_shortfall_bps"] == pytest.approx(expected_total_bps, rel=1e-8)
+
+
+def test_tca_default_unaffected_by_opportunity_cost_feature():
+    """Omitting the opportunity-cost args reproduces exact pre-change output,
+    even when decision_price is supplied."""
+    p = np.array([101.0, 102.0])
+    bench = np.array([100.5, 100.5])
+    q = np.array([10.0, 5.0])
+    r = transaction_cost_analysis(p, bench, q, side=1, decision_price=100.0)
+    assert "opportunity_cost" not in r
+    assert "total_implementation_shortfall" not in r
+
+
+def test_tca_opportunity_cost_partial_args_raises():
+    kwargs = dict(
+        trade_prices=np.array([101.0]),
+        benchmark_prices=np.array([100.5]),
+        trade_quantities=np.array([10.0]),
+        side=1,
+        decision_price=100.0,
+    )
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(**kwargs, unexecuted_quantity=5.0)
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(**kwargs, cancellation_price=101.0)
+
+
+def test_tca_opportunity_cost_requires_decision_price():
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(
+            trade_prices=np.array([101.0]),
+            benchmark_prices=np.array([100.5]),
+            trade_quantities=np.array([10.0]),
+            side=1,
+            unexecuted_quantity=5.0,
+            cancellation_price=101.0,
+        )
+
+
+def test_tca_opportunity_cost_requires_scalar_decision_price():
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(
+            trade_prices=np.array([101.0, 99.0]),
+            benchmark_prices=np.array([100.5, 99.5]),
+            trade_quantities=np.array([10.0, 20.0]),
+            side=1,
+            decision_price=np.array([100.0, 99.8]),
+            unexecuted_quantity=5.0,
+            cancellation_price=101.0,
+        )
+
+
+def test_tca_opportunity_cost_rejects_negative_unexecuted_quantity():
+    with pytest.raises(ValueError):
+        transaction_cost_analysis(
+            trade_prices=np.array([101.0]),
+            benchmark_prices=np.array([100.5]),
+            trade_quantities=np.array([10.0]),
+            side=1,
+            decision_price=100.0,
+            unexecuted_quantity=-5.0,
+            cancellation_price=101.0,
+        )
+
+
 # ── Marginal contribution to risk ─────────────────────────────────────────────
 
 

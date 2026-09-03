@@ -707,6 +707,7 @@ class BusinessContinuityRiskScoreRequest(BaseModel):
     rpo_hours: float
     max_tolerable_downtime: float
     bcp_maturity: float
+    rpo_target_hours: float | None = None
 
 
 class BusinessContinuityRiskScoreResponse(BaseModel):
@@ -716,6 +717,7 @@ class BusinessContinuityRiskScoreResponse(BaseModel):
 
     bc_risk_score: Any = Field(default=None)
     mtd_breach: Any = Field(default=None)
+    rpo_breach: Any = Field(default=None)
     rating: Any = Field(default=None)
 
 

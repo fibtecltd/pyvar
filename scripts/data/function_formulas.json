@@ -95,15 +95,17 @@
     }
   },
   "asset_swap_spread": {
-    "caveat": "The bond_price argument is accepted but never used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates instead, so the formula shown is what the code actually evaluates, not one using the passed-in bond_price.",
+    "caveat": "By default (use_market_price=False), bond_price is accepted but not used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates and compared against face_value (par), matching this function\u2019s original par-referenced behaviour exactly. Set use_market_price=True to compare PV_bond against the actual bond_price (dirty price) instead, matching the standard market asset-swap convention (O\u2019Kane 2000) \u2014 the two only agree when the bond happens to trade at par.",
     "citation": null,
-    "formula_latex": "ASW = \\frac{PV_{bond} - F}{\\text{Annuity}\\cdot F},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+    "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F},\\qquad R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
     "symbol_map": {
+      "bond_price": "P_{bond}",
       "cashflows": "CF_i",
       "face_value": "F",
       "frequency": "m",
       "swap_rates": "s_i",
-      "times": "t_i"
+      "times": "t_i",
+      "use_market_price": "switches R between F and P_{bond}"
     }
   },
   "audit_finding_risk_scorer": {
@@ -354,7 +356,7 @@
     }
   },
   "bond_pricer_floating_rate": {
-    "caveat": "n (the number of coupon periods) is taken from len(reference_rates), not from maturity\u00b7frequency \u2014 the maturity argument is only used for input validation (must be > 0) and does not otherwise drive the cashflow schedule.",
+    "caveat": "n (the number of coupon periods) is taken from len(reference_rates). maturity must equal len(reference_rates)/frequency \u2014 a caller-supplied maturity implying a different period count now raises ValueError instead of being silently ignored.",
     "citation": null,
     "formula_latex": "P=\\sum_{i=1}^{n} CF_i\\left(1+\\frac{d_i}{m}\\right)^{-i},\\qquad CF_i=F\\frac{r_i+s}{m}\\ (\\text{plus } F \\text{ at } i=n)",
     "symbol_map": {
@@ -377,7 +379,7 @@
     }
   },
   "business_continuity_risk_score": {
-    "caveat": "rpo_hours is accepted as a parameter but is not used anywhere in the score computation in the code \u2014 only RTO vs MTD and bcp_maturity drive the score.",
+    "caveat": "Default (rpo_target_hours omitted) is unchanged: rpo_hours is still range-validated but does not affect bc_risk_score, since RPO risk has nothing to be measured against without a target. Pass rpo_target_hours (the maximum tolerable period of data loss, ISO 22301 / DRI International BCM practice) to also score potential data loss \u2014 the pre-BCP-maturity risk is then the worse of the RTO and RPO breach severities, not an average of them.",
     "citation": null,
     "formula_latex": "G = \\min\\!\\left(\\frac{RTO}{MTD},\\,2\\right)\\Big/2 \\\\ Raw = 50\\cdot\\mathbb{1}[RTO>MTD] + 50\\,G \\\\ Score = \\min\\big(Raw\\times(1-0.5\\,M),\\,100\\big)",
     "symbol_map": {
@@ -620,15 +622,17 @@
     }
   },
   "combined_stress_scenario": {
-    "caveat": "The function's own docstring explicitly states this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set 3%/5%/10% retail categories, whereas this function's 15% retail / 100% wholesale defaults are an internal convention (correction noted during a Tier 3 audit).",
+    "caveat": "By default (retail_deposits_by_category/retail_runoff_rates omitted) this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set retail deposit stability categories (stable/less-stable buckets, each with its own national-discretion rate), whereas this function's 15% retail / 100% wholesale defaults are a single blended internal convention (correction noted during a Tier 3 audit). Pass retail_deposits_by_category and retail_runoff_rates together to switch to a BCBS-238-shaped categorised retail outflow (sum of each category's balance times its own rate) instead -- this function does not hardcode specific category rates itself, since BCBS 238 leaves the exact thresholds/rates to national supervisory discretion; the caller supplies their own jurisdiction's categorised balances and rates.",
     "citation": null,
-    "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ O = R\\cdot r_R + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
+    "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ R_{outflow} = \\begin{cases} R \\cdot r_R & \\text{default} \\\\ \\sum_j C_j \\cdot rc_j & \\text{categorised (opt-in)} \\end{cases} \\\\ O = R_{outflow} + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
     "symbol_map": {
       "hqla_by_level": "H_i",
       "inflows": "I",
       "market_haircuts": "h_i",
       "retail_deposits": "R",
+      "retail_deposits_by_category": "C_j",
       "retail_runoff": "r_R",
+      "retail_runoff_rates": "rc_j",
       "wholesale_funding": "W",
       "wholesale_runoff": "r_W"
     }
@@ -697,7 +701,7 @@
     }
   },
   "compute_rolling_var": {
-    "caveat": "Docstring calls this an 'expanding window' but the code uses a fixed-length trailing window of size `window` (returns[i-window:i]); the formula reflects the actual trailing-window computation.",
+    "caveat": "Uses a fixed-length trailing window of size `window` (returns[i-window:i]), not an expanding window that grows from the start of the series -- the docstring (fixed in PR #301) already states this plainly; this catalogue entry previously described a stale mismatch between the docstring and the code that no longer exists.",
     "citation": null,
     "formula_latex": "VaR_t = -\\big(\\mu_{t-w:t} - z_\\alpha\\sigma_{t-w:t}\\big),\\quad z_\\alpha=\\Phi^{-1}(\\alpha)",
     "symbol_map": {
@@ -1018,8 +1022,8 @@
     }
   },
   "creditmetrics_portfolio_model": {
-    "caveat": "This function is a direct pass-through to the identical one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo (same formula, same code path) \u2014 it is not a distinct multi-state CreditMetrics rating-migration model; migration itself is handled separately by ratings_migration_matrix.",
-    "citation": null,
+    "caveat": "By default (transition_matrix/current_rating/state_loss_pct omitted) this is still a direct pass-through to the same one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo \u2014 unchanged from before. Pass all three together to switch to a genuine multi-state CreditMetrics model: each obligor's simulated asset return migrates through its own transition-matrix row to a rating state (not just default/survive), verified to reduce bit-for-bit to the two-state pass-through in the degenerate case where every obligor has its own single-rating, single-transition-probability row (see tests/test_credit_var.py).",
+    "citation": "Gupton, Finger & Bhatia (1997), CreditMetrics \u2014 Technical Document, J.P. Morgan (asset-return discretisation of a rating-transition matrix).",
     "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
     "symbol_map": {
       "asset_correlation": "\\rho_i",
@@ -1056,11 +1060,12 @@
     }
   },
   "crr2_large_exposure_limit": {
-    "caveat": "Simplified to the 25%-of-Tier-1 ratio test only; the EUR 150m absolute alternative threshold for institutions is not applied, per the function's own docstring.",
+    "caveat": "Now implements both CRR2 Art. 395(1) tests for an institution counterparty (is_institution=True): the applicable limit is the higher of 25% of Tier 1 capital or EUR 150m. Does not check Art. 395(1)'s further connected-client-group condition (that the institution's exposure to non-institution clients connected to this counterparty stays within the plain 25% limit), since that spans a group of exposures, not the single exposure this function scores. Figures are assumed EUR-denominated, matching Art. 395(1)'s own absolute figure; no currency conversion is performed.",
     "citation": "CRR2 Art. 395",
-    "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Excess = \\max\\big(exposure\\_value - 0.25 \\times tier1\\_capital,\\ 0\\big)",
+    "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Limit = \\begin{cases} 0.25 \\times tier1\\_capital & is\\_institution=False \\\\ \\max\\big(0.25 \\times tier1\\_capital,\\ 150{,}000{,}000\\big) & is\\_institution=True \\end{cases} \\\\ Excess = \\max\\big(exposure\\_value - Limit,\\ 0\\big)",
     "symbol_map": {
       "exposure_value": "exposure\\_value",
+      "is_institution": "is\\_institution",
       "tier1_capital": "tier1\\_capital"
     }
   },
@@ -1225,7 +1230,7 @@
     }
   },
   "downturn_lgd_adjustment": {
-    "caveat": "CRR Art. 181 requires downturn-conservative LGD, but this specific multiplicative scaling is a deliberate departure from the EBA/GL/2019/03 additive fallback (+15pp) \u2014 the docstring itself states that additive formula is 'not used here'. Calibrate downturn_multiplier to your own downturn analysis rather than assuming regulatory grounding for the exact formula.",
+    "caveat": "Default (method omitted or \"multiplicative\") is unchanged: a transparent multiplicative scaling not itself prescribed by CRR Art. 181 or EBA GL \u2014 calibrate downturn_multiplier to your own downturn analysis. Pass method=\"additive\" to use the EBA/GL/2019/03 supervisory-style fallback add-on this function's own docstring already documented but did not implement until now.",
     "citation": null,
     "formula_latex": "LGD_{DT} = \\max\\big(\\min(LGD_{LR}\\cdot m,\\ 1),\\ f,\\ LGD_{LR}\\big)",
     "symbol_map": {
@@ -3755,15 +3760,17 @@
     }
   },
   "transaction_cost_analysis": {
-    "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+    "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival). Additionally passing unexecuted_quantity and cancellation_price together adds the opportunity-cost leg for shares never executed, so delay + execution + opportunity cost then cover the full original order (executed and unexecuted alike) against the decision price -- this function still does not model any explicit commission/fee leg, which some treatments of Perold's decomposition include as a further, separate component.",
     "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
-    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
+    "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Opportunity_{bps} = \\frac{s\\cdot(c - d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4, \\quad TotalIS_{bps} = \\frac{\\sum_i s\\cdot(p_i - d_i)\\cdot q_i + s\\cdot(c-d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4",
     "symbol_map": {
       "benchmark_prices": "b_i",
+      "cancellation_price": "c",
       "decision_price": "d_i",
       "side": "s",
       "trade_prices": "p_i",
-      "trade_quantities": "q_i"
+      "trade_quantities": "q_i",
+      "unexecuted_quantity": "u"
     }
   },
   "treynor_ratio": {

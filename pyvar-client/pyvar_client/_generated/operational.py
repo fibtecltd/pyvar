@@ -111,19 +111,24 @@ class OperationalNamespace:
         rpo_hours: float,
         max_tolerable_downtime: float,
         bcp_maturity: float,
+        rpo_target_hours: float | None = None,
     ) -> dict[str, Any]:
-        """Business-continuity risk from RTO versus tolerance and BCP maturity.
+        """Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.
 
-        Flags where the recovery time objective (RTO) exceeds the maximum tolerable
-        downtime (MTD) and discounts the residual risk by BCP maturity. A breach of
-        MTD is the dominant driver.
+        Flags where the recovery time objective (RTO) exceeds the maximum
+        tolerable downtime (MTD) and discounts the residual risk by BCP maturity.
+        A breach of either recovery objective is the dominant driver.
 
-        Note:
-            ``rpo_hours`` is accepted as an input (and range-validated) but does
-            not currently affect the computed score — only ``rto_hours`` versus
-            ``max_tolerable_downtime`` and ``bcp_maturity`` drive
-            ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)
-            for the triage of this dead parameter.
+        By default (``rpo_target_hours`` omitted) this is byte-identical to the
+        original RTO-only scoring: ``rpo_hours`` is still range-validated but does
+        not affect ``bc_risk_score``, since RPO risk has nothing to be measured
+        against without a target to compare it to. Pass ``rpo_target_hours`` (the
+        maximum tolerable period of data loss, per ISO 22301 / DRI International
+        BCM practice) to additionally score potential data loss: RTO and RPO are
+        independently critical recovery objectives — a plan can fail on either
+        axis — so the pre-BCP-maturity risk is the *worse* of the two, not an
+        average of them, consistent with this function's existing "a breach is
+        the dominant driver" philosophy for RTO alone.
 
         Returns:
             The raw API response as a dict.
@@ -133,6 +138,7 @@ class OperationalNamespace:
             "rpo_hours": rpo_hours,
             "max_tolerable_downtime": max_tolerable_downtime,
             "bcp_maturity": bcp_maturity,
+            "rpo_target_hours": rpo_target_hours,
         }
         return self._client._request(
             "POST", "/api/v1/operational/business_continuity_risk_score", json_body=body

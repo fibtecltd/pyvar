@@ -3466,8 +3466,8 @@
     "name": "creditmetrics_portfolio_model",
     "display_name": "CreditMetrics Portfolio Model",
     "path": "/api/v1/credit-risk/creditmetrics_portfolio_model",
-    "summary": "Simplified CreditMetrics (two-state) portfolio loss distribution.",
-    "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full model\nuses a multi-state rating-migration matrix \u2014 handled separately by\n:func:`engine.credit_scoring.ratings_migration_matrix` \u2014 but the loss tail is\ndominated by the default state captured here.\n\nIn implementation this is a direct pass-through to the same one-factor\nGaussian-copula Monte Carlo engine used by\n:func:`credit_var_monte_carlo` (identical formula, identical code path),\nnot a separately coded multi-state model.",
+    "summary": "CreditMetrics portfolio loss distribution \u2014 two-state or genuine multi-state.",
+    "description": "By default (the three transition-matrix arguments omitted) this is a\ndefault/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\nreturns are driven by a single common factor; an obligor defaults when its\nreturn breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this mode\nit is a direct pass-through to the same one-factor Gaussian-copula Monte\nCarlo engine used by :func:`credit_var_monte_carlo` (identical formula,\nidentical code path) \u2014 unchanged from before this function supported the\nmulti-state mode below.\n\nPass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``\ntogether to switch to the genuine multi-state CreditMetrics model: each\nobligor's simulated asset return is mapped through *its own*\ntransition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics\nTechnical Document's asset-return discretisation) to a migrated rating\nstate \u2014 not just default/survive \u2014 and the loss for that path is that\nstate's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the\nmigration lands in default). ``pd``/``lgd`` still drive the default\nboundary and loss in multi-state mode: the caller's per-obligor ``pd``\nOVERRIDES ``transition_matrix``'s own default column for that obligor's\nrow, rather than the two being independently averaged or the matrix's\nfigure silently winning. To preserve the matrix's migration *shape* under\nthat override, the non-default cumulative transition probabilities are\naffinely rescaled from ``[matrix's own default prob, 1]`` onto\n``[pd, 1]`` \u2014 so relative proportions between non-default states are\nunchanged, only the total probability mass assigned to default moves to\nmatch ``pd`` exactly.\n\nRating-state convention (matches\n:func:`engine.credit_scoring.ratings_migration_matrix`'s own \"n_states,\nincluding default as the last\"): index 0 is the best rating, index\n``n_states - 2`` the worst non-default rating, and index ``n_states - 1``\nis always default.",
     "params": [
       {
         "name": "exposures",
@@ -3545,11 +3545,44 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "transition_matrix",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "current_rating",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "state_loss_pct",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "This function is a direct pass-through to the identical one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo (same formula, same code path) \u2014 it is not a distinct multi-state CreditMetrics rating-migration model; migration itself is handled separately by ratings_migration_matrix.",
-      "citation": null,
+      "caveat": "By default (transition_matrix/current_rating/state_loss_pct omitted) this is still a direct pass-through to the same one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo \u2014 unchanged from before. Pass all three together to switch to a genuine multi-state CreditMetrics model: each obligor's simulated asset return migrates through its own transition-matrix row to a rating state (not just default/survive), verified to reduce bit-for-bit to the two-state pass-through in the degenerate case where every obligor has its own single-rating, single-transition-probability row (see tests/test_credit_var.py).",
+      "citation": "Gupton, Finger & Bhatia (1997), CreditMetrics \u2014 Technical Document, J.P. Morgan (asset-return discretisation of a rating-transition matrix).",
       "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
       "symbol_map": {
         "asset_correlation": "\\rho_i",
@@ -3837,7 +3870,7 @@
     "display_name": "Downturn LGD Adjustment",
     "path": "/api/v1/credit-risk/downturn_lgd_adjustment",
     "summary": "Basel downturn-LGD adjustment of a long-run average LGD.",
-    "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\nEBA/GL/2019/03's additive fallback approach \u2014 see CRR Art. 181 for the\nunderlying requirement.\n\nCRR Art. 181 requires LGD to reflect economic-downturn conditions when these\nare more conservative than the long-run average. The supervisory-style\nadditive add-on (EBA GL) is applied as\n``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` is\n*not* used here; instead a transparent multiplicative scaling is applied and\nclipped to ``[floor, 1]`` so the result never under-states the long-run LGD.",
+    "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when\nthese are more conservative than the long-run average. Two scaling\nmethods are available:\n\n- ``\"multiplicative\"`` (default, backward-compatible): a transparent\n  multiplicative scaling, ``LGD_LR * multiplier``, clipped to\n  ``[floor, 1]`` so the result never under-states the long-run LGD.\n  Calibrate ``downturn_multiplier`` to your own downturn analysis \u2014\n  this is not itself a formula prescribed by CRR Art. 181 or EBA GL.\n- ``\"additive\"``: the EBA/GL/2019/03 supervisory-style fallback add-on,\n  ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``\n  \u2014 here ``downturn_multiplier`` plays the same \"how severe\" role as in\n  the multiplicative method, scaling how much of the remaining\n  loss-given-default headroom (``1 - LGD_LR``) the downturn add-on\n  consumes, rather than scaling ``LGD_LR`` itself directly.",
     "params": [
       {
         "name": "lgd_long_run",
@@ -3871,10 +3904,21 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "method",
+        "type": "string",
+        "required": false,
+        "default": "multiplicative",
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "CRR Art. 181 requires downturn-conservative LGD, but this specific multiplicative scaling is a deliberate departure from the EBA/GL/2019/03 additive fallback (+15pp) \u2014 the docstring itself states that additive formula is 'not used here'. Calibrate downturn_multiplier to your own downturn analysis rather than assuming regulatory grounding for the exact formula.",
+      "caveat": "Default (method omitted or \"multiplicative\") is unchanged: a transparent multiplicative scaling not itself prescribed by CRR Art. 181 or EBA GL \u2014 calibrate downturn_multiplier to your own downturn analysis. Pass method=\"additive\" to use the EBA/GL/2019/03 supervisory-style fallback add-on this function's own docstring already documented but did not implement until now.",
       "citation": null,
       "formula_latex": "LGD_{DT} = \\max\\big(\\min(LGD_{LR}\\cdot m,\\ 1),\\ f,\\ LGD_{LR}\\big)",
       "symbol_map": {
@@ -6395,7 +6439,7 @@
     "display_name": "Asset Swap Spread",
     "path": "/api/v1/derivatives/asset_swap_spread",
     "summary": "Par-par asset-swap spread.",
-    "description": "The spread equating the bond's net present value (relative to par) to an\nannuity of the swap's fixed-leg PV01:\n``ASW = (PV_bond \u2212 par) / annuity``, expressed in basis points.\n\nNote: ``bond_price`` is accepted for API-compatibility but does not\naffect the result \u2014 ``PV_bond`` in the formula above is derived\ninternally by discounting ``cashflows``/``times`` at ``swap_rates``,\nnot from the observed ``bond_price`` passed in.",
+    "description": "The spread equating the bond's net present value to an annuity of the\nswap's fixed-leg PV01: ``ASW = (PV_bond \u2212 reference_price) / annuity``,\nexpressed in basis points.\n\nBy default (``use_market_price=False``), ``reference_price`` is\n``face_value`` (par) \u2014 this reproduces the function's original,\npar-referenced behaviour exactly and is unchanged for any existing\ncaller. Set ``use_market_price=True`` to use the bond's actual dirty\nprice instead, matching the standard market convention (O'Kane, 2000,\n\"Introduction to Asset Swaps\", Lehman Brothers): the spread is only\nequal to the par-referenced figure when the bond happens to trade at\npar, so for any bond away from par the market-convention spread and\nthe par-referenced spread differ.",
     "params": [
       {
         "name": "bond_price",
@@ -6462,18 +6506,31 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "use_market_price",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "The bond_price argument is accepted but never used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates instead, so the formula shown is what the code actually evaluates, not one using the passed-in bond_price.",
+      "caveat": "By default (use_market_price=False), bond_price is accepted but not used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates and compared against face_value (par), matching this function\u2019s original par-referenced behaviour exactly. Set use_market_price=True to compare PV_bond against the actual bond_price (dirty price) instead, matching the standard market asset-swap convention (O\u2019Kane 2000) \u2014 the two only agree when the bond happens to trade at par.",
       "citation": null,
-      "formula_latex": "ASW = \\frac{PV_{bond} - F}{\\text{Annuity}\\cdot F},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+      "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F},\\qquad R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
       "symbol_map": {
+        "bond_price": "P_{bond}",
         "cashflows": "CF_i",
         "face_value": "F",
         "frequency": "m",
         "swap_rates": "s_i",
-        "times": "t_i"
+        "times": "t_i",
+        "use_market_price": "switches R between F and P_{bond}"
       }
     }
   },
@@ -7344,7 +7401,7 @@
     "display_name": "Bond Pricer Floating Rate",
     "path": "/api/v1/derivatives/bond_pricer_floating_rate",
     "summary": "Price a floating-rate note (FRN) from projected forward rates.",
-    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.\n\nNote: the number of coupon periods actually priced is\n``len(reference_rates)`` (and ``discount_rates`` must match that length).\n``maturity`` is only used for input validation (``maturity > 0``) here \u2014\nit does not determine the coupon schedule, so a caller-supplied\n``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\nnot detected or reconciled.",
+    "description": "Each coupon is ``(reference_rate + spread) / frequency \u00b7 face``. On a reset\ndate with discount rates equal to the reference rates, an FRN prices near\npar plus the PV of the spread.\n\nThe coupon schedule actually priced is derived from\n``len(reference_rates)`` (``discount_rates`` must match that length).\n``maturity`` must be consistent with ``len(reference_rates) / frequency``\n\u2014 a caller-supplied ``maturity`` that implies a different number of\nperiods is rejected rather than silently ignored.",
     "params": [
       {
         "name": "face_value",
@@ -7414,7 +7471,7 @@
       }
     ],
     "formula": {
-      "caveat": "n (the number of coupon periods) is taken from len(reference_rates), not from maturity\u00b7frequency \u2014 the maturity argument is only used for input validation (must be > 0) and does not otherwise drive the cashflow schedule.",
+      "caveat": "n (the number of coupon periods) is taken from len(reference_rates). maturity must equal len(reference_rates)/frequency \u2014 a caller-supplied maturity implying a different period count now raises ValueError instead of being silently ignored.",
       "citation": null,
       "formula_latex": "P=\\sum_{i=1}^{n} CF_i\\left(1+\\frac{d_i}{m}\\right)^{-i},\\qquad CF_i=F\\frac{r_i+s}{m}\\ (\\text{plus } F \\text{ at } i=n)",
       "symbol_map": {
@@ -13034,7 +13091,7 @@
     "display_name": "Combined Stress Scenario",
     "path": "/api/v1/liquidity/combined_stress_scenario",
     "summary": "Combined idiosyncratic + market-wide stress scenario.",
-    "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\ncombined idiosyncratic + market-wide scenario (\u00a7II paras 19-20) runs off\nthe LCR's own regulator-set retail run-off categories (3%/5%/10%\ndepending on deposit stability), whereas this function applies its own\nflat 15% retail / 100% wholesale run-off convention instead.\n\nModels a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n(Found during the Tier 3 #2 audit \u2014 a prior version of this docstring\nincorrectly claimed this was the Basel/EBA reference scenario.)",
+    "description": "By default (the two retail-category arguments omitted) this is NOT the\nBCBS 238 reference combined scenario: BCBS 238's own combined\nidiosyncratic + market-wide scenario (\u00a7II paras 19-20) runs off the\nLCR's own regulator-set retail run-off categories (stable/less-stable\ndeposit stability buckets, each with its own national-discretion\nminimum rate), whereas this function's default applies a single flat\n15% retail / 100% wholesale run-off convention instead -- a structural\ngap a single scalar ``retail_runoff`` rate cannot close, since BCBS\n238's categorisation requires segmenting retail deposits into multiple\nstability buckets with different rates, not one blended rate.\n\nPass ``retail_deposits_by_category`` and ``retail_runoff_rates``\ntogether (equal-length arrays: each category's deposit balance and its\nown regulator-set run-off rate) to switch to a BCBS-238-shaped\ncategorised retail outflow -- ``sum(retail_deposits_by_category *\nretail_runoff_rates)`` -- instead of the single-rate\n``retail_deposits * retail_runoff`` convention. This function does not\nhardcode specific category rates itself (BCBS 238 leaves the exact\nstable/less-stable thresholds and rates to national supervisory\ndiscretion); the caller supplies their own jurisdiction's categorised\nbalances and rates. ``retail_deposits_by_category`` must sum to\n``retail_deposits`` -- enforced as a consistency check, not silently\nignored.\n\nModels a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n(Found during the Tier 3 #2 audit \u2014 a prior version of this docstring\nincorrectly claimed this was the Basel/EBA reference scenario.)",
     "params": [
       {
         "name": "retail_deposits",
@@ -13112,18 +13169,42 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "retail_deposits_by_category",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "retail_runoff_rates",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "The function's own docstring explicitly states this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set 3%/5%/10% retail categories, whereas this function's 15% retail / 100% wholesale defaults are an internal convention (correction noted during a Tier 3 audit).",
+      "caveat": "By default (retail_deposits_by_category/retail_runoff_rates omitted) this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set retail deposit stability categories (stable/less-stable buckets, each with its own national-discretion rate), whereas this function's 15% retail / 100% wholesale defaults are a single blended internal convention (correction noted during a Tier 3 audit). Pass retail_deposits_by_category and retail_runoff_rates together to switch to a BCBS-238-shaped categorised retail outflow (sum of each category's balance times its own rate) instead -- this function does not hardcode specific category rates itself, since BCBS 238 leaves the exact thresholds/rates to national supervisory discretion; the caller supplies their own jurisdiction's categorised balances and rates.",
       "citation": null,
-      "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ O = R\\cdot r_R + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
+      "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ R_{outflow} = \\begin{cases} R \\cdot r_R & \\text{default} \\\\ \\sum_j C_j \\cdot rc_j & \\text{categorised (opt-in)} \\end{cases} \\\\ O = R_{outflow} + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
       "symbol_map": {
         "hqla_by_level": "H_i",
         "inflows": "I",
         "market_haircuts": "h_i",
         "retail_deposits": "R",
+        "retail_deposits_by_category": "C_j",
         "retail_runoff": "r_R",
+        "retail_runoff_rates": "rc_j",
         "wholesale_funding": "W",
         "wholesale_runoff": "r_W"
       }
@@ -15342,7 +15423,7 @@
       }
     ],
     "formula": {
-      "caveat": "Docstring calls this an 'expanding window' but the code uses a fixed-length trailing window of size `window` (returns[i-window:i]); the formula reflects the actual trailing-window computation.",
+      "caveat": "Uses a fixed-length trailing window of size `window` (returns[i-window:i]), not an expanding window that grows from the start of the series -- the docstring (fixed in PR #301) already states this plainly; this catalogue entry previously described a stale mismatch between the docstring and the code that no longer exists.",
       "citation": null,
       "formula_latex": "VaR_t = -\\big(\\mu_{t-w:t} - z_\\alpha\\sigma_{t-w:t}\\big),\\quad z_\\alpha=\\Phi^{-1}(\\alpha)",
       "symbol_map": {
@@ -19405,8 +19486,8 @@
     "name": "business_continuity_risk_score",
     "display_name": "Business Continuity Risk Score",
     "path": "/api/v1/operational/business_continuity_risk_score",
-    "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
-    "description": "Flags where the recovery time objective (RTO) exceeds the maximum tolerable\ndowntime (MTD) and discounts the residual risk by BCP maturity. A breach of\nMTD is the dominant driver.\n\nNote:\n    ``rpo_hours`` is accepted as an input (and range-validated) but does\n    not currently affect the computed score \u2014 only ``rto_hours`` versus\n    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n    for the triage of this dead parameter.",
+    "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
+    "description": "Flags where the recovery time objective (RTO) exceeds the maximum\ntolerable downtime (MTD) and discounts the residual risk by BCP maturity.\nA breach of either recovery objective is the dominant driver.\n\nBy default (``rpo_target_hours`` omitted) this is byte-identical to the\noriginal RTO-only scoring: ``rpo_hours`` is still range-validated but does\nnot affect ``bc_risk_score``, since RPO risk has nothing to be measured\nagainst without a target to compare it to. Pass ``rpo_target_hours`` (the\nmaximum tolerable period of data loss, per ISO 22301 / DRI International\nBCM practice) to additionally score potential data loss: RTO and RPO are\nindependently critical recovery objectives \u2014 a plan can fail on either\naxis \u2014 so the pre-BCP-maturity risk is the *worse* of the two, not an\naverage of them, consistent with this function's existing \"a breach is\nthe dominant driver\" philosophy for RTO alone.",
     "params": [
       {
         "name": "rto_hours",
@@ -19451,10 +19532,21 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "rpo_target_hours",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "rpo_hours is accepted as a parameter but is not used anywhere in the score computation in the code \u2014 only RTO vs MTD and bcp_maturity drive the score.",
+      "caveat": "Default (rpo_target_hours omitted) is unchanged: rpo_hours is still range-validated but does not affect bc_risk_score, since RPO risk has nothing to be measured against without a target. Pass rpo_target_hours (the maximum tolerable period of data loss, ISO 22301 / DRI International BCM practice) to also score potential data loss \u2014 the pre-BCP-maturity risk is then the worse of the RTO and RPO breach severities, not an average of them.",
       "citation": null,
       "formula_latex": "G = \\min\\!\\left(\\frac{RTO}{MTD},\\,2\\right)\\Big/2 \\\\ Raw = 50\\cdot\\mathbb{1}[RTO>MTD] + 50\\,G \\\\ Score = \\min\\big(Raw\\times(1-0.5\\,M),\\,100\\big)",
       "symbol_map": {
@@ -24509,7 +24601,7 @@
     "display_name": "Transaction Cost Analysis",
     "path": "/api/v1/portfolio/transaction_cost_analysis",
     "summary": "Transaction Cost Analysis (TCA) \u2014 implementation shortfall vs benchmark.",
-    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nBy default (``decision_price`` omitted, unchanged prior behaviour) this\nis narrower than Perold's (1988) full implementation-shortfall\ndecomposition -- it measures only execution slippage against the\n``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n\nPassing ``decision_price`` -- the price at the instant the investment\ndecision was made, Perold's \"paper\" price, distinct from the\narrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\nthe delay-cost leg: the cost incurred between the decision and the\norder reaching the market (``benchmark_prices``), *before* any\nexecution slippage is measured. Delay cost and execution slippage sum\nexactly to the executed-quantity implementation shortfall measured\ndirectly against the decision price:\n``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n* trade_quantities)``. This still omits Perold's unexecuted-share\nopportunity-cost leg (no cancellation price/quantity is modelled here),\nso even with ``decision_price`` supplied the result is a delay+\nexecution partial IS, not the complete four-component decomposition.",
+    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nBy default (``decision_price`` omitted, unchanged prior behaviour) this\nis narrower than Perold's (1988) full implementation-shortfall\ndecomposition -- it measures only execution slippage against the\n``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n\nPassing ``decision_price`` -- the price at the instant the investment\ndecision was made, Perold's \"paper\" price, distinct from the\narrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\nthe delay-cost leg: the cost incurred between the decision and the\norder reaching the market (``benchmark_prices``), *before* any\nexecution slippage is measured. Delay cost and execution slippage sum\nexactly to the executed-quantity implementation shortfall measured\ndirectly against the decision price:\n``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n* trade_quantities)``.\n\nAdditionally passing ``unexecuted_quantity`` and ``cancellation_price``\ntogether adds the opportunity-cost leg for shares that were never\nexecuted: the paper cost of the price move between the decision instant\nand the price at which the unexecuted portion of the order was marked\nat cancellation/expiry, ``side * (cancellation_price - decision_price) *\nunexecuted_quantity``. Delay cost + execution slippage + opportunity\ncost together are the full-order implementation shortfall against the\ndecision price, covering every share of the original order (executed\nand unexecuted alike) -- this function still does not model any\nexplicit commission/fee leg, which some treatments of Perold's\ndecomposition include as a further, separate component.",
     "params": [
       {
         "name": "trade_prices",
@@ -24565,18 +24657,42 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "unexecuted_quantity",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "cancellation_price",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+      "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival). Additionally passing unexecuted_quantity and cancellation_price together adds the opportunity-cost leg for shares never executed, so delay + execution + opportunity cost then cover the full original order (executed and unexecuted alike) against the decision price -- this function still does not model any explicit commission/fee leg, which some treatments of Perold's decomposition include as a further, separate component.",
       "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
-      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
+      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Opportunity_{bps} = \\frac{s\\cdot(c - d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4, \\quad TotalIS_{bps} = \\frac{\\sum_i s\\cdot(p_i - d_i)\\cdot q_i + s\\cdot(c-d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4",
       "symbol_map": {
         "benchmark_prices": "b_i",
+        "cancellation_price": "c",
         "decision_price": "d_i",
         "side": "s",
         "trade_prices": "p_i",
-        "trade_quantities": "q_i"
+        "trade_quantities": "q_i",
+        "unexecuted_quantity": "u"
       }
     }
   },
@@ -25179,7 +25295,7 @@
     "display_name": "CRR2 Large Exposure Limit",
     "path": "/api/v1/regulatory/crr2_large_exposure_limit",
     "summary": "CRR2 large exposure limit (Art. 395).",
-    "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n150m absolute alternative threshold for institutions is not applied.\n\nA single client / group exposure must not exceed 25% of Tier 1 capital\n(or EUR 150m for institutions, whichever is higher). Reports the exposure\nratio and any breach amount.",
+    "description": "A single client / group exposure must not exceed 25% of Tier 1 capital,\nor \u2014 where the counterparty is an institution (or a group of connected\nclients including one) \u2014 the HIGHER of 25% of Tier 1 capital or EUR 150m\n(``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution\nalternative. ``exposure_value``/``tier1_capital`` are assumed\nEUR-denominated, matching Art. 395(1)'s own absolute figure \u2014 this\nfunction does not itself perform currency conversion.\n\nNote: Art. 395(1)'s EUR 150m alternative additionally requires that the\ninstitution's total exposure to non-institution clients connected to\nthis counterparty stays within the plain 25% limit \u2014 a condition that\nspans a connected-client group, not a single exposure, so it is out of\nscope for this single-exposure function and not checked here.",
     "params": [
       {
         "name": "exposure_value",
@@ -25216,11 +25332,12 @@
       }
     ],
     "formula": {
-      "caveat": "Simplified to the 25%-of-Tier-1 ratio test only; the EUR 150m absolute alternative threshold for institutions is not applied, per the function's own docstring.",
+      "caveat": "Now implements both CRR2 Art. 395(1) tests for an institution counterparty (is_institution=True): the applicable limit is the higher of 25% of Tier 1 capital or EUR 150m. Does not check Art. 395(1)'s further connected-client-group condition (that the institution's exposure to non-institution clients connected to this counterparty stays within the plain 25% limit), since that spans a group of exposures, not the single exposure this function scores. Figures are assumed EUR-denominated, matching Art. 395(1)'s own absolute figure; no currency conversion is performed.",
       "citation": "CRR2 Art. 395",
-      "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Excess = \\max\\big(exposure\\_value - 0.25 \\times tier1\\_capital,\\ 0\\big)",
+      "formula_latex": "Exposure\\ ratio = \\frac{exposure\\_value}{tier1\\_capital} \\\\ Limit = \\begin{cases} 0.25 \\times tier1\\_capital & is\\_institution=False \\\\ \\max\\big(0.25 \\times tier1\\_capital,\\ 150{,}000{,}000\\big) & is\\_institution=True \\end{cases} \\\\ Excess = \\max\\big(exposure\\_value - Limit,\\ 0\\big)",
       "symbol_map": {
         "exposure_value": "exposure\\_value",
+        "is_institution": "is\\_institution",
         "tier1_capital": "tier1\\_capital"
       }
     }

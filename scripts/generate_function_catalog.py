@@ -150,12 +150,27 @@ def _harvest_acronym_casing(catalog: list[dict[str, Any]]) -> dict[str, str]:
     in prose (e.g. "REGULATORY"), not a genuine short acronym; mixed-case
     candidates (VaR, OpVaR, CreditMetrics, MiFID, ...) are kept at any
     length since accidental all-caps emphasis is always fully uppercase.
+
+    A candidate immediately adjacent to an underscore in the source text
+    (either side) is also dropped: that means it's one fragment of a
+    snake_case/CONSTANT_CASE Python identifier this tokenizer split on '_'
+    (e.g. "LIMIT" out of ``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), not a
+    standalone acronym written in prose — voting it in would override a
+    word's normal Title Case (see the crr2_large_exposure_limit regression
+    this guarded against). A short acronym genuinely used in prose, even
+    inside an inline-code formula alongside underscored variables (e.g.
+    ``KVA = cost_of_capital * ...`` or ``total_xva = CVA + ... + KVA``), has
+    no underscore on either side of the acronym itself, so it still votes.
     """
     name_tokens = {tok.lower() for f in catalog for tok in f["name"].split("_")}
 
     text = "\n".join(f.get("summary", "") + "\n" + f.get("description", "") for f in catalog)
     votes: dict[str, dict[str, int]] = {}
-    for word in re.findall(r"[A-Za-z][A-Za-z0-9]*", text):
+    for m in re.finditer(r"[A-Za-z][A-Za-z0-9]*", text):
+        word = m.group(0)
+        start, end = m.span()
+        if (start > 0 and text[start - 1] == "_") or (end < len(text) and text[end] == "_"):
+            continue
         if sum(1 for c in word if c.isupper()) < 2:
             continue
         is_all_upper = word == word.upper()

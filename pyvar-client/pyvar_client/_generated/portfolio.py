@@ -1211,6 +1211,8 @@ class PortfolioNamespace:
         trade_quantities: list[float] | list[list[float]],
         side: int = 1,
         decision_price: float | list[float] | None = None,
+        unexecuted_quantity: float | None = None,
+        cancellation_price: float | None = None,
     ) -> dict[str, Any]:
         """Transaction Cost Analysis (TCA) — implementation shortfall vs benchmark.
 
@@ -1232,10 +1234,19 @@ class PortfolioNamespace:
         exactly to the executed-quantity implementation shortfall measured
         directly against the decision price:
         ``delay_cost + total_cost == sum(side * (trade_prices - decision_price)
-        * trade_quantities)``. This still omits Perold's unexecuted-share
-        opportunity-cost leg (no cancellation price/quantity is modelled here),
-        so even with ``decision_price`` supplied the result is a delay+
-        execution partial IS, not the complete four-component decomposition.
+        * trade_quantities)``.
+
+        Additionally passing ``unexecuted_quantity`` and ``cancellation_price``
+        together adds the opportunity-cost leg for shares that were never
+        executed: the paper cost of the price move between the decision instant
+        and the price at which the unexecuted portion of the order was marked
+        at cancellation/expiry, ``side * (cancellation_price - decision_price) *
+        unexecuted_quantity``. Delay cost + execution slippage + opportunity
+        cost together are the full-order implementation shortfall against the
+        decision price, covering every share of the original order (executed
+        and unexecuted alike) -- this function still does not model any
+        explicit commission/fee leg, which some treatments of Perold's
+        decomposition include as a further, separate component.
 
         Returns:
             The raw API response as a dict.
@@ -1246,6 +1257,8 @@ class PortfolioNamespace:
             "trade_quantities": trade_quantities,
             "side": side,
             "decision_price": decision_price,
+            "unexecuted_quantity": unexecuted_quantity,
+            "cancellation_price": cancellation_price,
         }
         return self._client._request(
             "POST", "/api/v1/portfolio/transaction_cost_analysis", json_body=body

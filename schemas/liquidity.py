@@ -283,6 +283,8 @@ class CombinedStressScenarioRequest(BaseModel):
     retail_runoff: float = 0.15
     wholesale_runoff: float = 1.0
     inflows: float = 0.0
+    retail_deposits_by_category: list[float] | list[list[float]] | None = None
+    retail_runoff_rates: list[float] | list[list[float]] | None = None
 
 
 class CombinedStressScenarioResponse(BaseModel):

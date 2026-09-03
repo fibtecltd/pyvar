@@ -97,6 +97,44 @@ def test_asset_swap_spread_runs():
     assert "asset_swap_spread_bps" in r
 
 
+# ── use_market_price opt-in (caveat-triage batch 2) ─────────────────────────
+# Default (use_market_price=False) must stay byte-identical to before this
+# fix -- bond_price was previously always ignored. Only the opt-in path uses
+# it, per the standard par-par asset-swap convention (O'Kane 2000): ASW =
+# (PV_bond_at_swap_curve - dirty_price) / annuity, vs. this function's
+# original par-referenced ASW = (PV_bond_at_swap_curve - face_value) / annuity.
+
+
+def test_asset_swap_spread_default_ignores_bond_price_unchanged():
+    cf, t = _bond_cf(100.0, 0.05, 5.0, 2)
+    swap_rates = np.full(cf.size, 0.04)
+    r_101 = asset_swap_spread(101.0, cf, t, swap_rates, 100.0, 2)
+    r_90 = asset_swap_spread(90.0, cf, t, swap_rates, 100.0, 2)
+    # bond_price must have zero effect on the default path.
+    assert r_101 == r_90
+    r_explicit_false = asset_swap_spread(101.0, cf, t, swap_rates, 100.0, 2, use_market_price=False)
+    assert r_explicit_false == r_101
+
+
+def test_asset_swap_spread_use_market_price_differs_when_off_par():
+    cf, t = _bond_cf(100.0, 0.05, 5.0, 2)
+    swap_rates = np.full(cf.size, 0.04)
+    par_referenced = asset_swap_spread(95.0, cf, t, swap_rates, 100.0, 2, use_market_price=False)
+    market_referenced = asset_swap_spread(95.0, cf, t, swap_rates, 100.0, 2, use_market_price=True)
+    assert par_referenced["asset_swap_spread"] != market_referenced["asset_swap_spread"]
+    # A bond priced below par has PV_bond - price > PV_bond - face_value,
+    # so the market-referenced spread must be higher than the par-referenced one.
+    assert market_referenced["asset_swap_spread"] > par_referenced["asset_swap_spread"]
+
+
+def test_asset_swap_spread_use_market_price_matches_par_when_priced_at_par():
+    cf, t = _bond_cf(100.0, 0.05, 5.0, 2)
+    swap_rates = np.full(cf.size, 0.04)
+    par_referenced = asset_swap_spread(100.0, cf, t, swap_rates, 100.0, 2, use_market_price=False)
+    market_referenced = asset_swap_spread(100.0, cf, t, swap_rates, 100.0, 2, use_market_price=True)
+    assert par_referenced == market_referenced
+
+
 def test_oas_reprices_callable():
     fair = oas_option_adjusted_spread(
         market_price=95.0,

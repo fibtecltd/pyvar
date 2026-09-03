@@ -187,14 +187,34 @@ def combined_stress_scenario(
     retail_runoff: float = 0.15,
     wholesale_runoff: float = 1.00,
     inflows: float = 0.0,
+    retail_deposits_by_category: np.ndarray | None = None,
+    retail_runoff_rates: np.ndarray | None = None,
 ) -> dict:  # type: ignore[type-arg]
     """Combined idiosyncratic + market-wide stress scenario.
 
-    This is NOT the BCBS 238 reference combined scenario: BCBS 238's own
-    combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off
-    the LCR's own regulator-set retail run-off categories (3%/5%/10%
-    depending on deposit stability), whereas this function applies its own
-    flat 15% retail / 100% wholesale run-off convention instead.
+    By default (the two retail-category arguments omitted) this is NOT the
+    BCBS 238 reference combined scenario: BCBS 238's own combined
+    idiosyncratic + market-wide scenario (§II paras 19-20) runs off the
+    LCR's own regulator-set retail run-off categories (stable/less-stable
+    deposit stability buckets, each with its own national-discretion
+    minimum rate), whereas this function's default applies a single flat
+    15% retail / 100% wholesale run-off convention instead -- a structural
+    gap a single scalar ``retail_runoff`` rate cannot close, since BCBS
+    238's categorisation requires segmenting retail deposits into multiple
+    stability buckets with different rates, not one blended rate.
+
+    Pass ``retail_deposits_by_category`` and ``retail_runoff_rates``
+    together (equal-length arrays: each category's deposit balance and its
+    own regulator-set run-off rate) to switch to a BCBS-238-shaped
+    categorised retail outflow -- ``sum(retail_deposits_by_category *
+    retail_runoff_rates)`` -- instead of the single-rate
+    ``retail_deposits * retail_runoff`` convention. This function does not
+    hardcode specific category rates itself (BCBS 238 leaves the exact
+    stable/less-stable thresholds and rates to national supervisory
+    discretion); the caller supplies their own jurisdiction's categorised
+    balances and rates. ``retail_deposits_by_category`` must sum to
+    ``retail_deposits`` -- enforced as a consistency check, not silently
+    ignored.
 
     Models a firm-specific shock occurring inside a market-wide crisis:
     liability run-off is aggravated (default 15% retail, 100% wholesale)
@@ -203,13 +223,23 @@ def combined_stress_scenario(
     incorrectly claimed this was the Basel/EBA reference scenario.)
 
     Args:
-        retail_deposits: Retail deposit balance.
+        retail_deposits: Retail deposit balance. Used directly (times
+            ``retail_runoff``) unless the categorised arguments are
+            supplied, in which case it must equal
+            ``sum(retail_deposits_by_category)``.
         wholesale_funding: Wholesale funding balance.
         hqla_by_level: HQLA market value per level.
         market_haircuts: Additional stressed haircut per level, each in [0, 1].
-        retail_runoff: Retail run-off rate (default 15%).
+        retail_runoff: Retail run-off rate (default 15%). Ignored when the
+            categorised retail arguments are supplied.
         wholesale_runoff: Wholesale run-off rate (default 100%).
         inflows: Stressed contractual inflows.
+        retail_deposits_by_category: Optional per-category retail deposit
+            balances (e.g. stable / less-stable buckets). Must be supplied
+            together with ``retail_runoff_rates`` and must sum to
+            ``retail_deposits``.
+        retail_runoff_rates: Optional per-category run-off rates in [0, 1],
+            matching ``retail_deposits_by_category`` in length.
 
     Returns:
         Dict with ``stressed_outflow``, ``stressed_hqla``, ``net_outflow``,
@@ -217,13 +247,39 @@ def combined_stress_scenario(
         better than either component scenario alone.
 
     Raises:
-        ValueError: If shapes or rates are invalid.
+        ValueError: If shapes or rates are invalid, the categorised retail
+            arguments are only partially supplied, or
+            ``retail_deposits_by_category`` doesn't sum to
+            ``retail_deposits``.
     """
     mw = market_wide_stress_scenario(hqla_by_level, market_haircuts, 0.0)
     if not (0.0 <= retail_runoff <= 1.0 and 0.0 <= wholesale_runoff <= 1.0):
         raise ValueError("run-off rates must lie in [0, 1]")
 
-    outflow = retail_deposits * retail_runoff + wholesale_funding * wholesale_runoff
+    n_supplied = sum(a is not None for a in (retail_deposits_by_category, retail_runoff_rates))
+    if n_supplied == 1:
+        raise ValueError(
+            "retail_deposits_by_category and retail_runoff_rates must be supplied together"
+        )
+    if n_supplied == 2:
+        cats = np.asarray(retail_deposits_by_category, dtype=np.float64)
+        rates = np.asarray(retail_runoff_rates, dtype=np.float64)
+        if cats.shape != rates.shape or cats.size == 0:
+            raise ValueError(
+                "retail_deposits_by_category and retail_runoff_rates must share "
+                "the same non-empty shape"
+            )
+        if np.any(cats < 0.0):
+            raise ValueError("retail_deposits_by_category entries must be non-negative")
+        if np.any((rates < 0.0) | (rates > 1.0)):
+            raise ValueError("retail_runoff_rates entries must lie in [0, 1]")
+        if not np.isclose(float(np.sum(cats)), retail_deposits, rtol=1e-6, atol=1e-2):
+            raise ValueError("retail_deposits_by_category must sum to retail_deposits")
+        retail_outflow = float(np.sum(cats * rates))
+    else:
+        retail_outflow = retail_deposits * retail_runoff
+
+    outflow = retail_outflow + wholesale_funding * wholesale_runoff
     net = outflow - inflows
     stressed_hqla = mw["stressed_hqla"]
     surplus = stressed_hqla - net

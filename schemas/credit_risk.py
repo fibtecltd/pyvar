@@ -135,6 +135,7 @@ class DownturnLgdAdjustmentRequest(BaseModel):
     lgd_long_run: float
     downturn_multiplier: float = 1.0
     floor: float = 0.0
+    method: str = "multiplicative"
 
 
 class DownturnLgdAdjustmentResponse(BaseModel):
@@ -146,6 +147,7 @@ class DownturnLgdAdjustmentResponse(BaseModel):
     lgd_downturn: Any = Field(default=None)
     lgd_long_run: Any = Field(default=None)
     multiplier: Any = Field(default=None)
+    method: Any = Field(default=None)
 
 
 class IrbFoundationApproachCapitalRequest(BaseModel):
@@ -311,6 +313,9 @@ class CreditmetricsPortfolioModelRequest(BaseModel):
     confidence_level: float = 0.99
     n_simulations: int = 20000
     seed: int = 2024
+    transition_matrix: list[list[float]] | None = None
+    current_rating: list[int] | None = None
+    state_loss_pct: list[float] | None = None
 
     @field_validator("confidence_level")
     @classmethod

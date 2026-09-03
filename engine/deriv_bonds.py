@@ -92,12 +92,11 @@ def bond_pricer_floating_rate(
     date with discount rates equal to the reference rates, an FRN prices near
     par plus the PV of the spread.
 
-    Note: the number of coupon periods actually priced is
-    ``len(reference_rates)`` (and ``discount_rates`` must match that length).
-    ``maturity`` is only used for input validation (``maturity > 0``) here —
-    it does not determine the coupon schedule, so a caller-supplied
-    ``maturity`` inconsistent with ``len(reference_rates) / frequency`` is
-    not detected or reconciled.
+    The coupon schedule actually priced is derived from
+    ``len(reference_rates)`` (``discount_rates`` must match that length).
+    ``maturity`` must be consistent with ``len(reference_rates) / frequency``
+    — a caller-supplied ``maturity`` that implies a different number of
+    periods is rejected rather than silently ignored.
 
     Args:
         face_value: Redemption (par) value.
@@ -105,15 +104,16 @@ def bond_pricer_floating_rate(
             Its length sets the number of coupon periods priced.
         spread: Quoted margin over the index (decimal).
         discount_rates: Per-period zero discount rate (decimal, annualised).
-        maturity: Time to maturity in years. Used only for input validation
-            (see note above) — not to derive the coupon schedule.
+        maturity: Time to maturity in years. Must equal
+            ``len(reference_rates) / frequency`` (see note above).
         frequency: Coupon payments per year.
 
     Returns:
         Dict with ``price`` and ``cashflows``.
 
     Raises:
-        ValueError: If array lengths are inconsistent.
+        ValueError: If array lengths are inconsistent, or if ``maturity``
+            is inconsistent with ``len(reference_rates) / frequency``.
     """
     if maturity <= 0 or frequency < 1:
         raise ValueError("maturity must be > 0 and frequency >= 1")
@@ -123,6 +123,13 @@ def bond_pricer_floating_rate(
         raise ValueError("reference_rates and discount_rates must match length")
 
     n = ref.size
+    implied_maturity = n / frequency
+    if not math.isclose(maturity, implied_maturity, rel_tol=1e-9, abs_tol=1e-9):
+        raise ValueError(
+            f"maturity ({maturity}) is inconsistent with "
+            f"len(reference_rates)/frequency ({implied_maturity}): "
+            f"reference_rates has {n} periods at frequency={frequency}"
+        )
     times = np.array([(i + 1) / frequency for i in range(n)], dtype=np.float64)
     coupons = face_value * (ref + spread) / frequency
     cashflows = coupons.copy()

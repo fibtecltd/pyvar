@@ -47,6 +47,16 @@ LEVERAGE_RATIO_MINIMUM: float = 0.03  # 3.0% (Basel III leverage framework)
 CAPITAL_CONSERVATION_BUFFER: float = 0.025  # 2.5% (Basel III §122)
 OUTPUT_FLOOR_FACTOR: float = 0.725  # 72.5% (Basel IV finalisation)
 LARGE_EXPOSURE_LIMIT: float = 0.25  # 25% of Tier 1 (CRR2 Art. 395)
+# CRR2 Art. 395(1): for an institution counterparty (or a group of connected
+# clients including one), the applicable limit is the HIGHER of 25% of Tier 1
+# capital or EUR 150m -- not the 25% test alone. Verified against Art. 395(1)
+# via two independent secondary sources (EBA's own Article 395 rulebook page
+# and betterregulation.com's CRR text) after this sandbox's network egress
+# proxy blocked direct fetches of every primary EU-legislation host tried
+# (legislation.gov.uk, eiopa.europa.eu). Figures assumed EUR-denominated per
+# Art. 395's own wording; this function does not itself convert currencies --
+# see its docstring.
+CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR: float = 150_000_000.0  # CRR2 Art. 395(1)
 
 
 def basel_iii_cet1_ratio(
@@ -459,22 +469,33 @@ def crr2_large_exposure_limit(
 ) -> dict:  # type: ignore[type-arg]
     """CRR2 large exposure limit (Art. 395).
 
-    This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR
-    150m absolute alternative threshold for institutions is not applied.
+    A single client / group exposure must not exceed 25% of Tier 1 capital,
+    or — where the counterparty is an institution (or a group of connected
+    clients including one) — the HIGHER of 25% of Tier 1 capital or EUR 150m
+    (``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution
+    alternative. ``exposure_value``/``tier1_capital`` are assumed
+    EUR-denominated, matching Art. 395(1)'s own absolute figure — this
+    function does not itself perform currency conversion.
 
-    A single client / group exposure must not exceed 25% of Tier 1 capital
-    (or EUR 150m for institutions, whichever is higher). Reports the exposure
-    ratio and any breach amount.
+    Note: Art. 395(1)'s EUR 150m alternative additionally requires that the
+    institution's total exposure to non-institution clients connected to
+    this counterparty stays within the plain 25% limit — a condition that
+    spans a connected-client group, not a single exposure, so it is out of
+    scope for this single-exposure function and not checked here.
 
     Args:
         exposure_value: Exposure value to a single client/group (post-CRM).
         tier1_capital: Tier 1 capital.
-        is_institution: Whether the counterparty is an institution (affects the
-            absolute alternative limit; not applied in this ratio test).
+        is_institution: Whether the counterparty is an institution (or a
+            connected-client group including one) — applies the EUR 150m
+            absolute alternative when it exceeds the 25% ratio limit.
 
     Returns:
-        Dict with ``exposure_ratio`` (of Tier 1), ``limit`` (25%),
-        ``within_limit`` and the ``excess`` over the limit (currency).
+        Dict with ``exposure_ratio`` (of Tier 1), ``limit`` (25%, always the
+        ratio, for reference), ``within_limit`` and the ``excess`` over the
+        applicable limit (currency) — ``within_limit``/``excess`` reflect the
+        EUR 150m alternative when ``is_institution=True`` and it is the
+        higher limit.
 
     Raises:
         ValueError: If Tier 1 capital is non-positive.
@@ -483,11 +504,13 @@ def crr2_large_exposure_limit(
         raise ValueError("tier1_capital must be positive")
     ratio = exposure_value / tier1_capital
     limit_amount = LARGE_EXPOSURE_LIMIT * tier1_capital
+    if is_institution:
+        limit_amount = max(limit_amount, CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR)
     excess = max(exposure_value - limit_amount, 0.0)
     return {
         "exposure_ratio": round(ratio, 8),
         "limit": LARGE_EXPOSURE_LIMIT,
-        "within_limit": bool(ratio <= LARGE_EXPOSURE_LIMIT),
+        "within_limit": bool(exposure_value <= limit_amount),
         "excess": round(excess, 4),
         "is_institution": is_institution,
     }

@@ -140,17 +140,23 @@ class DerivativesNamespace:
         swap_rates: list[float] | list[list[float]],
         face_value: float = 100.0,
         frequency: int = 2,
+        use_market_price: bool = False,
     ) -> dict[str, Any]:
         """Par-par asset-swap spread.
 
-        The spread equating the bond's net present value (relative to par) to an
-        annuity of the swap's fixed-leg PV01:
-        ``ASW = (PV_bond − par) / annuity``, expressed in basis points.
+        The spread equating the bond's net present value to an annuity of the
+        swap's fixed-leg PV01: ``ASW = (PV_bond − reference_price) / annuity``,
+        expressed in basis points.
 
-        Note: ``bond_price`` is accepted for API-compatibility but does not
-        affect the result — ``PV_bond`` in the formula above is derived
-        internally by discounting ``cashflows``/``times`` at ``swap_rates``,
-        not from the observed ``bond_price`` passed in.
+        By default (``use_market_price=False``), ``reference_price`` is
+        ``face_value`` (par) — this reproduces the function's original,
+        par-referenced behaviour exactly and is unchanged for any existing
+        caller. Set ``use_market_price=True`` to use the bond's actual dirty
+        price instead, matching the standard market convention (O'Kane, 2000,
+        "Introduction to Asset Swaps", Lehman Brothers): the spread is only
+        equal to the par-referenced figure when the bond happens to trade at
+        par, so for any bond away from par the market-convention spread and
+        the par-referenced spread differ.
 
         Returns:
             The raw API response as a dict.
@@ -162,6 +168,7 @@ class DerivativesNamespace:
             "swap_rates": swap_rates,
             "face_value": face_value,
             "frequency": frequency,
+            "use_market_price": use_market_price,
         }
         return self._client._request(
             "POST", "/api/v1/derivatives/asset_swap_spread", json_body=body
@@ -448,12 +455,11 @@ class DerivativesNamespace:
         date with discount rates equal to the reference rates, an FRN prices near
         par plus the PV of the spread.
 
-        Note: the number of coupon periods actually priced is
-        ``len(reference_rates)`` (and ``discount_rates`` must match that length).
-        ``maturity`` is only used for input validation (``maturity > 0``) here —
-        it does not determine the coupon schedule, so a caller-supplied
-        ``maturity`` inconsistent with ``len(reference_rates) / frequency`` is
-        not detected or reconciled.
+        The coupon schedule actually priced is derived from
+        ``len(reference_rates)`` (``discount_rates`` must match that length).
+        ``maturity`` must be consistent with ``len(reference_rates) / frequency``
+        — a caller-supplied ``maturity`` that implies a different number of
+        periods is rejected rather than silently ignored.
 
         Returns:
             The raw API response as a dict.

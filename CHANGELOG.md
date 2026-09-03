@@ -7,6 +7,53 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`crr2_large_exposure_limit`** — `is_institution` was accepted (its own
+  docstring said it "affects the absolute alternative limit") but never
+  actually applied: the function only ever ran the 25%-of-Tier-1 ratio
+  test. CRR2 Art. 395(1) requires, for an institution counterparty (or a
+  connected-client group including one), the limit to be the HIGHER of
+  25% of Tier 1 capital or EUR 150m — now implemented. Default
+  (`is_institution=False`) is unchanged. Verified against Art. 395(1) via
+  two independent secondary sources after this environment's network
+  egress proxy blocked direct fetches of every primary EU-legislation
+  host tried.
+- **`asset_swap_spread`** — `bond_price` was accepted but never used; the
+  spread was always computed against `face_value` (par), silently wrong for
+  any bond not trading at par relative to the standard market convention
+  (O'Kane, 2000, "Introduction to Asset Swaps"). Added an opt-in
+  `use_market_price: bool = False` parameter — default behaviour
+  (par-referenced) is unchanged for every existing caller; passing
+  `use_market_price=True` uses the bond's actual dirty price instead.
+- **`bond_pricer_floating_rate`** — `maturity` was validated only as `> 0`
+  and never reconciled against the actual number of coupon periods priced
+  (`len(reference_rates) / frequency`), so an internally inconsistent call
+  (e.g. 8 quarterly reference rates with `maturity=3.0`) silently priced the
+  wrong schedule instead of failing. Now raises `ValueError` on mismatch;
+  every previously-consistent call is unaffected.
+- **`combined_stress_scenario`** — could not express BCBS 238's regulator-set
+  retail deposit stability categories (stable/less-stable buckets, each with
+  its own rate); only a single blended scalar retail run-off rate was
+  possible. Added opt-in `retail_deposits_by_category`/`retail_runoff_rates`
+  arrays (supplied together, validated to sum to `retail_deposits`) computing
+  a BCBS-238-shaped categorised outflow instead. Default behaviour
+  (arguments omitted) is unchanged.
+- **`transaction_cost_analysis`** — even with `decision_price` supplied, the
+  result was a delay+execution partial implementation shortfall, missing
+  Perold's (1988) unexecuted-share opportunity-cost leg entirely (no
+  cancellation price/quantity was modelled). Added opt-in
+  `unexecuted_quantity`/`cancellation_price` parameters (supplied together,
+  requiring a scalar `decision_price`) adding `opportunity_cost[_bps]` and
+  `total_implementation_shortfall[_bps]` covering the full original order
+  (executed and unexecuted). Default behaviour is unchanged.
+- **`compute_rolling_var`'s caveat catalogue entry** — claimed the docstring
+  called this an "expanding window" while the code used a trailing window;
+  the docstring was already corrected in PR #301 and has said "fixed-length
+  trailing window" ever since. The catalogue entry was never updated to
+  match, so it described a mismatch that no longer exists. Corrected to
+  reflect current reality — no code change, since none was needed.
+
 ### Added
 
 - **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a

@@ -1189,38 +1189,60 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "credit_var_monte_carlo",
     },
     {
-        "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent "
-        "asset\n"
+        "description": "By default (the three transition-matrix arguments omitted) this is a\n"
+        "default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\n"
         "returns are driven by a single common factor; an obligor defaults when "
         "its\n"
-        "return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full "
-        "model\n"
-        "uses a multi-state rating-migration matrix — handled separately by\n"
-        ":func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail "
-        "is\n"
-        "dominated by the default state captured here.\n"
+        "return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this "
+        "mode\n"
+        "it is a direct pass-through to the same one-factor Gaussian-copula Monte\n"
+        "Carlo engine used by :func:`credit_var_monte_carlo` (identical formula,\n"
+        "identical code path) — unchanged from before this function supported the\n"
+        "multi-state mode below.\n"
         "\n"
-        "In implementation this is a direct pass-through to the same one-factor\n"
-        "Gaussian-copula Monte Carlo engine used by\n"
-        ":func:`credit_var_monte_carlo` (identical formula, identical code path),\n"
-        "not a separately coded multi-state model.",
+        "Pass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``\n"
+        "together to switch to the genuine multi-state CreditMetrics model: each\n"
+        "obligor's simulated asset return is mapped through *its own*\n"
+        "transition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics\n"
+        "Technical Document's asset-return discretisation) to a migrated rating\n"
+        "state — not just default/survive — and the loss for that path is that\n"
+        "state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the\n"
+        "migration lands in default). ``pd``/``lgd`` still drive the default\n"
+        "boundary and loss in multi-state mode: the caller's per-obligor ``pd``\n"
+        "OVERRIDES ``transition_matrix``'s own default column for that obligor's\n"
+        "row, rather than the two being independently averaged or the matrix's\n"
+        "figure silently winning. To preserve the matrix's migration *shape* under\n"
+        "that override, the non-default cumulative transition probabilities are\n"
+        "affinely rescaled from ``[matrix's own default prob, 1]`` onto\n"
+        "``[pd, 1]`` — so relative proportions between non-default states are\n"
+        "unchanged, only the total probability mass assigned to default moves to\n"
+        "match ``pd`` exactly.\n"
+        "\n"
+        "Rating-state convention (matches\n"
+        ":func:`engine.credit_scoring.ratings_migration_matrix`'s own \"n_states,\n"
+        'including default as the last"): index 0 is the best rating, index\n'
+        "``n_states - 2`` the worst non-default rating, and index ``n_states - 1``\n"
+        "is always default.",
         "domain": "credit-risk",
         "function_name": "creditmetrics_portfolio_model",
         "input_schema": {
             "properties": {
                 "asset_correlation": {"default": 0.2, "type": "number"},
                 "confidence_level": {"default": 0.99, "type": "number"},
+                "current_rating": {"type": "object"},
                 "exposures": {"type": "object"},
                 "lgd": {"type": "object"},
                 "n_simulations": {"default": 20000, "type": "integer"},
                 "pd": {"type": "object"},
                 "seed": {"default": 2024, "type": "integer"},
+                "state_loss_pct": {"type": "object"},
+                "transition_matrix": {"type": "object"},
             },
             "required": ["exposures", "pd", "lgd"],
             "type": "object",
         },
         "path": "/api/v1/credit-risk/creditmetrics_portfolio_model",
-        "summary": "Simplified CreditMetrics (two-state) portfolio loss distribution.",
+        "summary": "CreditMetrics portfolio loss distribution — two-state or genuine multi-state.",
         "tool_name": "creditmetrics_portfolio_model",
     },
     {
@@ -1319,20 +1341,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "default_correlation_matrix",
     },
     {
-        "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\n"
-        "EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the\n"
-        "underlying requirement.\n"
+        "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when\n"
+        "these are more conservative than the long-run average. Two scaling\n"
+        "methods are available:\n"
         "\n"
-        "CRR Art. 181 requires LGD to reflect economic-downturn conditions when "
-        "these\n"
-        "are more conservative than the long-run average. The supervisory-style\n"
-        "additive add-on (EBA GL) is applied as\n"
-        "``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` "
-        "is\n"
-        "*not* used here; instead a transparent multiplicative scaling is applied "
-        "and\n"
-        "clipped to ``[floor, 1]`` so the result never under-states the long-run "
-        "LGD.",
+        '- ``"multiplicative"`` (default, backward-compatible): a transparent\n'
+        "  multiplicative scaling, ``LGD_LR * multiplier``, clipped to\n"
+        "  ``[floor, 1]`` so the result never under-states the long-run LGD.\n"
+        "  Calibrate ``downturn_multiplier`` to your own downturn analysis —\n"
+        "  this is not itself a formula prescribed by CRR Art. 181 or EBA GL.\n"
+        '- ``"additive"``: the EBA/GL/2019/03 supervisory-style fallback add-on,\n'
+        "  ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``\n"
+        '  — here ``downturn_multiplier`` plays the same "how severe" role as in\n'
+        "  the multiplicative method, scaling how much of the remaining\n"
+        "  loss-given-default headroom (``1 - LGD_LR``) the downturn add-on\n"
+        "  consumes, rather than scaling ``LGD_LR`` itself directly.",
         "domain": "credit-risk",
         "function_name": "downturn_lgd_adjustment",
         "input_schema": {
@@ -1340,6 +1363,7 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "downturn_multiplier": {"default": 1.0, "type": "number"},
                 "floor": {"default": 0.0, "type": "number"},
                 "lgd_long_run": {"type": "number"},
+                "method": {"default": "multiplicative", "type": "string"},
             },
             "required": ["lgd_long_run"],
             "type": "object",
@@ -2197,14 +2221,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "asian_option_pricer",
     },
     {
-        "description": "The spread equating the bond's net present value (relative to par) to an\n"
-        "annuity of the swap's fixed-leg PV01:\n"
-        "``ASW = (PV_bond − par) / annuity``, expressed in basis points.\n"
+        "description": "The spread equating the bond's net present value to an annuity of the\n"
+        "swap's fixed-leg PV01: ``ASW = (PV_bond − reference_price) / annuity``,\n"
+        "expressed in basis points.\n"
         "\n"
-        "Note: ``bond_price`` is accepted for API-compatibility but does not\n"
-        "affect the result — ``PV_bond`` in the formula above is derived\n"
-        "internally by discounting ``cashflows``/``times`` at ``swap_rates``,\n"
-        "not from the observed ``bond_price`` passed in.",
+        "By default (``use_market_price=False``), ``reference_price`` is\n"
+        "``face_value`` (par) — this reproduces the function's original,\n"
+        "par-referenced behaviour exactly and is unchanged for any existing\n"
+        "caller. Set ``use_market_price=True`` to use the bond's actual dirty\n"
+        "price instead, matching the standard market convention (O'Kane, 2000,\n"
+        '"Introduction to Asset Swaps", Lehman Brothers): the spread is only\n'
+        "equal to the par-referenced figure when the bond happens to trade at\n"
+        "par, so for any bond away from par the market-convention spread and\n"
+        "the par-referenced spread differ.",
         "domain": "derivatives",
         "function_name": "asset_swap_spread",
         "input_schema": {
@@ -2215,6 +2244,7 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "frequency": {"default": 2, "type": "integer"},
                 "swap_rates": {"type": "object"},
                 "times": {"type": "object"},
+                "use_market_price": {"default": False, "type": "boolean"},
             },
             "required": ["bond_price", "cashflows", "times", "swap_rates"],
             "type": "object",
@@ -2416,12 +2446,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "date with discount rates equal to the reference rates, an FRN prices near\n"
         "par plus the PV of the spread.\n"
         "\n"
-        "Note: the number of coupon periods actually priced is\n"
-        "``len(reference_rates)`` (and ``discount_rates`` must match that length).\n"
-        "``maturity`` is only used for input validation (``maturity > 0``) here —\n"
-        "it does not determine the coupon schedule, so a caller-supplied\n"
-        "``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\n"
-        "not detected or reconciled.",
+        "The coupon schedule actually priced is derived from\n"
+        "``len(reference_rates)`` (``discount_rates`` must match that length).\n"
+        "``maturity`` must be consistent with ``len(reference_rates) / frequency``\n"
+        "— a caller-supplied ``maturity`` that implies a different number of\n"
+        "periods is rejected rather than silently ignored.",
         "domain": "derivatives",
         "function_name": "bond_pricer_floating_rate",
         "input_schema": {
@@ -3910,11 +3939,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "collateral_availability_analysis",
     },
     {
-        "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\n"
-        "combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off\n"
-        "the LCR's own regulator-set retail run-off categories (3%/5%/10%\n"
-        "depending on deposit stability), whereas this function applies its own\n"
-        "flat 15% retail / 100% wholesale run-off convention instead.\n"
+        "description": "By default (the two retail-category arguments omitted) this is NOT the\n"
+        "BCBS 238 reference combined scenario: BCBS 238's own combined\n"
+        "idiosyncratic + market-wide scenario (§II paras 19-20) runs off the\n"
+        "LCR's own regulator-set retail run-off categories (stable/less-stable\n"
+        "deposit stability buckets, each with its own national-discretion\n"
+        "minimum rate), whereas this function's default applies a single flat\n"
+        "15% retail / 100% wholesale run-off convention instead -- a structural\n"
+        "gap a single scalar ``retail_runoff`` rate cannot close, since BCBS\n"
+        "238's categorisation requires segmenting retail deposits into multiple\n"
+        "stability buckets with different rates, not one blended rate.\n"
+        "\n"
+        "Pass ``retail_deposits_by_category`` and ``retail_runoff_rates``\n"
+        "together (equal-length arrays: each category's deposit balance and its\n"
+        "own regulator-set run-off rate) to switch to a BCBS-238-shaped\n"
+        "categorised retail outflow -- ``sum(retail_deposits_by_category *\n"
+        "retail_runoff_rates)`` -- instead of the single-rate\n"
+        "``retail_deposits * retail_runoff`` convention. This function does not\n"
+        "hardcode specific category rates itself (BCBS 238 leaves the exact\n"
+        "stable/less-stable thresholds and rates to national supervisory\n"
+        "discretion); the caller supplies their own jurisdiction's categorised\n"
+        "balances and rates. ``retail_deposits_by_category`` must sum to\n"
+        "``retail_deposits`` -- enforced as a consistency check, not silently\n"
+        "ignored.\n"
         "\n"
         "Models a firm-specific shock occurring inside a market-wide crisis:\n"
         "liability run-off is aggravated (default 15% retail, 100% wholesale)\n"
@@ -3929,7 +3976,9 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "inflows": {"default": 0.0, "type": "number"},
                 "market_haircuts": {"type": "object"},
                 "retail_deposits": {"type": "number"},
+                "retail_deposits_by_category": {"type": "object"},
                 "retail_runoff": {"default": 0.15, "type": "number"},
+                "retail_runoff_rates": {"type": "object"},
                 "wholesale_funding": {"type": "number"},
                 "wholesale_runoff": {"default": 1.0, "type": "number"},
             },
@@ -6175,18 +6224,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "basel_standardised_measurement_sma",
     },
     {
-        "description": "Flags where the recovery time objective (RTO) exceeds the maximum "
-        "tolerable\n"
-        "downtime (MTD) and discounts the residual risk by BCP maturity. A breach "
-        "of\n"
-        "MTD is the dominant driver.\n"
+        "description": "Flags where the recovery time objective (RTO) exceeds the maximum\n"
+        "tolerable downtime (MTD) and discounts the residual risk by BCP maturity.\n"
+        "A breach of either recovery objective is the dominant driver.\n"
         "\n"
-        "Note:\n"
-        "    ``rpo_hours`` is accepted as an input (and range-validated) but does\n"
-        "    not currently affect the computed score — only ``rto_hours`` versus\n"
-        "    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n"
-        "    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n"
-        "    for the triage of this dead parameter.",
+        "By default (``rpo_target_hours`` omitted) this is byte-identical to the\n"
+        "original RTO-only scoring: ``rpo_hours`` is still range-validated but "
+        "does\n"
+        "not affect ``bc_risk_score``, since RPO risk has nothing to be measured\n"
+        "against without a target to compare it to. Pass ``rpo_target_hours`` (the\n"
+        "maximum tolerable period of data loss, per ISO 22301 / DRI International\n"
+        "BCM practice) to additionally score potential data loss: RTO and RPO are\n"
+        "independently critical recovery objectives — a plan can fail on either\n"
+        "axis — so the pre-BCP-maturity risk is the *worse* of the two, not an\n"
+        "average of them, consistent with this function's existing \"a breach is\n"
+        'the dominant driver" philosophy for RTO alone.',
         "domain": "operational",
         "function_name": "business_continuity_risk_score",
         "input_schema": {
@@ -6194,13 +6246,14 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "bcp_maturity": {"type": "number"},
                 "max_tolerable_downtime": {"type": "number"},
                 "rpo_hours": {"type": "number"},
+                "rpo_target_hours": {"type": "object"},
                 "rto_hours": {"type": "number"},
             },
             "required": ["rto_hours", "rpo_hours", "max_tolerable_downtime", "bcp_maturity"],
             "type": "object",
         },
         "path": "/api/v1/operational/business_continuity_risk_score",
-        "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
+        "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
         "tool_name": "business_continuity_risk_score",
     },
     {
@@ -8081,19 +8134,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "exactly to the executed-quantity implementation shortfall measured\n"
         "directly against the decision price:\n"
         "``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n"
-        "* trade_quantities)``. This still omits Perold's unexecuted-share\n"
-        "opportunity-cost leg (no cancellation price/quantity is modelled here),\n"
-        "so even with ``decision_price`` supplied the result is a delay+\n"
-        "execution partial IS, not the complete four-component decomposition.",
+        "* trade_quantities)``.\n"
+        "\n"
+        "Additionally passing ``unexecuted_quantity`` and ``cancellation_price``\n"
+        "together adds the opportunity-cost leg for shares that were never\n"
+        "executed: the paper cost of the price move between the decision instant\n"
+        "and the price at which the unexecuted portion of the order was marked\n"
+        "at cancellation/expiry, ``side * (cancellation_price - decision_price) *\n"
+        "unexecuted_quantity``. Delay cost + execution slippage + opportunity\n"
+        "cost together are the full-order implementation shortfall against the\n"
+        "decision price, covering every share of the original order (executed\n"
+        "and unexecuted alike) -- this function still does not model any\n"
+        "explicit commission/fee leg, which some treatments of Perold's\n"
+        "decomposition include as a further, separate component.",
         "domain": "portfolio",
         "function_name": "transaction_cost_analysis",
         "input_schema": {
             "properties": {
                 "benchmark_prices": {"type": "object"},
+                "cancellation_price": {"type": "object"},
                 "decision_price": {"type": "object"},
                 "side": {"default": 1, "type": "integer"},
                 "trade_prices": {"type": "object"},
                 "trade_quantities": {"type": "object"},
+                "unexecuted_quantity": {"type": "object"},
             },
             "required": ["trade_prices", "benchmark_prices", "trade_quantities"],
             "type": "object",
@@ -8307,12 +8371,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "countercyclical_capital_buffer",
     },
     {
-        "description": "This function only implements the 25%-of-Tier-1 ratio test; CRR2's EUR\n"
-        "150m absolute alternative threshold for institutions is not applied.\n"
+        "description": "A single client / group exposure must not exceed 25% of Tier 1 capital,\n"
+        "or — where the counterparty is an institution (or a group of connected\n"
+        "clients including one) — the HIGHER of 25% of Tier 1 capital or EUR 150m\n"
+        "(``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR``), per Art. 395(1)'s institution\n"
+        "alternative. ``exposure_value``/``tier1_capital`` are assumed\n"
+        "EUR-denominated, matching Art. 395(1)'s own absolute figure — this\n"
+        "function does not itself perform currency conversion.\n"
         "\n"
-        "A single client / group exposure must not exceed 25% of Tier 1 capital\n"
-        "(or EUR 150m for institutions, whichever is higher). Reports the exposure\n"
-        "ratio and any breach amount.",
+        "Note: Art. 395(1)'s EUR 150m alternative additionally requires that the\n"
+        "institution's total exposure to non-institution clients connected to\n"
+        "this counterparty stays within the plain 25% limit — a condition that\n"
+        "spans a connected-client group, not a single exposure, so it is out of\n"
+        "scope for this single-exposure function and not checked here.",
         "domain": "regulatory",
         "function_name": "crr2_large_exposure_limit",
         "input_schema": {
