@@ -2221,14 +2221,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "asian_option_pricer",
     },
     {
-        "description": "The spread equating the bond's net present value (relative to par) to an\n"
-        "annuity of the swap's fixed-leg PV01:\n"
-        "``ASW = (PV_bond − par) / annuity``, expressed in basis points.\n"
+        "description": "The spread equating the bond's net present value to an annuity of the\n"
+        "swap's fixed-leg PV01: ``ASW = (PV_bond − reference_price) / annuity``,\n"
+        "expressed in basis points.\n"
         "\n"
-        "Note: ``bond_price`` is accepted for API-compatibility but does not\n"
-        "affect the result — ``PV_bond`` in the formula above is derived\n"
-        "internally by discounting ``cashflows``/``times`` at ``swap_rates``,\n"
-        "not from the observed ``bond_price`` passed in.",
+        "By default (``use_market_price=False``), ``reference_price`` is\n"
+        "``face_value`` (par) — this reproduces the function's original,\n"
+        "par-referenced behaviour exactly and is unchanged for any existing\n"
+        "caller. Set ``use_market_price=True`` to use the bond's actual dirty\n"
+        "price instead, matching the standard market convention (O'Kane, 2000,\n"
+        '"Introduction to Asset Swaps", Lehman Brothers): the spread is only\n'
+        "equal to the par-referenced figure when the bond happens to trade at\n"
+        "par, so for any bond away from par the market-convention spread and\n"
+        "the par-referenced spread differ.",
         "domain": "derivatives",
         "function_name": "asset_swap_spread",
         "input_schema": {
@@ -2239,6 +2244,7 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "frequency": {"default": 2, "type": "integer"},
                 "swap_rates": {"type": "object"},
                 "times": {"type": "object"},
+                "use_market_price": {"default": False, "type": "boolean"},
             },
             "required": ["bond_price", "cashflows", "times", "swap_rates"],
             "type": "object",
@@ -2440,12 +2446,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "date with discount rates equal to the reference rates, an FRN prices near\n"
         "par plus the PV of the spread.\n"
         "\n"
-        "Note: the number of coupon periods actually priced is\n"
-        "``len(reference_rates)`` (and ``discount_rates`` must match that length).\n"
-        "``maturity`` is only used for input validation (``maturity > 0``) here —\n"
-        "it does not determine the coupon schedule, so a caller-supplied\n"
-        "``maturity`` inconsistent with ``len(reference_rates) / frequency`` is\n"
-        "not detected or reconciled.",
+        "The coupon schedule actually priced is derived from\n"
+        "``len(reference_rates)`` (``discount_rates`` must match that length).\n"
+        "``maturity`` must be consistent with ``len(reference_rates) / frequency``\n"
+        "— a caller-supplied ``maturity`` that implies a different number of\n"
+        "periods is rejected rather than silently ignored.",
         "domain": "derivatives",
         "function_name": "bond_pricer_floating_rate",
         "input_schema": {

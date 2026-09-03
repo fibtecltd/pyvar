@@ -95,15 +95,17 @@
     }
   },
   "asset_swap_spread": {
-    "caveat": "The bond_price argument is accepted but never used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates instead, so the formula shown is what the code actually evaluates, not one using the passed-in bond_price.",
+    "caveat": "By default (use_market_price=False), bond_price is accepted but not used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates and compared against face_value (par), matching this function\u2019s original par-referenced behaviour exactly. Set use_market_price=True to compare PV_bond against the actual bond_price (dirty price) instead, matching the standard market asset-swap convention (O\u2019Kane 2000) \u2014 the two only agree when the bond happens to trade at par.",
     "citation": null,
-    "formula_latex": "ASW = \\frac{PV_{bond} - F}{\\text{Annuity}\\cdot F},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+    "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F},\\qquad R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
     "symbol_map": {
+      "bond_price": "P_{bond}",
       "cashflows": "CF_i",
       "face_value": "F",
       "frequency": "m",
       "swap_rates": "s_i",
-      "times": "t_i"
+      "times": "t_i",
+      "use_market_price": "switches R between F and P_{bond}"
     }
   },
   "audit_finding_risk_scorer": {
@@ -354,7 +356,7 @@
     }
   },
   "bond_pricer_floating_rate": {
-    "caveat": "n (the number of coupon periods) is taken from len(reference_rates), not from maturity\u00b7frequency \u2014 the maturity argument is only used for input validation (must be > 0) and does not otherwise drive the cashflow schedule.",
+    "caveat": "n (the number of coupon periods) is taken from len(reference_rates). maturity must equal len(reference_rates)/frequency \u2014 a caller-supplied maturity implying a different period count now raises ValueError instead of being silently ignored.",
     "citation": null,
     "formula_latex": "P=\\sum_{i=1}^{n} CF_i\\left(1+\\frac{d_i}{m}\\right)^{-i},\\qquad CF_i=F\\frac{r_i+s}{m}\\ (\\text{plus } F \\text{ at } i=n)",
     "symbol_map": {

@@ -42,6 +42,29 @@ def test_floating_rate_near_par_at_reset():
     assert p == pytest.approx(100.0, abs=1e-4)
 
 
+# ── maturity/len(reference_rates) consistency check (caveat-triage batch 2) ──
+# maturity previously was validated only as >0 and never reconciled against
+# the actual number of periods priced (len(reference_rates)/frequency).
+
+
+def test_floating_rate_rejects_maturity_inconsistent_with_period_count():
+    n = 8  # 8 periods at frequency=4 implies maturity=2.0, not 3.0
+    ref = [0.03] * n
+    disc = [0.03] * n
+    with pytest.raises(ValueError):
+        bond_pricer_floating_rate(100.0, ref, 0.0, disc, 3.0, frequency=4)
+
+
+def test_floating_rate_accepts_maturity_consistent_with_period_count():
+    n = 8
+    ref = [0.03] * n
+    disc = [0.03] * n
+    # Must not raise -- this is the exact case test_floating_rate_near_par_at_reset
+    # already relies on (8 periods at frequency=4 == maturity 2.0).
+    p = bond_pricer_floating_rate(100.0, ref, 0.0, disc, 2.0, frequency=4)["price"]
+    assert p == pytest.approx(100.0, abs=1e-4)
+
+
 def test_inflation_linked_uplift_increases_price_vs_zero_inflation():
     base = inflation_linked_bond_pricer(100.0, 0.02, 0.02, 10.0, inflation_rate=0.0)["price"]
     infl = inflation_linked_bond_pricer(100.0, 0.02, 0.02, 10.0, inflation_rate=0.03)["price"]

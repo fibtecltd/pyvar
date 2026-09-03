@@ -19,6 +19,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   two independent secondary sources after this environment's network
   egress proxy blocked direct fetches of every primary EU-legislation
   host tried.
+- **`asset_swap_spread`** — `bond_price` was accepted but never used; the
+  spread was always computed against `face_value` (par), silently wrong for
+  any bond not trading at par relative to the standard market convention
+  (O'Kane, 2000, "Introduction to Asset Swaps"). Added an opt-in
+  `use_market_price: bool = False` parameter — default behaviour
+  (par-referenced) is unchanged for every existing caller; passing
+  `use_market_price=True` uses the bond's actual dirty price instead.
+- **`bond_pricer_floating_rate`** — `maturity` was validated only as `> 0`
+  and never reconciled against the actual number of coupon periods priced
+  (`len(reference_rates) / frequency`), so an internally inconsistent call
+  (e.g. 8 quarterly reference rates with `maturity=3.0`) silently priced the
+  wrong schedule instead of failing. Now raises `ValueError` on mismatch;
+  every previously-consistent call is unaffected.
 
 ### Added
 
