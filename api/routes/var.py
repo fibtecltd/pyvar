@@ -47,10 +47,12 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import update
+from starlette.concurrency import run_in_threadpool
 
 from api.middleware.auth import TokenPayload, get_current_user
 from api.middleware.rate_limit import enforce_compute_rate_limit
@@ -248,6 +250,25 @@ async def submit_var(
 # ── GET /var/result/{task_id} ─────────────────────────────────────────────────
 
 
+def _read_celery_result(task_id: str) -> tuple[str, Any, dict[str, Any] | None]:
+    """Blocking Celery/result-backend read — call via run_in_threadpool, never inline.
+
+    AsyncResult.state/.result/.kwargs each hit the sync redis client (Celery has
+    no async result backend). Sentry issue cdb4c0e5 (dev, 2026-09-03): a stalled
+    write to a stale ElastiCache connection blocked this call for as long as the
+    kernel's own TCP retransmission timeout, and because it ran straight in the
+    event loop it froze every other in-flight request on the same worker, not
+    just this one. tasks/var_task.py's celery_app socket tuning bounds how long
+    that stall can now last; running the read in a thread here bounds the blast
+    radius to this one request even if it still stalls the full 5s.
+    """
+    async_result = AsyncResult(task_id, app=celery_app)
+    state = async_result.state
+    raw_result = async_result.result if state in ("SUCCESS", "FAILURE") else None
+    kwargs = async_result.kwargs if state == "SUCCESS" else None
+    return state, raw_result, kwargs
+
+
 @router.get(
     "/result/{task_id}",
     response_model=JobResultResponse,
@@ -259,8 +280,7 @@ async def get_var_result(
     user: TokenPayload = Depends(get_current_user),
 ) -> OrjsonResponse:
 
-    async_result = AsyncResult(task_id, app=celery_app)
-    state = async_result.state
+    state, raw_result, kwargs = await run_in_threadpool(_read_celery_result, task_id)
 
     # Map Celery states to our JobStatus enum
     status_map = {
@@ -276,8 +296,8 @@ async def get_var_result(
     error = None
 
     if state == "SUCCESS":
-        raw = async_result.result
-        payload = (async_result.kwargs or {}).get("payload")
+        raw = raw_result
+        payload = (kwargs or {}).get("payload")
         if isinstance(payload, dict):
             # Cache the canonical raw result (s3_key, no presigned_url) — the
             # cache-hit path in api/routes/caching.py generates its own fresh
@@ -289,7 +309,7 @@ async def get_var_result(
         result = VaRResult(**hydrate_presigned_url(raw))
 
     elif state == "FAILURE":
-        error = str(async_result.result)
+        error = str(raw_result)
 
     # CloudFront's ApiCachePolicy (edge_stack.py) clamps TTL using this header —
     # min_ttl=0/max_ttl=3600 — so PENDING/STARTED/FAILURE are never cached

@@ -186,6 +186,25 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,  # one task at a time per worker (CPU-bound)
     task_acks_late=True,  # only ack after task completes (safe retry)
     worker_max_tasks_per_child=100,  # recycle workers to prevent memory leak
+    # Result-backend (Redis/ElastiCache) socket tuning — Sentry issue
+    # cdb4c0e5 (dev, 2026-09-03): api/routes/var.py's get_var_result reads
+    # async_result.state synchronously inside an async FastAPI handler, so a
+    # stalled write to a stale connection doesn't just fail slowly — it
+    # blocks that worker's entire event loop until the kernel's own TCP
+    # retransmission timeout gives up (tens of minutes with no socket_timeout
+    # set, as here), taking down every other in-flight request on the same
+    # process. Same underlying cause as a5ebcb89 (see api/routes/caching.py,
+    # api/middleware/rate_limit.py): ElastiCache Serverless's proxy silently
+    # drops idle client connections. socket_timeout/socket_connect_timeout
+    # bound how long a single call can hang; redis_backend_health_check_interval
+    # PINGs idle connections before reuse; redis_retry_on_timeout lets
+    # redis-py transparently retry once on a fresh connection instead of
+    # raising.
+    redis_socket_timeout=5,
+    redis_socket_connect_timeout=5,
+    redis_socket_keepalive=True,
+    redis_backend_health_check_interval=30,
+    redis_retry_on_timeout=True,
 )
 
 
