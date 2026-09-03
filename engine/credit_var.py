@@ -122,13 +122,16 @@ def _simulate_portfolio_losses_multistate(
     n_sims = systematic.shape[0]
     n_obligors = lgd.shape[0]
     n_thresh = thresholds.shape[1]
+    # Depends only on i, not on the simulation index s -- hoisted out of the
+    # s x i double loop so it's computed once per obligor instead of once
+    # per (simulation, obligor) pair.
+    sqrt_one_minus = np.sqrt(1.0 - sqrt_rho * sqrt_rho)
     losses = np.zeros(n_sims, dtype=np.float64)
     for s in prange(n_sims):
         total = 0.0
         m = systematic[s]
         for i in range(n_obligors):
-            sqrt_one_minus = np.sqrt(1.0 - sqrt_rho[i] * sqrt_rho[i])
-            asset = sqrt_rho[i] * m + sqrt_one_minus * idiosyncratic[s, i]
+            asset = sqrt_rho[i] * m + sqrt_one_minus[i] * idiosyncratic[s, i]
             state = 0
             found = False
             for k in range(n_thresh):
@@ -330,10 +333,16 @@ def creditmetrics_portfolio_model(
     Technical Document's asset-return discretisation) to a migrated rating
     state — not just default/survive — and the loss for that path is that
     state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the
-    migration lands in default). ``pd``/``lgd`` still drive the two-state
-    default threshold, so the default state's boundary and loss are always
-    obligor-specific even in multi-state mode; only the non-default migration
-    structure comes from ``transition_matrix``.
+    migration lands in default). ``pd``/``lgd`` still drive the default
+    boundary and loss in multi-state mode: the caller's per-obligor ``pd``
+    OVERRIDES ``transition_matrix``'s own default column for that obligor's
+    row, rather than the two being independently averaged or the matrix's
+    figure silently winning. To preserve the matrix's migration *shape* under
+    that override, the non-default cumulative transition probabilities are
+    affinely rescaled from ``[matrix's own default prob, 1]`` onto
+    ``[pd, 1]`` — so relative proportions between non-default states are
+    unchanged, only the total probability mass assigned to default moves to
+    match ``pd`` exactly.
 
     Rating-state convention (matches
     :func:`engine.credit_scoring.ratings_migration_matrix`'s own "n_states,
@@ -344,7 +353,9 @@ def creditmetrics_portfolio_model(
     Args:
         exposures: Per-obligor exposure (>= 0).
         pd: Per-obligor PD in ``(0, 1)`` — always used for the default
-            threshold, in both modes.
+            threshold, in both modes. In multi-state mode this OVERRIDES
+            ``transition_matrix``'s own default probability for that
+            obligor (see above), it is not blended or ignored.
         lgd: Per-obligor LGD in ``[0, 1]`` — always used for the default-state
             loss, in both modes.
         asset_correlation: Common-factor asset correlation in ``[0, 1)``.
@@ -404,6 +415,8 @@ def creditmetrics_portfolio_model(
             "transition_matrix must be a square (n_states, n_states) array, n_states >= 2"
         )
     n_states = tm.shape[0]
+    if np.any((tm < 0.0) | (tm > 1.0)):
+        raise ValueError("transition_matrix entries must each lie in [0, 1]")
     if not np.allclose(tm.sum(axis=1), 1.0, atol=1e-6):
         raise ValueError("transition_matrix rows must each sum to 1")
 
@@ -430,6 +443,21 @@ def creditmetrics_portfolio_model(
     n_thresh = n_states - 1
     rows = tm[cr]  # (n_obligors, n_states)
     cum_from_worst = np.cumsum(rows[:, ::-1], axis=1)[:, :n_thresh]
+
+    # Override transition_matrix's own default probability (cum_from_worst's
+    # first column) with the caller's per-obligor pd, per this function's
+    # documented contract -- pd always drives the default threshold, even in
+    # multi-state mode. The non-default migration *shape* is preserved by an
+    # affine rescale of the cumulative probabilities from [orig_pd, 1] onto
+    # [pd, 1]: relative proportions between non-default states are
+    # unchanged, only the total default probability mass moves to match pd
+    # exactly. denom is floored to avoid dividing by ~0 when a row's own
+    # default probability is already ~1 (a degenerate matrix row with no
+    # non-default mass to rescale).
+    orig_pd = cum_from_worst[:, :1]  # (n_obligors, 1)
+    denom = np.maximum(1.0 - orig_pd, 1e-12)
+    p_col = p[:, np.newaxis]
+    cum_from_worst = p_col + (cum_from_worst - orig_pd) * (1.0 - p_col) / denom
     thresholds = stats.norm.ppf(cum_from_worst).astype(np.float64)
 
     rng = np.random.default_rng(seed)

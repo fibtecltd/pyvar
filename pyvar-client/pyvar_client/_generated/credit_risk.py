@@ -488,10 +488,16 @@ class CreditRiskNamespace:
         Technical Document's asset-return discretisation) to a migrated rating
         state — not just default/survive — and the loss for that path is that
         state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the
-        migration lands in default). ``pd``/``lgd`` still drive the two-state
-        default threshold, so the default state's boundary and loss are always
-        obligor-specific even in multi-state mode; only the non-default migration
-        structure comes from ``transition_matrix``.
+        migration lands in default). ``pd``/``lgd`` still drive the default
+        boundary and loss in multi-state mode: the caller's per-obligor ``pd``
+        OVERRIDES ``transition_matrix``'s own default column for that obligor's
+        row, rather than the two being independently averaged or the matrix's
+        figure silently winning. To preserve the matrix's migration *shape* under
+        that override, the non-default cumulative transition probabilities are
+        affinely rescaled from ``[matrix's own default prob, 1]`` onto
+        ``[pd, 1]`` — so relative proportions between non-default states are
+        unchanged, only the total probability mass assigned to default moves to
+        match ``pd`` exactly.
 
         Rating-state convention (matches
         :func:`engine.credit_scoring.ratings_migration_matrix`'s own "n_states,

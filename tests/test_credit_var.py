@@ -150,6 +150,53 @@ def test_creditmetrics_multistate_reduces_exactly_to_binary_model():
     assert multi == binary
 
 
+def test_creditmetrics_multistate_pd_overrides_transition_matrix_default_probability():
+    """pd must OVERRIDE transition_matrix's own default probability, not be
+    silently ignored in favour of it. Uses a deliberately WRONG, uniform 0.5
+    default probability in a 2-state matrix (unrelated to the much smaller
+    per-obligor pd values) -- with n_states=2 the override fully replaces
+    the matrix's default column, so if pd correctly drives the threshold,
+    results must be bit-for-bit identical to credit_var_monte_carlo (which
+    computes the threshold purely from pd). Before the fix this test would
+    fail: the multi-state path would instead reflect the wrong 0.5 default
+    probability baked into the matrix.
+    """
+    rng = np.random.default_rng(1)
+    n = 20
+    pd = rng.uniform(0.01, 0.08, n)  # far from the matrix's 0.5
+    lgd = rng.uniform(0.3, 0.6, n)
+    exposures = rng.uniform(1e5, 1e6, n)
+    rho, seed, cl, n_sims = 0.20, 999, 0.99, 20_000
+
+    binary = credit_var_monte_carlo(
+        pd=pd,
+        lgd=lgd,
+        ead=exposures,
+        asset_correlation=rho,
+        confidence_level=cl,
+        n_simulations=n_sims,
+        seed=seed,
+    )
+
+    tm = np.array([[0.5, 0.5], [0.0, 1.0]])  # row 0's default prob (0.5) is a decoy
+    current_rating = np.zeros(n, dtype=np.int64)
+    state_loss_pct = np.array([0.0])  # surviving = 0 loss, matches binary model
+
+    multi = creditmetrics_portfolio_model(
+        exposures=exposures,
+        pd=pd,
+        lgd=lgd,
+        asset_correlation=rho,
+        confidence_level=cl,
+        n_simulations=n_sims,
+        seed=seed,
+        transition_matrix=tm,
+        current_rating=current_rating,
+        state_loss_pct=state_loss_pct,
+    )
+    assert multi == binary
+
+
 def test_creditmetrics_multistate_worse_transition_matrix_raises_el():
     n = 30
     pd = np.full(n, 0.02)
@@ -210,6 +257,16 @@ def test_creditmetrics_multistate_validates_shapes_and_ranges():
         creditmetrics_portfolio_model(
             **kwargs,
             transition_matrix=np.array([[0.5, 0.4], [0.0, 1.0]]),
+            current_rating=current_rating,
+            state_loss_pct=np.array([0.1]),
+        )
+    # entry out of [0, 1] (offset by a compensating entry so the row still
+    # sums to 1 -- must be caught by an explicit entry-range check, not just
+    # the row-sum check).
+    with pytest.raises(ValueError):
+        creditmetrics_portfolio_model(
+            **kwargs,
+            transition_matrix=np.array([[-0.1, 1.1], [0.0, 1.0]]),
             current_rating=current_rating,
             state_loss_pct=np.array([0.1]),
         )
