@@ -171,14 +171,34 @@ class LiquidityNamespace:
         retail_runoff: float = 0.15,
         wholesale_runoff: float = 1.0,
         inflows: float = 0.0,
+        retail_deposits_by_category: list[float] | list[list[float]] | None = None,
+        retail_runoff_rates: list[float] | list[list[float]] | None = None,
     ) -> dict[str, Any]:
         """Combined idiosyncratic + market-wide stress scenario.
 
-        This is NOT the BCBS 238 reference combined scenario: BCBS 238's own
-        combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off
-        the LCR's own regulator-set retail run-off categories (3%/5%/10%
-        depending on deposit stability), whereas this function applies its own
-        flat 15% retail / 100% wholesale run-off convention instead.
+        By default (the two retail-category arguments omitted) this is NOT the
+        BCBS 238 reference combined scenario: BCBS 238's own combined
+        idiosyncratic + market-wide scenario (§II paras 19-20) runs off the
+        LCR's own regulator-set retail run-off categories (stable/less-stable
+        deposit stability buckets, each with its own national-discretion
+        minimum rate), whereas this function's default applies a single flat
+        15% retail / 100% wholesale run-off convention instead -- a structural
+        gap a single scalar ``retail_runoff`` rate cannot close, since BCBS
+        238's categorisation requires segmenting retail deposits into multiple
+        stability buckets with different rates, not one blended rate.
+
+        Pass ``retail_deposits_by_category`` and ``retail_runoff_rates``
+        together (equal-length arrays: each category's deposit balance and its
+        own regulator-set run-off rate) to switch to a BCBS-238-shaped
+        categorised retail outflow -- ``sum(retail_deposits_by_category *
+        retail_runoff_rates)`` -- instead of the single-rate
+        ``retail_deposits * retail_runoff`` convention. This function does not
+        hardcode specific category rates itself (BCBS 238 leaves the exact
+        stable/less-stable thresholds and rates to national supervisory
+        discretion); the caller supplies their own jurisdiction's categorised
+        balances and rates. ``retail_deposits_by_category`` must sum to
+        ``retail_deposits`` -- enforced as a consistency check, not silently
+        ignored.
 
         Models a firm-specific shock occurring inside a market-wide crisis:
         liability run-off is aggravated (default 15% retail, 100% wholesale)
@@ -197,6 +217,8 @@ class LiquidityNamespace:
             "retail_runoff": retail_runoff,
             "wholesale_runoff": wholesale_runoff,
             "inflows": inflows,
+            "retail_deposits_by_category": retail_deposits_by_category,
+            "retail_runoff_rates": retail_runoff_rates,
         }
         return self._client._request(
             "POST", "/api/v1/liquidity/combined_stress_scenario", json_body=body

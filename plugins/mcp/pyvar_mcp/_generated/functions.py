@@ -3939,11 +3939,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "collateral_availability_analysis",
     },
     {
-        "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\n"
-        "combined idiosyncratic + market-wide scenario (§II paras 19-20) runs off\n"
-        "the LCR's own regulator-set retail run-off categories (3%/5%/10%\n"
-        "depending on deposit stability), whereas this function applies its own\n"
-        "flat 15% retail / 100% wholesale run-off convention instead.\n"
+        "description": "By default (the two retail-category arguments omitted) this is NOT the\n"
+        "BCBS 238 reference combined scenario: BCBS 238's own combined\n"
+        "idiosyncratic + market-wide scenario (§II paras 19-20) runs off the\n"
+        "LCR's own regulator-set retail run-off categories (stable/less-stable\n"
+        "deposit stability buckets, each with its own national-discretion\n"
+        "minimum rate), whereas this function's default applies a single flat\n"
+        "15% retail / 100% wholesale run-off convention instead -- a structural\n"
+        "gap a single scalar ``retail_runoff`` rate cannot close, since BCBS\n"
+        "238's categorisation requires segmenting retail deposits into multiple\n"
+        "stability buckets with different rates, not one blended rate.\n"
+        "\n"
+        "Pass ``retail_deposits_by_category`` and ``retail_runoff_rates``\n"
+        "together (equal-length arrays: each category's deposit balance and its\n"
+        "own regulator-set run-off rate) to switch to a BCBS-238-shaped\n"
+        "categorised retail outflow -- ``sum(retail_deposits_by_category *\n"
+        "retail_runoff_rates)`` -- instead of the single-rate\n"
+        "``retail_deposits * retail_runoff`` convention. This function does not\n"
+        "hardcode specific category rates itself (BCBS 238 leaves the exact\n"
+        "stable/less-stable thresholds and rates to national supervisory\n"
+        "discretion); the caller supplies their own jurisdiction's categorised\n"
+        "balances and rates. ``retail_deposits_by_category`` must sum to\n"
+        "``retail_deposits`` -- enforced as a consistency check, not silently\n"
+        "ignored.\n"
         "\n"
         "Models a firm-specific shock occurring inside a market-wide crisis:\n"
         "liability run-off is aggravated (default 15% retail, 100% wholesale)\n"
@@ -3958,7 +3976,9 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "inflows": {"default": 0.0, "type": "number"},
                 "market_haircuts": {"type": "object"},
                 "retail_deposits": {"type": "number"},
+                "retail_deposits_by_category": {"type": "object"},
                 "retail_runoff": {"default": 0.15, "type": "number"},
+                "retail_runoff_rates": {"type": "object"},
                 "wholesale_funding": {"type": "number"},
                 "wholesale_runoff": {"default": 1.0, "type": "number"},
             },
@@ -8114,19 +8134,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "exactly to the executed-quantity implementation shortfall measured\n"
         "directly against the decision price:\n"
         "``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n"
-        "* trade_quantities)``. This still omits Perold's unexecuted-share\n"
-        "opportunity-cost leg (no cancellation price/quantity is modelled here),\n"
-        "so even with ``decision_price`` supplied the result is a delay+\n"
-        "execution partial IS, not the complete four-component decomposition.",
+        "* trade_quantities)``.\n"
+        "\n"
+        "Additionally passing ``unexecuted_quantity`` and ``cancellation_price``\n"
+        "together adds the opportunity-cost leg for shares that were never\n"
+        "executed: the paper cost of the price move between the decision instant\n"
+        "and the price at which the unexecuted portion of the order was marked\n"
+        "at cancellation/expiry, ``side * (cancellation_price - decision_price) *\n"
+        "unexecuted_quantity``. Delay cost + execution slippage + opportunity\n"
+        "cost together are the full-order implementation shortfall against the\n"
+        "decision price, covering every share of the original order (executed\n"
+        "and unexecuted alike) -- this function still does not model any\n"
+        "explicit commission/fee leg, which some treatments of Perold's\n"
+        "decomposition include as a further, separate component.",
         "domain": "portfolio",
         "function_name": "transaction_cost_analysis",
         "input_schema": {
             "properties": {
                 "benchmark_prices": {"type": "object"},
+                "cancellation_price": {"type": "object"},
                 "decision_price": {"type": "object"},
                 "side": {"default": 1, "type": "integer"},
                 "trade_prices": {"type": "object"},
                 "trade_quantities": {"type": "object"},
+                "unexecuted_quantity": {"type": "object"},
             },
             "required": ["trade_prices", "benchmark_prices", "trade_quantities"],
             "type": "object",
