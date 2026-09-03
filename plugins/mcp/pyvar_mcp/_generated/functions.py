@@ -1189,38 +1189,60 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "credit_var_monte_carlo",
     },
     {
-        "description": "A default/no-default reduction of J.P. Morgan's CreditMetrics: latent "
-        "asset\n"
+        "description": "By default (the three transition-matrix arguments omitted) this is a\n"
+        "default/no-default reduction of J.P. Morgan's CreditMetrics: latent asset\n"
         "returns are driven by a single common factor; an obligor defaults when "
         "its\n"
-        "return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. The full "
-        "model\n"
-        "uses a multi-state rating-migration matrix — handled separately by\n"
-        ":func:`engine.credit_scoring.ratings_migration_matrix` — but the loss tail "
-        "is\n"
-        "dominated by the default state captured here.\n"
+        "return breaches ``N^{-1}(PD)``, incurring ``LGD * exposure``. In this "
+        "mode\n"
+        "it is a direct pass-through to the same one-factor Gaussian-copula Monte\n"
+        "Carlo engine used by :func:`credit_var_monte_carlo` (identical formula,\n"
+        "identical code path) — unchanged from before this function supported the\n"
+        "multi-state mode below.\n"
         "\n"
-        "In implementation this is a direct pass-through to the same one-factor\n"
-        "Gaussian-copula Monte Carlo engine used by\n"
-        ":func:`credit_var_monte_carlo` (identical formula, identical code path),\n"
-        "not a separately coded multi-state model.",
+        "Pass ``transition_matrix``, ``current_rating`` and ``state_loss_pct``\n"
+        "together to switch to the genuine multi-state CreditMetrics model: each\n"
+        "obligor's simulated asset return is mapped through *its own*\n"
+        "transition-matrix row (Gupton, Finger & Bhatia 1997, the CreditMetrics\n"
+        "Technical Document's asset-return discretisation) to a migrated rating\n"
+        "state — not just default/survive — and the loss for that path is that\n"
+        "state's ``state_loss_pct`` of exposure (or ``LGD * exposure`` if the\n"
+        "migration lands in default). ``pd``/``lgd`` still drive the default\n"
+        "boundary and loss in multi-state mode: the caller's per-obligor ``pd``\n"
+        "OVERRIDES ``transition_matrix``'s own default column for that obligor's\n"
+        "row, rather than the two being independently averaged or the matrix's\n"
+        "figure silently winning. To preserve the matrix's migration *shape* under\n"
+        "that override, the non-default cumulative transition probabilities are\n"
+        "affinely rescaled from ``[matrix's own default prob, 1]`` onto\n"
+        "``[pd, 1]`` — so relative proportions between non-default states are\n"
+        "unchanged, only the total probability mass assigned to default moves to\n"
+        "match ``pd`` exactly.\n"
+        "\n"
+        "Rating-state convention (matches\n"
+        ":func:`engine.credit_scoring.ratings_migration_matrix`'s own \"n_states,\n"
+        'including default as the last"): index 0 is the best rating, index\n'
+        "``n_states - 2`` the worst non-default rating, and index ``n_states - 1``\n"
+        "is always default.",
         "domain": "credit-risk",
         "function_name": "creditmetrics_portfolio_model",
         "input_schema": {
             "properties": {
                 "asset_correlation": {"default": 0.2, "type": "number"},
                 "confidence_level": {"default": 0.99, "type": "number"},
+                "current_rating": {"type": "object"},
                 "exposures": {"type": "object"},
                 "lgd": {"type": "object"},
                 "n_simulations": {"default": 20000, "type": "integer"},
                 "pd": {"type": "object"},
                 "seed": {"default": 2024, "type": "integer"},
+                "state_loss_pct": {"type": "object"},
+                "transition_matrix": {"type": "object"},
             },
             "required": ["exposures", "pd", "lgd"],
             "type": "object",
         },
         "path": "/api/v1/credit-risk/creditmetrics_portfolio_model",
-        "summary": "Simplified CreditMetrics (two-state) portfolio loss distribution.",
+        "summary": "CreditMetrics portfolio loss distribution — two-state or genuine multi-state.",
         "tool_name": "creditmetrics_portfolio_model",
     },
     {
@@ -1319,20 +1341,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "default_correlation_matrix",
     },
     {
-        "description": "Note: uses a multiplicative downturn scaling, a deliberate departure from\n"
-        "EBA/GL/2019/03's additive fallback approach — see CRR Art. 181 for the\n"
-        "underlying requirement.\n"
+        "description": "CRR Art. 181 requires LGD to reflect economic-downturn conditions when\n"
+        "these are more conservative than the long-run average. Two scaling\n"
+        "methods are available:\n"
         "\n"
-        "CRR Art. 181 requires LGD to reflect economic-downturn conditions when "
-        "these\n"
-        "are more conservative than the long-run average. The supervisory-style\n"
-        "additive add-on (EBA GL) is applied as\n"
-        "``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5`` "
-        "is\n"
-        "*not* used here; instead a transparent multiplicative scaling is applied "
-        "and\n"
-        "clipped to ``[floor, 1]`` so the result never under-states the long-run "
-        "LGD.",
+        '- ``"multiplicative"`` (default, backward-compatible): a transparent\n'
+        "  multiplicative scaling, ``LGD_LR * multiplier``, clipped to\n"
+        "  ``[floor, 1]`` so the result never under-states the long-run LGD.\n"
+        "  Calibrate ``downturn_multiplier`` to your own downturn analysis —\n"
+        "  this is not itself a formula prescribed by CRR Art. 181 or EBA GL.\n"
+        '- ``"additive"``: the EBA/GL/2019/03 supervisory-style fallback add-on,\n'
+        "  ``LGD_downturn = LGD_LR + max(0, multiplier - 1) * (1 - LGD_LR) * 0.5``\n"
+        '  — here ``downturn_multiplier`` plays the same "how severe" role as in\n'
+        "  the multiplicative method, scaling how much of the remaining\n"
+        "  loss-given-default headroom (``1 - LGD_LR``) the downturn add-on\n"
+        "  consumes, rather than scaling ``LGD_LR`` itself directly.",
         "domain": "credit-risk",
         "function_name": "downturn_lgd_adjustment",
         "input_schema": {
@@ -1340,6 +1363,7 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "downturn_multiplier": {"default": 1.0, "type": "number"},
                 "floor": {"default": 0.0, "type": "number"},
                 "lgd_long_run": {"type": "number"},
+                "method": {"default": "multiplicative", "type": "string"},
             },
             "required": ["lgd_long_run"],
             "type": "object",
@@ -6175,18 +6199,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "tool_name": "basel_standardised_measurement_sma",
     },
     {
-        "description": "Flags where the recovery time objective (RTO) exceeds the maximum "
-        "tolerable\n"
-        "downtime (MTD) and discounts the residual risk by BCP maturity. A breach "
-        "of\n"
-        "MTD is the dominant driver.\n"
+        "description": "Flags where the recovery time objective (RTO) exceeds the maximum\n"
+        "tolerable downtime (MTD) and discounts the residual risk by BCP maturity.\n"
+        "A breach of either recovery objective is the dominant driver.\n"
         "\n"
-        "Note:\n"
-        "    ``rpo_hours`` is accepted as an input (and range-validated) but does\n"
-        "    not currently affect the computed score — only ``rto_hours`` versus\n"
-        "    ``max_tolerable_downtime`` and ``bcp_maturity`` drive\n"
-        "    ``bc_risk_score``. See ``docs/p11-caveat-triage-plan.md`` (Tier 1)\n"
-        "    for the triage of this dead parameter.",
+        "By default (``rpo_target_hours`` omitted) this is byte-identical to the\n"
+        "original RTO-only scoring: ``rpo_hours`` is still range-validated but "
+        "does\n"
+        "not affect ``bc_risk_score``, since RPO risk has nothing to be measured\n"
+        "against without a target to compare it to. Pass ``rpo_target_hours`` (the\n"
+        "maximum tolerable period of data loss, per ISO 22301 / DRI International\n"
+        "BCM practice) to additionally score potential data loss: RTO and RPO are\n"
+        "independently critical recovery objectives — a plan can fail on either\n"
+        "axis — so the pre-BCP-maturity risk is the *worse* of the two, not an\n"
+        "average of them, consistent with this function's existing \"a breach is\n"
+        'the dominant driver" philosophy for RTO alone.',
         "domain": "operational",
         "function_name": "business_continuity_risk_score",
         "input_schema": {
@@ -6194,13 +6221,14 @@ FUNCTIONS: list[dict[str, Any]] = [
                 "bcp_maturity": {"type": "number"},
                 "max_tolerable_downtime": {"type": "number"},
                 "rpo_hours": {"type": "number"},
+                "rpo_target_hours": {"type": "object"},
                 "rto_hours": {"type": "number"},
             },
             "required": ["rto_hours", "rpo_hours", "max_tolerable_downtime", "bcp_maturity"],
             "type": "object",
         },
         "path": "/api/v1/operational/business_continuity_risk_score",
-        "summary": "Business-continuity risk from RTO versus tolerance and BCP maturity.",
+        "summary": "Business-continuity risk from RTO/RPO versus tolerance and BCP maturity.",
         "tool_name": "business_continuity_risk_score",
     },
     {

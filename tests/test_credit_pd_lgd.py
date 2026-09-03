@@ -119,3 +119,43 @@ def test_downturn_lgd_floor_and_cap():
     assert r["lgd_downturn"] <= 1.0
     with pytest.raises(ValueError):
         downturn_lgd_adjustment(0.4, downturn_multiplier=0.8)
+
+
+# ── method="additive" (caveat-triage batch 1: EBA/GL/2019/03 fallback) ──────
+# The default ("multiplicative") must stay byte-identical to before this
+# opt-in was added; "additive" is the fallback formula the function's own
+# docstring already documented but never actually implemented.
+
+
+def test_downturn_lgd_default_method_omits_method_key():
+    r = downturn_lgd_adjustment(lgd_long_run=0.40, downturn_multiplier=1.25)
+    assert "method" not in r
+    assert set(r) == {"lgd_downturn", "lgd_long_run", "multiplier", "floor"}
+
+
+def test_downturn_lgd_additive_matches_documented_formula():
+    lgd_lr, mult = 0.40, 1.25
+    r = downturn_lgd_adjustment(lgd_long_run=lgd_lr, downturn_multiplier=mult, method="additive")
+    expected = lgd_lr + max(0.0, mult - 1.0) * (1.0 - lgd_lr) * 0.5
+    assert r["method"] == "additive"
+    assert abs(r["lgd_downturn"] - round(expected, 10)) < 1e-9
+
+
+def test_downturn_lgd_additive_never_below_long_run_and_capped_at_one():
+    below = downturn_lgd_adjustment(lgd_long_run=0.90, downturn_multiplier=1.0, method="additive")
+    assert below["lgd_downturn"] >= 0.90  # multiplier=1 -> no add-on, floors at long-run
+    capped = downturn_lgd_adjustment(lgd_long_run=0.95, downturn_multiplier=5.0, method="additive")
+    assert capped["lgd_downturn"] <= 1.0
+
+
+def test_downturn_lgd_additive_and_multiplicative_diverge():
+    # Same inputs, different method -> different result (proves "additive"
+    # isn't silently falling back to the multiplicative path).
+    mult = downturn_lgd_adjustment(0.40, downturn_multiplier=1.5)["lgd_downturn"]
+    add = downturn_lgd_adjustment(0.40, downturn_multiplier=1.5, method="additive")["lgd_downturn"]
+    assert mult != add
+
+
+def test_downturn_lgd_invalid_method_raises():
+    with pytest.raises(ValueError):
+        downturn_lgd_adjustment(0.4, downturn_multiplier=1.2, method="bogus")

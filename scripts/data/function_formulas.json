@@ -377,7 +377,7 @@
     }
   },
   "business_continuity_risk_score": {
-    "caveat": "rpo_hours is accepted as a parameter but is not used anywhere in the score computation in the code \u2014 only RTO vs MTD and bcp_maturity drive the score.",
+    "caveat": "Default (rpo_target_hours omitted) is unchanged: rpo_hours is still range-validated but does not affect bc_risk_score, since RPO risk has nothing to be measured against without a target. Pass rpo_target_hours (the maximum tolerable period of data loss, ISO 22301 / DRI International BCM practice) to also score potential data loss \u2014 the pre-BCP-maturity risk is then the worse of the RTO and RPO breach severities, not an average of them.",
     "citation": null,
     "formula_latex": "G = \\min\\!\\left(\\frac{RTO}{MTD},\\,2\\right)\\Big/2 \\\\ Raw = 50\\cdot\\mathbb{1}[RTO>MTD] + 50\\,G \\\\ Score = \\min\\big(Raw\\times(1-0.5\\,M),\\,100\\big)",
     "symbol_map": {
@@ -1018,8 +1018,8 @@
     }
   },
   "creditmetrics_portfolio_model": {
-    "caveat": "This function is a direct pass-through to the identical one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo (same formula, same code path) \u2014 it is not a distinct multi-state CreditMetrics rating-migration model; migration itself is handled separately by ratings_migration_matrix.",
-    "citation": null,
+    "caveat": "By default (transition_matrix/current_rating/state_loss_pct omitted) this is still a direct pass-through to the same one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo \u2014 unchanged from before. Pass all three together to switch to a genuine multi-state CreditMetrics model: each obligor's simulated asset return migrates through its own transition-matrix row to a rating state (not just default/survive), verified to reduce bit-for-bit to the two-state pass-through in the degenerate case where every obligor has its own single-rating, single-transition-probability row (see tests/test_credit_var.py).",
+    "citation": "Gupton, Finger & Bhatia (1997), CreditMetrics \u2014 Technical Document, J.P. Morgan (asset-return discretisation of a rating-transition matrix).",
     "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
     "symbol_map": {
       "asset_correlation": "\\rho_i",
@@ -1225,7 +1225,7 @@
     }
   },
   "downturn_lgd_adjustment": {
-    "caveat": "CRR Art. 181 requires downturn-conservative LGD, but this specific multiplicative scaling is a deliberate departure from the EBA/GL/2019/03 additive fallback (+15pp) \u2014 the docstring itself states that additive formula is 'not used here'. Calibrate downturn_multiplier to your own downturn analysis rather than assuming regulatory grounding for the exact formula.",
+    "caveat": "Default (method omitted or \"multiplicative\") is unchanged: a transparent multiplicative scaling not itself prescribed by CRR Art. 181 or EBA GL \u2014 calibrate downturn_multiplier to your own downturn analysis. Pass method=\"additive\" to use the EBA/GL/2019/03 supervisory-style fallback add-on this function's own docstring already documented but did not implement until now.",
     "citation": null,
     "formula_latex": "LGD_{DT} = \\max\\big(\\min(LGD_{LR}\\cdot m,\\ 1),\\ f,\\ LGD_{LR}\\big)",
     "symbol_map": {
