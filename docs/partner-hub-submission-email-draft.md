@@ -55,12 +55,12 @@ generic "we used AI" pitch:**
 
 **Where we're honest about the gap:** pyvar.com is a product, not a
 consulting practice, and we have no named enterprise deployments to cite
-yet — so we're not applying against Services Track Select-tier
-eligibility (10 certified individuals, 2 joint customers in production)
-today. What we do have: one Anthropic-certified individual on the team
-(Filippo Buchicchio, CCA-F), and a case study we believe is worth
-Anthropic's attention regardless of tier — a full technical writeup and
-PRD are attached/linked below.
+yet — so we're not applying for Services Track Select-tier status (10
+certified individuals, 2 joint customers in production) today. What we do
+have: one Anthropic-certified individual on the team (Filippo Buchicchio,
+CCA-F), and a case study we believe is worth Anthropic's attention
+regardless of tier — a full technical writeup and PRD are attached/linked
+below.
 
 **Attached / linked:**
 - PRD: `docs/prd-claude-partner-hub.md` (this repo)
@@ -69,9 +69,16 @@ PRD are attached/linked below.
 - Live site: pyvar.com
 - Repository: github.com/fibtecltd/pyvar
 
-Happy to walk through any of the numbers above — everything in the PRD is
-checkable directly against the repository's own commit history, test
-suite, and the live API.
+**What we're asking for:** we'd like pyvar.com considered as a public
+case study for the Claude Partner Network / Partner Hub — as a
+Claude-native product built end-to-end with Claude Code, not under the
+Services Track's consulting-firm criteria. Concretely, we're hoping for:
+(1) a listing or feature as a Claude-built product case study, and/or (2)
+feedback on what a genuine Services Track application would need once we
+have real joint-customer deployments to cite. Happy to walk through any
+of the numbers above on a call — everything in the PRD is checkable
+directly against the repository's own commit history, test suite, and
+the live API.
 
 Best regards,
 Filippo Buchicchio
