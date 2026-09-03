@@ -7,6 +7,30 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`combined_stress_scenario`** — could not express BCBS 238's regulator-set
+  retail deposit stability categories (stable/less-stable buckets, each with
+  its own rate); only a single blended scalar retail run-off rate was
+  possible. Added opt-in `retail_deposits_by_category`/`retail_runoff_rates`
+  arrays (supplied together, validated to sum to `retail_deposits`) computing
+  a BCBS-238-shaped categorised outflow instead. Default behaviour
+  (arguments omitted) is unchanged.
+- **`transaction_cost_analysis`** — even with `decision_price` supplied, the
+  result was a delay+execution partial implementation shortfall, missing
+  Perold's (1988) unexecuted-share opportunity-cost leg entirely (no
+  cancellation price/quantity was modelled). Added opt-in
+  `unexecuted_quantity`/`cancellation_price` parameters (supplied together,
+  requiring a scalar `decision_price`) adding `opportunity_cost[_bps]` and
+  `total_implementation_shortfall[_bps]` covering the full original order
+  (executed and unexecuted). Default behaviour is unchanged.
+- **`compute_rolling_var`'s caveat catalogue entry** — claimed the docstring
+  called this an "expanding window" while the code used a trailing window;
+  the docstring was already corrected in PR #301 and has said "fixed-length
+  trailing window" ever since. The catalogue entry was never updated to
+  match, so it described a mismatch that no longer exists. Corrected to
+  reflect current reality — no code change, since none was needed.
+
 ### Added
 
 - **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a

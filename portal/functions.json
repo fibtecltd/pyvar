@@ -13034,7 +13034,7 @@
     "display_name": "Combined Stress Scenario",
     "path": "/api/v1/liquidity/combined_stress_scenario",
     "summary": "Combined idiosyncratic + market-wide stress scenario.",
-    "description": "This is NOT the BCBS 238 reference combined scenario: BCBS 238's own\ncombined idiosyncratic + market-wide scenario (\u00a7II paras 19-20) runs off\nthe LCR's own regulator-set retail run-off categories (3%/5%/10%\ndepending on deposit stability), whereas this function applies its own\nflat 15% retail / 100% wholesale run-off convention instead.\n\nModels a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n(Found during the Tier 3 #2 audit \u2014 a prior version of this docstring\nincorrectly claimed this was the Basel/EBA reference scenario.)",
+    "description": "By default (the two retail-category arguments omitted) this is NOT the\nBCBS 238 reference combined scenario: BCBS 238's own combined\nidiosyncratic + market-wide scenario (\u00a7II paras 19-20) runs off the\nLCR's own regulator-set retail run-off categories (stable/less-stable\ndeposit stability buckets, each with its own national-discretion\nminimum rate), whereas this function's default applies a single flat\n15% retail / 100% wholesale run-off convention instead -- a structural\ngap a single scalar ``retail_runoff`` rate cannot close, since BCBS\n238's categorisation requires segmenting retail deposits into multiple\nstability buckets with different rates, not one blended rate.\n\nPass ``retail_deposits_by_category`` and ``retail_runoff_rates``\ntogether (equal-length arrays: each category's deposit balance and its\nown regulator-set run-off rate) to switch to a BCBS-238-shaped\ncategorised retail outflow -- ``sum(retail_deposits_by_category *\nretail_runoff_rates)`` -- instead of the single-rate\n``retail_deposits * retail_runoff`` convention. This function does not\nhardcode specific category rates itself (BCBS 238 leaves the exact\nstable/less-stable thresholds and rates to national supervisory\ndiscretion); the caller supplies their own jurisdiction's categorised\nbalances and rates. ``retail_deposits_by_category`` must sum to\n``retail_deposits`` -- enforced as a consistency check, not silently\nignored.\n\nModels a firm-specific shock occurring inside a market-wide crisis:\nliability run-off is aggravated (default 15% retail, 100% wholesale)\n*and* HQLA value is reduced by stressed market haircuts, simultaneously.\n(Found during the Tier 3 #2 audit \u2014 a prior version of this docstring\nincorrectly claimed this was the Basel/EBA reference scenario.)",
     "params": [
       {
         "name": "retail_deposits",
@@ -13112,18 +13112,42 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "retail_deposits_by_category",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "retail_runoff_rates",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "The function's own docstring explicitly states this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set 3%/5%/10% retail categories, whereas this function's 15% retail / 100% wholesale defaults are an internal convention (correction noted during a Tier 3 audit).",
+      "caveat": "By default (retail_deposits_by_category/retail_runoff_rates omitted) this is NOT the Basel/EBA reference combined scenario: BCBS 238's version runs off the LCR's regulator-set retail deposit stability categories (stable/less-stable buckets, each with its own national-discretion rate), whereas this function's 15% retail / 100% wholesale defaults are a single blended internal convention (correction noted during a Tier 3 audit). Pass retail_deposits_by_category and retail_runoff_rates together to switch to a BCBS-238-shaped categorised retail outflow (sum of each category's balance times its own rate) instead -- this function does not hardcode specific category rates itself, since BCBS 238 leaves the exact thresholds/rates to national supervisory discretion; the caller supplies their own jurisdiction's categorised balances and rates.",
       "citation": null,
-      "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ O = R\\cdot r_R + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
+      "formula_latex": "HQLA_{stressed} = \\sum_i H_i(1-h_i) \\\\ R_{outflow} = \\begin{cases} R \\cdot r_R & \\text{default} \\\\ \\sum_j C_j \\cdot rc_j & \\text{categorised (opt-in)} \\end{cases} \\\\ O = R_{outflow} + W\\cdot r_W \\\\ N = O - I \\\\ \\text{Surplus} = HQLA_{stressed} - N",
       "symbol_map": {
         "hqla_by_level": "H_i",
         "inflows": "I",
         "market_haircuts": "h_i",
         "retail_deposits": "R",
+        "retail_deposits_by_category": "C_j",
         "retail_runoff": "r_R",
+        "retail_runoff_rates": "rc_j",
         "wholesale_funding": "W",
         "wholesale_runoff": "r_W"
       }
@@ -15342,7 +15366,7 @@
       }
     ],
     "formula": {
-      "caveat": "Docstring calls this an 'expanding window' but the code uses a fixed-length trailing window of size `window` (returns[i-window:i]); the formula reflects the actual trailing-window computation.",
+      "caveat": "Uses a fixed-length trailing window of size `window` (returns[i-window:i]), not an expanding window that grows from the start of the series -- the docstring (fixed in PR #301) already states this plainly; this catalogue entry previously described a stale mismatch between the docstring and the code that no longer exists.",
       "citation": null,
       "formula_latex": "VaR_t = -\\big(\\mu_{t-w:t} - z_\\alpha\\sigma_{t-w:t}\\big),\\quad z_\\alpha=\\Phi^{-1}(\\alpha)",
       "symbol_map": {
@@ -24509,7 +24533,7 @@
     "display_name": "Transaction Cost Analysis",
     "path": "/api/v1/portfolio/transaction_cost_analysis",
     "summary": "Transaction Cost Analysis (TCA) \u2014 implementation shortfall vs benchmark.",
-    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nBy default (``decision_price`` omitted, unchanged prior behaviour) this\nis narrower than Perold's (1988) full implementation-shortfall\ndecomposition -- it measures only execution slippage against the\n``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n\nPassing ``decision_price`` -- the price at the instant the investment\ndecision was made, Perold's \"paper\" price, distinct from the\narrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\nthe delay-cost leg: the cost incurred between the decision and the\norder reaching the market (``benchmark_prices``), *before* any\nexecution slippage is measured. Delay cost and execution slippage sum\nexactly to the executed-quantity implementation shortfall measured\ndirectly against the decision price:\n``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n* trade_quantities)``. This still omits Perold's unexecuted-share\nopportunity-cost leg (no cancellation price/quantity is modelled here),\nso even with ``decision_price`` supplied the result is a delay+\nexecution partial IS, not the complete four-component decomposition.",
+    "description": "Computes per-trade slippage against an arrival/VWAP benchmark and the\nquantity-weighted average slippage in basis points. ``side`` is +1 for\nbuys (paying above benchmark is a cost) and -1 for sells.\n\nBy default (``decision_price`` omitted, unchanged prior behaviour) this\nis narrower than Perold's (1988) full implementation-shortfall\ndecomposition -- it measures only execution slippage against the\n``benchmark_prices`` (arrival/VWAP), with no delay-cost leg.\n\nPassing ``decision_price`` -- the price at the instant the investment\ndecision was made, Perold's \"paper\" price, distinct from the\narrival/VWAP ``benchmark_prices`` used for execution slippage -- adds\nthe delay-cost leg: the cost incurred between the decision and the\norder reaching the market (``benchmark_prices``), *before* any\nexecution slippage is measured. Delay cost and execution slippage sum\nexactly to the executed-quantity implementation shortfall measured\ndirectly against the decision price:\n``delay_cost + total_cost == sum(side * (trade_prices - decision_price)\n* trade_quantities)``.\n\nAdditionally passing ``unexecuted_quantity`` and ``cancellation_price``\ntogether adds the opportunity-cost leg for shares that were never\nexecuted: the paper cost of the price move between the decision instant\nand the price at which the unexecuted portion of the order was marked\nat cancellation/expiry, ``side * (cancellation_price - decision_price) *\nunexecuted_quantity``. Delay cost + execution slippage + opportunity\ncost together are the full-order implementation shortfall against the\ndecision price, covering every share of the original order (executed\nand unexecuted alike) -- this function still does not model any\nexplicit commission/fee leg, which some treatments of Perold's\ndecomposition include as a further, separate component.",
     "params": [
       {
         "name": "trade_prices",
@@ -24565,18 +24589,42 @@
         "maximum": null,
         "exclusiveMinimum": null,
         "exclusiveMaximum": null
+      },
+      {
+        "name": "unexecuted_quantity",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
+      },
+      {
+        "name": "cancellation_price",
+        "type": "object",
+        "required": false,
+        "default": null,
+        "description": null,
+        "minimum": null,
+        "maximum": null,
+        "exclusiveMinimum": null,
+        "exclusiveMaximum": null
       }
     ],
     "formula": {
-      "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival), so with it supplied the result is a delay+execution partial IS -- still missing the unexecuted-share opportunity-cost leg (no cancellation price/quantity modelled), so still not the complete four-component decomposition.",
+      "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival). Additionally passing unexecuted_quantity and cancellation_price together adds the opportunity-cost leg for shares never executed, so delay + execution + opportunity cost then cover the full original order (executed and unexecuted alike) against the decision price -- this function still does not model any explicit commission/fee leg, which some treatments of Perold's decomposition include as a further, separate component.",
       "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
-      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4",
+      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Opportunity_{bps} = \\frac{s\\cdot(c - d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4, \\quad TotalIS_{bps} = \\frac{\\sum_i s\\cdot(p_i - d_i)\\cdot q_i + s\\cdot(c-d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4",
       "symbol_map": {
         "benchmark_prices": "b_i",
+        "cancellation_price": "c",
         "decision_price": "d_i",
         "side": "s",
         "trade_prices": "p_i",
-        "trade_quantities": "q_i"
+        "trade_quantities": "q_i",
+        "unexecuted_quantity": "u"
       }
     }
   },

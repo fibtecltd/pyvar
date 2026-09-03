@@ -48,6 +48,80 @@ def test_combined_worse_than_components():
     assert combined["survives"] is False
 
 
+def test_combined_stress_scenario_categorised_matches_default_when_equivalent():
+    # A single-category array carrying the whole retail balance at the same
+    # rate as the scalar default must reproduce the scalar path exactly.
+    hqla = np.array([100.0, 100.0])
+    hc = np.array([0.0, 0.20])
+    scalar = combined_stress_scenario(1000.0, 500.0, hqla, hc, retail_runoff=0.15)
+    categorised = combined_stress_scenario(
+        1000.0,
+        500.0,
+        hqla,
+        hc,
+        retail_deposits_by_category=np.array([1000.0]),
+        retail_runoff_rates=np.array([0.15]),
+    )
+    assert categorised == scalar
+
+
+def test_combined_stress_scenario_categorised_differs_from_default_rate():
+    # BCBS-238-style split (stable/less-stable) at rates below the 15% flat
+    # default must produce a smaller outflow than the default convention.
+    hqla = np.array([100.0, 100.0])
+    hc = np.array([0.0, 0.20])
+    default = combined_stress_scenario(1000.0, 500.0, hqla, hc)
+    categorised = combined_stress_scenario(
+        1000.0,
+        500.0,
+        hqla,
+        hc,
+        retail_deposits_by_category=np.array([700.0, 300.0]),
+        retail_runoff_rates=np.array([0.05, 0.10]),  # 700*0.05 + 300*0.10 = 65 < 150
+    )
+    assert categorised["stressed_outflow"] < default["stressed_outflow"]
+    assert categorised["stressed_outflow"] == pytest.approx(65.0 + 500.0)
+
+
+def test_combined_stress_scenario_categorised_partial_args_raises():
+    hqla = np.array([100.0, 100.0])
+    hc = np.array([0.0, 0.20])
+    with pytest.raises(ValueError):
+        combined_stress_scenario(
+            1000.0, 500.0, hqla, hc, retail_deposits_by_category=np.array([1000.0])
+        )
+    with pytest.raises(ValueError):
+        combined_stress_scenario(1000.0, 500.0, hqla, hc, retail_runoff_rates=np.array([0.15]))
+
+
+def test_combined_stress_scenario_categorised_must_sum_to_retail_deposits():
+    hqla = np.array([100.0, 100.0])
+    hc = np.array([0.0, 0.20])
+    with pytest.raises(ValueError):
+        combined_stress_scenario(
+            1000.0,
+            500.0,
+            hqla,
+            hc,
+            retail_deposits_by_category=np.array([700.0, 200.0]),  # sums to 900, not 1000
+            retail_runoff_rates=np.array([0.05, 0.10]),
+        )
+
+
+def test_combined_stress_scenario_categorised_rejects_out_of_range_rate():
+    hqla = np.array([100.0, 100.0])
+    hc = np.array([0.0, 0.20])
+    with pytest.raises(ValueError):
+        combined_stress_scenario(
+            1000.0,
+            500.0,
+            hqla,
+            hc,
+            retail_deposits_by_category=np.array([1000.0]),
+            retail_runoff_rates=np.array([1.5]),
+        )
+
+
 def test_survival_horizon_partial():
     r = survival_horizon_calculator(100.0, np.array([30.0, 30.0, 30.0, 30.0]))
     # day0: 70, day1: 40, day2: 10, day3: -20 -> survives 3 full days
