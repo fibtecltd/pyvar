@@ -2,6 +2,9 @@
 
 *A technical deep-dive into pyvar.com — an open-source VaR/ES/Greeks computation platform built, hardened, and shipped end-to-end with Claude Code.*
 
+<!-- Header image: to be committed as docs/image/header.png by Filippo when finalising for Medium. -->
+![](./image/header.png)
+
 **Author:** Fibtec Limited
 **Published:** docs/ companion to [`prd-claude-partner-hub.md`](./prd-claude-partner-hub.md)
 
@@ -9,10 +12,10 @@
 > description in this article is checkable against this repository —
 > `git log`, `CHANGELOG.md`, `portal/functions.json`, or a real PyPI/API
 > call. Where a claim was assumed rather than verified during drafting, we
-> ran it against the actual code and corrected it before publishing. Two of
-> those corrections are told as part of the story below, not edited out —
-> because the honesty mechanism this article describes only means something
-> if it also applies to the article itself.
+> ran it against the actual code and corrected it before publishing. Three
+> of those corrections are told as part of the story below, not edited out
+> — because the honesty mechanism this article describes only means
+> something if it also applies to the article itself.
 
 ---
 
@@ -143,6 +146,111 @@ found by re-deriving and re-running the numbers, not by inspection alone.
 
 ---
 
+## The caveat backlog, continued: 8 more fixes, 2 caught by reviewing its own work
+
+PR #306 wasn't the end of the caveat backlog — it was the first pass. The
+follow-on work (PRs #314–#318) read every remaining caveat's full text
+across all 8 domains, sorted each into "an honest disclosure, nothing to
+fix" versus "a real, bounded gap against a named external standard," and
+fixed the eight that were the latter, spread across six of those domains:
+
+- **`creditmetrics_portfolio_model`** went from a pass-through of the
+  ordinary two-state Credit VaR engine to a genuine multi-state
+  CreditMetrics model (Gupton, Finger & Bhatia 1997) — each obligor's
+  simulated asset return now migrates through its own rating-transition
+  row, not just default-or-survive.
+- **`downturn_lgd_adjustment`** got the EBA/GL/2019/03 additive fallback
+  formula wired in as an opt-in mode — the function's own docstring had
+  documented that formula for a while; nobody had connected it to a code
+  path.
+- **`business_continuity_risk_score`**'s `rpo_hours` parameter — accepted,
+  validated, and doing precisely nothing to the score it was passed
+  into — got a real RPO-breach severity to compare against.
+- **CRR2 Art. 395(1)**'s EUR 150m institution-counterparty absolute
+  alternative: `crr2_large_exposure_limit` accepted an `is_institution`
+  flag whose own docstring said it "affects the absolute alternative
+  limit," and then never applied it. Now it does.
+- **`asset_swap_spread`**'s `bond_price` parameter, previously accepted
+  and silently unused, turns out to matter: the standard market
+  convention (O'Kane, 2000, *Introduction to Asset Swaps*) prices the
+  spread against a bond's actual dirty price, not against par — the two
+  only agree when the bond happens to trade at par.
+- **`bond_pricer_floating_rate`** gained a consistency check between
+  `maturity` and the actual number of coupon periods being priced —
+  previously the two could silently disagree.
+- **`combined_stress_scenario`** gained an opt-in path shaped like BCBS
+  238's regulator-set retail deposit stability categories, instead of
+  forcing every caller through one blended run-off rate a multi-category
+  regulation can't be expressed through.
+- **`transaction_cost_analysis`** gained Perold's (1988) missing
+  opportunity-cost leg — the paper cost of the *unexecuted* portion of an
+  order, the piece that was still absent even after an earlier pass had
+  already added the delay-cost leg.
+
+Every one of the eight is additive: pass nothing new, get the exact same
+output as before. That's not incidental — it's the same discipline PR
+#306 established, checked again here by exact dict-equality tests, not
+just "still runs" smoke tests.
+
+The more interesting part is what a second pass — a code review, run
+before any of this merged — found wrong with the *first* pass:
+
+**Bug 1 — a parameter that looked used but wasn't.** The new
+`creditmetrics_portfolio_model` docstring claimed `pd` "still drives the
+default threshold... even in multi-state mode." It didn't. The default
+threshold was computed entirely from the transition matrix; `pd` was
+validated for range and then never touched again. The included
+cross-check test didn't catch this because it happened to construct a
+transition matrix whose own default probability matched `pd` exactly —
+so the bug and the correct behaviour produced identical numbers in that
+one test, by coincidence. The fix makes `pd` genuinely override the
+matrix's own default probability, via an affine rescale that preserves
+the matrix's migration shape while forcing the total default probability
+to match `pd` — and the regression test that proves it deliberately uses
+a transition matrix whose default probability is *wrong* (0.5, against a
+real `pd` of 1–8%), so the old bug would fail this test loudly if it ever
+came back.
+
+**Bug 2 — a fix that broke something two files away.** The CRR2 fix's own
+docstring quoted its new constant, `` ``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR`` ``,
+inline. The portal's function-catalogue generator derives correct
+capitalisation for acronyms like "VaR" or "PD" by scanning docstrings for
+short all-caps words — and it doesn't know the difference between a
+genuine acronym and a fragment of a long constant name split on
+underscores. It saw "LIMIT" inside that constant, all-caps and six
+characters, and voted it in as the correct casing for the word "limit" —
+silently corrupting `crr2_large_exposure_limit`'s own display title from
+"CRR2 Large Exposure Limit" to "CRR2 Large Exposure LIMIT" on the public
+portal. The first attempted fix (strip anything inside double-backtick
+code spans before voting) overcorrected: it also stripped legitimate
+acronyms like KVA and MVA that happened to share a code span with an
+underscored variable in an unrelated formula, breaking *their* display
+titles in the process of fixing this one. That regression was caught
+before it was pushed — by regenerating the whole catalogue and diffing
+every `display_name` against the current live version, not just the one
+function being fixed — and the actual fix checks whether a candidate word
+is adjacent to an underscore in the source text, not whether it's inside
+a code span at all.
+
+Neither of these was a follow-up someone requested. Both were found by
+treating "the code compiles and the happy-path test passes" as the start
+of verification, not the end of it — the same standard this whole article
+has been describing, applied to Claude Code's own recent work instead of
+to a formula from a textbook.
+
+Four separately-reviewed, independently green pull requests came out of
+this pass. All four got folded into one `--no-ff` merge before landing on
+`master` — not a code change, an infrastructure-cost one: this repo's CDK
+pipeline runs a full synth-and-deploy cycle on every push to `master`, so
+merging four times would have triggered it four times for work that
+landed as one coherent unit. After the fold, every generated artifact
+(the portal catalogue, the MCP tool list, the SDK) was regenerated from
+scratch and diffed against what the merge had produced automatically —
+zero drift, confirming the fold hadn't silently dropped or garbled
+anything in the process of saving three pipeline runs.
+
+---
+
 ## Illustration 2 — the honesty mechanism, in numbers
 
 pyvar doesn't claim all 385 functions are equally battle-tested. 91 of them
@@ -264,8 +372,12 @@ actually reach for it.
 
 - **385 risk functions, 8 domains** — traceable to the live OpenAPI schema
   and `portal/functions.json`.
-- **636 commits, 226 merged PRs**, of which **168 commits** carry a
-  `Co-Authored-By: Claude` trailer.
+- **649 commits, 300 merged PRs**, of which **131 commits** carry a
+  `Co-Authored-By: Claude` trailer — recounted directly against `git log`
+  and the GitHub API immediately before publication, replacing a lower
+  count from an earlier draft, for the same reason the 23.6% figure above
+  got recounted mid-session: a number in an article about verifying
+  numbers doesn't get a pass on being verified itself.
 - **`pyvar-client` on PyPI**, verified end-to-end — not just a green CI
   run, but a direct query against PyPI's own JSON API and a real
   `pip install` in a clean virtual environment.
@@ -307,5 +419,7 @@ everything above was: `git log`, PyPI, the live API, not a slide deck.
   notebooks referenced above.
 - `docs/prd-claude-partner-hub.md` (this repo) — the companion PRD this
   article was written alongside.
-- `git log` (this repo) — commit, PR, and Claude-co-authorship counts,
-  verified at time of writing.
+- `git log` (this repo) and the GitHub API — commit, PR, and
+  Claude-co-authorship counts, verified at time of writing.
+- `docs/caveat-triage-batch-plan.md` and `CHANGELOG.md` (this repo) — the
+  8-function caveat-triage follow-on pass (PRs #314–#318) described above.

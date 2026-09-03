@@ -2,7 +2,7 @@
 
 **Author:** Fibtec Limited
 **Status:** Draft — internal review, not yet submitted
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-03
 
 ---
 
@@ -85,15 +85,47 @@ not a projection.
   - A real Monte Carlo CVaR-optimizer solver bug and a core-deposit
     duration accuracy gap, both caught and fixed in a single Claude Code
     pass over the numerical caveat backlog (PR #306).
+  - A follow-on, domain-batched pass over that same caveat backlog (PRs
+    #314–#318, four independently reviewed PRs folded into a single merge
+    to minimise CDK CodePipeline runs): a genuine multi-state CreditMetrics
+    model (Gupton, Finger & Bhatia 1997) replacing what had been a
+    pass-through; CRR2 Art. 395(1)'s EUR 150m institution-counterparty
+    absolute alternative, previously accepted as a parameter and silently
+    ignored despite the parameter's own docstring; the standard market
+    asset-swap convention (O'Kane 2000) for bonds priced away from par;
+    and Perold's (1988) missing opportunity-cost leg in transaction-cost
+    analysis — 8 functions fixed in total, plus one caveat-catalogue entry
+    (`compute_rolling_var`) corrected with no code change, because the
+    docstring bug it described had already been fixed two PRs earlier and
+    nobody had gone back to update the caveat text. Two of the 8 fixes had
+    a bug of their own, caught by a Claude Code review pass *before*
+    merge, not written correctly the first time: the new CreditMetrics
+    `pd` parameter was validated but silently unused (default-threshold
+    math came entirely from the transition matrix, contradicting the
+    function's own docstring), and the CRR2 fix's own docstring broke the
+    portal's function-title generator for unrelated functions (an
+    acronym-casing heuristic mistook a constant-name fragment for a real
+    acronym) — both fixed before the affected PRs were merged, and the
+    CRR2 PR followed this repo's own `reg/*` governance rule requiring a
+    second human reviewer, not just a Claude Code review.
 - **Transparent uncertainty disclosure, not silent overclaiming**: 91 of
   385 functions (23.6%) carry a documented `caveat` in the public function
   catalogue (`portal/functions.json`) — a modeling simplification or an
   independent-verification gap disclosed to every API consumer, not
-  buried in an internal doc.
-- **635 commits, 226 merged PRs**, of which **167 commits** carry a
+  buried in an internal doc. Unchanged by the caveat-triage pass above:
+  every fix there was additive/opt-in, narrowing or correcting a caveat's
+  text rather than clearing it outright, so the 23.6% figure is the same
+  before and after — re-verified directly against the live catalogue at
+  time of this update, not carried forward from an earlier count.
+- **649 commits, 300 merged PRs**, of which **131 commits** carry a
   `Co-Authored-By: Claude` trailer — a majority-AI-authored,
   regulatory-grade codebase that has been through a real public-launch
-  security review (see §4) rather than a toy demo repo.
+  security review (see §4) rather than a toy demo repo. (These three
+  figures were re-verified directly against `git log` and the GitHub API
+  for this update and replace an earlier, lower count in a prior draft of
+  this document — the same "recount before republishing" discipline this
+  PRD's companion Medium article documents for its own caveat-rate
+  correction.)
 - **Real PyPI distribution, verified end-to-end**: `pyvar-client` (the
   typed Python SDK) publishes via GitHub Actions OIDC Trusted Publishing —
   confirmed not just by a green CI run but by directly querying PyPI's own
@@ -215,10 +247,20 @@ optimization → P8 portal finalisation → P9 public launch & GitHub.
   of its original v0.2.0 schedule too, with every example notebook's
   numbers verified against the real engine before publishing rather than
   assumed.
+- A follow-on caveat-triage pass (PRs #314–#318, see §2) shipped since the
+  v0.1.0 launch — 8 further Tier-C caveat resolutions across credit-risk,
+  operational, regulatory, derivatives, liquidity, and portfolio-analytics
+  (one of them, CRR2 Art. 395(1), a `reg/*`-governed regulatory-logic
+  change that went through this repo's second-human-reviewer requirement
+  rather than merging on Claude Code review alone), plus one
+  caveat-catalogue-only correction in market-risk.
 
-**Certified staff / joint customers**: none to report. This is the honest
-gap against Services Track eligibility this document opened with — not
-glossed over here either.
+**Certified staff**: 1 — Filippo Buchicchio (Fibtec) holds Anthropic's
+CCA-F certification. **Joint customers**: none to report. Neither closes
+the gap against Services Track Select-tier eligibility (10 active
+certified individuals, 2 joint customers in production in the past 12
+months) opened at the top of this document — one certified individual is
+progress worth recording honestly, not a claim that the bar is met.
 
 **Near-term next steps** (not yet done, listed as such):
 1. Get an actual review outcome on the `pyvar-mcp` marketplace submission.
@@ -236,4 +278,5 @@ glossed over here either.
 - `docs/pyvar_release_plan.md` (this repo) — P1–P9 build history.
 - `portal/functions.json` (this repo) — function/domain counts, caveat rate.
 - `docs/proposals/marketplace-submission-content.md` (this repo) — the actual `pyvar-mcp` marketplace submission content.
-- `git log` (this repo) — commit and PR counts, Claude co-authorship count.
+- `git log` (this repo) and the GitHub REST/search API — commit and PR
+  counts, Claude co-authorship count.
