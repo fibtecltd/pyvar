@@ -23,7 +23,7 @@ from xhtml2pdf import pisa
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PRD_PATH = REPO_ROOT / "docs" / "prd-claude-partner-hub.md"
-DEFAULT_OUT_PATH = Path("/tmp/pyvar-partner-hub-prd.pdf")
+DEFAULT_OUT_PATH = Path("/tmp/pyvar-partner-hub-prd.pdf")  # nosec B108 -- manual, single-user, never-in-CI script; fixed path is documented UX, not a shared/untrusted temp dir
 
 COVER_HTML = """
 <div class="cover">
