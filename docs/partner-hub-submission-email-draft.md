@@ -1,15 +1,16 @@
 # Draft: Partner Hub submission email / cover note
 
-**Status:** Draft — not yet sent. Portal submission mechanism (whether this
-goes through a "new Project" form field, an email, or both) not yet
-confirmed — see note in the PR/commit this file ships with.
+**Status:** Draft — about to be sent. The portal's "My Content" section
+(the only mechanism that fit pyvar.com's situation without a third-party
+customer relationship) has already had the PRD PDF uploaded; this email is
+a separate, direct follow-up.
 
 **Suggested subject:** pyvar.com — a Claude-native, regulatory-grade risk
 platform (Fibtec Limited)
 
-**Suggested recipient:** not yet confirmed — fill in once the portal's
-actual submission path is known (a partner-team contact address, or this
-text pasted into a portal "Project" description field).
+**Recipient:** partner-support@anthropic.com — supplied by Filippo as the
+address he has available; not independently verified against an Anthropic
+published source in this session (no browsing access to confirm).
 
 ---
 
