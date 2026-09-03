@@ -50,10 +50,40 @@ COVER_HTML = """
   </p>
   <p class="note">
     <b>Contact:</b> Filippo Buchicchio, Fibtec Limited
-    (CCA-F certified) &mdash; filippo.buchicchio@gmail.com
+    (CCA-F certified) &mdash; filippo.b@fibtec.co.uk
   </p>
 </div>
 <div style="page-break-after: always;"></div>
+"""
+
+DEJAVU_MONO_DIR = Path("/usr/share/fonts/truetype/dejavu")
+
+# xhtml2pdf's default fonts (Helvetica/Courier) don't cover the box-drawing
+# and pointer glyphs (─│►▼) used in the PRD's architecture diagram -- they
+# render as solid black boxes. DejaVu Sans Mono has full coverage; register
+# it separately from the main CSS block so the big stylesheet below can stay
+# a plain (non-f) string.
+FONT_FACE_CSS = f"""
+@font-face {{
+    font-family: "DejaVu Sans Mono";
+    src: url("{DEJAVU_MONO_DIR / 'DejaVuSansMono.ttf'}");
+}}
+@font-face {{
+    font-family: "DejaVu Sans Mono";
+    font-weight: bold;
+    src: url("{DEJAVU_MONO_DIR / 'DejaVuSansMono-Bold.ttf'}");
+}}
+@font-face {{
+    font-family: "DejaVu Sans Mono";
+    font-style: italic;
+    src: url("{DEJAVU_MONO_DIR / 'DejaVuSansMono-Oblique.ttf'}");
+}}
+@font-face {{
+    font-family: "DejaVu Sans Mono";
+    font-weight: bold;
+    font-style: italic;
+    src: url("{DEJAVU_MONO_DIR / 'DejaVuSansMono-BoldOblique.ttf'}");
+}}
 """
 
 CSS = """
@@ -112,13 +142,13 @@ li {
     margin-bottom: 0.35em;
 }
 code {
-    font-family: Courier, monospace;
+    font-family: "DejaVu Sans Mono", Courier, monospace;
     font-size: 9pt;
     background-color: #f2f2f2;
     padding: 1pt 3pt;
 }
 pre {
-    font-family: Courier, monospace;
+    font-family: "DejaVu Sans Mono", Courier, monospace;
     font-size: 7.5pt;
     background-color: #f2f2f2;
     padding: 8pt;
@@ -168,7 +198,7 @@ def main() -> int:
 <html>
 <head>
 <meta charset="utf-8">
-<style>{CSS}</style>
+<style>{FONT_FACE_CSS}{CSS}</style>
 </head>
 <body>
 {COVER_HTML}
