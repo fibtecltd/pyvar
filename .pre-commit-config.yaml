@@ -115,6 +115,11 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=500]
+        # docs/publications/ holds finished marketing artifacts (exported
+        # .docx/.pdf copies of the Medium/LinkedIn articles) -- legitimately
+        # >500KB and not a signal of an accidental large commit the way it
+        # would be almost everywhere else in this repo.
+        exclude: ^docs/publications/
       - id: no-commit-to-branch
         args: [--branch=master]
         stages: [pre-commit]
