@@ -27,9 +27,17 @@ Reasoning:
   are caught before they hit application code, and a short-capped retry (2
   attempts, <=0.2s backoff) absorbs the rest without violating the "never
   slow a request" rule above.
+- That retry budget is intentionally tight, so it won't always win — the
+  proxy's own reconnect can occasionally outlast it (Sentry issue 5d53be95,
+  prod, 2026-09-04: same idle-drop as a5ebcb89, now seen in prod). That's
+  still the designed fail-open path, not an outage, so _cache_get/_cache_set
+  log it at warning (not exception) and emit a CacheReadError/CacheWriteError
+  metric instead of letting logger.exception() page it into Sentry as an
+  ERROR.
 - The API task role's cloudwatch:PutMetricData grant (api_stack.py) is already
   scoped to the "pyvar" namespace with no resource restriction beyond that
-  condition, so CacheHit/CacheMiss metrics need no new IAM grant.
+  condition, so CacheHit/CacheMiss/CacheReadError/CacheWriteError metrics
+  need no new IAM grant.
 """
 
 from __future__ import annotations
@@ -97,7 +105,13 @@ async def _cache_get(domain: str, params: dict[str, Any]) -> dict[str, Any] | No
     try:
         raw = await client.get(_cache_key(domain, params))
     except Exception:  # noqa: BLE001 — best-effort, never fail the request
-        logger.exception("Cache read failed", extra={"domain": domain})
+        # warning, not exception: ElastiCache Serverless idle-connection resets
+        # (see module docstring) routinely outlast the 2-attempt retry budget —
+        # this is the designed fail-open path, not an unhandled error, so it
+        # must not page as a Sentry error. Sentry issue 5d53be95, prod,
+        # 2026-09-04 was this exact handled path getting reported as ERROR.
+        logger.warning("Cache read failed — treating as cache miss", extra={"domain": domain})
+        _emit_job_metric("CacheReadError", [{"Name": "Domain", "Value": domain}])
         return None
     return json.loads(raw) if raw is not None else None  # type: ignore[no-any-return]
 
@@ -113,7 +127,9 @@ async def _cache_set(domain: str, params: dict[str, Any], result: dict[str, Any]
             ex=cfg.celery_result_ttl,
         )
     except Exception:  # noqa: BLE001 — best-effort, never fail the request
-        logger.exception("Cache write failed", extra={"domain": domain})
+        # warning, not exception — see matching comment in _cache_get above.
+        logger.warning("Cache write failed — result not cached", extra={"domain": domain})
+        _emit_job_metric("CacheWriteError", [{"Name": "Domain", "Value": domain}])
 
 
 def cache_check(domain: str) -> Callable[[F], F]:
