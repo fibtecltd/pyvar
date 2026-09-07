@@ -30,6 +30,7 @@ from stacks.public_data_stack import PublicDataStack
 from stacks.queue_stack import QueueStack
 from stacks.ses_events_stack import SesEventsStack
 from stacks.ses_stack import SesStack
+from stacks.token_report_stack import TokenReportStack
 
 from config import PyvarConfig
 
@@ -167,6 +168,16 @@ public_data = PublicDataStack(
     description="pyvar: status.json + demo-result.json publisher (P8 Task 1/2)",
 )
 
+token_report = TokenReportStack(
+    app,
+    f"{prefix}-token-report",
+    cfg=cfg,
+    jwt_secret=api.jwt_secret,
+    ses_identity=ses.email_identity,
+    env=env_primary,
+    description="pyvar: daily JWT-issuance email report to info@pyvar.com",
+)
+
 alb_waf = AlbWafStack(
     app,
     f"{prefix}-alb-waf",
@@ -207,6 +218,8 @@ api.add_dependency(ses)
 api.add_dependency(ses_events)  # references ses_events.configuration_set for SendEmail grant
 edge.add_dependency(api)
 public_data.add_dependency(api)  # references api.jwt_secret
+token_report.add_dependency(api)  # references api.jwt_secret
+token_report.add_dependency(ses)  # references ses.email_identity
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm
