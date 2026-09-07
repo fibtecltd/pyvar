@@ -2,6 +2,8 @@
 schemas/internal.py — Pydantic v2 contracts for service-only ("internal" tier)
 endpoints. First user: POST /internal/suppress-email (SES bounce/complaint
 handling), called by pyvar-cdk/lambda/ses_suppression_handler/handler.py.
+Second user: GET /internal/token-report (daily JWT-issuance report), called
+by pyvar-cdk/lambda/token_report_publisher/handler.py.
 
 Reasoning:
 - email is normalized (stripped + lowercased) the same way
@@ -12,6 +14,9 @@ Reasoning:
   matches exactly the two values api/routes/internal.py's caller can ever
   produce (see the bounce-subtype logic in
   pyvar-cdk/lambda/ses_suppression_handler/handler.py).
+- TokenReportResponse.date is a plain ISO date string (not a datetime) —
+  the caller (a daily-scheduled Lambda) only ever needs a human-readable
+  day label for the email subject/body, never sub-day precision.
 """
 
 from __future__ import annotations
@@ -38,3 +43,12 @@ class SuppressEmailResponse(BaseModel):
 
     matched: bool
     already_suppressed: bool
+
+
+class TokenReportResponse(BaseModel):
+    """Returned by GET /internal/token-report."""
+
+    env: str
+    date: str
+    issued_today: int
+    issued_cumulative: int

@@ -108,6 +108,11 @@ class User(Base):
     verification_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # When GET /auth/verify succeeded (0006_user_verified_at) — distinct from
+    # verification_sent_at above (when the link was emailed). NULL for rows
+    # verified before this column existed; see that migration's docstring for
+    # why those aren't backfilled.
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Bounce/complaint suppression (0005_user_email_suppression, SES production-
     # access review follow-up). Written only by api/routes/internal.py's

@@ -22,19 +22,25 @@ Reasoning:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from api.middleware.auth import TokenPayload, get_current_user
-from schemas.internal import SuppressEmailRequest, SuppressEmailResponse
+from config import get_settings
+from schemas.internal import (
+    SuppressEmailRequest,
+    SuppressEmailResponse,
+    TokenReportResponse,
+)
 from storage.models import User
 from storage.session import get_sessionmaker
 
 router = APIRouter(prefix="/internal", tags=["Internal"])
 logger = structlog.get_logger()
+cfg = get_settings()
 
 
 @router.post("/suppress-email", response_model=SuppressEmailResponse)
@@ -73,3 +79,46 @@ async def suppress_email(
         already_suppressed=already_suppressed,
     )
     return SuppressEmailResponse(matched=True, already_suppressed=already_suppressed)
+
+
+@router.get("/token-report", response_model=TokenReportResponse)
+async def token_report(
+    user: TokenPayload = Depends(get_current_user),
+) -> TokenReportResponse:
+    """Daily/cumulative count of JWTs issued to users (verify() is the only
+    real call site of create_access_token(), and it's single-use per user —
+    see 0006_user_verified_at's migration docstring), for the scheduled
+    pyvar-cdk/lambda/token_report_publisher email report.
+
+    Cumulative is always exact (COUNT of email_verified=true). issued_today
+    only reflects rows with a verified_at set today — rows verified before
+    0006_user_verified_at was deployed have no recorded day and are excluded
+    from issued_today (they're still counted in issued_cumulative).
+    """
+    if user.tier != "internal":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Internal service callers only.")
+
+    day_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    async with get_sessionmaker()() as session:
+        issued_today = (
+            await session.execute(
+                select(func.count())
+                .select_from(User)
+                .where(User.verified_at >= day_start, User.verified_at < day_end)
+            )
+        ).scalar_one_or_none() or 0
+
+        issued_cumulative = (
+            await session.execute(
+                select(func.count()).select_from(User).where(User.email_verified.is_(True))
+            )
+        ).scalar_one_or_none() or 0
+
+    return TokenReportResponse(
+        env=cfg.app_env,
+        date=day_start.date().isoformat(),
+        issued_today=issued_today,
+        issued_cumulative=issued_cumulative,
+    )

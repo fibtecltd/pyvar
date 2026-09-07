@@ -211,6 +211,7 @@ async def verify(token: str) -> VerifyResponse:
 
         user.email_verified = True
         user.verification_token = None
+        user.verified_at = now
         external_id = user.external_id
         tier = user.tier
         await session.commit()
