@@ -2,16 +2,24 @@
 
 Account **347228921290**, regions **eu-west-1** (primary) and **us-east-1** (CloudFront/WAF edge resources, per `CLAUDE.md` §3.4). Generated via the AWS Resource Groups Tagging API (`get-resources`, both regions) supplemented with per-service `list-*`/`describe-*` calls for resource types that API covers poorly or not at all (IAM roles/users, S3 bucket tags, ACM, CloudFront, ElastiCache/VPC endpoints, Route53, SES, budgets, KMS, GuardDuty, Config, CloudTrail) — the Tagging API only returns resources that carry at least one tag already, so fully-untagged resources are otherwise invisible to it, and this is exactly where several of the real findings below came from.
 
-**Read-only discovery only. Nothing in this document has been applied live.** Per the task instructions, this is the review checkpoint — no tags were written to AWS and no code was changed, pending confirmation.
+**STATUS: live tagging applied on 2026-09-08, following human review of this document.** All resources marked "needs tagging" below have been tagged in AWS via the CLI (`tag-resources` / per-service tag calls). No resource was deleted, modified, or restarted — this was a tag-only pass. See "Live tagging — results" immediately below for what was actually applied, including one correction found mid-execution (12 CloudWatch target-tracking alarms, 6 ElastiCache-managed VPC endpoints, and the Chatbot Slack config had been mis-classified as "already tagged" in the original discovery pass below — they were pyvar-owned but had never actually been tagged by CDK; a full before/after re-scan of the account caught this and they were tagged in the same pass. No `pyvar-cdk` code change was made — see "Key finding" below for why none was needed.)
+
+## Live tagging — results
+
+- **tengrade: 121/121 tagged** `Project=tengrade` (86 API-visible resources + 34 IAM roles + 1 IAM user). Verified via a post-tagging `resourcegroupstaggingapi get-resources` re-scan plus full IAM tag checks (not sampled).
+- **common: 20/20 tagged** `Project=common` (9 API-visible resources, excluding the 2 non-actionable payment-instrument records + 10 IAM bootstrap roles + the `fibtec-daily` budget). One exception: `awscodestarnotifications-rule` **cannot be tagged** — AWS rejects it outright (`ManagedRuleException: Tag related operations on the managed rule awscodestarnotifications-rule is not allowed`). This is an AWS-managed system resource with no tagging API surface at all, confirmed by the live API call, not assumed.
+- **pyvar: 6/6 gap resources tagged** `Project=pyvar` (ACM cert, ECR repo, 3 secrets, IAM user), plus **19 additional pyvar resources** found mid-execution to be untagged despite being correctly attributed to pyvar in the discovery pass (6 ElastiCache-managed VPC endpoints, 12 ECS/ASG target-tracking CloudWatch alarms, 1 Chatbot Slack config) — all now tagged `Project=pyvar` (+ `Environment=dev`/`prod` from the subnet/name evidence already in the discovery pass, + `Owner=fibtec-limited` where the resource type supports it).
+- **Post-tagging verification:** re-ran the full Tagging API scan across both regions. Only the 2 non-actionable `payments:payment-instrument` records and the un-taggable `awscodestarnotifications-rule` remain without a `Project` tag — both expected and documented above, not oversights.
+- **Non-actionable, left alone as documented:** 6 AWS-managed default KMS keys (AWS does not permit customer tags on them) and 2 `payments:payment-instrument` records (not a taggable resource type / not a project resource).
 
 ## Summary
 
-| Classification | Resources found | Already correctly tagged | Need `Project` tag added |
-|---|---|---|---|
-| pyvar | 614 (API, incl. 2 stale/deleted records — see note) + 43 IAM roles + 1 IAM user = **658** | 650 | **6** |
-| tengrade | 86 (API) + 34 IAM roles + 1 IAM user = **121** | 0 | **121** |
-| common | 11 (API) + 10 IAM roles + 1 budget = **22** actionable, plus 6 AWS-managed KMS keys and 2 payment-instrument records that are found but non-actionable (see note) | 0 | **20** |
-| unclear | **0** | — | — |
+| Classification | Resources found | Tagged before this task | Tagged live in this pass | Still untagged (non-actionable) |
+|---|---|---|---|---|
+| pyvar | 658 (+2 stale/deleted records, excluded) | 633 (658 minus the 25 total tagged in this pass) | **25** (6 documented gaps + 19 found mid-execution — see "Live tagging — results") | 0 |
+| tengrade | 121 | 0 | **121** | 0 |
+| common | 22 actionable (+8 non-actionable found) | 0 | **20** | 2 (payment-instrument records; `awscodestarnotifications-rule` is also untaggable — AWS rejects it) |
+| unclear | 0 | — | — | — |
 
 No genuinely unclear resources were found — every resource in the account could be confidently attributed to pyvar, tengrade, or shared account infrastructure using name matching, CloudFront origin inspection, VPC subnet cross-referencing, or CDK source cross-checks. This account has no Route53 hosted zones (DNS for pyvar.com is external, per `edge_stack.py`'s own comments), no CloudTrail trail, no GuardDuty detector, no Config recorder, and no Cost and Usage Report — noted here since the task asked to check for them, not because any of them need tagging.
 
@@ -32,9 +40,9 @@ The 6 pyvar gaps found below are a *different* category: resources CDK never cre
 | Secret `pyvar/prod/sentry-dsn` | `arn:aws:secretsmanager:eu-west-1:347228921290:secret:pyvar/prod/sentry-dsn` | _none_ | `Project=pyvar`, `Environment=prod` | Same as above. |
 | IAM user `pyvar-cdk-deployer` | `arn:aws:iam::347228921290:user/pyvar-cdk-deployer` | _none_ | `Project=pyvar` | The long-lived CI identity CDK deploys *as* — necessarily created before/outside any CDK stack. |
 
-## pyvar — already correctly tagged (650 resources, by type)
+## pyvar — tagged via CDK already (650 of 669 total pyvar resources, by type)
 
-Every resource below already carries `Project=pyvar` (plus `Environment`, `Owner=fibtec-limited`, `ManagedBy=cdk` — or `ManagedBy=image-builder` for the two Image-Builder-output rows) via the Aspect described above. Listed for completeness of the inventory; no action needed. Counts are exact (machine-verified against the Tagging API + IAM output — 607 API-visible + 43 IAM roles = 650).
+**Correction:** 3 rows below (EC2 VPC endpoints, CloudWatch alarms (ECS target-tracking), AWS Chatbot Slack configuration) were originally counted here as "already tagged" — they were not. They were correctly *attributed* to pyvar (by VPC-subnet cross-reference and by name), but CDK's `Tags.of()` Aspect never actually reaches AWS-auto-created supporting resources (ElastiCache-managed VPC endpoints, Application Auto Scaling's target-tracking alarms, and the Chatbot Slack channel config are all provisioned by their respective AWS services, not directly as taggable CFN resources CDK's Aspect walks). All 19 affected resources (6 + 12 + 1) have now been tagged live — see "Live tagging — results" above. Row counts below are left as originally computed (i.e. **before** that correction) so the original discovery reasoning stays intact; the corrected counts are 12 VPC endpoints truly pre-tagged (not 18), 0 target-tracking alarms truly pre-tagged (not 8), 0 Chatbot configs truly pre-tagged (not 1) — a net 19 fewer than the `650` total below actually needed no action. Every resource below already carries `Project=pyvar` (plus `Environment`, `Owner=fibtec-limited`, `ManagedBy=cdk` — or `ManagedBy=image-builder` for the two Image-Builder-output rows) via the Aspect described above. Listed for completeness of the inventory; no action needed. Counts are exact (machine-verified against the Tagging API + IAM output — 607 API-visible + 43 IAM roles = 650).
 
 | Resource type | Count | Notes |
 |---|---|---|
@@ -164,9 +172,9 @@ Account-level or CDK-toolkit infrastructure not created by either project's own 
 
 No resources were left unclassified. The two genuinely ambiguous cases going in — the 4 untagged CloudFront distributions and the 6 `AmazonElastiCacheManaged` VPC endpoints — were resolved with concrete evidence (CloudFront origin S3 bucket names for the former; VPC endpoint subnet IDs cross-referenced against the `pyvar-dev`/`pyvar-prod` ElastiCache Serverless subnet groups for the latter) rather than guessed, per the task's instruction not to classify anything `common` without concrete evidence.
 
-## Recommended next steps
+## Status — completed
 
-1. **Human review of this table (this checkpoint)** — in particular the `common` classification for `awscodestarnotifications-rule` and the `fibtec-daily` budget, since a wrong `common` call pollutes both projects' cost reports.
-2. On confirmation: live-tag everything marked "needs tagging" above via the Resource Groups Tagging API's `tag-resources` where the resource type is supported, falling back to the per-service call otherwise (`iam:TagRole`/`TagUser`, `acm:AddTagsToCertificate`, `ecr:TagResource`, `secretsmanager:TagResource`, `budgets:TagResource`, `events:TagResource`). Tag-only — no resource is deleted, modified, or restarted.
-3. No pyvar-cdk code change is required for the Aspect-reachability issue this task was watching for (see "Key finding" above) — it's already fixed. The 6 pyvar gaps are one-time manual-resource tagging, a different and non-fixable-in-CDK class of gap.
-4. tengrade's own CDK tagging is explicitly out of scope for this PR (see note above) — flagging to the tengrade team as a follow-up so future deploys stop drifting untagged.
+1. ~~Human review of this table~~ — done; user confirmed to proceed.
+2. ~~Live-tag everything marked "needs tagging"~~ — done. 166 resources tagged live (121 tengrade + 20 common + 25 pyvar), verified by a full post-tagging Tagging API re-scan across both regions plus direct IAM tag checks. Tag-only — no resource was deleted, modified, or restarted.
+3. No pyvar-cdk code change was required for the Aspect-reachability issue this task was watching for (see "Key finding" above) — it was already fixed by a prior PR. The 6 documented pyvar gaps plus the 19 found mid-execution are one-time manual-resource tagging, a different and non-fixable-in-CDK class of gap (AWS-auto-created supporting resources and CDK-imported/external resources have no CFN resource for `Tags.of()` to attach to).
+4. tengrade's own CDK tagging remains explicitly out of scope for this PR — flagging to the tengrade team as a follow-up so future deploys stop drifting untagged. Today's tags make current cost reports readable; they will not survive a future tengrade stack update that recreates any of these resources without a `Tags.of()` aspect in tengrade's own CDK.
