@@ -1,0 +1,1 @@
+$(cat /tmp/aws-resource-tagging-audit.md)
