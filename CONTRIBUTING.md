@@ -176,4 +176,4 @@ work starts.
 
 ## Questions
 
-Open a GitHub Discussion, or reach out at hello@fibtec.co.uk.
+Open a GitHub Discussion, or reach out at info@fibtec.co.uk.

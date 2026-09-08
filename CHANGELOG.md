@@ -38,6 +38,32 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`TokenReportStack` (#328) was never actually deployed by the pipeline** —
+  it was added to `pyvar-cdk/app.py`'s standalone stack list but not to
+  `PyvarDeployStage` (the pipeline's real deploy graph), so the pipeline
+  never learned the stack existed and silently never created it in either
+  environment. Added there too, `stack_name=` pinned to match the standalone
+  stack exactly so this updates the existing stack in place.
+- **Migrations introduced in the same commit as the code needing them were
+  silently never applied** — the migration step ran
+  `ecs run-task --task-definition <family-name>`, which resolves to
+  whatever task-definition revision was already ACTIVE (the *previous*
+  deploy's image), because this step runs *before* the same stage's
+  `ApiStack` deploy registers a new revision pointing at the image this
+  pipeline run just built. `0006_user_verified_at` (#328) hit exactly this:
+  the pipeline reported a clean success while the column was never created
+  in dev or prod. Fixed by cloning the family's current task-def with only
+  the image swapped to this run's freshly-built one, registering that as a
+  one-off revision, and running that specific revision ARN instead of the
+  bare family name.
+- **`TokenReportStack`'s Lambda couldn't actually send email** — confirmed
+  live in dev: `ses:SendEmail` 403'd against the configuration-set resource
+  despite `ses_identity.grant_send_email()` already being in place. AWS
+  additionally authorizes `SendEmail` against the configuration-set itself
+  whenever the identity has one attached as its default — the same gap
+  `api_stack.py`'s own ECS task role grant had already hit and documented.
+  Added the matching second grant here.
+
 - **`crr2_large_exposure_limit`** — `is_institution` was accepted (its own
   docstring said it "affects the absolute alternative limit") but never
   actually applied: the function only ever ran the 25%-of-Tier-1 ratio
