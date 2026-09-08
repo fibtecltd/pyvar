@@ -1495,6 +1495,7 @@ class PyvarDeployStage(cdk.Stage):
             cfg=cfg,
             jwt_secret=api.jwt_secret,
             ses_identity=ses.email_identity,
+            configuration_set=ses_events.configuration_set,
             env=env_primary,
         )
 
@@ -1512,3 +1513,6 @@ class PyvarDeployStage(cdk.Stage):
         public_data.add_dependency(api)
         token_report.add_dependency(api)  # references api.jwt_secret
         token_report.add_dependency(ses)  # references ses.email_identity
+        token_report.add_dependency(
+            ses_events
+        )  # references ses_events.configuration_set for SendEmail grant

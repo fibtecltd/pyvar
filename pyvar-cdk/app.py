@@ -174,6 +174,7 @@ token_report = TokenReportStack(
     cfg=cfg,
     jwt_secret=api.jwt_secret,
     ses_identity=ses.email_identity,
+    configuration_set=ses_events.configuration_set,
     env=env_primary,
     description="pyvar: daily JWT-issuance email report to info@pyvar.com",
 )
@@ -220,6 +221,7 @@ edge.add_dependency(api)
 public_data.add_dependency(api)  # references api.jwt_secret
 token_report.add_dependency(api)  # references api.jwt_secret
 token_report.add_dependency(ses)  # references ses.email_identity
+token_report.add_dependency(ses_events)  # references ses_events.configuration_set for SendEmail grant
 alb_waf.add_dependency(api)
 alerts.add_dependency(api)  # references api.alb for latency/5xx alarms
 alerts.add_dependency(compute)  # references compute.worker_error_metric for worker alarm

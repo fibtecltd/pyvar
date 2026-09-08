@@ -14,7 +14,9 @@ Reasoning:
   and building the first one wasn't judged worth it for a daily count).
 - ses_identity.grant_send_email is the exact grant api_stack.py already uses
   for the ECS task role — same identity, same permission, just a second
-  principal (this Lambda's role) added to it.
+  principal (this Lambda's role) added to it. That grant alone is NOT
+  sufficient, though — see the configuration_set policy statement below for
+  why (api_stack.py already hit and documented this exact gap once).
 - No reserved_concurrent_executions — same account-wide Lambda concurrency
   ceiling (10, all must stay UNRESERVED) documented in
   public_data_stack.py's own docstring applies here too; a single
@@ -50,6 +52,7 @@ class TokenReportStack(Stack):
         cfg: PyvarConfig,
         jwt_secret: secretsmanager.Secret,
         ses_identity: ses.EmailIdentity,
+        configuration_set: ses.IConfigurationSet,
         **kwargs,
     ):
         super().__init__(scope, id, **kwargs)
@@ -67,6 +70,22 @@ class TokenReportStack(Stack):
         )
         jwt_secret.grant_read(fn_role)
         ses_identity.grant_send_email(fn_role)
+        # AWS additionally authorizes SendEmail against the CONFIGURATION SET
+        # resource itself whenever the identity has one attached as its
+        # default (ses_stack.py) — granting only the identity ARN above is
+        # not sufficient once that's set. Identical gap and fix as
+        # api_stack.py's own task_role grant (see that stack's own comment
+        # for the "discovered live" story) — ConfigurationSet has no .arn
+        # property, so this is built manually the same way there.
+        fn_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["ses:SendEmail", "ses:SendRawEmail"],
+                resources=[
+                    f"arn:aws:ses:{self.region}:{self.account}:configuration-set/"
+                    f"{configuration_set.configuration_set_name}"
+                ],
+            )
+        )
 
         # ── Lambda: fetches the report from the API and emails it ─────────────
         log_group = logs.LogGroup(
