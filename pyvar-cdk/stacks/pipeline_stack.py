@@ -1382,6 +1382,7 @@ class PyvarDeployStage(cdk.Stage):
         from stacks.queue_stack import QueueStack
         from stacks.ses_events_stack import SesEventsStack
         from stacks.ses_stack import SesStack
+        from stacks.token_report_stack import TokenReportStack
 
         prefix = f"pyvar-{cfg.env_name}"
         env_primary = cdk.Environment(account=cfg.account, region=cfg.region)
@@ -1482,6 +1483,20 @@ class PyvarDeployStage(cdk.Stage):
             jwt_secret=api.jwt_secret,
             env=env_primary,
         )
+        # #328 follow-up: this was added to app.py's standalone/bypass-pipeline
+        # stack list but not here — PyvarDeployStage is a SEPARATE stack graph
+        # (see this method's own module-level comment above on why
+        # stack_name= must be pinned), so the pipeline never learned this
+        # stack existed and silently never deployed it in either environment.
+        token_report = TokenReportStack(
+            self,
+            f"{prefix}-token-report",
+            stack_name=f"{prefix}-token-report",
+            cfg=cfg,
+            jwt_secret=api.jwt_secret,
+            ses_identity=ses.email_identity,
+            env=env_primary,
+        )
 
         data.add_dependency(network)
         queue.add_dependency(network)
@@ -1495,3 +1510,5 @@ class PyvarDeployStage(cdk.Stage):
         )  # references ses_events.configuration_set for SendEmail grant
         edge.add_dependency(api)
         public_data.add_dependency(api)
+        token_report.add_dependency(api)  # references api.jwt_secret
+        token_report.add_dependency(ses)  # references ses.email_identity
