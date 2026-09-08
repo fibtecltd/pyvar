@@ -562,7 +562,7 @@ def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
                 f'echo "Migration image for this run: {fresh_image_uri}"',
                 f'aws ecs describe-task-definition --task-definition "{task_family}" '
                 "--query taskDefinition > /tmp/migrate-taskdef-current.json",
-                f"jq '.containerDefinitions[0].image = \"{fresh_image_uri}\" | "
+                f'jq \'.containerDefinitions[0].image = "{fresh_image_uri}" | '
                 "del(.taskDefinitionArn, .revision, .status, .requiresAttributes, "
                 ".compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' "
                 "/tmp/migrate-taskdef-current.json > /tmp/migrate-taskdef-new.json",
