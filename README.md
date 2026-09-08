@@ -196,7 +196,12 @@ cdk deploy pyvar-pipeline --context account=ACCOUNT
 | Infra | AWS CDK · ECS Fargate · EC2 Spot · CloudFront |
 | AI | Anthropic Claude API |
 
-Estimated AWS cost at ~500 jobs/day: **~£126/month**
+AWS cost: **~$900–1,000/month** (real prod invoice, confirmed 2026-08-31) —
+dominated by fixed infrastructure (VPC endpoints, NAT gateway, ElastiCache,
+Aurora, Fargate base capacity), not job volume: Monte Carlo compute is
+sub-cent per scenario even at 1M scenarios/month, so throughput doesn't
+materially move this number. See `docs/p9-scenario-volume-cost-audit.md` for
+the full breakdown and its acknowledged gaps.
 
 ---
 
@@ -237,4 +242,4 @@ process, Numba JIT rules, regulatory review requirements, and PR checklist.
 
 Licensed under the [Apache License 2.0](LICENSE).
 
-**Fibtec Limited** · hello@fibtec.co.uk
+**Fibtec Limited** · info@fibtec.co.uk
