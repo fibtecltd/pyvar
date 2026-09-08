@@ -7,6 +7,35 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-07
+
+### Added
+
+- **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a
+  `pyvar` command (stdlib `argparse` only, no new dependency). Generic
+  JSON-params dispatch (`pyvar <domain> <function> --params file.json`) over
+  the existing generated SDK namespaces, so it covers all 385 methods with
+  no separate codegen step; `var` gets its own `submit`/`poll`/`compute`
+  sub-subcommands mirroring `client.var`. See `pyvar-client/README.md`'s
+  `## CLI` section. Published as `pyvar-client` v0.1.1.
+- **Chatbot approve-button groundwork** — `pyvar-pipeline-approval-raw` (a
+  new, narrowly-scoped SNS topic + `NotificationRule` carrying only
+  `codepipeline-pipeline-manual-approval-needed`) and
+  `pyvar-{env}-approval-action-relay` (a new Lambda reformatting that native
+  event into a Chatbot `custom`-schema notification, republished onto the
+  existing `pyvar-pipeline-notifications` topic). Groundwork for an actual
+  Approve/Reject button in Slack via AWS Chatbot Custom Actions — attaching
+  the button itself is a console-side step, not yet done. See
+  `docs/p9-pipeline-approval-gate-status.md`'s 2026-08-24 update.
+- **Daily JWT-issuance email report** (#328) — `users.verified_at` (0006
+  migration) makes token issuance countable per-day; a
+  `GET /internal/token-report` endpoint exposes today's and cumulative
+  counts; a per-environment scheduled Lambda + SES email
+  (`pyvar-cdk/stacks/token_report_stack.py`, 07:00 UTC) reports them to
+  `info@pyvar.com`. Dev and prod each send their own report rather than one
+  combined email, since the two environments are fully isolated (separate
+  VPCs/SES identities).
+
 ### Fixed
 
 - **`crr2_large_exposure_limit`** — `is_institution` was accepted (its own
@@ -53,25 +82,65 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   trailing window" ever since. The catalogue entry was never updated to
   match, so it described a mismatch that no longer exists. Corrected to
   reflect current reality — no code change, since none was needed.
-
-### Added
-
-- **`pyvar-client` CLI** — `pip install pyvar-client` now also installs a
-  `pyvar` command (stdlib `argparse` only, no new dependency). Generic
-  JSON-params dispatch (`pyvar <domain> <function> --params file.json`) over
-  the existing generated SDK namespaces, so it covers all 385 methods with
-  no separate codegen step; `var` gets its own `submit`/`poll`/`compute`
-  sub-subcommands mirroring `client.var`. See `pyvar-client/README.md`'s
-  `## CLI` section. Published as `pyvar-client` v0.1.1.
-- **Chatbot approve-button groundwork** — `pyvar-pipeline-approval-raw` (a
-  new, narrowly-scoped SNS topic + `NotificationRule` carrying only
-  `codepipeline-pipeline-manual-approval-needed`) and
-  `pyvar-{env}-approval-action-relay` (a new Lambda reformatting that native
-  event into a Chatbot `custom`-schema notification, republished onto the
-  existing `pyvar-pipeline-notifications` topic). Groundwork for an actual
-  Approve/Reject button in Slack via AWS Chatbot Custom Actions — attaching
-  the button itself is a console-side step, not yet done. See
-  `docs/p9-pipeline-approval-gate-status.md`'s 2026-08-24 update.
+- **`creditmetrics_portfolio_model`** — was a pure pass-through to
+  `credit_var_monte_carlo`, not a distinct multi-state CreditMetrics model.
+  Added `transition_matrix`/`current_rating`/`state_loss_pct` as an opt-in
+  group implementing Gupton, Finger & Bhatia (1997)'s actual asset-return
+  discretisation: each obligor's simulated asset return migrates through its
+  own transition-matrix row to a rating state, not just default/survive.
+  Verified two ways: an economic sanity check, and a bit-for-bit cross-check
+  where a single-rating-per-obligor transition matrix reduces the new
+  multi-state kernel to byte-identical output against the old two-state
+  path given the same seed. Default (all three omitted) is the unchanged
+  pass-through.
+- **`downturn_lgd_adjustment`** — multiplicative scaling was the only
+  implementation, even though the docstring already documented the
+  EBA/GL/2019/03 additive fallback formula (the CRR Art. 181 alternative)
+  without ever wiring it in. Added `method="additive"` using that exact
+  documented formula. Default (`method` omitted) is unchanged.
+- **`business_continuity_risk_score`** — `rpo_hours` was accepted and
+  range-validated but had zero effect on the score: RPO risk had nothing to
+  be measured against without a target. Added `rpo_target_hours` (the
+  maximum tolerable data-loss window, ISO 22301 / DRI International BCM
+  practice); when supplied, the pre-BCP-maturity risk becomes the worse of
+  the RTO and RPO breach severities. Default is unchanged.
+- **Redis clients hardened against ElastiCache Serverless idle-connection
+  resets** (#322) — the result-cache and rate-limit-storage clients are
+  long-lived singletons whose pooled connections sit idle between requests;
+  ElastiCache Serverless's proxy layer silently drops idle connections,
+  producing a bare `ConnectionResetError` on the next write (Sentry issue
+  a5ebcb89, dev). Added `health_check_interval` to ping stale connections
+  before reuse and a short-capped retry on `ConnectionError`/`TimeoutError`,
+  without violating either client's fail-open "never slow a request" design.
+- **Celery result-backend socket timeouts, and reads moved off the event
+  loop** (#323) — `get_var_result` read `AsyncResult` state/result/kwargs
+  synchronously inside an async handler, with no socket timeout configured
+  on the Celery Redis result backend. A stalled write to a connection
+  ElastiCache Serverless had silently dropped (same root cause as #322,
+  Sentry issue cdb4c0e5, dev) blocked the *entire worker event loop* until
+  the kernel's own TCP retransmission timeout gave up — freezing every
+  other in-flight request on that process, not just the one polling. Added
+  the same socket-timeout tuning as #322 to the Celery result backend, and
+  moved the blocking reads into a threadpool via Starlette's
+  `run_in_threadpool` so a stall is now bounded to the requesting thread.
+- **Sentry no longer paged for the handled cache fail-open path** (#327) —
+  the ElastiCache idle-connection reset (same root cause as #322/#323,
+  Sentry issue 5d53be95, prod) was already caught and swallowed
+  (fail-open, request still succeeds), but `logger.exception()` still
+  promoted it to a Sentry ERROR event whenever the #322 retry budget lost
+  the race against the proxy's own reconnect time. Downgraded to
+  `logger.warning()` for this known/handled condition, and added
+  `CacheReadError`/`CacheWriteError` CloudWatch metrics so frequency stays
+  trackable without alert noise. No retry/functional behaviour changed.
+- **`pyvar-client-publish.yml`** — declaring `permissions: { id-token: write }`
+  zeroed every other default `GITHUB_TOKEN` scope, so `actions/checkout`
+  couldn't read this private repo (`Repository not found`) on the first real
+  `pyvar-client-v0.1.0` tag push. Added `contents: read`.
+- **`pyvar-client` README** — the License section linked `[LICENSE](LICENSE)`,
+  a relative path that resolves fine on GitHub but renders as a dead link on
+  PyPI's project page (PyPI doesn't rewrite relative markdown links against
+  the repo). Points at the GitHub blob instead. Published as `pyvar-client`
+  v0.1.2.
 
 ### Security
 
@@ -83,18 +152,6 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   dedicated `enforce_register_rate_limit` (IP-keyed, its own
   `rate_limit_register_per_hour` config knob). Both follow the existing
   never-reveal-why-it-failed pattern: same generic 202 response either way.
-
-### Fixed
-
-- **`pyvar-client-publish.yml`** — declaring `permissions: { id-token: write }`
-  zeroed every other default `GITHUB_TOKEN` scope, so `actions/checkout`
-  couldn't read this private repo (`Repository not found`) on the first real
-  `pyvar-client-v0.1.0` tag push. Added `contents: read`.
-- **`pyvar-client` README** — the License section linked `[LICENSE](LICENSE)`,
-  a relative path that resolves fine on GitHub but renders as a dead link on
-  PyPI's project page (PyPI doesn't rewrite relative markdown links against
-  the repo). Points at the GitHub blob instead. Published as `pyvar-client`
-  v0.1.2.
 
 ## [0.1.0] — 2026-08-22
 

@@ -484,9 +484,36 @@ def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
     these are just tag lookups against whatever is currently live) no
     dependency on this exact pipeline run being the one that deployed them.
 
-    `--task-definition` is passed by FAMILY NAME (not a specific revision
-    ARN) so ECS always runs the latest ACTIVE revision — i.e. exactly the
-    one api_stack.py just deployed as part of this same stage.
+    `--task-definition` is a FRESHLY REGISTERED revision, not the family's
+    current ACTIVE one. This step runs as a `pre` step of the stage — i.e.
+    BEFORE that same stage's ApiStack deploys and registers a new task-def
+    revision pointing at the image this pipeline run just built. Passing
+    the bare family name here would resolve to whatever revision was ACTIVE
+    before this run started (the previous deploy's image), which cannot
+    contain a migration file first introduced in THIS commit — confirmed
+    live in both dev and prod (2026-09-08): 0006_user_verified_at shipped in
+    #328, this step ran and exited 0 (nothing to do — alembic doesn't know
+    the file exists against that stale image), and the column was silently
+    never created in either environment despite the pipeline reporting a
+    clean success end to end. So instead: describe the family's current
+    task-def, clone it with only `.containerDefinitions[0].image` swapped to
+    THIS run's image (account/region/env_name + stage_cfg.api_image_tag are
+    all known at this exact synth pass — see module docstring on
+    api_image_tag threading), register that as a new one-off revision, and
+    run THAT specific revision ARN. Cheap (register-task-definition has no
+    cost) and self-cleaning (ECS keeps unlimited revision history for the
+    family regardless; the next real CloudFormation deploy of this same
+    family supersedes it as ACTIVE, same as always).
+
+    Known residual gap: this only re-points the image. If some OTHER part of
+    the migration task's shape (env vars, secrets, cpu/memory, roles) needs
+    to change in the SAME commit as a migration that depends on it, this
+    clone-and-patch approach still carries forward the OLD values for
+    everything except image, because it starts from the family's currently
+    ACTIVE revision. Narrower than the bug this fixes (that one broke on
+    every single migration+code commit; this one only matters if the
+    migration task's own definition — not the app image content — changes
+    in lockstep with a migration), and not solved here.
     """
     cluster_name = f"pyvar-{stage_cfg.env_name}"
     task_family = f"pyvar-{stage_cfg.env_name}-migrate"
@@ -494,6 +521,16 @@ def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
     sg_name_tag = f"pyvar-{stage_cfg.env_name}-sg-api"
     cluster_arn = f"arn:aws:ecs:{stage_cfg.region}:{stage_cfg.account}:cluster/{cluster_name}"
     step_name = f"RunDbMigration-{stage_cfg.env_name}"
+    # This run's freshly-built image — see docstring above. Known at THIS
+    # synth pass (stage_cfg.api_image_tag resolves the Synth step's
+    # --context api_image_tag=$SHORT_SHA), so this is a plain literal in the
+    # generated commands, not a shell variable — no cross-CodeBuild-project
+    # env var passing needed (this runs in its own CodeBuildStep, separate
+    # from the Synth step that built the image).
+    fresh_image_uri = (
+        f"{stage_cfg.account}.dkr.ecr.{stage_cfg.region}.amazonaws.com/"
+        f"pyvar-{stage_cfg.env_name}-api:{stage_cfg.api_image_tag}"
+    )
 
     return pipelines.CodeBuildStep(
         step_name,
@@ -519,9 +556,26 @@ def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
                 '&& [ -n "$SUBNET_IDS" ] && [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ] '
                 '|| (echo "Could not discover network for migration task — blocking deploy" '
                 "&& exit 1)",
+                # ── Register a one-off task-def revision pinned to THIS run's
+                # image (see docstring above for why the family's current
+                # ACTIVE revision can't be trusted here) ──────────────────────
+                f'echo "Migration image for this run: {fresh_image_uri}"',
+                f'aws ecs describe-task-definition --task-definition "{task_family}" '
+                "--query taskDefinition > /tmp/migrate-taskdef-current.json",
+                f'jq \'.containerDefinitions[0].image = "{fresh_image_uri}" | '
+                "del(.taskDefinitionArn, .revision, .status, .requiresAttributes, "
+                ".compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' "
+                "/tmp/migrate-taskdef-current.json > /tmp/migrate-taskdef-new.json",
+                "NEW_TASK_DEF_ARN=$(aws ecs register-task-definition "
+                "--cli-input-json file:///tmp/migrate-taskdef-new.json "
+                '--query "taskDefinition.taskDefinitionArn" --output text)',
+                'echo "Registered migration task-def: $NEW_TASK_DEF_ARN"',
+                '[ -n "$NEW_TASK_DEF_ARN" ] && [ "$NEW_TASK_DEF_ARN" != "None" ] '
+                '|| (echo "Could not register a fresh migration task-def revision — '
+                'blocking deploy" && exit 1)',
                 # ── Run the migration task and block the deploy on failure ──────
                 f'TASK_ARN=$(aws ecs run-task --cluster "{cluster_name}" '
-                f'--task-definition "{task_family}" --launch-type FARGATE '
+                '--task-definition "$NEW_TASK_DEF_ARN" --launch-type FARGATE '
                 '--network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],'
                 'securityGroups=[$SG_ID],assignPublicIp=DISABLED}" '
                 "--query 'tasks[0].taskArn' --output text)",
@@ -557,6 +611,15 @@ def _migration_step(stage_cfg: PyvarConfig, source: pipelines.CodePipelineSource
                 actions=["ecs:DescribeTasks"],
                 resources=["*"],
                 conditions={"ArnEquals": {"ecs:cluster": cluster_arn}},
+            ),
+            # DescribeTaskDefinition/RegisterTaskDefinition (see docstring
+            # above for why this step now clones+re-registers the family's
+            # task-def with a fresh image) — neither action supports
+            # resource-level ARN restriction, same as the Describe*/List*
+            # EC2 actions above; "*" is the only valid resource for either.
+            iam.PolicyStatement(
+                actions=["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition"],
+                resources=["*"],
             ),
             iam.PolicyStatement(
                 actions=["iam:PassRole"],
@@ -1382,6 +1445,7 @@ class PyvarDeployStage(cdk.Stage):
         from stacks.queue_stack import QueueStack
         from stacks.ses_events_stack import SesEventsStack
         from stacks.ses_stack import SesStack
+        from stacks.token_report_stack import TokenReportStack
 
         prefix = f"pyvar-{cfg.env_name}"
         env_primary = cdk.Environment(account=cfg.account, region=cfg.region)
@@ -1482,6 +1546,21 @@ class PyvarDeployStage(cdk.Stage):
             jwt_secret=api.jwt_secret,
             env=env_primary,
         )
+        # #328 follow-up: this was added to app.py's standalone/bypass-pipeline
+        # stack list but not here — PyvarDeployStage is a SEPARATE stack graph
+        # (see this method's own module-level comment above on why
+        # stack_name= must be pinned), so the pipeline never learned this
+        # stack existed and silently never deployed it in either environment.
+        token_report = TokenReportStack(
+            self,
+            f"{prefix}-token-report",
+            stack_name=f"{prefix}-token-report",
+            cfg=cfg,
+            jwt_secret=api.jwt_secret,
+            ses_identity=ses.email_identity,
+            configuration_set=ses_events.configuration_set,
+            env=env_primary,
+        )
 
         data.add_dependency(network)
         queue.add_dependency(network)
@@ -1495,3 +1574,8 @@ class PyvarDeployStage(cdk.Stage):
         )  # references ses_events.configuration_set for SendEmail grant
         edge.add_dependency(api)
         public_data.add_dependency(api)
+        token_report.add_dependency(api)  # references api.jwt_secret
+        token_report.add_dependency(ses)  # references ses.email_identity
+        token_report.add_dependency(
+            ses_events
+        )  # references ses_events.configuration_set for SendEmail grant
