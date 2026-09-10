@@ -39,7 +39,7 @@ product-correctness one.
 |---|---|---|---|---|
 | 1 | Anthropic plugin marketplace: status review + submit remaining plugins | Easiest | Investigation + submission actions only; no new engineering; submission *content* is already 95% prepared in `docs/proposals/marketplace-submission-content.md` | `docs/plan-plugin-marketplace-status-and-submission.md` (this session) |
 | 2 | One-off `pyvar-local` package generation and sharing | Low | Confirmed: the package (`pyvar-local/`) and its CDK publish pipeline (`pyvar-cdk/stacks/local_package_stack.py`) already exist and work as designed — this is "trigger it and verify the release asset" (needs real AWS credentials this session doesn't have), not new build work. Full commercial licensing mechanism explicitly deferred to item 5 | `docs/plan-pyvar-local-package-generation.md` (this session) |
-| 3 | New posts/articles about pyvar | Moderate | Pure content work, but we have an established, proven process from this session (Medium article + LinkedIn + HN/Reddit drafts) to reuse; the open question is *what's new to write about* since the last article already covers the big narrative | Not yet written |
+| 3 | New posts/articles about pyvar | Moderate | Found real, fresh material since the last article: a subtle production bug (TokenReportStack + migration image-pinning), a cost-transparency correction ($900-1,000/mo real vs. a stale £126 target), and a Partner Network Customer-Story-declined-then-resubmitted-as-Public-Case-Study story. Recommended as one combined follow-up post, not four | `docs/plan-new-articles-and-posts.md` (this session) |
 | 4 | NLnet submission preparation | Moderate-high | No code, but real research/strategy risk: the existing brief has the stale MIT license issue above, a stale "repository visibility flip" reference, an August 2026 prep date, and — per its own caveat — was written while NLnet's fund lineup was "mid-restructuring," with a new call expected to open "early September 2026." Today is 2026-09-10 — **that window may be open now**, and I have no browsing access to check nlnet.nl/propose directly | Not yet written |
 | 5 | Monetization strategy implementation for pro/enterprise tiers | High | Spans business strategy *and* real engineering (billing/metering/tier gates) with live revenue implications; `pyvar-monetization-strategy.docx` exists but "implementation" is a different, larger scope than the strategy document itself | Not yet written |
 | 6 | Market data adapter infrastructure (Refinitiv first) | Hardest | Largest engineering effort (5 phases, MD-1 through MD-5, per the attached plan), touches a genuine compliance boundary (vendor data redistribution restrictions), and has open questions in the plan itself that only Filippo can answer before MD-3 can start (RDP access tier, snapshot vs. streaming, cache TTL legal check, ISIN→RIC persistence) | Not yet written |
@@ -64,5 +64,5 @@ For each item, before any code/content ships:
 
 ## Next step
 
-Items 1 and 2's full plans are both done (this PR). Item 3 (new
-posts/articles) is next.
+Items 1, 2, and 3's full plans are all done (this PR). Item 4 (NLnet
+submission preparation) is next.
