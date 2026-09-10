@@ -42,7 +42,7 @@ product-correctness one.
 | 3 | New posts/articles about pyvar | Moderate | Found real, fresh material since the last article: a subtle production bug (TokenReportStack + migration image-pinning), a cost-transparency correction ($900-1,000/mo real vs. a stale £126 target), and a Partner Network Customer-Story-declined-then-resubmitted-as-Public-Case-Study story. Recommended as one combined follow-up post, not four | `docs/plan-new-articles-and-posts.md` (this session) |
 | 4 | NLnet submission preparation | Moderate-high | Resolved via WebSearch: NLnet's restructuring settled into "Open Internet Stack" with a live call now open, deadline 2026-11-03. **Restack** (not CodeSupply) is the right-fit fund — explicitly covers "security proofs and audits," matches the brief's own framing. Bigger finding: the real submission is a short 6-question web form, not the existing 5-page `.docx` — that document is source material, not the deliverable | `docs/plan-nlnet-submission.md` (this session) |
 | 5 | Monetization strategy implementation for pro/enterprise tiers | High | Confirmed: tier enforcement already works in production (free/pro/enterprise rate limits, `User.tier` schema "denormalised for billing queries"), but there is genuinely **no way for anyone to become pro/enterprise** and **zero payment integration** anywhere in the codebase. Real open decisions (pricing, provider, phase scope) need Filippo before any billing code gets written | `docs/plan-monetization-implementation.md` (this session) |
-| 6 | Market data adapter infrastructure (Refinitiv first) | Hardest | Largest engineering effort (5 phases, MD-1 through MD-5, per the attached plan), touches a genuine compliance boundary (vendor data redistribution restrictions), and has open questions in the plan itself that only Filippo can answer before MD-3 can start (RDP access tier, snapshot vs. streaming, cache TTL legal check, ISIN→RIC persistence) | Not yet written |
+| 6 | Market data adapter infrastructure (Refinitiv first) | Hardest | Largest engineering effort (5 phases, MD-1 through MD-5, per the attached plan), touches a genuine compliance boundary (vendor data redistribution restrictions), and has open questions in the plan itself that only Filippo can answer before MD-3 can start (RDP access tier, snapshot vs. streaming, cache TTL legal check, ISIN→RIC persistence). Verified MD-1 (interface/schemas/exceptions/fake provider/unit tests) has zero external blockers and is buildable now — a scope decision (this session vs. a delegated agent) is still open | `docs/plan-market-data-adapter.md` (this session) |
 
 ## What "properly planned and fully documented" means per item
 
@@ -64,6 +64,9 @@ For each item, before any code/content ships:
 
 ## Next step
 
-Items 1–5's full plans are all done (this PR). Item 6 (market data adapter
-infrastructure) is last — the hardest, and the one with the most open
-questions only Filippo can answer before real engineering can start.
+All six items now have full plan docs (this PR). None of the six items'
+open decisions have been answered yet — each plan doc's own section
+lists exactly what's blocked on Filippo (external submissions, business/
+legal/pricing decisions, or — for item 6 specifically — a scope call on
+whether MD-1 gets built in this session or handed to a delegated agent).
+Next action per item is unblocking those decisions, not more planning.
