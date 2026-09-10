@@ -41,7 +41,7 @@ product-correctness one.
 | 2 | One-off `pyvar-local` package generation and sharing | Low | Confirmed: the package (`pyvar-local/`) and its CDK publish pipeline (`pyvar-cdk/stacks/local_package_stack.py`) already exist and work as designed — this is "trigger it and verify the release asset" (needs real AWS credentials this session doesn't have), not new build work. Full commercial licensing mechanism explicitly deferred to item 5 | `docs/plan-pyvar-local-package-generation.md` (this session) |
 | 3 | New posts/articles about pyvar | Moderate | Found real, fresh material since the last article: a subtle production bug (TokenReportStack + migration image-pinning), a cost-transparency correction ($900-1,000/mo real vs. a stale £126 target), and a Partner Network Customer-Story-declined-then-resubmitted-as-Public-Case-Study story. Recommended as one combined follow-up post, not four | `docs/plan-new-articles-and-posts.md` (this session) |
 | 4 | NLnet submission preparation | Moderate-high | Resolved via WebSearch: NLnet's restructuring settled into "Open Internet Stack" with a live call now open, deadline 2026-11-03. **Restack** (not CodeSupply) is the right-fit fund — explicitly covers "security proofs and audits," matches the brief's own framing. Bigger finding: the real submission is a short 6-question web form, not the existing 5-page `.docx` — that document is source material, not the deliverable | `docs/plan-nlnet-submission.md` (this session) |
-| 5 | Monetization strategy implementation for pro/enterprise tiers | High | Spans business strategy *and* real engineering (billing/metering/tier gates) with live revenue implications; `pyvar-monetization-strategy.docx` exists but "implementation" is a different, larger scope than the strategy document itself | Not yet written |
+| 5 | Monetization strategy implementation for pro/enterprise tiers | High | Confirmed: tier enforcement already works in production (free/pro/enterprise rate limits, `User.tier` schema "denormalised for billing queries"), but there is genuinely **no way for anyone to become pro/enterprise** and **zero payment integration** anywhere in the codebase. Real open decisions (pricing, provider, phase scope) need Filippo before any billing code gets written | `docs/plan-monetization-implementation.md` (this session) |
 | 6 | Market data adapter infrastructure (Refinitiv first) | Hardest | Largest engineering effort (5 phases, MD-1 through MD-5, per the attached plan), touches a genuine compliance boundary (vendor data redistribution restrictions), and has open questions in the plan itself that only Filippo can answer before MD-3 can start (RDP access tier, snapshot vs. streaming, cache TTL legal check, ISIN→RIC persistence) | Not yet written |
 
 ## What "properly planned and fully documented" means per item
@@ -64,5 +64,6 @@ For each item, before any code/content ships:
 
 ## Next step
 
-Items 1–4's full plans are all done (this PR). Item 5 (monetization
-strategy implementation) is next.
+Items 1–5's full plans are all done (this PR). Item 6 (market data adapter
+infrastructure) is last — the hardest, and the one with the most open
+questions only Filippo can answer before real engineering can start.
