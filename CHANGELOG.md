@@ -22,6 +22,17 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   same convention as `function_formulas.json`) feeds
   `scripts/generate_function_catalog.py`'s `is_percentage` field into
   `portal/functions.json`; `portal/pyvar.js` renders the hint.
+- **Stale "382 functions" figure in the live plugin marketplace listing** —
+  `.claude-plugin/marketplace.json`'s top-level bundle description (what
+  `/plugin marketplace add fibtecltd/pyvar` shows) still said 382, the
+  exact number `docs/p9-function-catalogue-reconciliation.md` already
+  flagged as not-current back in August. Corrected to 385, matching every
+  other external-facing count (portal, submission content doc). Deliberately
+  left `pyvar-market-risk`'s own "68 functions" figure alone — verified
+  it's a considered, already-documented count (67 mapped real routes + 1
+  non-route pipeline entry, 4 legacy duplicate routes intentionally
+  uncovered), not an error; see that doc's new follow-up section for the
+  full per-function mapping that resolves its own previously-open question.
 
 ## [0.2.0] — 2026-09-07
 

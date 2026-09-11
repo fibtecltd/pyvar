@@ -59,6 +59,27 @@ reliably (display-name formatting differs enough between the two sources — "P&
 false positives and false negatives). That precise mapping is not done here and is
 flagged as a known gap rather than guessed at.
 
+**Follow-up (2026-09-11) — the gap is now precisely identified, not just
+theorised.** Cross-referencing all 71 real `portal/functions.json` Market
+Risk route names against `.claude/skills/market-risk/SKILL.md`'s illustrative
+code blocks (which use expanded, human-readable pseudonyms — e.g.
+`p_l_attribution_test_frtb_pat` for the real `pnl_attribution_test_frtb_pat`
+— not literal route names, which is why naive string matching above missed
+this) shows **67 of the 71 real routes map 1:1 to a documented pseudonym**,
+**exactly the 4 legacy `engine/metrics.py` routes named above
+(`compute_breaches`, `compute_cvar`, `compute_loss_percentiles`,
+`compute_rolling_var`) have no dedicated entry** — confirming this doc's
+"largely 4" hedge was exactly right, not approximately — and the SKILL.md's
+own 68th code block (`monte_carlo_var_parametric_normal`) is a genuine 68th
+entry: not one of the 71 REST routes at all, but the separate async
+`/var/compute` job-pipeline kernel, already flagged with its own routing
+caveat in the same file. So **68 = 67 mapped real routes + 1 documented
+non-route entry**, and the 4 unmapped legacy routes are a deliberate,
+reasoned omission (they conceptually duplicate already-documented newer
+routes), not an oversight. No content change was needed — the skill was
+already complete under its own stated logic. Verified as part of
+`docs/plan-plugin-marketplace-status-and-submission.md` (roadmap item 1).
+
 ## What this means going forward
 
 - **Do not quote "382 functions" as a current fact.** Historical planning documents
