@@ -7,6 +7,22 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Portal "Try it" panel: percentage-parameter labels** — 120 parameters
+  across 107 functions that are entered as a decimal fraction representing
+  a percentage (`confidence_level=0.99`, `recovery_rate=0.4`,
+  `buffer_ratio=0.025`, ...) had no unit indicator on their form label at
+  all. Verified against each parameter's own engine docstring (never
+  guessed from the name alone — `beta`/`rho` are reused for a genuinely
+  non-percentage quantity in one function each, and were excluded there).
+  Labels now show a `(decimal, %)` hint; the input itself is unchanged —
+  still takes `0.99`, never `99` — so no existing integration or saved
+  request breaks. New `scripts/data/percentage_params.json` (hand-reviewed,
+  same convention as `function_formulas.json`) feeds
+  `scripts/generate_function_catalog.py`'s `is_percentage` field into
+  `portal/functions.json`; `portal/pyvar.js` renders the hint.
+
 ## [0.2.0] — 2026-09-07
 
 ### Added

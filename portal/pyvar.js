@@ -499,7 +499,12 @@ function _escapeHtml(str) {
 }
 
 function _tryitFieldHtml(p) {
-  const label = `${p.name}${p.required ? ' *' : ''}`;
+  // is_percentage (portal/functions.json, scripts/data/percentage_params.json):
+  // a hint only -- the field still takes a decimal (0.99, not 99), matching
+  // every percentage-type parameter's own engine docstring convention (see
+  // scripts/generate_function_catalog.py's module docstring). Never changes
+  // the input's scale or what's sent to the API.
+  const label = `${p.name}${p.is_percentage ? ' (decimal, %)' : ''}${p.required ? ' *' : ''}`;
   const attr = `data-param="${p.name}"`;
   if (p.type === 'boolean') {
     return `<label class="tryit-field"><span>${label}</span><input type="checkbox" ${attr} ${p.default ? 'checked' : ''}/></label>`;

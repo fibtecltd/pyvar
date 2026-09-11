@@ -42,6 +42,30 @@ Reasoning:
   changed parameter) merges the existing formulas back in automatically
   instead of wiping them, and only genuinely new functions need a new
   formula entry written by hand.
+- params[].is_percentage (Try-it panel label fix, folded into PR #332): same
+  pattern as the formula field -- merged in from
+  scripts/data/percentage_params.json, a separate, hand-reviewed, committed
+  file ({function_name: [param_name, ...]}), NOT derived automatically,
+  because the OpenAPI schema carries no unit/semantic metadata (every Field
+  description in schemas/*.py is null -- these are auto-generated request
+  models, see schemas/market_risk.py's own module docstring) and the
+  underlying convention across this codebase is that every percentage-like
+  quantity is entered as a decimal fraction (confidence_level=0.99,
+  buffer_ratio=0.025, recovery_rate=0.4, ...), documented that way in each
+  engine function's own Args: docstring ("e.g. 0.99 for 99% VaR", "as a
+  fraction", "in [0, 1]", ...). The list was built by parsing every
+  resolvable engine docstring's Args: section for that evidence, then
+  propagating by exact (function, param) name to every other occurrence of
+  the same parameter -- withholding propagation for `beta` and `rho`, which
+  are reused across derivatives/market-risk functions for a *different*,
+  non-percentage quantity in at least one case (NIG's `beta` is a general
+  skewness shape parameter with no [0,1]/[-1,1] bound; greeks_based_pnl_
+  explain's `rho` is the Greek delta-V/delta-r, not a correlation) -- so
+  each occurrence of those two names was checked individually rather than
+  matched by name alone. portal/pyvar.js's Try-it panel appends a "(decimal,
+  %)" hint to the label for any param this flags true -- deliberately NOT
+  changing the input's scale or the value sent to the API, since every
+  example in the docstrings above enters e.g. 0.99, never 99.
 """
 
 from __future__ import annotations
@@ -132,6 +156,7 @@ def _extract_params(request_schema: dict[str, Any]) -> list[dict[str, Any]]:
                 "maximum": field_schema.get("maximum"),
                 "exclusiveMinimum": field_schema.get("exclusiveMinimum"),
                 "exclusiveMaximum": field_schema.get("exclusiveMaximum"),
+                "is_percentage": False,  # overridden below from percentage_params.json
             }
         )
     return params
@@ -216,12 +241,19 @@ def _engine_docstring(module: Any, function_name: str) -> tuple[str, str]:
 
 
 FORMULAS_PATH = REPO_ROOT / "scripts" / "data" / "function_formulas.json"
+PERCENTAGE_PARAMS_PATH = REPO_ROOT / "scripts" / "data" / "percentage_params.json"
 
 
 def _load_formulas() -> dict[str, dict[str, Any]]:
     if not FORMULAS_PATH.exists():
         return {}
     return json.loads(FORMULAS_PATH.read_text())
+
+
+def _load_percentage_params() -> dict[str, list[str]]:
+    if not PERCENTAGE_PARAMS_PATH.exists():
+        return {}
+    return json.loads(PERCENTAGE_PARAMS_PATH.read_text())
 
 
 def generate() -> list[dict[str, Any]]:
@@ -286,6 +318,16 @@ def generate() -> list[dict[str, Any]]:
         if entry is None:
             missing_formula.append(f"{fn['domain']}/{fn['name']}")
 
+    percentage_params = _load_percentage_params()
+    unknown_percentage_entries: list[str] = []
+    for fn in catalog:
+        pct_names = set(percentage_params.get(fn["name"], []))
+        param_names = {p["name"] for p in fn["params"]}
+        unknown_percentage_entries.extend(f"{fn['name']}.{p}" for p in pct_names - param_names)
+        for p in fn["params"]:
+            if p["name"] in pct_names:
+                p["is_percentage"] = True
+
     catalog.sort(key=lambda f: (f["domain"], f["name"]))
 
     if unresolved_engine_alias:
@@ -305,6 +347,17 @@ def generate() -> list[dict[str, Any]]:
             file=sys.stderr,
         )
         for item in missing_formula:
+            print(f"  - {item}", file=sys.stderr)
+
+    if unknown_percentage_entries:
+        print(
+            f"WARNING: {len(unknown_percentage_entries)} entr(y/ies) in "
+            f"{PERCENTAGE_PARAMS_PATH.relative_to(REPO_ROOT)} reference a parameter "
+            "name that no longer exists on that function (stale after a rename?) — "
+            "fix or remove them by hand:",
+            file=sys.stderr,
+        )
+        for item in unknown_percentage_entries:
             print(f"  - {item}", file=sys.stderr)
 
     return catalog
