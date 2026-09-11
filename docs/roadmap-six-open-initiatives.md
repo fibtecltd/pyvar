@@ -18,20 +18,21 @@ Multiple pre-existing proposal documents under `docs/proposals/*.docx`
 marketplace-submission work) still say **"Licence MIT"** — the same mistake
 already caught and fixed in `scripts/generate_plugins.py`,
 `plugins/mcp/pyproject.toml`, the portal footer, and the already-corrected
-`docs/proposals/marketplace-submission-content.md`. Confirmed still present
-in `pyvar-grant-brief-nlnet.docx` (item 4 below) **and now also confirmed in
-`pyvar-local-package-proposal.docx`** (item 2 — "pyvar's compute engine is,
-and will remain, MIT-licensed... once the repository goes public", also
-stale on the repo-visibility point since the repo has been public for
-weeks). Not yet checked in `pyvar-grant-brief.docx` or
-`pyvar-monetization-strategy.docx` — check both before either is used
-externally. pyvar's real license, everywhere in the actual codebase, is
-**Apache-2.0**. This is a "fix before you submit/publish/reference
-externally" issue on every one of these `.docx` files, not just the NLnet
-one — though note the *built* `pyvar-local/README.md` (the actual shipped
-artifact, distinct from the `.docx` proposal that inspired it) already
-correctly says Apache-2.0, so this is a docs-only staleness issue, not a
-product-correctness one.
+`docs/proposals/marketplace-submission-content.md`. **Fixed this session in
+`pyvar-grant-brief-nlnet.docx`** (item 4 below) — licence, repo-visibility
+wording, and prepared-date all corrected, plus the fund name resolved to
+Restack. **Still present in `pyvar-local-package-proposal.docx`** (item 2 —
+"pyvar's compute engine is, and will remain, MIT-licensed... once the
+repository goes public", also stale on the repo-visibility point since the
+repo has been public for weeks) — not yet fixed. Not yet checked in
+`pyvar-grant-brief.docx` or `pyvar-monetization-strategy.docx` — check both
+before either is used externally. pyvar's real license, everywhere in the
+actual codebase, is **Apache-2.0**. This is a "fix before you
+submit/publish/reference externally" issue on every one of these `.docx`
+files, not just the NLnet one — though note the *built*
+`pyvar-local/README.md` (the actual shipped artifact, distinct from the
+`.docx` proposal that inspired it) already correctly says Apache-2.0, so
+this is a docs-only staleness issue, not a product-correctness one.
 
 ## The six items, ranked
 
@@ -39,8 +40,8 @@ product-correctness one.
 |---|---|---|---|---|
 | 1 | Anthropic plugin marketplace: status review + submit remaining plugins | Easiest | Investigation + submission actions only; no new engineering; submission *content* is already 95% prepared in `docs/proposals/marketplace-submission-content.md`. Executed this session: fixed a stale "382 functions" figure in the live `.claude-plugin/marketplace.json`, resolved the market-risk 68-vs-71 coverage gap this session's own reconciliation doc had left open, and drafted all 13+1 per-plugin submission blocks ahead of need. Actually checking/submitting via the authenticated form is still Filippo-only | `docs/plan-plugin-marketplace-status-and-submission.md` (this session) |
 | 2 | One-off `pyvar-local` package generation and sharing | Low | Confirmed: the package (`pyvar-local/`) and its CDK publish pipeline (`pyvar-cdk/stacks/local_package_stack.py`) already exist and work as designed — this is "trigger it and verify the release asset" (needs real AWS credentials this session doesn't have), not new build work. Full commercial licensing mechanism explicitly deferred to item 5 | `docs/plan-pyvar-local-package-generation.md` (this session) |
-| 3 | New posts/articles about pyvar | Moderate | Found real, fresh material since the last article: a subtle production bug (TokenReportStack + migration image-pinning), a cost-transparency correction ($900-1,000/mo real vs. a stale £126 target), and a Partner Network Customer-Story-declined-then-resubmitted-as-Public-Case-Study story. Recommended as one combined follow-up post, not four | `docs/plan-new-articles-and-posts.md` (this session) |
-| 4 | NLnet submission preparation | Moderate-high | Resolved via WebSearch: NLnet's restructuring settled into "Open Internet Stack" with a live call now open, deadline 2026-11-03. **Restack** (not CodeSupply) is the right-fit fund — explicitly covers "security proofs and audits," matches the brief's own framing. Bigger finding: the real submission is a short 6-question web form, not the existing 5-page `.docx` — that document is source material, not the deliverable | `docs/plan-nlnet-submission.md` (this session) |
+| 3 | New posts/articles about pyvar | Moderate | Found real, fresh material since the last article: a subtle production bug (TokenReportStack + migration image-pinning), a cost-transparency correction ($900-1,000/mo real vs. a stale £126 target), and a Partner Network Customer-Story-declined-then-resubmitted-as-Public-Case-Study story. **Drafted this session, folded into PR #333**: full Medium draft + LinkedIn adaptation, one combined post per the recommendation, every number re-verified against the repo at drafting time (7 merged PRs since the first article, not the plan doc's original "eleven" — see the draft's own count). Still needs Filippo: confirm the angle, then actually publish | `docs/plan-new-articles-and-posts.md`, `docs/publications/pyvar-post-launch-lessons-medium-article.md` |
+| 4 | NLnet submission preparation | Moderate-high | Resolved via WebSearch: NLnet's restructuring settled into "Open Internet Stack" with a live call now open, deadline 2026-11-03. **Restack** (not CodeSupply) is the right-fit fund — explicitly covers "security proofs and audits," matches the brief's own framing. Bigger finding: the real submission is a short 6-question web form, not the existing 5-page `.docx` — that document is source material, not the deliverable. **Executed this session, folded into PR #333**: fixed the `.docx`'s licence/repo-visibility/fund-name staleness, drafted condensed answers to the 3 of 6 form questions this session could confirm. Still needs Filippo: confirm the remaining 3 question texts against the live form, then submit before 2026-11-03 | `docs/plan-nlnet-submission.md`, `docs/proposals/nlnet-restack-form-answers.md` |
 | 5 | Monetization strategy implementation for pro/enterprise tiers | High | Confirmed: tier enforcement already works in production (free/pro/enterprise rate limits, `User.tier` schema "denormalised for billing queries"), but there is genuinely **no way for anyone to become pro/enterprise** and **zero payment integration** anywhere in the codebase. Real open decisions (pricing, provider, phase scope) need Filippo before any billing code gets written | `docs/plan-monetization-implementation.md` (this session) |
 | 6 | Market data adapter infrastructure (Refinitiv first) | Hardest | Largest engineering effort (5 phases, MD-1 through MD-5, per the attached plan), touches a genuine compliance boundary (vendor data redistribution restrictions), and has open questions in the plan itself that only Filippo can answer before MD-3 can start (RDP access tier, snapshot vs. streaming, cache TTL legal check, ISIN→RIC persistence). Verified MD-1 (interface/schemas/exceptions/fake provider/unit tests) has zero external blockers and is buildable now — a scope decision (this session vs. a delegated agent) is still open | `docs/plan-market-data-adapter.md` (this session) |
 
