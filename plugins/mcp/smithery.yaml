@@ -1,0 +1,39 @@
+# plugins/mcp/smithery.yaml — Smithery (smithery.ai) hosted MCP registry manifest
+#
+# Draft, not yet submitted -- prepared per Filippo's request for a single,
+# most-relevant alternative MCP directory to pyvar-mcp's stalled
+# claude-plugins-community submission (see
+# docs/proposals/smithery-submission-content.md for the full writeup and
+# open questions). Smithery was picked over mcp.so / PulseMCP / Glama /
+# punkpeye's awesome-list because it's the one with real structured
+# submission content worth drafting (the others either just auto-index from
+# GitHub or want a one-line list entry) and it has first-class, documented
+# support for a Python server via the container runtime used below.
+#
+# `container` runtime: Smithery clones this repo, builds plugins/mcp/Dockerfile,
+# and runs the resulting image over stdio -- the same transport
+# .claude-plugin/plugin.json's mcpServers config already uses locally.
+runtime: "container"
+
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+
+startCommand:
+  type: "stdio"
+  configSchema:
+    type: "object"
+    required: ["pyvarApiKey"]
+    properties:
+      pyvarApiKey:
+        type: "string"
+        title: "pyvar API key"
+        description: "Free-tier key from https://www.pyvar.com#get-api-key"
+    # Matches .claude-plugin/plugin.json's userConfig.pyvar_api_key exactly --
+    # same field, same free-tier source, just Smithery's own schema shape.
+
+  commandFunction: |
+    (config) => ({
+      command: "pyvar-mcp",
+      env: { PYVAR_API_KEY: config.pyvarApiKey }
+    })
