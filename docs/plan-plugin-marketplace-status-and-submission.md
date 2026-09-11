@@ -55,6 +55,36 @@ investigation + submission actions, no new engineering.
    is it low-stakes enough to just make sure any *new* submissions say
    Apache-2.0 correctly and let the old one be?
 
+## 2a. Done this session, ahead of Filippo's input
+
+- **Fixed a real, live staleness bug found while re-verifying the plan's own
+  claims**: `.claude-plugin/marketplace.json`'s top-level bundle description
+  said "382 functions" — the exact figure
+  `docs/p9-function-catalogue-reconciliation.md` already says explicitly not
+  to quote as current fact (the live count is 385). This is the actual
+  file end users see via `/plugin marketplace add fibtecltd/pyvar` today,
+  not a historical document, so it was in scope to fix. Regenerated all 13
+  plugin.json files afterward (`scripts/generate_plugins.py`) — no-op diff,
+  confirming nothing else had drifted.
+  Left `pyvar-market-risk`'s own "68 functions" figure untouched — see
+  next bullet for why that one is a deliberate, already-correct choice,
+  not an error.
+- **Resolved the "known gap" `docs/p9-function-catalogue-reconciliation.md`
+  itself flagged as unsolved** (§"Why Market Risk specifically"): whether
+  the skill's "68" vs the live "71" Market Risk routes was really "largely
+  4" legacy duplicates or something looser. It's exactly 4
+  (`compute_breaches`, `compute_cvar`, `compute_loss_percentiles`,
+  `compute_rolling_var`) — verified by mapping all 71 real route names
+  against the SKILL.md's code-block pseudonyms one by one. The skill's
+  content itself needed no changes; see that doc's own follow-up section
+  for the full mapping.
+- **Drafted `docs/proposals/marketplace-submission-content-per-plugin.md`**
+  — all 13 individual skill submission blocks plus `pyvar-mcp`'s, pulled
+  verbatim from each plugin's already-committed frontmatter/`plugin.json`,
+  ready to paste the moment Filippo confirms the submission form wants
+  per-plugin entries rather than (or in addition to) the bundle-level
+  content that already exists.
+
 ## 3. Concrete next actions
 
 **For Filippo (only completable by the account holder, per the submission
