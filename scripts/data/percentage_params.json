@@ -1,0 +1,336 @@
+{
+  "advanced_measurement_approach_ama": [
+    "confidence_level"
+  ],
+  "aifmd_risk_metrics": [
+    "var_pct"
+  ],
+  "available_stable_funding_asf_calc": [
+    "asf_factors"
+  ],
+  "basel_standardised_approach_rwa": [
+    "risk_weight"
+  ],
+  "basket_option_pricer": [
+    "correlation"
+  ],
+  "behavioural_modelling_nmds": [
+    "core_fraction"
+  ],
+  "business_continuity_risk_score": [
+    "bcp_maturity"
+  ],
+  "capital_conservation_buffer": [
+    "buffer_ratio"
+  ],
+  "capital_valuation_adjustment_kva": [
+    "cost_of_capital"
+  ],
+  "caplet_floorlet_pricer_black": [
+    "accrual"
+  ],
+  "cds_spread_to_pd_conversion": [
+    "cds_spread"
+  ],
+  "central_bank_facility_eligibility": [
+    "cb_haircuts"
+  ],
+  "collateral_availability_analysis": [
+    "haircuts"
+  ],
+  "combined_backtesting": [
+    "confidence_level"
+  ],
+  "combined_buffer_requirement": [
+    "capital_conservation_buffer_ratio"
+  ],
+  "combined_stress_scenario": [
+    "market_haircuts",
+    "retail_runoff",
+    "retail_runoff_rates",
+    "wholesale_runoff"
+  ],
+  "component_var": [
+    "confidence_level"
+  ],
+  "compute_cvar": [
+    "confidence_level"
+  ],
+  "compute_rolling_var": [
+    "confidence_level"
+  ],
+  "conditional_drawdown_at_risk": [
+    "confidence_level"
+  ],
+  "conditional_var_es": [
+    "confidence_level"
+  ],
+  "contingent_liquidity_risk": [
+    "draw_probabilities"
+  ],
+  "cornish_fisher_var": [
+    "confidence_level"
+  ],
+  "credit_default_swap_var": [
+    "confidence_level",
+    "spread_volatility"
+  ],
+  "credit_valuation_adjustment_cva": [
+    "credit_spread"
+  ],
+  "credit_var_analytical_vasicek": [
+    "confidence_level"
+  ],
+  "credit_var_monte_carlo": [
+    "confidence_level"
+  ],
+  "creditmetrics_portfolio_model": [
+    "confidence_level",
+    "state_loss_pct"
+  ],
+  "cross_currency_liquidity_bridge": [
+    "swap_haircut"
+  ],
+  "cs01_credit_spread": [
+    "credit_spread"
+  ],
+  "cva_sensitivity_cva_greeks": [
+    "credit_spread"
+  ],
+  "cvar_constrained_optimisation": [
+    "confidence_level"
+  ],
+  "cvar_decomposition_euler": [
+    "confidence_level"
+  ],
+  "cyber_risk_loss_estimation": [
+    "breach_probability"
+  ],
+  "deposit_stability_classification": [
+    "deposit_features"
+  ],
+  "diversification_benefit_oprisk": [
+    "correlation"
+  ],
+  "downturn_lgd_adjustment": [
+    "floor"
+  ],
+  "egarch_volatility_model": [
+    "beta"
+  ],
+  "emir_margin_requirement": [
+    "initial_margin_rate"
+  ],
+  "equity_swap_pricer": [
+    "accrual"
+  ],
+  "expected_shortfall_contribution": [
+    "confidence_level"
+  ],
+  "extreme_value_theory_var": [
+    "confidence_level",
+    "threshold_quantile"
+  ],
+  "filtered_historical_simulation_var": [
+    "confidence_level"
+  ],
+  "frtb_ima_expected_shortfall": [
+    "confidence_level"
+  ],
+  "frtb_ima_non_modellable_risk_factors": [
+    "rho"
+  ],
+  "frtb_ima_stressed_period_finder": [
+    "confidence_level"
+  ],
+  "funding_cost_analysis": [
+    "funding_rates"
+  ],
+  "garch_11_volatility_forecast": [
+    "beta"
+  ],
+  "gjr_garch_asymmetric_model": [
+    "beta"
+  ],
+  "heston_stochastic_volatility_model": [
+    "rho"
+  ],
+  "historical_expected_shortfall": [
+    "confidence_level"
+  ],
+  "historical_simulation_var": [
+    "confidence_level"
+  ],
+  "hqla_level_1_asset_classifier": [
+    "haircuts"
+  ],
+  "hqla_level_2a_asset_classifier": [
+    "haircut"
+  ],
+  "hqla_level_2b_asset_classifier": [
+    "haircut"
+  ],
+  "idiosyncratic_stress_scenario": [
+    "retail_runoff",
+    "wholesale_runoff"
+  ],
+  "incremental_var": [
+    "confidence_level"
+  ],
+  "insurance_offset_calculation": [
+    "haircut"
+  ],
+  "interest_rate_risk_capital_irrbb": [
+    "outlier_threshold"
+  ],
+  "internal_control_factor_icf": [
+    "control_scores"
+  ],
+  "intraday_liquidity_stress_test": [
+    "delay_factor"
+  ],
+  "irb_advanced_approach_capital": [
+    "correlation"
+  ],
+  "it_risk_scoring": [
+    "availability",
+    "patch_compliance"
+  ],
+  "kupiec_pof_test": [
+    "confidence_level"
+  ],
+  "liquidity_adjusted_portfolio_var": [
+    "confidence_level"
+  ],
+  "liquidity_buffer_sizing": [
+    "confidence_buffer"
+  ],
+  "liquidity_coverage_ratio_lcr": [
+    "inflow_cap"
+  ],
+  "liquidity_stress_scenario": [
+    "runoff_rates"
+  ],
+  "liquidity_var_liqvar": [
+    "confidence_level"
+  ],
+  "loss_distribution_approach_lda": [
+    "confidence_level"
+  ],
+  "loss_given_default_lgd_model": [
+    "workout_cost_rate"
+  ],
+  "marginal_var": [
+    "confidence_level"
+  ],
+  "market_wide_stress_scenario": [
+    "market_haircuts"
+  ],
+  "model_risk_assessment": [
+    "validation_score"
+  ],
+  "monte_carlo_expected_shortfall": [
+    "confidence_level"
+  ],
+  "monte_carlo_oprisk_capital": [
+    "confidence_level"
+  ],
+  "monte_carlo_portfolio_simulation": [
+    "confidence_level"
+  ],
+  "non_maturity_deposit_stability": [
+    "confidence_level"
+  ],
+  "operational_var_opvar": [
+    "confidence_level"
+  ],
+  "overnight_index_swap_ois": [
+    "accrual"
+  ],
+  "parametric_delta_normal_var": [
+    "confidence_level"
+  ],
+  "pipeline_risk_measurement": [
+    "pull_through_rate"
+  ],
+  "potential_future_exposure_pfe": [
+    "quantile"
+  ],
+  "probability_of_default_pd_estimation": [
+    "floor"
+  ],
+  "rainbow_option_pricer": [
+    "correlation"
+  ],
+  "rcsa_control_effectiveness": [
+    "design_score",
+    "operating_score"
+  ],
+  "rcsa_residual_risk_scoring": [
+    "control_effectiveness"
+  ],
+  "regulatory_compliance_score": [
+    "requirements_met"
+  ],
+  "repo_market_stress_haircut": [
+    "base_haircuts"
+  ],
+  "required_stable_funding_rsf_calc": [
+    "rsf_factors"
+  ],
+  "retail_deposit_runoff_rate": [
+    "runoff_rates"
+  ],
+  "rolling_var_backtest": [
+    "confidence_level"
+  ],
+  "rough_volatility_rbergomi_model": [
+    "rho"
+  ],
+  "sabr_volatility_model": [
+    "beta",
+    "rho"
+  ],
+  "scenario_analysis_oprisk": [
+    "confidence_level"
+  ],
+  "secured_funding_rollover_risk": [
+    "rollover_rates"
+  ],
+  "solvency_ii_scr_credit_risk": [
+    "default_probabilities"
+  ],
+  "sovereign_credit_risk_assessment": [
+    "debt_to_gdp"
+  ],
+  "spread_option_kirk_approximation": [
+    "rho"
+  ],
+  "srep_capital_add_on": [
+    "pillar2a_addon_ratio"
+  ],
+  "stressed_expected_shortfall": [
+    "confidence_level"
+  ],
+  "swaption_pricer_sabr": [
+    "beta",
+    "rho"
+  ],
+  "tail_ratio": [
+    "tail"
+  ],
+  "third_party_vendor_risk": [
+    "concentration",
+    "financial_health",
+    "substitutability"
+  ],
+  "total_return_swap_trs": [
+    "accrual"
+  ],
+  "var_by_risk_factor": [
+    "confidence_level"
+  ],
+  "wrong_way_risk_adjustment": [
+    "correlation"
+  ]
+}
