@@ -287,7 +287,10 @@ class ApiStack(Stack):
         )
         stripe_secret_key.grant_read(execution_role)
         stripe_webhook_secret.grant_read(execution_role)
-        stripe_price_id_pro.grant_read(execution_role)
+        # Captured: all three grant_read() calls attach to the SAME underlying
+        # execution_role "DefaultPolicy" IAM::Policy resource, so this one grant
+        # anchors a dependency covering all of them (see fargate_service below).
+        stripe_secrets_grant = stripe_price_id_pro.grant_read(execution_role)
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
@@ -438,6 +441,14 @@ class ApiStack(Stack):
                 ),
             ],
         )
+        # Without this, CloudFormation has no dependency edge from the Service to
+        # the execution_role's IAM::Policy resource (the Service only Refs the
+        # unchanged Role, not the separately-updated Policy attached to it) --
+        # so on an in-place update CFN can start rolling ECS tasks before the new
+        # secretsmanager:GetSecretValue grants actually attach, causing
+        # AccessDeniedException on task launch (root cause of the pyvar-dev-api
+        # circuit-breaker rollback when the Stripe secrets were wired in).
+        fargate_service.service.node.add_dependency(stripe_secrets_grant)
 
         # Slow-start: ramp traffic to new tasks over 60s (protects against JIT spike)
         fargate_service.target_group.configure_health_check(
