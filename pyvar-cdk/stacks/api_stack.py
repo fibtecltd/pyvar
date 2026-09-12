@@ -250,6 +250,45 @@ class ApiStack(Stack):
         )
         sentry_secret.grant_read(task_role)
 
+        # Stripe (item 5, Phase A billing — api/routes/billing.py) —
+        # externally managed (not CDK-generated), same from_secret_name_v2
+        # pattern as sentry_secret above. UNLIKE Sentry, these ARE wired via
+        # the execution role + `secrets={}` below (the DB_*/JWT_SECRET
+        # pattern), because billing genuinely needs a real value to do
+        # anything useful — there's no equivalent of Sentry's "degrade
+        # gracefully, still serve traffic" story for a payment integration.
+        #
+        # IMPORTANT — deploy ordering: `secrets={}` resolution happens at
+        # ECS task launch, not at `cdk deploy` time, but it still requires
+        # the secret to actually exist and be readable at that point — this
+        # has no "optional" mode (see sentry_secret's own comment for what
+        # that failure mode looks like). All three secrets below MUST exist
+        # in Secrets Manager BEFORE this stack is next deployed, or every
+        # subsequent `pyvar-{env}-api` task launch fails outright:
+        #
+        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-secret-key \
+        #     --secret-string "sk_test_..." --region eu-west-1
+        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-webhook-secret \
+        #     --secret-string "whsec_..." --region eu-west-1
+        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-price-id-pro \
+        #     --secret-string "price_..." --region eu-west-1
+        #
+        # See docs/plan-monetization-implementation.md §0 for the full
+        # writeup of why this couldn't be verified end-to-end in the
+        # session that added it (no AWS credentials there).
+        stripe_secret_key = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "StripeSecretKey", f"pyvar/{cfg.env_name}/stripe-secret-key"
+        )
+        stripe_webhook_secret = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "StripeWebhookSecret", f"pyvar/{cfg.env_name}/stripe-webhook-secret"
+        )
+        stripe_price_id_pro = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "StripePriceIdPro", f"pyvar/{cfg.env_name}/stripe-price-id-pro"
+        )
+        stripe_secret_key.grant_read(execution_role)
+        stripe_webhook_secret.grant_read(execution_role)
+        stripe_price_id_pro.grant_read(execution_role)
+
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
             self,
@@ -311,6 +350,9 @@ class ApiStack(Stack):
                 "JWT_SECRET": ecs.Secret.from_secrets_manager(jwt_secret),
                 # SENTRY_DSN deliberately NOT here -- see the comment above
                 # sentry_secret's construction for why.
+                "STRIPE_SECRET_KEY": ecs.Secret.from_secrets_manager(stripe_secret_key),
+                "STRIPE_WEBHOOK_SECRET": ecs.Secret.from_secrets_manager(stripe_webhook_secret),
+                "STRIPE_PRICE_ID_PRO": ecs.Secret.from_secrets_manager(stripe_price_id_pro),
             },
             health_check=ecs.HealthCheck(
                 command=["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
