@@ -124,6 +124,15 @@ class User(Base):
     suppression_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
     suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Stripe Customer ID (0007_user_stripe_customer_id, Phase A billing —
+    # docs/plan-monetization-implementation.md). Set the first time this user
+    # starts a Checkout (api/routes/billing.py), then reused as the join key
+    # every webhook event and the checkout-complete token exchange use to
+    # find this row back — Stripe events carry a customer ID, never a pyvar
+    # external_id. Unique, not required: most existing rows will never have
+    # one.
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+
     def __repr__(self) -> str:
         return f"<User email={self.email} tier={self.tier} verified={self.email_verified}>"
 

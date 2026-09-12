@@ -154,6 +154,20 @@ class Settings(BaseSettings):
     # behavior.
     blocked_email_domains: list[str] = []
 
+    # ── Billing (Phase A, item 5) ────────────────────────────────────────────
+    # Stripe Checkout + webhook flow (api/routes/billing.py) that flips
+    # User.tier to "pro" — see docs/plan-monetization-implementation.md.
+    # All three unset by default: billing.py's routes return 503 rather than
+    # raising an unhandled error when they are (same "don't hard-fail on a
+    # missing optional integration" posture as sentry_dsn below).
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    # Stripe Price ID for the (monthly-only, no trial — see the plan doc's
+    # decisions log) Pro subscription. Not a secret itself, but kept
+    # alongside the other two rather than hardcoded so switching Stripe
+    # accounts (test -> live) needs only new env values, no code change.
+    stripe_price_id_pro: str | None = None
+
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
     log_level: str = "INFO"

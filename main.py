@@ -29,6 +29,7 @@ from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
 from api.routes.auth import router as auth_router
+from api.routes.billing import router as billing_router
 from api.routes.credit_risk import router as credit_risk_router
 from api.routes.derivatives import router as derivatives_router
 from api.routes.internal import router as internal_router
@@ -142,6 +143,15 @@ def create_app() -> FastAPI:
 
     # ── Routes ──────────────────────────────────────────────────────────────
     app.include_router(auth_router, prefix=cfg.api_v1_prefix)
+
+    # Billing (item 5, Phase A): not a compute endpoint, so no
+    # enforce_compute_rate_limit dependency, same as auth_router above.
+    # POST /billing/webhook and GET /billing/checkout/complete are
+    # deliberately NOT behind get_current_user either — see
+    # api/routes/billing.py's own module docstring for each route's actual
+    # trust boundary (Stripe signature verification / server-side session
+    # lookup, not a JWT).
+    app.include_router(billing_router, prefix=cfg.api_v1_prefix)
 
     # Service-only ("internal" tier) endpoints — never called by a human/
     # browser. No enforce_compute_rate_limit dependency: not a compute

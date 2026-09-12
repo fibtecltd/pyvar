@@ -7,6 +7,33 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Pro-tier billing (Phase A)** — `POST /billing/checkout`,
+  `POST /billing/webhook`, `GET /billing/checkout/complete`
+  (`api/routes/billing.py`) wire up Stripe Checkout so a user can actually
+  subscribe and have `users.tier` flip to `pro` automatically, closing the
+  gap `docs/plan-monetization-implementation.md` identified: tier
+  enforcement (`api/middleware/rate_limit.py`) was real, but nothing could
+  ever set a user's tier to anything but `free`. Monthly-only, no trial,
+  Stripe Checkout (hosted — pyvar's own infrastructure never touches card
+  data), Enterprise remains a manual, sales-assisted path — all per
+  confirmed decisions in that plan doc. `customer.subscription.deleted`
+  and `invoice.payment_failed` both flip a user back to `free`, not just
+  the happy path. New `users.stripe_customer_id` column
+  (`0007_user_stripe_customer_id`), new `STRIPE_SECRET_KEY` /
+  `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_ID_PRO` settings (all optional —
+  billing routes return 503 rather than erroring when unset). Also closes
+  a real gap the existing minimal auth system had no other way to close:
+  `GET /billing/checkout/complete` issues a fresh JWT reflecting the
+  user's current tier immediately after Checkout, since an already-issued
+  JWT's embedded tier claim is never re-checked against the database (see
+  that route's own docstring) — without it, a successful subscription
+  would be real in the DB but invisible to actual rate-limit enforcement.
+  AWS Secrets Manager wiring for the three Stripe values is deliberately
+  NOT part of this change — see the plan doc's own follow-up section for
+  why and the exact snippet to add once the secrets exist.
+
 ### Fixed
 
 - **Portal "Try it" panel: percentage-parameter labels** — 120 parameters

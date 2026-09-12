@@ -17,6 +17,9 @@ limits>=3.9.0                  # slowapi's rate-limiting engine — imported dir
 orjson>=3.10.0
 python-multipart>=0.0.9
 
+# ── Billing (Phase A: Stripe Checkout + webhook, item 5) ────────
+stripe>=9.0.0                  # api/routes/billing.py
+
 # ── Task queue ────────────────────────────────────────────────
 celery>=5.3.6
 redis>=5.0.3
