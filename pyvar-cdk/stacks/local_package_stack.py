@@ -166,10 +166,11 @@ class LocalPackageStack(Stack):
             ),
         )
 
+        pipeline_name = f"pyvar-{cfg.env_name}-local-package"
         pipeline = codepipeline.Pipeline(
             self,
             "Pipeline",
-            pipeline_name=f"pyvar-{cfg.env_name}-local-package",
+            pipeline_name=pipeline_name,
             # V1 explicitly, not the default-if-unset: this pipeline has no
             # need for V2's Git-filter-trigger feature (that's the main
             # pipeline_stack.py pipeline's own reason for V2) -- it doesn't
@@ -252,6 +253,6 @@ class LocalPackageStack(Stack):
             value=pipeline.pipeline_name,
             description=(
                 "Manual trigger: aws codepipeline start-pipeline-execution "
-                f"--name {pipeline.pipeline_name} --region {cfg.region}"
+                f"--name {pipeline_name} --region {cfg.region}"
             ),
         )
