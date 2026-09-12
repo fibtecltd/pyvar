@@ -31,6 +31,24 @@ $ docker run --rm pyvar-local call montecarlo run_monte_carlo_var \
     --params '{"returns": [0.001, -0.002, ...], "portfolio_value": 1000000, "n_simulations": 1000, "seed": 1}'
 ```
 
+## Getting the image (GitHub Release download)
+
+If you received this as a `pyvar-local.tar.gz` from a GitHub Release
+(`pyvar-local-v0-<short-sha>` — see `pyvar-cdk/stacks/local_package_stack.py`'s
+Publish stage), it's a `docker save | gzip` of the built image, not something
+`docker run` can use directly. Load it first:
+
+```
+$ docker load -i pyvar-local.tar.gz
+Loaded image: pyvar-local:<full-sha>
+
+$ docker run --rm pyvar-local:<full-sha> list | head -3
+```
+
+`docker load` prints the exact tag it loaded — use that tag (not a bare
+`pyvar-local` with no tag) for every command below. Optionally re-tag it to
+something shorter first: `docker tag pyvar-local:<full-sha> pyvar-local:local`.
+
 ## What's deliberately NOT in this image (yet)
 
 This first release is scoped to the engine and a CLI — not a full local

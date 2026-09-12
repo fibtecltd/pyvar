@@ -1,5 +1,94 @@
 # Plan: monetization strategy implementation for pro/enterprise tiers
 
+## 0. Executed this session — Phase A shipped
+
+Decisions confirmed by Filippo: **Stripe** (test account already exists),
+**Phase A only** (billing plumbing, no priority queue/extended retention
+yet), **monthly-only, no trial**, **Enterprise stays manual** ("Contact us"
+→ sales conversation → someone sets `tier="enterprise"` by hand).
+
+Built and tested (`tests/test_billing.py`, 14 tests, all passing; full
+existing suite — 991 tests — re-run clean, no regressions):
+
+- `api/routes/billing.py` — `POST /billing/checkout` (JWT-authenticated,
+  creates/reuses a Stripe Customer, returns a hosted Checkout URL),
+  `POST /billing/webhook` (Stripe-signature-verified, `checkout.session.completed`
+  → `tier="pro"`, `customer.subscription.deleted`/`invoice.payment_failed`
+  → `tier="free"`), `GET /billing/checkout/complete` (session-ID-verified
+  against Stripe's own API, issues a fresh JWT).
+- `users.stripe_customer_id` (`migrations/versions/0007_user_stripe_customer_id.py`)
+  — the join key every webhook event and the checkout-complete exchange use
+  to find a pyvar user back from a Stripe event.
+- `config.py`: `stripe_secret_key` / `stripe_webhook_secret` /
+  `stripe_price_id_pro`, all optional — billing routes return 503 rather
+  than erroring when unset, so this ships safely with no Stripe secrets
+  configured anywhere yet.
+- A real gap closed that wasn't in the original plan below: `TokenPayload`
+  (`api/middleware/auth.py`) — and therefore `enforce_compute_rate_limit`'s
+  tier check — is decoded entirely from the JWT's own embedded `tier`
+  claim, never re-queried from the database. Flipping `users.tier` via the
+  webhook does NOT retroactively change what an already-issued JWT is
+  entitled to. `GET /billing/checkout/complete` is the minimum necessary
+  bridge for that — symmetric with `GET /auth/verify`, the only other place
+  this app issues a token — not a general-purpose login/refresh mechanism
+  (this app still doesn't have one, deliberately, per `api/routes/auth.py`'s
+  own "minimum viable" scope).
+- `docs/proposals/pyvar-monetization-strategy.docx` — same MIT→Apache-2.0 +
+  date staleness fix as every other proposal doc this session corrected.
+
+**Deliberately not done — needs Filippo, real AWS access:**
+
+1. **The three Stripe secrets don't exist in Secrets Manager yet.** The CDK
+   side is now done — see PR `infra/wire-stripe-secrets-api-stack`, which
+   adds `stripe_secret_key`/`stripe_webhook_secret`/`stripe_price_id_pro`
+   (`from_secret_name_v2`, same pattern as `sentry_secret`) to
+   `pyvar-cdk/stacks/api_stack.py`, grants the execution role read access,
+   and wires all three into the `api` container's `secrets={}` block
+   (alongside `JWT_SECRET`) — verified via `cdk synth pyvar-dev-api`
+   (confirmed the three `STRIPE_*` env vars resolve to the correct secret
+   ARNs in the synthesized task definition, and the execution role's IAM
+   policy grants `GetSecretValue`/`DescribeSecret` on exactly those three
+   ARNs — no other part of the template changed).
+
+   **This is still genuinely deploy-blocking if merged out of order** —
+   `secrets={}` resolution happens at ECS task launch, not at `cdk deploy`
+   time, and it has no "optional" mode (see `sentry_secret`'s own comment
+   in that file for what missing-secret failure looks like): if this PR
+   merges and `pyvar-dev-api` gets redeployed before the three secrets
+   exist, every subsequent task launch fails outright. **Do this, in this
+   order:**
+
+   ```bash
+   # 1. Create the three secrets FIRST (test-mode values today; swap for
+   #    live values later — no code change either way)
+   aws secretsmanager create-secret --name pyvar/dev/stripe-secret-key \
+     --secret-string "sk_test_..." --region eu-west-1
+   aws secretsmanager create-secret --name pyvar/dev/stripe-webhook-secret \
+     --secret-string "whsec_..." --region eu-west-1
+   aws secretsmanager create-secret --name pyvar/dev/stripe-price-id-pro \
+     --secret-string "price_..." --region eu-west-1
+   ```
+
+   2. THEN merge `infra/wire-stripe-secrets-api-stack` and pull it into
+      whatever checkout runs the next step.
+   3. THEN `cdk deploy pyvar-dev-api --context env=dev --context account=347228921290`.
+      Watch it — this is a real ECS rolling deployment of a live service.
+
+2. **The Stripe Checkout Session and webhook endpoint itself have never
+   been exercised against the real Stripe API** — `tests/test_billing.py`
+   mocks every Stripe SDK call; nothing here has confirmed a real test-mode
+   checkout actually completes end-to-end (Checkout redirect → webhook
+   delivery → tier flip → `GET /billing/checkout/complete` issuing a
+   working new JWT). Worth a manual run-through against the test Stripe
+   account once the secrets above are wired, before calling Phase A done.
+3. **Registering the webhook endpoint with Stripe itself** (Dashboard or
+   `stripe listen`/CLI, pointing at
+   `https://{dev.,}pyvar.com/api/v1/billing/webhook`) — a one-time,
+   account-side configuration step, not a code change.
+
+---
+
+
 **Item 5 of 6** in `docs/roadmap-six-open-initiatives.md`. Ranked high
 complexity: real engineering (payment processing, a self-serve upgrade
 flow) with live revenue and compliance implications, plus genuine open
