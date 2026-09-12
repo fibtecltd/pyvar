@@ -154,7 +154,13 @@ class LocalPackageStack(Stack):
                                 # CODEBUILD_SRC_DIR_Source is the extra input
                                 # (the full repo checkout) -- the publish
                                 # script lives there, not in Built.
-                                "SHORT_SHA=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}",
+                                # cut, not bash's ${VAR:0:8} substring syntax --
+                                # CodeBuild runs buildspec commands under sh
+                                # (dash), which doesn't support it and fails
+                                # with "Bad substitution" (exit 2). Same
+                                # SHORT_SHA-from-COMMIT_ID pattern pipeline_stack.py
+                                # already uses (there via `cut -c1-7`).
+                                "SHORT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)",
                                 "export TAG=pyvar-local-v0-$SHORT_SHA",
                                 "export ASSET_PATH=$CODEBUILD_SRC_DIR/pyvar-local.tar.gz",
                                 "export GITHUB_TOKEN=$GITHUB_TOKEN_VALUE",
