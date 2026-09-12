@@ -154,13 +154,29 @@ class LocalPackageStack(Stack):
                                 # CODEBUILD_SRC_DIR_Source is the extra input
                                 # (the full repo checkout) -- the publish
                                 # script lives there, not in Built.
-                                # cut, not bash's ${VAR:0:8} substring syntax --
-                                # CodeBuild runs buildspec commands under sh
-                                # (dash), which doesn't support it and fails
-                                # with "Bad substitution" (exit 2). Same
-                                # SHORT_SHA-from-COMMIT_ID pattern pipeline_stack.py
-                                # already uses (there via `cut -c1-7`).
-                                "SHORT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)",
+                                #
+                                # SHORT_SHA is read from image_tag.txt (written
+                                # by BuildProject as `pyvar-local:<full-sha>`),
+                                # NOT from this build's own
+                                # $CODEBUILD_RESOLVED_SOURCE_VERSION --
+                                # pipeline_stack.py's Synth step already
+                                # documents that CodeBuild doesn't populate that
+                                # var for a CODEPIPELINE-type source, and here
+                                # it's empty specifically because this action's
+                                # primary input is the Built artifact (this
+                                # stage's own build output), not the original
+                                # Source artifact -- unlike BuildProject above,
+                                # whose primary input IS Source, so it resolves
+                                # there. An empty SHORT_SHA produced a
+                                # "pyvar-local-v0-" tag (trailing dash, nothing
+                                # after it), which GitHub's release-creation API
+                                # rejected outright ("Validation Failed").
+                                # `cut`, not bash's ${VAR:0:8} substring syntax
+                                # -- CodeBuild runs buildspec commands under sh
+                                # (dash), which doesn't support it (see the
+                                # "Bad substitution" exit-2 failure this
+                                # replaced).
+                                "SHORT_SHA=$(cat $CODEBUILD_SRC_DIR/image_tag.txt | cut -d: -f2 | cut -c1-8)",
                                 "export TAG=pyvar-local-v0-$SHORT_SHA",
                                 "export ASSET_PATH=$CODEBUILD_SRC_DIR/pyvar-local.tar.gz",
                                 "export GITHUB_TOKEN=$GITHUB_TOKEN_VALUE",
