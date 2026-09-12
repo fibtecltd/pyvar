@@ -44,8 +44,10 @@ from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_ecs_patterns as ecs_patterns
 from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_ses as ses
 from aws_cdk import aws_sqs as sqs
+from aws_cdk import triggers
 from constructs import Construct
 from stacks.data_stack import DataStack
 from stacks.network_stack import SecurityGroups
@@ -287,10 +289,36 @@ class ApiStack(Stack):
         )
         stripe_secret_key.grant_read(execution_role)
         stripe_webhook_secret.grant_read(execution_role)
-        # Captured: all three grant_read() calls attach to the SAME underlying
-        # execution_role "DefaultPolicy" IAM::Policy resource, so this one grant
-        # anchors a dependency covering all of them (see fargate_service below).
-        stripe_secrets_grant = stripe_price_id_pro.grant_read(execution_role)
+        # All three grant_read() calls attach statements to the SAME
+        # lazily-created execution_role "DefaultPolicy" IAM::Policy child
+        # construct -- fetched below so the trigger can depend on that actual
+        # resource (a Grant object satisfies IDependable, but TriggerFunction's
+        # execute_after= requires a real Construct, which DefaultPolicy is).
+        stripe_price_id_pro.grant_read(execution_role)
+        stripe_secrets_policy = execution_role.node.find_child("DefaultPolicy")
+
+        # infra/340: #339's node.add_dependency(grant) only guarantees
+        # CloudFormation issues the PutRolePolicy call before the ECS service
+        # update starts -- it does NOT wait for IAM's own eventual-consistency
+        # propagation to finish, which outlasted the ECS deployment circuit
+        # breaker's failure tolerance twice in production (see PR #340
+        # investigation). This one-shot Lambda just sleeps long enough for that
+        # propagation window to close before the service is allowed to update.
+        iam_propagation_wait = triggers.TriggerFunction(
+            self,
+            "StripeGrantIamPropagationWait",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="index.handler",
+            code=lambda_.Code.from_inline(
+                "import time\n\n\ndef handler(event, context):\n    time.sleep(75)\n    return {}\n"
+            ),
+            timeout=Duration.seconds(120),
+            execute_after=[stripe_secrets_policy],
+            description=(
+                "One-shot wait for IAM propagation of execution_role's Stripe "
+                "secret grants before the ECS service update rolls new tasks."
+            ),
+        )
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
@@ -446,9 +474,11 @@ class ApiStack(Stack):
         # unchanged Role, not the separately-updated Policy attached to it) --
         # so on an in-place update CFN can start rolling ECS tasks before the new
         # secretsmanager:GetSecretValue grants actually attach, causing
-        # AccessDeniedException on task launch (root cause of the pyvar-dev-api
-        # circuit-breaker rollback when the Stripe secrets were wired in).
-        fargate_service.service.node.add_dependency(stripe_secrets_grant)
+        # AccessDeniedException on task launch. Depending on iam_propagation_wait
+        # (not just stripe_secrets_grant directly, per infra/340) additionally
+        # ensures IAM's own eventual-consistency propagation has had time to
+        # finish, not just that the PutRolePolicy API call returned.
+        fargate_service.service.node.add_dependency(iam_propagation_wait)
 
         # Slow-start: ramp traffic to new tasks over 60s (protects against JIT spike)
         fargate_service.target_group.configure_health_check(
