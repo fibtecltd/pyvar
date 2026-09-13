@@ -23,9 +23,11 @@ Reasoning:
   Re-downgrading an already-"free" account here is a no-op (skips the
   duplicate audit row and duplicate email); the CALLER is still responsible
   for rejecting the request either way, every time.
-- restore_after_payment_succeeded treats ANY successful Stripe payment as
-  sufficient signal to restore Pro access, not narrowly "was downgraded for
-  exceeding a monthly limit specifically" — see its own docstring.
+- restore_after_payment_succeeded only restores accounts downgraded for a
+  monthly usage cap — deliberately NOT a payment-failure or
+  subscription-cancellation downgrade, which have their own explicit path
+  back (a fresh Checkout) rather than an incidental invoice event
+  restoring them — see its own docstring.
 """
 
 from __future__ import annotations
@@ -207,28 +209,38 @@ async def downgrade_for_monthly_limit(
     send_tier_change_email(email, event_type)
 
 
+_RESTORABLE_DOWNGRADE_REASONS = {
+    DOWNGRADE_MONTHLY_REQUEST_LIMIT,
+    DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
+}
+
+
 def restore_after_payment_succeeded(
     session: AsyncSession, row: User, *, stripe_event_id: str | None = None
 ) -> str | None:
-    """If `row` isn't already "pro", flips it to "pro" and clears
-    tier_downgrade_reason.
+    """If `row` was downgraded for exceeding a monthly usage cap
+    (tier_downgrade_reason in _RESTORABLE_DOWNGRADE_REASONS), flips it back
+    to "pro" and clears tier_downgrade_reason.
 
-    ANY successful payment on this Stripe customer's subscription — not
-    narrowly "was downgraded for a monthly limit specifically" — is treated
-    as sufficient signal that Pro access should be active: an account whose
-    card was previously declined (tier_downgrade_reason ==
-    DOWNGRADE_PAYMENT_FAILED) and has now been successfully rebilled
-    (Stripe's own automatic retry, or a fixed payment method) gets Pro back
-    automatically too, rather than staying stuck on Free until it starts a
-    brand new Checkout — closing a real gap the original payment-decline
-    downgrade left open.
+    Deliberately narrow: a successful payment does NOT restore an account
+    downgraded for DOWNGRADE_PAYMENT_FAILED or
+    DOWNGRADE_SUBSCRIPTION_CANCELLED — those reflect the customer's own
+    Stripe subscription state (a declined card, an explicit cancellation),
+    which checkout.session.completed (a fresh Checkout) is the correct,
+    explicit path back from, not an incidental invoice event. Only the two
+    monthly-limit downgrades are "still an active, willing subscriber who
+    just used their plan up for the period" — confirmed scope, not the
+    original wider "any successful payment" draft.
 
     Does NOT commit — the caller (api/routes/billing.py's webhook, already
     inside its own session block) commits once alongside this. Returns the
     event_type written for the caller's own post-commit notification email,
-    or None if this was a no-op (already "pro").
+    or None if this was a no-op (already "pro", or downgraded for a reason
+    this function doesn't restore from).
     """
     if row.tier == "pro":
+        return None
+    if row.tier_downgrade_reason not in _RESTORABLE_DOWNGRADE_REASONS:
         return None
 
     old_tier = row.tier

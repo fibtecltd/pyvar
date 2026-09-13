@@ -559,6 +559,50 @@ async def test_webhook_payment_succeeded_noop_when_already_pro(app, monkeypatch,
     mock_send.assert_not_called()
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "downgrade_reason",
+    ["payment_failed", "subscription_cancelled"],
+)
+async def test_webhook_payment_succeeded_does_not_restore_non_monthly_downgrades(
+    app, monkeypatch, downgrade_reason
+):
+    """Narrowed scope: only a monthly-limit downgrade auto-restores on the
+    next successful payment. A payment-failure or subscription-cancellation
+    downgrade needs a fresh Checkout, not an incidental invoice event —
+    this must stay Free even though Stripe reports a successful payment."""
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
+    user_row = User(
+        external_id="ext-11", email="not-restored@example.com", tier="free", stripe_customer_id="cus_1"
+    )
+    user_row.tier_downgrade_reason = downgrade_reason
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook,
+            "construct_event",
+            return_value=_event("invoice.payment_succeeded", event_id="evt_no_restore"),
+        ),
+        patch("api.routes.billing.send_tier_change_email") as mock_send,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/webhook",
+                content=b"{}",
+                headers={"stripe-signature": "valid"},
+            )
+
+    assert resp.status_code == 200
+    assert user_row.tier == "free"
+    assert user_row.tier_downgrade_reason == downgrade_reason
+    assert len(session.added) == 0
+    mock_send.assert_not_called()
+
+
 # ── _resolve_stripe_secrets ──────────────────────────────────────────────────
 # infra/341: Stripe secrets no longer arrive via ECS's native `secrets={}`
 # injection (that mechanism has no "optional" mode and made the ENTIRE

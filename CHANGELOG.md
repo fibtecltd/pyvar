@@ -61,15 +61,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   now idempotent against redelivery (checked against
   `billing_events.stripe_event_id`) and additionally handles
   `invoice.paid`/`invoice.payment_succeeded` to automatically restore Pro
-  access on the next successful payment for ANY account that isn't
-  already Pro — not narrowly "was downgraded for a monthly limit" — so an
-  account previously downgraded for a declined payment also gets Pro back
-  once successfully rebilled, without needing a brand-new Checkout. New
-  `users.tier_downgrade_reason` column distinguishes "auto-downgraded,
-  should restore on next successful payment" from "never subscribed."
-  20 new tests (`tests/test_billing_lifecycle.py` + additions to
+  access on the next successful payment — scoped narrowly to accounts
+  downgraded by one of the two monthly caps, not a payment-failure or
+  subscription-cancellation downgrade, which have their own explicit path
+  back (a fresh Checkout). New `users.tier_downgrade_reason` column
+  distinguishes "auto-downgraded for a monthly limit, should restore on
+  next successful payment" from every other reason a tier is `free`.
+  25 new tests (`tests/test_billing_lifecycle.py` + additions to
   `tests/test_rate_limit.py`, `tests/test_api.py`, `tests/test_billing.py`);
-  full 1,733-test suite re-run clean.
+  full 1,738-test suite re-run clean.
 
 ### Fixed
 

@@ -228,3 +228,30 @@ def test_restore_after_payment_succeeded_noop_when_already_pro():
     assert result is None
     assert len(session.added) == 0
     assert user.tier == "pro"
+
+
+@pytest.mark.parametrize(
+    "downgrade_reason",
+    [
+        billing_lifecycle.DOWNGRADE_PAYMENT_FAILED,
+        billing_lifecycle.DOWNGRADE_SUBSCRIPTION_CANCELLED,
+        None,
+    ],
+)
+def test_restore_after_payment_succeeded_does_not_restore_non_monthly_downgrades(
+    downgrade_reason,
+):
+    """Narrowed scope: a successful payment restores ONLY an account
+    downgraded for a monthly usage cap. A payment-failure or
+    subscription-cancellation downgrade (or an account that was never
+    downgraded at all, e.g. tier=="free" by default) has its own explicit
+    path back — a fresh Checkout, not an incidental invoice event."""
+    session = FakeAsyncSession()
+    user = make_user(tier="free")
+    user.tier_downgrade_reason = downgrade_reason
+
+    result = billing_lifecycle.restore_after_payment_succeeded(session, user)
+
+    assert result is None
+    assert len(session.added) == 0
+    assert user.tier == "free"  # never touched

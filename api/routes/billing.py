@@ -60,12 +60,12 @@ Reasoning:
   "downgrade happens silently" gap flagged when Phase A first shipped.
 - Restore path: invoice.paid / invoice.payment_succeeded (Stripe's "an
   invoice was paid" signal, checked for both since Stripe emits one or the
-  other depending on API version/integration age) restores "pro" for any
-  account that isn't already Pro — see
-  billing_lifecycle.restore_after_payment_succeeded's own docstring for why
-  this applies to ANY successful payment, not narrowly the monthly-limit-
-  downgrade scenario it was added for (api/middleware/rate_limit.py,
-  api/routes/var.py's monthly caps).
+  other depending on API version/integration age) restores "pro" only for
+  an account downgraded by one of the two monthly caps
+  (api/middleware/rate_limit.py, api/routes/var.py) — deliberately NOT a
+  payment-failure or subscription-cancellation downgrade, which have their
+  own explicit path back (a fresh Checkout) — see
+  billing_lifecycle.restore_after_payment_succeeded's own docstring.
 - Idempotent against Stripe's at-least-once redelivery guarantee: every
   tier-changing event's Stripe event ID is checked against
   BillingEvent.stripe_event_id before acting, so a redelivered event doesn't
@@ -110,9 +110,11 @@ _DOWNGRADE_EVENTS = {
 }
 # Both are Stripe's "an invoice was paid" signal (invoice.paid is the modern
 # name; invoice.payment_succeeded is the older/still-emitted equivalent) —
-# treated identically. See billing_lifecycle.restore_after_payment_succeeded's
-# own docstring for why ANY successful payment restores Pro, not narrowly
-# "was downgraded for a monthly limit specifically" (item 5 §8 follow-on).
+# treated identically. Only restores an account downgraded for a monthly
+# limit (item 5 §8 follow-on) — see
+# billing_lifecycle.restore_after_payment_succeeded's own docstring for why
+# a payment-failure or subscription-cancellation downgrade is deliberately
+# NOT restored from here.
 _RESTORE_EVENTS = {"invoice.paid", "invoice.payment_succeeded"}
 
 

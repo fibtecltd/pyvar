@@ -365,9 +365,9 @@ mismatch. The simulation-count cap is scoped to VaR Monte Carlo only
 record today — extending that to the other 385 endpoints is separate,
 larger, out-of-scope work).
 
-Built and tested (20 new tests — `tests/test_billing_lifecycle.py` +
+Built and tested (25 new tests — `tests/test_billing_lifecycle.py` +
 additions to `tests/test_rate_limit.py`, `tests/test_api.py`,
-`tests/test_billing.py`; full 1,733-test suite re-run clean):
+`tests/test_billing.py`; full 1,738-test suite re-run clean):
 
 - **`api/middleware/billing_lifecycle.py`** (new) — shared module every
   tier-change site uses: `record_billing_event()` (writes a `BillingEvent`
@@ -403,18 +403,15 @@ additions to `tests/test_rate_limit.py`, `tests/test_api.py`,
   change (upgrade, either downgrade path, and the new restore path) writes
   a `BillingEvent` and sends a notification, closing the "downgrade
   happens silently, only visible in CloudWatch" gap flagged in §8.2.
-  New `invoice.paid`/`invoice.payment_succeeded` handling restores Pro for
-  **any** account that isn't already Pro on a successful payment — not
-  narrowly "was downgraded for a monthly limit specifically" — so an
-  account previously downgraded for a *declined* payment also gets Pro
-  back automatically once successfully rebilled (Stripe's own retry, or a
-  fixed card), rather than staying stuck on Free until it starts a brand
-  new Checkout. This is a deliberate, considered widening beyond what was
-  strictly asked (only the monthly-limit case needed a restore path) —
-  flagged here rather than done silently, since it changes behavior for
-  the existing `invoice.payment_failed` downgrade too, in a direction that
-  seemed clearly correct (a customer who successfully pays again should
-  get Pro back) but wasn't explicitly confirmed.
+  New `invoice.paid`/`invoice.payment_succeeded` handling restores Pro
+  **only** for an account downgraded by one of the two monthly caps
+  (`billing_lifecycle.restore_after_payment_succeeded`'s
+  `_RESTORABLE_DOWNGRADE_REASONS`) — an initial draft restored on *any*
+  successful payment (including a payment-failure or
+  subscription-cancellation downgrade), but Filippo narrowed this: those
+  two have their own explicit path back — a fresh Checkout — rather than
+  an incidental invoice event silently re-upgrading an account that
+  cancelled or had a card declined.
 
 **Deliberately not done:**
 
