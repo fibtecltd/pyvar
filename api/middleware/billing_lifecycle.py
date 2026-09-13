@@ -95,8 +95,7 @@ _NOTIFICATION_COPY: dict[str, tuple[str, str]] = {
     ),
     EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED: (
         "Your pyvar Pro access is active again",
-        "A successful payment on your pyvar Pro subscription has restored "
-        "your full Pro limits.",
+        "A successful payment on your pyvar Pro subscription has restored " "your full Pro limits.",
     ),
 }
 

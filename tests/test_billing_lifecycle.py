@@ -102,7 +102,9 @@ def test_send_tier_change_email_noop_on_unknown_event_type():
 def test_send_tier_change_email_sends_via_ses():
     mock_client = MagicMock()
     with patch("boto3.client", return_value=mock_client) as mock_boto_client:
-        billing_lifecycle.send_tier_change_email("user@example.com", billing_lifecycle.EVENT_UPGRADED)
+        billing_lifecycle.send_tier_change_email(
+            "user@example.com", billing_lifecycle.EVENT_UPGRADED
+        )
 
     mock_boto_client.assert_called_once_with("ses", region_name=billing_lifecycle.cfg.ses_region)
     mock_client.send_email.assert_called_once()

@@ -105,7 +105,10 @@ cfg = get_settings()
 # 200 and otherwise ignored; Stripe requires a fast 2xx regardless of
 # whether an event is one this app acts on.
 _DOWNGRADE_EVENTS = {
-    "customer.subscription.deleted": (EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED, DOWNGRADE_SUBSCRIPTION_CANCELLED),
+    "customer.subscription.deleted": (
+        EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED,
+        DOWNGRADE_SUBSCRIPTION_CANCELLED,
+    ),
     "invoice.payment_failed": (EVENT_DOWNGRADED_PAYMENT_FAILED, DOWNGRADE_PAYMENT_FAILED),
 }
 # Both are Stripe's "an invoice was paid" signal (invoice.paid is the modern

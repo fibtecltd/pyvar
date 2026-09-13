@@ -146,8 +146,9 @@ async def test_checkout_creates_stripe_customer_when_none_exists(app, monkeypatc
         url="https://checkout.stripe.com/session/xyz"
     )
 
-    with patch_sessionmaker(session), patch(
-        "api.routes.billing._stripe_client", return_value=fake_stripe
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post("/api/v1/billing/checkout", headers=auth_header())
@@ -179,8 +180,9 @@ async def test_checkout_reuses_existing_stripe_customer(app, monkeypatch):
         url="https://checkout.stripe.com/session/abc"
     )
 
-    with patch_sessionmaker(session), patch(
-        "api.routes.billing._stripe_client", return_value=fake_stripe
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -199,8 +201,9 @@ async def test_checkout_returns_404_when_user_row_missing(app, monkeypatch):
     configure_billing(monkeypatch)
     session = FakeAsyncSession(lookup_result=None)
 
-    with patch_sessionmaker(session), patch(
-        "api.routes.billing._stripe_client", return_value=MagicMock()
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=MagicMock()),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post("/api/v1/billing/checkout", headers=auth_header())
@@ -226,8 +229,9 @@ async def test_checkout_complete_issues_fresh_jwt_with_current_tier(app, monkeyp
         payment_status="paid", customer="cus_1"
     )
 
-    with patch_sessionmaker(session), patch(
-        "api.routes.billing._stripe_client", return_value=fake_stripe
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
@@ -250,8 +254,9 @@ async def test_checkout_complete_rejects_unpaid_session(app, monkeypatch):
         payment_status="unpaid", customer="cus_1"
     )
 
-    with patch_sessionmaker(FakeAsyncSession()), patch(
-        "api.routes.billing._stripe_client", return_value=fake_stripe
+    with (
+        patch_sessionmaker(FakeAsyncSession()),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
@@ -269,8 +274,9 @@ async def test_checkout_complete_returns_404_for_unknown_customer(app, monkeypat
         payment_status="paid", customer="cus_unknown"
     )
 
-    with patch_sessionmaker(FakeAsyncSession(lookup_result=None)), patch(
-        "api.routes.billing._stripe_client", return_value=fake_stripe
+    with (
+        patch_sessionmaker(FakeAsyncSession(lookup_result=None)),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
@@ -292,10 +298,13 @@ async def test_webhook_rejects_invalid_signature(app, monkeypatch):
     configure_billing(monkeypatch)
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
 
-    with patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook,
-        "construct_event",
-        side_effect=stripe_sdk.error.SignatureVerificationError("bad signature", "sig_header"),
+    with (
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook,
+            "construct_event",
+            side_effect=stripe_sdk.error.SignatureVerificationError("bad signature", "sig_header"),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -316,10 +325,14 @@ async def test_webhook_checkout_completed_flips_tier_to_pro(app, monkeypatch):
     )
     session = FakeAsyncSession(lookup_result=user_row)
 
-    with patch_sessionmaker(session), patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook,
-        "construct_event",
-        return_value=_event("checkout.session.completed"),
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook,
+            "construct_event",
+            return_value=_event("checkout.session.completed"),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -343,8 +356,10 @@ async def test_webhook_downgrade_events_flip_tier_to_free(app, monkeypatch, even
     )
     session = FakeAsyncSession(lookup_result=user_row)
 
-    with patch_sessionmaker(session), patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook, "construct_event", return_value=_event(event_type)
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(stripe_sdk.Webhook, "construct_event", return_value=_event(event_type)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -366,8 +381,12 @@ async def test_webhook_ignores_unhandled_event_type(app, monkeypatch):
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     session = FakeAsyncSession(lookup_result=User(external_id="ext-6", tier="free"))
 
-    with patch_sessionmaker(session), patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook, "construct_event", return_value=_event("customer.updated")
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook, "construct_event", return_value=_event("customer.updated")
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -386,10 +405,14 @@ async def test_webhook_unknown_customer_does_not_raise(app, monkeypatch):
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     session = FakeAsyncSession(lookup_result=None)  # no matching user row
 
-    with patch_sessionmaker(session), patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook,
-        "construct_event",
-        return_value=_event("checkout.session.completed", customer="cus_ghost"),
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook,
+            "construct_event",
+            return_value=_event("checkout.session.completed", customer="cus_ghost"),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -421,10 +444,14 @@ async def test_webhook_duplicate_event_is_ignored(app, monkeypatch):
         ),
     )
 
-    with patch_sessionmaker(session), patch_stripe_client(), patch.object(
-        stripe_sdk.Webhook,
-        "construct_event",
-        return_value=_event("checkout.session.completed", event_id="evt_dup_1"),
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(
+            stripe_sdk.Webhook,
+            "construct_event",
+            return_value=_event("checkout.session.completed", event_id="evt_dup_1"),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -534,7 +561,10 @@ async def test_webhook_payment_succeeded_noop_when_already_pro(app, monkeypatch,
     configure_billing(monkeypatch)
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     user_row = User(
-        external_id="ext-10", email="already-pro@example.com", tier="pro", stripe_customer_id="cus_1"
+        external_id="ext-10",
+        email="already-pro@example.com",
+        tier="pro",
+        stripe_customer_id="cus_1",
     )
     session = FakeAsyncSession(lookup_result=user_row)
 
@@ -574,7 +604,10 @@ async def test_webhook_payment_succeeded_does_not_restore_non_monthly_downgrades
     configure_billing(monkeypatch)
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     user_row = User(
-        external_id="ext-11", email="not-restored@example.com", tier="free", stripe_customer_id="cus_1"
+        external_id="ext-11",
+        email="not-restored@example.com",
+        tier="free",
+        stripe_customer_id="cus_1",
     )
     user_row.tier_downgrade_reason = downgrade_reason
     session = FakeAsyncSession(lookup_result=user_row)

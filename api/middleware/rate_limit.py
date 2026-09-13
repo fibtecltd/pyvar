@@ -208,8 +208,7 @@ async def enforce_compute_rate_limit(
             downgrade_reason=DOWNGRADE_MONTHLY_REQUEST_LIMIT,
             event_type=EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
             detail=(
-                f"Exceeded {cfg.rate_limit_pro_monthly_requests:,} requests "
-                "this billing period."
+                f"Exceeded {cfg.rate_limit_pro_monthly_requests:,} requests " "this billing period."
             ),
         )
         raise HTTPException(

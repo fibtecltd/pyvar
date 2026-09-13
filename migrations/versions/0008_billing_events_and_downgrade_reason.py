@@ -46,12 +46,8 @@ def upgrade() -> None:
         sa.Column("stripe_event_id", sa.String(255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index(
-        "ix_billing_events_user_created", "billing_events", ["user_id", "created_at"]
-    )
-    op.create_index(
-        "ix_billing_events_stripe_event_id", "billing_events", ["stripe_event_id"]
-    )
+    op.create_index("ix_billing_events_user_created", "billing_events", ["user_id", "created_at"])
+    op.create_index("ix_billing_events_stripe_event_id", "billing_events", ["stripe_event_id"])
 
 
 def downgrade() -> None:
