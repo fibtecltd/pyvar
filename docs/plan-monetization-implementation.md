@@ -36,55 +36,61 @@ existing suite — 991 tests — re-run clean, no regressions):
 - `docs/proposals/pyvar-monetization-strategy.docx` — same MIT→Apache-2.0 +
   date staleness fix as every other proposal doc this session corrected.
 
-**Deliberately not done — needs Filippo, real AWS access:**
+**Update — Phase A fully closed, live deploy confirmed (2026-09-13):**
 
-1. **The three Stripe secrets don't exist in Secrets Manager yet.** The CDK
-   side is now done — see PR `infra/wire-stripe-secrets-api-stack`, which
-   adds `stripe_secret_key`/`stripe_webhook_secret`/`stripe_price_id_pro`
-   (`from_secret_name_v2`, same pattern as `sentry_secret`) to
-   `pyvar-cdk/stacks/api_stack.py`, grants the execution role read access,
-   and wires all three into the `api` container's `secrets={}` block
-   (alongside `JWT_SECRET`) — verified via `cdk synth pyvar-dev-api`
-   (confirmed the three `STRIPE_*` env vars resolve to the correct secret
-   ARNs in the synthesized task definition, and the execution role's IAM
-   policy grants `GetSecretValue`/`DescribeSecret` on exactly those three
-   ARNs — no other part of the template changed).
+Wiring the three Stripe secrets into `pyvar-dev-api` took four PRs, not one,
+because the first three attacked the wrong layer of the problem:
 
-   **This is still genuinely deploy-blocking if merged out of order** —
-   `secrets={}` resolution happens at ECS task launch, not at `cdk deploy`
-   time, and it has no "optional" mode (see `sentry_secret`'s own comment
-   in that file for what missing-secret failure looks like): if this PR
-   merges and `pyvar-dev-api` gets redeployed before the three secrets
-   exist, every subsequent task launch fails outright. **Do this, in this
-   order:**
+- **#337** wired the secrets via `execution_role` + ECS's native `secrets={}`
+  (the same pattern as `DB_*`/`JWT_SECRET`) and created them in Secrets
+  Manager. This made the ECS agent's own task-launch sequence — not just
+  billing — depend on `secretsmanager:GetSecretValue` succeeding for a
+  brand-new IAM grant.
+- **#339** fixed a genuine CloudFormation ordering bug (the ECS service had
+  no dependency edge on the IAM policy resource the grant attached to), but
+  redeploying still hit an `AccessDeniedException` — CFN completing the
+  `PutRolePolicy` call doesn't mean IAM's authorization cache has caught up
+  yet.
+- **#340** added a fixed 75s sleep to bridge that gap. CloudTrail evidence
+  from the next failure proved this insufficient: the policy landed in IAM
+  at 23:24:24Z, yet `GetSecretValue` still got `AccessDenied` at 23:34:46Z —
+  over 8 minutes later, far outside typical IAM propagation behavior.
+- **#341**'s first commit replaced the sleep with a poll-until-verified
+  Lambda (assume `execution_role`, retry the real `GetSecretValue` call
+  until it succeeds or ~800s elapses) — a correct fix for the *timing*, but
+  still solving the wrong problem.
+- **#341's actual merged fix** (a second commit, superseding the first)
+  recognized the real bug: these secrets never belonged on `execution_role`
+  (the ECS agent's task-launch identity) at all. `billing.py`'s
+  `_require_billing_configured()` already 503s billing routes gracefully
+  when unset — there was no reason to make the *entire container's ability
+  to launch*, including every regulatory VaR/ES/Greeks endpoint, hostage to
+  IAM propagation timing for a secret only billing touches. This is the
+  exact same class of bug PR #229 already found and fixed for `SENTRY_DSN`.
+  Fix applied: `grant_read(task_role)` instead of `execution_role`, the
+  three `STRIPE_*` entries removed from `secrets={}` entirely, and fetched
+  in-app at startup by `_resolve_stripe_secrets()` (called once from
+  `main.py::create_app()`, mirroring `observability/setup.py`'s
+  `_resolve_sentry_dsn()` exactly). A `cdk diff` against the real dev
+  account confirmed the fix: exactly 3 new `Allow(GetSecretValue,
+  DescribeSecret)` statements on `ApiTaskRole`, zero changes to
+  `ApiExecutionRole`, and zero Lambda/Trigger/Custom-Resource machinery
+  left anywhere in the stack — the entire #339–#341 apparatus is gone.
 
-   ```bash
-   # 1. Create the three secrets FIRST (test-mode values today; swap for
-   #    live values later — no code change either way)
-   aws secretsmanager create-secret --name pyvar/dev/stripe-secret-key \
-     --secret-string "sk_test_..." --region eu-west-1
-   aws secretsmanager create-secret --name pyvar/dev/stripe-webhook-secret \
-     --secret-string "whsec_..." --region eu-west-1
-   aws secretsmanager create-secret --name pyvar/dev/stripe-price-id-pro \
-     --secret-string "price_..." --region eu-west-1
-   ```
+**Live deploy confirmed successful.** Phase A billing is now fully shipped
+and running in `pyvar-dev-api` — Stripe Checkout, webhook, and
+checkout-complete are live, secrets resolve at app startup, and the ECS
+service reaches steady state with no circuit-breaker involvement.
 
-   2. THEN merge `infra/wire-stripe-secrets-api-stack` and pull it into
-      whatever checkout runs the next step.
-   3. THEN `cdk deploy pyvar-dev-api --context env=dev --context account=347228921290`.
-      Watch it — this is a real ECS rolling deployment of a live service.
+Still open, not release-blocking:
 
-2. **The Stripe Checkout Session and webhook endpoint itself have never
-   been exercised against the real Stripe API** — `tests/test_billing.py`
-   mocks every Stripe SDK call; nothing here has confirmed a real test-mode
-   checkout actually completes end-to-end (Checkout redirect → webhook
-   delivery → tier flip → `GET /billing/checkout/complete` issuing a
-   working new JWT). Worth a manual run-through against the test Stripe
-   account once the secrets above are wired, before calling Phase A done.
-3. **Registering the webhook endpoint with Stripe itself** (Dashboard or
-   `stripe listen`/CLI, pointing at
-   `https://{dev.,}pyvar.com/api/v1/billing/webhook`) — a one-time,
-   account-side configuration step, not a code change.
+1. A real end-to-end Stripe test-mode checkout run (Checkout redirect →
+   webhook delivery → tier flip → `GET /billing/checkout/complete` issuing
+   a working new JWT) hasn't been manually exercised yet — worth doing
+   once for confidence, though every step is now unit-tested individually.
+2. See §8 below — **metering, usage, and billing-lifecycle event handling**
+   (payment declines, limit overages, notifications) is real, scoped-out
+   follow-on work, not part of Phase A's original definition of done.
 
 ---
 
@@ -217,3 +223,131 @@ are actually answered, not assumed.
 - Tests mock Stripe entirely; CI never calls a real payment API.
 - Enterprise remains a manual, sales-assisted path — not silently
   automated as a side effect of building Pro's flow.
+
+## 8. Follow-on scope — metering, usage, and billing-lifecycle events
+
+Raised by Filippo once Phase A's live deploy was confirmed: "we need to
+meter accesses, usages, payments, exceptions properly" and handle scenarios
+like a declined payment or a Pro user exceeding their limits — both should
+switch the account to `free`, log the event, and notify the user. This is
+real, scoped-out follow-on work, not part of Phase A's original definition
+of done — the sections below separate what already exists from what's
+genuinely missing, and flag the decisions that need answering before any
+of it gets built.
+
+### 8.1 What's already defined — the free/pro/enterprise limits
+
+Confirmed by reading the actual enforcement code (`api/middleware/auth.py`,
+`api/middleware/rate_limit.py`, `config.py`) — these are real and live
+today, not proposals:
+
+| Limit | free | pro | enterprise / internal |
+|---|---|---|---|
+| Daily request quota, all `/api/v1` compute endpoints combined (`rate_limit_{free,pro}_daily`) | 10/day | 500/day | unlimited (exempt) |
+| Max `n_simulations` per single VaR request (`TokenPayload.max_simulations`) | 10,000 | 100,000 | 500,000 |
+
+Both are enforced today: the daily quota returns `429` (retryable next day)
+via `enforce_compute_rate_limit`; the per-request simulation cap is
+presumably validated against `schemas/var.py`'s `VaRRequest` (not
+re-verified in this pass — worth a quick confirmation before relying on it
+for the scenarios below). **There is no monthly usage concept anywhere** —
+only the daily quota above.
+
+### 8.2 What already handles part of the "payment declined" scenario
+
+More than Filippo may realize is already live: `stripe_webhook`
+(`api/routes/billing.py`) already flips `tier` to `free` **immediately and
+automatically** on `invoice.payment_failed` (a declined renewal charge) or
+`customer.subscription.deleted` — this is `_DOWNGRADE_EVENTS`, shipped in
+Phase A. It also already logs the event: `logger.info("stripe_webhook_tier_updated", event_type=..., customer_id=..., new_tier=...)`.
+
+**What's missing from that scenario, specifically:**
+- **No user notification.** The downgrade happens silently from the
+  user's perspective — no email saying "your payment failed, you're back
+  on Free." SES sending infrastructure already exists (`ses_identity`,
+  used today for verification emails) — this is a wiring gap, not new
+  infrastructure.
+- **The "log" is an application log line (CloudWatch), not a persisted,
+  queryable audit record.** Fine for debugging; not obviously fine as a
+  durable record of "this account was downgraded on this date for this
+  reason" if that ever needs to be looked up outside CloudWatch's
+  retention window, shown to the user in an account history, or
+  referenced in a support/billing dispute.
+
+### 8.3 What's genuinely missing — "Pro user exceeding limits for the month"
+
+This scenario doesn't map to anything that exists today, and needs a real
+decision before it can be built:
+
+- Today, exceeding the daily quota (500/day for Pro) returns `429` and
+  simply resets the next day — it never touches `tier`.
+- A **monthly** usage concept doesn't exist in the schema or enforcement
+  layer at all. `ApiUsage` (per-request log: domain, function, tier,
+  duration, status, timestamp) and `VaRJob` (per-job log, includes
+  `n_simulations`) both already capture the raw data a monthly rollup
+  would need — but nothing aggregates it, and nothing acts on it.
+- **Open question, needs Filippo:** what should "exceeding limits for the
+  month" actually mean, and is downgrade-to-free really the intended
+  response? A few real shapes this could take, each with different
+  product/revenue implications:
+  1. A genuinely separate **monthly** cap (e.g. "500/day, but also capped
+     at N/month") — distinct from and tighter than 30× the daily cap.
+  2. The existing daily cap simply hit repeatedly through the month, with
+     no new monthly concept — in which case "exceeding limits" already
+     happens today (as 429s) and the only real ask is the
+     notify-and/or-downgrade *reaction* to a pattern of repeated hits, not
+     a new limit.
+  3. Downgrading a **paying** customer to Free for using their paid plan
+     heavily is an unusual SaaS pattern — most products instead hard-cap
+     (keep blocking with 429 until the period resets) or charge overage,
+     precisely because auto-demoting an engaged, paying user reads as a
+     punishment and produces a support ticket + a annoyed customer once
+     they can't get warned in advance. Worth confirming this is really
+     the intended shape rather than assumed from the phrasing.
+
+### 8.4 Proposed scope, pending the decisions above
+
+Once 8.3's question is answered, the shape of the work is otherwise clear
+and low-risk to build (all additive to existing, already-tested code):
+
+1. **A dedicated billing-event audit table** (new Alembic migration,
+   `BillingEvent` or similar: `user_id`, `event_type`, `old_tier`,
+   `new_tier`, `reason`, `stripe_event_id`, `created_at`) — durable,
+   queryable record of every tier change and why, superseding "check
+   CloudWatch" as the only way to answer "why did this account change
+   tier." Every existing tier-flip site (webhook handler, and any new
+   monthly-limit logic) writes one row.
+2. **User notification on tier change** — a new SES send (mirroring
+   `send_verification_email`'s existing pattern exactly: same identity,
+   same configuration set, same graceful-degrade-on-failure posture) fired
+   from the same places that write a `BillingEvent` row. Needs a decision
+   on content/tone per scenario (payment declined vs. subscription
+   cancelled vs. limit exceeded are different messages) — draftable once
+   8.3 is answered.
+3. **If 8.3 resolves to "a real monthly cap exists"**: a scheduled check
+   (Celery beat task or similar, not inline on every request — a monthly
+   aggregate query on every hot-path request would be real added latency)
+   that rolls up `ApiUsage`/`VaRJob` per user per billing period, compares
+   against the new cap, and on breach writes the `BillingEvent` + fires
+   the notification + flips `tier` (only if that's really the agreed
+   reaction — see 8.3.3 above).
+4. **Exception/edge-case scenarios worth enumerating explicitly before
+   implementation, once the shape is agreed** (not exhaustive — a fuller
+   list belongs in a dedicated plan doc once 8.3 is answered, not guessed
+   here): a Stripe webhook retry re-delivering an already-processed event
+   (idempotency — check the current handler's behavior on a duplicate
+   `event.id`, not verified in this pass); a user re-subscribing after a
+   payment-failure downgrade (does a fresh `checkout.session.completed`
+   correctly re-upgrade even though `stripe_customer_id` is already set?);
+   a subscription paused/resumed by Stripe itself (not currently in
+   `_DOWNGRADE_EVENTS` — worth checking whether Stripe emits a distinct
+   event for "paused" vs. "cancelled" and whether pyvar should treat them
+   differently); what happens to `total_jobs`/`total_simulations` history
+   on downgrade (kept, presumably — nothing here proposes deleting audit
+   data, consistent with §3.3's "VaRJob is an audit log, never delete
+   rows" rule extending in spirit to billing history too).
+
+This section intentionally stops short of a full plan doc + code — §8.3's
+question is a real product decision, not something to answer by guessing,
+and the rest of the design (audit table shape, notification content,
+whether a monthly cap is even the right lever) follows directly from it.
