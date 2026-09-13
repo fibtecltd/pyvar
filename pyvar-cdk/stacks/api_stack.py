@@ -297,27 +297,90 @@ class ApiStack(Stack):
         stripe_price_id_pro.grant_read(execution_role)
         stripe_secrets_policy = execution_role.node.find_child("DefaultPolicy")
 
-        # infra/340: #339's node.add_dependency(grant) only guarantees
-        # CloudFormation issues the PutRolePolicy call before the ECS service
-        # update starts -- it does NOT wait for IAM's own eventual-consistency
-        # propagation to finish, which outlasted the ECS deployment circuit
-        # breaker's failure tolerance twice in production (see PR #340
-        # investigation). This one-shot Lambda just sleeps long enough for that
-        # propagation window to close before the service is allowed to update.
+        # infra/340's own fix (a fixed 75s sleep) was proven insufficient in
+        # production -- CloudTrail evidence showed the PutRolePolicy call
+        # landing in IAM at 23:24:24Z, yet the ECS agent's GetSecretValue call
+        # still got AccessDenied at 23:34:46Z, over 8 minutes later. A fixed
+        # sleep is the wrong shape for a delay of unknown/variable size (see
+        # PR #341 investigation). Poll instead: assume execution_role itself
+        # (the exact principal ECS will use) and retry the exact operation
+        # ECS will perform (GetSecretValue on each of the three secrets)
+        # until it actually succeeds or a generous timeout is hit, closing
+        # the gap correctly regardless of how long propagation takes on any
+        # given day rather than gambling on a guessed constant.
+        _propagation_check_code = """
+import os
+import time
+
+import boto3
+
+def handler(event, context):
+    role_arn = os.environ["EXECUTION_ROLE_ARN"]
+    secret_arns = os.environ["SECRET_ARNS"].split(",")
+    sts = boto3.client("sts")
+    deadline = time.time() + 800  # stay under this function's own timeout
+    last_error = None
+    while time.time() < deadline:
+        try:
+            assumed = sts.assume_role(
+                RoleArn=role_arn,
+                RoleSessionName="stripe-grant-propagation-check",
+            )
+            creds = assumed["Credentials"]
+            secrets_client = boto3.client(
+                "secretsmanager",
+                aws_access_key_id=creds["AccessKeyId"],
+                aws_secret_access_key=creds["SecretAccessKey"],
+                aws_session_token=creds["SessionToken"],
+            )
+            for secret_arn in secret_arns:
+                secrets_client.get_secret_value(SecretId=secret_arn)
+            return {}
+        except Exception as exc:  # noqa: BLE001 -- retry loop, re-raised below
+            last_error = exc
+            time.sleep(10)
+    raise RuntimeError(
+        f"IAM propagation for {role_arn} did not complete within the "
+        f"timeout: {last_error}"
+    )
+"""
         iam_propagation_wait = triggers.TriggerFunction(
             self,
             "StripeGrantIamPropagationWait",
             runtime=lambda_.Runtime.PYTHON_3_11,
             handler="index.handler",
-            code=lambda_.Code.from_inline(
-                "import time\n\n\ndef handler(event, context):\n    time.sleep(75)\n    return {}\n"
-            ),
-            timeout=Duration.seconds(120),
+            code=lambda_.Code.from_inline(_propagation_check_code),
+            timeout=Duration.seconds(870),
+            environment={
+                "EXECUTION_ROLE_ARN": execution_role.role_arn,
+                "SECRET_ARNS": ",".join(
+                    [
+                        stripe_secret_key.secret_arn,
+                        stripe_webhook_secret.secret_arn,
+                        stripe_price_id_pro.secret_arn,
+                    ]
+                ),
+            },
             execute_after=[stripe_secrets_policy],
             description=(
-                "One-shot wait for IAM propagation of execution_role's Stripe "
-                "secret grants before the ECS service update rolls new tasks."
+                "One-shot poll, as execution_role itself, confirming its new "
+                "Stripe secret grants have actually propagated through IAM "
+                "before the ECS service update rolls new tasks."
             ),
+        )
+        # Scoped to exactly this one role ARN, nothing else -- lets the
+        # trigger's own (auto-created) execution role assume execution_role
+        # purely to run the verification above as the real calling principal,
+        # since only that role's actual GetSecretValue call can confirm IAM's
+        # authorization cache has caught up (a policy-document check, e.g.
+        # iam:GetRolePolicy, cannot -- it was already proven to be attached
+        # correctly and still failed at the cache layer).
+        assert iam_propagation_wait.role is not None
+        execution_role.assume_role_policy.add_statements(
+            iam.PolicyStatement(
+                actions=["sts:AssumeRole"],
+                principals=[iam.ArnPrincipal(iam_propagation_wait.role.role_arn)],
+            )
         )
 
         # ── Task Definition ───────────────────────────────────────────────────
