@@ -100,6 +100,44 @@ def _require_billing_configured() -> None:
         )
 
 
+def _resolve_stripe_secrets() -> None:
+    """Fetch the three Stripe secrets into cfg at startup, mirroring
+    observability/setup.py's _resolve_sentry_dsn() -- see api_stack.py's
+    comment above stripe_secret_key's construction for why these are no
+    longer wired via ECS's native `secrets={}` mechanism (task-launch-
+    blocking, and takes down every other route on this container with it).
+
+    Only attempts the fetch when actually running in a real ECS task
+    (cfg.ecs_container_metadata_uri_v4 set) and only when not already
+    configured (local dev / anything injecting these via .env keeps that
+    value, and never touches boto3 -- same "no real AWS in tests" rule
+    _resolve_sentry_dsn() follows). A Secrets Manager failure here leaves
+    cfg.stripe_secret_key unset, which every billing route already handles
+    via _require_billing_configured()'s 503 -- so a propagation delay or
+    outage degrades billing specifically, never blocks task launch or any
+    of the platform's actual risk-computation routes.
+    """
+    if cfg.stripe_secret_key:
+        return
+    if not cfg.ecs_container_metadata_uri_v4:
+        return
+    try:
+        import boto3
+
+        client = boto3.client("secretsmanager")
+        cfg.stripe_secret_key = client.get_secret_value(
+            SecretId=f"pyvar/{cfg.app_env}/stripe-secret-key"
+        ).get("SecretString")
+        cfg.stripe_webhook_secret = client.get_secret_value(
+            SecretId=f"pyvar/{cfg.app_env}/stripe-webhook-secret"
+        ).get("SecretString")
+        cfg.stripe_price_id_pro = client.get_secret_value(
+            SecretId=f"pyvar/{cfg.app_env}/stripe-price-id-pro"
+        ).get("SecretString")
+    except Exception:
+        logger.warning("stripe_secret_resolution_failed", exc_info=True)
+
+
 @router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout(user: TokenPayload = Depends(get_current_user)) -> CheckoutResponse:
     """Start a Pro subscription: create/reuse a Stripe Customer, return a

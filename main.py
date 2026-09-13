@@ -29,6 +29,7 @@ from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
 from api.routes.auth import router as auth_router
+from api.routes.billing import _resolve_stripe_secrets
 from api.routes.billing import router as billing_router
 from api.routes.credit_risk import router as credit_risk_router
 from api.routes.derivatives import router as derivatives_router
@@ -118,6 +119,12 @@ def create_app() -> FastAPI:
 
     # ── Observability (Prometheus + Sentry + structlog) ─────────────────────
     setup_observability(app)
+
+    # ── Billing (Stripe secrets) ─────────────────────────────────────────────
+    # See api/routes/billing.py's _resolve_stripe_secrets() docstring and
+    # api_stack.py's comment above stripe_secret_key's construction: fetched
+    # here (task role, app startup), not via ECS's native `secrets={}`.
+    _resolve_stripe_secrets()
 
     # ── Usage telemetry ──────────────────────────────────────────────────────
     # Records one api_usage row per /api/v1/* request, off the hot path.

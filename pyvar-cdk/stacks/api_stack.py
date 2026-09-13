@@ -44,10 +44,8 @@ from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_ecs_patterns as ecs_patterns
 from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk import aws_iam as iam
-from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_ses as ses
 from aws_cdk import aws_sqs as sqs
-from aws_cdk import triggers
 from constructs import Construct
 from stacks.data_stack import DataStack
 from stacks.network_stack import SecurityGroups
@@ -254,30 +252,27 @@ class ApiStack(Stack):
 
         # Stripe (item 5, Phase A billing — api/routes/billing.py) —
         # externally managed (not CDK-generated), same from_secret_name_v2
-        # pattern as sentry_secret above. UNLIKE Sentry, these ARE wired via
-        # the execution role + `secrets={}` below (the DB_*/JWT_SECRET
-        # pattern), because billing genuinely needs a real value to do
-        # anything useful — there's no equivalent of Sentry's "degrade
-        # gracefully, still serve traffic" story for a payment integration.
-        #
-        # IMPORTANT — deploy ordering: `secrets={}` resolution happens at
-        # ECS task launch, not at `cdk deploy` time, but it still requires
-        # the secret to actually exist and be readable at that point — this
-        # has no "optional" mode (see sentry_secret's own comment for what
-        # that failure mode looks like). All three secrets below MUST exist
-        # in Secrets Manager BEFORE this stack is next deployed, or every
-        # subsequent `pyvar-{env}-api` task launch fails outright:
-        #
-        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-secret-key \
-        #     --secret-string "sk_test_..." --region eu-west-1
-        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-webhook-secret \
-        #     --secret-string "whsec_..." --region eu-west-1
-        #   aws secretsmanager create-secret --name pyvar/{env}/stripe-price-id-pro \
-        #     --secret-string "price_..." --region eu-west-1
-        #
-        # See docs/plan-monetization-implementation.md §0 for the full
-        # writeup of why this couldn't be verified end-to-end in the
-        # session that added it (no AWS credentials there).
+        # pattern as sentry_secret above, and now (infra/341) the SAME
+        # task-role-fetched-at-startup treatment, not execution-role +
+        # `secrets={}`. #337 originally wired these via the execution role
+        # because "billing genuinely needs a real value to do anything
+        # useful" — true, but that's an argument about what the *billing
+        # routes* should do when unconfigured, not about ECS task launch:
+        # api/routes/billing.py's _require_billing_configured() already
+        # 503s every route gracefully when these are unset. Routing them
+        # through execution_role + `secrets={}` instead made the ENTIRE
+        # container's ability to launch — including every regulatory
+        # VaR/ES/Greeks endpoint that has nothing to do with billing —
+        # hostage to IAM's propagation timing for a new grant, twice
+        # confirmed in production to run well past any fixed budget (#339's
+        # ordering fix, #340's 75s sleep, #341's own 800s poll all hit the
+        # same wall). Fetched via the TASK role instead (the app's own
+        # runtime identity, in api/routes/billing.py's
+        # _resolve_stripe_secrets(), called once at startup from
+        # main.py::create_app()) removes IAM propagation from the ECS
+        # deployment's critical path entirely — ordinary eventual consistency
+        # is now the app's problem to retry past on its own schedule, not the
+        # deployment circuit breaker's.
         stripe_secret_key = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
             self, "StripeSecretKey", f"pyvar/{cfg.env_name}/stripe-secret-key"
         )
@@ -287,101 +282,9 @@ class ApiStack(Stack):
         stripe_price_id_pro = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
             self, "StripePriceIdPro", f"pyvar/{cfg.env_name}/stripe-price-id-pro"
         )
-        stripe_secret_key.grant_read(execution_role)
-        stripe_webhook_secret.grant_read(execution_role)
-        # All three grant_read() calls attach statements to the SAME
-        # lazily-created execution_role "DefaultPolicy" IAM::Policy child
-        # construct -- fetched below so the trigger can depend on that actual
-        # resource (a Grant object satisfies IDependable, but TriggerFunction's
-        # execute_after= requires a real Construct, which DefaultPolicy is).
-        stripe_price_id_pro.grant_read(execution_role)
-        stripe_secrets_policy = execution_role.node.find_child("DefaultPolicy")
-
-        # infra/340's own fix (a fixed 75s sleep) was proven insufficient in
-        # production -- CloudTrail evidence showed the PutRolePolicy call
-        # landing in IAM at 23:24:24Z, yet the ECS agent's GetSecretValue call
-        # still got AccessDenied at 23:34:46Z, over 8 minutes later. A fixed
-        # sleep is the wrong shape for a delay of unknown/variable size (see
-        # PR #341 investigation). Poll instead: assume execution_role itself
-        # (the exact principal ECS will use) and retry the exact operation
-        # ECS will perform (GetSecretValue on each of the three secrets)
-        # until it actually succeeds or a generous timeout is hit, closing
-        # the gap correctly regardless of how long propagation takes on any
-        # given day rather than gambling on a guessed constant.
-        _propagation_check_code = """
-import os
-import time
-
-import boto3
-
-def handler(event, context):
-    role_arn = os.environ["EXECUTION_ROLE_ARN"]
-    secret_arns = os.environ["SECRET_ARNS"].split(",")
-    sts = boto3.client("sts")
-    deadline = time.time() + 800  # stay under this function's own timeout
-    last_error = None
-    while time.time() < deadline:
-        try:
-            assumed = sts.assume_role(
-                RoleArn=role_arn,
-                RoleSessionName="stripe-grant-propagation-check",
-            )
-            creds = assumed["Credentials"]
-            secrets_client = boto3.client(
-                "secretsmanager",
-                aws_access_key_id=creds["AccessKeyId"],
-                aws_secret_access_key=creds["SecretAccessKey"],
-                aws_session_token=creds["SessionToken"],
-            )
-            for secret_arn in secret_arns:
-                secrets_client.get_secret_value(SecretId=secret_arn)
-            return {}
-        except Exception as exc:  # noqa: BLE001 -- retry loop, re-raised below
-            last_error = exc
-            time.sleep(10)
-    raise RuntimeError(
-        f"IAM propagation for {role_arn} did not complete within the "
-        f"timeout: {last_error}"
-    )
-"""
-        iam_propagation_wait = triggers.TriggerFunction(
-            self,
-            "StripeGrantIamPropagationWait",
-            runtime=lambda_.Runtime.PYTHON_3_11,
-            handler="index.handler",
-            code=lambda_.Code.from_inline(_propagation_check_code),
-            timeout=Duration.seconds(870),
-            environment={
-                "EXECUTION_ROLE_ARN": execution_role.role_arn,
-                "SECRET_ARNS": ",".join(
-                    [
-                        stripe_secret_key.secret_arn,
-                        stripe_webhook_secret.secret_arn,
-                        stripe_price_id_pro.secret_arn,
-                    ]
-                ),
-            },
-            execute_after=[stripe_secrets_policy],
-            description=(
-                "One-shot poll, as execution_role itself, confirming its new "
-                "Stripe secret grants have actually propagated through IAM "
-                "before the ECS service update rolls new tasks."
-            ),
-        )
-        # Scoped to exactly this one role ARN, nothing else -- lets the
-        # trigger's own (auto-created) execution role assume execution_role
-        # purely to run the verification above as the real calling principal,
-        # since only that role's actual GetSecretValue call can confirm IAM's
-        # authorization cache has caught up (a policy-document check, e.g.
-        # iam:GetRolePolicy, cannot -- it was already proven to be attached
-        # correctly and still failed at the cache layer).
-        assert iam_propagation_wait.role is not None
-        execution_role.assume_role_policy.add_statements(
-            iam.PolicyStatement(
-                actions=["sts:AssumeRole"],
-                principals=[iam.ArnPrincipal(iam_propagation_wait.role.role_arn)],
-            )
-        )
+        stripe_secret_key.grant_read(task_role)
+        stripe_webhook_secret.grant_read(task_role)
+        stripe_price_id_pro.grant_read(task_role)
 
         # ── Task Definition ───────────────────────────────────────────────────
         task_def = ecs.FargateTaskDefinition(
@@ -442,11 +345,9 @@ def handler(event, context):
                 "DB_USER": ecs.Secret.from_secrets_manager(data.db_secret, "username"),
                 "DB_PASSWORD": ecs.Secret.from_secrets_manager(data.db_secret, "password"),
                 "JWT_SECRET": ecs.Secret.from_secrets_manager(jwt_secret),
-                # SENTRY_DSN deliberately NOT here -- see the comment above
-                # sentry_secret's construction for why.
-                "STRIPE_SECRET_KEY": ecs.Secret.from_secrets_manager(stripe_secret_key),
-                "STRIPE_WEBHOOK_SECRET": ecs.Secret.from_secrets_manager(stripe_webhook_secret),
-                "STRIPE_PRICE_ID_PRO": ecs.Secret.from_secrets_manager(stripe_price_id_pro),
+                # SENTRY_DSN and the three STRIPE_* values deliberately NOT
+                # here -- see the comments above sentry_secret's and
+                # stripe_secret_key's construction for why.
             },
             health_check=ecs.HealthCheck(
                 command=["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
@@ -532,16 +433,15 @@ def handler(event, context):
                 ),
             ],
         )
-        # Without this, CloudFormation has no dependency edge from the Service to
-        # the execution_role's IAM::Policy resource (the Service only Refs the
-        # unchanged Role, not the separately-updated Policy attached to it) --
-        # so on an in-place update CFN can start rolling ECS tasks before the new
-        # secretsmanager:GetSecretValue grants actually attach, causing
-        # AccessDeniedException on task launch. Depending on iam_propagation_wait
-        # (not just stripe_secrets_grant directly, per infra/340) additionally
-        # ensures IAM's own eventual-consistency propagation has had time to
-        # finish, not just that the PutRolePolicy API call returned.
-        fargate_service.service.node.add_dependency(iam_propagation_wait)
+        # #339/#340/#341 added (then this, infra/341, removed) a CFN
+        # dependency edge + wait/poll Lambda here to sequence the Stripe
+        # secret grant's IAM propagation ahead of this service update --
+        # needed only because those grants lived on execution_role, in the
+        # ECS task-launch critical path. Now that they're on task_role,
+        # fetched by the app itself at startup (see stripe_secret_key's
+        # comment above), execution_role's policy is no longer touched by
+        # Stripe secret changes at all, so there is nothing here for the
+        # service to depend on.
 
         # Slow-start: ramp traffic to new tasks over 60s (protects against JIT spike)
         fargate_service.target_group.configure_health_check(
