@@ -12,6 +12,14 @@ Reasoning:
 - The route enforces the user's simulation cap based on their JWT tier claim
   before dispatching — fail fast, before burning CPU.
 
+- Monthly simulation-count cap, Pro only (item 5 §8 follow-on): a second,
+  cumulative check via the SAME Redis-backed limiter api/middleware/
+  rate_limit.py uses, scoped to VaR specifically since VaRJob is the only
+  endpoint family with a per-user simulation-count record today — see
+  config.py's rate_limit_pro_monthly_simulations comment. Breaching it hard-
+  downgrades the account to Free (api/middleware/billing_lifecycle.py), the
+  same reaction as rate_limit.py's monthly request-count cap, not a 429.
+
 - Rate limiting (issue #146): POST /compute is covered by the SAME account-wide
   daily quota as every other compute endpoint, not a VaR-specific per-minute
   limit — enforced via api/middleware/rate_limit.py::enforce_compute_rate_limit,
@@ -49,12 +57,19 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+import limits
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import update
 from starlette.concurrency import run_in_threadpool
 
+from api.middleware import rate_limit as rate_limit_module
 from api.middleware.auth import TokenPayload, get_current_user
+from api.middleware.billing_lifecycle import (
+    DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
+    EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
+    downgrade_for_monthly_limit,
+)
 from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
@@ -170,6 +185,46 @@ async def submit_var(
                 f"Requested: {body.n_simulations:,}."
             ),
         )
+
+    # Monthly simulation-count cap, Pro only (item 5 §8 follow-on). Scoped to
+    # VaR specifically — see config.py's rate_limit_pro_monthly_simulations
+    # comment for why this can't be enforced generically the way the
+    # request-count cap is (api/middleware/rate_limit.py). Referenced via the
+    # rate_limit module object, not `from ... import _limiter` directly, so
+    # tests/conftest.py's autouse fixture (which patches
+    # api.middleware.rate_limit._limiter) is picked up here too.
+    if user.tier == "pro":
+        sim_item = limits.parse(f"{cfg.rate_limit_pro_monthly_simulations}/month")
+        try:
+            sim_allowed = rate_limit_module._limiter.limiter.hit(
+                sim_item, user.user_id, "var-simulations-monthly", cost=body.n_simulations
+            )
+        except Exception:  # noqa: BLE001 — fail open on a Redis outage
+            logger.warning(
+                "Rate limit storage unavailable for monthly simulation check — allowing request",
+                exc_info=True,
+            )
+            sim_allowed = True
+
+        if not sim_allowed:
+            await downgrade_for_monthly_limit(
+                user_id=user.user_id,
+                downgrade_reason=DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
+                event_type=EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
+                detail=(
+                    f"Exceeded {cfg.rate_limit_pro_monthly_simulations:,} "
+                    "simulations this billing period."
+                ),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Your Pro plan's monthly simulation limit has been "
+                    "reached. Your account has moved to the Free plan for "
+                    "the rest of this billing period; full Pro limits resume "
+                    "automatically at your next billing date."
+                ),
+            )
 
     # Generated here (not left to Celery) so the same id ties together the audit
     # row below and the dispatched task — task_id is the var_jobs dedup key.

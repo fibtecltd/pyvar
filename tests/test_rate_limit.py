@@ -144,6 +144,70 @@ async def test_compute_rate_limit_fails_open_on_storage_error(memory_limiter):
         await enforce_compute_rate_limit(FakeRequest(), user)  # must not raise
 
 
+# ── Monthly request-count cap, Pro only (item 5 §8 follow-on) ────────────────
+
+
+@pytest.mark.asyncio
+async def test_compute_rate_limit_pro_monthly_cap_downgrades_and_raises_403(memory_limiter):
+    """Breaching the monthly cap is a 403 + downgrade, not a 429 — a
+    permanent-for-the-period state change, not "retry later today"."""
+    with (
+        patch.object(cfg, "rate_limit_pro_daily", 100),
+        patch.object(cfg, "rate_limit_pro_monthly_requests", 2),
+        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
+    ):
+        user = TokenPayload(sub="user-i", tier="pro")
+        request = FakeRequest()
+        await enforce_compute_rate_limit(request, user)
+        await enforce_compute_rate_limit(request, user)
+        with pytest.raises(Exception) as exc_info:
+            await enforce_compute_rate_limit(request, user)
+        assert exc_info.value.status_code == 403
+
+    mock_downgrade.assert_called_once()
+    call_kwargs = mock_downgrade.call_args.kwargs
+    assert call_kwargs["user_id"] == "user-i"
+    assert call_kwargs["downgrade_reason"] == "monthly_request_limit_exceeded"
+
+
+@pytest.mark.asyncio
+async def test_compute_rate_limit_free_tier_not_subject_to_monthly_cap(memory_limiter):
+    """Free has nowhere to downgrade to — the monthly check must not even run."""
+    with (
+        patch.object(cfg, "rate_limit_free_daily", 100),
+        patch.object(cfg, "rate_limit_pro_monthly_requests", 1),
+        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
+    ):
+        user = TokenPayload(sub="user-j", tier="free")
+        request = FakeRequest()
+        for _ in range(5):
+            await enforce_compute_rate_limit(request, user)  # never throttled/downgraded
+
+    mock_downgrade.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_compute_rate_limit_monthly_check_fails_open_on_storage_error(memory_limiter):
+    """An ElastiCache outage on the monthly check specifically must not block
+    the request or trigger a spurious downgrade."""
+    real_hit = memory_limiter.limiter.hit
+
+    def flaky_hit(item, *identifiers, cost=1):
+        if "compute-monthly" in identifiers:
+            raise RuntimeError("redis down")
+        return real_hit(item, *identifiers, cost=cost)
+
+    with (
+        patch.object(cfg, "rate_limit_pro_daily", 100),
+        patch.object(memory_limiter.limiter, "hit", side_effect=flaky_hit),
+        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
+    ):
+        user = TokenPayload(sub="user-k", tier="pro")
+        await enforce_compute_rate_limit(FakeRequest(), user)  # must not raise
+
+    mock_downgrade.assert_not_called()
+
+
 # ── enforce_public_rate_limit ────────────────────────────────────────────────
 
 

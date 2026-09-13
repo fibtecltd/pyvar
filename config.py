@@ -144,6 +144,26 @@ class Settings(BaseSettings):
     rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
     rate_limit_register_per_hour: int = 5  # per-IP, POST /auth/register only
 
+    # ── Monthly usage limits, Pro tier only (item 5 §8 follow-on) ────────────────
+    # Distinct from the daily quota above: a Pro account that hits either of
+    # these is hard-downgraded to Free for the rest of the current billing
+    # period (api/middleware/billing_lifecycle.py), not charged overage — see
+    # docs/plan-monetization-implementation.md §8's decisions log. Same
+    # "no verified traffic data yet" caveat as rate_limit_pro_daily above:
+    # these are placeholders sized to be tighter than 30x the daily cap
+    # (15,000) so they can actually bind before month-end, retunable via
+    # config with no code change.
+    #
+    # rate_limit_pro_monthly_requests is enforced generically across every
+    # /api/v1 compute endpoint (api/middleware/rate_limit.py), the same way
+    # the daily cap is. rate_limit_pro_monthly_simulations is enforced ONLY
+    # against the VaR Monte Carlo pipeline (api/routes/var.py) — VaRJob is
+    # the only endpoint family with a per-user simulation-count record today;
+    # extending simulation-count tracking to the other 385 endpoints is
+    # separate, larger, out-of-scope work.
+    rate_limit_pro_monthly_requests: int = 5_000
+    rate_limit_pro_monthly_simulations: int = 2_000_000
+
     # ── Registration anti-abuse ─────────────────────────────────────────────────
     # api/middleware/disposable_email.py vendors a static list of well-known
     # disposable/throwaway email domains, checked at POST /auth/register (before

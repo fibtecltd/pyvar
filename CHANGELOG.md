@@ -32,7 +32,44 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   would be real in the DB but invisible to actual rate-limit enforcement.
   AWS Secrets Manager wiring for the three Stripe values is deliberately
   NOT part of this change — see the plan doc's own follow-up section for
-  why and the exact snippet to add once the secrets exist.
+  why and the exact snippet to add once the secrets exist. **Since live-
+  deployed**: wiring the three Stripe secrets took 4 follow-up PRs
+  (#337–#341) to get the deploy right — see
+  `docs/plan-monetization-implementation.md`'s update log for the full
+  arc — landing on granting them to the ECS task role and fetching them
+  in-app at startup (mirroring the existing `SENTRY_DSN` pattern) rather
+  than via `execution_role` + `secrets={}`, so a new secret grant can
+  never again gate whether the container is allowed to launch at all.
+
+- **Monthly usage limits + billing-lifecycle audit trail (item 5 §8
+  follow-on)** — Pro accounts now face two additional monthly caps beyond
+  the existing daily quota: a request-count cap enforced generically
+  across every `/api/v1` compute endpoint
+  (`api/middleware/rate_limit.py`, `rate_limit_pro_monthly_requests`,
+  default 5,000/month) and a VaR-specific simulation-count cap
+  (`api/routes/var.py`, `rate_limit_pro_monthly_simulations`, default
+  2,000,000/month — scoped to VaR since `VaRJob` is the only endpoint
+  family with a per-user simulation-count record today). Breaching either
+  hard-downgrades the account to Free for the rest of the current billing
+  period (not overage billing) via the new
+  `api/middleware/billing_lifecycle.py` module, shared by the Stripe
+  webhook and both monthly-cap checks: every tier change now writes a
+  durable, queryable audit row (new `billing_events` table,
+  `0008_billing_events_and_downgrade_reason`) and sends a best-effort SES
+  notification — closing the "downgrade happens silently, only visible in
+  CloudWatch" gap noted when Phase A first shipped. The Stripe webhook is
+  now idempotent against redelivery (checked against
+  `billing_events.stripe_event_id`) and additionally handles
+  `invoice.paid`/`invoice.payment_succeeded` to automatically restore Pro
+  access on the next successful payment for ANY account that isn't
+  already Pro — not narrowly "was downgraded for a monthly limit" — so an
+  account previously downgraded for a declined payment also gets Pro back
+  once successfully rebilled, without needing a brand-new Checkout. New
+  `users.tier_downgrade_reason` column distinguishes "auto-downgraded,
+  should restore on next successful payment" from "never subscribed."
+  20 new tests (`tests/test_billing_lifecycle.py` + additions to
+  `tests/test_rate_limit.py`, `tests/test_api.py`, `tests/test_billing.py`);
+  full 1,733-test suite re-run clean.
 
 ### Fixed
 
