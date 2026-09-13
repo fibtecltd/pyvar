@@ -133,6 +133,22 @@ class User(Base):
     # one.
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
 
+    # Set only when tier == "free" AND the account was auto-downgraded by
+    # api/middleware/billing_lifecycle.py rather than starting free or
+    # cancelling voluntarily via Stripe's own Dashboard with no replacement
+    # subscription (0008_billing_events_and_downgrade_reason — item 5 §8
+    # follow-on). One of "payment_failed", "subscription_cancelled",
+    # "monthly_request_limit_exceeded", "monthly_simulation_limit_exceeded".
+    # Cleared (set back to NULL) whenever tier flips away from "free" again
+    # (a fresh Checkout, or Stripe's webhook telling us a payment succeeded —
+    # see billing_lifecycle.py's own docstring for why ANY successful payment
+    # restores Pro access, not just a limit-exceeded downgrade specifically).
+    # Exists so the webhook's invoice.payment_succeeded handler can tell "this
+    # account should auto-restore to Pro since it's still an active,
+    # successfully-billed subscriber" apart from "this account has simply
+    # never subscribed" — both look identical as tier == "free" alone.
+    tier_downgrade_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     def __repr__(self) -> str:
         return f"<User email={self.email} tier={self.tier} verified={self.email_verified}>"
 
@@ -187,3 +203,62 @@ class VaRJob(Base):
 
     def __repr__(self) -> str:
         return f"<VaRJob task_id={self.task_id} status={self.status}>"
+
+
+class BillingEvent(Base):
+    """Durable, queryable audit trail of every tier change — item 5 §8
+    follow-on (0008_billing_events_and_downgrade_reason).
+
+    Supersedes "check CloudWatch" as the only way to answer "why did this
+    account change tier": every site that mutates User.tier (the Stripe
+    webhook's upgrade/downgrade handling, and the two monthly-limit
+    downgrade paths in api/middleware/billing_lifecycle.py) writes one row
+    here in the SAME transaction as the tier mutation. Like VaRJob (CLAUDE.md
+    §3.3), this is an audit log — rows are never deleted or updated after
+    being written.
+
+    user_id stores User.external_id (a plain string), the same convention
+    VaRJob.user_id already uses, not a UUID foreign key — keeps this table
+    joinable the same way against the same identifier every other
+    audit/usage table in this file already keys off.
+    """
+
+    __tablename__ = "billing_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[str] = mapped_column(String(128), nullable=False)
+
+    # One of: "upgraded", "downgraded_payment_failed",
+    # "downgraded_subscription_cancelled", "downgraded_monthly_request_limit",
+    # "downgraded_monthly_simulation_limit", "restored_after_payment_succeeded"
+    # — see api/middleware/billing_lifecycle.py's own constants (not a DB
+    # enum: new event types are just a new string, no migration needed).
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_tier: Mapped[str] = mapped_column(String(16), nullable=False)
+    new_tier: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    # Human-readable detail (e.g. "Exceeded 5,000 requests this billing
+    # period."). Free text, not structured — this table is for answering
+    # "what happened and why" on lookup, not for further querying on reason.
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Stripe's own event["id"], for webhook-triggered rows only (NULL for the
+    # two monthly-limit downgrade paths, which have no Stripe event behind
+    # them) — both a trace-back-to-Stripe-Dashboard convenience and the
+    # idempotency key api/routes/billing.py's webhook checks before writing,
+    # so a Stripe redelivery of an already-processed event doesn't duplicate
+    # a row.
+    stripe_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+
+    __table_args__ = (Index("ix_billing_events_user_created", "user_id", "created_at"),)
+
+    def __repr__(self) -> str:
+        return f"<BillingEvent user_id={self.user_id} {self.event_type} {self.old_tier}->{self.new_tier}>"

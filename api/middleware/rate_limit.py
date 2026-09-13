@@ -64,6 +64,16 @@ Reasoning:
   every 15 minutes to refresh the homepage demo — kept distinct from
   "enterprise" (rather than reusing it) so that scheduled job's calls don't
   pollute real customer-tier usage analytics in api_usage/var_jobs.
+- Monthly usage limits (item 5 §8 follow-on): Pro accounts additionally face
+  a monthly request-count cap (config.py's rate_limit_pro_monthly_requests),
+  checked here as a second `limits` item with its own "compute-monthly"
+  scope. Unlike the daily cap above, breaching it doesn't just 429 — it hard-
+  downgrades the account to Free via
+  api/middleware/billing_lifecycle.py::downgrade_for_monthly_limit (an audit
+  row + a best-effort notification email), per
+  docs/plan-monetization-implementation.md §8's decisions log. Free/
+  enterprise/internal are never subject to this check — Free has nowhere to
+  downgrade to, and enterprise/internal are exempt above already.
 """
 
 from __future__ import annotations
@@ -81,6 +91,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from api.middleware.auth import TokenPayload, get_current_user
+from api.middleware.billing_lifecycle import (
+    DOWNGRADE_MONTHLY_REQUEST_LIMIT,
+    EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
+    downgrade_for_monthly_limit,
+)
 from config import get_settings
 from storage.redis_client import redis_url
 
@@ -145,7 +160,10 @@ async def enforce_compute_rate_limit(
     request: Request,
     user: TokenPayload = Depends(get_current_user),
 ) -> None:
-    """Account-wide daily quota across every /api/v1 compute endpoint.
+    """Account-wide daily quota across every /api/v1 compute endpoint, plus
+    (Pro only) a monthly request-count quota that hard-downgrades to Free
+    instead of just 429ing — see module docstring's "Monthly usage limits"
+    note and docs/plan-monetization-implementation.md §8's decisions log.
 
     Applied via `include_router(..., dependencies=[Depends(enforce_compute_rate_limit)])`
     in main.py for var_router and each of the 8 domain routers — see module
@@ -166,6 +184,43 @@ async def enforce_compute_rate_limit(
 
     if not allowed:
         _raise_rate_limited(item, user.user_id, "compute")
+
+    if user.tier != "pro":
+        return
+
+    # Monthly request-count cap, Pro only (config.py's own comment explains
+    # why this is scoped to Pro and enforced generically here, unlike the
+    # simulation-count cap which only VaR can measure). A distinct "compute-
+    # monthly" scope, not "compute" above, keeps this a separate bucket from
+    # the daily one even though both key off the same user_id.
+    monthly_item = limits.parse(f"{cfg.rate_limit_pro_monthly_requests}/month")
+    try:
+        monthly_allowed = _limiter.limiter.hit(monthly_item, user.user_id, "compute-monthly")
+    except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+        logger.warning(
+            "Rate limit storage unavailable for monthly check — allowing request", exc_info=True
+        )
+        return
+
+    if not monthly_allowed:
+        await downgrade_for_monthly_limit(
+            user_id=user.user_id,
+            downgrade_reason=DOWNGRADE_MONTHLY_REQUEST_LIMIT,
+            event_type=EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
+            detail=(
+                f"Exceeded {cfg.rate_limit_pro_monthly_requests:,} requests "
+                "this billing period."
+            ),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Your Pro plan's monthly request limit has been reached. Your "
+                "account has moved to the Free plan for the rest of this "
+                "billing period; full Pro limits resume automatically at your "
+                "next billing date."
+            ),
+        )
 
 
 async def enforce_public_rate_limit(request: Request) -> None:
