@@ -379,3 +379,84 @@ async def test_webhook_unknown_customer_does_not_raise(app, monkeypatch):
 
     assert resp.status_code == 200  # Stripe still gets a 2xx
     assert session.committed is False
+
+
+# ── _resolve_stripe_secrets ──────────────────────────────────────────────────
+# infra/341: Stripe secrets no longer arrive via ECS's native `secrets={}`
+# injection (that mechanism has no "optional" mode and made the ENTIRE
+# container's task launch -- not just billing -- hostage to how long IAM
+# takes to propagate a new Stripe secret grant; see api_stack.py's comment
+# above stripe_secret_key's construction). Instead the app fetches them
+# itself, but ONLY when actually running in a real ECS task -- same boundary
+# tests/test_observability.py's _resolve_sentry_dsn coverage checks.
+
+
+def test_resolve_stripe_secrets_noop_when_already_configured(monkeypatch):
+    """Local dev / anything injecting these via .env must never touch boto3."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_test_from_env")
+    with patch("boto3.client") as mock_boto_client:
+        billing_module._resolve_stripe_secrets()
+
+    assert billing_module.cfg.stripe_secret_key == "sk_test_from_env"
+    mock_boto_client.assert_not_called()
+
+
+def test_resolve_stripe_secrets_no_fetch_outside_ecs(monkeypatch):
+    """Rule 3 (CLAUDE.md/tests): never touch real AWS services in tests --
+    the gate is real ECS presence (ecs_container_metadata_uri_v4), not an
+    app_env string match."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "ecs_container_metadata_uri_v4", None)
+    with patch("boto3.client") as mock_boto_client:
+        billing_module._resolve_stripe_secrets()
+
+    assert billing_module.cfg.stripe_secret_key is None
+    mock_boto_client.assert_not_called()
+
+
+def test_resolve_stripe_secrets_fetches_from_secrets_manager_in_ecs(monkeypatch):
+    """In a real ECS task with none of the three configured, fetches all
+    three from pyvar/{app_env}/stripe-*."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_client = MagicMock()
+    mock_client.get_secret_value.side_effect = [
+        {"SecretString": "sk_live_abc"},
+        {"SecretString": "whsec_abc"},
+        {"SecretString": "price_abc"},
+    ]
+    with patch("boto3.client", return_value=mock_client) as mock_boto_client:
+        billing_module._resolve_stripe_secrets()
+
+    mock_boto_client.assert_called_once_with("secretsmanager")
+    assert billing_module.cfg.stripe_secret_key == "sk_live_abc"
+    assert billing_module.cfg.stripe_webhook_secret == "whsec_abc"
+    assert billing_module.cfg.stripe_price_id_pro == "price_abc"
+    mock_client.get_secret_value.assert_any_call(SecretId="pyvar/prod/stripe-secret-key")
+    mock_client.get_secret_value.assert_any_call(SecretId="pyvar/prod/stripe-webhook-secret")
+    mock_client.get_secret_value.assert_any_call(SecretId="pyvar/prod/stripe-price-id-pro")
+
+
+def test_resolve_stripe_secrets_degrades_on_secrets_manager_failure(monkeypatch):
+    """The whole point of moving this fetch out of ECS's native `secrets={}`:
+    a Secrets Manager failure (propagation delay, deleted secret, IAM policy
+    change) must degrade to "billing unconfigured", not raise and block API
+    startup -- every billing route already 503s via
+    _require_billing_configured() when these are unset."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+
+    mock_client = MagicMock()
+    mock_client.get_secret_value.side_effect = Exception("AccessDeniedException")
+    with patch("boto3.client", return_value=mock_client):
+        billing_module._resolve_stripe_secrets()  # must not raise
+
+    assert billing_module.cfg.stripe_secret_key is None
