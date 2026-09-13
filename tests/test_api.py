@@ -336,6 +336,69 @@ async def test_submit_var_returns_429_once_daily_quota_exhausted(app, free_token
     assert "Retry-After" in second.headers
 
 
+# ── Monthly simulation-count cap, Pro only (item 5 §8 follow-on) ────────────
+
+
+@pytest.mark.asyncio
+async def test_submit_var_pro_monthly_simulation_cap_downgrades_and_raises_403(
+    app, pro_token, valid_payload
+):
+    """valid_payload requests 10,000 simulations (under Pro's 100,000
+    per-request cap either time) — two submissions push the cumulative
+    monthly total past a lowered 15,000 cap, on the second call only."""
+    from api.middleware import rate_limit as rate_limit_module
+
+    mock_task = MagicMock()
+    mock_task.id = "sim-cap-task-uuid"
+
+    with (
+        patch.object(rate_limit_module.cfg, "rate_limit_pro_daily", 1000),
+        patch.object(rate_limit_module.cfg, "rate_limit_pro_monthly_simulations", 15_000),
+        patch_sessionmaker(FakeAsyncSession()),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
+        patch("api.routes.var.downgrade_for_monthly_limit") as mock_downgrade,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            first = await client.post(
+                "/api/v1/var/compute", json=valid_payload, headers=auth_headers(pro_token)
+            )
+            second = await client.post(
+                "/api/v1/var/compute", json=valid_payload, headers=auth_headers(pro_token)
+            )
+
+    assert first.status_code == 202
+    assert second.status_code == 403
+    mock_downgrade.assert_called_once()
+    call_kwargs = mock_downgrade.call_args.kwargs
+    assert call_kwargs["user_id"] == "pro-user"
+    assert call_kwargs["downgrade_reason"] == "monthly_simulation_limit_exceeded"
+
+
+@pytest.mark.asyncio
+async def test_submit_var_free_tier_not_subject_to_monthly_simulation_cap(
+    app, free_token, valid_payload
+):
+    """Free has nowhere to downgrade to — the monthly simulation check must
+    not even run for it."""
+    mock_task = MagicMock()
+    mock_task.id = "free-tier-task-uuid"
+
+    with (
+        patch("api.middleware.rate_limit.cfg.rate_limit_free_daily", 1000),
+        patch("api.routes.var.cfg.rate_limit_pro_monthly_simulations", 1),
+        patch_sessionmaker(FakeAsyncSession()),
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
+        patch("api.routes.var.downgrade_for_monthly_limit") as mock_downgrade,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/var/compute", json=valid_payload, headers=auth_headers(free_token)
+            )
+
+    assert resp.status_code == 202
+    mock_downgrade.assert_not_called()
+
+
 # ── ElastiCache result caching ────────────────────────────────────────────────
 
 

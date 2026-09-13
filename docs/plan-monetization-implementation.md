@@ -351,3 +351,79 @@ This section intentionally stops short of a full plan doc + code — §8.3's
 question is a real product decision, not something to answer by guessing,
 and the rest of the design (audit table shape, notification content,
 whether a monthly cap is even the right lever) follows directly from it.
+
+## 8.5 Built and shipped
+
+§8.3's questions answered by Filippo: **hard block, not overage** (a Pro
+account that breaches a monthly cap is downgraded to Free's limits for the
+rest of the period, never charged extra); **both** a request-count cap and
+a simulation-count cap, tracked separately, whichever is breached first;
+**leave the Stripe subscription running and auto-restore Pro at the next
+successful payment** rather than cancelling it or leaving a billing
+mismatch. The simulation-count cap is scoped to VaR Monte Carlo only
+(`VaRJob` is the only endpoint family with a per-user simulation-count
+record today — extending that to the other 385 endpoints is separate,
+larger, out-of-scope work).
+
+Built and tested (25 new tests — `tests/test_billing_lifecycle.py` +
+additions to `tests/test_rate_limit.py`, `tests/test_api.py`,
+`tests/test_billing.py`; full 1,738-test suite re-run clean):
+
+- **`api/middleware/billing_lifecycle.py`** (new) — shared module every
+  tier-change site uses: `record_billing_event()` (writes a `BillingEvent`
+  audit row in the same transaction as the tier mutation, never commits
+  itself), `send_tier_change_email()` (best-effort SES notification,
+  mirrors `send_verification_email`'s exact shape and non-fatal failure
+  posture), `downgrade_for_monthly_limit()` (idempotent — a stale JWT
+  retry against an already-downgraded account is a no-op, though the
+  caller still rejects the request every time), and
+  `restore_after_payment_succeeded()`.
+- **Monthly request-count cap** (`api/middleware/rate_limit.py`) — a
+  second `limits` item (`rate_limit_pro_monthly_requests`, default
+  5,000/month), Pro only, checked after the existing daily cap passes.
+  Breaching it raises 403 (not 429 — a permanent-for-the-period state
+  change, not "retry later today") and downgrades via
+  `billing_lifecycle.downgrade_for_monthly_limit()`.
+- **Monthly simulation-count cap** (`api/routes/var.py`) — same shared
+  Redis-backed limiter, a second item
+  (`rate_limit_pro_monthly_simulations`, default 2,000,000/month) hit with
+  `cost=body.n_simulations` per request, Pro only. Same 403 + downgrade
+  reaction.
+- **`billing_events` table** (new, `0008_billing_events_and_downgrade_reason`)
+  — durable, queryable audit trail (`user_id`, `event_type`, `old_tier`,
+  `new_tier`, `reason`, `stripe_event_id`, `created_at`), append-only like
+  `VaRJob`. `users.tier_downgrade_reason` (same migration) distinguishes
+  "auto-downgraded, should restore on next successful payment" from
+  "never subscribed" — the signal `invoice.payment_succeeded`'s handler
+  needs that plain `tier == "free"` alone can't give it.
+- **Stripe webhook** (`api/routes/billing.py`) — now idempotent against
+  Stripe's at-least-once redelivery guarantee (checked against
+  `billing_events.stripe_event_id` before acting — matters now that
+  processing has side effects beyond the tier flip itself). Every tier
+  change (upgrade, either downgrade path, and the new restore path) writes
+  a `BillingEvent` and sends a notification, closing the "downgrade
+  happens silently, only visible in CloudWatch" gap flagged in §8.2.
+  New `invoice.paid`/`invoice.payment_succeeded` handling restores Pro
+  **only** for an account downgraded by one of the two monthly caps
+  (`billing_lifecycle.restore_after_payment_succeeded`'s
+  `_RESTORABLE_DOWNGRADE_REASONS`) — an initial draft restored on *any*
+  successful payment (including a payment-failure or
+  subscription-cancellation downgrade), but Filippo narrowed this: those
+  two have their own explicit path back — a fresh Checkout — rather than
+  an incidental invoice event silently re-upgrading an account that
+  cancelled or had a card declined.
+
+**Deliberately not done:**
+
+- §8.4's edge-case list (Stripe "paused" vs "cancelled" events, exact
+  interaction with `total_jobs`/`total_simulations` history) — none
+  surfaced as blocking during implementation, but weren't independently
+  re-verified either.
+- The two monthly caps' exact numeric values (5,000 requests / 2,000,000
+  simulations) are placeholders, same "no verified traffic data yet"
+  caveat as the existing daily caps in `config.py` — retunable with no
+  code change.
+- A real end-to-end test-mode run of a monthly-limit downgrade against
+  the live Stripe account (webhook idempotency, the restore path, and the
+  notification emails are all unit-tested individually, but not chained
+  together against real Stripe events).
