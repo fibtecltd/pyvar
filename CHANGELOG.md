@@ -71,6 +71,30 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `tests/test_rate_limit.py`, `tests/test_api.py`, `tests/test_billing.py`);
   full 1,738-test suite re-run clean.
 
+- **Market data adapter infrastructure, MD-1 + MD-2 (item 6)** — first two
+  phases of the vendor-agnostic market data adapter
+  (`docs/plan-market-data-adapter.md`), no network calls anywhere yet.
+  MD-1: `ingestion/market_data/base.py` (abstract `MarketDataProvider`
+  interface — `resolve_instrument`/`get_price_series`/`get_yield_curve`/
+  `get_vol_surface`, all async), `schemas.py` (canonical Pydantic v2
+  `Instrument`/`PriceSeries`/`YieldCurve`/`VolSurface` models — the only
+  shapes `engine/`/`api/`/`storage/` are ever meant to see once wired),
+  `exceptions.py` (`ProviderError` family), and `providers/fake.py` (a
+  deterministic in-memory provider for tests/local dev, seeded via
+  `zlib.crc32` for cross-run reproducibility). MD-2: `registry.py`
+  (config-driven provider selection via the new `market_data_provider`
+  setting — `"fake"` is the only registered option until MD-3 adds
+  `"refinitiv"`) and `cache.py` (`CachingMarketDataProvider`, a TTL Redis
+  cache wrapping any provider per-method, reusing `api/routes/caching.py`'s
+  fail-open philosophy and retry policy). New `market_data_cache_ttl_*`
+  settings are explicit placeholder values pending a legal/contract check
+  on Refinitiv's actual cache-TTL terms — not yet resolvable, per the plan
+  doc's own §3. A static source-scan test enforces the compliance boundary:
+  no file under `engine/`, `api/`, or `storage/` may import
+  `market_data.providers`. 27 new tests across both phases; full suite
+  re-run clean. MD-3 (the real Refinitiv adapter) and MD-4 (pipeline
+  wiring) remain hard-gated behind decisions only Filippo can make.
+
 ### Fixed
 
 - **Portal "Try it" panel: percentage-parameter labels** — 120 parameters

@@ -101,3 +101,47 @@ Per the attached plan's own §13, verified as the right bar:
 - No file under `engine/`, `api/`, or `storage/` imports anything from
   `market_data/providers/`.
 - `ruff check` and `pytest` clean, consistent with existing CI conventions.
+
+## 7. Built and shipped
+
+**MD-1 — merged** (PR #332, 2026-09-11): `base.py` (the abstract
+`MarketDataProvider` interface), `schemas.py` (`Instrument`/`PriceSeries`/
+`YieldCurve`/`VolSurface`, Pydantic v2), `exceptions.py` (`ProviderError`
+family), `providers/fake.py` (deterministic in-memory provider, seeded via
+`zlib.crc32` for cross-run reproducibility), and 12 unit tests including
+the compliance-boundary static scan from §6. No network calls anywhere in
+the subtree.
+
+**MD-2 — mechanism shipped** (this session, following §5's sequencing):
+- `registry.py` — `get_provider()` reads `config.py`'s new
+  `market_data_provider` setting (`"fake"` is the only registered option
+  until MD-3 adds `"refinitiv"`) and returns the configured provider,
+  wrapped in the TTL cache by default (`cached=False` opts out).
+- `cache.py` — `CachingMarketDataProvider` wraps any `MarketDataProvider`
+  and caches each of the 4 interface methods independently in Redis
+  (`pyvar:market_data:{provider}:{method}:{sha256}` keys), reusing the
+  exact fail-open philosophy and retry policy `api/routes/caching.py`
+  already established (`_get_redis_client()` construction, 2-retry
+  exponential backoff, any Redis error treated as a cache miss/no-op —
+  never a reason to fail a lookup). A `ProviderError` from the wrapped
+  provider is never cached — only successful lookups are.
+- TTLs (`market_data_cache_ttl_instrument_seconds` = 1h,
+  `..._price_series_seconds` / `..._yield_curve_seconds` /
+  `..._vol_surface_seconds` = 5m each) are **explicitly placeholder
+  values**, per §3 decision #3 — still unresolved, still blocking MD-3,
+  unchanged by this work. They're deliberately short so a wrong guess
+  fails safe (cheap to go stale and refresh) rather than risking serving
+  data past whatever Refinitiv's real terms eventually allow.
+- 15 new tests (`tests/test_market_data_registry_and_cache.py`) — registry
+  provider selection/rejection, cache hit (asserts the wrapped provider is
+  never called, not just that the return value matches), cache miss
+  (asserts the correct per-method TTL is used), errors never cached, and
+  both `_cache_get`/`_cache_set` fail open on a Redis error. 27/27 across
+  both MD-1 and MD-2 test files; full suite re-run clean.
+
+**Still blocked on Filippo, unchanged from §3**: MD-3 (the real Refinitiv
+adapter) needs decisions #1 (RDP access tier), #2 (snapshot vs. streaming),
+and the cache-TTL legal check (#3, which also unblocks turning MD-2's
+placeholder TTLs into real values) and the ISIN→RIC persistence call (#4).
+MD-4 (wiring into `tasks/var_task.py`) stays hard-gated behind MD-1–3 being
+merged and reviewed, exactly as §5 specifies.
