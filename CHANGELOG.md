@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`pyvar Local` download page (item 2)** — `portal/local.html`, linked
+  from the main nav and the footer's "Developers" column
+  (`portal/pyvar.js`). Confirmed the `pyvar-local` build+publish pipeline
+  had already run successfully (release `pyvar-local-v0-6682472c`,
+  2026-09-12) but had no discoverable link anywhere on the site; this page
+  describes what the image is and who it's for, links directly to the
+  release asset, documents usage (`docker load` → `docker run ... list` →
+  `docker run ... call ...`, plus running the shipped test suite
+  yourself), and states explicitly what's in vs. not yet in this first
+  release. Licensing mechanism (signed releases, a regulatory
+  documentation bundle, an update SLA) stays deferred to item 5, unbuilt.
+
 - **Pro-tier billing (Phase A)** — `POST /billing/checkout`,
   `POST /billing/webhook`, `GET /billing/checkout/complete`
   (`api/routes/billing.py`) wire up Stripe Checkout so a user can actually
@@ -70,6 +82,30 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   25 new tests (`tests/test_billing_lifecycle.py` + additions to
   `tests/test_rate_limit.py`, `tests/test_api.py`, `tests/test_billing.py`);
   full 1,738-test suite re-run clean.
+
+- **Market data adapter infrastructure, MD-1 + MD-2 (item 6)** — first two
+  phases of the vendor-agnostic market data adapter
+  (`docs/plan-market-data-adapter.md`), no network calls anywhere yet.
+  MD-1: `ingestion/market_data/base.py` (abstract `MarketDataProvider`
+  interface — `resolve_instrument`/`get_price_series`/`get_yield_curve`/
+  `get_vol_surface`, all async), `schemas.py` (canonical Pydantic v2
+  `Instrument`/`PriceSeries`/`YieldCurve`/`VolSurface` models — the only
+  shapes `engine/`/`api/`/`storage/` are ever meant to see once wired),
+  `exceptions.py` (`ProviderError` family), and `providers/fake.py` (a
+  deterministic in-memory provider for tests/local dev, seeded via
+  `zlib.crc32` for cross-run reproducibility). MD-2: `registry.py`
+  (config-driven provider selection via the new `market_data_provider`
+  setting — `"fake"` is the only registered option until MD-3 adds
+  `"refinitiv"`) and `cache.py` (`CachingMarketDataProvider`, a TTL Redis
+  cache wrapping any provider per-method, reusing `api/routes/caching.py`'s
+  fail-open philosophy and retry policy). New `market_data_cache_ttl_*`
+  settings are explicit placeholder values pending a legal/contract check
+  on Refinitiv's actual cache-TTL terms — not yet resolvable, per the plan
+  doc's own §3. A static source-scan test enforces the compliance boundary:
+  no file under `engine/`, `api/`, or `storage/` may import
+  `market_data.providers`. 27 new tests across both phases; full suite
+  re-run clean. MD-3 (the real Refinitiv adapter) and MD-4 (pipeline
+  wiring) remain hard-gated behind decisions only Filippo can make.
 
 ### Fixed
 

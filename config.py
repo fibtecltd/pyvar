@@ -188,6 +188,30 @@ class Settings(BaseSettings):
     # accounts (test -> live) needs only new env values, no code change.
     stripe_price_id_pro: str | None = None
 
+    # ── Market data adapter (item 6, MD-2) ──────────────────────────────────────
+    # Config-driven provider selection (ingestion/market_data/registry.py) —
+    # "fake" (the deterministic in-memory MD-1 provider) is the only real
+    # option until MD-3 lands providers/refinitiv.py. Not yet wired into
+    # tasks/var_task.py — MD-4 stays hard-gated behind MD-1-3 being merged
+    # and reviewed, per docs/plan-market-data-adapter.md.
+    market_data_provider: str = "fake"
+
+    # TTL-configurable cache (ingestion/market_data/cache.py) wrapping the
+    # selected provider. PLACEHOLDER VALUES — the plan doc's own §3 is
+    # explicit these need "a legal/contract check against the actual
+    # Refinitiv sandbox and eventual production terms, not just an
+    # engineering guess," which this session cannot obtain. Kept short
+    # (minutes, not hours) so a wrong guess fails safe — cheap to go stale
+    # and refresh — rather than risking serving vendor data past whatever
+    # the real terms eventually allow. Instrument resolution (ISIN currency
+    # lookup) changes far less often than price/curve/vol data, hence its
+    # own longer default — still a placeholder, still subject to the same
+    # pending legal check before MD-3 goes live with a real vendor.
+    market_data_cache_ttl_instrument_seconds: int = 3600  # 1h — placeholder
+    market_data_cache_ttl_price_series_seconds: int = 300  # 5m — placeholder
+    market_data_cache_ttl_yield_curve_seconds: int = 300  # 5m — placeholder
+    market_data_cache_ttl_vol_surface_seconds: int = 300  # 5m — placeholder
+
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
     log_level: str = "INFO"
