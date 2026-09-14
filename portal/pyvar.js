@@ -28,6 +28,7 @@ function buildNav(active = 'home') {
     {id:'domains',   label:'domains',     href:'index.html#domains'},
     {id:'api',       label:'api docs',    href:'index.html#api'},
     {id:'plugins',   label:'plugins',     href:'plugins.html'},
+    {id:'local',     label:'local',       href:'local.html'},
     {id:'github',    label:'github ↗',    href:'https://github.com/fibtecltd/pyvar', ext:true},
   ];
   return `<nav class="nav" id="mainNav">
@@ -94,6 +95,7 @@ function buildFooter() {
             <div class="footer-col-links">
               <a href="index.html#api">API reference</a>
               <a href="plugins.html">Claude Code plugins</a>
+              <a href="local.html">pyvar Local (offline)</a>
               <a href="#">Python SDK</a>
               <a href="https://github.com/fibtecltd/pyvar" target="_blank">GitHub ↗</a>
               <a href="#">Changelog</a>

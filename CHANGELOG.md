@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`pyvar Local` download page (item 2)** — `portal/local.html`, linked
+  from the main nav and the footer's "Developers" column
+  (`portal/pyvar.js`). Confirmed the `pyvar-local` build+publish pipeline
+  had already run successfully (release `pyvar-local-v0-6682472c`,
+  2026-09-12) but had no discoverable link anywhere on the site; this page
+  describes what the image is and who it's for, links directly to the
+  release asset, documents usage (`docker load` → `docker run ... list` →
+  `docker run ... call ...`, plus running the shipped test suite
+  yourself), and states explicitly what's in vs. not yet in this first
+  release. Licensing mechanism (signed releases, a regulatory
+  documentation bundle, an update SLA) stays deferred to item 5, unbuilt.
+
 - **Pro-tier billing (Phase A)** — `POST /billing/checkout`,
   `POST /billing/webhook`, `GET /billing/checkout/complete`
   (`api/routes/billing.py`) wire up Stripe Checkout so a user can actually
