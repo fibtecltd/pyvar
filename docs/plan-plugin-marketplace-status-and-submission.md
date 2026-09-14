@@ -35,25 +35,31 @@ investigation + submission actions, no new engineering.
   `pyvar-mcp` still says MIT, per that document's own note — the repo
   can't retroactively fix a submitted form.
 
-## 2. What's genuinely unclear and needs Filippo, not more repo digging
+## 2. Resolved by Filippo directly (2026-09-14) — no longer open
 
-1. **Scope of what was actually submitted.** Was it just `pyvar-mcp` as a
-   standalone plugin, or the whole `pyvar-marketplace` bundle (which
-   happens to foreground `pyvar-mcp` in its description)? This determines
-   whether "submit the remaining plugins" means 13 individual submissions
-   or confirming the one bundle submission already covers everything.
-   I have no browsing/API access to either submission form
-   (`claude.ai/admin-settings/directory/submissions/plugins/new` or
-   `platform.claude.com/plugins/submit`) to check — both are authenticated
-   to your own identity.
-2. **Review outcome.** No visibility from this session into whether a
-   decision has landed since the PRD's "decision pending" note. Worth
-   checking directly.
-3. **The MIT/Apache correction on the already-submitted form.** Flagged
-   as an open decision since 2026-09-01 and still open: does the review
-   team need to be told the submitted form's license field was wrong, or
-   is it low-stakes enough to just make sure any *new* submissions say
-   Apache-2.0 correctly and let the old one be?
+1. **Scope of what was actually submitted — resolved: per-plugin.**
+   Confirmed by Filippo: submissions are per-plugin, not one bundle-level
+   submission. `pyvar-mcp` was submitted standalone; the other 13 skill
+   plugins (8 domain + 5 architecture) each still need their own separate
+   submission through the same form.
+2. **Review outcome — resolved: still pending, and not resubmittable.**
+   Filippo confirmed Anthropic's decision on the `pyvar-mcp` submission
+   hasn't landed yet, and the form doesn't allow resubmitting while a
+   decision is pending. Filippo is deliberately waiting for that
+   confirmation before submitting the remaining 12 (of the 13 skill
+   plugins — `docs/proposals/marketplace-submission-content-per-plugin.md`
+   already has 13 blocks drafted, one per skill, in case Filippo wants to
+   start with a couple before `pyvar-mcp` resolves; the sequencing
+   decision itself is Filippo's call, not a hard technical dependency).
+3. **The MIT/Apache correction on the already-submitted form — still
+   open, unchanged.** Not addressed in the 2026-09-14 conversation; still
+   Filippo's call whether to notify the review team or just ensure the 12
+   new submissions say Apache-2.0 correctly.
+
+**Also clarified**: Item 1 is unrelated to Smithery (`plugins/mcp/smithery.yaml`,
+`docs/proposals/smithery-submission-content.md`) — that's a separate MCP
+registry submission, not one of the six roadmap items, and not discussed
+here.
 
 ## 2a. Done this session, ahead of Filippo's input
 
@@ -87,35 +93,30 @@ investigation + submission actions, no new engineering.
 
 ## 3. Concrete next actions
 
-**For Filippo (only completable by the account holder, per the submission
-doc's own finding):**
-- Open `platform.claude.com/plugins/submit` (or the claude.ai directory
-  page, whichever you used originally) and check: (a) does a submission
-  history/status view exist there, (b) what exactly was submitted last
-  time — one plugin or the whole marketplace, (c) is there a decision yet.
-- Decide on the MIT-correction question above.
-- If the mechanism turns out to be per-plugin: work through the remaining
-  12 (or 13) plugins using the same submission form, pasting the relevant
-  slice of `docs/proposals/marketplace-submission-content.md`'s content
-  for each (the doc already has the shared marketplace-level description;
-  each plugin's own one-line description is already in
-  `.claude-plugin/marketplace.json` if the form wants it per-plugin).
+**For Filippo (only completable by the account holder — this is now a
+"wait, then submit" task, not an investigation):**
+- Wait for Anthropic's decision on the already-submitted `pyvar-mcp`
+  plugin — the form doesn't allow resubmitting while it's pending, and
+  Filippo has chosen to hold the other 12 until that lands.
+- Once it lands (approved or not), submit the remaining 12 skill plugins
+  (of the 13 in `docs/proposals/marketplace-submission-content-per-plugin.md`
+  §1 — `pyvar-mcp` itself, §2 of that doc, is the one already submitted)
+  one at a time through the same form, pasting each plugin's ready-made
+  block from that doc.
+- Decide on the still-open MIT-correction question (§2 above) whenever
+  convenient — not blocking the 12 new submissions, which should say
+  Apache-2.0 correctly regardless.
 
-**For this session, once the above is answered:**
-- If new/corrected content is needed for a per-plugin submission flow,
-  I can draft the individual submission blocks for each of the 13 skill
-  plugins (currently only the bundle-level content exists) — straightforward,
-  five minutes of work once I know the form actually wants that.
-- Update `docs/proposals/marketplace-submission-content.md` and the PRD
-  with whatever the actual review outcome turns out to be, same as every
-  other verified-facts update this session has made.
+**For this session:** nothing further until Filippo has news on the
+`pyvar-mcp` decision — the submission content is already fully drafted
+and waiting (§2a below), so there's no repo-side work left to do here.
 
 ## 4. Definition of done
 
-- Filippo has confirmed submission scope and checked for a review outcome.
-- Every plugin that needs individual `claude-plugins-community` submission
-  content has it, generated from the same source-of-truth pattern as the
-  existing bundle doc (no hand-drifted duplicate content).
+- `pyvar-mcp`'s Anthropic review decision has landed.
+- All 12 remaining skill plugins have been submitted via the same form,
+  using the ready-made content in
+  `docs/proposals/marketplace-submission-content-per-plugin.md` §1.
 - The MIT-correction question is explicitly resolved (either "notify them"
   or "leave it, ensure future submissions are correct") — not left ambiguous.
 - `docs/proposals/marketplace-submission-content.md` and
