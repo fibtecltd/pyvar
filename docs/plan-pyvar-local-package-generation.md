@@ -117,3 +117,44 @@ session):**
 - The full commercial licensing mechanism (signed license files, SLA,
   per-node billing) is explicitly deferred to item 5, not silently
   half-built here.
+
+## 6. Built and shipped
+
+**Confirmed via the GitHub API (this session)**: the pipeline HAS already
+run, successfully, resolving §3's open questions #1 and #2 — a real
+release exists: tag `pyvar-local-v0-6682472c`, published 2026-09-12,
+one asset (`pyvar-local.tar.gz`, 555,392,001 bytes) with `download_count: 0`
+before this change. §3.3 (which environment) is moot in retrospect — the
+artifact itself doesn't encode dev/prod, only the code snapshot it was
+built from.
+
+**§3.4 ("who is sharing for") resolved in favor of the simplest answer**:
+since the repo (and therefore this GitHub Release) was already public, the
+right move is a public, permanent, properly-described link — not a
+one-off private hand-off. Added:
+- `portal/local.html` — a new dedicated portal page (matching
+  `plugins.html`'s existing design pattern): what pyvar Local is and who
+  it's for, a direct download button to the release asset (with the tag,
+  build date, and size shown for transparency), usage documentation
+  (`docker load` → `docker run ... list` → `docker run ... call ...`,
+  plus how to run the shipped test suite yourself), an explicit "what's
+  in this first release / what's not yet in it" scope section, and a
+  licensing note.
+- `portal/pyvar.js` — added `local.html` to the main nav (`buildNav`) and
+  to the footer's "Developers" column (`buildFooter`), so the page is
+  discoverable from every portal page, not just directly linked.
+- Verified with Playwright against a local `uvicorn` run: the page and
+  its nav/footer links render correctly, no console errors beyond the two
+  pre-existing, environment-only ones every other portal page also hits
+  in this sandbox (the Google Fonts CDN being network-policy-blocked, and
+  `/public/status.json` 500ing with no real backend running) — confirmed
+  identical on `plugins.html` as a baseline, so neither is a regression
+  from this change.
+
+**Still explicitly out of scope, unchanged**: the full commercial
+licensing mechanism (signed license files, a regulatory documentation
+bundle, an update/support SLA, per-node billing) — deferred to item 5, not
+built here. A future rebuild will need this page's tag/date/size/URL
+updated by hand; nothing here automates keeping the portal page in sync
+with a new release the way, say, `portal/functions.json` is generated
+from the repo.
