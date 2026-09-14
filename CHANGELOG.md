@@ -55,7 +55,7 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `api/middleware/billing_lifecycle.py` module, shared by the Stripe
   webhook and both monthly-cap checks: every tier change now writes a
   durable, queryable audit row (new `billing_events` table,
-  `0008_billing_events_and_downgrade_reason`) and sends a best-effort SES
+  `0008_billing_events_downgrade`) and sends a best-effort SES
   notification — closing the "downgrade happens silently, only visible in
   CloudWatch" gap noted when Phase A first shipped. The Stripe webhook is
   now idempotent against redelivery (checked against

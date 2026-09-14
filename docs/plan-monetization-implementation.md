@@ -389,7 +389,7 @@ additions to `tests/test_rate_limit.py`, `tests/test_api.py`,
   (`rate_limit_pro_monthly_simulations`, default 2,000,000/month) hit with
   `cost=body.n_simulations` per request, Pro only. Same 403 + downgrade
   reaction.
-- **`billing_events` table** (new, `0008_billing_events_and_downgrade_reason`)
+- **`billing_events` table** (new, `0008_billing_events_downgrade`)
   — durable, queryable audit trail (`user_id`, `event_type`, `old_tier`,
   `new_tier`, `reason`, `stripe_event_id`, `created_at`), append-only like
   `VaRJob`. `users.tier_downgrade_reason` (same migration) distinguishes

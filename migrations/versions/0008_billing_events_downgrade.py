@@ -1,6 +1,6 @@
 """add billing_events table and users.tier_downgrade_reason
 
-Revision ID: 0008_billing_events_and_downgrade_reason
+Revision ID: 0008_billing_events_downgrade
 Revises: 0007_user_stripe_customer_id
 Create Date: 2026-09-13 00:00:00
 
@@ -16,6 +16,19 @@ the new column or the new table.
 
 Purely additive — no existing column is touched, per CLAUDE.md's migration
 rule (never edit a committed migration, create a new one).
+
+Renamed from the original "0008_billing_events_and_downgrade_reason" (40
+chars) -- alembic_version.version_num is VARCHAR(32) by default and was
+never widened in this project, so every previous prior revision id stayed
+under that budget by convention (e.g. "0007_user_stripe_customer_id", 28
+chars) without it ever being written down as a rule. This one didn't, and
+the final `UPDATE alembic_version SET version_num=...` step of `upgrade
+head` failed with StringDataRightTruncation on every environment that
+tried it -- dev's pipeline run on 2026-09-13 confirmed the failure rolled
+back cleanly (Postgres transactional DDL: the new table/column never
+committed, alembic_version stayed at 0007), so this rename is a same-
+migration fix to something that never actually applied anywhere, not an
+edit to an already-applied migration.
 """
 
 from __future__ import annotations
@@ -26,7 +39,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0008_billing_events_and_downgrade_reason"
+revision: str = "0008_billing_events_downgrade"
 down_revision: Union[str, None] = "0007_user_stripe_customer_id"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
