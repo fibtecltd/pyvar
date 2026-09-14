@@ -136,7 +136,7 @@ class User(Base):
     # Set only when tier == "free" AND the account was auto-downgraded by
     # api/middleware/billing_lifecycle.py rather than starting free or
     # cancelling voluntarily via Stripe's own Dashboard with no replacement
-    # subscription (0008_billing_events_and_downgrade_reason — item 5 §8
+    # subscription (0008_billing_events_downgrade — item 5 §8
     # follow-on). One of "payment_failed", "subscription_cancelled",
     # "monthly_request_limit_exceeded", "monthly_simulation_limit_exceeded".
     # Cleared (set back to NULL) whenever tier flips away from "free" again
@@ -207,7 +207,7 @@ class VaRJob(Base):
 
 class BillingEvent(Base):
     """Durable, queryable audit trail of every tier change — item 5 §8
-    follow-on (0008_billing_events_and_downgrade_reason).
+    follow-on (0008_billing_events_downgrade).
 
     Supersedes "check CloudWatch" as the only way to answer "why did this
     account change tier": every site that mutates User.tier (the Stripe
