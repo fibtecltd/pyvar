@@ -112,3 +112,14 @@ The email's own text says a reply is possible ("If you have questions or
 believe an outcome is incorrect, reply to this email and we will review
 it.") — left for Filippo to decide whether that's worth pursuing given the
 above, rather than assumed here.
+
+**Filippo's read (2026-09-15), agreeing with the above**: a real named
+third party is genuinely what's needed — not a reframing argument. There
+may already be several individual users of pyvar.com, but an individual
+user is not the same bar as a named company adopting it; the criterion
+needs an actual organisation willing to be named, and building that kind
+of relationship takes real time. Confirms the "revisit once a real
+joint-customer deployment exists" conclusion above is the honest plan, not
+a placeholder — this is a traction problem to solve going forward (e.g.
+identifying and cultivating a company-level adopter willing to be named),
+not a submission-wording problem left over from this round.
