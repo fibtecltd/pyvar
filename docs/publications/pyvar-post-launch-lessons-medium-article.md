@@ -47,13 +47,15 @@ That's the correction, and it's also the more useful fact underneath it: if you'
 
 ## A partner-program story with a twist
 
-We'd applied to Anthropic's Claude Partner Network as a "Customer Story" — a case study naming a customer who'd built success on Claude. It came back declined, for a precise and correct reason: **"the customer is not named; anonymous stories cannot count as public references."**
+We'd applied to Anthropic's Claude Partner Network as a "Customer Story" — a case study naming a customer who'd built success on Claude. It came back declined, citing three gaps: Claude wasn't named explicitly enough on the pages we'd linked, no measurable result was stated, and — the one that mattered most — **"the customer is not named; anonymous stories cannot count as public references."**
 
-That's a fair rule, and also not quite our shape. There isn't a third-party customer to name here, because pyvar.com doesn't have one — it's Apache-2.0 and open to everyone by design. Anthropic Partner Support's follow-up pointed us to the actual right track: a **Public Case Study**, the same submission form, used when there's no named third-party customer and the roles look different — Fibtec as the Partner, Claude Code as the Product that built pyvar.com end-to-end, and the open pyvar.com community itself as the Client.
+Anthropic Partner Support's follow-up pointed us to the actual right track: a **Public Case Study**, the same submission form, used when there's no named third-party customer and the roles look different — Fibtec as the Partner, Claude Code as the Product that built pyvar.com end-to-end, and the open pyvar.com community itself as the Client. We resubmitted with that framing made explicit, the three public references (the live product, the source repository, and our first article), and the measurable claim already in that article — pyvar's self-scored Iron Triangle efficiency score against traditional enterprise risk vendors — stated plainly instead of left implicit in narrative.
 
-We resubmitted with that framing made explicit, plus the three public references (the live product, the source repository, and our first article) and the measurable claim already in that article — pyvar's self-scored Iron Triangle efficiency score against traditional enterprise risk vendors — stated plainly instead of left implicit in narrative.
+**Two of the three original gaps closed. The third didn't.** The reassessment came back with a single remaining reason, quoted verbatim: the published story "does not meet: A named third-party customer." Neither the explicit-Claude-mention nor the measurable-result gap was cited the second time — those fixes evidently landed. The "community as client" reframing didn't move the third gap at all: whatever criterion actually gets applied here treats "a named third-party customer" as literal and non-negotiable, not a role a project can argue its way into satisfying.
 
-The useful lesson for anyone else building an open-source product with Claude: "Customer Story" and "Public Case Study" aren't two different forms, and knowing which one your project actually is before you submit saves a round trip.
+That's a cleaner lesson than we expected going in. This isn't a form-filling mistake made twice — it's a real eligibility criterion an Apache-2.0 product with no client engagements genuinely doesn't meet, and won't until one exists. The honest move isn't a third resubmission with a cleverer argument for why "the community" should count as a customer; it's what our own case-study PRD said before any of this played out: revisit Partner Network standing once there's an actual joint-customer deployment to name, not before.
+
+The useful part for anyone else building an open-source product with Claude: "Customer Story" and "Public Case Study" share one submission form, but they don't share every criterion. A role-reframing argument can fix the parts that are genuinely about framing (naming the product, stating a result) and still run straight into the one part that isn't — a literal named third party.
 
 ## One almost-comedic footnote
 
@@ -68,11 +70,11 @@ Low-stakes, bounded (the in-pipeline skip-gates no-op when nothing deploy-releva
 - **Seven merged PRs since the first article** (`#326`–`#332`): the Sentry noise fix, the JWT report feature and its two deploy bugs, the CHANGELOG backfill, the cost/contact corrections, this session's own roadmap-and-marketplace work, and the market-data-adapter groundwork.
 - **`v0.2.0`** — tagged and published as a real GitHub Release (2026-09-08), with an actual changelog, closing a gap where the release process itself had gone quiet since `v0.1.0`.
 - **The README's cost line now reads $900–1,000/month**, sourced to a real invoice, not a pre-launch target.
-- **The Partner Network resubmission**, framed correctly this time, sent.
+- **The Partner Network resubmission** — sent, reassessed, and declined again on the one structural criterion detailed above (no named third-party customer), after the framing/measurable-result gaps from round one closed.
 
 ## Why this one matters
 
-The first article's thesis was that verification thorough enough to publish becomes cheap enough to actually do, when an AI agent is doing the heavy lifting. This one is the same thesis pointed at ourselves, two weeks later: a feature that looked shipped wasn't, a cost figure that looked current wasn't, and a partner submission that looked complete wasn't the right form. None of these were caught by anyone reading the code and nodding. They were caught by someone going back and actually checking — which is, not coincidentally, the only thing that scales past a launch date.
+The first article's thesis was that verification thorough enough to publish becomes cheap enough to actually do, when an AI agent is doing the heavy lifting. This one is the same thesis pointed at ourselves, two weeks later: a feature that looked shipped wasn't, a cost figure that looked current wasn't, and a partner submission that looked resolved on resubmission still hit a real eligibility gap, not just a form mismatch. None of these were caught by anyone reading the code and nodding. They were caught by someone going back and actually checking — which is, not coincidentally, the only thing that scales past a launch date.
 
 ---
 
@@ -83,6 +85,6 @@ The first article's thesis was that verification thorough enough to publish beco
 - `README.md` (this repo) — current AWS cost line and tech-stack summary.
 - `docs/p9-scenario-volume-cost-audit.md` (this repo) — the cost breakdown and the sub-cent-per-scenario finding.
 - `docs/known-issues.md` (this repo) — the CodePipeline push-filter top-level-file gap.
-- `docs/partner-hub-public-case-study-resubmission-email.md` (this repo) — the Partner Network resubmission text.
+- `docs/partner-hub-public-case-study-resubmission-email.md` (this repo) — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).
 - GitHub Releases, `fibtecltd/pyvar` — `v0.2.0` (published 2026-09-08), `v0.1.0` (published 2026-08-23).
 - `docs/publications/pyvar-buildstory-medium-article.md` (this repo) — the first article this piece follows up on.
