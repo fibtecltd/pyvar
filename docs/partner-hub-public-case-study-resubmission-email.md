@@ -1,7 +1,9 @@
 # Draft: Public Case Study resubmission reply (Claude Partner Network)
 
-**Status:** Ready to send — reply to Anthropic Partner Support's decline of the
-original Customer Story submission for pyvar.com.
+**Status:** Sent, and reassessed — **declined again, 2026-09-15** (see
+"Outcome" section at the end). This path is now considered structurally
+closed until pyvar has a real named joint-customer deployment; not a
+process bug worth a third resubmission attempt.
 
 **Context:** The first submission (via the Partner Hub's "Customer Stories"
 form, before Anthropic's own follow-up pointed us to the Public Case Study
@@ -72,3 +74,41 @@ clarifying the submission path.
 Best,
 Filippo Buchicchio
 Fibtec Limited
+
+---
+
+## Outcome (2026-09-15)
+
+**Declined again**, per Anthropic Partner Support's "Update: customer story
+outcomes" email received 2026-09-15. Verbatim from that email:
+
+> fibtec limited — Declined (new). Does not yet count toward CPN tier
+> credit. Reason: The published story does not meet: A named third-party
+> customer. Story assessed:
+> https://medium.com/@filippo.buchicchio/how-we-built-a-regulatory-grade-financial-risk-platform-end-to-end-with-claude-code-086eee8d2c0e.
+> Submitted 2 times; shown once.
+
+**What this confirms, compared against the original 3-reason decline above**:
+only one reason is cited this time — "a named third-party customer." The
+other two original reasons (Claude not named explicitly enough on the linked
+pages; no measurable result stated) are **not** repeated, meaning this
+resubmission's fixes for those two evidently landed. The "community as
+client" reframing argument above did **not** succeed against the third
+reason — Anthropic's assessment treats "a named third-party customer" as a
+literal, non-negotiable requirement, not a role a project can satisfy by
+redefining who the client is.
+
+**Conclusion — this path is structurally closed for now, not a process bug
+to retry.** pyvar.com has no third-party customer to name because it
+genuinely doesn't have one (Apache-2.0, open to everyone by design). A third
+resubmission with a different argument is very unlikely to succeed against
+an objective, literal criterion that hasn't moved once already. The honest
+next step, consistent with `docs/prd-claude-partner-hub.md` §5's own
+"near-term next steps" (written before this outcome was known): revisit
+Partner Network standing once pyvar actually has a real joint-customer
+deployment to name — not before, and not via a cleverer resubmission.
+
+The email's own text says a reply is possible ("If you have questions or
+believe an outcome is incorrect, reply to this email and we will review
+it.") — left for Filippo to decide whether that's worth pursuing given the
+above, rather than assumed here.

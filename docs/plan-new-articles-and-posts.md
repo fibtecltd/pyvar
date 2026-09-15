@@ -42,15 +42,22 @@ commit), all independently verifiable:
    `docs/p9-scenario-volume-cost-audit.md`): job volume barely moves that
    number at all — fixed infrastructure dominates, not compute. That's a
    genuinely counterintuitive, checkable result worth its own short piece.
-3. **A real partner-program story with a twist**: the Claude Partner
-   Network Customer Story submission was declined (doesn't name a
-   third-party customer — "anonymous stories cannot count as public
-   references"), which led to identifying the actual right track (Public
-   Case Study, for a company building Claude into its own product, not a
-   consulting engagement) and a corrected resubmission. This is a genuinely
-   useful "how partner programs actually work" story for other indie/OSS
-   builders navigating the same Partner/Product/Client confusion — distinct
-   from a pure engineering post.
+3. **A real partner-program story with a twist — now with a final outcome**:
+   the Claude Partner Network Customer Story submission was declined
+   (doesn't name a third-party customer — "anonymous stories cannot count
+   as public references"), which led to identifying the actual right track
+   (Public Case Study, same form, different framing for a company building
+   Claude into its own product rather than a consulting engagement). The
+   corrected resubmission closed 2 of the original 3 gaps (Claude-naming,
+   measurable result) but was **declined again on 2026-09-15** for the one
+   gap reframing couldn't fix: a named third-party customer, applied as a
+   literal, non-negotiable criterion. See
+   `docs/partner-hub-public-case-study-resubmission-email.md`'s "Outcome"
+   section for the full verbatim decline and reasoning. This is a genuinely
+   useful "how partner programs actually work, including where the honest
+   answer is 'not yet eligible'" story for other indie/OSS builders — distinct
+   from a pure engineering post, and a stronger, more honest ending than the
+   "resubmitted, pending" framing this plan doc originally had.
 4. **The pipeline trigger gap** (`docs/known-issues.md`, PR #326): a small,
    almost comedic finding — editing `CLAUDE.md` itself to document a
    pipeline quirk would have triggered the very pipeline execution being
