@@ -204,19 +204,21 @@ pitch's credibility rather than adding a second real chance.
    reframing the pitch around the audit work + minimized AI-build framing
    in the application narrative, full honest disclosure where the form
    requires it.
-4. ~~Pick a specific amount~~ — resolved 2026-09-17: Fibtec Limited applies
-   (not an individual), rate €100/hour → **proposed €27,200** across the
+4. ~~Pick a specific amount~~ — resolved 2026-09-17, in two passes: Fibtec
+   Limited applies (not an individual); rate initially set at €100/hour
+   (→€27,200), then corrected to **€150/hour** (→**€40,800**) across the
    four milestones (breakdown in the answers doc). Day-counts per
    milestone are still my estimate, not Filippo-confirmed line by line —
-   adjustable before submission.
+   adjustable before submission. Worth a deliberate look: €40,800 sits at
+   ≈82% of the €50,000 cap, a real choice for a first-grant ask, not a
+   neutral default.
 5. ~~Decide `entity` field value~~ — resolved 2026-09-17: **Fibtec
    Limited** (SME company), not Individual.
-6. **One open factual point**: Filippo noted he's "the main developer but
-   not the only one," but `git log` shows only his own name as a human
-   commit author (Claude as AI co-author, not a second human). Needs a
-   quick clarification — see the answers doc's "Experience" section —
-   before that field can be finalised, since NLnet's own policy is
-   specific about accurately naming who did the work.
+6. ~~The "not the only developer" point~~ — resolved: refers to Riccardo
+   Fei's early contributions, via branches since deleted. Filippo
+   confirmed this isn't critical, so it isn't named in the application
+   text — see the answers doc's "Experience" section, now filled with
+   Filippo's own LinkedIn-sourced background instead.
 7. **Actually submit** — a funding-body submission under Fibtec's identity
    is not something I should do on your behalf, technical feasibility
    aside, same reasoning as the Partner Hub forms earlier.

@@ -14,10 +14,12 @@ reasoning, unchanged by this rewrite.
 
 **Resolved by Filippo (2026-09-17):** the application is submitted under
 **Fibtec Limited**, not as an individual; the effective rate for budget
-purposes is **€100/hour**. Both are now reflected below. **Still open:**
-the LinkedIn-sourced experience text (Filippo will paste it), and one
-factual point that needs a quick clarification, not a draft — see
-"Experience / background" below.
+purposes is **€150/hour** (updated from an earlier €100/hour pass — the
+budget below reflects the final figure). The "not the only developer"
+point is resolved too: it refers to Riccardo Fei's early contributions,
+via branches since deleted — Filippo confirmed this isn't a critical
+point, so it isn't carried into the application text below. The
+LinkedIn-sourced experience excerpt is in place.
 
 ---
 
@@ -62,37 +64,42 @@ factual point that needs a quick clarification, not a draft — see
 
 ## Amount requested
 
-**Proposed: €27,200** (272 hours at €100/hour — breakdown below). This is
-a prefill, not a final number: comfortably inside €5,000–€50,000, credible
-as a first-grant ask (≈54% of the cap, not maxing it out), and every line
-below is adjustable independently if Filippo wants to trim or expand any
-one milestone before submitting.
+**Proposed: €40,800** (272 hours at €150/hour — breakdown below). This
+sits at ≈82% of the €50,000 cap — a real jump from the earlier €100/hour
+pass, worth a second look: it's a defensible rate for 20+ years of senior
+IB/consultancy risk-management experience (per the Experience section
+below), but a first-grant ask this close to the ceiling is a genuine
+choice, not a neutral default. If Filippo wants more headroom, trimming
+hours on milestones 3–4 (the least externally-verifiable of the four, and
+the ones most naturally scoped down without weakening the audit case) is
+the easiest lever — the breakdown below makes every line independently
+adjustable.
 
 ## Use of budget — tasks, effort, rate, expenses (max 4000 chars)
 
-> The requested amount (€27,200, at €100/hour) funds four scoped
+> The requested amount (€40,800, at €150/hour) funds four scoped
 > milestones, sequenced so each one's findings can narrow the scope of the
 > next rather than committing to fixed deliverables upfront:
 >
-> 1. **Independent security review** — 48 hours (6 days), **€4,800**.
+> 1. **Independent security review** — 48 hours (6 days), **€7,200**.
 >    Third-party review of the REST API surface, auth/JWT handling, and
 >    dependency chain. Findings published in `docs/`, fixes tracked openly.
 > 2. **Independent numerical/regulatory audit** — 96 hours (12 days),
->    **€9,600**. A domain expert checking a representative sample of the
+>    **€14,400**. A domain expert checking a representative sample of the
 >    385 functions against their published Basel/FRTB/IFRS 9/Solvency II
 >    source formulas, corrections published openly (the same discipline
 >    that already caught a ~79% Solvency II SCR understatement pre-launch,
 >    done here by an external reviewer rather than the maintainer).
-> 3. **Regulatory coverage extension** — 80 hours (10 days), **€8,000**.
+> 3. **Regulatory coverage extension** — 80 hours (10 days), **€12,000**.
 >    Scoped once (1) and (2)'s findings are in; likely candidates are
 >    fuller Solvency II or CRR3 coverage, narrowed by what the audit
 >    actually flags as thin.
 > 4. **Documentation for smaller institutions** — 48 hours (6 days),
->    **€4,800**. Worked examples and onboarding docs aimed at credit
+>    **€7,200**. Worked examples and onboarding docs aimed at credit
 >    unions, fintech startups, and researchers, not enterprise risk desks
 >    who already have Bloomberg/Murex.
 >
-> Rate: **€100/hour**, applied uniformly across all four milestones —
+> Rate: **€150/hour**, applied uniformly across all four milestones —
 > this covers both Fibtec's own development time (milestones 3–4) and the
 > independent reviewers engaged for milestones 1–2. Expenses: none
 > anticipated beyond that reviewer time, which is the main cost driver —
@@ -103,7 +110,9 @@ one milestone before submitting.
 reasonable scope per milestone, not something Filippo confirmed line by
 line — adjust any of the four before submitting if the real effort looks
 different, especially milestones 1–2 where actual reviewer quotes (once
-sought) should replace this estimate.
+sought) should replace this estimate, and worth a deliberate decision on
+whether €40,800 (vs. a trimmed-down number) is the right ask for a first
+grant.
 
 ## Comparison — other projects, what's new, considered contributing (max 4000 chars)
 
@@ -182,11 +191,30 @@ prior art if Filippo wants a fuller comparison.)
 ## Experience / background (max 2000 chars, optional)
 
 > Filippo Buchicchio, UK-based, leads development of pyvar through Fibtec
-> Limited (UK-registered), the applicant entity. **[Filippo — paste the
-> LinkedIn excerpt here; I don't have enough verified detail about your
-> prior work history to draft this section honestly, and the policy
-> explicitly wants applicants' own words, not AI-drafted biographical
-> claims.]**
+> Limited (UK-registered), the applicant entity.
+>
+> With over 20 years of experience gained in both the Consultancy and
+> Investment Banking industry at an international level, I keep on
+> developing my core skills in Risk Management, Regulatory Compliance and
+> Front Office Trading, to enable delivery of a firm's vision and
+> strategic goals. I have consistently designed, led and delivered
+> complex projects in high pressure environments, requiring senior
+> stakeholder management up to board level, including the regulators, as
+> well as BAU activities. I rely upon an inclusive and supportive
+> leadership style, a genuine passion for problem solving, and the
+> ability to provide solutions, leveraging any technology, knowledge and
+> support available across the institution.
+>
+> - Risk Management with in-depth knowledge across asset classes
+>   (including Forex, Credit, Interest Rate Derivatives including
+>   inflation, both ETD and OTC), and experience implementing Risk
+>   Management systems.
+> - Regulatory Compliance with deep understanding of recent requirements
+>   (FRTB, Basel, BCBS, EMIR, MiFID, Dodd-Frank and other regulations) and
+>   exposure to key regulatory bodies and central banks.
+> - Cross-service and domain knowledge: Trading desk, Proprietary
+>   Trading, Market Making, Credit Risk (Counterparty & Market Risk),
+>   Middle Office, Finance, Regulatory, Operations and IT.
 >
 > What's independently checkable regardless of biographical detail: the
 > full commit history and 300+ merged pull requests at
@@ -195,22 +223,8 @@ prior art if Filippo wants a fuller comparison.)
 > technical write-ups covering the build — including four regulatory bugs
 > found and fixed before launch (`docs/publications/`).
 
-**One factual point needs a quick check before this is finalised, not a
-draft:** Filippo noted he's "the main developer but not the only one." The
-actual git history (`git log --format='%an <%ae>' | sort -u`) shows only
-Filippo Buchicchio as a human commit author — Claude appears as AI
-co-author, not a second human. Worth clarifying which this refers to
-before the field is written, since NLnet's own "no misrepresentation"
-principle is specifically about who did the work:
-
-- If it means Claude Code's contribution — that's already covered by the
-  AI-disclosure section and `README.md`'s GenAI statement, no change
-  needed here.
-- If there's a genuine second human contributor (a collaborator, a
-  contractor, informal help) not yet reflected in git authorship — that's
-  worth naming here directly, since NLnet explicitly asks who is doing the
-  work, and it strengthens rather than weakens the "who's doing the work"
-  case for a company-entity application.
+(≈1850 characters — close to the 2000-char limit; the "independently
+checkable" paragraph is the first thing to trim if it needs to shrink.)
 
 ## Other funding (max 1000 chars, optional)
 
@@ -262,14 +276,20 @@ form actually asks — the AI-authorship *story* just isn't the pitch.
 ## Definition of done
 
 - ~~Amount, entity type, and the AI-authorship framing call~~ — resolved
-  2026-09-17 (plan doc §4): Fibtec Limited, €100/hour → €27,200 proposed,
-  audit-work-first framing.
-- The "not the only developer" clarification above is resolved.
-- The "Experience" and "Other funding" fields are written in Filippo's own
-  words (LinkedIn excerpt pending), not left as placeholders.
+  2026-09-17 (plan doc §4): Fibtec Limited, €150/hour → **€40,800**
+  proposed, audit-work-first framing.
+- ~~The "not the only developer" clarification~~ — resolved: Riccardo
+  Fei's early, since-deleted branches; Filippo confirmed not critical,
+  not carried into the application text.
+- ~~The "Experience" field~~ — written in Filippo's own words (LinkedIn
+  excerpt).
+- **Still open:** the "Other funding" field (Fibtec's commercial-support
+  revenue status — pre-revenue or generating income?), and a deliberate
+  decision on whether €40,800 is the right ask given how close it sits to
+  the €50,000 cap (see "Amount requested" above).
 - The AI-disclosure prompt log is compiled from the actual session(s) used
   to finalise this text — after finalisation, not before.
 - `README.md` carries a proper GenAI-use disclosure statement (plan doc
   §3a) before the "website" field above is something an assessor would
-  actually visit and check.
+  actually visit and check — done in PR #351, pending merge.
 - Submitted via `nlnet.nl/propose/` before **2026-11-03**.
