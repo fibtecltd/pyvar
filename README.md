@@ -1,7 +1,9 @@
 # pyvar.com
 
 Open-source financial and risk management computation platform.
-Built by **Fibtec Limited (UK)** on top of NumPy, Numba, and the Anthropic Claude API.
+Built by **Fibtec Limited (UK)** on top of NumPy and Numba, with substantial
+development assistance from Claude Code (Anthropic) — see "Use of
+Generative AI" below for what that means in practice.
 
 ---
 
@@ -194,7 +196,6 @@ cdk deploy pyvar-pipeline --context account=ACCOUNT
 | Queue | Celery · SQS FIFO (AWS) / Redis (local) |
 | Storage | SQLAlchemy · Aurora PostgreSQL · S3 · Alembic |
 | Infra | AWS CDK · ECS Fargate · EC2 Spot · CloudFront |
-| AI | Anthropic Claude API |
 
 AWS cost: **~$900–1,000/month** (real prod invoice, confirmed 2026-08-31) —
 dominated by fixed infrastructure (VPC endpoints, NAT gateway, ElastiCache,
@@ -202,6 +203,27 @@ Aurora, Fargate base capacity), not job volume: Monte Carlo compute is
 sub-cent per scenario even at 1M scenarios/month, so throughput doesn't
 materially move this number. See `docs/p9-scenario-volume-cost-audit.md` for
 the full breakdown and its acknowledged gaps.
+
+---
+
+## Use of Generative AI
+
+This codebase — engine code, tests, infrastructure, and documentation —
+was developed with substantial assistance from Claude Code (Anthropic),
+used under human direction and review throughout, not as an unsupervised
+generator: every regulatory formula is cross-validated against published
+sources (`tests/validation/`), and AI-assisted changes go through the same
+review and test gates as any other change before merging.
+
+Commit-level provenance: commits with meaningful AI assistance carry a
+`Co-Authored-By: Claude` trailer — 222 of 677 commits at time of writing,
+checkable directly via `git log --grep="Co-Authored-By: Claude"`. This
+project predates any external funding; the trailer convention documents
+process, not a compliance requirement imposed after the fact.
+
+For a full, checkable account of the build — including four regulatory
+bugs found and corrected before launch through this project's own
+cross-validation discipline — see `docs/publications/`.
 
 ---
 
