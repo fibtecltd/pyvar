@@ -1,0 +1,5 @@
+<svg width="120" height="90" viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+  <defs><clipPath id="favtail"><rect x="82" y="0" width="38" height="90"/></clipPath></defs>
+  <path d="M4 74 C 26 74, 34 10, 60 10 C 86 10, 94 74, 116 74" fill="none" stroke="#4c6b7a" stroke-width="9" stroke-linecap="round"/>
+  <path d="M4 74 C 26 74, 34 10, 60 10 C 86 10, 94 74, 116 74 L 116 84 L 4 84 Z" fill="#a84a2e" clip-path="url(#favtail)"/>
+</svg>
