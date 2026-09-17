@@ -14,12 +14,12 @@
 // unlike task #41/#43's fixes -- this can't drift out of sync again.
 const API_BASE = '';
 
-// ── pyvar logomark — waveform + terminal cursor ───────────────────
+// ── pyvar logomark — VaR bell curve, shaded tail past a threshold ──
+// (see docs/brand/README.md for the concept; was a waveform+cursor squiggle)
 const LOGO_SVG = `<svg width="28" height="22" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#a84a2e" stroke-width="1.75" stroke-linecap="round"/>
-  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#a84a2e" opacity="0.9">
-    <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.2s" repeatCount="indefinite"/>
-  </rect>
+  <defs><clipPath id="navtail"><rect x="19" y="0" width="9" height="22"/></clipPath></defs>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18" stroke="#4c6b7a" stroke-width="1.9" stroke-linecap="round"/>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18 L 27 20 L 1 20 Z" fill="#a84a2e" clip-path="url(#navtail)"/>
 </svg>`;
 
 function buildNav(active = 'home') {
