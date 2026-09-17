@@ -13,13 +13,16 @@ See `docs/plan-nlnet-submission.md` §1 for the Restack-vs-CodeSupply
 reasoning, unchanged by this rewrite.
 
 **Resolved by Filippo (2026-09-17):** the application is submitted under
-**Fibtec Limited**, not as an individual; the effective rate for budget
-purposes is **€150/hour** (updated from an earlier €100/hour pass — the
-budget below reflects the final figure). The "not the only developer"
-point is resolved too: it refers to Riccardo Fei's early contributions,
-via branches since deleted — Filippo confirmed this isn't a critical
-point, so it isn't carried into the application text below. The
-LinkedIn-sourced experience excerpt is in place.
+**Fibtec Limited**, not as an individual; rate **€150/hour** → **€40,800**
+requested, confirmed as reasonable (not padded — pyvar is self-funded and
+pre-revenue, see "Other funding" below). The "not the only developer"
+point refers to Riccardo Fei's early contributions via branches since
+deleted — confirmed not critical, not carried into the application text.
+The Experience field carries Filippo's own LinkedIn-sourced background;
+one placeholder remains for the public LinkedIn URL itself. The
+Comparison field now states pyvar's uniqueness claim directly, per
+Filippo's own framing, ahead of the QuantLib evidence that substantiates
+it.
 
 ---
 
@@ -64,16 +67,10 @@ LinkedIn-sourced experience excerpt is in place.
 
 ## Amount requested
 
-**Proposed: €40,800** (272 hours at €150/hour — breakdown below). This
-sits at ≈82% of the €50,000 cap — a real jump from the earlier €100/hour
-pass, worth a second look: it's a defensible rate for 20+ years of senior
-IB/consultancy risk-management experience (per the Experience section
-below), but a first-grant ask this close to the ceiling is a genuine
-choice, not a neutral default. If Filippo wants more headroom, trimming
-hours on milestones 3–4 (the least externally-verifiable of the four, and
-the ones most naturally scoped down without weakening the audit case) is
-the easiest lever — the breakdown below makes every line independently
-adjustable.
+**€40,800** (272 hours at €150/hour — breakdown below). Confirmed by
+Filippo: reasonable, "if not too low" — pyvar is self-funded and
+pre-revenue (see "Other funding" below), so this isn't padded against
+other income. No further trimming needed.
 
 ## Use of budget — tasks, effort, rate, expenses (max 4000 chars)
 
@@ -106,16 +103,22 @@ adjustable.
 > compute cost is not a meaningful line item (pyvar's own Monte Carlo
 > engine runs at sub-cent per scenario; see `docs/p9-scenario-volume-cost-audit.md`).
 
-**Still Filippo's call:** the day-counts above are my estimate of
-reasonable scope per milestone, not something Filippo confirmed line by
-line — adjust any of the four before submitting if the real effort looks
-different, especially milestones 1–2 where actual reviewer quotes (once
-sought) should replace this estimate, and worth a deliberate decision on
-whether €40,800 (vs. a trimmed-down number) is the right ask for a first
-grant.
+**Still open:** the day-counts above are my estimate of reasonable scope
+per milestone, not something Filippo confirmed line by line — worth a
+look before submitting if the real effort looks different, especially
+milestones 1–2 where actual reviewer quotes (once sought) should replace
+this estimate. The total itself is confirmed.
 
 ## Comparison — other projects, what's new, considered contributing (max 4000 chars)
 
+> To our knowledge, pyvar is unique in its category: no other project
+> exposes this complete a set of VaR/regulatory-risk functions fully
+> open-source, on a high-performance, production-shaped tech stack (Numba
+> JIT, async job pipeline, REST + MCP delivery) rather than as a
+> closed-source vendor platform or a partial academic implementation.
+> That's the gap this comparison substantiates below, rather than assert
+> on its own.
+>
 > The closest existing comparator is **QuantLib**, a mature open-source
 > (BSD) quantitative finance library — pyvar's own numerical test suite
 > already cross-validates against it directly. QuantLib is a
@@ -145,8 +148,7 @@ grant.
 > unoriginal — correctness against the published standard is the entire
 > point, not a new model.
 
-(≈1650 characters — leaves headroom; can be extended with more detail on
-prior art if Filippo wants a fuller comparison.)
+(≈2186 characters — leaves headroom against the 4000-char limit.)
 
 ## Technical challenges (max 4000 chars, optional but recommended)
 
@@ -216,26 +218,25 @@ prior art if Filippo wants a fuller comparison.)
 >   Trading, Market Making, Credit Risk (Counterparty & Market Risk),
 >   Middle Office, Finance, Regulatory, Operations and IT.
 >
-> What's independently checkable regardless of biographical detail: the
-> full commit history and 300+ merged pull requests at
-> `github.com/fibtecltd/pyvar`, a live production deployment at
-> `pyvar.com`, a published SDK (`pyvar-client` on PyPI), and public
-> technical write-ups covering the build — including four regulatory bugs
-> found and fixed before launch (`docs/publications/`).
+> Independently checkable: 300+ merged pull requests and full commit
+> history at `github.com/fibtecltd/pyvar`, a live deployment at
+> `pyvar.com`, a published SDK (`pyvar-client`, PyPI), and public
+> write-ups on the build (`docs/publications/`). Full professional
+> background: **[Filippo — paste your public LinkedIn URL here]**.
 
-(≈1850 characters — close to the 2000-char limit; the "independently
-checkable" paragraph is the first thing to trim if it needs to shrink.)
+(≈1780 characters, with the LinkedIn placeholder — room for the real URL
+once pasted; trim the "independently checkable" line further if needed.)
 
 ## Other funding (max 1000 chars, optional)
 
-> Fibtec Limited offers commercial enterprise support and private
-> deployment of pyvar as a sustainability model alongside the free public
-> tier — **[Filippo: confirm current revenue status here; is this
-> generating real income yet, or still pre-revenue? The prior brief didn't
-> specify and I don't want to imply traction that doesn't exist yet.]**
-> This grant is not the project's only funding mechanism, but is not
-> currently supplementing an existing grant either — pyvar has not
-> previously received NLnet or comparable grant funding.
+> None. pyvar is entirely self-funded by Fibtec Limited and is currently
+> pre-revenue — a Pro/Enterprise commercial tier exists in the product
+> (Stripe-billed, live) as a planned sustainability model, but has not yet
+> generated income to speak of. This grant would not supplement or overlap
+> with any other funding source; pyvar has not previously received NLnet
+> or any other grant funding.
+
+(≈380 characters — well inside the 1000-char limit.)
 
 ## AI disclosure (required — Yes/No + prompt log, max 8000 chars or file upload)
 
@@ -277,16 +278,17 @@ form actually asks — the AI-authorship *story* just isn't the pitch.
 
 - ~~Amount, entity type, and the AI-authorship framing call~~ — resolved
   2026-09-17 (plan doc §4): Fibtec Limited, €150/hour → **€40,800**
-  proposed, audit-work-first framing.
+  confirmed, audit-work-first framing.
 - ~~The "not the only developer" clarification~~ — resolved: Riccardo
   Fei's early, since-deleted branches; Filippo confirmed not critical,
   not carried into the application text.
 - ~~The "Experience" field~~ — written in Filippo's own words (LinkedIn
-  excerpt).
-- **Still open:** the "Other funding" field (Fibtec's commercial-support
-  revenue status — pre-revenue or generating income?), and a deliberate
-  decision on whether €40,800 is the right ask given how close it sits to
-  the €50,000 cap (see "Amount requested" above).
+  excerpt in place).
+- ~~The "Other funding" field~~ — resolved: self-funded, pre-revenue, no
+  other grant funding.
+- **Still open:** Filippo's public LinkedIn URL (placeholder left in the
+  Experience field), and the actual reviewer quotes for milestones 1–2
+  once sought (replacing this session's day-count estimates).
 - The AI-disclosure prompt log is compiled from the actual session(s) used
   to finalise this text — after finalisation, not before.
 - `README.md` carries a proper GenAI-use disclosure statement (plan doc
