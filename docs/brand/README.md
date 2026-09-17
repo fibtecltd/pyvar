@@ -36,10 +36,11 @@ palette clash.
 - `nav-logo-mark.svg` — same mark, sized to the current nav logo's 28×22
   footprint, as a drop-in candidate for `LOGO_SVG` in `portal/pyvar.js`.
   `nav-logo-mark-preview.png` is a rendered preview at that exact size.
-- `hero-square-800.png` — dot-matrix mark, square, dark background. For a
-  GitHub org avatar, social profile image, or anywhere a square mark is
-  needed.
-- `hero-wide-1200x630.png` — dot-matrix mark + `pyvar.com` wordmark, dark
+- `hero-square-800.png` — dot-matrix mark, square, cream (`--bg`)
+  background, matching the live portal instead of the header art's black.
+  For a GitHub org avatar, social profile image, or anywhere a square mark
+  is needed.
+- `hero-wide-1200x630.png` — dot-matrix mark + `pyvar.com` wordmark, cream
   background, standard Open Graph / Twitter-card / Medium-cover aspect
   ratio (1200×630).
 
