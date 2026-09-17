@@ -204,15 +204,20 @@ pitch's credibility rather than adding a second real chance.
    reframing the pitch around the audit work + minimized AI-build framing
    in the application narrative, full honest disclosure where the form
    requires it.
-4. **Pick a specific amount** to request, within €5,000–€50,000 — the old
-   brief's "€33k–50k indicative ask" needs a single number for the
-   `amount` field.
-5. **Decide `entity` field value** — "Individual" vs "SME company"
-   (Fibtec Limited). NLnet funds individuals directly and says a company
-   isn't required; the old brief named Fibtec for transparency about the
-   commercial-support sustainability model, not as an eligibility claim.
-   Worth a deliberate pick, not a default.
-6. **Actually submit** — a funding-body submission under Fibtec's identity
+4. ~~Pick a specific amount~~ — resolved 2026-09-17: Fibtec Limited applies
+   (not an individual), rate €100/hour → **proposed €27,200** across the
+   four milestones (breakdown in the answers doc). Day-counts per
+   milestone are still my estimate, not Filippo-confirmed line by line —
+   adjustable before submission.
+5. ~~Decide `entity` field value~~ — resolved 2026-09-17: **Fibtec
+   Limited** (SME company), not Individual.
+6. **One open factual point**: Filippo noted he's "the main developer but
+   not the only one," but `git log` shows only his own name as a human
+   commit author (Claude as AI co-author, not a second human). Needs a
+   quick clarification — see the answers doc's "Experience" section —
+   before that field can be finalised, since NLnet's own policy is
+   specific about accurately naming who did the work.
+7. **Actually submit** — a funding-body submission under Fibtec's identity
    is not something I should do on your behalf, technical feasibility
    aside, same reasoning as the Partner Hub forms earlier.
 

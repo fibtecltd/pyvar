@@ -12,11 +12,12 @@ directly from NLnet's own HTML.
 See `docs/plan-nlnet-submission.md` §1 for the Restack-vs-CodeSupply
 reasoning, unchanged by this rewrite.
 
-**Before this can be submitted, some things still need Filippo (see the
-plan doc §4 for the full list):** a specific `amount` figure, the `entity`
-field choice (Individual vs. Fibtec Limited), and Filippo's own words for
-the experience/background and other-funding fields. The AI-authorship
-framing call is now resolved — see the AI disclosure section below.
+**Resolved by Filippo (2026-09-17):** the application is submitted under
+**Fibtec Limited**, not as an individual; the effective rate for budget
+purposes is **€100/hour**. Both are now reflected below. **Still open:**
+the LinkedIn-sourced experience text (Filippo will paste it), and one
+factual point that needs a quick clarification, not a draft — see
+"Experience / background" below.
 
 ---
 
@@ -61,48 +62,48 @@ framing call is now resolved — see the AI disclosure section below.
 
 ## Amount requested
 
-**Needs Filippo — a single figure within €5,000–€50,000.** The prior
-brief's "€33k–50k indicative ask" was never narrowed to one number. My
-read: the four milestones below (security review, numerical audit,
-coverage extension, docs) are real, separable units of work — a number
-toward the upper end of the range is defensible *if* Filippo is
-comfortable committing to delivering all four; a smaller number covering
-just the audits (the most NLnet-aligned pair, per "security proofs and
-audits" in Restack's own eligible-activities language) is the safer,
-easier-to-justify ask for a first grant. Not my call to pick.
+**Proposed: €27,200** (272 hours at €100/hour — breakdown below). This is
+a prefill, not a final number: comfortably inside €5,000–€50,000, credible
+as a first-grant ask (≈54% of the cap, not maxing it out), and every line
+below is adjustable independently if Filippo wants to trim or expand any
+one milestone before submitting.
 
 ## Use of budget — tasks, effort, rate, expenses (max 4000 chars)
 
-> The requested amount funds four scoped milestones, sequenced so each
-> one's findings can narrow the scope of the next rather than committing
-> to fixed deliverables upfront:
+> The requested amount (€27,200, at €100/hour) funds four scoped
+> milestones, sequenced so each one's findings can narrow the scope of the
+> next rather than committing to fixed deliverables upfront:
 >
-> 1. **Independent security review** (~[X] days) — third-party review of
->    the REST API surface, auth/JWT handling, and dependency chain.
->    Findings published in `docs/`, fixes tracked openly.
-> 2. **Independent numerical/regulatory audit** (~[X] days) — a domain
->    expert checking a representative sample of the 385 functions against
->    their published Basel/FRTB/IFRS 9/Solvency II source formulas,
->    corrections published openly (the same discipline that already
->    caught a ~79% Solvency II SCR understatement pre-launch, done here by
->    an external reviewer rather than the maintainer).
-> 3. **Regulatory coverage extension** (~[X] days) — scoped once (1) and
->    (2)'s findings are in; likely candidates are fuller Solvency II or
->    CRR3 coverage, narrowed by what the audit actually flags as thin.
-> 4. **Documentation for smaller institutions** (~[X] days) — worked
->    examples and onboarding docs aimed at credit unions, fintech
->    startups, and researchers, not enterprise risk desks who already
->    have Bloomberg/Murex.
+> 1. **Independent security review** — 48 hours (6 days), **€4,800**.
+>    Third-party review of the REST API surface, auth/JWT handling, and
+>    dependency chain. Findings published in `docs/`, fixes tracked openly.
+> 2. **Independent numerical/regulatory audit** — 96 hours (12 days),
+>    **€9,600**. A domain expert checking a representative sample of the
+>    385 functions against their published Basel/FRTB/IFRS 9/Solvency II
+>    source formulas, corrections published openly (the same discipline
+>    that already caught a ~79% Solvency II SCR understatement pre-launch,
+>    done here by an external reviewer rather than the maintainer).
+> 3. **Regulatory coverage extension** — 80 hours (10 days), **€8,000**.
+>    Scoped once (1) and (2)'s findings are in; likely candidates are
+>    fuller Solvency II or CRR3 coverage, narrowed by what the audit
+>    actually flags as thin.
+> 4. **Documentation for smaller institutions** — 48 hours (6 days),
+>    **€4,800**. Worked examples and onboarding docs aimed at credit
+>    unions, fintech startups, and researchers, not enterprise risk desks
+>    who already have Bloomberg/Murex.
 >
-> Rate: **[Filippo — insert the hourly/daily rate used to build the
-> breakdown above; the prior brief left this as a placeholder and it was
-> never filled in]**. Expenses: none anticipated beyond the independent
-> reviewers' own time in (1) and (2), which is the main cost driver —
+> Rate: **€100/hour**, applied uniformly across all four milestones —
+> this covers both Fibtec's own development time (milestones 3–4) and the
+> independent reviewers engaged for milestones 1–2. Expenses: none
+> anticipated beyond that reviewer time, which is the main cost driver —
 > compute cost is not a meaningful line item (pyvar's own Monte Carlo
 > engine runs at sub-cent per scenario; see `docs/p9-scenario-volume-cost-audit.md`).
 
-**Needs Filippo:** the day-counts and rate are placeholders — this section
-can't be finished without the actual numbers behind the requested amount.
+**Still Filippo's call:** the day-counts above are my estimate of
+reasonable scope per milestone, not something Filippo confirmed line by
+line — adjust any of the four before submitting if the real effort looks
+different, especially milestones 1–2 where actual reviewer quotes (once
+sought) should replace this estimate.
 
 ## Comparison — other projects, what's new, considered contributing (max 4000 chars)
 
@@ -180,12 +181,12 @@ prior art if Filippo wants a fuller comparison.)
 
 ## Experience / background (max 2000 chars, optional)
 
-> Filippo Buchicchio, UK-based, is the applicant and lead/sole developer
-> of pyvar, built through Fibtec Limited (UK-registered). **[Filippo —
-> insert your own relevant background/experience here; I don't have
-> enough verified detail about your prior work history to draft this
-> section honestly, and the policy explicitly wants applicants' own words,
-> not AI-drafted biographical claims.]**
+> Filippo Buchicchio, UK-based, leads development of pyvar through Fibtec
+> Limited (UK-registered), the applicant entity. **[Filippo — paste the
+> LinkedIn excerpt here; I don't have enough verified detail about your
+> prior work history to draft this section honestly, and the policy
+> explicitly wants applicants' own words, not AI-drafted biographical
+> claims.]**
 >
 > What's independently checkable regardless of biographical detail: the
 > full commit history and 300+ merged pull requests at
@@ -194,9 +195,22 @@ prior art if Filippo wants a fuller comparison.)
 > technical write-ups covering the build — including four regulatory bugs
 > found and fixed before launch (`docs/publications/`).
 
-**Needs Filippo — deliberately left incomplete.** The policy's own emphasis
-on human authorship makes this the one field where I should not draft
-biographical claims on your behalf.
+**One factual point needs a quick check before this is finalised, not a
+draft:** Filippo noted he's "the main developer but not the only one." The
+actual git history (`git log --format='%an <%ae>' | sort -u`) shows only
+Filippo Buchicchio as a human commit author — Claude appears as AI
+co-author, not a second human. Worth clarifying which this refers to
+before the field is written, since NLnet's own "no misrepresentation"
+principle is specifically about who did the work:
+
+- If it means Claude Code's contribution — that's already covered by the
+  AI-disclosure section and `README.md`'s GenAI statement, no change
+  needed here.
+- If there's a genuine second human contributor (a collaborator, a
+  contractor, informal help) not yet reflected in git authorship — that's
+  worth naming here directly, since NLnet explicitly asks who is doing the
+  work, and it strengthens rather than weakens the "who's doing the work"
+  case for a company-entity application.
 
 ## Other funding (max 1000 chars, optional)
 
@@ -240,19 +254,19 @@ form actually asks — the AI-authorship *story* just isn't the pitch.
 - **Name:** Filippo Buchicchio
 - **Email:** filippo.buchicchio@gmail.com (or a Fibtec address, if
   Filippo prefers — not assumed here)
-- **Entity type:** **Needs Filippo** — "Individual" vs. "SME company"
-  (Fibtec Limited). See plan doc §4 item 5.
-- **Organisation name:** Fibtec Limited (if entity = company)
+- **Entity type:** **SME company** — resolved 2026-09-17, applying as
+  Fibtec Limited, not as an individual.
+- **Organisation name:** Fibtec Limited
 - **Country:** United Kingdom
 
 ## Definition of done
 
-- Amount, entity type, and the AI-authorship framing call are resolved
-  (plan doc §4).
-- The rate/day-count placeholders in "Use of budget" are filled with real
-  numbers.
+- ~~Amount, entity type, and the AI-authorship framing call~~ — resolved
+  2026-09-17 (plan doc §4): Fibtec Limited, €100/hour → €27,200 proposed,
+  audit-work-first framing.
+- The "not the only developer" clarification above is resolved.
 - The "Experience" and "Other funding" fields are written in Filippo's own
-  words, not left as placeholders.
+  words (LinkedIn excerpt pending), not left as placeholders.
 - The AI-disclosure prompt log is compiled from the actual session(s) used
   to finalise this text — after finalisation, not before.
 - `README.md` carries a proper GenAI-use disclosure statement (plan doc
