@@ -35,6 +35,8 @@
 .plugin-icon{font-size:20px;margin-bottom:10px}
 .plugin-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;line-height:1.3}
 .plugin-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.55}
+.plugin-usecase{font-size:11px;font-weight:300;color:var(--dim);line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.plugin-usecase b{color:var(--text2);font-weight:500}
 .install-step{display:flex;gap:16px;align-items:flex-start;padding:20px 0;border-bottom:1px solid var(--border)}
 .install-step:last-child{border-bottom:none}
 .install-num{font-family:var(--mono);font-size:11px;color:var(--green);border:1px solid var(--green-line);background:var(--green3);border-radius:50%;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -133,48 +135,56 @@
         <div class="plugin-icon">📈</div>
         <div class="plugin-name">pyvar-market-risk</div>
         <div class="plugin-desc">68 functions: VaR, ES, stress, Greeks, P&amp;L attribution, backtesting, GARCH, FRTB SA/IMA</div>
+        <div class="plugin-usecase"><b>Use case:</b> a trading or market risk desk computing daily VaR/ES, running Basel traffic-light backtesting, or building FRTB SA/IMA capital numbers from inside a Claude Code session.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#c8a44a"></div>
         <div class="plugin-icon">🏦</div>
         <div class="plugin-name">pyvar-credit-risk</div>
         <div class="plugin-desc">55 functions: PD/LGD/EAD, IRB/SA, XVA full suite, IFRS 9 ECL, CDS, SA-CCR, scoring</div>
+        <div class="plugin-usecase"><b>Use case:</b> a credit risk team computing IRB/SA regulatory capital, pricing XVA adjustments, provisioning IFRS 9 ECL, or scoring counterparty PDs for a credit committee memo.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#00d97e"></div>
         <div class="plugin-icon">💧</div>
         <div class="plugin-name">pyvar-liquidity-risk</div>
         <div class="plugin-desc">40 functions: LCR, NSFR, HQLA, cash flow, ILAAP, intraday, LiqVaR</div>
+        <div class="plugin-usecase"><b>Use case:</b> a treasury or liquidity risk team computing LCR/NSFR for a regulatory filing, building a cash-flow ladder, or running an internal ILAAP stress scenario.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#e84040"></div>
         <div class="plugin-icon">⚠️</div>
         <div class="plugin-name">pyvar-operational-risk</div>
         <div class="plugin-desc">44 functions: LDA, AMA, SMA, RCSA, KRI, scenario, BEICF, cyber/model/IT risk</div>
+        <div class="plugin-usecase"><b>Use case:</b> an op risk team running LDA/AMA/SMA capital models, scoring RCSA control effectiveness, or tracking KRI breaches ahead of a risk committee report.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#7060d4"></div>
         <div class="plugin-icon">📊</div>
         <div class="plugin-name">pyvar-portfolio-analytics</div>
         <div class="plugin-desc">50 functions: Markowitz/BL/risk-parity, Sharpe/Sortino, Brinson, FF5, PCA, HMM, ESG</div>
+        <div class="plugin-usecase"><b>Use case:</b> a portfolio manager or quant running mean-variance/Black-Litterman/risk-parity optimisation, Brinson performance attribution, or ESG-integrated portfolio construction.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#4a9e22"></div>
         <div class="plugin-icon">📋</div>
         <div class="plugin-name">pyvar-regulatory</div>
         <div class="plugin-desc">30 functions: Basel III/IV, FRTB, ICAAP/SREP, MiFID II, EMIR, Solvency II, CRR2</div>
+        <div class="plugin-usecase"><b>Use case:</b> a regulatory reporting or compliance team computing Basel III/IV capital ratios, checking MiFID II/EMIR transaction-reporting scope, or running a Solvency II SCR calculation.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#c47a2a"></div>
         <div class="plugin-icon">∿</div>
         <div class="plugin-name">pyvar-derivatives</div>
         <div class="plugin-desc">62 functions: BS/Heston/SABR/Dupire/LSM, exotic options, bonds, IRS/CDS, FX</div>
+        <div class="plugin-usecase"><b>Use case:</b> a derivatives desk pricing vanilla or exotic options (Black-Scholes through Heston/SABR/LSM), valuing bonds/IRS/CDS, or computing FX derivative sensitivities.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:#6a7a8a"></div>
         <div class="plugin-icon">⚖️</div>
         <div class="plugin-name">pyvar-alm</div>
         <div class="plugin-desc">33 functions: Duration gap, NII/EVE, IRRBB 6 shocks, repricing, NMD, FTP</div>
+        <div class="plugin-usecase"><b>Use case:</b> a treasury/ALM team computing duration gap, NII/EVE sensitivity under IRRBB's 6 standard shocks, or modelling non-maturity deposit behaviour.</div>
       </div>
     </div>
   </div>
@@ -192,30 +202,35 @@
         <div class="plugin-icon">🌐</div>
         <div class="plugin-name">pyvar-arch-api-gateway</div>
         <div class="plugin-desc">FastAPI, Pydantic v2, JWT, orjson, rate limiting, OpenAPI</div>
+        <div class="plugin-usecase"><b>Use case:</b> an engineer adding a new REST route, request/response schema, or auth/rate-limit rule to pyvar's own FastAPI layer.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:var(--blue)"></div>
         <div class="plugin-icon">📥</div>
         <div class="plugin-name">pyvar-arch-data-ingestion</div>
         <div class="plugin-desc">Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation</div>
+        <div class="plugin-usecase"><b>Use case:</b> an engineer wiring a new market-data source or file format into pyvar's Polars/PyArrow ingestion layer.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:var(--blue)"></div>
         <div class="plugin-icon">⚙️</div>
         <div class="plugin-name">pyvar-arch-compute</div>
         <div class="plugin-desc">NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch</div>
+        <div class="plugin-usecase"><b>Use case:</b> an engineer adding a new Numba-JIT compute kernel or Celery async task to pyvar's own risk engine.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:var(--blue)"></div>
         <div class="plugin-icon">🗄️</div>
         <div class="plugin-name">pyvar-arch-storage</div>
         <div class="plugin-desc">Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store</div>
+        <div class="plugin-usecase"><b>Use case:</b> an engineer touching pyvar's Redis result cache, its PostgreSQL/SQLAlchemy audit schema, or S3/MinIO Parquet storage.</div>
       </div>
       <div class="plugin-card">
         <div class="plugin-bar" style="background:var(--blue)"></div>
         <div class="plugin-icon">📡</div>
         <div class="plugin-name">pyvar-arch-observability</div>
         <div class="plugin-desc">Prometheus, Grafana, Sentry, Bandit, input validation security</div>
+        <div class="plugin-usecase"><b>Use case:</b> an engineer adding a Prometheus metric, a Sentry integration, or a Bandit-checked security fix to pyvar's own stack.</div>
       </div>
     </div>
   </div>
@@ -225,7 +240,8 @@
 <section class="section">
   <div class="container">
     <div class="label reveal">The MCP server</div>
-    <h2 class="h2 reveal" style="margin-bottom:32px">Two tools to start.<br/><em>385 more if you need them.</em></h2>
+    <h2 class="h2 reveal" style="margin-bottom:16px">Two tools to start.<br/><em>385 more if you need them.</em></h2>
+    <p class="body-md reveal" style="max-width:640px;margin-bottom:32px"><b>Use case:</b> anyone who wants to call any of the 385 pyvar risk functions directly from a Claude Code session or Claude.ai chat — pricing an option, computing a VaR, checking a capital ratio — without writing HTTP client code by hand.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
       <div class="reveal">
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px">
