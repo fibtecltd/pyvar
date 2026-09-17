@@ -1,0 +1,5 @@
+<svg width="28" height="22" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><clipPath id="navtail"><rect x="19" y="0" width="9" height="22"/></clipPath></defs>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18" fill="none" stroke="#4c6b7a" stroke-width="1.9" stroke-linecap="round"/>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18 L 27 20 L 1 20 Z" fill="#a84a2e" clip-path="url(#navtail)"/>
+</svg>
