@@ -45,6 +45,9 @@ through `pyvar-mcp`, submitted separately below).
   across 8 sub-domains.
 - **Category/tags:** `market-risk`, `VaR`, `ES`, `greeks`, `stress-test`,
   `backtesting`, `FRTB`, `GARCH`, `volatility`, `PCA`, `monte-carlo`
+- **Use case:** a trading or market risk desk computing daily VaR/ES,
+  running Basel traffic-light backtesting, or building FRTB SA/IMA capital
+  numbers from inside a Claude Code session.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/market-risk
 
 ### pyvar-credit-risk
@@ -53,6 +56,9 @@ through `pyvar-mcp`, submitted separately below).
   scoring. Covers 55 functions across 10 sub-domains.
 - **Category/tags:** `credit-risk`, `PD`, `LGD`, `EAD`, `IRB`, `XVA`, `CVA`,
   `IFRS9`, `ECL`, `CDS`, `CCR`, `SA-CCR`, `KMV`, `Merton`, `scoring`
+- **Use case:** a credit risk team computing IRB/SA regulatory capital,
+  pricing XVA adjustments, provisioning IFRS 9 ECL, or scoring counterparty
+  PDs for a credit committee memo.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/credit-risk
 
 ### pyvar-liquidity-risk
@@ -61,6 +67,9 @@ through `pyvar-mcp`, submitted separately below).
   liquidity, or liquidity VaR. Covers 40 functions across 8 sub-domains.
 - **Category/tags:** `liquidity-risk`, `LCR`, `NSFR`, `HQLA`, `cash-flow`,
   `ILAAP`, `survival-horizon`, `funding-risk`, `intraday`, `stress-test`
+- **Use case:** a treasury or liquidity risk team computing LCR/NSFR for a
+  regulatory filing, building a cash-flow ladder, or running an internal
+  ILAAP stress scenario.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/liquidity-risk
 
 ### pyvar-operational-risk
@@ -70,6 +79,9 @@ through `pyvar-mcp`, submitted separately below).
 - **Category/tags:** `operational-risk`, `LDA`, `AMA`, `SMA`, `OpVaR`,
   `RCSA`, `KRI`, `BEICF`, `scenario-analysis`, `cyber-risk`, `model-risk`,
   `EVT`
+- **Use case:** an op risk team running LDA/AMA/SMA capital models,
+  scoring RCSA control effectiveness, or tracking KRI breaches ahead of a
+  risk committee report.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/operational-risk
 
 ### pyvar-portfolio-analytics
@@ -79,6 +91,9 @@ through `pyvar-mcp`, submitted separately below).
 - **Category/tags:** `portfolio`, `optimisation`, `markowitz`,
   `black-litterman`, `risk-parity`, `sharpe`, `attribution`, `brinson`,
   `factor-model`, `FF5`, `PCA`, `HMM`, `ESG`
+- **Use case:** a portfolio manager or quant running mean-variance/
+  Black-Litterman/risk-parity optimisation, Brinson performance
+  attribution, or ESG-integrated portfolio construction.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/portfolio-analytics
 
 ### pyvar-regulatory
@@ -87,6 +102,9 @@ through `pyvar-mcp`, submitted separately below).
   or CRR2 calculations. Covers 30 functions across 7 regulatory frameworks.
 - **Category/tags:** `regulatory`, `Basel-III`, `Basel-IV`, `FRTB`,
   `MiFID-II`, `EMIR`, `SFTR`, `ICAAP`, `SREP`, `CET1`, `Solvency-II`, `CRR2`
+- **Use case:** a regulatory reporting or compliance team computing Basel
+  III/IV capital ratios, checking MiFID II/EMIR transaction-reporting
+  scope, or running a Solvency II SCR calculation.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/regulatory
 
 ### pyvar-derivatives
@@ -96,6 +114,9 @@ through `pyvar-mcp`, submitted separately below).
   valuation task. Covers 62 functions across 9 sub-domains.
 - **Category/tags:** `derivatives`, `options`, `Black-Scholes`, `Heston`,
   `SABR`, `Dupire`, `LSM`, `bonds`, `IRS`, `CDS`, `FX`
+- **Use case:** a derivatives desk pricing vanilla or exotic options
+  (Black-Scholes through Heston/SABR/LSM), valuing bonds/IRS/CDS, or
+  computing FX derivative sensitivities.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/derivatives
 
 ### pyvar-alm
@@ -106,6 +127,9 @@ through `pyvar-mcp`, submitted separately below).
 - **Category/tags:** `ALM`, `NII`, `EVE`, `IRRBB`, `duration`,
   `repricing-gap`, `NMD`, `prepayment`, `FTP`, `convexity`, `basis-risk`,
   `pipeline-risk`, `balance-sheet`, `ICAAP`
+- **Use case:** a treasury/ALM team computing duration gap, NII/EVE
+  sensitivity under IRRBB's 6 standard shocks, or modelling non-maturity
+  deposit behaviour.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/alm
 
 ### pyvar-arch-api-gateway
@@ -116,6 +140,8 @@ through `pyvar-mcp`, submitted separately below).
 - **Category/tags:** `fastapi`, `pydantic`, `JWT`, `orjson`,
   `rate-limiting`, `OpenAPI`, `CORS`, `middleware`, `authentication`,
   `api-gateway`
+- **Use case:** an engineer adding a new REST route, request/response
+  schema, or auth/rate-limit rule to pyvar's own FastAPI layer.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/arch/api-gateway
 
 ### pyvar-arch-data-ingestion
@@ -125,6 +151,8 @@ through `pyvar-mcp`, submitted separately below).
   pyvar-ready formats.
 - **Category/tags:** `polars`, `pyarrow`, `parquet`, `arrow-ipc`,
   `data-ingestion`, `lazy-scan`, `filter-pushdown`, `schema`, `etl`
+- **Use case:** an engineer wiring a new market-data source or file
+  format into pyvar's Polars/PyArrow ingestion layer.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/arch/data-ingestion
 
 ### pyvar-arch-compute
@@ -134,6 +162,8 @@ through `pyvar-mcp`, submitted separately below).
   scale-out. Also covers the Celery + Redis task queue dispatch pattern.
 - **Category/tags:** `numpy`, `numba`, `scipy`, `dask`, `ray`, `celery`,
   `redis`, `JIT`, `monte-carlo`
+- **Use case:** an engineer adding a new Numba-JIT compute kernel or
+  Celery async task to pyvar's own risk engine.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/arch/compute
 
 ### pyvar-arch-storage
@@ -144,6 +174,8 @@ through `pyvar-mcp`, submitted separately below).
 - **Category/tags:** `redis`, `postgresql`, `sqlalchemy`, `s3`, `minio`,
   `parquet`, `arrow-ipc`, `storage`, `cache`, `orm`, `object-storage`,
   `result-store`
+- **Use case:** an engineer touching pyvar's Redis result cache, its
+  PostgreSQL/SQLAlchemy audit schema, or S3/MinIO Parquet storage.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/arch/storage
 
 ### pyvar-arch-observability
@@ -153,6 +185,8 @@ through `pyvar-mcp`, submitted separately below).
   security scanning of financial computation code.
 - **Category/tags:** `prometheus`, `grafana`, `sentry`, `bandit`,
   `observability`, `monitoring`, `security-scanning`
+- **Use case:** an engineer adding a Prometheus metric, a Sentry
+  integration, or a Bandit-checked security fix to pyvar's own stack.
 - **Link:** https://github.com/fibtecltd/pyvar/tree/master/plugins/arch/observability
 
 ---
@@ -164,6 +198,10 @@ through `pyvar-mcp`, submitted separately below).
   analytics, ALM, regulatory) as Claude Code tools, via the live pyvar API.
 - **Category/tags:** `finance`, `risk-management`, `mcp-server`,
   `quantitative-finance`, `api`
+- **Use case:** anyone who wants to call any of the 385 pyvar risk
+  functions directly from a Claude Code session or Claude.ai chat —
+  pricing an option, computing a VaR, checking a capital ratio — without
+  writing HTTP client code by hand.
 - **Security/trust disclosure** (reused verbatim from
   `docs/proposals/marketplace-submission-content.md`, the one place this
   detail already lives — not re-derived here):
