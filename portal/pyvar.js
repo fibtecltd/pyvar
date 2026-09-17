@@ -48,9 +48,12 @@ function buildNav(active = 'home') {
   </nav>`;
 }
 
+// Same VaR bell-curve mark as LOGO_SVG above, just scaled up for the footer
+// -- was a separate, stale copy of the old waveform+cursor squiggle.
 const FOOTER_LOGO = `<svg width="32" height="26" viewBox="0 0 28 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M1 16C3.5 16 4.5 10 7 10C9.5 10 10.5 16 13 16C15.5 16 16.5 10 19 4" stroke="#a84a2e" stroke-width="1.75" stroke-linecap="round"/>
-  <rect x="21" y="14" width="6" height="2.5" rx="1" fill="#a84a2e" opacity="0.7"/>
+  <defs><clipPath id="footertail"><rect x="19" y="0" width="9" height="22"/></clipPath></defs>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18" stroke="#4c6b7a" stroke-width="1.9" stroke-linecap="round"/>
+  <path d="M1 18 C 6 18, 8 3, 14 3 C 20 3, 22 18, 27 18 L 27 20 L 1 20 Z" fill="#a84a2e" clip-path="url(#footertail)"/>
 </svg>`;
 
 function buildFooter() {
@@ -113,7 +116,7 @@ function buildFooter() {
         </div>
       </div>
       <div class="footer-bottom">
-        <div class="footer-copy">© 2026 Fibtec Limited · pyvar.com is Apache-2.0 licensed · fibtec.co.uk</div>
+        <div class="footer-copy">© 2026 pyvar.com · Apache-2.0 licensed</div>
         <div class="footer-legal">
           <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Apache-2.0 Licence</a>
         </div>
