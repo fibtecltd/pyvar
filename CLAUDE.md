@@ -397,6 +397,33 @@ Commit message format:
 - infra/* branches require cdk diff output in the PR description.
 ```
 
+### 8.1 Mandatory pre-merge CodePipeline check
+
+**Before merging ANY pull request to `master`, always check whether the
+merge will trigger a real CodePipeline execution (Test/Build/Dev-deploy —
+a real cost, not a no-op) — and say so explicitly, before merging, not
+after.** This applies whether or not anyone asks.
+
+The push trigger (`pyvar-cdk/stacks/pipeline_stack.py`'s
+`_TRIGGER_EXCLUDED_PATHS`) excludes exactly 8 top-level directories —
+AWS CodePipeline's own hard cap on push-filter exclude entries:
+
+```
+.claude  .claude-plugin  .github  docs  ingestion  pyvar-client  scripts  tests
+```
+
+A PR whose changed files are **entirely** inside those 8 directories will
+not trigger an execution. **Anything else does — including a single
+root-level file like `README.md` or `CHANGELOG.md`.** Root-level files are
+explicitly NOT coverable by this exclude list (no room left in the
+8-entry cap — see the code's own comment at the trigger definition), so a
+change that looks "docs-only" but touches `README.md` alongside `docs/`
+files still starts a real pipeline run. Check every changed path in the
+PR diff against the 8-directory list above — not just the PR's title or
+description — before recommending or performing a merge, and state the
+conclusion plainly: "this will trigger a CodePipeline run" or "this is
+pipeline-safe."
+
 ---
 
 ## 9. Running locally
