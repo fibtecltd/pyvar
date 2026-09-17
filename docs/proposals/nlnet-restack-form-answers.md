@@ -1,136 +1,297 @@
-# NLnet Restack application — draft short-form answers
+# NLnet Restack application — draft answers to the real form
 
 **Draft, not submitted.** Item 4 of `docs/roadmap-six-open-initiatives.md`,
-prepared per `docs/plan-nlnet-submission.md` §5. NLnet's real submission
-mechanism is a short web form at `nlnet.nl/propose/` — plain English,
-roughly six short questions, 1–2 pages total — not the long-form
-`pyvar-grant-brief-nlnet.docx` in this same directory (now corrected for
-staleness — licence, repo visibility, fund name — but still the wrong
-*shape* for the actual deliverable). This file drafts condensed answers to
-the questions of that form this session could confirm; it is source
-material for Filippo to paste into the live form, not something to submit
-as-is.
+rewritten 2026-09-17 per `docs/plan-nlnet-submission.md` §3a after Filippo
+supplied the actual `nlnet.nl/propose/` form and GenAI policy pages. **This
+supersedes the previous version of this file**, which was drafted against a
+guessed "6 short questions" shape from a third-party guide — the real form
+has a different, more granular field structure (table below), confirmed
+directly from NLnet's own HTML.
 
-**Target fund: Restack** (`nlnet.nl/restack/`), part of NLnet's new "Open
-Internet Stack" umbrella, successor to the now-closed NGI Zero Commons
-Fund. Grants €5,000–€50,000, deadline **2026-11-03**. See the brief's own
-"Before you submit this" note for the full reasoning on why Restack over
-the similarly-sized CodeSupply programme.
+**Target fund: Restack** (`nlnet.nl/restack/`), deadline **2026-11-03**.
+See `docs/plan-nlnet-submission.md` §1 for the Restack-vs-CodeSupply
+reasoning, unchanged by this rewrite.
 
----
-
-## What this session could confirm vs. could not
-
-Of NLnet's six form questions, a third-party guide (not NLnet's own page,
-which is blocked to this session's browsing) surfaced three. **Filippo
-needs to verify all six against the live form before submitting** — the
-three below are paraphrased, not quoted from NLnet directly, and three
-more are simply missing. Do not treat this file as a complete draft of
-the application; it is a head start on the part that could be prepared in
-advance.
+**Resolved by Filippo (2026-09-17):** the application is submitted under
+**Fibtec Limited**, not as an individual; rate **€150/hour** → **€40,800**
+requested, confirmed as reasonable (not padded — pyvar is self-funded and
+pre-revenue, see "Other funding" below). The "not the only developer"
+point refers to Riccardo Fei's early contributions via branches since
+deleted — confirmed not critical, not carried into the application text.
+The Experience field carries Filippo's own LinkedIn-sourced background;
+one placeholder remains for the public LinkedIn URL itself. The
+Comparison field now states pyvar's uniqueness claim directly, per
+Filippo's own framing, ahead of the QuantLib evidence that substantiates
+it.
 
 ---
 
-## Question 1 (confirmed, paraphrased): What are you going to do / build? (technical, specific, prior-art citations — guide suggests 200–400 words)
+## Fund
 
-pyvar is an open-source (Apache-2.0), self-hostable financial risk
-computation engine: 385 functions across Value-at-Risk, Expected
-Shortfall, credit risk (PD/LGD/EAD, IFRS 9 ECL), derivatives pricing
-(Black-Scholes, Heston, SABR, Dupire, LSM American/Bermudan), liquidity
-risk (LCR, NSFR), operational risk (LDA, AMA, SMA), portfolio analytics,
-ALM, and regulatory capital (Basel III/IV, FRTB, MiFID II, EMIR, Solvency
-II, CRR2) — exposed as a REST API, JIT-accelerated with Numba, and now
-also shipped as native tools for AI coding agents via a Model Context
-Protocol server.
+**Restack.**
 
-The proposed grant work is not building this from nothing — it exists
-today, deployed and free to use. It funds a specific, scoped body of work
-NLnet has historically prioritised for exactly this kind of infrastructure:
+## Proposal title (max 100 chars)
 
-1. **Independent security review** of the API surface and dependency
-   chain, findings published openly.
-2. **Independent numerical/regulatory-formula audit** — a domain expert
-   checking a sample of the 385 functions against their published
-   Basel/FRTB/IFRS 9 source formulas, corrections published openly.
-3. **Regulatory coverage extension** beyond the current scope (e.g. fuller
-   Solvency II or CRR3), scoped once the above findings are in.
-4. **Documentation and accessibility for smaller institutions** — the
-   audience priced out of the same methodology large banks already use.
+> pyvar: independent audit & regulatory coverage for an open risk engine
 
-Prior art: the closest existing comparator is QuantLib, a mature
-open-source (BSD) quantitative finance library — pyvar's own numerical
-test suite cross-validates against it. QuantLib is a pricing/analytics
-*library*; pyvar is closer to a hosted, regulator-shaped *service*
-covering the compliance layer (Basel backtesting, FRTB capital, IFRS 9)
-QuantLib does not itself implement. No other project this search
-identified combines open licensing, this regulatory breadth, and REST/MCP
-service delivery in one codebase — that combination, not any single
-formula, is pyvar's actual novelty.
+(71 characters — room to adjust.)
 
-## Question 2 (confirmed, paraphrased): Problem and impact — which internet/commons problem does this solve, who benefits, why now? (guide suggests 150–250 words)
+## Website(s) / repositories
 
-Regulatory-grade financial risk computation is normally locked inside
-proprietary vendor platforms — closed-source, expensive per seat, and
-unauditable by the risk teams whose regulatory capital depends on the
-answer. If a formula is wrong, nobody outside the vendor can see it, let
-alone fix it or prove it was ever wrong in the first place.
+- `https://www.pyvar.com`
+- `https://github.com/fibtecltd/pyvar`
+- `https://pypi.org/project/pyvar-client/`
 
-pyvar makes the same class of computation inspectable by anyone — a
-regulator, an academic, a rival implementation, or the institution using
-it — with every formula readable in the open-source repository, not
-asserted by a vendor's marketing. That is a direct instance of the digital
-commons and transparent-infrastructure principles NLnet funds in other
-domains, applied to financial technology specifically.
+## Abstract — summarise the project and expected results (max 1000 chars)
 
-Who benefits: smaller banks, credit unions, fintech startups, and
-researchers outside the largest financial centres, who are today priced
-out of the same risk methodology large institutions already use as a
-matter of course. Removing that cost barrier is a concrete, checkable
-outcome — every function's output is reproducible from a public
-`pip install`, not a sales conversation.
+> pyvar is an open-source (Apache-2.0), self-hostable financial risk
+> computation engine — 385 functions covering Value-at-Risk, Expected
+> Shortfall, credit risk, derivatives pricing, liquidity risk, operational
+> risk, portfolio analytics, and regulatory capital (Basel III/IV, FRTB,
+> IFRS 9, Solvency II, EMIR). It's live at pyvar.com today, not a proposal
+> to build from scratch.
+>
+> This grant funds a specific, scoped body of work: an independent
+> security review of the API and dependency chain; an independent
+> numerical audit of a sample of the 385 formulas against their published
+> Basel/FRTB/IFRS 9 sources; extending regulatory coverage where the audit
+> finds gaps; and documentation aimed at smaller institutions who are
+> priced out of the same risk methodology large banks already use.
+> Findings from all of the above are published openly, not kept internal.
+>
+> Expected result: a published audit trail proving (or correcting) the
+> platform's regulatory-formula correctness, plus the coverage and docs
+> work that trail identifies as needed.
 
-Why now: pyvar has just shipped as native tooling for AI coding agents (an
-MCP server, generated from the same source of truth as the REST API).
-Open, machine-readable, auditable financial infrastructure matters more,
-not less, as more of this class of work is done by AI agents rather than
-only humans by hand.
+(≈870 characters — leaves headroom.)
 
-## Question 3 (confirmed, paraphrased): Who is doing the work? (GitHub/papers/prior projects; NLnet funds individuals, no company required — guide suggests 100–200 words)
+## Amount requested
 
-Filippo Buchicchio, based in the UK, is the applicant and lead/sole
-developer of pyvar — an Anthropic-certified individual (CCA-F) building
-and maintaining the project through Fibtec Limited, a UK-registered
-company offering commercial enterprise support and private deployment of
-pyvar as a sustainability model alongside the free public tier this grant
-would help strengthen. (NLnet funds individuals directly and doesn't
-require a company; naming Fibtec here is for transparency about the
-sustainability model, not a claim that company backing is the basis for
-eligibility.)
+**€40,800** (272 hours at €150/hour — breakdown below). Confirmed by
+Filippo: reasonable, "if not too low" — pyvar is self-funded and
+pre-revenue (see "Other funding" below), so this isn't padded against
+other income. No further trimming needed.
 
-Prior work, all publicly checkable: the full commit history and 300+
-merged pull requests at `github.com/fibtecltd/pyvar`; a live, deployed
-production service at `pyvar.com`; a published Python SDK
-(`pyvar-client` on PyPI); and a public technical write-up covering the
-build, including regulatory bugs found and fixed before launch
-(linked in the full application — see `docs/publications/` in the
-repository).
+## Use of budget — tasks, effort, rate, expenses (max 4000 chars)
 
-## Questions 4–6: not yet identified
+> The requested amount (€40,800, at €150/hour) funds four scoped
+> milestones, sequenced so each one's findings can narrow the scope of the
+> next rather than committing to fixed deliverables upfront:
+>
+> 1. **Independent security review** — 48 hours (6 days), **€7,200**.
+>    Third-party review of the REST API surface, auth/JWT handling, and
+>    dependency chain. Findings published in `docs/`, fixes tracked openly.
+> 2. **Independent numerical/regulatory audit** — 96 hours (12 days),
+>    **€14,400**. A domain expert checking a representative sample of the
+>    385 functions against their published Basel/FRTB/IFRS 9/Solvency II
+>    source formulas, corrections published openly (the same discipline
+>    that already caught a ~79% Solvency II SCR understatement pre-launch,
+>    done here by an external reviewer rather than the maintainer).
+> 3. **Regulatory coverage extension** — 80 hours (10 days), **€12,000**.
+>    Scoped once (1) and (2)'s findings are in; likely candidates are
+>    fuller Solvency II or CRR3 coverage, narrowed by what the audit
+>    actually flags as thin.
+> 4. **Documentation for smaller institutions** — 48 hours (6 days),
+>    **€7,200**. Worked examples and onboarding docs aimed at credit
+>    unions, fintech startups, and researchers, not enterprise risk desks
+>    who already have Bloomberg/Murex.
+>
+> Rate: **€150/hour**, applied uniformly across all four milestones —
+> this covers both Fibtec's own development time (milestones 3–4) and the
+> independent reviewers engaged for milestones 1–2. Expenses: none
+> anticipated beyond that reviewer time, which is the main cost driver —
+> compute cost is not a meaningful line item (pyvar's own Monte Carlo
+> engine runs at sub-cent per scenario; see `docs/p9-scenario-volume-cost-audit.md`).
 
-This session's search surfaced only 3 of NLnet's roughly 6 form questions.
-**Filippo: please read the live form at `nlnet.nl/propose/` and either (a)
-send back the remaining question text so answers can be drafted the same
-way, or (b) draft those directly** — likely candidates based on how NLnet
-describes its process elsewhere (unconfirmed) include a timeline/milestone
-question, a budget breakdown, and a "why you, why NLnet" fit question —
-but do not draft answers against a guess at the wording; wait for the real
-text.
+**Still open:** the day-counts above are my estimate of reasonable scope
+per milestone, not something Filippo confirmed line by line — worth a
+look before submitting if the real effort looks different, especially
+milestones 1–2 where actual reviewer quotes (once sought) should replace
+this estimate. The total itself is confirmed.
+
+## Comparison — other projects, what's new, considered contributing (max 4000 chars)
+
+> To our knowledge, pyvar is unique in its category: no other project
+> exposes this complete a set of VaR/regulatory-risk functions fully
+> open-source, on a high-performance, production-shaped tech stack (Numba
+> JIT, async job pipeline, REST + MCP delivery) rather than as a
+> closed-source vendor platform or a partial academic implementation.
+> That's the gap this comparison substantiates below, rather than assert
+> on its own.
+>
+> The closest existing comparator is **QuantLib**, a mature open-source
+> (BSD) quantitative finance library — pyvar's own numerical test suite
+> already cross-validates against it directly. QuantLib is a
+> pricing/analytics *library*: it gives you the building blocks, not the
+> compliance layer. pyvar is closer to a hosted, regulator-shaped
+> *service* — Basel traffic-light backtesting, FRTB capital calculation,
+> IFRS 9 ECL provisioning, Solvency II SCR — delivered as a REST API (and
+> now an MCP server for AI coding agents) rather than a library you
+> integrate and build the compliance logic around yourself.
+>
+> We did consider contributing this compliance layer directly to
+> QuantLib rather than building a separate project. Two reasons we
+> didn't: QuantLib's C++-first architecture and contribution model isn't
+> well suited to a REST/async-job service shape (SQS-backed Monte Carlo
+> jobs, tiered API access, a hosted deployment), and pyvar's regulatory
+> layer is deliberately opinionated about which Basel/FRTB version and
+> which regulatory constants are correct — encoding that as a strict
+> position (see `CLAUDE.md`'s `[REGULATORY]`-marked constants, changeable
+> only via a reviewed `reg/*` branch) fits better as its own project than
+> as a general-purpose library flag.
+>
+> No other project this search identified combines open licensing, this
+> regulatory breadth, and REST/MCP service delivery in one codebase —
+> that combination, not any single formula, is pyvar's actual novelty.
+> What pyvar does *not* claim novelty on: the underlying math (Black-
+> Scholes, Heston, SABR, Monte Carlo VaR) is textbook and intentionally
+> unoriginal — correctness against the published standard is the entire
+> point, not a new model.
+
+(≈2186 characters — leaves headroom against the 4000-char limit.)
+
+## Technical challenges (max 4000 chars, optional but recommended)
+
+> The main technical risk isn't building new functionality — it's proving
+> the existing 385 functions are correct against sources an external
+> reviewer trusts, at a scale where manual line-by-line audit of every
+> function isn't realistic within the grant's budget. The mitigation is
+> sampling: prioritising the highest-stakes/highest-usage functions
+> (Basel capital ratios, FRTB IMA/SA, Solvency II SCR) for full audit
+> rather than attempting uniform coverage across all 385 in one pass —
+> the same triage discipline already used internally (see
+> `docs/caveat-triage-batch-plan.md`), now applied by an independent
+> reviewer instead of the maintainer.
+>
+> A secondary risk: regulatory constants and formulas change (BCBS
+> shock recalibrations, Basel IV phase-in dates). The audit needs to
+> pin down which version of each standard pyvar targets and verify that's
+> stated explicitly, not left implicit — a gap the internal review
+> already found once (stale pre-2024 IRRBB shock values, fixed in v0.1.0).
+
+(≈1000 characters.)
+
+## Ecosystem — dependencies, main users (max 2000 chars, optional)
+
+> pyvar depends on NumPy/Numba/SciPy for compute, FastAPI for the API
+> layer, and Celery/SQS for the async job pipeline — all mainstream,
+> actively maintained open-source projects; no unusual or fragile
+> dependencies. `pyvar-client` (PyPI) and `pyvar-mcp` (a Claude Code
+> plugin marketplace entry) are the two integration surfaces most likely
+> to bring in outside contributors.
+>
+> Main users today: individual developers and researchers exploring
+> quantitative finance in the open, per pyvar.com's own (small, unaudited)
+> usage. The grant's stated audience — smaller banks, credit unions,
+> fintechs, and researchers outside major financial centres — is the
+> intended *next* audience, not yet the confirmed current one; being
+> honest about that gap rather than overclaiming existing institutional
+> adoption.
+
+(≈780 characters.)
+
+## Experience / background (max 2000 chars, optional)
+
+> Filippo Buchicchio, UK-based, leads development of pyvar through Fibtec
+> Limited (UK-registered), the applicant entity.
+>
+> With over 20 years of experience gained in both the Consultancy and
+> Investment Banking industry at an international level, I keep on
+> developing my core skills in Risk Management, Regulatory Compliance and
+> Front Office Trading, to enable delivery of a firm's vision and
+> strategic goals. I have consistently designed, led and delivered
+> complex projects in high pressure environments, requiring senior
+> stakeholder management up to board level, including the regulators, as
+> well as BAU activities. I rely upon an inclusive and supportive
+> leadership style, a genuine passion for problem solving, and the
+> ability to provide solutions, leveraging any technology, knowledge and
+> support available across the institution.
+>
+> - Risk Management with in-depth knowledge across asset classes
+>   (including Forex, Credit, Interest Rate Derivatives including
+>   inflation, both ETD and OTC), and experience implementing Risk
+>   Management systems.
+> - Regulatory Compliance with deep understanding of recent requirements
+>   (FRTB, Basel, BCBS, EMIR, MiFID, Dodd-Frank and other regulations) and
+>   exposure to key regulatory bodies and central banks.
+> - Cross-service and domain knowledge: Trading desk, Proprietary
+>   Trading, Market Making, Credit Risk (Counterparty & Market Risk),
+>   Middle Office, Finance, Regulatory, Operations and IT.
+>
+> Independently checkable: 300+ merged pull requests and full commit
+> history at `github.com/fibtecltd/pyvar`, a live deployment at
+> `pyvar.com`, a published SDK (`pyvar-client`, PyPI), and public
+> write-ups on the build (`docs/publications/`). Full professional
+> background: **[Filippo — paste your public LinkedIn URL here]**.
+
+(≈1780 characters, with the LinkedIn placeholder — room for the real URL
+once pasted; trim the "independently checkable" line further if needed.)
+
+## Other funding (max 1000 chars, optional)
+
+> None. pyvar is entirely self-funded by Fibtec Limited and is currently
+> pre-revenue — a Pro/Enterprise commercial tier exists in the product
+> (Stripe-billed, live) as a planned sustainability model, but has not yet
+> generated income to speak of. This grant would not supplement or overlap
+> with any other funding source; pyvar has not previously received NLnet
+> or any other grant funding.
+
+(≈380 characters — well inside the 1000-char limit.)
+
+## AI disclosure (required — Yes/No + prompt log, max 8000 chars or file upload)
+
+**This is new, required, and genuinely needs Filippo's decision — not
+something to draft speculatively.** Two separate things the form asks for:
+
+1. **"Did you use generative AI in writing this proposal?"** Given this
+   proposal's text itself would be drafted with Claude Code's assistance —
+   consistent with how every other piece of writing in this repository has
+   been produced — the honest answer is **Yes**. Answering "No" would be a
+   misrepresentation the policy explicitly prohibits, regardless of how
+   the framing question below gets resolved.
+2. **The prompt-provenance log** — actual prompts/interactions and
+   unedited output, not a summary invented after the fact. This needs to
+   be compiled from the real session(s) used to draft the final
+   submission text, once that drafting happens — not fabricated now
+   against a draft that will change.
+
+**Framing resolved (2026-09-17):** per `docs/plan-nlnet-submission.md` §3a,
+this section carries the full, honest disclosure — model, prompts, dates,
+unedited output — plainly and factually, without expanding it into a
+narrative about pyvar's broader AI-build story. The rest of the
+application (abstract, budget-use, comparison, above) is written the same
+way: focused on the engine and the audit work the grant funds, not led by
+"built by an AI agent." Nothing is hidden, nothing is minimized where the
+form actually asks — the AI-authorship *story* just isn't the pitch.
+
+## Contact information
+
+- **Name:** Filippo Buchicchio
+- **Email:** filippo.buchicchio@gmail.com (or a Fibtec address, if
+  Filippo prefers — not assumed here)
+- **Entity type:** **SME company** — resolved 2026-09-17, applying as
+  Fibtec Limited, not as an individual.
+- **Organisation name:** Fibtec Limited
+- **Country:** United Kingdom
 
 ## Definition of done
 
-- All six real question texts confirmed verbatim against the live form.
-- Answers to questions 4–6 drafted in the same style once confirmed.
-- Filippo has reviewed all six answers against the actual character/word
-  limits the live form enforces (this draft used a third-party guide's
-  approximate word counts, not confirmed limits).
+- ~~Amount, entity type, and the AI-authorship framing call~~ — resolved
+  2026-09-17 (plan doc §4): Fibtec Limited, €150/hour → **€40,800**
+  confirmed, audit-work-first framing.
+- ~~The "not the only developer" clarification~~ — resolved: Riccardo
+  Fei's early, since-deleted branches; Filippo confirmed not critical,
+  not carried into the application text.
+- ~~The "Experience" field~~ — written in Filippo's own words (LinkedIn
+  excerpt in place).
+- ~~The "Other funding" field~~ — resolved: self-funded, pre-revenue, no
+  other grant funding.
+- **Still open:** Filippo's public LinkedIn URL (placeholder left in the
+  Experience field), and the actual reviewer quotes for milestones 1–2
+  once sought (replacing this session's day-count estimates).
+- The AI-disclosure prompt log is compiled from the actual session(s) used
+  to finalise this text — after finalisation, not before.
+- `README.md` carries a proper GenAI-use disclosure statement (plan doc
+  §3a) before the "website" field above is something an assessor would
+  actually visit and check — done in PR #351, pending merge.
 - Submitted via `nlnet.nl/propose/` before **2026-11-03**.
