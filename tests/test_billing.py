@@ -715,3 +715,94 @@ def test_resolve_stripe_secrets_degrades_on_secrets_manager_failure(monkeypatch)
         billing_module._resolve_stripe_secrets()  # must not raise
 
     assert billing_module.cfg.stripe_secret_key is None
+
+
+def test_resolve_stripe_secrets_partial_failure_keeps_the_others(monkeypatch):
+    """The incident this test guards against: a failure fetching ONE secret
+    (here, stripe-price-id-pro, the third and last call) must not discard
+    the other two that already succeeded. Each secret is fetched in its own
+    try/except -- a transient failure on one is isolated, not fatal to the
+    whole resolution."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_client = MagicMock()
+    mock_client.get_secret_value.side_effect = [
+        {"SecretString": "sk_live_abc"},
+        {"SecretString": "whsec_abc"},
+        Exception("ThrottlingException"),
+    ]
+    with patch("boto3.client", return_value=mock_client):
+        billing_module._resolve_stripe_secrets()  # must not raise
+
+    assert billing_module.cfg.stripe_secret_key == "sk_live_abc"
+    assert billing_module.cfg.stripe_webhook_secret == "whsec_abc"
+    assert billing_module.cfg.stripe_price_id_pro is None
+
+
+# ── _require_billing_configured lazy retry ───────────────────────────────────
+
+
+async def test_checkout_complete_retries_secret_resolution_and_succeeds(app, monkeypatch):
+    """The self-healing path: a task whose startup fetch failed must not
+    stay broken forever. If cfg is unconfigured when a billing route is hit,
+    _require_billing_configured() retries the fetch once inline -- and if
+    that retry succeeds (the earlier failure really was transient), the
+    request proceeds instead of 503ing."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_secrets_client = MagicMock()
+    mock_secrets_client.get_secret_value.side_effect = [
+        {"SecretString": "sk_live_abc"},
+        {"SecretString": "whsec_abc"},
+        {"SecretString": "price_abc"},
+    ]
+
+    user_row = User(
+        external_id="ext-20", email="retry@example.com", tier="pro", stripe_customer_id="cus_1"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.retrieve.return_value = MagicMock(
+        payment_status="paid", customer="cus_1"
+    )
+
+    with (
+        patch("boto3.client", return_value=mock_secrets_client),
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/v1/billing/checkout/complete?session_id=cs_test_1")
+
+    assert resp.status_code == 200
+    assert billing_module.cfg.stripe_secret_key == "sk_live_abc"
+    assert billing_module.cfg.stripe_price_id_pro == "price_abc"
+
+
+async def test_checkout_complete_returns_503_when_retry_also_fails(app, monkeypatch):
+    """If the retry fails too (genuinely unconfigured, not just transient),
+    the route still degrades to 503 rather than raising unhandled."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(billing_module.cfg, "ecs_container_metadata_uri_v4", None)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app()), base_url="http://test"
+    ) as client:
+        resp = await client.get("/api/v1/billing/checkout/complete?session_id=cs_test_1")
+
+    assert resp.status_code == 503

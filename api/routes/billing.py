@@ -135,6 +135,19 @@ def _stripe_client() -> Any:
 
 def _require_billing_configured() -> None:
     if not cfg.stripe_secret_key or not cfg.stripe_price_id_pro:
+        # Lazy retry: the one-shot fetch at startup (main.py::create_app())
+        # may have failed transiently for this specific task (Secrets
+        # Manager throttling, a momentary network blip) while other tasks
+        # behind the same ALB fetched fine -- see the incident this retry
+        # was added for: a user completed a real Stripe Checkout (meaning
+        # some healthy task served POST /checkout successfully) but hit
+        # this route on a task that never got its secrets, with no retry
+        # ever attempted for the rest of that task's lifetime. Cheap when
+        # already configured (_resolve_stripe_secrets short-circuits on
+        # cfg.stripe_secret_key being set) and bounded when genuinely
+        # unconfigured (only fires while a billing route is actually hit).
+        _resolve_stripe_secrets()
+    if not cfg.stripe_secret_key or not cfg.stripe_price_id_pro:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Billing is not configured on this deployment.",
@@ -142,41 +155,45 @@ def _require_billing_configured() -> None:
 
 
 def _resolve_stripe_secrets() -> None:
-    """Fetch the three Stripe secrets into cfg at startup, mirroring
+    """Fetch the three Stripe secrets into cfg, mirroring
     observability/setup.py's _resolve_sentry_dsn() -- see api_stack.py's
     comment above stripe_secret_key's construction for why these are no
     longer wired via ECS's native `secrets={}` mechanism (task-launch-
     blocking, and takes down every other route on this container with it).
+    Called once at startup (main.py::create_app()) and again lazily from
+    _require_billing_configured() if still unconfigured on a later request.
 
     Only attempts the fetch when actually running in a real ECS task
     (cfg.ecs_container_metadata_uri_v4 set) and only when not already
     configured (local dev / anything injecting these via .env keeps that
     value, and never touches boto3 -- same "no real AWS in tests" rule
-    _resolve_sentry_dsn() follows). A Secrets Manager failure here leaves
-    cfg.stripe_secret_key unset, which every billing route already handles
-    via _require_billing_configured()'s 503 -- so a propagation delay or
-    outage degrades billing specifically, never blocks task launch or any
-    of the platform's actual risk-computation routes.
+    _resolve_sentry_dsn() follows). Each secret is fetched independently:
+    a Secrets Manager failure on one (propagation delay, deleted secret,
+    IAM policy change) must not prevent the other two from being picked up,
+    and must degrade to "billing unconfigured" rather than raise and block
+    task launch -- every billing route already 503s via
+    _require_billing_configured() when either required value is unset.
     """
     if cfg.stripe_secret_key:
         return
     if not cfg.ecs_container_metadata_uri_v4:
         return
-    try:
-        import boto3
 
-        client = boto3.client("secretsmanager")
-        cfg.stripe_secret_key = client.get_secret_value(
-            SecretId=f"pyvar/{cfg.app_env}/stripe-secret-key"
-        ).get("SecretString")
-        cfg.stripe_webhook_secret = client.get_secret_value(
-            SecretId=f"pyvar/{cfg.app_env}/stripe-webhook-secret"
-        ).get("SecretString")
-        cfg.stripe_price_id_pro = client.get_secret_value(
-            SecretId=f"pyvar/{cfg.app_env}/stripe-price-id-pro"
-        ).get("SecretString")
-    except Exception:
-        logger.warning("stripe_secret_resolution_failed", exc_info=True)
+    import boto3
+
+    client = boto3.client("secretsmanager")
+    for attr, secret_suffix in (
+        ("stripe_secret_key", "stripe-secret-key"),
+        ("stripe_webhook_secret", "stripe-webhook-secret"),
+        ("stripe_price_id_pro", "stripe-price-id-pro"),
+    ):
+        try:
+            value = client.get_secret_value(SecretId=f"pyvar/{cfg.app_env}/{secret_suffix}").get(
+                "SecretString"
+            )
+            setattr(cfg, attr, value)
+        except Exception:
+            logger.warning("stripe_secret_resolution_failed", secret=secret_suffix, exc_info=True)
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
