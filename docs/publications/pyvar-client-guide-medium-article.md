@@ -5,10 +5,15 @@
 > **Draft status:** not yet published. Every example below runs against
 > `pyvar-client`'s actual source (`pyvar-client/pyvar_client/`) and its own
 > README — see **Sources** at the end. Needs review before it goes anywhere.
+> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
+> re-upload them through Medium's own editor at publish time; relative
+> paths don't carry over.
 
 ---
 
 pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricing, liquidity ratios, and more — as a REST API. `pyvar-client` is the official Python SDK: one typed client, one namespace per domain, no HTTP client code to write by hand. This is a hands-on guide to actually using it, not a feature list.
+
+![Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the middle layer](./assets/diagrams/layers-client.svg)
 
 ## Install and authenticate
 
@@ -114,6 +119,8 @@ except PyvarRateLimitError as e:
 ## Retries, and the one call that's never auto-retried
 
 Every synchronous domain function is idempotent — pure compute, no side effects — so connection errors, timeouts, and 5xx responses retry automatically with exponential backoff. `client.var.submit()` is the deliberate exception: it's never auto-retried, because retrying a job submission blindly risks double-submitting real compute work against an API with no idempotency-key mechanism to de-duplicate on. `client.var.poll()` is a read, so it retries normally.
+
+![What retries automatically and what never does — any domain method and client.var.poll() auto-retry, client.var.submit() never does, to avoid double-submitting real compute work](./assets/diagrams/client-retry-semantics.svg)
 
 ## The CLI that comes with it
 

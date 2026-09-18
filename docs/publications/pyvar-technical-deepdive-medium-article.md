@@ -6,6 +6,9 @@
 > is checked against this repository at drafting time (`engine/montecarlo.py`,
 > `docs/p7-numba-profiling-results.md`, `pyvar-cdk/stacks/*.py`) — see
 > **Sources** at the end. Needs review before it goes anywhere.
+> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
+> re-upload them through Medium's own editor at publish time; relative
+> paths don't carry over.
 
 ---
 
@@ -47,6 +50,8 @@ Three design choices here aren't stylistic — each one is load-bearing, and eac
 
 The function returns a plain NumPy array — not a Python list, not a dict — because `@njit` functions can only work with NumPy arrays, scalars, and primitives; converting to native Python types happens strictly in the public wrapper function that calls this kernel, never inside the compiled region itself.
 
+![One kernel call, three load-bearing rules — random numbers are pre-drawn in pure Python before the JIT region, @njit(parallel=True, cache=True) runs prange across CPU cores and skips recompilation on a fresh Spot worker, the kernel returns only an ndarray, and the public wrapper converts to Python types outside the compiled region](./assets/diagrams/deepdive-kernel-lifecycle.svg)
+
 ## The benchmark that caught its own measurement bug
 
 pyvar publishes a reproducible benchmark (`python scripts/p7_bench.py`, fully local and offline) timing the 10 hottest Monte Carlo kernels across Market Risk, Derivatives, and Operational Risk at `n_simulations=100,000`. The first version of that benchmark had a bug in the benchmark itself, and the honest way to tell this story is to include the bug, not just the corrected numbers.
@@ -81,6 +86,8 @@ That split isn't arbitrary — it's about which functions actually run long enou
 
 For the one function that does queue: the SQS queue is FIFO, `task_acks_late=True` is non-negotiable (removing it means an interrupted Spot instance loses the job permanently, not just delays it), and the queue's visibility timeout must exceed the worst-case simulation runtime — if a new simulation type ever takes longer than the current timeout, both the Celery task timeout and the SQS visibility timeout in the CDK stack need updating together, or a still-running job gets redelivered to a second worker while the first one is still working on it.
 
+![Only one endpoint is actually async — the MCP server, pyvar-client, and pyvar-jupyter all converge on one REST API, which splits into 384 synchronous functions returning a direct JSON response and one async var.compute endpoint that queues onto SQS FIFO for a Celery worker on EC2 Spot to poll and complete](./assets/diagrams/deepdive-request-path.svg)
+
 ## The infrastructure: paying for compute only when there's a queue to drain
 
 pyvar's AWS layer is 16 separate CDK stacks (`pyvar-cdk/stacks/`) — network, API, compute, data, queue, edge/WAF, observability, alerts, AMI baking, and a few narrower ones (SES, token reporting, public data, local packaging). Three design choices stand out as the ones actually shaping the cost and reliability profile:
@@ -92,6 +99,8 @@ pyvar's AWS layer is 16 separate CDK stacks (`pyvar-cdk/stacks/`) — network, A
 **Aurora Serverless v2 scales in 0.5-ACU steps with no cold start.** At its floor (`min_acu=0.5`), Aurora costs roughly $45/month at rest — a fixed floor, not a per-request cost — and scales up in fine-grained increments under load rather than the all-or-nothing cold-start behaviour Aurora Serverless v1 had. Because it never actually stops, there's no cold-start penalty when traffic returns after a quiet period, unlike the worker fleet's genuine scale-to-zero.
 
 The common thread across all three: idle infrastructure should cost as close to nothing as the service's own availability requirements allow, and where it can't (the API's on-demand base, Aurora's ACU floor), that floor is an explicit, named number in the code — not an accident of whatever the default happened to be.
+
+![Three layers, three different scaling strategies — Celery workers on EC2 Spot scale to exactly zero when the queue is empty, the API mixes a small always-on Fargate base with Spot burst above it, and Aurora Serverless v2 steps up from a 0.5-ACU floor with no cold start](./assets/diagrams/deepdive-infra-scaling.svg)
 
 ## One more layer: baking the Numba cache into the AMI itself
 

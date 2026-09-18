@@ -7,6 +7,9 @@
 > `docs/proposals/marketplace-submission-content-per-plugin.md`,
 > `plugins/mcp/README.md`, `portal/functions.json`) — see **Sources** at the
 > end. Needs review before it goes anywhere.
+> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
+> re-upload them through Medium's own editor at publish time; relative
+> paths don't carry over.
 
 ---
 
@@ -34,6 +37,8 @@ This piece is about what those 14 actually are, why they're split the way they a
 
 Plus all 385 functions individually, as precisely-typed named tools (`alm_stress_test`, `historical_simulation_var`, and so on) for when you already know exactly which one you want and don't need the generic dispatcher.
 
+![Two different jobs, 14 plugins — 8 domain skills and 5 architecture skills are pure instructional content with no network access, pyvar-mcp is the one plugin that actually executes live requests against the REST API](./assets/diagrams/plugins-taxonomy.svg)
+
 ## Who each one is actually for
 
 Domain skills and architecture skills answer genuinely different questions — "what would a risk team ask for" versus "what would an engineer touching this codebase need" — so their use cases don't overlap:
@@ -58,6 +63,8 @@ That table isn't hand-written marketing copy sitting off to the side of the actu
 Here's the part that matters more than the plugin count: none of these 14 manifests, none of the MCP server's 385 individually-typed tools, are written by hand. `pyvar-mcp`'s tool catalogue (`plugins/mcp/pyvar_mcp/_generated/functions.py`) and the plugin manifest (`.claude-plugin/marketplace.json`, `plugins/*`) are both generated directly from the repository's own source of truth — `.claude/skills/*` and `portal/functions.json` — with CI failing the build if committed output ever drifts from what regenerating actually produces.
 
 That's not a stylistic choice. It's the exact same "don't trust it, run it and check" discipline that caught a 79%-understated Solvency II capital formula before launch, applied to code generation instead of a regulatory formula: a docstring can go stale, a hand-maintained tool list can silently fall behind the API it's supposed to describe, but a generator that's re-run and diffed on every commit can't drift without CI noticing.
+
+![Generated, not hand-maintained — .claude/skills/* and portal/functions.json are the source of truth, a generator produces marketplace.json and the MCP tool catalogue, and CI fails the build on any drift between committed output and a fresh regenerate](./assets/diagrams/plugins-codegen-pipeline.svg)
 
 ## What's still open
 

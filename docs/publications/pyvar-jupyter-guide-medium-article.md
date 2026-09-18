@@ -6,10 +6,15 @@
 > directly from `pyvar-jupyter`'s own README and its three shipped example
 > notebooks (`pyvar-jupyter/examples/*.ipynb`) — see **Sources** at the
 > end. Needs review before it goes anywhere.
+> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
+> re-upload them through Medium's own editor at publish time; relative
+> paths don't carry over.
 
 ---
 
 `pyvar-jupyter` adds IPython magics and rich HTML display on top of `pyvar-client` — the notebook-ergonomics layer, not a second API client. If you already know `pyvar-client`, everything here is the same 385 functions, called with less typing.
+
+![Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the top layer](./assets/diagrams/layers-jupyter.svg)
 
 ## Install and load
 
@@ -74,6 +79,8 @@ Non-parametric Historical Simulation VaR.
 Re-prices the portfolio under each observed historical return and reads the
 empirical loss quantile — making no distributional assumption.
 ```
+
+![One call, two views — both %pyvar and %%pyvar magic forms parse their params differently but dispatch to the same pyvar-client call, which renders as an HTML table and is also bound to Out[]](./assets/diagrams/jupyter-magic-dispatch.svg)
 
 ## The display helper, without magics
 
