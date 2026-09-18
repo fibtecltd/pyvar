@@ -5,11 +5,15 @@
 > **Draft status:** not yet published. Every endpoint, status code, and
 > limit below is taken directly from this repository's own route handlers,
 > middleware, and `config.py` — see **Sources** at the end. Needs review
-> before it goes anywhere.
+> before it goes anywhere. Diagrams are local SVGs (`./assets/diagrams/`)
+> for repo/GitHub preview — re-upload them through Medium's own editor at
+> publish time; relative paths don't carry over.
 
 ---
 
 `pyvar-client` and `pyvar-jupyter` (covered in their own companion guides) are the recommended way to use pyvar.com from Python. This piece is for everything else: calling the REST API directly with `curl`, from another language, or just understanding exactly what the SDK is doing on your behalf.
+
+![Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the foundation layer](./assets/diagrams/layers-rest-api.svg)
 
 ## Get an account: register, verify, get a token
 
@@ -34,6 +38,8 @@ which returns your first JWT:
 ```
 
 That token is a bearer credential — every subsequent call sends it as `Authorization: Bearer eyJ...`. There's no login/refresh endpoint; this is the one and only place a free-tier token gets issued (Pro accounts get a second one, see below).
+
+![Getting a token: register returns 202 Accepted, click the emailed link to verify, verify returns the first access token, then Bearer eyJ... is sent on every call from here on](./assets/diagrams/rest-auth-sequence.svg)
 
 ## Your first computation
 
@@ -109,6 +115,8 @@ Hit either one, and the response is a `403` explaining exactly what happened and
 ```
 
 This isn't a silent downgrade — it writes an audit record and sends a notification email — and it isn't permanent: the account is automatically restored to Pro the next time a subscription invoice is paid successfully, with no action needed from the user.
+
+![Tier lifecycle: not every downgrade restores the same way — Stripe Checkout completing moves Free to Pro, a monthly cap breach or a payment failure/cancellation both move Pro back to Free, but only a monthly-cap downgrade auto-restores on the next paid invoice](./assets/diagrams/rest-tier-lifecycle.svg)
 
 ## Upgrading to Pro
 
