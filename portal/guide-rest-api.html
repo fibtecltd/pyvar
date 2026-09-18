@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>Using pyvar.com's REST API Directly: Auth, Endpoints, Tiers, and Limits — pyvar.com · Fibtec</title>
+<meta name="description" content="Auth, endpoints, tiers, limits, and the Stripe Checkout flow — the official guide to calling pyvar.com's REST API directly."/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="Using pyvar.com's REST API Directly: Auth, Endpoints, Tiers, and Limits — pyvar.com"/>
+<meta property="og:description" content="Auth, endpoints, tiers, limits, and the Stripe Checkout flow — the official guide to calling pyvar.com's REST API directly."/>
+<meta property="og:url" content="https://pyvar.com/guide-rest-api.html"/>
+<link rel="stylesheet" href="pyvar.css"/>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('guides'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> ·
+      <a href="guides.html" style="color:var(--dim);text-decoration:none">Guides</a>
+    </div>
+    <div style="margin-top:16px;max-width:820px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">REST API</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">Using pyvar.com's REST API Directly: Auth, Endpoints, Tiers, and Limits</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">A practical guide to the raw REST API underneath <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter</code> — for anyone calling it with <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">curl</code>, from a language other than Python, or who just wants to know exactly what's happening under the SDK.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter</code> (covered in their own companion guides) are the recommended way to use pyvar.com from Python. This piece is for everything else: calling the REST API directly with <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">curl</code>, from another language, or just understanding exactly what the SDK is doing on your behalf.</p>
+<img src="guides-assets/layers-rest-api.svg" alt="Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the foundation layer" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Get an account: register, verify, get a token</h2>
+<p class="body-md" style="margin:16px 0">There's no password and no credit card for the free tier — just an email:</p>
+<pre class="code-block" style="margin:20px 0">curl -X POST https://www.pyvar.com/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'</pre>
+<p class="body-md" style="margin:16px 0">Returns <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">202 Accepted</code> immediately (whether or not the email exists yet, or is disposable/suppressed — the response shape never reveals which, so the registration flow can't be used to probe email validity). A verification link arrives by email; clicking it hits:</p>
+<pre class="code-block" style="margin:20px 0">curl "https://www.pyvar.com/api/v1/auth/verify?token=..."</pre>
+<p class="body-md" style="margin:16px 0">which returns your first JWT:</p>
+<pre class="code-block" style="margin:20px 0">{"access_token": "eyJ...", "tier": "free"}</pre>
+<p class="body-md" style="margin:16px 0">That token is a bearer credential — every subsequent call sends it as <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Authorization: Bearer eyJ...</code>. There's no login/refresh endpoint; this is the one and only place a free-tier token gets issued (Pro accounts get a second one, see below).</p>
+<img src="guides-assets/rest-auth-sequence.svg" alt="Getting a token: register returns 202 Accepted, click the emailed link to verify, verify returns the first access token, then Bearer eyJ... is sent on every call from here on" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Your first computation</h2>
+<p class="body-md" style="margin:16px 0">Every one of pyvar's 385 functions is a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">POST</code> under <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/api/v1/&lt;domain&gt;/&lt;function_name&gt;</code>, taking a JSON body matching that function's Pydantic schema and returning a JSON result:</p>
+<pre class="code-block" style="margin:20px 0">curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var \
+  -H "Authorization: Bearer eyJ..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "returns": [0.01, -0.02, 0.015, 0.008, -0.011],
+    "portfolio_value": 1000000,
+    "confidence_level": 0.99
+  }'</pre>
+<p class="body-md" style="margin:16px 0">The 8 domain prefixes: <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/market-risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/credit-risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/derivatives</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/liquidity</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/operational</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/portfolio</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/regulatory</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/alm</code>. The full, live list of all 385 functions and their exact request/response schemas is browsable at <a href="docs" style="color:var(--green)"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/docs</code></a> — FastAPI's auto-generated OpenAPI UI, always in sync with what's actually deployed since it's generated from the same route definitions this article describes.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">The one async endpoint</h2>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">POST /api/v1/var/compute</code> is the exception: a real Monte Carlo job dispatched to pyvar's Celery/SQS worker fleet. It returns a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">task_id</code> immediately, not a result:</p>
+<pre class="code-block" style="margin:20px 0">curl -X POST https://www.pyvar.com/api/v1/var/compute \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -d '{"portfolio_value": 1000000, "returns": [...], "n_simulations": 100000}'
+# {"task_id": "..."}
+
+curl "https://www.pyvar.com/api/v1/var/result/&lt;task_id&gt;" \
+  -H "Authorization: Bearer eyJ..."
+# {"status": "success", "result": {...}}   (or "pending" / "failure")</pre>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code>'s <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.var.compute()</code> and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter</code>'s <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">%pyvar var.compute</code> both just automate this submit-then-poll loop — nothing happens here that isn't visible in a plain <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">curl</code> exchange.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Tiers and what they actually control</h2>
+<p class="body-md" style="margin:16px 0">Your tier is baked into the JWT itself as a claim — decoded once per request, no database lookup on the hot path:</p>
+<img src="guides-assets/rest-tiers-table.svg" alt="Tiers and what they actually control" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<p class="body-md" style="margin:16px 0">The daily cap is a single account-wide bucket shared across all 385 endpoints — not 385 separate quotas. Exceeding it returns <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">429 Too Many Requests</code> with a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Retry-After</code> header telling you exactly how many seconds until the window resets:</p>
+<pre class="code-block" style="margin:20px 0">curl -i ... 
+HTTP/1.1 429 Too Many Requests
+Retry-After: 43201
+{"detail": "Rate limit exceeded. Please retry later."}</pre>
+<p class="body-md" style="margin:16px 0">Requesting more simulations than your tier allows on <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.compute</code> fails fast, before anything is queued:</p>
+<pre class="code-block" style="margin:20px 0">{"detail": "Your 'free' tier allows a maximum of 10,000 simulations. Requested: 50,000."}</pre>
+<p class="body-md" style="margin:16px 0">— a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">403 Forbidden</code>, not a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">422</code>, since the request is well-formed; it's just not something this account is entitled to.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Pro's monthly caps, and what happens if you hit one</h2>
+<p class="body-md" style="margin:16px 0">Beyond the daily request cap, Pro accounts carry two <strong>monthly</strong> caps that don't just throttle — breaching either one hard-downgrades the account to Free for the rest of the billing period:</p>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><strong>5,000 requests/month</strong>, checked generically across every endpoint.</li><li style="margin:8px 0"><strong>2,000,000 simulations/month</strong>, checked only against <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.compute</code> (the one endpoint that tracks simulation counts at all).</li></ul>
+<p class="body-md" style="margin:16px 0">Hit either one, and the response is a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">403</code> explaining exactly what happened and when it resolves:</p>
+<pre class="code-block" style="margin:20px 0">{"detail": "Your Pro plan's monthly request limit has been reached. Your account has moved to the Free plan for the rest of this billing period; full Pro limits resume automatically at your next billing date."}</pre>
+<p class="body-md" style="margin:16px 0">This isn't a silent downgrade — it writes an audit record and sends a notification email — and it isn't permanent: the account is automatically restored to Pro the next time a subscription invoice is paid successfully, with no action needed from the user.</p>
+<img src="guides-assets/rest-tier-lifecycle.svg" alt="Tier lifecycle: not every downgrade restores the same way — Stripe Checkout completing moves Free to Pro, a monthly cap breach or a payment failure/cancellation both move Pro back to Free, but only a monthly-cap downgrade auto-restores on the next paid invoice" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Upgrading to Pro</h2>
+<pre class="code-block" style="margin:20px 0">curl -X POST https://www.pyvar.com/api/v1/billing/checkout \
+  -H "Authorization: Bearer eyJ..."
+# {"checkout_url": "https://checkout.stripe.com/..."}</pre>
+<p class="body-md" style="margin:16px 0">Redirect to that URL — it's Stripe's own hosted Checkout page, so pyvar's infrastructure never touches card details directly. After payment, Stripe redirects back to pyvar's dashboard with a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">?checkout_session_id=...</code> query parameter, which the frontend exchanges for a fresh token:</p>
+<pre class="code-block" style="margin:20px 0">curl "https://www.pyvar.com/api/v1/billing/checkout/complete?session_id=cs_..."
+# {"access_token": "eyJ...", "tier": "pro"}</pre>
+<p class="body-md" style="margin:16px 0">That exchange step matters more than it looks: your existing JWT's <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">tier</code> claim doesn't update itself just because Stripe processed a payment — the database changes immediately (via a webhook Stripe calls server-to-server), but an <em>already-issued</em> token keeps whatever tier it was minted with until you fetch a new one. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">GET /billing/checkout/complete</code> is that one bridge — without it, a successful subscription would be real in the database but invisible to the API until some other token refresh happened. There isn't one; this is it.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">What's deliberately out of scope today</h2>
+<p class="body-md" style="margin:16px 0">Enterprise tier is a manual, sales-assisted process — there's no self-service checkout for it, by design. And Pro's entire value proposition today is the higher daily/monthly caps above; no priority queue, no extended result retention yet — both explicitly deferred to a later phase, not silently missing.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Try it</h2>
+<pre class="code-block" style="margin:20px 0"># 1. Register (check your email for the link)
+curl -X POST https://www.pyvar.com/api/v1/auth/register \
+  -H "Content-Type: application/json" -d '{"email": "you@example.com"}'
+
+# 2. Verify (from the emailed link) -- copy the access_token
+curl "https://www.pyvar.com/api/v1/auth/verify?token=..."
+
+# 3. Compute something
+curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -d '{"returns": [0.01,-0.02,0.015,0.008,-0.011], "portfolio_value": 1000000}'</pre>
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Sources</h2>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api/routes/auth.py</code> — registration, verification, JWT issuance.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api/middleware/auth.py</code> — JWT decoding, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">TokenPayload</code>, per-tier <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">max_simulations</code>.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api/middleware/rate_limit.py</code> — daily and monthly request-count caps, the shared-scope design, downgrade trigger.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api/routes/var.py</code> — the async <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.compute</code>/<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.result</code> endpoints, the monthly simulation-count cap.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api/routes/billing.py</code> — Stripe Checkout flow, the JWT-staleness bridge, webhook-driven tier changes.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">config.py</code> — the actual numeric limits (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">rate_limit_free_daily</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">rate_limit_pro_daily</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">rate_limit_pro_monthly_requests</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">rate_limit_pro_monthly_simulations</code>) quoted directly.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">main.py</code> — router registration, the 8 domain prefixes, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/docs</code> OpenAPI UI.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">docs/publications/pyvar-client-guide-medium-article.md</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter-guide-medium-article.md</code> — the companion SDK/notebook guides this piece complements without repeating.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Keep going</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">More <em>official guides</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="guide-pyvar-client.html" class="btn-ghost">pyvar-client SDK guide →</a>
+      <a href="guide-pyvar-jupyter.html" class="btn-ghost">pyvar-jupyter guide →</a>
+      <a href="guide-claude-plugins.html" class="btn-ghost">Claude Code plugins guide →</a>
+      <a href="guide-technical-deepdive.html" class="btn-ghost">Technical deep dive →</a>
+      <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-green">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>
