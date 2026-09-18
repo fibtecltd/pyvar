@@ -92,4 +92,4 @@ The MCP server needs one extra step today — a one-time `pip install -e plugins
 - [`plugins/mcp/README.md`](https://github.com/fibtecltd/pyvar/blob/master/plugins/mcp/README.md) — install steps, tool descriptions, dependency note.
 - [`portal/functions.json`](https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json) — 385-function total, domain breakdown.
 - [`docs/plan-plugin-marketplace-status-and-submission.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plan-plugin-marketplace-status-and-submission.md) — submission-scope confirmation (per-plugin, not bundle-level), `pyvar-mcp`'s pending status.
-- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the generated-catalogue discipline and the Solvency II defect this piece draws the parallel to.
+- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the generated-catalogue discipline and the Solvency II calibration this piece draws the parallel to.

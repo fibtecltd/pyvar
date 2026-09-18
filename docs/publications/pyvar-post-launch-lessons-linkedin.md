@@ -11,7 +11,7 @@ Two weeks after we open-sourced pyvar.com (built end-to-end with Claude Code), w
 
 **1. A feature that shipped but never deployed.** A new daily email report merged, CI went green — and it never sent a single email, in either environment, for over a week. Why: the stack was added to our CDK app's standalone list, but never wired into the pipeline's actual deploy stage. A green pipeline and a deployed feature turned out not to be the same claim.
 
-**2. A second, deeper defect underneath the first.** The database migration the feature needed had a second, independent problem: our pipeline's migration step ran against whichever task revision was already live — the previous deploy's image, not the one just built. A migration shipped in the same commit as the code needing it would silently never apply, while the pipeline reported a clean success. Fixed by registering and running the exact revision that commit just built.
+**2. A second, deeper gap underneath the first.** The database migration the feature needed had a second, independent problem: our pipeline's migration step ran against whichever task revision was already live — the previous deploy's image, not the one just built. A migration shipped in the same commit as the code needing it would silently never apply, while the pipeline reported a clean success. Fixed by registering and running the exact revision that commit just built.
 
 **3. A cost number we'd been quoting wrong.** Our README said "~£126/month." That was a pre-launch planning target, never an observed cost. The real invoice: **$900–1,000/month** — more than double, and dominated by fixed infrastructure, not job volume (compute itself runs at sub-cent per scenario even at a million scenarios a month).
 

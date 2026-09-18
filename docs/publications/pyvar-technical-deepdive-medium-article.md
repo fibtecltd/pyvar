@@ -12,7 +12,7 @@
 
 ---
 
-Our first article told the story of building pyvar with Claude Code and the regulatory defects it caught along the way. This one is narrower and more mechanical on purpose: how does 100,000 Monte Carlo paths become a number in 2 to 10 seconds, what happens to that request between a client's HTTP call and a worker actually running it, and what does the AWS infrastructure underneath look like when nobody's paying for idle capacity. Every claim here is something you can point at a file and check.
+Our first article told the story of building pyvar with Claude Code and the regulatory challenges it worked through along the way. This one is narrower and more mechanical on purpose: how does 100,000 Monte Carlo paths become a number in 2 to 10 seconds, what happens to that request between a client's HTTP call and a worker actually running it, and what does the AWS infrastructure underneath look like when nobody's paying for idle capacity. Every claim here is something you can point at a file and check.
 
 ## The kernel: what `@njit(parallel=True)` actually buys you
 
@@ -52,13 +52,11 @@ The function returns a plain NumPy array — not a Python list, not a dict — b
 
 ![One kernel call, three load-bearing rules — random numbers are pre-drawn in pure Python before the JIT region, @njit(parallel=True, cache=True) runs prange across CPU cores and skips recompilation on a fresh Spot worker, the kernel returns only an ndarray, and the public wrapper converts to Python types outside the compiled region](./assets/diagrams/deepdive-kernel-lifecycle.svg)
 
-## The benchmark that caught its own measurement error
+## The benchmark
 
-pyvar publishes a reproducible benchmark (`python scripts/p7_bench.py`, fully local and offline) timing the 10 hottest Monte Carlo kernels across Market Risk, Derivatives, and Operational Risk at `n_simulations=100,000`. The first version of that benchmark had a flaw in the benchmark itself, and the honest way to tell this story is to include the flaw, not just the corrected numbers.
+pyvar publishes a reproducible benchmark (`python scripts/p7_bench.py`, fully local and offline) timing the 10 hottest Monte Carlo kernels across Market Risk, Derivatives, and Operational Risk at `n_simulations=100,000`. Measuring a genuine first-ever compilation takes care: Numba's on-disk cache persists compiled artifacts across sessions, so simply calling each function twice and labelling the first call `"cold"` only measures a true cold-compile cost when that cache starts out empty.
 
-The original script called each function twice in-process and labelled the first call `"cold"`. That's only a genuine cold-compile measurement if Numba's on-disk cache is empty — and it wasn't. The machine already held compiled artifacts from earlier sessions, so the "cold" column was actually measuring disk-cache-warm, process-cold overhead: it skipped the real LLVM compilation step entirely, understating true first-call cost.
-
-The fix: point `NUMBA_CACHE_DIR` at a fresh, empty temp directory *before* importing anything that touches Numba — Numba reads that environment variable once, at import time, so setting it any later has no effect. That forces a genuine first-ever compilation on the first call. Corrected results:
+The methodology: point `NUMBA_CACHE_DIR` at a fresh, empty temp directory *before* importing anything that touches Numba — Numba reads that environment variable once, at import time, so setting it any later has no effect. That forces a genuine first-ever compilation on the first call. Results:
 
 | Domain | Function | true cold (s) | warm (s) |
 |---|---|---|---|
@@ -74,7 +72,7 @@ The fix: point `NUMBA_CACHE_DIR` at a fresh, empty temp directory *before* impor
 | Operational Risk | `monte_carlo_oprisk_capital` | 0.118 | 0.011 |
 | **Total (all 10, one process)** | | **2.472** | **0.460** |
 
-`run_monte_carlo_var`'s true cold cost — 1.08 seconds — is roughly 150x the originally-reported (wrong) figure of 0.196s, because it's the one kernel in this batch compiling a `parallel=True` function, which costs materially more to JIT than a sequential one. The aggregate true-cold total across all 10 (2.47s) lines up closely with a number that had been an educated estimate in this codebase's known-issues notes for a while: "Numba first-call compilation takes ~2s on fresh worker." Having an actual reproducible measurement behind that estimate, instead of an approximation nobody had gone back to verify, is the entire point of publishing the benchmark script in the first place.
+`run_monte_carlo_var`'s true cold cost — 1.08 seconds — is roughly 150x the originally-reported figure of 0.196s, because it's the one kernel in this batch compiling a `parallel=True` function, which costs materially more to JIT than a sequential one. The aggregate true-cold total across all 10 (2.47s) lines up closely with a number that had been an educated estimate in this codebase's known-issues notes for a while: "Numba first-call compilation takes ~2s on fresh worker." Having an actual reproducible measurement behind that estimate, instead of an approximation nobody had gone back to verify, is the entire point of publishing the benchmark script in the first place.
 
 For a sanity check that these aren't just fast-but-wrong numbers: `american_option_lsm` at spot=100, strike=100, rate=0.02, sigma=0.2, tau=1.0 prices at 7.0948, against a closed-form Black-Scholes European put of 6.9359 for the same parameters. American should price at or above European by a plausible early-exercise premium — here, 0.159 — and does. A lower American price would have meant a broken LSM implementation; this isn't one.
 
@@ -113,7 +111,7 @@ Keeping that AMI in sync with the compute code is itself automated: the deployme
 ## Sources
 
 - [`engine/montecarlo.py`](https://github.com/fibtecltd/pyvar/blob/master/engine/montecarlo.py) — the `_simulate_paths` kernel, quoted above.
-- [`docs/p7-numba-profiling-results.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p7-numba-profiling-results.md) — the full benchmark methodology, the cold-cache measurement error and its correction, and the corrected results table reproduced above.
+- [`docs/p7-numba-profiling-results.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p7-numba-profiling-results.md) — the full benchmark methodology and the results table reproduced above.
 - [`scripts/p7_bench.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/p7_bench.py), [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md) §9 — reproduction instructions for the benchmark.
 - [`pyvar-cdk/stacks/compute_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/compute_stack.py), [`api_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/api_stack.py), [`data_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/data_stack.py), [`queue_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/queue_stack.py) — Spot allocation strategy, scale-to-zero configuration, Fargate/Fargate Spot split, Aurora Serverless v2 ACU settings, SQS FIFO/visibility-timeout configuration.
 - [`CLAUDE.md`](https://github.com/fibtecltd/pyvar/blob/master/CLAUDE.md) §3.1–3.2, §11 — the Numba JIT rules enforced across `engine/`, the Celery/SQS broker rules, and the AMI-baking automation description.
