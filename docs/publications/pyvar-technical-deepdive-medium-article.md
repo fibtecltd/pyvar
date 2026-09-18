@@ -1,6 +1,6 @@
 # Inside pyvar's Compute Engine: Numba JIT, Spot Workers, and a Cluster That Scales to Zero
 
-*A technical deep dive into how pyvar.com actually runs — the Numba kernel design, the async job pipeline, and the AWS architecture underneath it, with a benchmark that caught its own measurement error along the way.*
+*A technical deep dive into how pyvar.com actually runs — the Numba kernel design, the async job pipeline, and the AWS architecture underneath it.*
 
 > **Draft status:** not yet published. Every number and code excerpt below
 > is checked against this repository at drafting time (`engine/montecarlo.py`,
