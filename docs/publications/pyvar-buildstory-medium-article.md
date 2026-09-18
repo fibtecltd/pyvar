@@ -368,14 +368,14 @@ everything above was: `git log`, PyPI, the live API, not a slide deck.
 
 - **Live Platform:** [https://www.pyvar.com](https://www.pyvar.com)
 - **GitHub Repository:** [https://github.com/fibtecltd/pyvar](https://github.com/fibtecltd/pyvar)
-- `CHANGELOG.md` (this repo) — regulatory fixes, PyPI publish history.
-- `portal/functions.json` (this repo) — function/domain counts, caveat
+- [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — regulatory fixes, PyPI publish history.
+- [`portal/functions.json`](https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json) — function/domain counts, caveat
   field structure.
-- `pyvar-jupyter/` (this repo) — magics implementation, tests, example
+- [`pyvar-jupyter/`](https://github.com/fibtecltd/pyvar/tree/master/pyvar-jupyter) — magics implementation, tests, example
   notebooks referenced above.
-- `docs/prd-claude-partner-hub.md` (this repo) — the companion PRD this
+- [`docs/prd-claude-partner-hub.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/prd-claude-partner-hub.md) — the companion PRD this
   article was written alongside.
-- `git log` (this repo) and the GitHub API — commit, PR, and
+- `git log` and the GitHub API — commit, PR, and
   Claude-co-authorship counts, verified at time of writing.
-- `docs/caveat-triage-batch-plan.md` and `CHANGELOG.md` (this repo) — the
+- [`docs/caveat-triage-batch-plan.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/caveat-triage-batch-plan.md) and [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — the
   8-function caveat-triage follow-on pass (PRs #314–#318) described above.

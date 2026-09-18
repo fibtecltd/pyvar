@@ -112,9 +112,9 @@ Keeping that AMI in sync with the compute code is itself automated: the deployme
 
 ## Sources
 
-- `engine/montecarlo.py` (this repo) — the `_simulate_paths` kernel, quoted above.
-- `docs/p7-numba-profiling-results.md` (this repo) — the full benchmark methodology, the cold-cache measurement error and its correction, and the corrected results table reproduced above.
-- `scripts/p7_bench.py`, `README.md` §9 (this repo) — reproduction instructions for the benchmark.
-- `pyvar-cdk/stacks/compute_stack.py`, `api_stack.py`, `data_stack.py`, `queue_stack.py` (this repo) — Spot allocation strategy, scale-to-zero configuration, Fargate/Fargate Spot split, Aurora Serverless v2 ACU settings, SQS FIFO/visibility-timeout configuration.
-- `CLAUDE.md` §3.1–3.2, §11 (this repo) — the Numba JIT rules enforced across `engine/`, the Celery/SQS broker rules, and the AMI-baking automation description.
-- `docs/publications/pyvar-buildstory-medium-article.md` (this repo) — the request-flow illustration and three-surfaces architecture this piece builds on without repeating.
+- [`engine/montecarlo.py`](https://github.com/fibtecltd/pyvar/blob/master/engine/montecarlo.py) — the `_simulate_paths` kernel, quoted above.
+- [`docs/p7-numba-profiling-results.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p7-numba-profiling-results.md) — the full benchmark methodology, the cold-cache measurement error and its correction, and the corrected results table reproduced above.
+- [`scripts/p7_bench.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/p7_bench.py), [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md) §9 — reproduction instructions for the benchmark.
+- [`pyvar-cdk/stacks/compute_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/compute_stack.py), [`api_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/api_stack.py), [`data_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/data_stack.py), [`queue_stack.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/queue_stack.py) — Spot allocation strategy, scale-to-zero configuration, Fargate/Fargate Spot split, Aurora Serverless v2 ACU settings, SQS FIFO/visibility-timeout configuration.
+- [`CLAUDE.md`](https://github.com/fibtecltd/pyvar/blob/master/CLAUDE.md) §3.1–3.2, §11 — the Numba JIT rules enforced across `engine/`, the Celery/SQS broker rules, and the AMI-baking automation description.
+- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the request-flow illustration and three-surfaces architecture this piece builds on without repeating.

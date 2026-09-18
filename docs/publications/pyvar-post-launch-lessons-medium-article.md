@@ -80,11 +80,11 @@ The first article's thesis was that verification thorough enough to publish beco
 
 ## Sources
 
-- `CHANGELOG.md` (this repo) — `[0.2.0]` and `[Unreleased]` sections, quoted directly above.
-- `git log`, PR `#326`–`#332` (this repo / GitHub) — commit history and merged-PR range since the first article's publication commit.
-- `README.md` (this repo) — current AWS cost line and tech-stack summary.
-- `docs/p9-scenario-volume-cost-audit.md` (this repo) — the cost breakdown and the sub-cent-per-scenario finding.
-- `docs/known-issues.md` (this repo) — the CodePipeline push-filter top-level-file gap.
-- `docs/partner-hub-public-case-study-resubmission-email.md` (this repo) — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).
-- GitHub Releases, `fibtecltd/pyvar` — `v0.2.0` (published 2026-09-08), `v0.1.0` (published 2026-08-23).
-- `docs/publications/pyvar-buildstory-medium-article.md` (this repo) — the first article this piece follows up on.
+- [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — `[0.2.0]` and `[Unreleased]` sections, quoted directly above.
+- `git log`, PRs [`#326`](https://github.com/fibtecltd/pyvar/pull/326)–[`#332`](https://github.com/fibtecltd/pyvar/pull/332) — commit history and merged-PR range since the first article's publication commit.
+- [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md) — current AWS cost line and tech-stack summary.
+- [`docs/p9-scenario-volume-cost-audit.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p9-scenario-volume-cost-audit.md) — the cost breakdown and the sub-cent-per-scenario finding.
+- [`docs/known-issues.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/known-issues.md) — the CodePipeline push-filter top-level-file gap.
+- [`docs/partner-hub-public-case-study-resubmission-email.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/partner-hub-public-case-study-resubmission-email.md) — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).
+- GitHub Releases, `fibtecltd/pyvar` — [`v0.2.0`](https://github.com/fibtecltd/pyvar/releases/tag/v0.2.0) (published 2026-09-08), [`v0.1.0`](https://github.com/fibtecltd/pyvar/releases/tag/v0.1.0) (published 2026-08-23).
+- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the first article this piece follows up on.

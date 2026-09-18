@@ -178,8 +178,8 @@ with Client(api_key="your-free-tier-key") as client:
 
 ## Sources
 
-- `pyvar-client/README.md` (this repo) — install, quick start, errors, retries, CLI, codegen — the primary source for this article, quoted and lightly adapted throughout.
-- `pyvar-client/pyvar_client/_client.py`, `_var.py` (this repo) — `Client.__init__`, `VarNamespace.submit`/`poll`/`compute`, quoted directly.
-- `pyvar-client/pyvar_client/_generated/credit_risk.py` (this repo) — `altman_z_score_credit_scoring`'s real signature and docstring, the source for the second worked example.
-- `pyvar-client/codegen/generate.py` (this repo) — the OpenAPI-schema-driven code generator described above.
+- [`pyvar-client/README.md`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/README.md) — install, quick start, errors, retries, CLI, codegen — the primary source for this article, quoted and lightly adapted throughout.
+- [`pyvar-client/pyvar_client/_client.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/pyvar_client/_client.py), [`_var.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/pyvar_client/_var.py) — `Client.__init__`, `VarNamespace.submit`/`poll`/`compute`, quoted directly.
+- [`pyvar-client/pyvar_client/_generated/credit_risk.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/pyvar_client/_generated/credit_risk.py) — `altman_z_score_credit_scoring`'s real signature and docstring, the source for the second worked example.
+- [`pyvar-client/codegen/generate.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-client/codegen/generate.py) — the OpenAPI-schema-driven code generator described above.
 - [PyPI: pyvar-client](https://pypi.org/project/pyvar-client/) — the published package this article's install instructions target.
