@@ -188,9 +188,9 @@ def _resolve_stripe_secrets() -> None:
         ("stripe_price_id_pro", "stripe-price-id-pro"),
     ):
         try:
-            value = client.get_secret_value(
-                SecretId=f"pyvar/{cfg.app_env}/{secret_suffix}"
-            ).get("SecretString")
+            value = client.get_secret_value(SecretId=f"pyvar/{cfg.app_env}/{secret_suffix}").get(
+                "SecretString"
+            )
             setattr(cfg, attr, value)
         except Exception:
             logger.warning("stripe_secret_resolution_failed", secret=secret_suffix, exc_info=True)
