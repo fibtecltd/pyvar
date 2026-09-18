@@ -1,6 +1,6 @@
 # Inside pyvar's Compute Engine: Numba JIT, Spot Workers, and a Cluster That Scales to Zero
 
-*A technical deep dive into how pyvar.com actually runs — the Numba kernel design, the async job pipeline, and the AWS architecture underneath it, with a benchmark that caught its own measurement bug along the way.*
+*A technical deep dive into how pyvar.com actually runs — the Numba kernel design, the async job pipeline, and the AWS architecture underneath it, with a benchmark that caught its own measurement error along the way.*
 
 > **Draft status:** not yet published. Every number and code excerpt below
 > is checked against this repository at drafting time (`engine/montecarlo.py`,
@@ -12,7 +12,7 @@
 
 ---
 
-Our first article told the story of building pyvar with Claude Code and the regulatory bugs it caught along the way. This one is narrower and more mechanical on purpose: how does 100,000 Monte Carlo paths become a number in 2 to 10 seconds, what happens to that request between a client's HTTP call and a worker actually running it, and what does the AWS infrastructure underneath look like when nobody's paying for idle capacity. Every claim here is something you can point at a file and check.
+Our first article told the story of building pyvar with Claude Code and the regulatory defects it caught along the way. This one is narrower and more mechanical on purpose: how does 100,000 Monte Carlo paths become a number in 2 to 10 seconds, what happens to that request between a client's HTTP call and a worker actually running it, and what does the AWS infrastructure underneath look like when nobody's paying for idle capacity. Every claim here is something you can point at a file and check.
 
 ## The kernel: what `@njit(parallel=True)` actually buys you
 
@@ -52,9 +52,9 @@ The function returns a plain NumPy array — not a Python list, not a dict — b
 
 ![One kernel call, three load-bearing rules — random numbers are pre-drawn in pure Python before the JIT region, @njit(parallel=True, cache=True) runs prange across CPU cores and skips recompilation on a fresh Spot worker, the kernel returns only an ndarray, and the public wrapper converts to Python types outside the compiled region](./assets/diagrams/deepdive-kernel-lifecycle.svg)
 
-## The benchmark that caught its own measurement bug
+## The benchmark that caught its own measurement error
 
-pyvar publishes a reproducible benchmark (`python scripts/p7_bench.py`, fully local and offline) timing the 10 hottest Monte Carlo kernels across Market Risk, Derivatives, and Operational Risk at `n_simulations=100,000`. The first version of that benchmark had a bug in the benchmark itself, and the honest way to tell this story is to include the bug, not just the corrected numbers.
+pyvar publishes a reproducible benchmark (`python scripts/p7_bench.py`, fully local and offline) timing the 10 hottest Monte Carlo kernels across Market Risk, Derivatives, and Operational Risk at `n_simulations=100,000`. The first version of that benchmark had a flaw in the benchmark itself, and the honest way to tell this story is to include the flaw, not just the corrected numbers.
 
 The original script called each function twice in-process and labelled the first call `"cold"`. That's only a genuine cold-compile measurement if Numba's on-disk cache is empty — and it wasn't. The machine already held compiled artifacts from earlier sessions, so the "cold" column was actually measuring disk-cache-warm, process-cold overhead: it skipped the real LLVM compilation step entirely, understating true first-call cost.
 
@@ -113,7 +113,7 @@ Keeping that AMI in sync with the compute code is itself automated: the deployme
 ## Sources
 
 - `engine/montecarlo.py` (this repo) — the `_simulate_paths` kernel, quoted above.
-- `docs/p7-numba-profiling-results.md` (this repo) — the full benchmark methodology, the cold-cache measurement bug and its correction, and the corrected results table reproduced above.
+- `docs/p7-numba-profiling-results.md` (this repo) — the full benchmark methodology, the cold-cache measurement error and its correction, and the corrected results table reproduced above.
 - `scripts/p7_bench.py`, `README.md` §9 (this repo) — reproduction instructions for the benchmark.
 - `pyvar-cdk/stacks/compute_stack.py`, `api_stack.py`, `data_stack.py`, `queue_stack.py` (this repo) — Spot allocation strategy, scale-to-zero configuration, Fargate/Fargate Spot split, Aurora Serverless v2 ACU settings, SQS FIFO/visibility-timeout configuration.
 - `CLAUDE.md` §3.1–3.2, §11 (this repo) — the Numba JIT rules enforced across `engine/`, the Celery/SQS broker rules, and the AMI-baking automation description.
