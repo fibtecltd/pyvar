@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>pyvar-client: A Python SDK for 385 Risk Functions, With Ready-to-Use Examples — pyvar.com · Fibtec</title>
+<meta name="description" content="Install, auth, your first call, the one async function, error handling, retries, and the CLI — the official pyvar-client Python SDK guide."/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="pyvar-client: A Python SDK for 385 Risk Functions, With Ready-to-Use Examples — pyvar.com"/>
+<meta property="og:description" content="Install, auth, your first call, the one async function, error handling, retries, and the CLI — the official pyvar-client Python SDK guide."/>
+<meta property="og:url" content="https://pyvar.com/guide-pyvar-client.html"/>
+<link rel="stylesheet" href="pyvar.css"/>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('guides'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> ·
+      <a href="guides.html" style="color:var(--dim);text-decoration:none">Guides</a>
+    </div>
+    <div style="margin-top:16px;max-width:820px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Python SDK</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">pyvar-client: A Python SDK for 385 Risk Functions, With Ready-to-Use Examples</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">A practical guide to <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> — install, auth, your first call, the one async function in the whole API, error handling, retries, and the CLI that comes free with it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<p class="body-md" style="margin:16px 0">pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricing, liquidity ratios, and more — as a REST API. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> is the official Python SDK: one typed client, one namespace per domain, no HTTP client code to write by hand. This is a hands-on guide to actually using it, not a feature list.</p>
+<img src="guides-assets/layers-client.svg" alt="Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the middle layer" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Install and authenticate</h2>
+<pre class="code-block" style="margin:20px 0">pip install pyvar-client</pre>
+<p class="body-md" style="margin:16px 0">Every call needs a bearer token — get a free-tier API key at <a href="index.html#get-api-key" style="color:var(--green)">pyvar.com</a> (no password, no credit card). The client has no registration flow of its own; that's a one-time human step via email verification.</p>
+<pre class="code-block" style="margin:20px 0">from pyvar_client import Client
+
+client = Client(api_key="eyJ...")</pre>
+<p class="body-md" style="margin:16px 0">Or as a context manager, which closes the underlying connection pool on exit:</p>
+<pre class="code-block" style="margin:20px 0">with Client(api_key="eyJ...") as client:
+    ...</pre>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Your first call</h2>
+<p class="body-md" style="margin:16px 0">Every domain hangs off <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client</code> as its own namespace — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.market_risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.credit_risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.derivatives</code>, and five more. One method per function, fully typed, so your editor's autocomplete already knows every parameter:</p>
+<pre class="code-block" style="margin:20px 0">result = client.market_risk.historical_simulation_var(
+    returns=[0.01, -0.02, 0.015, ...],  # historical daily log-returns
+    portfolio_value=1_000_000,
+    confidence_level=0.99,
+)
+print(result["var_pct"], result["var_abs"])</pre>
+<p class="body-md" style="margin:16px 0">That's the whole pattern — 384 of the 385 functions work exactly this way: call it, get a dict back.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">A second, ready-to-use example: credit scoring</h2>
+<p class="body-md" style="margin:16px 0">Not every function is about VaR. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.credit_risk.altman_z_score_credit_scoring</code> runs the Altman (1968) Z-score for a public manufacturer — plain scalar inputs, no historical series required:</p>
+<pre class="code-block" style="margin:20px 0">result = client.credit_risk.altman_z_score_credit_scoring(
+    working_capital=1_200_000,
+    retained_earnings=3_400_000,
+    ebit=900_000,
+    market_value_equity=8_000_000,
+    sales=5_500_000,
+    total_assets=10_000_000,
+    total_liabilities=4_000_000,
+)
+print(result)  # Z-score + zone: safe (&gt;2.99) / grey (1.81-2.99) / distress (&lt;1.81)</pre>
+<p class="body-md" style="margin:16px 0">Every one of the 385 functions follows this same shape — the parameter names and docstrings come straight from the same OpenAPI schema the REST API itself publishes, so there's nothing here that isn't equally discoverable by reading <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">portal/functions.json</code> or the live <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/docs</code> endpoint.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">The one async function: Monte Carlo VaR</h2>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">POST /var/compute</code> is the single exception to "call it, get a result." It's a real Monte Carlo job dispatched to pyvar's Celery/SQS worker fleet, so it returns a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">task_id</code> immediately, not a finished answer. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.var</code> wraps the submit/poll cycle:</p>
+<pre class="code-block" style="margin:20px 0"># Blocks: submits, polls until done, returns the finished result.
+result = client.var.compute(
+    portfolio_value=1_000_000,
+    returns=[...],
+    n_simulations=100_000,
+)</pre>
+<p class="body-md" style="margin:16px 0">Or drive it yourself, if you'd rather not block:</p>
+<pre class="code-block" style="margin:20px 0">task_id = client.var.submit(portfolio_value=1_000_000, returns=[...])
+status = client.var.poll(task_id)  # checks once, no blocking</pre>
+<p class="body-md" style="margin:16px 0">One asymmetry worth knowing: above a simulation-count threshold, the API offloads the full loss distribution to S3 and returns a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">presigned_url</code> instead of the inline <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">loss_dist</code>. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">compute()</code> returns exactly what the API returned either way — fetching the presigned URL yourself is a plain <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">httpx.get()</code> if you need the raw distribution, not something the client silently does on your behalf.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Errors you can actually branch on</h2>
+<p class="body-md" style="margin:16px 0">Every non-2xx response raises a typed exception, not a generic HTTP error:</p>
+<img src="guides-assets/client-exceptions-table.svg" alt="Exceptions you can actually branch on" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<pre class="code-block" style="margin:20px 0">from pyvar_client import PyvarRateLimitError, PyvarValidationError
+
+try:
+    client.market_risk.historical_simulation_var(returns=[...], portfolio_value=1_000_000)
+except PyvarValidationError as e:
+    print(e.detail)
+except PyvarRateLimitError as e:
+    print(f"retry after {e.retry_after}s")</pre>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Retries, and the one call that's never auto-retried</h2>
+<p class="body-md" style="margin:16px 0">Every synchronous domain function is idempotent — pure compute, no side effects — so connection errors, timeouts, and 5xx responses retry automatically with exponential backoff. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.var.submit()</code> is the deliberate exception: it's never auto-retried, because retrying a job submission blindly risks double-submitting real compute work against an API with no idempotency-key mechanism to de-duplicate on. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.var.poll()</code> is a read, so it retries normally.</p>
+<img src="guides-assets/client-retry-semantics.svg" alt="What retries automatically and what never does — any domain method and client.var.poll() auto-retry, client.var.submit() never does, to avoid double-submitting real compute work" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">The CLI that comes with it</h2>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pip install pyvar-client</code> also installs a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar</code> command — stdlib <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">argparse</code> only, no extra install step:</p>
+<pre class="code-block" style="margin:20px 0">export PYVAR_API_KEY="eyJ..."
+
+pyvar market_risk historical_simulation_var --params-json \
+    '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'</pre>
+<p class="body-md" style="margin:16px 0">Call any function with no parameters and it prints the docstring and signature instead of making a doomed request:</p>
+<pre class="code-block" style="margin:20px 0">$ pyvar market_risk historical_simulation_var --api-key "$PYVAR_API_KEY"
+historical_simulation_var(*, returns: list[float] | list[list[float]], portfolio_value: float, ...) -&gt; dict[str, Any]
+
+Non-parametric Historical Simulation VaR...</pre>
+<p class="body-md" style="margin:16px 0">Browse what's available with no credentials at all:</p>
+<pre class="code-block" style="margin:20px 0">pyvar list-domains
+pyvar list-functions --domain market_risk</pre>
+<p class="body-md" style="margin:16px 0">Exit codes mirror the exception table above (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">2</code> = auth, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">3</code> = validation, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">4</code> = rate limit, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">5</code> = compute/timeout) — enough to branch on in a shell script without parsing stderr text.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Why 385 methods don't drift from the API</h2>
+<p class="body-md" style="margin:16px 0">Hand-maintaining 385 typed methods against a REST API that keeps changing is exactly how a client silently falls out of sync with what it wraps. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar_client/_generated/</code> is produced by <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">codegen/generate.py</code>, which reads the live OpenAPI schema directly from <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">main.create_app().openapi()</code> — not a hand-copied list. Regenerating after any API change is one command, and CI fails the build if committed output ever drifts from what regenerating actually produces — the same discipline the main pyvar repo uses for its own plugin and portal catalogues.</p>
+<p class="body-md" style="margin:16px 0">The one hand-written exception is <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.var</code> itself — because submit/poll/compute is a genuinely different call shape from every other function's request/response pattern, not a mechanical variation the generator could produce safely.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Try it</h2>
+<pre class="code-block" style="margin:20px 0">pip install pyvar-client</pre>
+<pre class="code-block" style="margin:20px 0">from pyvar_client import Client
+
+with Client(api_key="your-free-tier-key") as client:
+    result = client.market_risk.historical_simulation_var(
+        returns=[0.01, -0.02, 0.015, 0.008, -0.011],
+        portfolio_value=1_000_000,
+    )
+    print(result)</pre>
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Sources</h2>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client/README.md</code> — install, quick start, errors, retries, CLI, codegen — the primary source for this article, quoted and lightly adapted throughout.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client/pyvar_client/_client.py</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">_var.py</code> — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Client.__init__</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">VarNamespace.submit</code>/<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">poll</code>/<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">compute</code>, quoted directly.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client/pyvar_client/_generated/credit_risk.py</code> — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">altman_z_score_credit_scoring</code>'s real signature and docstring, the source for the second worked example.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client/codegen/generate.py</code> — the OpenAPI-schema-driven code generator described above.</li><li style="margin:8px 0"><a href="https://pypi.org/project/pyvar-client/" style="color:var(--green)">PyPI: pyvar-client</a> — the published package this article's install instructions target.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Keep going</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">More <em>official guides</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="guide-pyvar-jupyter.html" class="btn-ghost">pyvar-jupyter guide →</a>
+      <a href="guide-rest-api.html" class="btn-ghost">REST API guide →</a>
+      <a href="guide-claude-plugins.html" class="btn-ghost">Claude Code plugins guide →</a>
+      <a href="guide-technical-deepdive.html" class="btn-ghost">Technical deep dive →</a>
+      <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-green">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>

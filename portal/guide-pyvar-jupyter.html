@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>pyvar-jupyter: Interactive Risk Analysis in a Notebook, With Three Worked Examples — pyvar.com · Fibtec</title>
+<meta name="description" content="%pyvar/%%pyvar IPython magics, line vs. cell form, and three complete worked notebooks — the official pyvar-jupyter guide."/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="pyvar-jupyter: Interactive Risk Analysis in a Notebook, With Three Worked Examples — pyvar.com"/>
+<meta property="og:description" content="%pyvar/%%pyvar IPython magics, line vs. cell form, and three complete worked notebooks — the official pyvar-jupyter guide."/>
+<meta property="og:url" content="https://pyvar.com/guide-pyvar-jupyter.html"/>
+<link rel="stylesheet" href="pyvar.css"/>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('guides'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> ·
+      <a href="guides.html" style="color:var(--dim);text-decoration:none">Guides</a>
+    </div>
+    <div style="margin-top:16px;max-width:820px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Jupyter</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">pyvar-jupyter: Interactive Risk Analysis in a Notebook, With Three Worked Examples</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">A practical guide to <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">%pyvar</code>/<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">%%pyvar</code> IPython magics — quick start, line vs. cell magic, discoverability, and three complete worked notebooks you can run today.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter</code> adds IPython magics and rich HTML display on top of <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> — the notebook-ergonomics layer, not a second API client. If you already know <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code>, everything here is the same 385 functions, called with less typing.</p>
+<img src="guides-assets/layers-jupyter.svg" alt="Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the top layer" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Install and load</h2>
+<pre class="code-block" style="margin:20px 0">pip install pyvar-jupyter</pre>
+<p class="body-md" style="margin:16px 0">Installs <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> automatically. In a notebook cell:</p>
+<pre class="code-block" style="margin:20px 0">%load_ext pyvar_jupyter
+%pyvar_key eyJ...  # or export PYVAR_API_KEY before starting the kernel</pre>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Your first call</h2>
+<pre class="code-block" style="margin:20px 0">%pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015] portfolio_value=1000000</pre>
+<p class="body-md" style="margin:16px 0">The result renders as a formatted HTML table in the cell output, and is also returned to <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Out[]</code> — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">result["var_abs"]</code> works on it directly, same as the plain <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> dict it wraps.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Line magic vs. cell magic</h2>
+<p class="body-md" style="margin:16px 0">The line form (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">%pyvar</code>) takes params as space-separated <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">key=value</code> tokens, each parsed with <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">ast.literal_eval</code> — numbers, lists, dicts, booleans, and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">None</code> all come through as their real Python type, not strings:</p>
+<pre class="code-block" style="margin:20px 0">%pyvar var.compute returns=[0.01,-0.02,0.015] \
+    portfolio_value=1000000 confidence_level=0.99 n_simulations=100000</pre>
+<p class="body-md" style="margin:16px 0">Once params get large or nested — arrays of arrays, nested objects — the cell form (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">%%pyvar</code>) takes a JSON object in the cell body instead:</p>
+<pre class="code-block" style="margin:20px 0">%%pyvar derivatives.heston_stochastic_volatility_model
+{
+  "spot": 100.0,
+  "strike": 105.0,
+  "rate": 0.02,
+  "tau": 1.0,
+  "v0": 0.04,
+  "kappa": 2.0,
+  "theta": 0.04,
+  "sigma": 0.3,
+  "rho": -0.7,
+  "option_type": "call"
+}</pre>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Forgot the parameters? Just call it empty</h2>
+<p class="body-md" style="margin:16px 0">Either form, called with no parameters, prints the function's docstring and signature instead of making a doomed API call:</p>
+<pre class="code-block" style="margin:20px 0">%pyvar market_risk.historical_simulation_var</pre>
+<pre class="code-block" style="margin:20px 0">historical_simulation_var(*, returns: 'list[float] | list[list[float]]', portfolio_value: 'float', confidence_level: 'float' = 0.99) -&gt; 'dict[str, Any]'
+
+Non-parametric Historical Simulation VaR.
+
+Re-prices the portfolio under each observed historical return and reads the
+empirical loss quantile — making no distributional assumption.</pre>
+<p class="body-md" style="margin:16px 0">![One call, two views — both %pyvar and %%pyvar magic forms parse their params differently but dispatch to the same pyvar-client call, which renders as an HTML table and is also bound to Out[]](./assets/diagrams/jupyter-magic-dispatch.svg)</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">The display helper, without magics</h2>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar_jupyter.show()</code> wraps any <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> result for the same rich HTML rendering — useful in a loop or a script cell where you're calling <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Client</code> directly:</p>
+<pre class="code-block" style="margin:20px 0">from pyvar_client import Client
+import pyvar_jupyter
+
+client = Client(api_key="eyJ...")
+result = client.market_risk.historical_simulation_var(
+    returns=[0.01, -0.02, 0.015], portfolio_value=1_000_000,
+)
+pyvar_jupyter.show(result)</pre>
+<p class="body-md" style="margin:16px 0">The wrapped object still behaves like the underlying dict — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">show()</code> only changes how it <em>renders</em>.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Session config, without repeating yourself</h2>
+<pre class="code-block" style="margin:20px 0">%pyvar_key eyJ...              # set/replace the API key for this kernel (in-memory only)
+%pyvar_base_url http://localhost:8000   # point at a local/dev deployment instead of prod</pre>
+<p class="body-md" style="margin:16px 0">Neither is needed if <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">PYVAR_API_KEY</code> / <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">PYVAR_API_BASE_URL</code> are already set as environment variables before the kernel starts — the same variable names <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code>'s own CLI and the <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code> plugin use, so one <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">.env</code> covers all three.</p>
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Three worked examples, ready to run</h2>
+<p class="body-md" style="margin:16px 0">All three ship in <a href="https://github.com/fibtecltd/pyvar/tree/master/pyvar-jupyter/examples" style="color:var(--green)"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter/examples/</code></a>. Each needs only a free-tier API key.</p>
+<h3 class="h3" style="margin:32px 0 12px">1. Portfolio Monte Carlo VaR/CVaR</h3>
+<p class="body-md" style="margin:16px 0">A synthetic, fixed-seed daily return series, run through <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.compute</code> — the one async function in the whole API — at 99% confidence:</p>
+<pre class="code-block" style="margin:20px 0">%load_ext pyvar_jupyter
+%pyvar_key eyJ...
+
+import random
+random.seed(7)
+returns = [random.gauss(0.0004, 0.012) for _ in range(500)]
+
+result = %pyvar var.compute returns={returns} portfolio_value=1000000 confidence_level=0.99 n_simulations=100000
+result["var_abs"], result["cvar_abs"]</pre>
+<p class="body-md" style="margin:16px 0">The notebook then sweeps three confidence levels (95%, 97.5%, 99%) by calling <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Client</code> directly in a loop and wrapping each result with <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar_jupyter.show()</code> — confirming the expected regulatory ordering: 99% VaR &gt; 95% VaR, and ES ≥ VaR at every level.</p>
+<h3 class="h3" style="margin:32px 0 12px">2. Basel Traffic-Light Backtest</h3>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">market_risk.traffic_light_backtesting</code> — the Basel Committee's 250-trading-day VaR-breach test (green &lt; 5 breaches, yellow 5–9, red ≥ 10) — against a synthetic return/VaR-estimate series with three deliberately forced breaches:</p>
+<pre class="code-block" style="margin:20px 0">import random
+random.seed(11)
+n_days = 250
+daily_var_estimate = 0.025
+
+actual_returns = [random.gauss(0.0002, 0.011) for _ in range(n_days)]
+for day in (40, 120, 210):
+    actual_returns[day] = -(daily_var_estimate + 0.005)
+
+var_estimates = [daily_var_estimate] * n_days
+
+result = %pyvar market_risk.traffic_light_backtesting actual_returns={actual_returns} var_estimates={var_estimates}
+result</pre>
+<p class="body-md" style="margin:16px 0">With this exact seed, the result comes out <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">n_breaches: 6</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">basel_zone: "yellow"</code> — the 3 forced breaches plus a few more from the random baseline alone, a small, honest reminder that a synthetic series doesn't give you exactly the number you engineered into it.</p>
+<h3 class="h3" style="margin:32px 0 12px">3. American Option Pricing with Greeks</h3>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">derivatives.american_option_lsm</code> — an American option priced via Longstaff-Schwartz Monte Carlo, with bump-and-reprice Greeks opted in via <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">greeks=True</code>:</p>
+<pre class="code-block" style="margin:20px 0">result = %pyvar derivatives.american_option_lsm spot=100.0 strike=100.0 rate=0.05 sigma=0.20 tau=1.0 \
+    option_type=put greeks=True seed=41
+
+assert result["delta"] &lt; 0, "a put's delta should be negative"
+assert result["gamma"] &gt; 0, "gamma should be positive near the money"
+print(f"price={result['price']:.4f}  delta={result['delta']:.4f}  gamma={result['gamma']:.5f}")</pre>
+<p class="body-md" style="margin:16px 0">S=K=100, r=5%, σ=20%, τ=1 year is the textbook Longstaff-Schwartz reference case — the function's own docstring cites a ~6.024 European-price benchmark at this exact input set, giving a built-in sanity check on the American price this call returns (which must be ≥ the European price). The notebook closes with a put-vs-call delta comparison, confirming both come back with the expected sign and roughly symmetric magnitude near the money.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Try it</h2>
+<pre class="code-block" style="margin:20px 0">pip install pyvar-jupyter
+jupyter notebook</pre>
+<p class="body-md" style="margin:16px 0">Then, in a fresh notebook:</p>
+<pre class="code-block" style="margin:20px 0">%load_ext pyvar_jupyter
+%pyvar_key your-free-tier-key
+
+%pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015,0.008,-0.011] portfolio_value=1000000</pre>
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Sources</h2>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter/README.md</code> — install, quick start, magic forms, display helper, session config — the primary source for this article, quoted and lightly adapted throughout.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter/examples/01_portfolio_var.ipynb</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">02_basel_backtest.ipynb</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">03_derivatives_greeks.ipynb</code> — the three worked examples above, code cells reproduced directly from the shipped notebooks.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-jupyter/pyvar_jupyter/_magics.py</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">_display.py</code> — the line/cell magic dispatch and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">show()</code> implementation these examples exercise.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">docs/publications/pyvar-client-guide-medium-article.md</code> — the companion SDK guide this piece builds on without repeating.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Keep going</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">More <em>official guides</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="guide-pyvar-client.html" class="btn-ghost">pyvar-client SDK guide →</a>
+      <a href="guide-rest-api.html" class="btn-ghost">REST API guide →</a>
+      <a href="guide-claude-plugins.html" class="btn-ghost">Claude Code plugins guide →</a>
+      <a href="guide-technical-deepdive.html" class="btn-ghost">Technical deep dive →</a>
+      <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-green">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>

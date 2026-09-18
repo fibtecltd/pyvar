@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>14 Plugins, One API: Putting 385 Regulatory Risk Functions Directly Into Claude Code — pyvar.com · Fibtec</title>
+<meta name="description" content="How pyvar's 14 Claude Code plugins are split, generated, and kept honest about what they can and can't do."/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="14 Plugins, One API: Putting 385 Regulatory Risk Functions Directly Into Claude Code — pyvar.com"/>
+<meta property="og:description" content="How pyvar's 14 Claude Code plugins are split, generated, and kept honest about what they can and can't do."/>
+<meta property="og:url" content="https://pyvar.com/guide-claude-plugins.html"/>
+<link rel="stylesheet" href="pyvar.css"/>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('guides'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> ·
+      <a href="guides.html" style="color:var(--dim);text-decoration:none">Guides</a>
+    </div>
+    <div style="margin-top:16px;max-width:820px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Claude Code</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">14 Plugins, One API: Putting 385 Regulatory Risk Functions Directly Into Claude Code</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">How pyvar.com turned a REST API into a generated, self-verifying set of Claude Code skills and an MCP server — and what each one is actually for.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<p class="body-md" style="margin:16px 0">A REST API with 385 functions is only as useful as the thing calling it knowing which one to reach for. pyvar.com — an open-source (Apache-2.0), Numba-accelerated risk computation platform covering VaR, credit risk, derivatives, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital — solved that by shipping straight into the tool its own build process already lived in: Claude Code.</p>
+<p class="body-md" style="margin:16px 0">Not as one plugin. As <strong>14</strong> — 8 domain skills, 5 architecture skills, and one MCP server — installable today from a single self-hosted marketplace:</p>
+<pre class="code-block" style="margin:20px 0">/plugin marketplace add fibtecltd/pyvar
+/plugin install pyvar-market-risk@pyvar-marketplace</pre>
+<p class="body-md" style="margin:16px 0">This piece is about what those 14 actually are, why they're split the way they are, and — the part that took real discipline to get right — how they stay honest about what they can and can't do.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Two different kinds of plugin, doing two different jobs</h2>
+<p class="body-md" style="margin:16px 0"><strong>8 domain skills</strong> — one per risk domain (market risk, credit risk, liquidity risk, operational risk, portfolio analytics, regulatory, derivatives, ALM) — are pure instructional content. Each is a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">SKILL.md</code> file teaching Claude domain conventions, function signatures, and the regulatory constants those functions enforce. No code execution, no network access, no data collection of any kind. Installing one doesn't grant it any new capability Claude Code didn't already have — it just makes Claude noticeably better at knowing <em>when</em> to reach for <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">historical_simulation_var</code> versus <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">monte_carlo_expected_shortfall</code>, and what parameters each one actually expects.</p>
+<p class="body-md" style="margin:16px 0"><strong>5 architecture skills</strong> cover pyvar's own codebase instead of its risk-domain output — FastAPI route conventions, the Polars/PyArrow ingestion layer, the Numba/Celery compute layer, the Redis/PostgreSQL/S3 storage layer, and the Prometheus/Sentry/Bandit observability layer. These exist for people extending pyvar itself, not for people calling it — a genuinely different audience from the other 13.</p>
+<p class="body-md" style="margin:16px 0"><strong><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code></strong>, the 14th plugin, is the only one that actually talks to anything. It's an MCP server exposing all 385 functions as Claude Code tools — a thin wrapper over the live pyvar REST API, not a bundled copy of the compute engine, so results always match what's actually deployed at pyvar.com. Two generic tools cover most needs:</p>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">list_pyvar_functions(domain?)</code> — browse what's available, optionally filtered to one of the 8 domains.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">call_pyvar_function(domain, function_name, params)</code> — call anything by name, with <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">params</code> validated against that function's own schema before the request goes out.</li></ul>
+<p class="body-md" style="margin:16px 0">Plus all 385 functions individually, as precisely-typed named tools (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">alm_stress_test</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">historical_simulation_var</code>, and so on) for when you already know exactly which one you want and don't need the generic dispatcher.</p>
+<img src="guides-assets/plugins-taxonomy.svg" alt="Two different jobs, 14 plugins — 8 domain skills and 5 architecture skills are pure instructional content with no network access, pyvar-mcp is the one plugin that actually executes live requests against the REST API" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Who each one is actually for</h2>
+<p class="body-md" style="margin:16px 0">Domain skills and architecture skills answer genuinely different questions — "what would a risk team ask for" versus "what would an engineer touching this codebase need" — so their use cases don't overlap:</p>
+<img src="guides-assets/plugins-usecase-table.svg" alt="Who each plugin is actually for" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<p class="body-md" style="margin:16px 0">That table isn't hand-written marketing copy sitting off to the side of the actual product — it's the same "Use case" text now shipped on the live <a href="plugins.html" style="color:var(--green)">plugins portal page</a> and in the marketplace submission content, kept identical on purpose so nothing drifts between what's advertised and what's installed.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Generated, not hand-maintained — the same discipline as the rest of the platform</h2>
+<p class="body-md" style="margin:16px 0">Here's the part that matters more than the plugin count: none of these 14 manifests, none of the MCP server's 385 individually-typed tools, are written by hand. <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code>'s tool catalogue (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">plugins/mcp/pyvar_mcp/_generated/functions.py</code>) and the plugin manifest (<code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">.claude-plugin/marketplace.json</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">plugins/*</code>) are both generated directly from the repository's own source of truth — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">.claude/skills/*</code> and <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">portal/functions.json</code> — with CI failing the build if committed output ever drifts from what regenerating actually produces.</p>
+<p class="body-md" style="margin:16px 0">That's not a stylistic choice. It's the exact same "don't trust it, run it and check" discipline that caught a 79%-understated Solvency II capital formula before launch, applied to code generation instead of a regulatory formula: a docstring can go stale, a hand-maintained tool list can silently fall behind the API it's supposed to describe, but a generator that's re-run and diffed on every commit can't drift without CI noticing.</p>
+<img src="guides-assets/plugins-codegen-pipeline.svg" alt="Generated, not hand-maintained — .claude/skills/* and portal/functions.json are the source of truth, a generator produces marketplace.json and the MCP tool catalogue, and CI fails the build on any drift between committed output and a fresh regenerate" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">What's still open</h2>
+<p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code> has been submitted to Anthropic's <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">claude-plugins-community</code> marketplace — a real submission, decision still pending as of this writing. The other 12 skill plugins are deliberately held back rather than submitted in parallel: submissions to that marketplace are per-plugin, not bundle-level, and going one at a time starting with the piece that actually executes something (the MCP server) means the review process is exercised once on the highest-scrutiny plugin before the other 12 skill-only submissions — each of them lower-risk (no code execution, no network access) — follow using the same, already-drafted content.</p>
+<p class="body-md" style="margin:16px 0">None of that blocks anyone today, though. The marketplace add command above works right now, against the live repository, regardless of where that submission lands — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">/plugin marketplace add fibtecltd/pyvar</code> doesn't route through Anthropic's review at all, it's a direct GitHub-source install.</p>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Try it</h2>
+<pre class="code-block" style="margin:20px 0">/plugin marketplace add fibtecltd/pyvar
+/plugin install pyvar-market-risk@pyvar-marketplace   # any of the 13 skills
+/plugin install pyvar-mcp@pyvar-marketplace            # the MCP server</pre>
+<p class="body-md" style="margin:16px 0">The MCP server needs one extra step today — a one-time <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pip install -e plugins/mcp</code> for its Python dependencies, and a free-tier pyvar API key (no card required) — both documented in <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">plugins/mcp/README.md</code>. Everything else installs and works immediately.</p>
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+<h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Sources</h2>
+<ul class="body-md" style="padding-left:22px;margin:16px 0"><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">.claude-plugin/marketplace.json</code> — the 14-plugin manifest, names, descriptions.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">docs/proposals/marketplace-submission-content-per-plugin.md</code> — per-plugin pitch, tags, and use-case text, verbatim source for the table above.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">portal/plugins.html</code> (live at pyvar.com/plugins.html) — the public-facing version of the same content.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">plugins/mcp/README.md</code> — install steps, tool descriptions, dependency note.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">portal/functions.json</code> — 385-function total, domain breakdown.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">docs/plan-plugin-marketplace-status-and-submission.md</code> — submission-scope confirmation (per-plugin, not bundle-level), <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code>'s pending status.</li><li style="margin:8px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">docs/publications/pyvar-buildstory-medium-article.md</code> — the generated-catalogue discipline and the Solvency II bug this piece draws the parallel to.</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Keep going</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">More <em>official guides</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="guide-pyvar-client.html" class="btn-ghost">pyvar-client SDK guide →</a>
+      <a href="guide-pyvar-jupyter.html" class="btn-ghost">pyvar-jupyter guide →</a>
+      <a href="guide-rest-api.html" class="btn-ghost">REST API guide →</a>
+      <a href="guide-technical-deepdive.html" class="btn-ghost">Technical deep dive →</a>
+      <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-green">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>
