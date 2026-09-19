@@ -29,6 +29,19 @@ None of these are fabricated for this article. All three are explained below: ho
 
 ---
 
+## How pyvar's speed compares to what the industry itself has published
+
+No named vendor's product was tested to produce the chart above. But public, dated, named case studies exist for how long comparable risk calculations take at enterprise scale, and they set a real bar — one worth stating plainly rather than hedging around:
+
+- **Amazon Web Services' own published FRTB IMA case study** cites a baseline overnight Internal Model Approach batch run of **85 hours** on a single Spark/EMR cluster — and getting that down to a 5-hour target takes **17 clusters of 200 `c5.24xlarge` instances each**. That's a real, dated industry data point on what a full FRTB IMA batch costs in wall-clock time before an institution buys its way out with that much parallel infrastructure.
+- **SS&C's own published case study for Bank Hapoalim** reports its Algorithmics HiPER engine cutting a full-simulation XVA/CCR batch from **20 hours to 15 minutes** — a named bank, a named vendor, a named product, and the vendor's own best-case, fully-optimized result, not an industry average.
+
+pyvar's published number — 100,000-path Monte Carlo VaR completing in **2–10 seconds** (`docs/p7-numba-profiling-results.md`, reproducible offline via `scripts/p7_bench.py`) — measures a different unit of work than either case study above: one portfolio's VaR request, not an enterprise-wide overnight batch spanning thousands of positions across multiple desks. Those numbers are not directly comparable, and this article isn't claiming they are — the honesty discipline running through this whole piece doesn't get suspended for the one section that's most flattering.
+
+What *is* fair to say, and checkable from the sources below: in this exact industry, the fastest publicly disclosed, fully-optimized, named result anyone has published measures its win in **minutes**, not seconds — and that's after a bank bought dedicated acceleration technology and ran it as a batch job. pyvar's number is what a single default request costs today, with no comparable acceleration purchase, specialized cluster, or batch window required. That gap is real even without comparing like-for-like workloads, and it's the honest version of "pyvar is fast" — not a bigger version of the self-scored chart above.
+
+---
+
 ## Architecture: how these numbers are actually produced
 
 Three design decisions carry essentially the entire cost and speed story.
@@ -99,6 +112,9 @@ with Client(api_key="your-free-tier-key") as client:
 
 ## Sources
 
+- [AWS: "How to improve FRTB's Internal Model Approach implementation using Apache Spark and Amazon EMR"](https://aws.amazon.com/blogs/industries/how-to-improve-frtbs-internal-model-approach-implementation-using-apache-spark-and-amazon-emr/) (external) — the 85-hour FRTB IMA batch baseline and the 17-cluster/200-instance figure cited above.
+- [SS&C Technologies: "Bank Hapoalim Transforms XVA/CCR Batch From 20 Hours to 15 Minutes"](https://www.ssctech.com/resources/form/bank-hapoalim-transforms-xvaccr-batch-20-hours-15-minutes) (external) — the named bank/vendor/product case study cited above.
+- [SS&C Technologies: HiPER Risk Engine product page](https://www.ssctech.com/products/hiper-risk-engine) (external) — the vendor's own "eight-hour batch to a 20-minute sprint" and vectorization claims, included for context but not relied on as the headline figure since it names no specific customer.
 - [`docs/proposals/pyvar-iron-triangle-benchmark.docx`](https://github.com/fibtecltd/pyvar/blob/master/docs/proposals/pyvar-iron-triangle-benchmark.docx) — the full internal positioning document this article summarizes and builds on, including the vendor-comparison detail this piece doesn't repeat.
 - [`docs/p7-numba-profiling-results.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p7-numba-profiling-results.md) — the benchmark methodology and the true-cold-vs-warm correction described above.
 - [`docs/p9-scenario-volume-cost-audit.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p9-scenario-volume-cost-audit.md) — the full cost audit, its bottom-up methodology, and the real-invoice reconciliation.
