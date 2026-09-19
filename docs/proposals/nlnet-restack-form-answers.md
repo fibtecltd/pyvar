@@ -24,6 +24,20 @@ Comparison field now states pyvar's uniqueness claim directly, per
 Filippo's own framing, ahead of the QuantLib evidence that substantiates
 it.
 
+**Revised 2026-09-19:** `docs/publications/` has grown from a couple of
+drafts to 8 articles since this file was last touched, including two
+that publish real, self-found production mistakes rather than omitting
+them (the JWT-report deploy gap and its underlying migration-ordering
+bug, and a benchmark-methodology correction) and a new one walking
+through the architecture/stack/methodology behind the cost and speed
+claims. That's now the strongest available evidence for this
+application's core claim — findings get published, not kept internal —
+so the Experience, Ecosystem, Technical challenges, and Comparison
+fields below now cite the specific articles rather than gesturing at
+"public write-ups" generically. No numbers, budget, or framing decisions
+changed; this pass only adds citations where character budget allowed
+(checked field-by-field, not assumed).
+
 ---
 
 ## Fund
@@ -86,6 +100,7 @@ other income. No further trimming needed.
 >    385 functions against their published Basel/FRTB/IFRS 9/Solvency II
 >    source formulas, corrections published openly (the same discipline
 >    that already caught a ~79% Solvency II SCR understatement pre-launch,
+>    written up in `docs/publications/pyvar-buildstory-medium-article.md`,
 >    done here by an external reviewer rather than the maintainer).
 > 3. **Regulatory coverage extension** — 80 hours (10 days), **€12,000**.
 >    Scoped once (1) and (2)'s findings are in; likely candidates are
@@ -101,7 +116,10 @@ other income. No further trimming needed.
 > independent reviewers engaged for milestones 1–2. Expenses: none
 > anticipated beyond that reviewer time, which is the main cost driver —
 > compute cost is not a meaningful line item (pyvar's own Monte Carlo
-> engine runs at sub-cent per scenario; see `docs/p9-scenario-volume-cost-audit.md`).
+> engine runs at sub-cent per scenario; see `docs/p9-scenario-volume-cost-audit.md`
+> and `docs/publications/pyvar-iron-triangle-medium-article.md` for the
+> public write-up, including the real $900–1,000/month invoice this
+> claim is checked against).
 
 **Still open:** the day-counts above are my estimate of reasonable scope
 per milestone, not something Filippo confirmed line by line — worth a
@@ -114,10 +132,12 @@ this estimate. The total itself is confirmed.
 > To our knowledge, pyvar is unique in its category: no other project
 > exposes this complete a set of VaR/regulatory-risk functions fully
 > open-source, on a high-performance, production-shaped tech stack (Numba
-> JIT, async job pipeline, REST + MCP delivery) rather than as a
-> closed-source vendor platform or a partial academic implementation.
-> That's the gap this comparison substantiates below, rather than assert
-> on its own.
+> JIT, async job pipeline, REST + MCP delivery — architecture and the
+> reasoning behind each technology choice both written up in
+> `docs/publications/pyvar-technical-deepdive-medium-article.md` and
+> `pyvar-iron-triangle-medium-article.md`) rather than as a closed-source
+> vendor platform or a partial academic implementation. That's the gap
+> this comparison substantiates below, rather than assert on its own.
 >
 > The closest existing comparator is **QuantLib**, a mature open-source
 > (BSD) quantitative finance library — pyvar's own numerical test suite
@@ -148,7 +168,7 @@ this estimate. The total itself is confirmed.
 > unoriginal — correctness against the published standard is the entire
 > point, not a new model.
 
-(≈2186 characters — leaves headroom against the 4000-char limit.)
+(≈2310 characters — leaves headroom against the 4000-char limit.)
 
 ## Technical challenges (max 4000 chars, optional but recommended)
 
@@ -167,9 +187,12 @@ this estimate. The total itself is confirmed.
 > shock recalibrations, Basel IV phase-in dates). The audit needs to
 > pin down which version of each standard pyvar targets and verify that's
 > stated explicitly, not left implicit — a gap the internal review
-> already found once (stale pre-2024 IRRBB shock values, fixed in v0.1.0).
+> already found once (stale pre-2024 IRRBB shock values, fixed in v0.1.0,
+> written up in full in `docs/publications/pyvar-buildstory-medium-article.md`
+> alongside the ~79% Solvency II SCR understatement the same validation
+> pass caught).
 
-(≈1000 characters.)
+(≈1140 characters.)
 
 ## Ecosystem — dependencies, main users (max 2000 chars, optional)
 
@@ -187,8 +210,15 @@ this estimate. The total itself is confirmed.
 > intended *next* audience, not yet the confirmed current one; being
 > honest about that gap rather than overclaiming existing institutional
 > adoption.
+>
+> Documentation for that next audience already has a track record, not
+> a from-scratch plan: published guides cover the Python SDK, the
+> Jupyter integration, the raw REST API, and the Claude Code/MCP
+> integration surface (`docs/publications/`), each checked directly
+> against the shipping code at time of writing rather than written from
+> memory of what the API used to do.
 
-(≈780 characters.)
+(≈1160 characters.)
 
 ## Experience / background (max 2000 chars, optional)
 
@@ -220,12 +250,15 @@ this estimate. The total itself is confirmed.
 >
 > Independently checkable: 300+ merged pull requests and full commit
 > history at `github.com/fibtecltd/pyvar`, a live deployment at
-> `pyvar.com`, a published SDK (`pyvar-client`, PyPI), and public
-> write-ups on the build (`docs/publications/`). Full professional
-> background: **[Filippo — paste your public LinkedIn URL here]**.
+> `pyvar.com`, a published SDK (`pyvar-client`, PyPI), and 8 public
+> write-ups on the build and its own self-audits (`docs/publications/`),
+> including two that publish real production mistakes we found and
+> fixed rather than leaving out. Full professional background:
+> **[Filippo — paste your public LinkedIn URL here]**.
 
-(≈1780 characters, with the LinkedIn placeholder — room for the real URL
-once pasted; trim the "independently checkable" line further if needed.)
+(≈1870 characters, with the LinkedIn placeholder — ~130 chars of room
+left for the real URL once pasted; trim the "independently checkable"
+line further if the URL doesn't fit.)
 
 ## Other funding (max 1000 chars, optional)
 
@@ -286,6 +319,14 @@ form actually asks — the AI-authorship *story* just isn't the pitch.
   excerpt in place).
 - ~~The "Other funding" field~~ — resolved: self-funded, pre-revenue, no
   other grant funding.
+- ~~Citing the published articles as evidence~~ — resolved 2026-09-19:
+  Experience, Technical challenges, Ecosystem, Comparison, and Use of
+  budget fields now cite the specific `docs/publications/` articles
+  that substantiate their claims (Solvency II/IRRBB fixes, the
+  self-found deploy/migration issues, the SDK/Jupyter/REST/plugins
+  guides, the architecture and cost write-ups) rather than gesturing at
+  "public write-ups" generically. Every field re-checked against its
+  real character limit after the additions — none exceed it.
 - **Still open:** Filippo's public LinkedIn URL (placeholder left in the
   Experience field), and the actual reviewer quotes for milestones 1–2
   once sought (replacing this session's day-count estimates).
