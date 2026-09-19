@@ -86,10 +86,10 @@ The MCP server needs one extra step today — a one-time `pip install -e plugins
 
 ## Sources
 
-- `.claude-plugin/marketplace.json` (this repo) — the 14-plugin manifest, names, descriptions.
-- `docs/proposals/marketplace-submission-content-per-plugin.md` (this repo) — per-plugin pitch, tags, and use-case text, verbatim source for the table above.
-- `portal/plugins.html` (this repo, live at pyvar.com/plugins.html) — the public-facing version of the same content.
-- `plugins/mcp/README.md` (this repo) — install steps, tool descriptions, dependency note.
-- `portal/functions.json` (this repo) — 385-function total, domain breakdown.
-- `docs/plan-plugin-marketplace-status-and-submission.md` (this repo) — submission-scope confirmation (per-plugin, not bundle-level), `pyvar-mcp`'s pending status.
-- `docs/publications/pyvar-buildstory-medium-article.md` (this repo) — the generated-catalogue discipline and the Solvency II bug this piece draws the parallel to.
+- [`.claude-plugin/marketplace.json`](https://github.com/fibtecltd/pyvar/blob/master/.claude-plugin/marketplace.json) — the 14-plugin manifest, names, descriptions.
+- [`docs/proposals/marketplace-submission-content-per-plugin.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/proposals/marketplace-submission-content-per-plugin.md) — per-plugin pitch, tags, and use-case text, verbatim source for the table above.
+- [`portal/plugins.html`](https://github.com/fibtecltd/pyvar/blob/master/portal/plugins.html), live at [pyvar.com/plugins.html](https://www.pyvar.com/plugins.html) — the public-facing version of the same content.
+- [`plugins/mcp/README.md`](https://github.com/fibtecltd/pyvar/blob/master/plugins/mcp/README.md) — install steps, tool descriptions, dependency note.
+- [`portal/functions.json`](https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json) — 385-function total, domain breakdown.
+- [`docs/plan-plugin-marketplace-status-and-submission.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plan-plugin-marketplace-status-and-submission.md) — submission-scope confirmation (per-plugin, not bundle-level), `pyvar-mcp`'s pending status.
+- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the generated-catalogue discipline and the Solvency II calibration this piece draws the parallel to.

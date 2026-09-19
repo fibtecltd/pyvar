@@ -9,9 +9,9 @@
 
 ---
 
-Our first article ended on a deliberately modest note: no named enterprise customers yet, and the next real chapter would be "checkable the same way everything above was — `git log`, PyPI, the live API, not a slide deck." Two weeks and seven merged pull requests later (`#326`–`#332`), that's exactly the standard we're holding this follow-up to. Not a highlight reel — a look at what the same "verify by running it" discipline caught in our *own* infrastructure this time, including one bug that shipped, ran silently wrong for over a week, and only surfaced because someone went looking.
+Our first article ended on a deliberately modest note: no named enterprise customers yet, and the next real chapter would be "checkable the same way everything above was — `git log`, PyPI, the live API, not a slide deck." Two weeks and seven merged pull requests later (`#326`–`#332`), that's exactly the standard we're holding this follow-up to. Not a highlight reel — a look at what the same "verify by running it" discipline caught in our *own* infrastructure this time, including one feature that shipped, ran silently wrong for over a week, and only surfaced because someone went looking.
 
-## The bug: a feature that never actually deployed
+## A feature that never actually deployed
 
 PR #328 added a small, useful thing: a daily email report of JWT token issuance, `TokenReportStack` — a per-environment scheduled Lambda that queries a new `users.verified_at` column and emails the count to `info@pyvar.com` every morning.
 
@@ -19,9 +19,9 @@ It merged. CI went green. Nothing in the pipeline complained.
 
 It also never once sent an email, in either environment, because it was never actually deployed. The stack had been added to `pyvar-cdk/app.py`'s list of standalone stacks — the ones you can `cdk deploy` by hand — but never wired into `PyvarDeployStage`, which is the object the *pipeline* actually walks on every run. The pipeline had no idea `TokenReportStack` existed. A green pipeline run and a deployed feature are not the same claim, and this is exactly the gap between them.
 
-That alone would be a clean, boring bug-and-fix story. What made it worth writing about is what it was standing next to: a second, older bug that had been there all along, waiting for a commit like this one to trigger it.
+That alone would be a clean, boring find-and-fix story. What made it worth writing about is what it was standing next to: a second, older gap that had been there all along, waiting for a commit like this one to trigger it.
 
-## The bug underneath the bug
+## The gap underneath the gap
 
 `TokenReportStack` needed a migration — `0006_user_verified_at`, adding the column the report queries. The migration step in the pipeline runs `ecs run-task --task-definition <family-name>`, which resolves to whichever task-definition revision is currently marked ACTIVE in ECS.
 
@@ -31,7 +31,7 @@ A migration introduced in the same commit as the code that depends on it silentl
 
 `0006_user_verified_at` hit this exactly — confirmed missing in both dev and prod, despite a fully green pipeline history. The fix: instead of running the bare family name, clone the family's current task definition with only the image swapped to the one this run just built, register that as a one-off revision, and run that specific revision ARN. The next migration that ships alongside its own feature commit will actually see the column it's adding.
 
-A third bug turned up in the same investigation, smaller but worth a line: `TokenReportStack`'s Lambda still couldn't send email even once deployed correctly — `ses:SendEmail` came back 403 against the SES configuration-set resource, despite the identity-level `grant_send_email()` already being in place. AWS wants a second, separate grant against the configuration set itself whenever an identity has one attached as its default. This is the same gap `api_stack.py`'s ECS task role had already hit and documented once before — the kind of thing that's obvious in hindsight and invisible until you hit it a second time.
+A third finding turned up in the same investigation, smaller but worth a line: `TokenReportStack`'s Lambda still couldn't send email even once deployed correctly — `ses:SendEmail` came back 403 against the SES configuration-set resource, despite the identity-level `grant_send_email()` already being in place. AWS wants a second, separate grant against the configuration set itself whenever an identity has one attached as its default. This is the same gap `api_stack.py`'s ECS task role had already hit and documented once before — the kind of thing that's obvious in hindsight and invisible until you hit it a second time.
 
 None of these three were caught by code review. They were caught by checking whether the feature actually worked in the deployed environment, not by trusting that green CI meant it did.
 
@@ -67,7 +67,7 @@ Low-stakes, bounded (the in-pipeline skip-gates no-op when nothing deploy-releva
 
 ## What actually shipped, checkable today
 
-- **Seven merged PRs since the first article** (`#326`–`#332`): the Sentry noise fix, the JWT report feature and its two deploy bugs, the CHANGELOG backfill, the cost/contact corrections, this session's own roadmap-and-marketplace work, and the market-data-adapter groundwork.
+- **Seven merged PRs since the first article** (`#326`–`#332`): the Sentry noise fix, the JWT report feature and the two gaps in its deploy, the CHANGELOG backfill, the cost/contact corrections, this session's own roadmap-and-marketplace work, and the market-data-adapter groundwork.
 - **`v0.2.0`** — tagged and published as a real GitHub Release (2026-09-08), with an actual changelog, closing a gap where the release process itself had gone quiet since `v0.1.0`.
 - **The README's cost line now reads $900–1,000/month**, sourced to a real invoice, not a pre-launch target.
 - **The Partner Network resubmission** — sent, reassessed, and declined again on the one structural criterion detailed above (no named third-party customer), after the framing/measurable-result gaps from round one closed.
@@ -80,11 +80,11 @@ The first article's thesis was that verification thorough enough to publish beco
 
 ## Sources
 
-- `CHANGELOG.md` (this repo) — `[0.2.0]` and `[Unreleased]` sections, quoted directly above.
-- `git log`, PR `#326`–`#332` (this repo / GitHub) — commit history and merged-PR range since the first article's publication commit.
-- `README.md` (this repo) — current AWS cost line and tech-stack summary.
-- `docs/p9-scenario-volume-cost-audit.md` (this repo) — the cost breakdown and the sub-cent-per-scenario finding.
-- `docs/known-issues.md` (this repo) — the CodePipeline push-filter top-level-file gap.
-- `docs/partner-hub-public-case-study-resubmission-email.md` (this repo) — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).
-- GitHub Releases, `fibtecltd/pyvar` — `v0.2.0` (published 2026-09-08), `v0.1.0` (published 2026-08-23).
-- `docs/publications/pyvar-buildstory-medium-article.md` (this repo) — the first article this piece follows up on.
+- [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — `[0.2.0]` and `[Unreleased]` sections, quoted directly above.
+- `git log`, PRs [`#326`](https://github.com/fibtecltd/pyvar/pull/326)–[`#332`](https://github.com/fibtecltd/pyvar/pull/332) — commit history and merged-PR range since the first article's publication commit.
+- [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md) — current AWS cost line and tech-stack summary.
+- [`docs/p9-scenario-volume-cost-audit.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/p9-scenario-volume-cost-audit.md) — the cost breakdown and the sub-cent-per-scenario finding.
+- [`docs/known-issues.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/known-issues.md) — the CodePipeline push-filter top-level-file gap.
+- [`docs/partner-hub-public-case-study-resubmission-email.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/partner-hub-public-case-study-resubmission-email.md) — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).
+- GitHub Releases, `fibtecltd/pyvar` — [`v0.2.0`](https://github.com/fibtecltd/pyvar/releases/tag/v0.2.0) (published 2026-09-08), [`v0.1.0`](https://github.com/fibtecltd/pyvar/releases/tag/v0.1.0) (published 2026-08-23).
+- [`docs/publications/pyvar-buildstory-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md) — the first article this piece follows up on.

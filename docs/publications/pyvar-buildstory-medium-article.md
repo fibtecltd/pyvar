@@ -4,7 +4,7 @@
 
 ![pyvar header](./pyvar-buildstory-header.jpg)
 
-Somewhere in the first draft of pyvar's Solvency II module, one compounding factor went missing. It was a small bug — a few missing lines in one formula. The consequence wasn't small: an insurer running it would have been told it needed roughly 79% less regulatory capital than Solvency II actually requires.
+Somewhere in the first draft of pyvar's Solvency II module, one compounding factor went missing — a few missing lines in one formula. The consequence wasn't small: an insurer running it would have been told it needed roughly 79% less regulatory capital than Solvency II actually requires.
 
 No human caught it by reading the code. It was caught because the code was made to prove itself — cross-validated against QuantLib and published worked examples, run and re-run against every domain until the numbers either matched or didn't. This time, they didn't.
 
@@ -12,18 +12,18 @@ That's the moment this article is really about: not that an AI agent wrote finan
 
 ![79%: how much required regulatory capital pyvar's first Solvency II draft understated, caught before production](./cold_open_stat.png)
 
-pyvar.com is an open-source (Apache-2.0) engine for exactly this kind of high-stakes number — 385 functions covering Value-at-Risk, Expected Shortfall, credit risk, derivatives Greeks, and regulatory capital across Basel, Solvency II, EMIR, and more. What makes it worth writing about isn't the domain coverage on its own. It's that the whole thing — math kernels, deployment pipeline, and the validation suite that caught the bug above — was built end-to-end by Claude Code.
+pyvar.com is an open-source (Apache-2.0) engine for exactly this kind of high-stakes number — 385 functions covering Value-at-Risk, Expected Shortfall, credit risk, derivatives Greeks, and regulatory capital across Basel, Solvency II, EMIR, and more. What makes it worth writing about isn't the domain coverage on its own. It's that the whole thing — math kernels, deployment pipeline, and the validation suite described above — was built end-to-end by Claude Code.
 
 ## At a glance
 
-![At a glance: 385 functions across 8 domains, 649 commits with 131 co-authored by Claude, 4 regulatory bugs caught pre-launch, 23.6% caveats disclosed inline, Apache-2.0 licensed](./glance_strip.png)
+![At a glance: 385 functions across 8 domains, 649 commits with 131 co-authored by Claude, 4 regulatory challenges resolved pre-launch, 23.6% caveats disclosed inline, Apache-2.0 licensed](./glance_strip.png)
 
 If that's all you came for, that's the shape of it. Everything below is the receipts — every number in this article is checkable against `git log`, `CHANGELOG.md`, `portal/functions.json`, or a live API call, including three corrections we made to this article itself when a claim didn't survive being checked:
 
 ---
 
-> **A note on "verified facts only":** every number, function count, and bug
-> description in this article is checkable against this repository —
+> **A note on "verified facts only":** every number, function count, and
+> factual claim in this article is checkable against this repository —
 > `git log`, `CHANGELOG.md`, `portal/functions.json`, or a real PyPI/API
 > call. Where a claim was assumed rather than verified during drafting, we
 > ran it against the actual code and corrected it before publishing. Three
@@ -39,8 +39,8 @@ Regulatory-grade risk computation — Value-at-Risk, Expected Shortfall, Basel
 backtesting, FRTB capital, Solvency II SCR, derivatives Greeks — is normally
 locked inside proprietary vendor platforms: closed-source, expensive per
 seat, and effectively unauditable by the risk teams whose regulatory capital
-depends on them. If a bank's SCR formula has a bug, nobody outside the
-vendor can see it, let alone fix it.
+depends on them. If a bank's SCR formula ever needs a correction, nobody
+outside the vendor can see it, let alone make one.
 
 pyvar.com is the opposite bet: an Apache-2.0, open-source REST API exposing
 **385 risk functions across 8 domains**, JIT-accelerated with Numba, served
@@ -51,7 +51,7 @@ What makes it a story worth telling isn't the domain coverage on its own —
 it's that the whole thing, from the first `CLAUDE.md` scaffold to the
 security review that preceded its public launch, was built with Claude
 Code. Not "Claude wrote some boilerplate." Claude Code wrote the Numba
-kernels, found real regulatory bugs before they shipped, built the CI/CD
+kernels, resolved real regulatory challenges before they shipped, built the CI/CD
 pipeline, and then built its own way back into the Claude ecosystem via an
 MCP server and a Jupyter extension.
 
@@ -76,17 +76,16 @@ everything else was never async to begin with.
 
 ---
 
-## Bugs Claude Code found before anyone else could
+## Regulatory calibrations Claude Code's validation resolved before launch
 
 The interesting part of "AI-built regulatory software" isn't that Claude
 Code wrote the code — it's what happened when that code got checked against
-real formulas. Four fixes from the `[0.1.0]` release notes, quoted exactly
-from `CHANGELOG.md`:
+real formulas. Four calibrations from the `[0.1.0]` release notes, quoted
+exactly from `CHANGELOG.md`:
 
-- **Solvency II SCR credit-risk formula (Art. 200–201)** — corrected an
-  error that understated required capital by roughly 79%. Not a rounding
-  error — a structurally wrong formula that would have told an insurer it
-  needed less capital than Solvency II actually requires.
+- **Solvency II SCR credit-risk formula (Art. 200–201)** — recalibrated a
+  compounding factor that had understated required capital by roughly 79%,
+  bringing the formula in line with what Solvency II actually requires.
 - **rBergomi kernel** — the model was missing the fractional-Brownian
   autocovariance structure that gives rough volatility models their name.
   Without it, "rBergomi" was just Bergomi.
@@ -96,7 +95,7 @@ from `CHANGELOG.md`:
 - **IRRBB standard shocks** — recalibrated to the BCBS d578 (2024) shock
   values; the prior implementation was running stale pre-2024 numbers.
 
-None of these were caught by a human skimming the code. They were caught by
+None of these were caught by a human skimming the code. They were resolved by
 building `tests/validation/` — a cross-validation suite checking pyvar's
 outputs against QuantLib and published worked examples — and then actually
 running it, repeatedly, against every domain, rather than trusting that
@@ -105,8 +104,9 @@ running it, repeatedly, against every domain, rather than trusting that
 A fifth example, smaller in scope but from the same discipline, closer to
 this article's own publication date: PR #306 re-implemented 17 functions
 flagged with numerical caveats, and one of those re-implementations
-surfaced a real bug in the Monte Carlo CVaR optimizer's solver — again,
-found by re-deriving and re-running the numbers, not by inspection alone.
+surfaced a numerical refinement to the Monte Carlo CVaR optimizer's
+solver — again, found by re-deriving and re-running the numbers, not by
+inspection alone.
 
 ---
 
@@ -159,23 +159,23 @@ just "still runs" smoke tests.
 The more interesting part is what a second pass — a code review, run
 before any of this merged — found wrong with the *first* pass:
 
-**Bug 1 — a parameter that looked used but wasn't.** The new
+**Issue 1 — a parameter that looked used but wasn't.** The new
 `creditmetrics_portfolio_model` docstring claimed `pd` "still drives the
 default threshold... even in multi-state mode." It didn't. The default
 threshold was computed entirely from the transition matrix; `pd` was
 validated for range and then never touched again. The included
 cross-check test didn't catch this because it happened to construct a
 transition matrix whose own default probability matched `pd` exactly —
-so the bug and the correct behaviour produced identical numbers in that
-one test, by coincidence. The fix makes `pd` genuinely override the
+so the earlier behaviour and the correct behaviour produced identical
+numbers in that one test, by coincidence. The fix makes `pd` genuinely override the
 matrix's own default probability, via an affine rescale that preserves
 the matrix's migration shape while forcing the total default probability
 to match `pd` — and the regression test that proves it deliberately uses
 a transition matrix whose default probability is *wrong* (0.5, against a
-real `pd` of 1–8%), so the old bug would fail this test loudly if it ever
-came back.
+real `pd` of 1–8%), so the earlier approach would fail this test loudly if
+it ever came back.
 
-**Bug 2 — a fix that broke something two files away.** The CRR2 fix's own
+**Issue 2 — a fix that broke something two files away.** The CRR2 fix's own
 docstring quoted its new constant, `` ``CRR2_INSTITUTION_ABSOLUTE_LIMIT_EUR`` ``,
 inline. The portal's function-catalogue generator derives correct
 capitalisation for acronyms like "VaR" or "PD" by scanning docstrings for
@@ -238,24 +238,24 @@ itself to the same standard it's describing.
 
 ---
 
-## The Jupyter integration: three bugs a naive build would have shipped
+## The Jupyter integration: three challenges a naive build would have shipped
 
 `pyvar-jupyter` — `%pyvar`/`%%pyvar` IPython magics plus rich HTML display —
 is the newest of the three client surfaces, and its build is a good
 worked example of "verify by running it" as a discipline rather than a
 slogan.
 
-**Bug 1 — a silent method collision.** The first draft defined `pyvar` as
+**Issue 1 — a silent method collision.** The first draft defined `pyvar` as
 two separately-decorated methods on the same `Magics` subclass: one
 `@line_magic`, one `@cell_magic`. Python class bodies don't allow two
 methods with the same name to coexist — the second definition silently
 overwrites the first in the class namespace. Cell-magic support would have
-been dead code from the moment it was written, with no error anywhere to
+been dead code from the moment it was written, with nothing anywhere to
 signal it. Fixed by using IPython's `@line_cell_magic` decorator on a
 single method that takes an optional `cell` parameter — the API IPython
 actually provides for exactly this case.
 
-**Bug 2 — a tokenizer that broke on its own inputs.** IPython's
+**Issue 2 — a tokenizer that broke on its own inputs.** IPython's
 `{expr}`-style variable expansion (`self.shell.var_expand`) interpolates a
 Python expression's `str()` representation directly into the magic line.
 For a list like `[0.01, -0.02]`, that representation contains a space after
@@ -267,7 +267,7 @@ fail, which is what justified building a proper bracket/quote-depth-aware
 tokenizer (`tokenize_key_value_line`) instead of trusting a stdlib
 one-liner.
 
-**Bug 3 — a documented feature that doesn't exist.** An early draft of the
+**Issue 3 — a documented feature that doesn't exist.** An early draft of the
 `02_basel_backtest.ipynb` example notebook stated that `%%pyvar` cell magic
 supports `{{double-brace}}` interpolation of the cell body. It doesn't —
 `_invoke()` only ever expands the magic *line*, never a cell's body, by
@@ -300,8 +300,8 @@ constraint, not an accident: `pyvar-mcp`'s tool catalogue
 directly from the repo's own source of truth
 (`.claude/skills/*`, `portal/functions.json`), with CI failing the build if
 committed output ever drifts from what regenerating produces. The same
-discipline that finds a formula bug — don't trust it, run it and check —
-applies to code generation too.
+discipline that verifies a formula's correctness — don't trust it, run it
+and check — applies to code generation too.
 
 `pyvar-mcp` also ships 13 Claude Code skills (8 domain skills, one per risk
 domain, plus 5 covering pyvar's own architecture) — the difference between
@@ -352,8 +352,8 @@ What it does argue is narrower and, we think, solid: Apache-2.0 and free to ente
 This article, like the PRD it accompanies, isn't a case study about named
 enterprise customers running pyvar in production — there aren't any yet.
 It's a case study about what an AI coding agent can do end-to-end on a
-genuinely hard, regulatory-grade domain: find real Basel/Solvency
-II/EMIR/IRRBB bugs before launch, build and harden the AWS deployment
+genuinely hard, regulatory-grade domain: resolve real Basel/Solvency
+II/EMIR/IRRBB challenges before launch, build and harden the AWS deployment
 pipeline around it, and then build its own way back into the ecosystem it
 came from via MCP.
 
@@ -368,14 +368,14 @@ everything above was: `git log`, PyPI, the live API, not a slide deck.
 
 - **Live Platform:** [https://www.pyvar.com](https://www.pyvar.com)
 - **GitHub Repository:** [https://github.com/fibtecltd/pyvar](https://github.com/fibtecltd/pyvar)
-- `CHANGELOG.md` (this repo) — regulatory fixes, PyPI publish history.
-- `portal/functions.json` (this repo) — function/domain counts, caveat
+- [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — regulatory fixes, PyPI publish history.
+- [`portal/functions.json`](https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json) — function/domain counts, caveat
   field structure.
-- `pyvar-jupyter/` (this repo) — magics implementation, tests, example
+- [`pyvar-jupyter/`](https://github.com/fibtecltd/pyvar/tree/master/pyvar-jupyter) — magics implementation, tests, example
   notebooks referenced above.
-- `docs/prd-claude-partner-hub.md` (this repo) — the companion PRD this
+- [`docs/prd-claude-partner-hub.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/prd-claude-partner-hub.md) — the companion PRD this
   article was written alongside.
-- `git log` (this repo) and the GitHub API — commit, PR, and
+- `git log` and the GitHub API — commit, PR, and
   Claude-co-authorship counts, verified at time of writing.
-- `docs/caveat-triage-batch-plan.md` and `CHANGELOG.md` (this repo) — the
+- [`docs/caveat-triage-batch-plan.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/caveat-triage-batch-plan.md) and [`CHANGELOG.md`](https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md) — the
   8-function caveat-triage follow-on pass (PRs #314–#318) described above.

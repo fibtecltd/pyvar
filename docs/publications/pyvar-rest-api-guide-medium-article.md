@@ -159,11 +159,11 @@ curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var 
 
 ## Sources
 
-- `api/routes/auth.py` (this repo) — registration, verification, JWT issuance.
-- `api/middleware/auth.py` (this repo) — JWT decoding, `TokenPayload`, per-tier `max_simulations`.
-- `api/middleware/rate_limit.py` (this repo) — daily and monthly request-count caps, the shared-scope design, downgrade trigger.
-- `api/routes/var.py` (this repo) — the async `var.compute`/`var.result` endpoints, the monthly simulation-count cap.
-- `api/routes/billing.py` (this repo) — Stripe Checkout flow, the JWT-staleness bridge, webhook-driven tier changes.
-- `config.py` (this repo) — the actual numeric limits (`rate_limit_free_daily`, `rate_limit_pro_daily`, `rate_limit_pro_monthly_requests`, `rate_limit_pro_monthly_simulations`) quoted directly.
-- `main.py` (this repo) — router registration, the 8 domain prefixes, `/docs` OpenAPI UI.
-- `docs/publications/pyvar-client-guide-medium-article.md`, `pyvar-jupyter-guide-medium-article.md` (this repo) — the companion SDK/notebook guides this piece complements without repeating.
+- [`api/routes/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/auth.py) — registration, verification, JWT issuance.
+- [`api/middleware/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/auth.py) — JWT decoding, `TokenPayload`, per-tier `max_simulations`.
+- [`api/middleware/rate_limit.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/rate_limit.py) — daily and monthly request-count caps, the shared-scope design, downgrade trigger.
+- [`api/routes/var.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/var.py) — the async `var.compute`/`var.result` endpoints, the monthly simulation-count cap.
+- [`api/routes/billing.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/billing.py) — Stripe Checkout flow, the JWT-staleness bridge, webhook-driven tier changes.
+- [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py) — the actual numeric limits (`rate_limit_free_daily`, `rate_limit_pro_daily`, `rate_limit_pro_monthly_requests`, `rate_limit_pro_monthly_simulations`) quoted directly.
+- [`main.py`](https://github.com/fibtecltd/pyvar/blob/master/main.py) — router registration, the 8 domain prefixes, `/docs` OpenAPI UI.
+- [`docs/publications/pyvar-client-guide-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-client-guide-medium-article.md), [`pyvar-jupyter-guide-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-jupyter-guide-medium-article.md) — the companion SDK/notebook guides this piece complements without repeating.

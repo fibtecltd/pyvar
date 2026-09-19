@@ -189,7 +189,7 @@ Then, in a fresh notebook:
 
 ## Sources
 
-- `pyvar-jupyter/README.md` (this repo) — install, quick start, magic forms, display helper, session config — the primary source for this article, quoted and lightly adapted throughout.
-- `pyvar-jupyter/examples/01_portfolio_var.ipynb`, `02_basel_backtest.ipynb`, `03_derivatives_greeks.ipynb` (this repo) — the three worked examples above, code cells reproduced directly from the shipped notebooks.
-- `pyvar-jupyter/pyvar_jupyter/_magics.py`, `_display.py` (this repo) — the line/cell magic dispatch and `show()` implementation these examples exercise.
-- `docs/publications/pyvar-client-guide-medium-article.md` (this repo) — the companion SDK guide this piece builds on without repeating.
+- [`pyvar-jupyter/README.md`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/README.md) — install, quick start, magic forms, display helper, session config — the primary source for this article, quoted and lightly adapted throughout.
+- [`pyvar-jupyter/examples/01_portfolio_var.ipynb`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/examples/01_portfolio_var.ipynb), [`02_basel_backtest.ipynb`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/examples/02_basel_backtest.ipynb), [`03_derivatives_greeks.ipynb`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/examples/03_derivatives_greeks.ipynb) — the three worked examples above, code cells reproduced directly from the shipped notebooks.
+- [`pyvar-jupyter/pyvar_jupyter/_magics.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/pyvar_jupyter/_magics.py), [`_display.py`](https://github.com/fibtecltd/pyvar/blob/master/pyvar-jupyter/pyvar_jupyter/_display.py) — the line/cell magic dispatch and `show()` implementation these examples exercise.
+- [`docs/publications/pyvar-client-guide-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-client-guide-medium-article.md) — the companion SDK guide this piece builds on without repeating.
