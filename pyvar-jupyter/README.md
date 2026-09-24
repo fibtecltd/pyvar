@@ -129,6 +129,21 @@ Worked notebooks in [`examples/`](examples/):
   traffic-light backtest (Kupiec/Christoffersen)
 - [`03_derivatives_greeks.ipynb`](examples/03_derivatives_greeks.ipynb) —
   an exotic option pricer with bump-and-reprice Greeks
+- [`04_credit_risk_expected_loss.ipynb`](examples/04_credit_risk_expected_loss.ipynb) —
+  IRB expected loss (EL = PD × LGD × EAD) for a single exposure
+- [`05_liquidity_coverage_ratio.ipynb`](examples/05_liquidity_coverage_ratio.ipynb) —
+  Basel III LCR with the 75% inflow cap
+- [`06_operational_var.ipynb`](examples/06_operational_var.ipynb) —
+  OpVaR/expected shortfall from a simulated annual-loss distribution
+- [`07_portfolio_max_sharpe.ipynb`](examples/07_portfolio_max_sharpe.ipynb) —
+  SLSQP-optimised maximum-Sharpe-ratio portfolio weights
+- [`08_basel_cet1_ratio.ipynb`](examples/08_basel_cet1_ratio.ipynb) —
+  Basel III CET1 capital ratio against the 4.5% minimum
+- [`09_alm_eve_sensitivity.ipynb`](examples/09_alm_eve_sensitivity.ipynb) —
+  EVE sensitivity under IRRBB's six standard rate shocks
+
+All nine cover a different one of pyvar's 8 risk domains (Market Risk
+appears twice: VaR and the Basel backtest).
 
 ## Development
 
