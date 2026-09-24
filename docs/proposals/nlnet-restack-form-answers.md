@@ -273,20 +273,31 @@ line further if the URL doesn't fit.)
 
 ## AI disclosure (required — Yes/No + prompt log, max 8000 chars or file upload)
 
-**This is new, required, and genuinely needs Filippo's decision — not
-something to draft speculatively.** Two separate things the form asks for:
+**Resolved 2026-09-24.** Text field content below (3,588 characters, well
+under the 8000-char cap), paired with a full prompt/output log attached as
+`docs/proposals/nlnet-ai-disclosure-log.md`. Both were compiled by
+extracting real turns from this session's own Claude Code transcript —
+not drafted from memory or reconstructed after the fact — so the log is
+the actual record, not a summary of one.
 
-1. **"Did you use generative AI in writing this proposal?"** Given this
-   proposal's text itself would be drafted with Claude Code's assistance —
-   consistent with how every other piece of writing in this repository has
-   been produced — the honest answer is **Yes**. Answering "No" would be a
-   misrepresentation the policy explicitly prohibits, regardless of how
-   the framing question below gets resolved.
-2. **The prompt-provenance log** — actual prompts/interactions and
-   unedited output, not a summary invented after the fact. This needs to
-   be compiled from the real session(s) used to draft the final
-   submission text, once that drafting happens — not fabricated now
-   against a draft that will change.
+> **Yes.**
+>
+> **Model:** Claude (Anthropic), used via the Claude Code CLI — an agentic coding tool with file read/write/edit, shell, web search, and GitHub access. Model coverage varied across the drafting sessions (2026-09-10 to 2026-09-24) as Anthropic's available models changed over that period; the most recent turns (2026-09-19 onward) ran on Claude Sonnet 5.
+>
+> **What it was used for:** iteratively drafting and revising every text-field answer in this document against NLnet's real form fields and character limits; researching NLnet's own GenAI policy and propose-page text (pasted in directly by Filippo, since this session has no live web access to nlnet.nl) and correcting prior assumptions against it; adding citations to this project's own published articles once those existed; and compiling this disclosure itself from the session's real transcript, not from memory or a fresh redraft.
+>
+> **Representative prompts and AI output.** The full, unedited log — every relevant prompt, AI text response, and file edit to this document, across 5 real conversational turns and 33 file operations between 2026-09-10 and 2026-09-24 — is attached as `nlnet-ai-disclosure-log.md`. It was extracted programmatically from this session's own Claude Code transcript (filtered to every turn mentioning "nlnet", then to genuine human-typed prompts only, excluding harness-generated context-compaction summaries), not reconstructed from memory. Three representative excerpts:
+>
+> 1. **2026-09-17, Filippo (verbatim):** "...we need to review the NlNet application since it seems AI project are not welcome / banned there. these are the links with the details: https://nlnet.nl/propose/ https://nlnet.nl/foundation/policies/generativeAI/ for your convenience, should not be able to reach them I have attached the saved html pages here." [attached the two real NLnet pages as HTML]
+>    **AI output (excerpt):** "Reviewed both pages you attached. The short version: NLnet has not banned AI-assisted projects. The propose page's blunt 'not interested in AI-generated projects' line sits next to..." — the full review corrected the reading of the policy (a disclosure-and-accountability regime, not a tooling ban), produced a rewritten AI-disclosure section, and recorded the framing decision in `docs/plan-nlnet-submission.md` §3a.
+>
+> 2. **2026-09-19, Filippo (verbatim, one item of four):** "...review and update the NlNet form submission document in the light of the recent articles with references to them..."
+>    **AI output:** citations added to five fields (Experience, Technical challenges, Ecosystem, Comparison, Use of budget), each field's character count recomputed against its real limit before and after the edit, confirming none exceeded the form's stated caps.
+>
+> 3. **2026-09-24, Filippo (verbatim):** pasted this exact AI-disclosure field's text from the live NLnet form and asked for it to be addressed.
+>    **AI output:** this section, plus the attached log, compiled by extracting every session turn mentioning "nlnet" from the real transcript and reproducing every resulting edit to this file in full.
+>
+> **Accountability.** Every substantive decision — entity type (Fibtec Limited, not an individual), requested amount (€40,800 at €150/hour), milestone structure, and the AI-disclosure framing itself — was made and confirmed by Filippo Buchicchio, not generated autonomously; see `docs/plan-nlnet-submission.md` §4 for the explicit record of which calls were his. The AI drafted text against his direction and against this repository's own facts; nothing here was submitted without his review.
 
 **Framing resolved (2026-09-17):** per `docs/plan-nlnet-submission.md` §3a,
 this section carries the full, honest disclosure — model, prompts, dates,
@@ -330,9 +341,14 @@ form actually asks — the AI-authorship *story* just isn't the pitch.
 - **Still open:** Filippo's public LinkedIn URL (placeholder left in the
   Experience field), and the actual reviewer quotes for milestones 1–2
   once sought (replacing this session's day-count estimates).
-- The AI-disclosure prompt log is compiled from the actual session(s) used
-  to finalise this text — after finalisation, not before.
+- ~~The AI-disclosure prompt log~~ — resolved 2026-09-24: compiled
+  programmatically from this session's real Claude Code transcript (not
+  drafted from memory), text-field content plus the full log attached as
+  `docs/proposals/nlnet-ai-disclosure-log.md`. See the AI disclosure
+  section above.
 - `README.md` carries a proper GenAI-use disclosure statement (plan doc
   §3a) before the "website" field above is something an assessor would
   actually visit and check — done in PR #351, pending merge.
-- Submitted via `nlnet.nl/propose/` before **2026-11-03**.
+- Submitted via `nlnet.nl/propose/` before **2026-11-03**, with
+  `docs/proposals/nlnet-ai-disclosure-log.md` uploaded as the AI
+  disclosure attachment.
