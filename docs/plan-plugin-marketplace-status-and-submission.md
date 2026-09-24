@@ -91,6 +91,51 @@ here.
   per-plugin entries rather than (or in addition to) the bundle-level
   content that already exists.
 
+## 2b. Status check (2026-09-24) — still pending, confirmed against the real approved-plugin list, not assumed
+
+Filippo asked for a status investigation. What this session could and
+couldn't verify directly, without his authenticated claude.ai/Console
+access:
+
+- **`claude-plugins-community`'s real, live approved-plugin list checked
+  directly** — cloned `github.com/anthropics/claude-plugins-community`
+  (a public, read-only mirror the review pipeline syncs nightly, per its
+  own README: "Every plugin listed here has been submitted via claude.ai,
+  passed automated security scanning, and been approved for
+  distribution"). Parsed its `.claude-plugin/marketplace.json`: **2,282
+  approved plugins, zero matches for "pyvar" or "fibtec"** (case-
+  insensitive, checked against the full serialized JSON of every entry,
+  not just plugin names). This is direct, conclusive evidence `pyvar-mcp`
+  has **not been approved as of today** — it does not distinguish "still
+  under review" from "rejected," since both look identical from outside
+  the approved list, but rules out approval definitively.
+- **Smithery** — inconclusive from this sandbox. `smithery.ai` is on this
+  session's network egress blocklist (`WebFetch` refused the domain
+  outright), and `WebSearch` for "pyvar", "pyvar-mcp", and
+  `site:smithery.ai pyvar` returned no matching listing (only unrelated
+  results — other finance-named MCP servers, generic Python skills). This
+  is suggestive but not proof: a real listing could exist and simply not
+  be indexed yet, or the search tool's index could lag.
+- **PR #347** (fibtecltd/pyvar, merged 2026-09-14) re-checked directly via
+  the GitHub API — content matches what's already recorded in §2 above,
+  no newer update.
+
+**What only Filippo (or an agent running with his authenticated session /
+from an unblocked network) can check, that this session genuinely
+cannot:**
+1. The actual review-decision reason or status detail on the submission
+   dashboard at claude.ai/Console (approved-list absence proves "not yet
+   approved," not *why*, and not whether a rejection notice already
+   arrived that hasn't been read).
+2. A definitive, first-party Smithery check — this session's sandbox
+   blocks the domain outright, so "not found via search" is the best
+   available signal, not a confirmed absence.
+
+A ready-to-run prompt for a delegated agent with browser/computer-use
+access (Filippo's own device, or a cloud session on an unblocked network)
+to close both gaps is in the chat response for this investigation —
+not duplicated here to avoid drift between two copies of the same text.
+
 ## 3. Concrete next actions
 
 **For Filippo (only completable by the account holder — this is now a
