@@ -296,7 +296,11 @@ async def stripe_webhook(request: Request) -> dict:
 
     event_type = event["type"]
     event_object = event["data"]["object"]
-    customer_id = event_object.get("customer")
+    # event_object is a real stripe.StripeObject (e.g. checkout.Session), not
+    # a dict -- it has no .get(); attribute access is how the SDK proxies to
+    # the underlying data, so getattr(..., default) is the dict-.get()
+    # equivalent here. (Sentry afa9f2520c744907afa5d069149bfcbb.)
+    customer_id = getattr(event_object, "customer", None)
     stripe_event_id = event["id"]
 
     is_upgrade = event_type == "checkout.session.completed"

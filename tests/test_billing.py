@@ -289,8 +289,35 @@ async def test_checkout_complete_returns_404_for_unknown_customer(app, monkeypat
 # ── POST /billing/webhook ─────────────────────────────────────────────────────────
 
 
+class _FakeStripeObject:
+    """Minimal stand-in for a real stripe.StripeObject's attribute-proxy
+    behaviour: supports `.customer`-style attribute access to its data, like
+    the real SDK, but deliberately has no `.get()` — that mismatch is
+    exactly what caused a real production bug (Sentry
+    afa9f2520c744907afa5d069149bfcbb): `event_object.get("customer")` in
+    api/routes/billing.py worked fine against this fixture when it used to
+    be a plain dict, but raised AttributeError against every real
+    `stripe.Webhook.construct_event()` response, since a real StripeObject
+    isn't dict-like. Using this class instead of a dict here means these
+    tests would have caught that.
+    """
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    def __getattr__(self, name: str):
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
 def _event(event_type: str, customer: str = "cus_1", event_id: str = "evt_test_1") -> dict:
-    return {"id": event_id, "type": event_type, "data": {"object": {"customer": customer}}}
+    return {
+        "id": event_id,
+        "type": event_type,
+        "data": {"object": _FakeStripeObject({"customer": customer})},
+    }
 
 
 @pytest.mark.asyncio
