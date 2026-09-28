@@ -52,14 +52,24 @@ target_metadata = Base.metadata
 def get_sync_url() -> str:
     """
     Convert asyncpg DSN to psycopg2 DSN for Alembic.
-    postgresql+asyncpg://user:pass@host/db → postgresql://user:pass@host/db
+    postgresql+asyncpg://user:pass@host/db → postgresql+psycopg2://user:pass@host/db
 
     Reads through config.get_settings() — see module docstring for why this
     isn't a raw POSTGRES_DSN env var lookup.
+
+    The driver suffix is set explicitly to +psycopg2 rather than left bare
+    (postgresql://). A bare postgresql:// URL leaves dialect resolution to
+    SQLAlchemy's own default, which SQLAlchemy 2.1.0 changed from psycopg2
+    to psycopg (v3) — a dependency we don't install (only psycopg2-binary
+    is in requirements.txt). That silently broke every migration run the
+    moment pip resolved an unpinned sqlalchemy>=2.0.28 to 2.1.0
+    (ModuleNotFoundError: No module named 'psycopg', 2026-09-28 dev
+    RunDbMigration-dev failure). Naming the driver explicitly makes this
+    immune to that class of upstream default change.
     """
     url = get_settings().postgres_dsn
-    # Strip async driver suffix
-    url = re.sub(r"\+asyncpg", "", url)
+    # Strip async driver suffix, pin sync driver explicitly
+    url = re.sub(r"\+asyncpg", "+psycopg2", url)
     return url
 
 
