@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>pyvar Local: the compute engine, offline, no API key required</title>
+<style>
+body { max-width: 760px; margin: 40px auto; padding: 0 20px;
+       font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;
+       line-height: 1.6; font-size: 18px; }
+h1 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 34px;
+     font-weight: 700; line-height: 1.25; margin: 0.4em 0 0.3em; }
+h2 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 26px;
+     font-weight: 700; margin: 1.4em 0 0.4em; }
+h3 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 21px;
+     font-weight: 700; margin: 1.2em 0 0.4em; }
+p { margin: 0.9em 0; }
+em.subtitle { display: block; font-style: italic; color: #555; font-size: 20px;
+              margin: 0 0 1em; }
+code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em;
+       background: #f2f2f2; padding: 0.1em 0.3em; border-radius: 3px; }
+pre { background: #f6f6f6; border-radius: 6px; padding: 14px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 14px; line-height: 1.5; }
+blockquote { border-left: 3px solid #ccc; margin: 1em 0; padding: 0.2em 0 0.2em 1.2em;
+             color: #555; font-style: italic; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; display: block; margin: 1.2em 0; }
+a { color: #1a6b8a; }
+ul, ol { padding-left: 1.4em; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1.2em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+th { background: #f6f6f6; }
+.instructions { background: #fff8e6; border: 1px solid #e8d38a; border-radius: 8px;
+                padding: 14px 18px; margin-bottom: 2em; font-family: -apple-system, sans-serif;
+                font-size: 14px; color: #6b5900; }
+</style></head><body>
+<div class="instructions"><strong>How to use this file:</strong> open it in a browser, select all the content below the instructions box (Cmd/Ctrl+A once you've clicked into the article body), copy, then paste into a new Medium story. Medium should pick up headings, bold/italic, links, blockquotes, tables, and code blocks automatically. Verify each code block converted to Medium's native code block (not a plain paragraph). This conversion is a best-effort based on how Medium's rich-paste generally behaves; it hasn't been tested against a live Medium account.</div>
+<h1>pyvar Local: the compute engine, offline, no API key required</h1><em class="subtitle">A GitHub Release, not a SaaS signup — for institutions whose data-governance policy won't let position or portfolio data leave the building, even to a stateless API.</em><blockquote>
+<p><strong>Draft status:</strong> not yet published. Every fact below — the release tag, the build date, the asset size, the CLI output shape — is verified against the actual <code>fibtecltd/pyvar</code> GitHub Release and repo source at drafting time. See <strong>Sources</strong> at the end.</p>
+</blockquote>
+<hr />
+<p>pyvar.com's regulatory-grade risk functions — VaR, Expected Shortfall, credit PD/LGD/EAD, liquidity ratios, operational risk, the rest of the eight domains — are built to be called over a REST API. That's the right shape for most users. It's the wrong shape for a specific, real category of institution: one whose data-governance policy simply doesn't permit sending position or portfolio data to <em>any</em> third-party endpoint, stateless or not, encrypted or not. For that case, the answer isn't "trust us, nothing is logged" — it's "don't send it anywhere."</p>
+<p><strong>pyvar Local</strong> is that answer: the exact same compute engine that powers the hosted API, packaged as a Docker image you run entirely on your own infrastructure, with no network call to pyvar.com required to get a result.</p>
+<h2>What's actually in the box</h2>
+<p>Three things, deliberately:</p>
+<ol>
+<li><strong><code>engine/</code></strong> — the same compute engine that runs the hosted <code>pyvar.com</code> API. Not a fork, not a re-implementation kept loosely in sync by hand — packaged from the same source on every release, so it can't drift.</li>
+<li><strong>The real test suite, shipped, not just referenced.</strong> <code>tests/test_engine.py</code> — the same numerical-property tests (VaR &gt; 0, CVaR ≥ VaR, 99% VaR &gt; 95% VaR, determinism under a fixed seed) that gate every change to the hosted platform — is inside the image, runnable by anyone who receives it:</li>
+</ol>
+<p><code>docker run --rm --entrypoint pytest pyvar-local /app/tests/test_engine.py -v</code></p>
+<p>That's a genuine "don't take our word for it" mechanism, not a marketing claim. If you don't trust that the engine does what it says, you can verify it yourself, offline, without asking us for anything.</p>
+<ol>
+<li><strong>A minimal CLI</strong> (<code>pyvar_local/cli.py</code>) that reflects over the actual <code>engine/</code> modules at runtime — every function <code>engine/</code> exposes is automatically reachable through the CLI, which means the CLI's function list can't silently fall behind what the engine actually contains. There's no manually-maintained registry to forget to update.</li>
+</ol>
+<pre><code>$ docker run --rm pyvar-local list | head -3
+alm_behavioural.behavioural_modelling_nmds(...)
+alm_behavioural.core_deposit_duration(...)
+alm_behavioural.loan_prepayment_rate_cpr(...)
+
+$ docker run --rm pyvar-local call montecarlo run_monte_carlo_var \
+    --params '{&quot;returns&quot;: [0.001, -0.002, ...], &quot;portfolio_value&quot;: 1000000, &quot;n_simulations&quot;: 1000, &quot;seed&quot;: 1}'
+</code></pre>
+<h2>What's deliberately <em>not</em> in the box yet</h2>
+<p>Worth being direct about scope, since half of what makes a release trustworthy is saying plainly what it doesn't do. This first release does not include a local FastAPI server matching the hosted API's full route surface — no auth layer, no per-function REST endpoints, no request/response schema validation server-side. That's real, larger work, tracked as a fast-follow rather than shipped here. If your workflow needs an HTTP interface rather than a CLI, this release isn't there yet — the CLI is the whole interface today.</p>
+<h2>Getting it</h2>
+<p>This isn't a <code>docker pull</code> from a registry — it's a GitHub Release asset, a <code>docker save | gzip</code> of the built image:</p>
+<ul>
+<li><strong>Tag:</strong> <code>pyvar-local-v0-6682472c</code></li>
+<li><strong>Built:</strong> 2026-09-12</li>
+<li><strong>Asset:</strong> <code>pyvar-local.tar.gz</code>, ~555 MB</li>
+<li><strong>Download:</strong> <a href="https://github.com/fibtecltd/pyvar/releases/tag/pyvar-local-v0-6682472c">github.com/fibtecltd/pyvar/releases/tag/pyvar-local-v0-6682472c</a></li>
+</ul>
+<pre><code>$ docker load -i pyvar-local.tar.gz
+Loaded image: pyvar-local:&lt;full-sha&gt;
+
+$ docker run --rm pyvar-local:&lt;full-sha&gt; list | head -3
+</code></pre>
+<p><code>docker load</code> prints the exact tag it loaded — use that tag (not a bare <code>pyvar-local</code> with no tag) for every command after. Worth re-tagging to something shorter first: <code>docker tag pyvar-local:&lt;sha&gt; pyvar-local:local</code>.</p>
+<p>It uses its own tag namespace (<code>pyvar-local-v&lt;version&gt;-&lt;short-sha&gt;</code>), separate from the application's own version tags (<code>v0.1.0</code>, <code>v0.2.0</code>), and ships as a <em>prerelease</em> — a deliberate signal that this is a first cut of a distribution mechanism, not a promise of API/CLI stability yet.</p>
+<h2>Why a tarball, not a container registry</h2>
+<p>The build pipeline behind this (<code>pyvar-cdk/stacks/local_package_stack.py</code>) is a manually-triggered, two-stage CodePipeline — Build+Test (docker build, pre-warm the Numba JIT cache into the image layer, run <code>tests/test_engine.py</code> inside the <em>built</em> image as a release gate, not just the source) then Publish. It's wired into the CDK app as a standalone stack, deliberately <em>not</em> part of the auto-deploying pipeline that ships every push to the hosted API — this only runs when someone actually triggers it.</p>
+<p>Publishing as a GitHub Release asset rather than pushing to a container registry in AWS was a deliberate choice: it avoids a data-residency constraint the project had already hit once elsewhere in its infrastructure (a public-data stack that needed to stay in a specific AWS region), and a GitHub Release requires no new AWS storage or new IAM surface at all — the GitHub token this needs already existed for the main pipeline.</p>
+<h2>The licensing point, stated plainly</h2>
+<p>The code in this image is the same Apache-2.0-licensed <code>engine/</code> already published in the main repository. Nothing about running it locally requires a purchase — you could build this exact image yourself from the public source. What a commercial <code>pyvar Local</code> offering would actually be selling, if and when one exists, is the <em>signed, tested release itself</em>, a regulatory documentation bundle, update delivery, and support — not access to code that's already public. This release is the "build once, share once" slice of that idea, not the commercial product.</p>
+<h2>Try it</h2>
+<pre><code>docker load -i pyvar-local.tar.gz
+docker run --rm pyvar-local:&lt;loaded-tag&gt; list
+docker run --rm --entrypoint pytest pyvar-local:&lt;loaded-tag&gt; /app/tests/test_engine.py -v
+</code></pre>
+<p>No API key. No network call. No account. Just the engine, verifiable by running its own test suite yourself.</p>
+<hr />
+<h2>Sources</h2>
+<ul>
+<li><a href="https://github.com/fibtecltd/pyvar/releases/tag/pyvar-local-v0-6682472c">GitHub Release <code>pyvar-local-v0-6682472c</code></a> — the actual published asset this article describes.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-local/README.md"><code>pyvar-local/README.md</code></a> — scope, usage, and licensing note, verified verbatim against the current repo.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-local/Dockerfile"><code>pyvar-local/Dockerfile</code></a> — build steps, JIT pre-warm, base image.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-cdk/stacks/local_package_stack.py"><code>pyvar-cdk/stacks/local_package_stack.py</code></a> — the manually-triggered build/publish pipeline.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/portal/local.html"><code>portal/local.html</code></a> — the live download page on pyvar.com, source of the exact tag/date/size figures used here.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/plan-pyvar-local-package-generation.md"><code>docs/plan-pyvar-local-package-generation.md</code></a> — the full build/verification history behind this release.</li>
+</ul>
+</body></html>
