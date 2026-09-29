@@ -1,14 +1,21 @@
 name: pyvar CI
 
-# Runs on every PR and push to non-master branches.
-# The CodePipeline (triggered on master) is the CD path.
+# Runs on every PR targeting master/develop.
+# The CodePipeline (triggered on push to master) is the CD path.
 # This workflow provides fast feedback on PRs.
+#
+# pull_request only, no push trigger: a `push` event and a `pull_request`
+# event both fire for the same commit on every push to an open PR's branch
+# (branches-ignore: [master] would otherwise still match it), so keeping
+# both doubled every job here -- two full test/lint/Docker-build runs per
+# push, not one. Confirmed no CodePipeline overlap either way: CodePipeline
+# is wired to its own separate GitHub connection trigger (pipeline_stack.py,
+# CLAUDE.md §8.1) that only fires on push to master, which this workflow
+# was never triggered by regardless of this change.
 
 on:
   pull_request:
     branches: [master, develop]
-  push:
-    branches-ignore: [master]
 
 # Declaring `permissions:` at all zeroes every unlisted scope on the default
 # GITHUB_TOKEN. Every job here only checks out and reads (lint, test, a
