@@ -139,9 +139,33 @@ the subtree.
   both `_cache_get`/`_cache_set` fail open on a Redis error. 27/27 across
   both MD-1 and MD-2 test files; full suite re-run clean.
 
-**Still blocked on Filippo, unchanged from §3**: MD-3 (the real Refinitiv
-adapter) needs decisions #1 (RDP access tier), #2 (snapshot vs. streaming),
-and the cache-TTL legal check (#3, which also unblocks turning MD-2's
-placeholder TTLs into real values) and the ISIN→RIC persistence call (#4).
-MD-4 (wiring into `tasks/var_task.py`) stays hard-gated behind MD-1–3 being
-merged and reviewed, exactly as §5 specifies.
+**§3's decisions #2–#4 resolved by Filippo (2026-09-29)**:
+- **#2 (snapshot vs. streaming)**: **snapshot (REST) for v1** — confirms
+  the plan's own recommendation. MD-3 scope is the smaller REST-only shape,
+  reusing `tasks/var_task.py`'s retry/backoff pattern per §1.
+- **#3 (cache TTL legal check)**: **not applicable — no caching for now**.
+  Simplifies rather than resolves the underlying legal question: MD-2's
+  `registry.py` already supports `cached=False` to opt a provider out of
+  the TTL cache entirely, so `providers/refinitiv.py` will register with
+  caching off rather than needing real TTL values. The placeholder TTLs in
+  `cache.py` stay as placeholders (harmless — nothing will exercise them
+  for Refinitiv) until/unless caching is revisited later, at which point
+  the legal check is still required before turning them into real values.
+- **#4 (ISIN→RIC persistence)**: **session-only** — `resolve_instrument()`
+  results must not be persisted or cached beyond a single session/request.
+  No mapping-table design needed for v1.
+
+**#1 (RDP access tier) is now the sole remaining blocker, and it's more
+fundamental than originally scoped**: Filippo does not yet have a
+Refinitiv RDP sandbox account at all. This isn't "which tier" — there is
+no tier yet. **MD-3 cannot start, even with #2–#4 resolved, until a
+sandbox account exists**, since there's no way to write or test a
+sandbox-specific adapter (auth flow, endpoint shapes, actual field names
+in responses) against nothing. Concrete next step is on Filippo: obtain a
+Refinitiv RDP sandbox/app registration. Once that exists, MD-3 can proceed
+directly against the now-resolved #2–#4 decisions with no further
+planning needed — this doc's own §5 sequencing already covers what comes
+after.
+
+MD-4 (wiring into `tasks/var_task.py`) stays hard-gated behind MD-1–3
+being merged and reviewed, exactly as §5 specifies.
