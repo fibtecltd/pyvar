@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+
+Sitemap: https://pyvar.com/sitemap.xml
