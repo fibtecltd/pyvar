@@ -236,3 +236,60 @@ not a full pass.)
 - Any bug found is filed and fixed before considering Pro enrollment
   "verified," not just noted and left open.
 - Config overrides used for Tests 4–5 are confirmed reverted.
+
+## 15. Executed — Test 1 (happy path) + Test 9 (idempotency), 2026-09-29/30
+
+Run via `docs/stripe-smoke-test-delegated-agent-prompt.md`, a focused
+slice of this plan rather than the full 10-test pass — specifically
+targeted at re-verifying PR #367's webhook fix (`AttributeError` on
+`event_object.get("customer")`, Sentry `afa9f2520c744907afa5d069149bfcbb`)
+against a **real** Stripe webhook delivery, the exact gap that let the
+original bug ship past CI (the old test fixture was a plain dict, which
+masked it).
+
+**Test 1 (enrollment happy path) — passed.** Register → verify → real
+Stripe test-mode Checkout (driven through an actual headless-browser
+session against the hosted Checkout page, not a synthetic
+`stripe trigger` event) → `GET /billing/checkout/complete` returned
+`tier: "pro"`, read straight from `users.tier`. CloudWatch logged
+`stripe_webhook_tier_updated` with no `AttributeError` and no unhandled
+exception — direct confirmation the fixed `getattr(event_object,
+"customer", None)` path runs cleanly against a genuine webhook payload,
+not just the unit-test mock.
+
+**Test 9 (webhook idempotency) — passed.** Resending the same webhook
+event logged `stripe_webhook_duplicate_event_ignored`; no second
+`billing_events` row, no second tier update. Confirms Stripe's
+at-least-once delivery guarantee can't silently grant a duplicate Pro
+upgrade nobody paid for.
+
+**Bonus coverage, not originally scoped**: cleanup (cancelling the test
+subscription) exercised the pro → free downgrade path live as a side
+effect, with no errors.
+
+**Known real-environment gaps hit during this run** (informational, not
+blocking — neither bears on the two results above):
+- Dev Aurora is VPC-private with no bastion host (`compute_stack.py`'s
+  own SSM-only design) and the dev Spot worker (the one EC2 instance
+  with SSM access) was terminated at the time — no path existed to read
+  `verification_token` directly from the DB. Worked around by having a
+  human check a real inbox and relay the token instead (dev SES runs in
+  production mode, so a real email is genuinely sent — this wasn't
+  optional).
+- The delegated agent's own sandbox initially couldn't launch Chromium
+  (`libglib-2.0.so.0` missing, no root) — resolved without any elevated
+  access by extracting the missing shared libraries from their `.deb`
+  packages directly (`dpkg-deb`), not by installing them system-wide.
+- **Cleanup incomplete**: two test user rows remain in the dev `users`
+  table (one unverified, one downgraded back to `free` post-cleanup) —
+  same DB-access gap as above. Needs a manual
+  `DELETE FROM users WHERE email IN (...)` from someone with dev DB
+  access; not urgent (dev-only, no PII risk beyond a throwaway test
+  address) and deliberately not worth reopening DB/infra access
+  (ECS Exec or an SSM tunnel) just to run one cleanup query.
+
+**Remaining scope, unchanged**: Tests 2–8 and 10 (rate limits, per-call
+simulation caps, monthly-cap auto-downgrade via a Stripe test clock,
+payment-failure downgrade, subscription cancellation, Enterprise
+exemption) are still unexecuted — this run was deliberately narrower
+than the full plan, not a substitute for it.
