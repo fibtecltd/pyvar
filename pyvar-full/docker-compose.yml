@@ -1,0 +1,138 @@
+# ============================================================
+# pyvar-full/docker-compose.yml — pyvar, complete, self-contained
+#
+# Runs the FULL pyvar stack (API + Celery worker + Redis + Postgres)
+# from a single `docker compose up`, no repo checkout or pre-existing
+# .env required beyond what's already in this directory.
+#
+# Distinct from pyvar-local/ (the engine-only, no-API offline package,
+# see pyvar-local/README.md): this ships the real FastAPI route
+# surface (auth, billing, rate limiting, all 8 domain routers) using
+# the exact same production Dockerfile (../Dockerfile) the hosted
+# pyvar.com API is built from -- not a separate/lighter build.
+#
+# Differences from the repo root's docker-compose.yml (that one is for
+# local development against a checked-out clone):
+#   - Self-contained build (`context: ..`) instead of a bind-mounted
+#     source tree -- this directory can be copied out and run on its
+#     own once the image is built.
+#   - Baked-in, clearly-fake local-eval credentials in local-eval.env
+#     (checked in) instead of requiring a developer's own .env.
+#   - No external Docker network prerequisite (default bridge network,
+#     nothing shared with any other compose project).
+#   - A one-shot `migrate` service runs Alembic before the API starts,
+#     so `docker compose up` alone is enough -- no separate manual
+#     migration step.
+#
+# Stripe billing (api/routes/billing.py) ships as part of the real API
+# surface, same as the hosted service -- and is inert by default here:
+# STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/STRIPE_PRICE_ID_PRO are left
+# blank in local-eval.env, and _require_billing_configured() 503s
+# cleanly on every billing route until real keys are supplied. Nothing
+# to strip out, nothing to configure for local evaluation.
+#
+# Usage:
+#   cd pyvar-full/
+#   docker compose up
+#   curl http://localhost:8000/health
+#
+# Scale workers:
+#   docker compose up --scale worker=2
+# ============================================================
+
+services:
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-full:latest
+    command: ["python", "scripts/db.py", "upgrade"]
+    env_file: local-eval.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+
+  pyvar-api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-full:latest
+    env_file: local-eval.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - default
+
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runtime
+    image: pyvar-full:latest
+    command: ["python", "worker.py"]
+    env_file: local-eval.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+    deploy:
+      replicas: 1
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - default
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pyvar
+      POSTGRES_USER: pyvar
+      POSTGRES_PASSWORD: pyvar
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pyvar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  default:
