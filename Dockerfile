@@ -18,16 +18,32 @@
 #
 # Base image is pulled from Amazon ECR Public's Docker Official Images
 # mirror (public.ecr.aws/docker/library/...), not docker.io, in both
-# stages below. CodeBuild pulling docker.io/library/python:3.11-slim
+# stages below by default. CodeBuild pulling docker.io/library/python:3.11-slim
 # anonymously (no docker.io credentials configured) hit Docker Hub's
 # unauthenticated pull-rate limit mid-build on 2026-08-25, which the
 # image-build gate's missing `set -e` then let fail silently — see
 # pyvar-cdk/stacks/pipeline_stack.py's _image_build_commands comment.
 # public.ecr.aws mirrors the same official image/tags with a much
 # higher unauthenticated limit and needs no credentials either.
+#
+# BASE_IMAGE is a build-arg (default: the public.ecr.aws mirror above) so
+# CodeBuild's real build (_image_build_commands — no --build-arg passed,
+# always gets this default, behavior unchanged from the 2026-08-25 fix)
+# and .github/workflows/ci.yml's "Docker build check" job can use
+# different registries without duplicating this Dockerfile. That CI job
+# never pushes the image it builds (push: false — a pure "does this
+# Dockerfile still build" check), so it has no reason to share
+# CodeBuild's registry choice, and it started independently hitting
+# public.ecr.aws's own separate rate-limit/data-transfer quota from
+# GitHub Actions' shared runner IP pool (recurring flake, 2026-09).
+# ci.yml overrides BASE_IMAGE to plain docker.io python:3.11-slim for
+# that job only — a different quota, sidestepping the one currently
+# exhausted, without touching what CodeBuild/production pulls.
 # ============================================================
 
-FROM public.ecr.aws/docker/library/python:3.11-slim AS builder
+ARG BASE_IMAGE=public.ecr.aws/docker/library/python:3.11-slim
+
+FROM ${BASE_IMAGE} AS builder
 
 WORKDIR /build
 
@@ -88,9 +104,9 @@ print('Numba warmup complete')"
 
 
 # ── Runtime stage ─────────────────────────────────────────────
-# Same public.ecr.aws mirror as the builder stage above — see that
-# FROM line's comment.
-FROM public.ecr.aws/docker/library/python:3.11-slim AS runtime
+# Same BASE_IMAGE build-arg as the builder stage above — see this file's
+# header comment.
+FROM ${BASE_IMAGE} AS runtime
 
 WORKDIR /app
 
