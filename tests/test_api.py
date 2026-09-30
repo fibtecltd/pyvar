@@ -20,10 +20,12 @@ Reasoning:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import status
 from httpx import ASGITransport, AsyncClient
+from starlette.websockets import WebSocketDisconnect
 
 from api.middleware.auth import create_access_token
 from ingestion.fixtures import generate_gbm_returns
@@ -598,3 +600,110 @@ async def test_get_result_failure(app, free_token):
     assert body["status"] == "failure"
     assert body["error"] is not None
     assert body["result"] is None
+
+
+# ── WS /var/stream/{task_id} ──────────────────────────────────────────────────
+#
+# fastapi.testclient.TestClient (sync, Starlette's own WS test harness) rather
+# than httpx.AsyncClient — httpx has no WebSocket support. Uses the same `app`
+# fixture (create_app()) as every async test above; a plain FastAPI instance
+# works identically with either client.
+
+
+@pytest.fixture
+def ws_client(app):
+    from fastapi.testclient import TestClient
+
+    return TestClient(app)
+
+
+def test_stream_var_result_already_success_sends_immediately(ws_client, free_token):
+    """If the job is already terminal when the client connects, the fast path
+    sends the result immediately with no Redis Pub/Sub subscription at all."""
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = MOCK_VAR_RESULT
+    mock_async_result.kwargs = {}
+
+    with (
+        patch("api.routes.var.AsyncResult", return_value=mock_async_result),
+        patch("api.routes.var.aioredis.Redis.from_url") as mock_redis_from_url,
+    ):
+        with ws_client.websocket_connect(
+            "/api/v1/var/stream/already-done-task?token=" + free_token
+        ) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert data["result"]["var_abs"] == 28_000.0
+    # The fast path never touches Redis — the job was already terminal.
+    mock_redis_from_url.assert_not_called()
+
+
+def test_stream_var_result_already_failure_sends_immediately(ws_client, free_token):
+    mock_async_result = MagicMock()
+    mock_async_result.state = "FAILURE"
+    mock_async_result.result = Exception("Numba compilation error")
+
+    with patch("api.routes.var.AsyncResult", return_value=mock_async_result):
+        with ws_client.websocket_connect(
+            "/api/v1/var/stream/failed-task?token=" + free_token
+        ) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "failure"
+    assert data["error"] is not None
+    assert data["result"] is None
+
+
+def test_stream_var_result_missing_token_closes_policy_violation(ws_client):
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with ws_client.websocket_connect("/api/v1/var/stream/some-task") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_stream_var_result_invalid_token_closes_policy_violation(ws_client):
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with ws_client.websocket_connect("/api/v1/var/stream/some-task?token=not-a-real-jwt") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_stream_var_result_polls_until_job_completes(ws_client, free_token):
+    """Job is PENDING on the first check, SUCCESS on the second — exercises
+    the Pub/Sub-subscribe-and-poll loop, not just the immediate fast path."""
+    pending_result = MagicMock()
+    pending_result.state = "PENDING"
+    success_result = MagicMock()
+    success_result.state = "SUCCESS"
+    success_result.result = MOCK_VAR_RESULT
+    success_result.kwargs = {}
+
+    mock_pubsub = MagicMock()
+    mock_pubsub.subscribe = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(return_value=None)
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.aclose = AsyncMock()
+    mock_redis_client = MagicMock()
+    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+
+    with (
+        patch(
+            "api.routes.var.AsyncResult",
+            side_effect=[pending_result, success_result],
+        ),
+        patch(
+            "api.routes.var.aioredis.Redis.from_url",
+            return_value=mock_redis_client,
+        ),
+    ):
+        with ws_client.websocket_connect(
+            "/api/v1/var/stream/polling-task?token=" + free_token
+        ) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert data["result"]["var_abs"] == 28_000.0
+    mock_pubsub.subscribe.assert_awaited_once_with("pyvar:var-job-done:polling-task")
+    mock_pubsub.unsubscribe.assert_awaited_once()

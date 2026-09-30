@@ -53,18 +53,29 @@ Reasoning:
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 import limits
+import redis.asyncio as aioredis
 from celery.result import AsyncResult
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
+from jose import JWTError
 from sqlalchemy import update
 from starlette.concurrency import run_in_threadpool
 
 from api.middleware import rate_limit as rate_limit_module
-from api.middleware.auth import TokenPayload, get_current_user
+from api.middleware.auth import TokenPayload, decode_token_payload, get_current_user
 from api.middleware.billing_lifecycle import (
     DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
     EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
@@ -324,17 +335,15 @@ def _read_celery_result(task_id: str) -> tuple[str, Any, dict[str, Any] | None]:
     return state, raw_result, kwargs
 
 
-@router.get(
-    "/result/{task_id}",
-    response_model=JobResultResponse,
-    summary="Poll for VaR computation result",
-    description="Returns job status. When status=success, result contains the full VaR output.",
-)
-async def get_var_result(
-    task_id: str,
-    user: TokenPayload = Depends(get_current_user),
-) -> OrjsonResponse:
+async def _build_job_result_response(task_id: str) -> JobResultResponse:
+    """Build the hydrated JobResultResponse for a task_id.
 
+    Shared by GET /var/result/{task_id} and the WebSocket stream route below
+    so both transports report from the same authoritative source (the Celery
+    result backend) through identical hydration/caching logic — never
+    duplicated in a way that could silently drift between the poll and push
+    code paths.
+    """
     state, raw_result, kwargs = await run_in_threadpool(_read_celery_result, task_id)
 
     # Map Celery states to our JobStatus enum
@@ -366,18 +375,149 @@ async def get_var_result(
     elif state == "FAILURE":
         error = str(raw_result)
 
+    return JobResultResponse(
+        task_id=task_id,
+        status=job_status,
+        result=result if result else None,
+        error=error,
+    )
+
+
+@router.get(
+    "/result/{task_id}",
+    response_model=JobResultResponse,
+    summary="Poll for VaR computation result",
+    description="Returns job status. When status=success, result contains the full VaR output.",
+)
+async def get_var_result(
+    task_id: str,
+    user: TokenPayload = Depends(get_current_user),
+) -> OrjsonResponse:
+
+    job_result = await _build_job_result_response(task_id)
+
     # CloudFront's ApiCachePolicy (edge_stack.py) clamps TTL using this header —
     # min_ttl=0/max_ttl=3600 — so PENDING/STARTED/FAILURE are never cached
     # (a still-running or failed job may change on the next poll) and only an
     # immutable SUCCESS result is eligible to be served from the edge cache.
-    cache_control = "public, max-age=3600" if job_status == JobStatus.SUCCESS else "no-store"
+    cache_control = "public, max-age=3600" if job_result.status == JobStatus.SUCCESS else "no-store"
 
     return OrjsonResponse(
-        content=JobResultResponse(
-            task_id=task_id,
-            status=job_status,
-            result=result if result else None,
-            error=error,
-        ).model_dump(),
+        content=job_result.model_dump(),
         headers={"Cache-Control": cache_control},
     )
+
+
+# ── WS /var/stream/{task_id} ──────────────────────────────────────────────────
+
+
+@router.websocket("/stream/{task_id}")
+async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
+    """Push the VaR job result the instant it completes, instead of polling.
+
+    Streaming job-completion push (docs/plan-streaming-realtime-pricing.md
+    §3, shape #1) — same compute, same Monte Carlo kernel, just a different
+    result-delivery transport than GET /var/result/{task_id}.
+
+    Auth: the JWT travels as a ?token= query parameter, not the standard
+    Authorization header — browser WebSocket clients cannot set arbitrary
+    headers on the opening handshake, so this is the conventional pattern
+    for token-authenticated WebSocket routes. Validated with the SAME
+    decode_token_payload() get_current_user uses for every HTTP route, so
+    the security boundary is identical either way.
+
+    Authorization scope: deliberately mirrors GET /var/result/{task_id}
+    exactly — any authenticated user who knows a task_id can stream its
+    result, same as they can already poll it today. This route does not add
+    a per-user ownership check the existing poll endpoint lacks; doing that
+    for only one of the two transports would leave the same underlying
+    resource with an inconsistent security model. Tightening both together
+    is a separate decision, out of scope for this change.
+
+    Reliability: subscribes to the Redis Pub/Sub channel
+    tasks/var_task.py's _publish_job_event publishes on, but never trusts it
+    alone — Pub/Sub has no persistence or replay, so a message published in
+    the gap between this route's own first state check and its subscribe
+    call would otherwise be lost forever. pubsub.get_message's own timeout
+    (cfg.var_stream_poll_interval_seconds) doubles as a poll interval: every
+    wake-up, whether from a pushed message or a plain timeout, re-reads the
+    authoritative state via _build_job_result_response rather than trusting
+    the Pub/Sub payload's contents. A lost Pub/Sub message therefore costs
+    at most one poll interval of extra latency, never a hung connection.
+    Bounded overall by cfg.var_stream_max_wait_seconds so a job that never
+    reaches a terminal state cannot hold a worker slot open indefinitely.
+    """
+    await websocket.accept()
+
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
+        return
+    try:
+        decode_token_payload(token)
+    except JWTError:
+        await websocket.close(
+            code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or expired token"
+        )
+        return
+
+    # Fast path: the job may already be terminal by the time the client connects.
+    job_result = await _build_job_result_response(task_id)
+    if job_result.status in (JobStatus.SUCCESS, JobStatus.FAILURE):
+        await websocket.send_text(job_result.model_dump_json())
+        await websocket.close()
+        return
+
+    pubsub = None
+    try:
+        redis_client = aioredis.Redis.from_url(cfg.redis_url)
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe(f"pyvar:var-job-done:{task_id}")
+
+        deadline = time.monotonic() + cfg.var_stream_max_wait_seconds
+        while time.monotonic() < deadline:
+            # The message itself is never trusted as the result — it only
+            # wakes this loop promptly; _build_job_result_response below is
+            # the sole source of truth, whether woken by a push or by this
+            # call's own timeout elapsing (a plain poll tick).
+            try:
+                await pubsub.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=cfg.var_stream_poll_interval_seconds,
+                )
+            except Exception:  # noqa: BLE001 — Pub/Sub outage falls through to the poll below
+                logger.warning(
+                    "Redis Pub/Sub read failed on VaR stream — continuing on poll alone",
+                    extra={"task_id": task_id},
+                    exc_info=True,
+                )
+
+            job_result = await _build_job_result_response(task_id)
+            if job_result.status in (JobStatus.SUCCESS, JobStatus.FAILURE):
+                await websocket.send_text(job_result.model_dump_json())
+                await websocket.close()
+                return
+
+        await websocket.send_text(
+            JobResultResponse(
+                task_id=task_id,
+                status=JobStatus.PENDING,
+                error=(
+                    "Timed out waiting for job completion — the job may still be "
+                    "running; poll GET /var/result/{task_id} to check."
+                ),
+            ).model_dump_json()
+        )
+        await websocket.close()
+    except WebSocketDisconnect:
+        logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
+    finally:
+        if pubsub is not None:
+            try:
+                await pubsub.unsubscribe()
+                await pubsub.aclose()
+            except Exception:  # noqa: BLE001 — best-effort cleanup only
+                logger.warning(
+                    "Failed to clean up Redis Pub/Sub subscription",
+                    extra={"task_id": task_id},
+                )

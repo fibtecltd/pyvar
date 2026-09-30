@@ -164,6 +164,53 @@ def _write_terminal_audit(
         )
 
 
+# ── Streaming job-completion push (docs/plan-streaming-realtime-pricing.md §3.1) ──
+# Fire-and-forget notification so api/routes/var.py's WebSocket stream route can
+# push the result the instant this task reaches a terminal state, instead of the
+# client only finding out on its next poll. Uses a plain sync redis-py client
+# (this task runs in a sync Celery worker process, same reasoning as
+# get_sync_sessionmaker above) talking to the SAME broker/backend Redis instance
+# celery_app already connects to — no new infrastructure.
+#
+# Redis Pub/Sub has no persistence or replay: a message published while no
+# subscriber is listening is lost forever, not queued. This is a KNOWN,
+# ACCEPTED gap — the WebSocket route does not rely on this alone; it also polls
+# the Celery result backend directly on a short interval as a safety net, so a
+# lost Pub/Sub message costs at most one poll interval of extra latency, never
+# a hung connection. Never allowed to raise: a Pub/Sub outage must not fail an
+# already-successful (or already-failed, already-recorded) computation.
+_redis_client = None  # lazily created; one connection reused across tasks
+
+
+def _publish_job_event(task_id: str, job_status: str) -> None:
+    """Best-effort Redis Pub/Sub publish marking a VaR job's terminal state.
+
+    Args:
+        task_id: Celery task id — the same id the WebSocket route subscribes
+            on, as channel f"pyvar:var-job-done:{task_id}".
+        job_status: "success" or "failure" — mirrors _write_terminal_audit's
+            status values. The message body is a minimal marker, not the
+            result payload itself: the WebSocket route re-reads the
+            authoritative state from the Celery result backend rather than
+            trusting an unvalidated Pub/Sub payload.
+    """
+    global _redis_client
+    try:
+        if _redis_client is None:
+            import redis
+
+            _redis_client = redis.Redis.from_url(
+                os.environ.get("CELERY_RESULT_BACKEND", cfg.redis_url)
+            )
+        _redis_client.publish(f"pyvar:var-job-done:{task_id}", job_status)
+    except Exception:  # noqa: BLE001 — must never break the task, see module note
+        logger.warning(
+            "Failed to publish job-completion event — WebSocket subscribers "
+            "fall back to their own poll interval",
+            extra={"task_id": task_id},
+        )
+
+
 # ── Celery app ────────────────────────────────────────────────────────────────
 # Broker and backend are read from environment variables so ECS task definitions
 # can inject the correct SQS/ElastiCache endpoints without changing code.
@@ -301,6 +348,7 @@ def compute_var_task(self: Task, payload: dict) -> dict:
             duration_ms=duration_ms,
             result=result,
         )
+        _publish_job_event(task_id, "success")
         return result
 
     except Exception as exc:
@@ -323,5 +371,6 @@ def compute_var_task(self: Task, payload: dict) -> dict:
                 duration_ms=int((time.perf_counter() - started) * 1000),
                 error_message=str(exc),
             )
+            _publish_job_event(task_id, "failure")
             raise exc
         raise self.retry(exc=exc)

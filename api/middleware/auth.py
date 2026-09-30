@@ -44,6 +44,35 @@ class TokenPayload:
         }.get(tier, 10_000)
 
 
+def decode_token_payload(token: str) -> TokenPayload:
+    """Decode and validate a raw JWT string into a TokenPayload.
+
+    Shared by get_current_user (Authorization header, every HTTP route) and
+    api/routes/var.py's WebSocket stream route (a ?token= query parameter —
+    browser WebSocket clients cannot set a custom Authorization header on
+    the opening handshake), so the validation logic is identical for both
+    transports rather than duplicated.
+
+    Raises:
+        JWTError: on any validation failure (missing/invalid/expired token,
+            missing subject claim). Callers translate this into the
+            transport-appropriate rejection (401 for HTTP, a WebSocket
+            close code for the streaming route).
+    """
+    payload = jwt.decode(
+        token,
+        cfg.jwt_secret,
+        algorithms=[cfg.jwt_algorithm],
+    )
+    user_id: str = payload.get("sub")
+    tier: str = payload.get("tier", "free")
+
+    if not user_id:
+        raise JWTError("Missing subject claim")
+
+    return TokenPayload(sub=user_id, tier=tier)
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> TokenPayload:
@@ -51,28 +80,14 @@ async def get_current_user(
     FastAPI dependency. Decodes and validates the JWT bearer token.
     Raises HTTP 401 on any validation failure.
     """
-    token = credentials.credentials
-
     try:
-        payload = jwt.decode(
-            token,
-            cfg.jwt_secret,
-            algorithms=[cfg.jwt_algorithm],
-        )
-        user_id: str = payload.get("sub")
-        tier: str = payload.get("tier", "free")
-
-        if not user_id:
-            raise JWTError("Missing subject claim")
-
+        return decode_token_payload(credentials.credentials)
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired token: {exc}",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
-
-    return TokenPayload(sub=user_id, tier=tier)
 
 
 def create_access_token(user_id: str, tier: str = "free") -> str:
