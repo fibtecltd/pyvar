@@ -212,6 +212,19 @@ class Settings(BaseSettings):
     market_data_cache_ttl_yield_curve_seconds: int = 300  # 5m — placeholder
     market_data_cache_ttl_vol_surface_seconds: int = 300  # 5m — placeholder
 
+    # ── Streaming job-completion push (docs/plan-streaming-realtime-pricing.md §3.1) ──
+    # WebSocket alternative to polling GET /var/result/{task_id}: the client holds
+    # one connection open and the server pushes the result the moment the Celery
+    # task completes, via Redis Pub/Sub. Pub/Sub has no persistence or replay, so
+    # api/routes/var.py's stream_var_result also polls the result backend on this
+    # interval as a safety net rather than trusting Pub/Sub delivery alone — see
+    # that route's own docstring for the full reliability design.
+    var_stream_poll_interval_seconds: float = 2.0
+    # Generous vs. CLAUDE.md's "seconds-to-minutes" Monte Carlo runtime — bounds
+    # how long a single WebSocket connection can be held open so a job that never
+    # reaches a terminal state cannot pin a worker slot indefinitely.
+    var_stream_max_wait_seconds: int = 900  # 15 minutes
+
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
     log_level: str = "INFO"

@@ -197,3 +197,18 @@ jobs:
           tags: pyvar-api:pr-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Overrides the Dockerfile's BASE_IMAGE default (the
+          # public.ecr.aws mirror CodeBuild's real build relies on — see
+          # the Dockerfile's own header comment) to plain docker.io. This
+          # job never pushes the image it builds, so it has no reason to
+          # share CodeBuild's registry choice, and public.ecr.aws started
+          # hitting its own separate rate-limit/data-transfer quota from
+          # GitHub Actions' shared runner IP pool (recurring "429 Too Many
+          # Requests: toomanyrequests: Data limit exceeded" flake, 2026-09
+          # — PRs #370/#371/#375/#376). A different registry sidesteps the
+          # quota that's currently exhausted, without touching what
+          # CodeBuild/production pulls (pipeline_stack.py's
+          # _image_build_commands never passes this build-arg, so it keeps
+          # getting the Dockerfile's default, unchanged).
+          build-args: |
+            BASE_IMAGE=python:3.11-slim

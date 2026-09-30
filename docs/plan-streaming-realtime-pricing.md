@@ -1,8 +1,11 @@
 # Exploration: a streaming service for real-time-based pricing
 
-**Status: exploration only, no action taken.** Requested alongside five
-other planning items (2026-09-29), explicitly scoped as "explore, without
-taking actions."
+**Status: shape #1 implemented (2026-09-30).** Originally requested
+alongside five other planning items (2026-09-29), explicitly scoped then
+as "explore, without taking actions." Filippo has since explicitly decided
+to build shape #1 (§3) — see §7 below for what shipped. Shapes #2 and #3
+remain unexplored beyond this doc's original analysis; nothing below
+changes their status.
 
 ## 1. Disambiguation — this is a different question from MD-3's streaming decision
 
@@ -97,3 +100,70 @@ first and an engineering one second, #3 is a new quant-design problem
 first and an infra one second. Treating "real-time pricing" as one
 initiative when it's really three would make scoping and estimating
 unreliable from the start.
+
+## 7. Shape #1 implementation (2026-09-30)
+
+Decision made: shape #1 ("streaming job-completion push," §3.1), VaR only,
+same scope this doc's own complexity ordering already flagged as the
+smallest lift. Shapes #2 and #3 untouched — nothing here resolves their
+open blockers (§4/§5).
+
+**New endpoint:** `WS /api/v1/var/stream/{task_id}`, alongside the existing
+`GET /api/v1/var/result/{task_id}` poll — the poll endpoint is unchanged
+and still works exactly as before; this is an additive alternative
+transport, not a replacement.
+
+**Design decisions actually made (the ones this doc deliberately deferred
+in §5):**
+
+- **Transport: WebSocket**, not SSE or gRPC — FastAPI/Starlette support it
+  natively (already in `uvicorn[standard]`, no new dependency), and it's
+  bidirectional-capable if a future shape needs client→server messages
+  (this one doesn't use that, but doesn't foreclose it either).
+- **Fan-out mechanism: Redis Pub/Sub**, on the same Redis instance Celery
+  already uses as broker/backend (`cfg.redis_url`) — exactly the
+  "already in the stack" option this doc's §3.1 flagged. `tasks/var_task.py`
+  publishes a minimal marker (`"success"`/`"failure"`, not the result
+  payload) to channel `pyvar:var-job-done:{task_id}` on terminal state,
+  best-effort (never fails the job if Pub/Sub is unavailable — same
+  "must never break compute" posture as the existing CloudWatch metric
+  helpers in that file).
+- **Reliability — the one real gap this doc's §3.1 called out
+  ("solvable, not free"):** Redis Pub/Sub has no persistence or replay —
+  a message published with no subscriber listening is lost forever. Rather
+  than build ALB sticky-sessions/ELB-level fan-out (the infra-layer
+  solution this doc's §5 explicitly deferred), the WebSocket route itself
+  never trusts Pub/Sub alone: it re-reads the authoritative Celery result
+  backend state on every wake-up (a pushed message OR a plain
+  `cfg.var_stream_poll_interval_seconds` timeout tick), so a lost message
+  costs at most one poll interval of latency, never a hung connection.
+  This sidesteps needing the ALB/Redis-fan-out infra work at all for a
+  single-worker-process deployment — revisit if/when true multi-instance
+  WS fan-out becomes necessary.
+- **Auth: JWT as a `?token=` query parameter**, not the Authorization
+  header — browser WebSocket clients cannot set arbitrary headers on the
+  opening handshake, so this is the standard pattern. Validated by the
+  same `decode_token_payload()` logic `get_current_user` uses for every
+  HTTP route (extracted into `api/middleware/auth.py` so the two transports
+  share one validation path, not two).
+- **Authorization scope: deliberately matches `GET /var/result/{task_id}`
+  exactly** — no new per-user task-ownership check was added, since the
+  existing poll endpoint doesn't have one either; adding it to only one of
+  the two transports for the same resource would create an inconsistent
+  security model. Tightening both together is a separate, not-yet-made
+  decision.
+- **Bounded connection lifetime:** `cfg.var_stream_max_wait_seconds` (15
+  minutes default) caps how long a single WS connection can be held open,
+  so a job that never reaches a terminal state can't pin a worker slot
+  indefinitely.
+- **Billing/tiering: untouched**, per this doc's own §5 scoping — streaming
+  access is not gated or metered differently from the existing poll
+  endpoint for any tier. A monetization decision here, if wanted, is item
+  5's territory, not this change's.
+
+**Not done:** shapes #2 and #3, any AWS/CDK-level change (this doc's §5 already
+flagged ALB WebSocket pass-through and CloudFront's WS behavior as
+downstream infra work — the Redis Pub/Sub design above was specifically
+chosen to defer that, not to require it), and streaming for the other 7
+domains (only VaR — the reference implementation this session's `plugins/`
+marketplace work already treats as the flagship domain).
