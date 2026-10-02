@@ -39,13 +39,15 @@ from typing import Any
 import boto3
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from sqlalchemy import select
 
 from api.middleware.auth import create_access_token
 from api.middleware.disposable_email import is_disposable_email
 from api.middleware.rate_limit import enforce_register_rate_limit
 from config import get_settings
-from schemas.auth import RegisterRequest, RegisterResponse, VerifyResponse
+from schemas.auth import GoogleSignInRequest, RegisterRequest, RegisterResponse, VerifyResponse
 from storage.models import User
 from storage.session import get_sessionmaker
 
@@ -215,6 +217,110 @@ async def verify(token: str) -> VerifyResponse:
         external_id = user.external_id
         tier = user.tier
         await session.commit()
+
+    access_token = create_access_token(user_id=external_id, tier=tier)
+    return VerifyResponse(access_token=access_token, tier=tier)
+
+
+# ── POST /auth/google ──────────────────────────────────────────────────────────
+
+
+def _verify_google_id_token(raw_token: str) -> dict[str, Any]:
+    """Verify a Google ID token's signature, issuer, audience, and expiry.
+
+    A thin wrapper around google-auth's own verifier (not re-implemented here)
+    so tests patch this one call site instead of mocking google.oauth2.id_token
+    directly. Raises ValueError — google-auth's own exception type for every
+    invalid-token case (bad signature, expired, wrong audience, wrong issuer) —
+    on any verification failure; callers translate that into a 401, never a 500.
+
+    Args:
+        raw_token: the raw ID token JWT string from the frontend.
+
+    Returns:
+        The verified token's decoded claims (sub, email, email_verified, ...).
+    """
+    claims: dict[str, Any] = google_id_token.verify_oauth2_token(
+        raw_token, google_requests.Request(), cfg.google_oauth_client_id
+    )
+    return claims
+
+
+@router.post(
+    "/google",
+    response_model=VerifyResponse,
+    dependencies=[Depends(enforce_register_rate_limit)],
+)
+async def google_sign_in(body: GoogleSignInRequest) -> VerifyResponse:
+    """Sign in (or register) with a verified Google ID token.
+
+    Google already cryptographically verifies the caller owns this email
+    (the email_verified claim, checked again defensively below) — so unlike
+    POST /auth/register, this path never runs is_disposable_email's
+    blocklist (that check exists to stop a throwaway address from burning
+    an SES send on a verification link that's never clicked; there is no
+    such link here) and never needs the SES round-trip at all. A new
+    account created via this path is already verified.
+
+    Linking, not a second signup path for an existing address:
+    storage.models.User.email already carries a unique constraint, so a
+    Google sign-in for an email that already has a pyvar account just
+    looks that row up and issues it a fresh JWT — same external_id, same
+    tier, same usage history. Only a genuinely new email creates a new row.
+    """
+    if not cfg.google_oauth_client_id:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Google sign-in is not configured.",
+        )
+
+    try:
+        claims = _verify_google_id_token(body.id_token)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid or expired Google sign-in token.",
+        ) from exc
+
+    email = str(claims.get("email", "")).strip().lower()
+    if not email or not claims.get("email_verified"):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Google did not report a verified email address for this account.",
+        )
+
+    now = datetime.now(timezone.utc)
+
+    async with get_sessionmaker()() as session:
+        user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+        if user is None:
+            # external_id finally gets a real external-identity-provider value
+            # here — storage/models.py's own docstring has documented this as
+            # its intent since before any provider existed. "google:{sub}"
+            # rather than Google's bare sub, so a future second provider
+            # (e.g. Apple) can't collide on a numeric id another provider
+            # happens to reuse.
+            user = User(
+                external_id=f"google:{claims['sub']}",
+                email=email,
+                tier="free",
+                email_verified=True,
+                verified_at=now,
+            )
+            session.add(user)
+        elif not user.email_verified:
+            # Existing row from an unfinished POST /auth/register — Google's
+            # verification is at least as strong as SES's link click, so
+            # finish what register() started rather than leaving this
+            # account stuck pending forever.
+            user.email_verified = True
+            user.verified_at = now
+            user.verification_token = None
+
+        await session.commit()
+        external_id = user.external_id
+        tier = user.tier
 
     access_token = create_access_token(user_id=external_id, tier=tier)
     return VerifyResponse(access_token=access_token, tier=tier)

@@ -174,6 +174,16 @@ class Settings(BaseSettings):
     # behavior.
     blocked_email_domains: list[str] = []
 
+    # ── Google sign-in (api/routes/auth.py::google_sign_in) ──────────────────
+    # The OAuth Client ID is the expected `aud` claim on every Google ID
+    # token this endpoint verifies — not a secret (it's also embedded
+    # client-side in portal/index.html to initialize Google Identity
+    # Services), unlike a traditional OAuth client secret. Left unset by
+    # default: the route 503s cleanly rather than accepting tokens with no
+    # audience to check them against, same "don't hard-fail on a missing
+    # optional integration" posture as stripe_secret_key/sentry_dsn above.
+    google_oauth_client_id: str | None = None
+
     # ── Billing (Phase A, item 5) ────────────────────────────────────────────
     # Stripe Checkout + webhook flow (api/routes/billing.py) that flips
     # User.tier to "pro" — see docs/plan-monetization-implementation.md.

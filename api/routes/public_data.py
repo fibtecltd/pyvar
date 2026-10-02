@@ -25,6 +25,8 @@ Reasoning:
 
 from __future__ import annotations
 
+from typing import Any
+
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Response, status
 from starlette.concurrency import run_in_threadpool
@@ -63,3 +65,32 @@ async def get_status_json() -> Response:
 @router.get("/public/demo-result.json", include_in_schema=False)
 async def get_demo_result_json() -> Response:
     return await _serve_public_json("public/demo-result.json")
+
+
+@router.get("/public/config", include_in_schema=False)
+async def get_public_config() -> dict[str, Any]:
+    """Public, non-secret runtime config the static portal reads at page
+    load — currently just whether Google sign-in is configured and, if so,
+    the OAuth Client ID to initialize Google Identity Services with. Not a
+    secret: it's also the expected `aud` claim api/routes/auth.py checks
+    server-side, and Google's own docs document the client ID as meant to
+    be embedded client-side.
+
+    A live GET rather than anything baked into the static HTML/JS at build
+    time: portal/ has no build step (plain static files, unlike e.g.
+    tengrade's Vite + env-from-outputs script), so this is how the Google
+    sign-in button starts rendering the moment google_oauth_client_id is
+    set in the real environment, with zero frontend file change needed —
+    same "invisible until configured, no code change once it is" property
+    tengrade's own build-time CfnOutput flags give it, achieved here at
+    request time instead since there's no build step to bake a flag into.
+
+    Unrelated to this module's S3-backed status/demo-result JSON above —
+    grouped here only because it's the existing public, unauthenticated,
+    already-mounted router, not because the data has anything to do with
+    that bucket.
+    """
+    return {
+        "google_sign_in_enabled": bool(cfg.google_oauth_client_id),
+        "google_client_id": cfg.google_oauth_client_id,
+    }
