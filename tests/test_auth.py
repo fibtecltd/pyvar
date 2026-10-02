@@ -27,6 +27,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
 
+from api.routes import auth as auth_module
 from api.routes.auth import send_verification_email
 from config import get_settings
 from main import create_app
@@ -283,3 +284,142 @@ def test_send_verification_email_falls_back_on_ses_failure():
 
     with patch("api.routes.auth.get_ses_client", return_value=fake_client):
         send_verification_email("user@example.com", "tok-456")  # must not raise
+
+
+# ── POST /auth/google ────────────────────────────────────────────────────────
+
+GOOGLE_CLAIMS = {
+    "sub": "109876543210",
+    "email": "new-google-user@example.com",
+    "email_verified": True,
+}
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_not_configured_returns_503(app):
+    # cfg.google_oauth_client_id is unset by default (config.py) — no
+    # monkeypatch needed, this is the out-of-the-box state.
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/v1/auth/google", json={"id_token": "whatever"})
+    assert resp.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_new_user_creates_verified_account(app, monkeypatch):
+    monkeypatch.setattr(auth_module.cfg, "google_oauth_client_id", "test-client-id")
+    session = FakeAsyncSession(lookup_result=None)  # no existing row
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.auth._verify_google_id_token", return_value=GOOGLE_CLAIMS),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/v1/auth/google", json={"id_token": "real-looking-jwt"})
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["tier"] == "free"
+
+    assert len(session.added) == 1
+    new_user = session.added[0]
+    assert new_user.email == "new-google-user@example.com"
+    assert new_user.external_id == "google:109876543210"
+    assert new_user.email_verified is True
+    assert session.committed is True
+
+    decoded = jwt.decode(body["access_token"], cfg.jwt_secret, algorithms=[cfg.jwt_algorithm])
+    assert decoded["sub"] == "google:109876543210"
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_existing_verified_user_links_no_new_row(app, monkeypatch):
+    monkeypatch.setattr(auth_module.cfg, "google_oauth_client_id", "test-client-id")
+    existing = User(
+        external_id="ext-existing-1",
+        email="new-google-user@example.com",
+        tier="pro",
+        email_verified=True,
+    )
+    session = FakeAsyncSession(lookup_result=existing)
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.auth._verify_google_id_token", return_value=GOOGLE_CLAIMS),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/v1/auth/google", json={"id_token": "real-looking-jwt"})
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["tier"] == "pro"
+    assert session.added == []  # linked to the existing row, never re-inserted
+
+    decoded = jwt.decode(body["access_token"], cfg.jwt_secret, algorithms=[cfg.jwt_algorithm])
+    assert decoded["sub"] == "ext-existing-1"  # the account's original identity, not Google's
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_existing_unverified_user_gets_verified(app, monkeypatch):
+    """A row from an unfinished POST /auth/register (never clicked the SES
+    link) — Google's verification is at least as strong, so this finishes
+    what register() started instead of leaving the account stuck pending."""
+    monkeypatch.setattr(auth_module.cfg, "google_oauth_client_id", "test-client-id")
+    existing = User(
+        external_id="ext-pending-1",
+        email="new-google-user@example.com",
+        tier="free",
+        email_verified=False,
+        verification_token="stale-token",
+    )
+    session = FakeAsyncSession(lookup_result=existing)
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.auth._verify_google_id_token", return_value=GOOGLE_CLAIMS),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/v1/auth/google", json={"id_token": "real-looking-jwt"})
+
+    assert resp.status_code == 200
+    assert existing.email_verified is True
+    assert existing.verification_token is None
+    assert existing.verified_at is not None
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_invalid_token_returns_401(app, monkeypatch):
+    monkeypatch.setattr(auth_module.cfg, "google_oauth_client_id", "test-client-id")
+    session = FakeAsyncSession(lookup_result=None)
+
+    with (
+        patch_sessionmaker(session),
+        patch(
+            "api.routes.auth._verify_google_id_token",
+            side_effect=ValueError("Token used too late"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/v1/auth/google", json={"id_token": "garbage"})
+
+    assert resp.status_code == 401
+    assert session.added == []
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_unverified_email_claim_returns_401(app, monkeypatch):
+    """Defense in depth: even though Google-issued tokens should always
+    carry email_verified=True for a Gmail/Workspace account, this endpoint
+    checks the claim itself rather than assuming it."""
+    monkeypatch.setattr(auth_module.cfg, "google_oauth_client_id", "test-client-id")
+    unverified_claims = {**GOOGLE_CLAIMS, "email_verified": False}
+    session = FakeAsyncSession(lookup_result=None)
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.auth._verify_google_id_token", return_value=unverified_claims),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/v1/auth/google", json={"id_token": "real-looking-jwt"})
+
+    assert resp.status_code == 401
+    assert session.added == []

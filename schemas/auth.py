@@ -40,3 +40,11 @@ class VerifyResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     tier: str = "free"
+
+
+class GoogleSignInRequest(BaseModel):
+    """POST /auth/google — the raw ID token Google Identity Services hands
+    the frontend's sign-in callback. Verified server-side (signature,
+    issuer, audience, expiry) before anything in it is trusted."""
+
+    id_token: str

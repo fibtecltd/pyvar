@@ -106,11 +106,23 @@
 .get-key-status{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:14px;max-width:440px;margin-left:auto;margin-right:auto}
 .get-key-status.get-key-ok{color:var(--green)}
 .get-key-status.get-key-error{color:var(--red)}
+/* Google sign-in (hidden until /public/config reports it's configured —
+   see pyvar.js::initGoogleSignIn) */
+#googleSignIn{display:none;max-width:440px;margin:0 auto 20px}
+#googleSignInButton{display:flex;justify-content:center;margin-bottom:14px}
+.google-divider{font-family:var(--mono);font-size:11px;color:var(--text2);text-align:center;margin:0 0 14px}
+.dash-token{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--green);word-break:break-all;margin-bottom:10px;max-width:440px;margin-left:auto;margin-right:auto}
+.dash-copy{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:2px;transition:all .15s;display:inline-block}
+.dash-copy:hover{border-color:var(--green);color:var(--green)}
 @media(max-width:1024px){.hero-inner{grid-template-columns:1fr}.terminal{display:none}.domain-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.domain-grid{grid-template-columns:1fr 1fr}.status-bar{flex-wrap:wrap}}
 </style>
 </head>
 <body>
+<!-- Google Identity Services — only renders a button if /public/config
+     reports google_sign_in_enabled (pyvar.js::initGoogleSignIn). Harmless,
+     unused network fetch otherwise; no credentials embedded here. -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
 <script src="pyvar.js"></script>
 <script>document.write(buildNav('home'))</script>
 <main>
@@ -385,11 +397,19 @@
     <div class="label reveal" style="justify-content:center">get started</div>
     <h2 class="h2 reveal" style="margin-bottom:16px">Free to use. <em>Open source.</em></h2>
     <p class="body-md reveal" style="max-width:400px;margin:0 auto 28px">pyvar.com is Apache-2.0 licensed. The API is free to use. Enter your email for a free-tier API key — no password, no credit card.</p>
+    <!-- Hidden until /public/config reports Google sign-in is configured;
+         skips the email-verification round trip entirely (Google already
+         verified the address) — see pyvar.js::initGoogleSignIn. -->
+    <div id="googleSignIn" class="reveal">
+      <div id="googleSignInButton"></div>
+      <p class="google-divider">or</p>
+    </div>
     <div class="get-key-form reveal">
       <input type="email" id="registerEmail" class="get-key-input" placeholder="you@company.com" autocomplete="email"/>
       <button id="registerSubmit" class="btn-green" onclick="submitRegistration()">Get API key</button>
     </div>
     <div id="registerStatus" class="get-key-status reveal"></div>
+    <div id="googleKeyResult"></div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px" class="reveal">
       <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-ghost">GitHub ↗</a>
       <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-green">Enterprise support →</a>

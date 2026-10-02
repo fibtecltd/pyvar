@@ -253,6 +253,73 @@ async function submitRegistration() {
   }
 }
 
+// ── Google sign-in (index.html only) ───────────────────────────────────────
+// Calls GET /public/config to learn whether Google sign-in is configured
+// (api/routes/public_data.py) before touching window.google at all — a
+// deploy with no OAuth app registered shows nothing, same invisible-until-
+// configured property every other optional integration here has.
+async function initGoogleSignIn() {
+  const container = document.getElementById('googleSignInButton');
+  const wrapper = document.getElementById('googleSignIn');
+  if (!container || !wrapper || !window.google?.accounts?.id) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/public/config`);
+    if (!res.ok) return;
+    const publicConfig = await res.json();
+    if (!publicConfig.google_sign_in_enabled || !publicConfig.google_client_id) return;
+
+    google.accounts.id.initialize({
+      client_id: publicConfig.google_client_id,
+      callback: handleGoogleCredential,
+    });
+    google.accounts.id.renderButton(container, { theme: 'outline', size: 'large', width: 320 });
+    wrapper.style.display = 'block';
+  } catch (e) {
+    // Offline / pre-deploy / CORS — same fail-quiet posture as
+    // loadLiveExample above: the plain email form still works regardless.
+  }
+}
+
+// POSTs the Google ID token to /api/v1/auth/google and shows the issued JWT
+// immediately — unlike the plain email form below, there's no "check your
+// inbox" step, since Google already verified the address server-side
+// (api/routes/auth.py::google_sign_in).
+async function handleGoogleCredential(response) {
+  const resultEl = document.getElementById('googleKeyResult');
+  if (!resultEl || !response?.credential) return;
+
+  resultEl.innerHTML = '<div class="get-key-status">Signing you in…</div>';
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: response.credential }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || 'Google sign-in failed.');
+
+    // Same storage key dashboard.html's renderDashboard uses, so the "Try
+    // it" panels on domain pages pick this up identically either way.
+    localStorage.setItem('pyvar_jwt', data.access_token);
+    resultEl.innerHTML = '<div class="dash-token" id="googleKeyToken"></div>'
+      + '<span class="dash-copy" id="googleKeyCopyBtn">copy</span>';
+    document.getElementById('googleKeyToken').textContent = data.access_token;
+    const copyBtn = document.getElementById('googleKeyCopyBtn');
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(data.access_token);
+      copyBtn.textContent = 'copied!';
+      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+    });
+  } catch (e) {
+    // e.message can trace back to the API's own error detail — escape
+    // before reinterpreting as HTML, same rule _escapeHtml()'s own comment
+    // states elsewhere in this file.
+    const safeMessage = _escapeHtml((e && e.message) || 'Google sign-in failed — try again.');
+    resultEl.innerHTML = `<div class="get-key-status get-key-error">${safeMessage}</div>`;
+  }
+}
+
 // ── Dashboard page (P8 Task 3) — dashboard.html only ──────────────────────
 // Calls GET /api/v1/auth/verify?token=... and shows the issued JWT once.
 async function renderDashboard() {
