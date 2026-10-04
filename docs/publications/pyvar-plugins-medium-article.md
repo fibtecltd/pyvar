@@ -68,7 +68,7 @@ That's not a stylistic choice. It's the exact same "don't trust it, run it and c
 
 ## What's still open
 
-`pyvar-mcp` has been submitted to Anthropic's `claude-plugins-community` marketplace — a real submission, decision still pending as of this writing. The other 12 skill plugins are deliberately held back rather than submitted in parallel: submissions to that marketplace are per-plugin, not bundle-level, and going one at a time starting with the piece that actually executes something (the MCP server) means the review process is exercised once on the highest-scrutiny plugin before the other 12 skill-only submissions — each of them lower-risk (no code execution, no network access) — follow using the same, already-drafted content.
+Update: all 13 skill plugins — the 8 domain skills and 5 architecture skills — are now `Published` and live on Anthropic's developer portal. `pyvar-mcp`, the one plugin that actually executes something (it's a live wrapper over the REST API, not pure instructional content), is still `In review` as of this writing — the highest-scrutiny submission in the batch, reviewed last and on its own timeline, exactly as planned: go one at a time starting with the piece most likely to draw questions, let the other 12 lower-risk, no-code-execution submissions follow behind it using the same, already-drafted content once the pattern was proven out.
 
 None of that blocks anyone today, though. The marketplace add command above works right now, against the live repository, regardless of where that submission lands — `/plugin marketplace add fibtecltd/pyvar` doesn't route through Anthropic's review at all, it's a direct GitHub-source install.
 
