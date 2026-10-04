@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>13 Plugins Published, and Three Real Upgrades Shipped Behind Them</title>
+<html><head><meta charset="utf-8"><title>pyvar Today: 13 Live Plugins, Real-Time Results, and a One-Command Deployment</title>
 <style>
 body { max-width: 760px; margin: 40px auto; padding: 0 20px;
        font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;
@@ -33,156 +33,101 @@ th { background: #f6f6f6; font-family: -apple-system, Helvetica, Arial, sans-ser
 </style></head><body>
 <div class="instructions"><strong>Paste-ready for Medium:</strong> select all, copy, paste directly into
 a new Medium story. Medium’s editor does not import pasted HTML &lt;table&gt; elements —
-the three comparison tables below will paste as plain text; rebuild them as Medium
-tables (or screenshot them) after pasting, same as the diagrams in the previous
-plugins article needed re-uploading through Medium’s own image picker.</div>
-<h1>13 Plugins Published, and Three Real Upgrades Shipped Behind Them</h1>
-<p class="subtitle-wrap"><em>A follow-up to "14 Plugins, One API" — the marketplace listing finally went live, and it wasn't the only thing that moved.</em></p>
+the comparison tables below will paste as plain text; rebuild them as Medium
+tables after pasting.</div>
+<h1>pyvar Today: 13 Live Plugins, Real-Time Results, and a One-Command Deployment</h1>
+<p class="subtitle-wrap"><em>A follow-up to "14 Plugins, One API" — where the platform stands right now.</em></p>
 <blockquote>
 <p><strong>Draft status:</strong> not yet published. Every fact below is checked against<br />
-this repository at drafting time (<code>git log</code>, <code>.claude-plugin/marketplace.json</code>,<br />
+this repository at drafting time (<code>.claude-plugin/marketplace.json</code>,<br />
 <code>config.py</code>, <code>docker-compose.yml</code>, <code>api/routes/auth.py</code>, <code>api/routes/var.py</code>) —<br />
 see <strong>Sources</strong> at the end. Needs review before it goes anywhere.</p>
 </blockquote>
 <hr />
-<p>Two weeks ago, pyvar's 14-plugin Claude Code marketplace submission was stuck. Anthropic's new developer portal rejected every one of the 14 <code>marketplace.json</code> entries with <code>EXTERNAL_SOURCE_NOT_ALLOWED</code> — a GitHub-object-form <code>source</code> field the old submission path accepted, the new one doesn't. That's now fixed, and the result is visible, not just claimed:</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>Then</th>
-<th>Now</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Marketplace status</td>
-<td>14/14 blocked, <code>EXTERNAL_SOURCE_NOT_ALLOWED</code></td>
-<td><strong>13/14 <code>Published</code></strong>, live on the directory</td>
-</tr>
-<tr>
-<td><code>pyvar-mcp</code> (the MCP server)</td>
-<td>Blocked alongside the rest</td>
-<td><code>In review</code> — the one plugin that executes code, reviewed last on purpose</td>
-</tr>
-<tr>
-<td>Docker build CI check</td>
-<td>Flaking red on <code>public.ecr.aws</code> rate limits (confirmed on PRs #370, #371, #375, #376 itself)</td>
-<td>Green — CI-only builds now pull from <code>docker.io</code>, production untouched</td>
-</tr>
-</tbody>
-</table>
-<p>That table alone would be worth a short post. But the same two weeks also shipped three pieces of real engineering — not configuration fixes, actual new capability — and they deserve more than a changelog line each.</p>
-<h2>1. Results pushed, not polled</h2>
-<p>Every <code>pyvar</code> job used to work the same way: <code>POST /var/compute</code> to submit, then <code>GET /var/result/{task_id}</code> in a loop until the status flips from <code>PENDING</code> to <code>SUCCESS</code>. It works, but it means every client either over-polls (wasted requests) or under-polls (a result sits ready for seconds before anyone asks for it).</p>
-<p><code>WS /api/v1/var/stream/{task_id}</code> is now the alternative: open one WebSocket connection, and the result is pushed the moment the Celery task finishes — no polling loop on the client at all. The polling endpoint didn't go anywhere; this is additive.</p>
-<p>The engineering decision worth calling out is what the new route refuses to trust. Redis Pub/Sub has no persistence and no replay — if a message is missed, it's gone. So the stream route never relies on the push alone:</p>
-<pre><code class="language-python"># api/routes/var.py — every wake-up, pushed or timed out,
-# re-reads the authoritative Celery state. A lost Pub/Sub
-# message costs one poll interval (2s), never a hung connection.
+<p>pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk computation platform covering VaR, credit risk, derivatives, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital — 385 functions behind a single REST API. Here's what's available today.</p>
+<h2>14 plugins, 13 live</h2>
+<pre><code>/plugin marketplace add fibtecltd/pyvar
+/plugin install pyvar-market-risk@pyvar-marketplace
 </code></pre>
-<p>Worst case, a dropped Pub/Sub message degrades the WebSocket back into the same poll cadence the old endpoint always had — bounded by <code>var_stream_max_wait_seconds</code> (900s). Best case, the client finds out the instant the job completes. There's no failure mode where the new path is worse than the one it sits beside.</p>
-<p>One more small fix rode along for free: WebSocket handshakes can't set a custom <code>Authorization</code> header from a browser, so <code>api/middleware/auth.py</code> now has a single <code>decode_token_payload()</code> that both the header-based poll route and the query-param-based stream route call — one validation path instead of two that could quietly drift apart.</p>
-<p><strong>Verified:</strong> 101 tests passing across the affected modules, including 5 new WebSocket tests (immediate success, immediate failure, missing token, invalid token, the Pub/Sub-subscribe-and-poll loop itself).</p>
-<h2>2. <code>docker compose up</code> is now the entire setup</h2>
-<p><code>pyvar-local/</code> — the engine-only Docker package — already existed. What didn't exist was a way to stand up the <em>full</em> application (API + worker + Redis + Postgres) in one command, with nothing external required.</p>
-<p><code>pyvar-full/</code> closes that gap, built on the same production Dockerfile the hosted <code>pyvar-prod-api</code> image already uses — zero changes needed there, because it already does a self-contained <code>COPY . .</code> with no bind-mount dependency. The new work was entirely in the compose file:</p>
+<p>8 domain skills (market risk, credit risk, liquidity risk, operational risk, portfolio analytics, regulatory, derivatives, ALM) and 5 architecture skills are <code>Published</code> on Anthropic's developer portal. <code>pyvar-mcp</code> — the MCP server that turns all 385 functions into Claude Code tools, generic (<code>list_pyvar_functions</code>, <code>call_pyvar_function</code>) and individually typed alike — is <code>In review</code>.</p>
+<p>The install command above doesn't care either way: it's a direct GitHub-source marketplace add, live against this repository right now, independent of portal review status.</p>
+<h2>Two ways to get a result</h2>
+<p><code>POST /var/compute</code> submits a job the same way it always has. From there, you choose:</p>
 <table>
 <thead>
 <tr>
 <th></th>
-<th>Repo-root <code>docker-compose.yml</code></th>
-<th><code>pyvar-full/docker-compose.yml</code></th>
+<th>Poll</th>
+<th>Stream</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Bind mounts</td>
-<td>Yes (live source mounted in)</td>
-<td>None — the image is the artifact</td>
+<td>Endpoint</td>
+<td><code>GET /var/result/{task_id}</code></td>
+<td><code>WS /api/v1/var/stream/{task_id}</code></td>
 </tr>
 <tr>
-<td>External prerequisite</td>
-<td><code>docker network create pyvar_net</code>, shared with a sibling repo's compose file</td>
-<td>None</td>
+<td>How you get the result</td>
+<td>Ask until the status flips to <code>SUCCESS</code></td>
+<td>Held open, pushed the instant the job completes</td>
 </tr>
 <tr>
-<td>Database migration</td>
-<td>Manual, separate step</td>
-<td>One-shot <code>migrate</code> service, runs automatically</td>
-</tr>
-<tr>
-<td>Who it's for</td>
-<td>Active development on pyvar itself</td>
-<td>Anyone evaluating the full stack</td>
+<td>What it costs</td>
+<td>One request per check</td>
+<td>One connection, no polling loop</td>
 </tr>
 </tbody>
 </table>
-<p>The billing module question — ship <code>api/routes/billing.py</code> or strip it out of the distribution build — resolved itself on inspection rather than needing a decision: <code>_require_billing_configured()</code> already returns a clean 503 on every billing route whenever Stripe keys are unset, and <code>local-eval.env</code> leaves them blank by default. Nothing to strip, nothing to configure, nothing to get wrong.</p>
-<h2>3. A second way in: Google Sign-In</h2>
-<p>pyvar's only account path used to be one way, with a wait built into it: <code>POST /auth/register</code> with an email, then an SES verification link, then click it to get a JWT. <code>POST /auth/google</code> is now a second, faster path to the exact same end state — not a replacement, an addition.</p>
-<p>The interesting part isn't the button — it's what pyvar <em>didn't</em> have to build to add it. tengrade's own social-login feature (R7, PRs #178/#179) runs through AWS Cognito, a Hosted UI OAuth2 authorization-code flow, and a client secret in Secrets Manager. pyvar has none of that machinery, and Google Identity Services doesn't require it: the frontend gets a signed ID token directly, and the backend verifies it with <code>google-auth</code>'s own verifier — signature, issuer, audience, expiry — no authorization-code exchange, no client secret, anywhere.</p>
-<pre><code class="language-python"># api/routes/auth.py — the whole trust boundary is one library call
-claims = google_id_token.verify_oauth2_token(
-    raw_token, google_requests.Request(), cfg.google_oauth_client_id
-)
+<p>Both read from the same authoritative job state, so the stream endpoint never has to be trusted blindly: every wake-up — pushed or timed out — re-reads that state directly, bounded by <code>var_stream_max_wait_seconds</code> (900s). A result is never more than one poll interval (2s) stale on either path.</p>
+<h2>One command, the full stack</h2>
+<p><code>pyvar-full/</code> is a self-contained Docker distribution of the entire application — API, worker, Redis, Postgres — not just the compute engine:</p>
+<pre><code class="language-bash">cd pyvar-full/
+docker compose up
 </code></pre>
-<p>Account linking reused an existing constraint instead of inventing new logic: <code>User.email</code> already had <code>unique=True</code>, so "look up by email, else create" <em>is</em> the linking mechanism — no new table, no new join. And <code>User.external_id</code> — a column that had sat documented since migration <code>0002</code> as "external identity provider ID" with nothing populating it but a placeholder UUID — finally gets a real value: <code>google:{sub}</code>.</p>
-<p>One architectural difference from tengrade mattered enough to call out explicitly: tengrade blocks free-mail domains on new signups and only allows Google/Apple sign-in to <em>link</em> an existing account, because its domain-vetting rule would otherwise conflict with it. pyvar has no such rule — the portal's own copy already says "no password, no credit card" — so here Google sign-in is a genuine new-signup path, not a linking-only one.</p>
+<p>That's the whole setup. No bind mounts, no external Docker network to create first, no separate migration step to remember — a one-shot <code>migrate</code> service runs automatically before the API comes up. <code>pyvar-local/</code> remains the narrower, engine-only package for people who just want the compute core.</p>
+<h2>Two ways into an account</h2>
 <table>
 <thead>
 <tr>
 <th></th>
-<th>Email registration</th>
-<th>Google sign-in</th>
+<th>Email</th>
+<th>Google</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Steps to a usable JWT</td>
-<td>Submit form → check inbox → click link</td>
-<td>Click button</td>
+<td>Steps</td>
+<td>Register → check inbox → click the verification link</td>
+<td>Click the sign-in button</td>
 </tr>
 <tr>
-<td>Round trip</td>
-<td>SES send + click</td>
-<td>None</td>
+<td>Result</td>
+<td>A JWT, after the link is clicked</td>
+<td>A JWT, immediately</td>
 </tr>
 <tr>
-<td>New account created</td>
-<td>Immediately, unverified</td>
-<td>Immediately, verified (Google's <code>email_verified</code> claim is trusted)</td>
-</tr>
-<tr>
-<td>Infra required</td>
-<td>SES (already existed)</td>
-<td>One Client ID — not a secret, same posture as an unset <code>STRIPE_SECRET_KEY</code>: the route 503s cleanly until it's configured</td>
+<td>Verification</td>
+<td>Confirmed by the link click</td>
+<td>Confirmed by Google's own <code>email_verified</code> claim</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Verified:</strong> 121 tests passing, including 6 new sign-in tests (new-user creation, linking an existing verified user, verifying a previously-unverified one, invalid token, unverified email claim, the clean 503 when unconfigured) and 2 new tests for the config endpoint the button depends on.</p>
-<p>Registering the real Google Cloud OAuth app and wiring the Client ID into the ECS task environment are the two steps left — both infrastructure, not code, and deliberately out of scope here, the same way tengrade's own R7 slice shipped its application code before the OAuth app existed and tracked the registration as a separate follow-up.</p>
-<h2>The thread running through all three</h2>
-<p>None of this shipped as a burst of unrelated fixes. The marketplace fix, the streaming feature, and the CI reliability fix landed in the <em>same</em> pull request (#376) for a concrete reason: <code>Dockerfile</code> is a root-level file, not covered by the CodePipeline trigger-exclusion list in this repo's own <code>CLAUDE.md</code>, so changing it on its own would start a real pipeline execution. The streaming feature already touched <code>api/</code> and <code>tasks/</code>, which triggers a pipeline run regardless — so bundling the Docker fix in cost zero <em>additional</em> pipeline runs instead of two. That's not a coincidence; it's the same cost-discipline this project applies to CodeBuild image choices being applied to its own CI workflow.</p>
-<p>And every one of these three changes was verified the same way: the exact pinned lint/format tool versions CI uses (<code>ruff==0.15.22</code>, not whatever <code>pip install</code> floats to — a drift trap the repo's own CI config comments explicitly flag), the relevant test files run locally before pushing, and every sandbox limitation (no Docker daemon, no live browser) disclosed rather than hidden behind an unverified "should work." It's the same "don't trust it, run it and check" discipline that caught a 79%-understated Solvency II capital formula before launch — just pointed at infrastructure and auth instead of a regulatory calculation this time.</p>
+<p><code>POST /auth/google</code> verifies the ID token Google Identity Services hands the frontend — signature, issuer, audience, expiry — and either creates a new verified account or signs into an existing one matched by email. Both paths issue the same kind of JWT, usable identically across every API call afterward.</p>
 <h2>Try it</h2>
 <pre><code>/plugin marketplace add fibtecltd/pyvar
 /plugin install pyvar-market-risk@pyvar-marketplace   # any of the 13 published skills
 /plugin install pyvar-mcp@pyvar-marketplace            # pending review, installs today regardless
 </code></pre>
-<p>The marketplace add command works right now against the live repository no matter where Anthropic's review lands — it's a direct GitHub-source install, not routed through their review process. And <code>pyvar-full/</code> is a <code>docker compose up</code> away from a complete local instance, Google button included once a Client ID is set.</p>
+<p><code>pyvar-full/</code> is a <code>docker compose up</code> away from a complete local instance, Google sign-in included once a Client ID is configured.</p>
 <hr />
 <h2>Sources</h2>
 <ul>
-<li><a href="https://github.com/fibtecltd/pyvar/blob/master/.claude-plugin/marketplace.json"><code>.claude-plugin/marketplace.json</code></a> — 14-plugin manifest, current publish status referenced from Anthropic's developer portal.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/pull/376">PR #376</a> — marketplace source-path fix, <code>WS /api/v1/var/stream/{task_id}</code>, CI Docker build-arg fix, all three bundled with the reasoning above.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/blob/master/api/routes/var.py"><code>api/routes/var.py</code></a>, <a href="https://github.com/fibtecltd/pyvar/blob/master/tasks/var_task.py"><code>tasks/var_task.py</code></a> — streaming push implementation, <code>_publish_job_event</code>, <code>_build_job_result_response</code>.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/.claude-plugin/marketplace.json"><code>.claude-plugin/marketplace.json</code></a> — 14-plugin manifest.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/api/routes/var.py"><code>api/routes/var.py</code></a>, <a href="https://github.com/fibtecltd/pyvar/blob/master/tasks/var_task.py"><code>tasks/var_task.py</code></a> — <code>WS /api/v1/var/stream/{task_id}</code>.</li>
 <li><a href="https://github.com/fibtecltd/pyvar/blob/master/config.py"><code>config.py</code></a> — <code>var_stream_poll_interval_seconds</code>, <code>var_stream_max_wait_seconds</code>, <code>google_oauth_client_id</code>.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/pull/375">PR #375</a> — <code>pyvar-full/</code>, the all-in-one Docker distribution.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-full/docker-compose.yml"><code>pyvar-full/docker-compose.yml</code></a> — the one-command setup described above.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/pull/377">PR #377</a> — Google sign-in, adapted from tengrade's R7 design.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-full/docker-compose.yml"><code>pyvar-full/docker-compose.yml</code></a> — the one-command stack.</li>
 <li><a href="https://github.com/fibtecltd/pyvar/blob/master/api/routes/auth.py"><code>api/routes/auth.py</code></a>, <a href="https://github.com/fibtecltd/pyvar/blob/master/api/routes/public_data.py"><code>api/routes/public_data.py</code></a> — <code>POST /auth/google</code>, <code>GET /public/config</code>.</li>
 <li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-medium-article.md"><code>docs/publications/pyvar-plugins-medium-article.md</code></a> — the original 14-plugin piece this one follows up on.</li>
-<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md"><code>docs/publications/pyvar-buildstory-medium-article.md</code></a> — the Solvency II calibration this piece draws the verification-discipline parallel to.</li>
 </ul>
 </body></html>
