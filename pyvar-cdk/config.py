@@ -24,6 +24,20 @@ class PyvarConfig:
     hosted_zone_id: str = ""  # fill in after creating the zone
     certificate_arn: str = ""  # ACM cert in us-east-1 for CloudFront
 
+    # Google OAuth Client ID for api/routes/auth.py::google_sign_in — the
+    # expected `aud` claim on every Google ID token the route verifies. Not
+    # a secret (config.py's own comment on the matching app field explains
+    # why: it's also embedded client-side in portal/index.html), so unlike
+    # jwt_secret/stripe_*/sentry_dsn above it's a plain ECS environment
+    # variable (api_stack.py), not a Secrets Manager entry. One Client ID
+    # shared across every environment (no dev/prod override block below,
+    # same as hosted_zone_id) — the Google Cloud OAuth app's Authorized
+    # JavaScript origins list dev.pyvar.com, pyvar.com, and www.pyvar.com
+    # all under this one client, so dev and prod both verify against it.
+    google_oauth_client_id: str = (
+        "239817412150-4vv9u7jds7vl2mb5iefqgro0jund6oij.apps.googleusercontent.com"
+    )
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that

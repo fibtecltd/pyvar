@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="canonical" href="https://pyvar.com/privacy.html"/>
+<title>Privacy Policy — pyvar.com · Fibtec</title>
+<meta name="description" content="How pyvar.com collects, uses, retains, and protects personal data — including what Google Sign-In shares and what it doesn't."/>
+<meta name="robots" content="index, follow"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="Privacy Policy — pyvar.com"/>
+<meta property="og:description" content="How pyvar.com collects, uses, retains, and protects personal data."/>
+<meta property="og:url" content="https://pyvar.com/privacy.html"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Privacy Policy — pyvar.com"/>
+<meta name="twitter:description" content="How pyvar.com collects, uses, retains, and protects personal data."/>
+<meta name="twitter:image" content="https://pyvar.com/apple-touch-icon.png"/>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+.legal table{width:100%;border-collapse:collapse;margin:20px 0;font-size:13px}
+.legal th,.legal td{text-align:left;padding:10px 14px;border:1px solid var(--border);vertical-align:top}
+.legal th{background:var(--bg3);font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:500}
+.legal td{color:var(--text2);font-weight:300;line-height:1.55}
+.legal h2{margin:48px 0 14px;font-size:clamp(20px,2.2vw,26px)}
+.legal p,.legal li{margin:14px 0}
+.legal ul{padding-left:22px}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('home'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Privacy Policy
+    </div>
+    <div style="margin-top:16px;max-width:760px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Legal</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">Privacy Policy</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">What pyvar.com collects, why, how long it's kept, and what Google Sign-In actually shares. Last updated: October 2026.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal legal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+
+<p class="body-md">pyvar.com is a product of <strong>Fibtec Limited</strong>, a company registered in England and Wales under company number <strong>07098379</strong>, with registered office at <strong>71-75 Shelton Street, Covent Garden, London, WC2H 9JQ</strong> (&ldquo;Fibtec&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). This policy explains what personal data pyvar.com collects, why, and what your rights are. Fibtec is the data controller for your account data.</p>
+
+<h2 class="h2">1. What pyvar.com actually stores about a computation</h2>
+<p class="body-md">pyvar.com is a <strong>deterministic risk-computation engine</strong>, not an AI product — results are produced by a Numba-JIT-compiled Monte Carlo/statistical kernel running on our own infrastructure, never by sending your data to a third-party AI model. This matters for what's below, because it means there's nothing beyond what's described here that touches your computation inputs.</p>
+<p class="body-md">A request to compute a risk metric (e.g. Value-at-Risk) typically includes a portfolio value, a series of historical returns (plain numbers — no instrument names, tickers, or counterparty identities are part of this API), and parameters like confidence level and horizon. <strong>The historical-returns series itself is used only in memory, for the single computation that needs it, and is never written to a database or object store.</strong> What we do keep, as a permanent audit record (see §4), is the job's metadata: your account identifier, the scalar parameters you submitted (portfolio value, confidence level, horizon, simulation count), and the resulting risk metrics — not the raw return series that produced them.</p>
+
+<h2 class="h2">2. Personal data we collect about your account</h2>
+<p class="body-md">pyvar.com has one kind of account — there's no separate organisation/company concept, no name, and no physical address collected anywhere in sign-up:</p>
+<ul class="body-md">
+<li><strong>Your email address</strong> — your account identity. Any email address is accepted, including personal ones (no password required to sign up, and no payment card either).</li>
+<li><strong>Authentication data</strong> — pyvar.com uses no password at all. Access is via a signed JSON Web Token (JWT) issued after email verification or Google Sign-In (see §3). We hold a per-account identifier used to validate that token, not a password of any kind.</li>
+<li><strong>Billing and usage information</strong>, only if you upgrade to a paid tier — see §6.</li>
+</ul>
+
+<h2 class="h2">3. Google Sign-In — what it shares, and what it doesn't</h2>
+<p class="body-md">If you choose &ldquo;Continue with Google&rdquo;, Google shares your email address and whether Google considers it verified, which we use to either create a new pyvar.com account or sign you into an existing one matched by that email address. <strong>Unlike some other Fibtec products, Google Sign-In on pyvar.com can create a brand-new account directly</strong> — it isn't restricted to linking an account that already exists, because pyvar.com has no domain-matching or organisation-membership rule for Google to conflict with.</p>
+<p class="body-md">We request only the standard, minimal Google identity scope (your email address and whether it's verified) — nothing about your contacts, files, or any other Google data. Google's own ID token is verified entirely on our servers; it is never forwarded to any third party.</p>
+
+<h2 class="h2">4. How long computation and account records are kept</h2>
+<p class="body-md">The job audit record described in §1 (account identifier, submitted parameters, resulting metrics — never the raw return series) is retained indefinitely as a compliance audit trail, consistent with standard practice for regulatory risk-computation records, and is never deleted programmatically.</p>
+<p class="body-md">The full computed result (the complete loss-distribution output, not just the summary metrics stored in the audit record) is kept in object storage for a bounded period — currently up to 90 days in our standard environment, and up to 365 days where a longer compliance-retention window applies — after which it is deleted automatically. The summary metrics in the audit record above are unaffected by this deletion.</p>
+
+<h2 class="h2">5. No AI processing of your computation data</h2>
+<p class="body-md">To be explicit, since pyvar.com is also distributed as Claude Code plugins and an MCP server: when <em>you</em> choose to call pyvar.com's API through Claude Code or Claude.ai, whatever you type into Claude is a conversation between you and Anthropic, governed by Anthropic's own privacy terms — pyvar.com only ever sees the resulting API call, exactly as if you'd made it yourself with curl. pyvar.com's own backend never sends your portfolio data, return series, or computed results to Anthropic or any other AI provider; our compute kernel is not an AI model.</p>
+
+<h2 class="h2">6. Payment data</h2>
+<p class="body-md">If you upgrade to a paid tier, payment is handled entirely by <strong>Stripe</strong>, our payment processor. We never see or store your card number, expiry date, or security code — Stripe's own hosted checkout collects this directly. We only ever store the resulting tier, the amount charged, and a reference to the transaction, so we can show you your own billing history.</p>
+
+<h2 class="h2">7. Cookies and tracking</h2>
+<p class="body-md"><strong>pyvar.com does not use cookies, and we do not run any analytics or advertising tracking</strong> — no Google Analytics, no advertising pixels. Your session token (JWT) is kept in your browser's local storage, used only to authenticate your own API calls back to pyvar.com — never for tracking, profiling, or advertising, and never read by anyone but your own browser.</p>
+
+<h2 class="h2">8. Your rights, and how to exercise them</h2>
+<p class="body-md">pyvar.com does not currently offer self-service account deletion through the product itself. If you want your account data deleted, contact us at <strong>info@pyvar.com</strong> and we will action the request.</p>
+<p class="body-md">Under UK GDPR you have the right to access, correct, or request erasure of your personal data, to object to or restrict our processing of it, and to data portability; the same email address is the way to exercise any of these rights, and if you're not satisfied with our response you have the right to complain to the UK Information Commissioner's Office (ico.org.uk).</p>
+
+<h2 class="h2">9. Where your data is hosted, and who else sees it</h2>
+<p class="body-md">pyvar.com's infrastructure runs entirely in Amazon Web Services' Ireland (eu-west-1) region — your data does not leave the EU/UK by virtue of our own hosting. (A separate, unconditional CloudFront/WAF edge layer exists in AWS's us-east-1 region purely for routing and security filtering — it holds no origin for your data and never stores anything.) Where we use other companies to help run the service (our &ldquo;sub-processors&rdquo;), here's the full list and what each one sees:</p>
+<table>
+<thead><tr><th>Sub-processor</th><th>What they see</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Amazon Web Services</td><td>All application data (hosting, database, object storage); also sends account-verification emails via Amazon SES</td><td>Ireland (eu-west-1)</td></tr>
+<tr><td>Stripe</td><td>Payment card details, billing contact info (paid tiers only)</td><td>See Stripe's own privacy policy</td></tr>
+<tr><td>Sentry</td><td>Application error diagnostics (stack traces, request metadata) for debugging — configured not to include request content by default</td><td>See Sentry's own privacy policy</td></tr>
+<tr><td>Google (optional sign-in only)</td><td>Nothing — this flows the other way: Google shares your email address with us, we don't share anything with Google</td><td>See Google's own privacy policy</td></tr>
+</tbody>
+</table>
+
+<h2 class="h2">10. Changes to this policy</h2>
+<p class="body-md">We may update this policy from time to time, and for material changes, we'll make reasonable efforts to notify account holders directly.</p>
+
+<h2 class="h2">11. Contact us</h2>
+<p class="body-md">Privacy rights and data requests: <strong>info@pyvar.com</strong></p>
+<p class="body-md">Fibtec Limited<br/>71-75 Shelton Street, Covent Garden, London, WC2H 9JQ</p>
+
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Also see</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">Related <em>legal pages</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="terms.html" class="btn-ghost">Terms of Service →</a>
+      <a href="index.html" class="btn-green">← Back to pyvar.com</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>

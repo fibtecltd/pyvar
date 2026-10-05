@@ -333,6 +333,15 @@ class ApiStack(Stack):
                 # replies anyway (dev has sent successfully from noreply@pyvar.com
                 # this whole time with no real inbox behind it either).
                 "SES_SENDER_EMAIL": f"noreply@{cfg.ses_domain_name}",
+                # Empty until cfg.google_oauth_client_id is filled in (see its
+                # own comment in config.py) -- config.py's (the app's)
+                # google_oauth_client_id is `str | None = None`, and an empty
+                # string is just as falsy as unset for the
+                # `bool(cfg.google_oauth_client_id)` check both
+                # api/routes/auth.py and api/routes/public_data.py gate on,
+                # so this is safe to ship now as a real environment entry
+                # rather than omitted conditionally.
+                "GOOGLE_OAUTH_CLIENT_ID": cfg.google_oauth_client_id,
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).
