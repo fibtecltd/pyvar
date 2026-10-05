@@ -120,7 +120,7 @@ function buildFooter() {
       <div class="footer-bottom">
         <div class="footer-copy">© 2026 pyvar.com · Apache-2.0 licensed</div>
         <div class="footer-legal">
-          <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Apache-2.0 Licence</a>
+          <a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="https://github.com/fibtecltd/pyvar/blob/master/LICENSE" target="_blank">Apache-2.0 Licence</a>
         </div>
       </div>
     </div>

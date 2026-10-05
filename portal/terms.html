@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="canonical" href="https://pyvar.com/terms.html"/>
+<title>Terms of Service — pyvar.com · Fibtec</title>
+<meta name="description" content="The terms governing use of pyvar.com, a product of Fibtec Limited."/>
+<meta name="robots" content="index, follow"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="pyvar.com"/>
+<meta property="og:title" content="Terms of Service — pyvar.com"/>
+<meta property="og:description" content="The terms governing use of pyvar.com, a product of Fibtec Limited."/>
+<meta property="og:url" content="https://pyvar.com/terms.html"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Terms of Service — pyvar.com"/>
+<meta name="twitter:description" content="The terms governing use of pyvar.com, a product of Fibtec Limited."/>
+<meta name="twitter:image" content="https://pyvar.com/apple-touch-icon.png"/>
+<link rel="stylesheet" href="pyvar.css"/>
+<style>
+.legal h2{margin:48px 0 14px;font-size:clamp(20px,2.2vw,26px)}
+.legal p,.legal li{margin:14px 0}
+.legal ul{padding-left:22px}
+</style>
+</head>
+<body>
+<script src="pyvar.js"></script>
+<script>document.write(buildNav('home'))</script>
+<main>
+
+<section class="page-hero">
+  <div class="hero-scanlines"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="container" style="position:relative;z-index:1">
+    <div class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--dim)">
+      <a href="index.html" style="color:var(--dim);text-decoration:none">Fibtec</a> ·
+      <a href="index.html" style="color:var(--dim);text-decoration:none">pyvar.com</a> · Terms of Service
+    </div>
+    <div style="margin-top:16px;max-width:760px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:16px">Legal</div>
+      <h1 class="h1 reveal d1" style="font-size:clamp(28px,4vw,44px)">Terms of Service</h1>
+      <p class="body-lg reveal d2" style="max-width:680px;margin:24px 0 0">The terms governing use of pyvar.com's hosted API and portal. Last updated: October 2026.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="reveal legal" style="max-width:760px;margin:0 auto">
+<hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
+
+<p class="body-md">These terms govern use of <strong>pyvar.com</strong>, a product of <strong>Fibtec Limited</strong> (&ldquo;Fibtec&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;), by any individual that creates an account (&ldquo;you&rdquo;). By creating an account or using pyvar.com, you agree to these terms.</p>
+<p class="body-md">These terms cover the <strong>hosted service</strong> — the live API at pyvar.com, your account, and your usage tier. They are separate from the Apache-2.0 open-source licence that governs the underlying engine's source code on <a href="https://github.com/fibtecltd/pyvar" target="_blank" style="color:var(--green)">GitHub</a>; self-hosting the code is governed by that licence, not these terms.</p>
+
+<h2 class="h2">1. What pyvar.com is — and isn't</h2>
+<p class="body-md">pyvar.com computes risk and financial metrics (VaR, Expected Shortfall, credit scoring, derivatives pricing, and more) from parameters you submit, using a deterministic computational engine. <strong>The output is a computed result based on the inputs and parameters you chose — not investment, legal, or regulatory advice, and not a substitute for your own model validation or your organisation's own regulatory sign-off process.</strong> You are responsible for choosing appropriate inputs and parameters, and for independently validating any result before relying on it for a capital, trading, or regulatory decision.</p>
+
+<h2 class="h2">2. Your account</h2>
+<ul class="body-md">
+<li>An account is created either by registering with any email address (verified via a one-time link), or via Google Sign-In, which can also create a new account directly — see our <a href="/privacy.html" style="color:var(--green)">Privacy Policy</a> §3.</li>
+<li>pyvar.com uses no password. Access is via a signed JSON Web Token (JWT) issued to you on verification or sign-in. You're responsible for keeping this token confidential and for all activity under your account.</li>
+<li>We reserve the right to decline or terminate an account that we believe in good faith is being used fraudulently, abusively, or in violation of these terms.</li>
+</ul>
+
+<h2 class="h2">3. Fees and tiers</h2>
+<ul class="body-md">
+<li>New accounts start on a <strong>free tier</strong> with a limited daily request quota and a capped number of simulations per request, shown in the product itself.</li>
+<li>A <strong>Pro tier</strong>, billed via Stripe on a recurring basis, raises these limits. Current limits are shown in the product at the time of use and may change.</li>
+<li>Payment is processed by Stripe; by making a payment you also agree to Stripe's own terms for that transaction.</li>
+</ul>
+
+<h2 class="h2">4. Acceptable use</h2>
+<p class="body-md">You agree not to use pyvar.com to:</p>
+<ul class="body-md">
+<li>Attempt to circumvent, probe, or interfere with pyvar.com's security, rate limits, or infrastructure;</li>
+<li>Submit a volume or pattern of requests intended to degrade the service for other users;</li>
+<li>Present a pyvar.com computational output as official regulatory approval, audited advice, or a substitute for your own organisation's risk-governance sign-off;</li>
+<li>Use the service for any unlawful purpose, or to process data you do not have the right to process;</li>
+<li>Resell or provide pyvar.com's hosted service to a third party as your own offering, without our separate written agreement. (This restriction is about the hosted service only — running your own instance of the open-source engine is governed by its Apache-2.0 licence, not this clause.)</li>
+</ul>
+
+<h2 class="h2">5. Data retention</h2>
+<p class="body-md">As described in our <a href="/privacy.html" style="color:var(--green)">Privacy Policy</a> §1 and §4: the historical-returns series you submit for a computation is used only in memory and is never stored; a permanent audit record of your account, submitted parameters, and resulting metrics is retained indefinitely for compliance purposes; and the full computed result is retained in object storage for a bounded period (up to 90 or 365 days depending on environment) before automatic deletion.</p>
+
+<h2 class="h2">6. Computational outputs — what to know</h2>
+<p class="body-md">Results are produced by a deterministic computational engine, not an AI model — see our <a href="/privacy.html" style="color:var(--green)">Privacy Policy</a> §5. That said, any computed output is only as sound as the inputs, parameters, and assumptions you chose (sample size, confidence level, horizon, and so on). You are responsible for reviewing and validating results before relying on them for any consequential use — see §1.</p>
+
+<h2 class="h2">7. Service availability</h2>
+<p class="body-md">We aim to keep pyvar.com available, but <strong>we do not guarantee uninterrupted availability</strong>, and pyvar.com is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. To the maximum extent permitted by law, we disclaim all warranties, express or implied, about the service's fitness for a particular purpose or the accuracy of any computed output.</p>
+
+<h2 class="h2">8. Limitation of liability</h2>
+<p class="body-md">To the maximum extent permitted by law, Fibtec's total liability to you arising out of or relating to these terms or your use of pyvar.com will not exceed the amount you paid us in the 12 months before the claim arose (which is £0 for a free-tier account). We are not liable for indirect, incidental, or consequential damages, including from decisions made in reliance on a computed output — see §1 and §6. Nothing in these terms limits liability that cannot be limited under applicable law (including liability for death or personal injury caused by our negligence, or for fraud).</p>
+
+<h2 class="h2">9. Intellectual property</h2>
+<p class="body-md">pyvar.com's hosted service (the running infrastructure, not the underlying code) remains Fibtec's property. The engine's source code is separately licensed under Apache-2.0 and publicly available on GitHub — see the licence file in that repository for its own terms. You retain ownership of the data and parameters you submit; we claim no ownership over them, and as described in §5, most of it isn't even retained.</p>
+
+<h2 class="h2">10. Termination</h2>
+<p class="body-md">Either party may terminate at any time. Sections that by their nature should survive termination (including §5, §8, and §9) continue to apply.</p>
+
+<h2 class="h2">11. Changes to these terms</h2>
+<p class="body-md">We may update these terms from time to time, and make reasonable efforts to notify account holders of material changes before they take effect.</p>
+
+<h2 class="h2">12. Governing law</h2>
+<p class="body-md">These terms are governed by the laws of England and Wales, and any dispute is subject to the exclusive jurisdiction of the courts of England and Wales, matching Fibtec Limited's own registration.</p>
+
+<h2 class="h2">13. Contact us</h2>
+<p class="body-md"><strong>info@pyvar.com</strong></p>
+<p class="body-md">Fibtec Limited<br/>71-75 Shelton Street, Covent Garden, London, WC2H 9JQ<br/>Company number 07098379</p>
+
+    </div>
+  </div>
+</section>
+
+<section class="section-dark" style="padding:56px 0;text-align:center">
+  <div class="container">
+    <div class="label reveal" style="justify-content:center">Also see</div>
+    <h2 class="h2 reveal" style="margin-bottom:28px">Related <em>legal pages</em></h2>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap" class="reveal">
+      <a href="privacy.html" class="btn-ghost">Privacy Policy →</a>
+      <a href="index.html" class="btn-green">← Back to pyvar.com</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>document.write(buildFooter())</script>
+<script>
+initReveal(); initNav();
+</script>
+</body>
+</html>
