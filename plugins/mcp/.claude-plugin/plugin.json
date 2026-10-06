@@ -9,6 +9,9 @@
   "homepage": "https://pyvar.com",
   "repository": "https://github.com/fibtecltd/pyvar",
   "license": "Apache-2.0",
+  "icon": "./icon.png",
+  "privacyPolicyUrl": "https://pyvar.com/privacy.html",
+  "termsOfServiceUrl": "https://pyvar.com/terms.html",
   "userConfig": {
     "pyvar_api_key": {
       "type": "string",

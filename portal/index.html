@@ -121,8 +121,14 @@
 <body>
 <!-- Google Identity Services — only renders a button if /public/config
      reports google_sign_in_enabled (pyvar.js::initGoogleSignIn). Harmless,
-     unused network fetch otherwise; no credentials embedded here. -->
-<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
+     unused network fetch otherwise; no credentials embedded here.
+     ?hl=en pins the button/consent UI to English regardless of the
+     viewer's browser or Google-account locale (GIS otherwise
+     auto-detects and renders e.g. "Accedi con Google" for an
+     Italian-locale visitor) -- every other string on pyvar.com is
+     English-only, so the one Google-rendered widget on the page
+     shouldn't be the exception. -->
+<script src="https://accounts.google.com/gsi/client?hl=en" async defer onload="initGoogleSignIn()"></script>
 <script src="pyvar.js"></script>
 <script>document.write(buildNav('home'))</script>
 <main>
@@ -410,6 +416,7 @@
     </div>
     <div id="registerStatus" class="get-key-status reveal"></div>
     <div id="googleKeyResult"></div>
+    <p class="reveal" style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:16px">By continuing, you agree to our <a href="terms.html" style="color:var(--text2)">Terms</a> and <a href="privacy.html" style="color:var(--text2)">Privacy Policy</a>.</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px" class="reveal">
       <a href="https://github.com/fibtecltd/pyvar" target="_blank" class="btn-ghost">GitHub ↗</a>
       <a href="https://fibtec.co.uk#contact" target="_blank" class="btn-green">Enterprise support →</a>
