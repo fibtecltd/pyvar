@@ -1,97 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://pyvar.com/</loc>
+    <loc>https://www.pyvar.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/plugins.html</loc>
+    <loc>https://www.pyvar.com/plugins.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/local.html</loc>
+    <loc>https://www.pyvar.com/local.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guides.html</loc>
+    <loc>https://www.pyvar.com/guides.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guide-rest-api.html</loc>
+    <loc>https://www.pyvar.com/guide-rest-api.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guide-pyvar-client.html</loc>
+    <loc>https://www.pyvar.com/guide-pyvar-client.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guide-pyvar-jupyter.html</loc>
+    <loc>https://www.pyvar.com/guide-pyvar-jupyter.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guide-claude-plugins.html</loc>
+    <loc>https://www.pyvar.com/guide-claude-plugins.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/guide-technical-deepdive.html</loc>
+    <loc>https://www.pyvar.com/guide-technical-deepdive.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-market-risk.html</loc>
+    <loc>https://www.pyvar.com/domain-market-risk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-credit-risk.html</loc>
+    <loc>https://www.pyvar.com/domain-credit-risk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-derivatives.html</loc>
+    <loc>https://www.pyvar.com/domain-derivatives.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-liquidity-risk.html</loc>
+    <loc>https://www.pyvar.com/domain-liquidity-risk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-operational-risk.html</loc>
+    <loc>https://www.pyvar.com/domain-operational-risk.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-portfolio-analytics.html</loc>
+    <loc>https://www.pyvar.com/domain-portfolio-analytics.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-alm.html</loc>
+    <loc>https://www.pyvar.com/domain-alm.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/domain-regulatory.html</loc>
+    <loc>https://www.pyvar.com/domain-regulatory.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/privacy.html</loc>
+    <loc>https://www.pyvar.com/privacy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://pyvar.com/terms.html</loc>
+    <loc>https://www.pyvar.com/terms.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

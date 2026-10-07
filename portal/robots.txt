@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /dashboard.html
 
-Sitemap: https://pyvar.com/sitemap.xml
+Sitemap: https://www.pyvar.com/sitemap.xml
