@@ -60,7 +60,10 @@ def load_returns(
             f"No returns found for instrument '{instrument_id}' " f"in [{start_date}, {end_date}]."
         )
 
-    return df[return_col].to_numpy(allow_copy=False)  # zero-copy via Arrow
+    # Zero-copy when Polars can (single contiguous chunk, no nulls); otherwise a
+    # copy. allow_copy=False raised RuntimeError on a sorted/filtered, multi-chunk
+    # series under current Polars, and the copy is negligible next to the scan.
+    return df[return_col].to_numpy()
 
 
 def load_multi_instrument(
