@@ -2,6 +2,10 @@
 
 *What pyvar actually does when you ask it a risk question — one real request and one real result at a time.*
 
+![Fourteen plugins, twenty-eight worked examples. Eight domain tiles show real results: 99% VaR 2.38%, expected loss 450,000, LCR 109.1%, SMA capital 227m, Sharpe ratio 0.69, CET1 ratio 12.68%, Black-Scholes call 4.9371, change in EVE minus 177.6m.](./assets/plugin-examples/plugin-examples-header.png)
+
+*Eight of the twenty-eight results in this article, each produced by a real pyvar call.*
+
 ---
 
 pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk platform: 385 functions across eight domains — market risk, credit risk, liquidity, operational risk, portfolio analytics, regulatory capital, derivatives and ALM — behind a single REST API. It reaches Claude Code through fourteen plugins: eight domain skills, five architecture skills and the `pyvar-mcp` server.
@@ -12,6 +16,11 @@ pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk platform: 385 f
 ```
 
 A plugin list tells you what exists. This article shows what each one does. Every plugin gets two worked examples — twenty-eight in all — and every number below was produced by running pyvar's own code on synthetic data, with the seed shown.
+
+![Diagram: you ask in Claude Code; eight domain plugins and the pyvar-mcp server both end at the pyvar.com REST API with 385 functions, which is served by five platform layers documented by the five architecture plugins.](./assets/plugin-examples/plugin-examples-overview.png)
+
+*Figure 1. The fourteen plugins and what they connect to. The eight domain plugins and the MCP server are two routes to the same API; the five architecture plugins document the layers behind it.*
+
 
 ## Part one: the eight domain plugins
 
@@ -33,6 +42,11 @@ POST /api/v1/market-risk/historical_simulation_var
 
 The 99% VaR is 2.38% of the book, 238,046. `historical_expected_shortfall` at the FRTB level of 97.5% averages the 13 worst days of the 500 and returns 245,467. Expected Shortfall is the mean of the tail, not a quantile — which is why the response reports `n_tail` alongside the number.
 
+![Histogram of 500 daily returns with the 13 worst days shaded; vertical markers show the 99% VaR of 2.38 percent and the 97.5% expected shortfall of 2.45 percent.](./assets/plugin-examples/plugin-examples-var-es-tail.png)
+
+*Figure 2. The 13 shaded days are the tail the Expected Shortfall averages; the markers show where the 99% VaR and the 97.5% ES fall.*
+
+
 **"Backtest this VaR against the next year and tell me the capital consequence."**
 
 A 99% VaR of 1.51% is estimated on one 250-day window, then judged against the next 250 days drawn from the same distribution. Three chained calls do the rest:
@@ -45,6 +59,11 @@ kupiec_pof_test               → {"lr_pof": 5.49699, "p_value": 0.019049,
 ```
 
 A 99% VaR should be breached about 2.5 times in 250 days. Seven breaches is yellow, carries a 3.65 multiplier, and the Kupiec test rejects the model at 95%. Both windows came from one distribution, so the example doubles as a reminder of how noisy a 99% quantile is when it rests on 250 observations.
+
+![Bar chart of 250 daily returns against a 99% VaR line at minus 1.51 percent with seven breaches marked, above a Basel traffic-light strip showing seven breaches in the yellow zone and a capital multiplier of 3.65.](./assets/plugin-examples/plugin-examples-backtest-breaches.png)
+
+*Figure 3. Seven breaches put the model in the Basel yellow zone, with a capital multiplier of 3.65.*
+
 
 ### pyvar-credit-risk
 
@@ -60,6 +79,11 @@ credit_var_analytical_vasicek {"pd": 0.02, "lgd": 0.45, "ead_total": 50000000,
 ```
 
 Expected loss is 0.02 × 0.45 × 50,000,000 = 450,000. The Vasicek 99.9% loss is 3,967,401, which leaves an unexpected loss of 3,517,401 for economic capital to cover.
+
+![Vasicek loss distribution for a 50 million exposure: expected loss of 450,000 and 99.9% credit VaR of 3,967,401, with the unexpected loss between them marked as economic capital.](./assets/plugin-examples/plugin-examples-vasicek-loss.png)
+
+*Figure 4. Expected loss is priced; the distance from it to the 99.9% loss is what capital has to absorb.*
+
 
 **"Score these three borrowers."**
 
@@ -96,6 +120,11 @@ net_stable_funding_ratio_nsfr  {"available_stable_funding": 410e6, "required_sta
 ```
 
 Cumulative outflows reach 94m after day 10 and 101m after day 11: the buffer survives ten full days and is exhausted during the eleventh, ending 1m short.
+
+![Bar chart of cumulative net outflow over 12 days against a 100 million HQLA line; bars for days 11 and 12 (101m and 107m) exceed the line; ten full days are survived.](./assets/plugin-examples/plugin-examples-liquidity-survival.png)
+
+*Figure 5. Cumulative outflow crosses the 100m HQLA line during day 11.*
+
 
 ### pyvar-operational-risk
 
@@ -202,6 +231,11 @@ full reprice at +50bp         → 92.3864   (a move of −3.7163)
 
 The two agree to within 0.0015 of price.
 
+![Left: bond price against yield with duration-only and duration-plus-convexity approximations. Right: after a 50 basis point rise, full reprice 92.3864, duration plus convexity 92.3879, duration only 92.2975.](./assets/plugin-examples/plugin-examples-bond-price-yield.png)
+
+*Figure 6. Duration alone drifts away from the true price curve; adding convexity tracks it, and at +50bp it lands within 0.0015.*
+
+
 ### pyvar-alm
 
 **"How exposed is our equity to a rate shock, and where does the exposure sit?"**
@@ -225,6 +259,11 @@ The duration gap is 4.2 − 0.92 × 3.6 = 0.888, so a +200bp shock takes 177.6m 
 
 The worst scenario is the parallel-up shock, at −81.9m, which is 9.1% of 900m of Tier 1 capital — under the 15% supervisory threshold.
 
+![Horizontal bar chart of the change in economic value of equity under six rate shocks; parallel up is the worst at minus 81.9 million, well inside the minus 135 million line that marks 15 percent of Tier 1 capital.](./assets/plugin-examples/plugin-examples-irrbb-shocks.png)
+
+*Figure 7. Parallel up is the worst of the six shocks at −81.9m, 9.1% of Tier 1, against the 15% outlier line at −135m.*
+
+
 ## Part two: the five architecture plugins
 
 The architecture plugins document how pyvar itself is built. Each example below calls the real module, not a description of it.
@@ -242,6 +281,11 @@ pro tier, 50,000 simulations               → 202  {"status": "pending", "messa
 ```
 
 The JWT carries the tier, and the tier's simulation cap — 10,000 free, 100,000 pro, 500,000 enterprise — is enforced before anything is queued.
+
+![Flow chart of six checks on POST /api/v1/var/compute with their outcomes: JWT authentication 401, daily quota 429, request validation 422, result cache 200, tier simulation cap 403, audit row and dispatch 202.](./assets/plugin-examples/plugin-examples-gateway-path.png)
+
+*Figure 8. The order of the checks on the VaR endpoint. Domain endpoints run the first three, then the engine.*
+
 
 **One quota across every compute endpoint.** A free-tier user alternates between a credit-risk and a liquidity endpoint. Requests 1 to 10 succeed; request 11 is refused:
 
@@ -277,6 +321,11 @@ n_simulations 1,000,000   spread 0.00014
 
 More paths buy a tighter estimate at a cost that grows with the path count. The 10-day VaR is 3.05 times the 1-day figure, close to the square-root-of-time factor of 3.16; it sits a little lower because the positive daily drift accumulates over ten days.
 
+![Scatter chart of the 99% VaR from five seeds at simulation counts from 1,000 to 1,000,000 on a log axis; the spread narrows from 0.231 percentage points to 0.014.](./assets/plugin-examples/plugin-examples-compute-convergence.png)
+
+*Figure 9. The same data as the spreads above, in percentage points with the fraction in brackets: 0.231 (0.00231) at 1,000 paths, 0.014 (0.00014) at 1,000,000.*
+
+
 ### pyvar-arch-data-ingestion
 
 **Lazy Parquet scans with predicate pushdown.** `load_returns` filters by instrument and date range, and the query plan shows both predicates pushed into the Parquet scan:
@@ -309,6 +358,11 @@ Redis unreachable             → None  (a cache miss, never an error)
 Equivalent requests share one cached result, different requests never collide, and an unreachable cache degrades to a miss instead of failing the request.
 
 **Large results go to S3.** Above 10,000 simulations the worker writes the full result to S3 as Parquet. A 200,000-path run becomes a single-row object of about 2.1 MB at `results/abcdef12/abcdef12-3456-7890-abcd-ef1234567890.parquet` holding all 200,000 loss values, and what travels through the result backend is the key. `hydrate_presigned_url` turns that key into a time-limited link at the moment a client asks, so the link is never stale. (This example runs against a mocked S3.)
+
+![Sequence diagram of the asynchronous VaR path: client posts, API validates and writes an audit row, dispatches via a queue and returns 202; the worker runs the Monte Carlo and writes the result to Redis and, above 10,000 paths, to S3; the client polls and receives the result with a presigned link.](./assets/plugin-examples/plugin-examples-async-var-flow.png)
+
+*Figure 10. The full life of a VaR job, from the POST to the polled result.*
+
 
 ### pyvar-arch-observability
 
@@ -369,6 +423,11 @@ unknown function    → "Unknown function 'no_such_function' in domain 'alm'.
 
 A missing parameter is caught before any request is made; an out-of-range value is rejected by the API; an unknown name points the model back to the listing.
 
+![Flow chart of one MCP call: three entry tools reach the catalogue lookup and a required-parameter check inside pyvar-mcp, then an HTTPS request to the REST API; unknown function, missing parameter and API rejection return errors, and success returns JSON.](./assets/plugin-examples/plugin-examples-mcp-call-flow.png)
+
+*Figure 11. One call, three failure paths. Each failure comes back as a readable tool result flagged is_error.*
+
+
 ## Reproduce every number
 
 All twenty-eight examples, with their complete requests and responses, are in `docs/plugin-examples.md`, generated by one script from the repository root:
@@ -379,12 +438,20 @@ python scripts/generate_plugin_examples.py
 
 It runs the real application, the real modules and the real MCP server on synthetic data (`ingestion.fixtures`), mocks AWS with moto, and produces identical output on every run.
 
+The twelve figures — this article's header, seven charts and four diagrams — come from a second script that draws from the same runs and fails if any plotted number disagrees with the API result it illustrates:
+
+```bash
+pip install matplotlib
+python scripts/generate_plugin_figures.py
+```
+
 ---
 
 ## Sources
 
 - [`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) — all twenty-eight examples with full requests and responses.
 - [`scripts/generate_plugin_examples.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_plugin_examples.py) — the generator.
+- [`scripts/generate_plugin_figures.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_plugin_figures.py) — the figure generator, and [`docs/publications/assets/plugin-examples/`](https://github.com/fibtecltd/pyvar/tree/master/docs/publications/assets/plugin-examples) — the images.
 - [`.claude-plugin/marketplace.json`](https://github.com/fibtecltd/pyvar/blob/master/.claude-plugin/marketplace.json) — the fourteen plugins.
 - [`plugins/`](https://github.com/fibtecltd/pyvar/tree/master/plugins) — the domain skills, architecture skills and the `pyvar-mcp` server.
 - [`portal/functions.json`](https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json) — the 385-function catalogue behind the endpoints and the MCP tools.
