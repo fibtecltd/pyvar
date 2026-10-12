@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Fourteen Claude Code Plugins, Twenty-Eight Worked Examples</title>
+<style>
+body { max-width: 760px; margin: 40px auto; padding: 0 20px;
+       font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;
+       line-height: 1.6; font-size: 18px; }
+h1 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 34px;
+     font-weight: 700; line-height: 1.25; margin: 0.4em 0 0.3em; }
+h2 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 26px;
+     font-weight: 700; margin: 1.4em 0 0.4em; }
+h3 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 21px;
+     font-weight: 700; margin: 1.2em 0 0.4em; }
+p { margin: 0.9em 0; }
+em.subtitle { display: block; font-style: italic; color: #555; font-size: 20px;
+              margin: 0 0 1em; }
+code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em;
+       background: #f2f2f2; padding: 0.1em 0.3em; border-radius: 3px; }
+pre { background: #f6f6f6; border-radius: 6px; padding: 14px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 14px; line-height: 1.5; }
+blockquote { border-left: 3px solid #ccc; margin: 1em 0; padding: 0.2em 0 0.2em 1.2em;
+             color: #555; font-style: italic; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; display: block; margin: 1.2em 0; }
+a { color: #1a6b8a; }
+ul, ol { padding-left: 1.4em; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1.2em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+th { background: #f6f6f6; }
+.instructions { background: #fff8e6; border: 1px solid #e8d38a; border-radius: 8px;
+                padding: 14px 18px; margin-bottom: 2em; font-family: -apple-system, sans-serif;
+                font-size: 14px; color: #6b5900; }
+</style></head><body>
+<div class="instructions"><strong>How to use this file:</strong> open it in a browser, select all the content below the instructions box (Cmd/Ctrl+A once you've clicked into the article body), copy, then paste into a new Medium story. Medium should pick up headings, bold/italic, links, blockquotes, tables, and code blocks automatically. Verify each code block converted to Medium's native code block (not a plain paragraph). This conversion is a best-effort based on how Medium's rich-paste generally behaves; it hasn't been tested against a live Medium account.</div>
+<h1>Fourteen Claude Code Plugins, Twenty-Eight Worked Examples</h1><em class="subtitle">What pyvar actually does when you ask it a risk question — one real request and one real result at a time.</em><hr />
+<p>pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk platform: 385 functions across eight domains — market risk, credit risk, liquidity, operational risk, portfolio analytics, regulatory capital, derivatives and ALM — behind a single REST API. It reaches Claude Code through fourteen plugins: eight domain skills, five architecture skills and the <code>pyvar-mcp</code> server.</p>
+<pre><code>/plugin marketplace add fibtecltd/pyvar
+/plugin install pyvar-market-risk@pyvar-marketplace
+</code></pre>
+<p>A plugin list tells you what exists. This article shows what each one does. Every plugin gets two worked examples — twenty-eight in all — and every number below was produced by running pyvar's own code on synthetic data, with the seed shown.</p>
+<h2>Part one: the eight domain plugins</h2>
+<p>The domain plugins teach Claude which of pyvar's functions answer which question. Ask in plain language, and the request resolves to a call like the ones below.</p>
+<h3>pyvar-market-risk</h3>
+<p><strong>"What is the 99% VaR of a 10 million portfolio, and what is the FRTB Expected Shortfall?"</strong></p>
+<p>Two years of daily returns (500 observations, <code>generate_gbm_returns(500, mu=0.0004, sigma=0.011, seed=7)</code>) go to <code>historical_simulation_var</code>:</p>
+<pre><code>POST /api/v1/market-risk/historical_simulation_var
+{&quot;returns&quot;: [... 500 values ...], &quot;portfolio_value&quot;: 10000000, &quot;confidence_level&quot;: 0.99}
+
+{&quot;var_pct&quot;: 0.02380457, &quot;var_abs&quot;: 238045.72,
+ &quot;cvar_pct&quot;: 0.02908383, &quot;cvar_abs&quot;: 290838.34, &quot;n_obs&quot;: 500}
+</code></pre>
+<p>The 99% VaR is 2.38% of the book, 238,046. <code>historical_expected_shortfall</code> at the FRTB level of 97.5% averages the 13 worst days of the 500 and returns 245,467. Expected Shortfall is the mean of the tail, not a quantile — which is why the response reports <code>n_tail</code> alongside the number.</p>
+<p><strong>"Backtest this VaR against the next year and tell me the capital consequence."</strong></p>
+<p>A 99% VaR of 1.51% is estimated on one 250-day window, then judged against the next 250 days drawn from the same distribution. Three chained calls do the rest:</p>
+<pre><code>traffic_light_backtesting     → {&quot;n_breaches&quot;: 7, &quot;basel_zone&quot;: &quot;yellow&quot;}
+basel_capital_addon_multiplier → {&quot;multiplier&quot;: 3.65, &quot;zone&quot;: &quot;yellow&quot;}
+kupiec_pof_test               → {&quot;lr_pof&quot;: 5.49699, &quot;p_value&quot;: 0.019049,
+                                 &quot;critical_value&quot;: 3.841459, &quot;reject&quot;: true}
+</code></pre>
+<p>A 99% VaR should be breached about 2.5 times in 250 days. Seven breaches is yellow, carries a 3.65 multiplier, and the Kupiec test rejects the model at 95%. Both windows came from one distribution, so the example doubles as a reminder of how noisy a 99% quantile is when it rests on 250 observations.</p>
+<h3>pyvar-credit-risk</h3>
+<p><strong>"What is the expected loss and the 99.9% credit VaR on a 50 million exposure?"</strong></p>
+<pre><code>expected_loss_el_computation  {&quot;pd&quot;: 0.02, &quot;lgd&quot;: 0.45, &quot;ead&quot;: 50000000}
+→ {&quot;el&quot;: 450000.0, &quot;el_rate&quot;: 0.009}
+
+credit_var_analytical_vasicek {&quot;pd&quot;: 0.02, &quot;lgd&quot;: 0.45, &quot;ead_total&quot;: 50000000,
+                               &quot;asset_correlation&quot;: 0.15, &quot;confidence_level&quot;: 0.999}
+→ {&quot;var&quot;: 3967401.13, &quot;el&quot;: 450000.0, &quot;ul&quot;: 3517401.13, &quot;loss_rate_q&quot;: 0.0793480226}
+</code></pre>
+<p>Expected loss is 0.02 × 0.45 × 50,000,000 = 450,000. The Vasicek 99.9% loss is 3,967,401, which leaves an unexpected loss of 3,517,401 for economic capital to cover.</p>
+<p><strong>"Score these three borrowers."</strong></p>
+<p><code>altman_z_score_credit_scoring</code> takes seven balance-sheet figures and returns the Z-score, the zone and the five ratios behind it, so the model can be audited:</p>
+<pre><code>borrower A → {&quot;z_score&quot;: 3.061,    &quot;zone&quot;: &quot;safe&quot;}
+borrower B → {&quot;z_score&quot;: 2.667,    &quot;zone&quot;: &quot;grey&quot;}
+borrower C → {&quot;z_score&quot;: 0.179621, &quot;zone&quot;: &quot;distress&quot;}
+</code></pre>
+<p>Borrower B checks by hand: 1.2 × 0.12 + 1.4 × 0.34 + 3.3 × 0.09 + 0.6 × 2.0 + 1.0 × 0.55 = 2.667. Borrower C has negative working capital, retained earnings and EBIT.</p>
+<h3>pyvar-liquidity-risk</h3>
+<p><strong>"Are we compliant on LCR and NSFR?"</strong></p>
+<pre><code>liquidity_coverage_ratio_lcr   {&quot;hqla&quot;: 120e6, &quot;gross_outflows&quot;: 150e6, &quot;gross_inflows&quot;: 40e6}
+→ {&quot;lcr&quot;: 1.090909, &quot;net_outflows&quot;: 110000000.0, &quot;compliant&quot;: true}
+
+net_stable_funding_ratio_nsfr  {&quot;available_stable_funding&quot;: 410e6, &quot;required_stable_funding&quot;: 385e6}
+→ {&quot;nsfr&quot;: 1.064935, &quot;compliant&quot;: true}
+</code></pre>
+<p>120m of HQLA against 110m of net 30-day outflows is an LCR of 109.1%; 410m of stable funding over 385m required is an NSFR of 106.5%.</p>
+<p><strong>"How long does our buffer last under stress?"</strong></p>
+<p><code>survival_horizon_calculator</code> walks a 12-day outflow path against 100m of HQLA:</p>
+<pre><code>{&quot;survival_days&quot;: 10, &quot;terminal_buffer&quot;: -1000000.0, &quot;hqla&quot;: 100000000.0}
+</code></pre>
+<p>Cumulative outflows reach 94m after day 10 and 101m after day 11: the buffer survives ten full days and is exhausted during the eleventh, ending 1m short.</p>
+<h3>pyvar-operational-risk</h3>
+<p><strong>"What does the Basel SMA charge look like for a clean bank and a heavy-loss bank?"</strong></p>
+<p><code>basel_standardised_measurement_sma</code> multiplies the Business Indicator Component by the Internal Loss Multiplier:</p>
+<pre><code>{&quot;business_indicator&quot;: 3e9,  &quot;loss_component&quot;: 0.0}
+→ {&quot;bic&quot;: 420000000.0,  &quot;ilm&quot;: 0.541325, &quot;sma_capital&quot;: 227356438.94}
+
+{&quot;business_indicator&quot;: 12e9, &quot;loss_component&quot;: 2.5e9}
+→ {&quot;bic&quot;: 1770000000.0, &quot;ilm&quot;: 1.110692, &quot;sma_capital&quot;: 1965924205.84}
+</code></pre>
+<p>For a 3bn Business Indicator, the BIC is 12% of the first 1bn plus 15% of the next 2bn = 420m. With no loss history the ILM is ln(e − 1) = 0.5413, so capital is 227m. The 12bn bank with a 2.5bn loss component has an ILM above 1, and its capital is 1.97bn.</p>
+<p><strong>"Which of our key risk indicators are in breach?"</strong></p>
+<p>One function, <code>kri_threshold_breach_detection</code>, handles indicators that get worse upwards and downwards:</p>
+<pre><code>value 14,   amber 8,    red 12,   higher_breach → {&quot;status&quot;: &quot;red&quot;,   &quot;breached&quot;: true}
+value 9.5,  amber 8,    red 12,   higher_breach → {&quot;status&quot;: &quot;amber&quot;, &quot;breached&quot;: true}
+value 97.2, amber 98.5, red 96.0, lower_breach  → {&quot;status&quot;: &quot;amber&quot;, &quot;breached&quot;: true}
+</code></pre>
+<h3>pyvar-portfolio-analytics</h3>
+<p><strong>"Give me minimum-variance and risk-parity weights for these four assets."</strong></p>
+<p>Both optimisers take a per-period covariance matrix — here the annual matrix divided by 252 — and annualise internally.</p>
+<pre><code>minimum_variance_portfolio → weights [0, 0, 0.1348, 0.8652], volatility 0.0379
+risk_parity_portfolio      → weights [0.0933, 0.1272, 0.2231, 0.5564], volatility 0.0536
+                             risk_contributions [2.8553e-06, 2.8553e-06, 2.8553e-06, 2.8553e-06]
+</code></pre>
+<p>Minimum variance concentrates in the two calmest assets for 3.79% volatility. Risk parity spreads the weights so every asset contributes exactly the same risk — the four contributions are identical — and accepts 5.36% volatility for that balance.</p>
+<p><strong>"How did this strategy perform over two years?"</strong></p>
+<p>Over 504 daily returns (<code>generate_gbm_returns(504, mu=0.0004, sigma=0.011, seed=21)</code>):</p>
+<pre><code>sharpe_ratio     → {&quot;sharpe&quot;: 0.69235817}
+sortino_ratio    → {&quot;sortino&quot;: 0.98571033, &quot;downside_deviation&quot;: 0.007194781}
+maximum_drawdown → {&quot;max_drawdown&quot;: 0.29564828, &quot;peak_index&quot;: 88, &quot;trough_index&quot;: 291}
+</code></pre>
+<p>A Sharpe ratio of 0.69, a higher Sortino of 0.99 because only downside deviation is penalised, and a 29.6% maximum drawdown — with the peak and trough positions, so you know when the loss happened as well as how large it was.</p>
+<h3>pyvar-regulatory</h3>
+<p><strong>"Where do we stand on CET1, buffers and leverage?"</strong></p>
+<pre><code>basel_iii_cet1_ratio        {&quot;cet1_capital&quot;: 5.2e9, &quot;risk_weighted_assets&quot;: 41e9}
+→ {&quot;cet1_ratio&quot;: 0.12682927, &quot;minimum&quot;: 0.045, &quot;surplus&quot;: 0.08182927, &quot;compliant&quot;: true}
+
+combined_buffer_requirement {2.5% conservation, 1% countercyclical, 1% systemic, RWA 41e9}
+→ {&quot;combined_buffer_ratio&quot;: 0.045, &quot;combined_buffer_capital&quot;: 1845000000.0}
+
+basel_iii_leverage_ratio    {&quot;tier1_capital&quot;: 6.1e9, &quot;total_exposure&quot;: 168e9}
+→ {&quot;leverage_ratio&quot;: 0.03630952, &quot;minimum&quot;: 0.03, &quot;compliant&quot;: true}
+</code></pre>
+<p>CET1 is 12.68% against a 4.5% minimum, the buffer stack is 4.5% of RWA — 1.845bn of capital — and the leverage ratio is 3.63% against the 3% floor.</p>
+<p><strong>"Does the Basel IV output floor bind?"</strong></p>
+<pre><code>basel_iv_output_floor {&quot;internal_model_rwa&quot;: 28e9, &quot;standardised_rwa&quot;: 41e9}
+→ {&quot;floored_rwa&quot;: 29725000000.0, &quot;binding&quot;: true, &quot;rwa_uplift&quot;: 1725000000.0, &quot;floor_factor&quot;: 0.725}
+</code></pre>
+<p>72.5% of the 41bn standardised RWA is 29.725bn — above the 28bn internal-model figure. The floor binds and RWA rises by 1.725bn.</p>
+<h3>pyvar-derivatives</h3>
+<p><strong>"Price this option and give me the Greeks."</strong></p>
+<p>A six-month, 105-strike option on a 100 underlying at 4% and 22% volatility:</p>
+<pre><code>black_scholes_european_option (call) → {&quot;price&quot;: 4.93714083}
+black_scholes_european_option (put)  → {&quot;price&quot;: 7.85800153}
+black_scholes_greeks (call)          → {&quot;delta&quot;: 0.45728008, &quot;gamma&quot;: 0.02549781,
+                                        &quot;vega&quot;: 28.04758853, &quot;theta&quot;: -7.80210416,
+                                        &quot;rho&quot;: 20.39543349}
+</code></pre>
+<p>Put-call parity holds: put − call = 2.9209, and K·e^(−rT) − S = 2.9209. The Greeks use standard conventions — vega per 1.00 of volatility, rho per 1.00 of rate, theta per year.</p>
+<p><strong>"What happens to this bond if yields rise 50 basis points?"</strong></p>
+<p>A 10-year 4.5% semi-annual bond at a 5% yield prices at 96.1027, with a modified duration of 7.9191 and a convexity of 75.30. Duration and convexity predict the move; a full reprice at 5.5% confirms it:</p>
+<pre><code>duration + convexity estimate → 92.3879
+full reprice at +50bp         → 92.3864   (a move of −3.7163)
+</code></pre>
+<p>The two agree to within 0.0015 of price.</p>
+<h3>pyvar-alm</h3>
+<p><strong>"How exposed is our equity to a rate shock, and where does the exposure sit?"</strong></p>
+<pre><code>duration_gap_analysis  {&quot;asset_duration&quot;: 4.2, &quot;liability_duration&quot;: 3.6,
+                        &quot;total_assets&quot;: 10e9, &quot;total_liabilities&quot;: 9.2e9, &quot;rate_shock&quot;: 0.02}
+→ {&quot;duration_gap&quot;: 0.888, &quot;delta_eve&quot;: -177600000.0, &quot;equity&quot;: 800000000.0}
+</code></pre>
+<p>The duration gap is 4.2 − 0.92 × 3.6 = 0.888, so a +200bp shock takes 177.6m off the economic value of equity — 22.2% of the 800m of equity. <code>repricing_gap_analysis</code> shows where it comes from: liabilities reprice faster than assets, with gaps of −1.3bn in the under-three-months bucket and −0.7bn in three to twelve months, and a cumulative gap bottoming out at −2.0bn.</p>
+<p><strong>"Run the IRRBB outlier test."</strong></p>
+<p><code>alm_stress_test</code> applies the six BCBS shocks to a cash-flow ladder and compares the worst loss with Tier 1 capital:</p>
+<pre><code>{&quot;worst_case_eve&quot;: -81925909.17, &quot;eve_capital_ratio&quot;: 0.09102879, &quot;breaches_15pct&quot;: false,
+ &quot;scenario_results&quot;: {&quot;parallel_up&quot;: -81925909.17, &quot;parallel_down&quot;: 96004059.05, ...}}
+</code></pre>
+<p>The worst scenario is the parallel-up shock, at −81.9m, which is 9.1% of 900m of Tier 1 capital — under the 15% supervisory threshold.</p>
+<h2>Part two: the five architecture plugins</h2>
+<p>The architecture plugins document how pyvar itself is built. Each example below calls the real module, not a description of it.</p>
+<h3>pyvar-arch-api-gateway</h3>
+<p><strong>Authentication and tier caps.</strong> The same VaR request is sent four times with different credentials:</p>
+<pre><code>no token                                   → 401  {&quot;detail&quot;: &quot;Not authenticated&quot;}
+token signed with the wrong secret         → 401
+free tier, 50,000 simulations              → 403  &quot;Your 'free' tier allows a maximum of
+                                                   10,000 simulations. Requested: 50,000.&quot;
+pro tier, 50,000 simulations               → 202  {&quot;status&quot;: &quot;pending&quot;, &quot;message&quot;: &quot;Job queued successfully&quot;}
+</code></pre>
+<p>The JWT carries the tier, and the tier's simulation cap — 10,000 free, 100,000 pro, 500,000 enterprise — is enforced before anything is queued.</p>
+<p><strong>One quota across every compute endpoint.</strong> A free-tier user alternates between a credit-risk and a liquidity endpoint. Requests 1 to 10 succeed; request 11 is refused:</p>
+<pre><code>request 11  expected_loss_el_computation → 429
+{&quot;detail&quot;: &quot;Rate limit exceeded. Please retry later.&quot;}   Retry-After: 86399 seconds
+</code></pre>
+<p>The daily allowance is a single shared bucket, so it counts across routes rather than per route.</p>
+<h3>pyvar-arch-compute</h3>
+<p><strong>The properties of the Numba kernel.</strong> Four runs of <code>run_monte_carlo_var</code> on the same returns:</p>
+<pre><code>same seed, identical VaR and loss distribution : True
+99% VaR 2.794%  &gt;  95% VaR 1.936%              : True
+CVaR 3.214%  &gt;=  VaR 2.794%                    : True
+var_abs on 10m / var_abs on 1m                 : 10.0000
+</code></pre>
+<p>The same seed gives a bit-identical result — which is what makes a stored job reproducible. VaR rises with the confidence level, CVaR is never below VaR, and absolute VaR scales linearly with portfolio value.</p>
+<p><strong>Convergence and horizon.</strong> Across five seeds, the spread of the 99% VaR narrows as paths are added:</p>
+<pre><code>n_simulations     1,000   spread 0.00231
+n_simulations    10,000   spread 0.00105
+n_simulations   100,000   spread 0.00026
+n_simulations 1,000,000   spread 0.00014
+1-day VaR 0.02751   10-day VaR 0.08396   ratio 3.05   (sqrt(10) = 3.16)
+</code></pre>
+<p>More paths buy a tighter estimate at a cost that grows with the path count. The 10-day VaR is 3.05 times the 1-day figure, close to the square-root-of-time factor of 3.16; it sits a little lower because the positive daily drift accumulates over ten days.</p>
+<h3>pyvar-arch-data-ingestion</h3>
+<p><strong>Lazy Parquet scans with predicate pushdown.</strong> <code>load_returns</code> filters by instrument and date range, and the query plan shows both predicates pushed into the Parquet scan:</p>
+<pre><code>Parquet SCAN [fixture.parquet]
+SELECTION: (col(&quot;date&quot;) &gt;= 2023-06-01 00:00:00) &amp; (col(&quot;instrument_id&quot;) == &quot;FTSE100&quot;)
+
+windowed : shape (353,), dtype float64
+full     : shape (504,), dtype float64
+ValueError: No returns found for instrument 'NOPE' in [None, None].
+</code></pre>
+<p>The engine receives a plain float64 array, 353 observations for the window against 504 for the full history, and an unknown instrument raises a clear error instead of returning an empty array.</p>
+<p><strong>Schema-enforced results.</strong> <code>write_result_parquet</code> writes an eleven-column schema — scalar metrics plus the full loss distribution as a list of doubles — compressed with Snappy. A string where a double belongs raises <code>ArrowInvalid</code> rather than silently writing a corrupt column.</p>
+<h3>pyvar-arch-storage</h3>
+<p><strong>Deterministic cache keys that fail open.</strong> The Redis key is a SHA-256 over the canonical request:</p>
+<pre><code>pyvar:market-risk:1571b407126e7a7abae19b1c373fb14512aa276ef914e4718ef1579983527096
+same fields, other order      → same key
+other confidence level        → different key
+other domain                  → different key
+Redis unreachable             → None  (a cache miss, never an error)
+</code></pre>
+<p>Equivalent requests share one cached result, different requests never collide, and an unreachable cache degrades to a miss instead of failing the request.</p>
+<p><strong>Large results go to S3.</strong> Above 10,000 simulations the worker writes the full result to S3 as Parquet. A 200,000-path run becomes a single-row object of about 2.1 MB at <code>results/abcdef12/abcdef12-3456-7890-abcd-ef1234567890.parquet</code> holding all 200,000 loss values, and what travels through the result backend is the key. <code>hydrate_presigned_url</code> turns that key into a time-limited link at the moment a client asks, so the link is never stale. (This example runs against a mocked S3.)</p>
+<h3>pyvar-arch-observability</h3>
+<p><strong>Validation at the edge.</strong> Bad input is stopped by the Pydantic schema before a job exists:</p>
+<pre><code>confidence_level 0.5 → 422  &quot;Confidence level 0.5 is outside conventional range
+                              [0.90, 0.9999]. Standard values: 0.95 (internal),
+                              0.99 (Basel III), 0.975 (FRTB ES).&quot;
+10 observations      → 422  &quot;List should have at least 30 items after validation, not 10&quot;
+a NaN in the returns → 422  &quot;Value error, Returns series contains NaN or infinite values.&quot;
+</code></pre>
+<p>Each error carries the field location, so a client can point at the offending parameter. The same rule covers all 385 function endpoints: a NaN or Infinity anywhere in a request body — as a bare token or as the string <code>"nan"</code> — is a 422 naming the field.</p>
+<p><strong>Prometheus metrics.</strong> After three successful calls and one rejected one, <code>GET /metrics</code> shows the HTTP counters up by three 2xx and one 4xx — labelled with the route template, not the raw URL — and the domain metrics around the engine call:</p>
+<pre><code>http_requests_total{handler=&quot;/api/v1/credit-risk/expected_loss_el_computation&quot;,method=&quot;POST&quot;,status=&quot;2xx&quot;} +3
+http_requests_total{handler=&quot;/api/v1/credit-risk/expected_loss_el_computation&quot;,method=&quot;POST&quot;,status=&quot;4xx&quot;} +1
+pyvar_computation_duration_seconds_count{confidence_level=&quot;0.99&quot;,horizon_days=&quot;1&quot;} 1
+pyvar_simulation_count_sum 50000
+</code></pre>
+<p>The computation histogram is labelled by confidence level and horizon — the shape a Grafana panel of latency per simulation size is built on.</p>
+<h2>Part three: pyvar-mcp</h2>
+<p>The MCP server turns the whole catalogue into Claude Code tools. These examples start the real server over stdio and point it at a pyvar API.</p>
+<p><strong>Discovering the catalogue.</strong> The server advertises 387 tools: one named tool per function (385) plus <code>list_pyvar_functions</code> and <code>call_pyvar_function</code>. Listing the ALM domain returns 33 functions, each with its summary and required parameters:</p>
+<pre><code>list_pyvar_functions(domain=&quot;alm&quot;)
+→ alm_stress_test  — &quot;Run an ALM stress test: worst-case EVE decline vs Tier-1 capital.&quot;
+                     required: net_cashflows, times, base_rates, tier1_capital
+</code></pre>
+<p>The model finds the right function without holding 385 schemas in context.</p>
+<p><strong>Calling a function — and what mistakes look like.</strong> The generic tool and the named tool return the same result:</p>
+<pre><code>call_pyvar_function(domain=&quot;credit-risk&quot;, function_name=&quot;expected_loss_el_computation&quot;,
+                    params={&quot;pd&quot;: 0.02, &quot;lgd&quot;: 0.45, &quot;ead&quot;: 1000000})
+→ {&quot;el&quot;: 9000.0, &quot;el_rate&quot;: 0.009, &quot;pd&quot;: 0.02, &quot;lgd&quot;: 0.45, &quot;ead&quot;: 1000000.0}
+</code></pre>
+<p>Mistakes come back as readable tool results the model can act on:</p>
+<pre><code>missing a parameter → &quot;Missing required parameter(s) for expected_loss_el_computation: ead.
+                       Expected params: ead, lgd, pd.&quot;
+pd = 1.7            → &quot;pyvar API error (HTTP 422): {&quot;detail&quot;:&quot;pd must be in [0, 1]&quot;}&quot;
+unknown function    → &quot;Unknown function 'no_such_function' in domain 'alm'.
+                       Use list_pyvar_functions to see valid names.&quot;
+</code></pre>
+<p>A missing parameter is caught before any request is made; an out-of-range value is rejected by the API; an unknown name points the model back to the listing.</p>
+<h2>Reproduce every number</h2>
+<p>All twenty-eight examples, with their complete requests and responses, are in <code>docs/plugin-examples.md</code>, generated by one script from the repository root:</p>
+<pre><code>python scripts/generate_plugin_examples.py
+</code></pre>
+<p>It runs the real application, the real modules and the real MCP server on synthetic data (<code>ingestion.fixtures</code>), mocks AWS with moto, and produces identical output on every run.</p>
+<hr />
+<h2>Sources</h2>
+<ul>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md"><code>docs/plugin-examples.md</code></a> — all twenty-eight examples with full requests and responses.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_plugin_examples.py"><code>scripts/generate_plugin_examples.py</code></a> — the generator.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/.claude-plugin/marketplace.json"><code>.claude-plugin/marketplace.json</code></a> — the fourteen plugins.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/tree/master/plugins"><code>plugins/</code></a> — the domain skills, architecture skills and the <code>pyvar-mcp</code> server.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/portal/functions.json"><code>portal/functions.json</code></a> — the 385-function catalogue behind the endpoints and the MCP tools.</li>
+</ul>
+</body></html>

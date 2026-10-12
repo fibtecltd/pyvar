@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class LiquidityCoverageRatioLcrRequest(BaseModel):
     """Request parameters for liquidity_coverage_ratio_lcr()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     hqla: float
     gross_outflows: float
     gross_inflows: float
@@ -37,6 +39,8 @@ class LiquidityCoverageRatioLcrResponse(BaseModel):
 class AvailableStableFundingAsfCalcRequest(BaseModel):
     """Request parameters for available_stable_funding_asf_calc()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     funding_amounts: list[float] | list[list[float]]
     asf_factors: list[float] | list[list[float]]
 
@@ -53,6 +57,8 @@ class AvailableStableFundingAsfCalcResponse(BaseModel):
 class RequiredStableFundingRsfCalcRequest(BaseModel):
     """Request parameters for required_stable_funding_rsf_calc()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_amounts: list[float] | list[list[float]]
     rsf_factors: list[float] | list[list[float]]
 
@@ -68,6 +74,8 @@ class RequiredStableFundingRsfCalcResponse(BaseModel):
 
 class NetStableFundingRatioNsfrRequest(BaseModel):
     """Request parameters for net_stable_funding_ratio_nsfr()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     available_stable_funding: float
     required_stable_funding: float
@@ -87,6 +95,8 @@ class NetStableFundingRatioNsfrResponse(BaseModel):
 class HqlaLevel1AssetClassifierRequest(BaseModel):
     """Request parameters for hqla_level_1_asset_classifier()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_values: list[float] | list[list[float]]
     haircuts: list[float] | list[list[float]] | None = None
 
@@ -103,6 +113,8 @@ class HqlaLevel1AssetClassifierResponse(BaseModel):
 
 class HqlaLevel2aAssetClassifierRequest(BaseModel):
     """Request parameters for hqla_level_2a_asset_classifier()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_values: list[float] | list[list[float]]
     haircut: float = 0.15
@@ -122,6 +134,8 @@ class HqlaLevel2aAssetClassifierResponse(BaseModel):
 class HqlaLevel2bAssetClassifierRequest(BaseModel):
     """Request parameters for hqla_level_2b_asset_classifier()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_values: list[float] | list[list[float]]
     haircut: float = 0.25
 
@@ -139,6 +153,8 @@ class HqlaLevel2bAssetClassifierResponse(BaseModel):
 
 class CashFlowLadder30DayRequest(BaseModel):
     """Request parameters for cash_flow_ladder_30_day()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     daily_inflows: list[float] | list[list[float]]
     daily_outflows: list[float] | list[list[float]]
@@ -160,6 +176,8 @@ class CashFlowLadder30DayResponse(BaseModel):
 class CashFlowLadder1YearRequest(BaseModel):
     """Request parameters for cash_flow_ladder_1_year()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     bucket_inflows: list[float] | list[list[float]]
     bucket_outflows: list[float] | list[list[float]]
     opening_balance: float = 0.0
@@ -180,6 +198,8 @@ class CashFlowLadder1YearResponse(BaseModel):
 class LiquidityGapAnalysisRequest(BaseModel):
     """Request parameters for liquidity_gap_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_maturities: list[float] | list[list[float]]
     liability_maturities: list[float] | list[list[float]]
     buckets: list[str] | None = None
@@ -199,6 +219,8 @@ class LiquidityGapAnalysisResponse(BaseModel):
 class FundingTenorAnalysisRequest(BaseModel):
     """Request parameters for funding_tenor_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     funding_amounts: list[float] | list[list[float]]
     tenors_days: list[float] | list[list[float]]
 
@@ -215,6 +237,8 @@ class FundingTenorAnalysisResponse(BaseModel):
 
 class LiquidityStressScenarioRequest(BaseModel):
     """Request parameters for liquidity_stress_scenario()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     balances: list[float] | list[list[float]]
     runoff_rates: list[float] | list[list[float]]
@@ -235,6 +259,8 @@ class LiquidityStressScenarioResponse(BaseModel):
 
 class IdiosyncraticStressScenarioRequest(BaseModel):
     """Request parameters for idiosyncratic_stress_scenario()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     retail_deposits: float
     wholesale_funding: float
@@ -257,6 +283,8 @@ class IdiosyncraticStressScenarioResponse(BaseModel):
 class MarketWideStressScenarioRequest(BaseModel):
     """Request parameters for market_wide_stress_scenario()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     hqla_by_level: list[float] | list[list[float]]
     market_haircuts: list[float] | list[list[float]]
     outflow: float
@@ -275,6 +303,8 @@ class MarketWideStressScenarioResponse(BaseModel):
 
 class CombinedStressScenarioRequest(BaseModel):
     """Request parameters for combined_stress_scenario()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     retail_deposits: float
     wholesale_funding: float
@@ -303,6 +333,8 @@ class CombinedStressScenarioResponse(BaseModel):
 class SurvivalHorizonCalculatorRequest(BaseModel):
     """Request parameters for survival_horizon_calculator()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     hqla: float
     daily_net_outflows: list[float] | list[list[float]]
 
@@ -319,6 +351,8 @@ class SurvivalHorizonCalculatorResponse(BaseModel):
 
 class IntradayLiquidityMonitorRequest(BaseModel):
     """Request parameters for intraday_liquidity_monitor()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     timestamps: list[float] | list[list[float]]
     net_flows: list[float] | list[list[float]]
@@ -339,6 +373,8 @@ class IntradayLiquidityMonitorResponse(BaseModel):
 class IntradayLiquidityStressTestRequest(BaseModel):
     """Request parameters for intraday_liquidity_stress_test()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     net_flows: list[float] | list[list[float]]
     opening_balance: float
     delay_factor: float = 0.5
@@ -358,6 +394,8 @@ class IntradayLiquidityStressTestResponse(BaseModel):
 class IlaapStressTestingFrameworkRequest(BaseModel):
     """Request parameters for ilaap_stress_testing_framework()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     scenarios: dict[str, Any]
 
 
@@ -374,6 +412,8 @@ class IlaapStressTestingFrameworkResponse(BaseModel):
 
 class LiquidityVarLiqvarRequest(BaseModel):
     """Request parameters for liquidity_var_liqvar()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     base_outflow: float
     outflow_vol: float
@@ -404,6 +444,8 @@ class LiquidityVarLiqvarResponse(BaseModel):
 class LiquidityBufferSizingRequest(BaseModel):
     """Request parameters for liquidity_buffer_sizing()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     stressed_net_outflows: list[float] | list[list[float]]
     confidence_buffer: float = 0.0
 
@@ -420,6 +462,8 @@ class LiquidityBufferSizingResponse(BaseModel):
 
 class ContingencyFundingPlanTriggerRequest(BaseModel):
     """Request parameters for contingency_funding_plan_trigger()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     metrics: dict[str, Any]
     thresholds: dict[str, Any]
@@ -438,6 +482,8 @@ class ContingencyFundingPlanTriggerResponse(BaseModel):
 class WholesaleFundingConcentrationRequest(BaseModel):
     """Request parameters for wholesale_funding_concentration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     counterparty_amounts: list[float] | list[list[float]]
 
 
@@ -454,6 +500,8 @@ class WholesaleFundingConcentrationResponse(BaseModel):
 
 class RetailDepositRunoffRateRequest(BaseModel):
     """Request parameters for retail_deposit_runoff_rate()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     deposit_balances: list[float] | list[list[float]]
     runoff_rates: list[float] | list[list[float]]
@@ -472,6 +520,8 @@ class RetailDepositRunoffRateResponse(BaseModel):
 class SecuredFundingRolloverRiskRequest(BaseModel):
     """Request parameters for secured_funding_rollover_risk()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     maturing_amounts: list[float] | list[list[float]]
     rollover_rates: list[float] | list[list[float]]
 
@@ -488,6 +538,8 @@ class SecuredFundingRolloverRiskResponse(BaseModel):
 
 class AssetEncumbranceRatioRequest(BaseModel):
     """Request parameters for asset_encumbrance_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     encumbered_assets: float
     total_assets: float
@@ -506,6 +558,8 @@ class AssetEncumbranceRatioResponse(BaseModel):
 class CollateralAvailabilityAnalysisRequest(BaseModel):
     """Request parameters for collateral_availability_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     collateral_values: list[float] | list[list[float]]
     haircuts: list[float] | list[list[float]]
     already_pledged: list[float] | list[list[float]] | None = None
@@ -522,6 +576,8 @@ class CollateralAvailabilityAnalysisResponse(BaseModel):
 
 class RepoMarketStressHaircutRequest(BaseModel):
     """Request parameters for repo_market_stress_haircut()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     base_haircuts: list[float] | list[list[float]]
     stress_multipliers: list[float] | list[list[float]]
@@ -541,6 +597,8 @@ class RepoMarketStressHaircutResponse(BaseModel):
 class FxLiquidityRiskByCurrencyRequest(BaseModel):
     """Request parameters for fx_liquidity_risk_by_currency()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     inflows_by_ccy: dict[str, Any]
     outflows_by_ccy: dict[str, Any]
 
@@ -557,6 +615,8 @@ class FxLiquidityRiskByCurrencyResponse(BaseModel):
 
 class IntragroupLiquidityFlowRequest(BaseModel):
     """Request parameters for intragroup_liquidity_flow()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     entity_positions: dict[str, Any]
 
@@ -575,6 +635,8 @@ class IntragroupLiquidityFlowResponse(BaseModel):
 class FundingCostAnalysisRequest(BaseModel):
     """Request parameters for funding_cost_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     funding_amounts: list[float] | list[list[float]]
     funding_rates: list[float] | list[list[float]]
 
@@ -591,6 +653,8 @@ class FundingCostAnalysisResponse(BaseModel):
 
 class LiquidityTransferPricingRequest(BaseModel):
     """Request parameters for liquidity_transfer_pricing()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     tenor_years: float
@@ -612,6 +676,8 @@ class LiquidityTransferPricingResponse(BaseModel):
 class IlaapInternalLiquidityMetricRequest(BaseModel):
     """Request parameters for ilaap_internal_liquidity_metric()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     counterbalancing_capacity: float
     stressed_net_outflow: float
     survival_days: float
@@ -632,6 +698,8 @@ class IlaapInternalLiquidityMetricResponse(BaseModel):
 class LiquidityRiskAppetiteThresholdRequest(BaseModel):
     """Request parameters for liquidity_risk_appetite_threshold()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     metric_value: float
     green_threshold: float
     amber_threshold: float
@@ -650,6 +718,8 @@ class LiquidityRiskAppetiteThresholdResponse(BaseModel):
 class EarlyWarningIndicatorLiquidityRequest(BaseModel):
     """Request parameters for early_warning_indicator_liquidity()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     indicators: dict[str, Any]
     thresholds: dict[str, Any]
     directions: dict[str, Any] | None = None
@@ -667,6 +737,8 @@ class EarlyWarningIndicatorLiquidityResponse(BaseModel):
 
 class CentralBankFacilityEligibilityRequest(BaseModel):
     """Request parameters for central_bank_facility_eligibility()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_ratings: list[float] | list[list[float]]
     min_rating: int
@@ -687,6 +759,8 @@ class CentralBankFacilityEligibilityResponse(BaseModel):
 class ContingentLiquidityRiskRequest(BaseModel):
     """Request parameters for contingent_liquidity_risk()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     commitment_amounts: list[float] | list[list[float]]
     draw_probabilities: list[float] | list[list[float]]
     ccf: list[float] | list[list[float]] | None = None
@@ -704,6 +778,8 @@ class ContingentLiquidityRiskResponse(BaseModel):
 class LiquidityScorecardAggregationRequest(BaseModel):
     """Request parameters for liquidity_scorecard_aggregation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     scores: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
 
@@ -719,6 +795,8 @@ class LiquidityScorecardAggregationResponse(BaseModel):
 
 class DepositStabilityClassificationRequest(BaseModel):
     """Request parameters for deposit_stability_classification()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     deposit_features: list[float] | list[list[float]]
     stable_threshold: float = 0.5
@@ -736,6 +814,8 @@ class DepositStabilityClassificationResponse(BaseModel):
 
 class CrossCurrencyLiquidityBridgeRequest(BaseModel):
     """Request parameters for cross_currency_liquidity_bridge()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     shortfall_ccy: str
     shortfall_amount: float

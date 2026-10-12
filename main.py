@@ -19,11 +19,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Match, Mount
 from starlette.types import Scope
 
+from api.errors import request_validation_error_handler
 from api.middleware.rate_limit import enforce_compute_rate_limit, enforce_public_rate_limit
 from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
@@ -116,6 +118,9 @@ def create_app() -> FastAPI:
         default_response_class=OrjsonResponse,
         lifespan=lifespan,
     )
+
+    # 422 bodies that stay renderable when the rejected value is NaN/Infinity.
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 
     # ── Observability (Prometheus + Sentry + structlog) ─────────────────────
     setup_observability(app)

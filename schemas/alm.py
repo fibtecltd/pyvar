@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class MacaulayDurationBalanceSheetRequest(BaseModel):
     """Request parameters for macaulay_duration_balance_sheet()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
     discount_rate: float
@@ -32,6 +34,8 @@ class MacaulayDurationBalanceSheetResponse(BaseModel):
 
 class ModifiedDurationBalanceSheetRequest(BaseModel):
     """Request parameters for modified_duration_balance_sheet()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -52,6 +56,8 @@ class ModifiedDurationBalanceSheetResponse(BaseModel):
 class EffectiveDurationAlmRequest(BaseModel):
     """Request parameters for effective_duration_alm()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pv_base: float
     pv_up: float
     pv_down: float
@@ -68,6 +74,8 @@ class EffectiveDurationAlmResponse(BaseModel):
 
 class DurationGapAnalysisRequest(BaseModel):
     """Request parameters for duration_gap_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_duration: float
     liability_duration: float
@@ -90,6 +98,8 @@ class DurationGapAnalysisResponse(BaseModel):
 class ConvexityGapRequest(BaseModel):
     """Request parameters for convexity_gap()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_convexity: float
     liability_convexity: float
     total_assets: float
@@ -107,6 +117,8 @@ class ConvexityGapResponse(BaseModel):
 class NiiSensitivityRateShockRequest(BaseModel):
     """Request parameters for nii_sensitivity_rate_shock()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     rate_sensitive_assets: float
     rate_sensitive_liabilities: float
     rate_shock: float
@@ -123,6 +135,8 @@ class NiiSensitivityRateShockResponse(BaseModel):
 
 class NiiSimulationBaselineRequest(BaseModel):
     """Request parameters for nii_simulation_baseline()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_balances: list[float] | list[list[float]]
     asset_rates: list[float] | list[list[float]]
@@ -142,6 +156,8 @@ class NiiSimulationBaselineResponse(BaseModel):
 
 class NiiSimulationStressRequest(BaseModel):
     """Request parameters for nii_simulation_stress()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_balances: list[float] | list[list[float]]
     asset_rates: list[float] | list[list[float]]
@@ -165,6 +181,8 @@ class NiiSimulationStressResponse(BaseModel):
 class EconomicValueOfEquityEveRequest(BaseModel):
     """Request parameters for economic_value_of_equity_eve()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_cashflows: list[float] | list[list[float]]
     asset_times: list[float] | list[list[float]]
     liability_cashflows: list[float] | list[list[float]]
@@ -185,6 +203,8 @@ class EconomicValueOfEquityEveResponse(BaseModel):
 
 class EveSensitivityAnalysisRequest(BaseModel):
     """Request parameters for eve_sensitivity_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     net_cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -207,6 +227,8 @@ class EveSensitivityAnalysisResponse(BaseModel):
 class LiquidityAdjustedNiiRequest(BaseModel):
     """Request parameters for liquidity_adjusted_nii()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     base_nii: float
     liquidity_buffer: float
     buffer_yield: float
@@ -226,6 +248,8 @@ class LiquidityAdjustedNiiResponse(BaseModel):
 class IrrbbSixStandardRateShocksRequest(BaseModel):
     """Request parameters for irrbb_six_standard_rate_shocks()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     tenors: list[float] | list[list[float]]
     parallel_bps: float = 200.0
     short_bps: float = 300.0
@@ -242,6 +266,8 @@ class IrrbbSixStandardRateShocksResponse(BaseModel):
 
 class IrrbbStandardisedFrameworkRequest(BaseModel):
     """Request parameters for irrbb_standardised_framework()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     net_cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -265,6 +291,8 @@ class IrrbbStandardisedFrameworkResponse(BaseModel):
 class IrrbbInternalModelRequest(BaseModel):
     """Request parameters for irrbb_internal_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     net_cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
     base_rates: list[float] | list[list[float]]
@@ -284,6 +312,8 @@ class IrrbbInternalModelResponse(BaseModel):
 class RepricingGapAnalysisRequest(BaseModel):
     """Request parameters for repricing_gap_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     bucket_assets: list[float] | list[list[float]]
     bucket_liabilities: list[float] | list[list[float]]
     bucket_labels: list[str] | None = None
@@ -301,6 +331,8 @@ class RepricingGapAnalysisResponse(BaseModel):
 
 class RepricingMaturityProfileRequest(BaseModel):
     """Request parameters for repricing_maturity_profile()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     balances: list[float] | list[list[float]]
     repricing_times: list[float] | list[list[float]]
@@ -320,6 +352,8 @@ class RepricingMaturityProfileResponse(BaseModel):
 class StaticGapAnalysisRequest(BaseModel):
     """Request parameters for static_gap_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     bucket_assets: list[float] | list[list[float]]
     bucket_liabilities: list[float] | list[list[float]]
 
@@ -336,6 +370,8 @@ class StaticGapAnalysisResponse(BaseModel):
 
 class DynamicGapAnalysisRequest(BaseModel):
     """Request parameters for dynamic_gap_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     bucket_assets: list[float] | list[list[float]]
     bucket_liabilities: list[float] | list[list[float]]
@@ -355,6 +391,8 @@ class DynamicGapAnalysisResponse(BaseModel):
 class BasisRiskIrrbbRequest(BaseModel):
     """Request parameters for basis_risk_irrbb()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_balances: list[float] | list[list[float]]
     asset_index_shifts: list[float] | list[list[float]]
     liability_balances: list[float] | list[list[float]]
@@ -371,6 +409,8 @@ class BasisRiskIrrbbResponse(BaseModel):
 
 class OptionRiskIrrbbRequest(BaseModel):
     """Request parameters for option_risk_irrbb()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     automatic_option_value: float
     behavioural_option_value: float
@@ -389,6 +429,8 @@ class OptionRiskIrrbbResponse(BaseModel):
 class PipelineRiskMeasurementRequest(BaseModel):
     """Request parameters for pipeline_risk_measurement()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pipeline_notional: float
     pull_through_rate: float
     rate_lock_period: float
@@ -406,6 +448,8 @@ class PipelineRiskMeasurementResponse(BaseModel):
 
 class InterestRateRiskCapitalIrrbbRequest(BaseModel):
     """Request parameters for interest_rate_risk_capital_irrbb()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     worst_delta_eve: float
     tier1_capital: float
@@ -426,6 +470,8 @@ class InterestRateRiskCapitalIrrbbResponse(BaseModel):
 class AssetLiabilityMismatchIndexRequest(BaseModel):
     """Request parameters for asset_liability_mismatch_index()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_durations: list[float] | list[list[float]]
     asset_amounts: list[float] | list[list[float]]
     liability_durations: list[float] | list[list[float]]
@@ -445,6 +491,8 @@ class AssetLiabilityMismatchIndexResponse(BaseModel):
 class LoanPrepaymentRateCprRequest(BaseModel):
     """Request parameters for loan_prepayment_rate_cpr()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     smm: float | None = None
     cpr: float | None = None
 
@@ -460,6 +508,8 @@ class LoanPrepaymentRateCprResponse(BaseModel):
 
 class PrepaymentModelMortgagesRequest(BaseModel):
     """Request parameters for prepayment_model_mortgages()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     principal: float
     annual_rate: float
@@ -479,6 +529,8 @@ class PrepaymentModelMortgagesResponse(BaseModel):
 
 class BehaviouralModellingNmdsRequest(BaseModel):
     """Request parameters for behavioural_modelling_nmds()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     total_balance: float
     core_fraction: float
@@ -500,6 +552,8 @@ class BehaviouralModellingNmdsResponse(BaseModel):
 
 class NonMaturityDepositStabilityRequest(BaseModel):
     """Request parameters for non_maturity_deposit_stability()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     balance_history: list[float] | list[list[float]]
     confidence_level: float = 0.99
@@ -525,6 +579,8 @@ class NonMaturityDepositStabilityResponse(BaseModel):
 class CoreDepositDurationRequest(BaseModel):
     """Request parameters for core_deposit_duration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     core_balance: float
     decay_rate: float
     discount_rate: float
@@ -544,6 +600,8 @@ class CoreDepositDurationResponse(BaseModel):
 
 class FundsTransferPricingFtpRequest(BaseModel):
     """Request parameters for funds_transfer_pricing_ftp()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     customer_rate: float
@@ -565,6 +623,8 @@ class FundsTransferPricingFtpResponse(BaseModel):
 class FtpCurveConstructionRequest(BaseModel):
     """Request parameters for ftp_curve_construction()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     tenors: list[float] | list[list[float]]
     base_curve: list[float] | list[list[float]]
     liquidity_spreads: list[float] | list[list[float]]
@@ -581,6 +641,8 @@ class FtpCurveConstructionResponse(BaseModel):
 
 class StructuralHedgeOptimisationRequest(BaseModel):
     """Request parameters for structural_hedge_optimisation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     target_duration: float
     instrument_durations: list[float] | list[list[float]]
@@ -600,6 +662,8 @@ class StructuralHedgeOptimisationResponse(BaseModel):
 
 class AlmStressTestRequest(BaseModel):
     """Request parameters for alm_stress_test()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     net_cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -621,6 +685,8 @@ class AlmStressTestResponse(BaseModel):
 
 class BalanceSheetProjectionModelRequest(BaseModel):
     """Request parameters for balance_sheet_projection_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     initial_assets: float
     initial_liabilities: float

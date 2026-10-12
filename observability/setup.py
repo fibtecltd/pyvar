@@ -255,12 +255,20 @@ def _patch_pfi_routing() -> None:
     """Patch prometheus_fastapi_instrumentator to handle _IncludedRouter objects.
 
     FastAPI adds _IncludedRouter objects to app.routes for mounted sub-routers.
-    These lack a .path attribute, so the PFI routing module crashes with
-    AttributeError when it tries to resolve route names for metrics labels.
+    These lack a .path attribute, so older PFI routing modules crash with
+    AttributeError when they try to resolve route names for metrics labels.
+    Releases that already handle _IncludedRouter are left untouched.
     """
     try:
         import prometheus_fastapi_instrumentator.routing as _pfi_routing
         from starlette.routing import Match
+
+        # Newer releases (8.x) resolve _IncludedRouter natively via
+        # effective_route_contexts(). Overriding that with the fallback below
+        # fails to match, so every request is labelled handler="none" -- leave
+        # the library's own resolver in place whenever it has one.
+        if hasattr(_pfi_routing, "_effective_routes"):
+            return
 
         def _safe_get_route_name(
             scope: dict,  # type: ignore[type-arg]

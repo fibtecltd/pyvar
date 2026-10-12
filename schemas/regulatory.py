@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class BaselIiiCet1RatioRequest(BaseModel):
     """Request parameters for basel_iii_cet1_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cet1_capital: float
     risk_weighted_assets: float
 
@@ -33,6 +35,8 @@ class BaselIiiCet1RatioResponse(BaseModel):
 
 class BaselIiiTier1RatioRequest(BaseModel):
     """Request parameters for basel_iii_tier1_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     tier1_capital: float
     risk_weighted_assets: float
@@ -52,6 +56,8 @@ class BaselIiiTier1RatioResponse(BaseModel):
 class BaselIiiTotalCapitalRatioRequest(BaseModel):
     """Request parameters for basel_iii_total_capital_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     total_capital: float
     risk_weighted_assets: float
 
@@ -70,6 +76,8 @@ class BaselIiiTotalCapitalRatioResponse(BaseModel):
 class BaselIiiLeverageRatioRequest(BaseModel):
     """Request parameters for basel_iii_leverage_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     tier1_capital: float
     total_exposure: float
 
@@ -87,6 +95,8 @@ class BaselIiiLeverageRatioResponse(BaseModel):
 
 class BaselIvOutputFloorRequest(BaseModel):
     """Request parameters for basel_iv_output_floor()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     internal_model_rwa: float
     standardised_rwa: float
@@ -108,6 +118,8 @@ class BaselIvOutputFloorResponse(BaseModel):
 class IcaapCapitalAssessmentRequest(BaseModel):
     """Request parameters for icaap_capital_assessment()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pillar1_capital: float
     risk_capital_components: list[float] | list[list[float]]
     available_capital: float
@@ -128,6 +140,8 @@ class IcaapCapitalAssessmentResponse(BaseModel):
 class SrepCapitalAddOnRequest(BaseModel):
     """Request parameters for srep_capital_add_on()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pillar1_requirement: float
     pillar2a_addon_ratio: float
     risk_weighted_assets: float
@@ -146,6 +160,8 @@ class SrepCapitalAddOnResponse(BaseModel):
 class Pillar2aCapitalRequest(BaseModel):
     """Request parameters for pillar_2a_capital()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     risk_addons: list[float] | list[list[float]]
     risk_weighted_assets: float
 
@@ -163,6 +179,8 @@ class Pillar2aCapitalResponse(BaseModel):
 class Pillar2bStressBufferRequest(BaseModel):
     """Request parameters for pillar_2b_stress_buffer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     stressed_capital_depletion: float
     risk_weighted_assets: float
 
@@ -178,6 +196,8 @@ class Pillar2bStressBufferResponse(BaseModel):
 
 class CombinedBufferRequirementRequest(BaseModel):
     """Request parameters for combined_buffer_requirement()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     capital_conservation_buffer_ratio: float = 0.025
     countercyclical_buffer_ratio: float = 0.0
@@ -195,6 +215,8 @@ class CombinedBufferRequirementResponse(BaseModel):
 
 class CapitalConservationBufferRequest(BaseModel):
     """Request parameters for capital_conservation_buffer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cet1_ratio: float
     risk_weighted_assets: float
@@ -215,6 +237,8 @@ class CapitalConservationBufferResponse(BaseModel):
 class CountercyclicalCapitalBufferRequest(BaseModel):
     """Request parameters for countercyclical_capital_buffer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     exposure_amounts: list[float] | list[list[float]]
     country_ccyb_rates: list[float] | list[list[float]]
     risk_weighted_assets: float
@@ -231,6 +255,8 @@ class CountercyclicalCapitalBufferResponse(BaseModel):
 
 class Crr2LargeExposureLimitRequest(BaseModel):
     """Request parameters for crr2_large_exposure_limit()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     exposure_value: float
     tier1_capital: float
@@ -252,6 +278,8 @@ class Crr2LargeExposureLimitResponse(BaseModel):
 class FrtbSaMarketRiskCapitalRequest(BaseModel):
     """Request parameters for frtb_sa_market_risk_capital()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     sensitivities_charge: float
     default_risk_charge: float
     residual_risk_addon: float
@@ -270,6 +298,8 @@ class FrtbSaMarketRiskCapitalResponse(BaseModel):
 
 class FrtbImaMarketRiskCapitalRequest(BaseModel):
     """Request parameters for frtb_ima_market_risk_capital()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     expected_shortfall: float
     stressed_es_ratio: float
@@ -294,6 +324,8 @@ class FrtbImaMarketRiskCapitalResponse(BaseModel):
 class FrtbPlAttributionTestRequest(BaseModel):
     """Request parameters for frtb_pl_attribution_test()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     risk_theoretical_pnl: list[float] | list[list[float]]
     hypothetical_pnl: list[float] | list[list[float]]
 
@@ -311,6 +343,8 @@ class FrtbPlAttributionTestResponse(BaseModel):
 
 class FrtbTradingDeskAggregationRequest(BaseModel):
     """Request parameters for frtb_trading_desk_aggregation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     desk_sa_charges: list[float] | list[list[float]]
     desk_ima_charges: list[float] | list[list[float]]
@@ -332,6 +366,8 @@ class FrtbTradingDeskAggregationResponse(BaseModel):
 class MifidIiTransactionReportValidatorRequest(BaseModel):
     """Request parameters for mifid_ii_transaction_report_validator()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     report: dict[str, Any]
 
 
@@ -347,6 +383,8 @@ class MifidIiTransactionReportValidatorResponse(BaseModel):
 
 class MifidIiPreTradeTransparencyRequest(BaseModel):
     """Request parameters for mifid_ii_pre_trade_transparency()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     instrument_type: str
     order_size: float
@@ -367,6 +405,8 @@ class MifidIiPreTradeTransparencyResponse(BaseModel):
 class MifidIiPostTradeTransparencyRequest(BaseModel):
     """Request parameters for mifid_ii_post_trade_transparency()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     trade_size: float
     delayed_publication_threshold: float
     is_liquid: bool = True
@@ -383,6 +423,8 @@ class MifidIiPostTradeTransparencyResponse(BaseModel):
 
 class MifidIiBestExecutionMetricRequest(BaseModel):
     """Request parameters for mifid_ii_best_execution_metric()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     executed_prices: list[float] | list[list[float]]
     benchmark_prices: list[float] | list[list[float]]
@@ -404,6 +446,8 @@ class MifidIiBestExecutionMetricResponse(BaseModel):
 class MifidIiAlgorithmDocumentationRequest(BaseModel):
     """Request parameters for mifid_ii_algorithm_documentation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     documentation: dict[str, Any]
 
 
@@ -419,6 +463,8 @@ class MifidIiAlgorithmDocumentationResponse(BaseModel):
 
 class EmirTradeRepositoryReportRequest(BaseModel):
     """Request parameters for emir_trade_repository_report()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     trade: dict[str, Any]
 
@@ -442,6 +488,8 @@ class EmirClearingObligationCheckRequest(BaseModel):
     FC's clearing obligation extends to its other classes too.
     """
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notionals: dict[str, float]
     counterparty_category: str
     clearing_thresholds: dict[str, float]
@@ -459,6 +507,8 @@ class EmirClearingObligationCheckResponse(BaseModel):
 
 class EmirMarginRequirementRequest(BaseModel):
     """Request parameters for emir_margin_requirement()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     portfolio_value: float
     initial_margin_rate: float
@@ -479,6 +529,8 @@ class EmirMarginRequirementResponse(BaseModel):
 class SftrSecuritiesFinanceReportRequest(BaseModel):
     """Request parameters for sftr_securities_finance_report()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     transaction: dict[str, Any]
 
 
@@ -494,6 +546,8 @@ class SftrSecuritiesFinanceReportResponse(BaseModel):
 
 class AifmdRiskMetricsRequest(BaseModel):
     """Request parameters for aifmd_risk_metrics()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     gross_exposure: float
     commitment_exposure: float
@@ -514,6 +568,8 @@ class AifmdRiskMetricsResponse(BaseModel):
 class UcitsKiidRiskIndicatorRequest(BaseModel):
     """Request parameters for ucits_kiid_risk_indicator()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     periods_per_year: int = 52
 
@@ -529,6 +585,8 @@ class UcitsKiidRiskIndicatorResponse(BaseModel):
 
 class SolvencyIiScrMarketRiskRequest(BaseModel):
     """Request parameters for solvency_ii_scr_market_risk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     sub_module_charges: list[float] | list[list[float]]
     correlation_matrix: list[float] | list[list[float]]
@@ -553,6 +611,8 @@ class SolvencyIiScrCreditRiskRequest(BaseModel):
     at total LGD) — it is not a caller-configurable value. See the engine
     docstring for the regulatory fix this removal is part of.
     """
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     exposures: list[float] | list[list[float]]
     loss_given_default: list[float] | list[list[float]]
