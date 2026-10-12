@@ -1329,7 +1329,7 @@ hydrated result keys         : ['n_simulations', 'presigned_url', 's3_key']
 
 ### Example 1: Input validation: regulatory bounds enforced at the edge
 
-Bad input is stopped by the Pydantic schema before a job exists. Two requests break the rules in different ways.
+Bad input is stopped by the Pydantic schema before a job exists. Three requests break the rules in different ways.
 
 **confidence_level outside the regulatory range**
 
@@ -1385,7 +1385,34 @@ Result (HTTP 422):
 }
 ```
 
-**What to notice.** Both requests return 422. A confidence level of 0.5 is rejected with a message that lists the conventional values (0.95 internal, 0.99 Basel III, 0.975 FRTB ES) and the allowed range 0.90 to 0.9999; a 10-observation series is rejected because the minimum is 30. The error carries the field location, so a client can point at the offending parameter.
+**a NaN in the returns**
+
+```text
+POST /api/v1/var/compute
+{
+  "portfolio_value": 1000000,
+  "returns": <252 daily log-returns, the first one replaced by NaN>,
+  "confidence_level": 0.99,
+  "horizon_days": 1,
+  "n_simulations": 50000
+}
+```
+
+Result (HTTP 422):
+
+```json
+{
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["body", "returns"],
+      "msg": "Value error, Returns series contains NaN or infinite values."
+    }
+  ]
+}
+```
+
+**What to notice.** All three requests return 422. A confidence level of 0.5 is rejected with a message that lists the conventional values (0.95 internal, 0.99 Basel III, 0.975 FRTB ES) and the allowed range 0.90 to 0.9999; a 10-observation series is rejected because the minimum is 30; and a NaN inside the returns is refused with the same status. The error carries the field location, so a client can point at the offending parameter.
 
 ### Example 2: Prometheus metrics for computations and HTTP traffic
 
@@ -1407,10 +1434,11 @@ pyvar_computation_duration_seconds_count{confidence_level="0.99",horizon_days="1
 pyvar_computation_duration_seconds_sum{confidence_level="0.99",horizon_days="1"} <elapsed seconds, varies per run>
 pyvar_simulation_count_count 1
 pyvar_simulation_count_sum 50000
-http_requests_total, increase by status class: {'2xx': 3, '4xx': 1}
+http_requests_total{handler="/api/v1/credit-risk/expected_loss_el_computation",method="POST",status="2xx"} +3
+http_requests_total{handler="/api/v1/credit-risk/expected_loss_el_computation",method="POST",status="4xx"} +1
 ```
 
-**What to notice.** Between two scrapes, three successful calls and one rejected one raise the HTTP counters by three 2xx and one 4xx. The computation histogram is labelled by confidence level and horizon, and the simulation-count histogram records the 50,000 paths of the run, which is what a Grafana panel of latency per simulation size is built on.
+**What to notice.** Between two scrapes, three successful calls and one rejected one raise the HTTP counters by three 2xx and one 4xx, labelled with the route template (not the raw URL), so a dashboard groups by endpoint. The computation histogram is labelled by confidence level and horizon, and the simulation-count histogram records the 50,000 paths of the run, which is what a Grafana panel of latency per simulation size is built on.
 
 ## pyvar-mcp
 

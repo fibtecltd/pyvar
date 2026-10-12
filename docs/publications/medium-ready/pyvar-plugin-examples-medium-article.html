@@ -225,10 +225,13 @@ Redis unreachable             → None  (a cache miss, never an error)
                               [0.90, 0.9999]. Standard values: 0.95 (internal),
                               0.99 (Basel III), 0.975 (FRTB ES).&quot;
 10 observations      → 422  &quot;List should have at least 30 items after validation, not 10&quot;
+a NaN in the returns → 422  &quot;Value error, Returns series contains NaN or infinite values.&quot;
 </code></pre>
-<p>Each error carries the field location, so a client can point at the offending parameter.</p>
-<p><strong>Prometheus metrics.</strong> After three successful calls and one rejected one, <code>GET /metrics</code> shows the HTTP counters up by three 2xx and one 4xx, and the domain metrics around the engine call:</p>
-<pre><code>pyvar_computation_duration_seconds_count{confidence_level=&quot;0.99&quot;,horizon_days=&quot;1&quot;} 1
+<p>Each error carries the field location, so a client can point at the offending parameter. The same rule covers all 385 function endpoints: a NaN or Infinity anywhere in a request body — as a bare token or as the string <code>"nan"</code> — is a 422 naming the field.</p>
+<p><strong>Prometheus metrics.</strong> After three successful calls and one rejected one, <code>GET /metrics</code> shows the HTTP counters up by three 2xx and one 4xx — labelled with the route template, not the raw URL — and the domain metrics around the engine call:</p>
+<pre><code>http_requests_total{handler=&quot;/api/v1/credit-risk/expected_loss_el_computation&quot;,method=&quot;POST&quot;,status=&quot;2xx&quot;} +3
+http_requests_total{handler=&quot;/api/v1/credit-risk/expected_loss_el_computation&quot;,method=&quot;POST&quot;,status=&quot;4xx&quot;} +1
+pyvar_computation_duration_seconds_count{confidence_level=&quot;0.99&quot;,horizon_days=&quot;1&quot;} 1
 pyvar_simulation_count_sum 50000
 </code></pre>
 <p>The computation histogram is labelled by confidence level and horizon — the shape a Grafana panel of latency per simulation size is built on.</p>

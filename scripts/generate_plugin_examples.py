@@ -1024,14 +1024,14 @@ def ex_storage() -> list[Example]:
     return [ex1, ex2]
 
 
-def status_counts(metrics_text: str) -> dict[str, float]:
-    """Sum http_requests_total by status class (2xx/4xx/...) from a /metrics scrape."""
-    totals: dict[str, float] = {}
+def request_counts(metrics_text: str) -> dict[str, float]:
+    """http_requests_total samples from a /metrics scrape, keyed by their label set."""
+    counts: dict[str, float] = {}
     for line in metrics_text.splitlines():
-        m = re.match(r'http_requests_total\{.*status="(\dxx)".*\} ([0-9.e+]+)$', line)
+        m = re.match(r"http_requests_total(\{.*\}) ([0-9.e+]+)$", line)
         if m:
-            totals[m.group(1)] = totals.get(m.group(1), 0) + float(m.group(2))
-    return totals
+            counts[m.group(1)] = float(m.group(2))
+    return counts
 
 
 async def ex_observability() -> list[Example]:
@@ -1071,21 +1071,44 @@ async def ex_observability() -> list[Example]:
                 )
             steps.append(step)
             details.append(err)
+        # A bare NaN token is not valid JSON but json.loads accepts it, so it has to be
+        # rejected by validation rather than reach the engine.
+        raw = json.dumps({**base, "returns": returns}).replace(str(returns[0]), "NaN", 1)
+        resp = await client.post(
+            "/api/v1/var/compute",
+            content=raw,
+            headers={"Authorization": f"Bearer {ent}", "Content-Type": "application/json"},
+        )
+        err = {k: resp.json()["detail"][0][k] for k in ("type", "loc", "msg")}
+        steps.append(
+            Step(
+                "a NaN in the returns",
+                "POST /api/v1/var/compute\n"
+                + show_params(
+                    {**base, "returns": None},
+                    {"returns": "252 daily log-returns, the first one replaced by NaN"},
+                ),
+                pretty({"detail": [err]}),
+                status=resp.status_code,
+            )
+        )
+        details.append(err)
     ex1 = Example(
         "arch-observability",
         "Input validation: regulatory bounds enforced at the edge",
-        "Bad input is stopped by the Pydantic schema before a job exists. Two requests break the rules in "
+        "Bad input is stopped by the Pydantic schema before a job exists. Three requests break the rules in "
         "different ways.",
         steps,
-        f"Both requests return {steps[0].status}. A confidence level of 0.5 is rejected with a message that "
+        f"All three requests return {steps[0].status}. A confidence level of 0.5 is rejected with a message that "
         f"lists the conventional values (0.95 internal, 0.99 Basel III, 0.975 FRTB ES) and the allowed range "
-        f"0.90 to 0.9999; a 10-observation series is rejected because the minimum is 30. The error carries "
-        f"the field location, so a client can point at the offending parameter.",
+        f"0.90 to 0.9999; a 10-observation series is rejected because the minimum is 30; and a NaN inside the "
+        f"returns is refused with the same status. The error carries the field location, so a client can "
+        f"point at the offending parameter.",
     )
 
     async with gateway_client() as client:
         api = Api(client, {})
-        before = status_counts((await client.get("/metrics")).text)
+        before = request_counts((await client.get("/metrics")).text)
         for _ in range(3):
             await api.raw(
                 "/api/v1/credit-risk/expected_loss_el_computation",
@@ -1105,8 +1128,8 @@ async def ex_observability() -> list[Example]:
                 custom.append(f"{name} <elapsed seconds, varies per run>")
             else:
                 custom.append(f"{name} {float(value):g}")
-    after = status_counts(metrics.text)
-    statuses = {k: after[k] - before.get(k, 0) for k in after if after[k] - before.get(k, 0)}
+    after = request_counts(metrics.text)
+    increase = {k: after[k] - before.get(k, 0) for k in after if after[k] - before.get(k, 0)}
     code2 = (
         "# scrape, send three valid calls and one 422, run a 50,000-path VaR inside track_computation()\n"
         "with track_computation(0.99, 1, 50_000):\n"
@@ -1116,7 +1139,10 @@ async def ex_observability() -> list[Example]:
     out2 = "\n".join(
         custom
         + [
-            f"http_requests_total, increase by status class: {dict(sorted((k, int(v)) for k, v in statuses.items()))}"
+            *[
+                f"http_requests_total{labels} +{int(delta)}"
+                for labels, delta in sorted(increase.items())
+            ]
         ]
     )
     ex2 = Example(
@@ -1125,7 +1151,8 @@ async def ex_observability() -> list[Example]:
         "The app exposes /metrics. Domain metrics are recorded around the engine call, and request counters "
         "come from the HTTP instrumentation.",
         [Step("GET /metrics", code2, out2, call_lang="text", result_lang="text")],
-        "Between two scrapes, three successful calls and one rejected one raise the HTTP counters by three 2xx and one 4xx. "
+        "Between two scrapes, three successful calls and one rejected one raise the HTTP counters by three 2xx and "
+        "one 4xx, labelled with the route template (not the raw URL), so a dashboard groups by endpoint. "
         "The computation histogram is labelled by confidence level and horizon, and the simulation-count "
         "histogram records the 50,000 paths of the run, which is what a Grafana panel of latency per "
         "simulation size is built on.",

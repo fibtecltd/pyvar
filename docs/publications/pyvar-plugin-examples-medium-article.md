@@ -319,13 +319,16 @@ confidence_level 0.5 → 422  "Confidence level 0.5 is outside conventional rang
                               [0.90, 0.9999]. Standard values: 0.95 (internal),
                               0.99 (Basel III), 0.975 (FRTB ES)."
 10 observations      → 422  "List should have at least 30 items after validation, not 10"
+a NaN in the returns → 422  "Value error, Returns series contains NaN or infinite values."
 ```
 
-Each error carries the field location, so a client can point at the offending parameter.
+Each error carries the field location, so a client can point at the offending parameter. The same rule covers all 385 function endpoints: a NaN or Infinity anywhere in a request body — as a bare token or as the string `"nan"` — is a 422 naming the field.
 
-**Prometheus metrics.** After three successful calls and one rejected one, `GET /metrics` shows the HTTP counters up by three 2xx and one 4xx, and the domain metrics around the engine call:
+**Prometheus metrics.** After three successful calls and one rejected one, `GET /metrics` shows the HTTP counters up by three 2xx and one 4xx — labelled with the route template, not the raw URL — and the domain metrics around the engine call:
 
 ```
+http_requests_total{handler="/api/v1/credit-risk/expected_loss_el_computation",method="POST",status="2xx"} +3
+http_requests_total{handler="/api/v1/credit-risk/expected_loss_el_computation",method="POST",status="4xx"} +1
 pyvar_computation_duration_seconds_count{confidence_level="0.99",horizon_days="1"} 1
 pyvar_simulation_count_sum 50000
 ```
