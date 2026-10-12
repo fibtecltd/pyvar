@@ -320,6 +320,10 @@ def render_schemas(domain: str, funcs: list[dict[str, Any]]) -> str:
         L.append(f"class {f['cls']}Request(BaseModel):")
         L.append(f'    """Request parameters for {f["name"]}()."""')
         L.append("")
+        # NaN / Infinity (incl. the strings "nan"/"inf") must never reach an
+        # engine kernel -- they would come back as silent nulls. Rejected as 422.
+        L.append("    model_config = ConfigDict(allow_inf_nan=False)")
+        L.append("")
         # required first, then optional (defaults) — Python arg-order safe.
         req = [p for p in f["params"] if p["default"] is None]
         opt = [p for p in f["params"] if p["default"] is not None]

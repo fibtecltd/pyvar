@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class ProbabilityOfDefaultPdEstimationRequest(BaseModel):
     """Request parameters for probability_of_default_pd_estimation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     n_defaults: list[float] | list[list[float]]
     n_obligors: list[float] | list[list[float]]
     floor: float = 0.0003
@@ -36,6 +38,8 @@ class ProbabilityOfDefaultPdEstimationResponse(BaseModel):
 class LossGivenDefaultLgdModelRequest(BaseModel):
     """Request parameters for loss_given_default_lgd_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     recovery_amounts: list[float] | list[list[float]]
     exposure_amounts: list[float] | list[list[float]]
     workout_cost_rate: float = 0.0
@@ -55,6 +59,8 @@ class LossGivenDefaultLgdModelResponse(BaseModel):
 class ExposureAtDefaultEadCalculatorRequest(BaseModel):
     """Request parameters for exposure_at_default_ead_calculator()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     drawn: float
     undrawn: float
     credit_conversion_factor: float = 0.75
@@ -73,6 +79,8 @@ class ExposureAtDefaultEadCalculatorResponse(BaseModel):
 
 class ExpectedLossElComputationRequest(BaseModel):
     """Request parameters for expected_loss_el_computation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     pd: float
     lgd: float
@@ -94,6 +102,8 @@ class ExpectedLossElComputationResponse(BaseModel):
 class UnexpectedLossUlComputationRequest(BaseModel):
     """Request parameters for unexpected_loss_ul_computation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: list[float] | list[list[float]]
     lgd: list[float] | list[list[float]]
     ead: list[float] | list[list[float]]
@@ -113,6 +123,8 @@ class UnexpectedLossUlComputationResponse(BaseModel):
 class RecoveryRateEstimationRequest(BaseModel):
     """Request parameters for recovery_rate_estimation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     recovery_amounts: list[float] | list[list[float]]
     exposure_amounts: list[float] | list[list[float]]
     discount_factors: list[float] | list[list[float]] | None = None
@@ -131,6 +143,8 @@ class RecoveryRateEstimationResponse(BaseModel):
 
 class DownturnLgdAdjustmentRequest(BaseModel):
     """Request parameters for downturn_lgd_adjustment()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     lgd_long_run: float
     downturn_multiplier: float = 1.0
@@ -153,6 +167,8 @@ class DownturnLgdAdjustmentResponse(BaseModel):
 class IrbFoundationApproachCapitalRequest(BaseModel):
     """Request parameters for irb_foundation_approach_capital()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: float
     ead: float
     maturity: float = 2.5
@@ -171,6 +187,8 @@ class IrbFoundationApproachCapitalResponse(BaseModel):
 class IrbAdvancedApproachCapitalRequest(BaseModel):
     """Request parameters for irb_advanced_approach_capital()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: float
     lgd: float
     ead: float
@@ -188,6 +206,8 @@ class IrbAdvancedApproachCapitalResponse(BaseModel):
 
 class BaselStandardisedApproachRwaRequest(BaseModel):
     """Request parameters for basel_standardised_approach_rwa()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     ead: float
     risk_weight: float
@@ -208,6 +228,8 @@ class BaselStandardisedApproachRwaResponse(BaseModel):
 class MaturityAdjustmentBaselIrbRequest(BaseModel):
     """Request parameters for maturity_adjustment_basel_irb()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: float
     maturity: float
 
@@ -226,6 +248,8 @@ class MaturityAdjustmentBaselIrbResponse(BaseModel):
 class SmeCorrelationFactorBaselRequest(BaseModel):
     """Request parameters for sme_correlation_factor_basel()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: float
     annual_sales_millions: float
 
@@ -243,6 +267,8 @@ class SmeCorrelationFactorBaselResponse(BaseModel):
 
 class CreditVarMonteCarloRequest(BaseModel):
     """Request parameters for credit_var_monte_carlo()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     pd: list[float] | list[list[float]]
     lgd: list[float] | list[list[float]]
@@ -277,6 +303,8 @@ class CreditVarMonteCarloResponse(BaseModel):
 class CreditVarAnalyticalVasicekRequest(BaseModel):
     """Request parameters for credit_var_analytical_vasicek()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: float
     lgd: float
     ead_total: float
@@ -305,6 +333,8 @@ class CreditVarAnalyticalVasicekResponse(BaseModel):
 
 class CreditmetricsPortfolioModelRequest(BaseModel):
     """Request parameters for creditmetrics_portfolio_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     exposures: list[float] | list[list[float]]
     pd: list[float] | list[list[float]]
@@ -336,6 +366,8 @@ class CreditmetricsPortfolioModelResponse(BaseModel):
 class KmvMertonDistanceToDefaultRequest(BaseModel):
     """Request parameters for kmv_merton_distance_to_default()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     asset_value: float
     debt_face_value: float
     asset_volatility: float
@@ -358,6 +390,8 @@ class KmvMertonDistanceToDefaultResponse(BaseModel):
 class DefaultCorrelationMatrixRequest(BaseModel):
     """Request parameters for default_correlation_matrix()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd: list[float] | list[list[float]]
     asset_correlation: list[float] | list[list[float]]
 
@@ -373,6 +407,8 @@ class DefaultCorrelationMatrixResponse(BaseModel):
 
 class CreditConcentrationRiskHhiRequest(BaseModel):
     """Request parameters for credit_concentration_risk_hhi()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     exposures: list[float] | list[list[float]]
 
@@ -390,6 +426,8 @@ class CreditConcentrationRiskHhiResponse(BaseModel):
 
 class CounterpartyCreditRiskCcrExposureRequest(BaseModel):
     """Request parameters for counterparty_credit_risk_ccr_exposure()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     mark_to_market: float
     add_on: float
@@ -409,6 +447,8 @@ class CounterpartyCreditRiskCcrExposureResponse(BaseModel):
 class CurrentExposureMethodCemRequest(BaseModel):
     """Request parameters for current_exposure_method_cem()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     mark_to_market: float
     notional: float
     add_on_factor: float
@@ -426,6 +466,8 @@ class CurrentExposureMethodCemResponse(BaseModel):
 
 class StandardisedApproachCcrSaCcrRequest(BaseModel):
     """Request parameters for standardised_approach_ccr_sa_ccr()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     mark_to_market: float
     collateral: float
@@ -447,6 +489,8 @@ class StandardisedApproachCcrSaCcrResponse(BaseModel):
 
 class PotentialFutureExposurePfeRequest(BaseModel):
     """Request parameters for potential_future_exposure_pfe()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     initial_value: float
     volatility: float
@@ -472,6 +516,8 @@ class PotentialFutureExposurePfeResponse(BaseModel):
 class ExpectedPositiveExposureEpeRequest(BaseModel):
     """Request parameters for expected_positive_exposure_epe()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expected_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
 
@@ -487,6 +533,8 @@ class ExpectedPositiveExposureEpeResponse(BaseModel):
 
 class EffectiveEpeRegulatoryRequest(BaseModel):
     """Request parameters for effective_epe_regulatory()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     expected_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
@@ -505,6 +553,8 @@ class EffectiveEpeRegulatoryResponse(BaseModel):
 class CollateralHaircutCalculationRequest(BaseModel):
     """Request parameters for collateral_haircut_calculation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     collateral_value: float
     haircut_collateral: float
     haircut_fx: float = 0.0
@@ -522,6 +572,8 @@ class CollateralHaircutCalculationResponse(BaseModel):
 
 class CreditValuationAdjustmentCvaRequest(BaseModel):
     """Request parameters for credit_valuation_adjustment_cva()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     expected_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
@@ -544,6 +596,8 @@ class CreditValuationAdjustmentCvaResponse(BaseModel):
 class DebtValuationAdjustmentDvaRequest(BaseModel):
     """Request parameters for debt_valuation_adjustment_dva()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expected_negative_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
     discount_factors: list[float] | list[list[float]]
@@ -565,6 +619,8 @@ class DebtValuationAdjustmentDvaResponse(BaseModel):
 class FundingValuationAdjustmentFvaRequest(BaseModel):
     """Request parameters for funding_valuation_adjustment_fva()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expected_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
     discount_factors: list[float] | list[list[float]]
@@ -584,6 +640,8 @@ class FundingValuationAdjustmentFvaResponse(BaseModel):
 class CapitalValuationAdjustmentKvaRequest(BaseModel):
     """Request parameters for capital_valuation_adjustment_kva()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     capital_profile: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
     discount_factors: list[float] | list[list[float]]
@@ -601,6 +659,8 @@ class CapitalValuationAdjustmentKvaResponse(BaseModel):
 
 class MarginValuationAdjustmentMvaRequest(BaseModel):
     """Request parameters for margin_valuation_adjustment_mva()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     initial_margin_profile: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
@@ -620,6 +680,8 @@ class MarginValuationAdjustmentMvaResponse(BaseModel):
 class XvaAggregationRequest(BaseModel):
     """Request parameters for xva_aggregation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cva: float
     dva: float = 0.0
     fva: float = 0.0
@@ -638,6 +700,8 @@ class XvaAggregationResponse(BaseModel):
 
 class CvaSensitivityCvaGreeksRequest(BaseModel):
     """Request parameters for cva_sensitivity_cva_greeks()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     expected_exposure: list[float] | list[list[float]]
     time_steps: list[float] | list[list[float]]
@@ -661,6 +725,8 @@ class CvaSensitivityCvaGreeksResponse(BaseModel):
 class WrongWayRiskAdjustmentRequest(BaseModel):
     """Request parameters for wrong_way_risk_adjustment()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     base_cva: float
     correlation: float
     exposure_volatility: float = 0.3
@@ -678,6 +744,8 @@ class WrongWayRiskAdjustmentResponse(BaseModel):
 
 class CreditSpreadCurveBootstrapRequest(BaseModel):
     """Request parameters for credit_spread_curve_bootstrap()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     tenors: list[float] | list[list[float]]
     par_spreads: list[float] | list[list[float]]
@@ -697,6 +765,8 @@ class CreditSpreadCurveBootstrapResponse(BaseModel):
 
 class CdsPricingIsdaStandardRequest(BaseModel):
     """Request parameters for cds_pricing_isda_standard()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     payment_times: list[float] | list[list[float]]
     accrual_factors: list[float] | list[list[float]]
@@ -722,6 +792,8 @@ class CdsPricingIsdaStandardResponse(BaseModel):
 class CdsSpreadToPdConversionRequest(BaseModel):
     """Request parameters for cds_spread_to_pd_conversion()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cds_spread: float
     maturity: float
     recovery_rate: float = 0.4
@@ -740,6 +812,8 @@ class CdsSpreadToPdConversionResponse(BaseModel):
 
 class CreditDefaultSwapVarRequest(BaseModel):
     """Request parameters for credit_default_swap_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     risky_annuity: float
@@ -771,6 +845,8 @@ class CreditDefaultSwapVarResponse(BaseModel):
 class Ifrs9StageClassificationPdThresholdRequest(BaseModel):
     """Request parameters for ifrs_9_stage_classification_pd_threshold()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd_current: float
     pd_origination: float
     days_past_due: int = 0
@@ -791,6 +867,8 @@ class Ifrs9StageClassificationPdThresholdResponse(BaseModel):
 class Ifrs912MonthEclStage1Request(BaseModel):
     """Request parameters for ifrs_9_12_month_ecl_stage_1()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pd_12m: float
     lgd: float
     ead: float
@@ -809,6 +887,8 @@ class Ifrs912MonthEclStage1Response(BaseModel):
 
 class Ifrs9LifetimeEclStage23Request(BaseModel):
     """Request parameters for ifrs_9_lifetime_ecl_stage_2_3()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     marginal_pd: list[float] | list[list[float]]
     lgd: list[float] | list[list[float]]
@@ -830,6 +910,8 @@ class Ifrs9LifetimeEclStage23Response(BaseModel):
 class Ifrs9ScenarioWeightedEclRequest(BaseModel):
     """Request parameters for ifrs_9_scenario_weighted_ecl()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     scenario_ecls: list[float] | list[list[float]]
     scenario_weights: list[float] | list[list[float]]
 
@@ -846,6 +928,8 @@ class Ifrs9ScenarioWeightedEclResponse(BaseModel):
 
 class MacroeconomicOverlaysEclRequest(BaseModel):
     """Request parameters for macroeconomic_overlays_ecl()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     base_ecl: float
     macro_factors: list[float] | list[list[float]]
@@ -865,6 +949,8 @@ class MacroeconomicOverlaysEclResponse(BaseModel):
 
 class Ifrs9StagingCriteriaAssessmentRequest(BaseModel):
     """Request parameters for ifrs_9_staging_criteria_assessment()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     pd_current: float
     pd_origination: float
@@ -887,6 +973,8 @@ class Ifrs9StagingCriteriaAssessmentResponse(BaseModel):
 class CreditPortfolioOptimisationRequest(BaseModel):
     """Request parameters for credit_portfolio_optimisation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expected_returns: list[float] | list[list[float]]
     expected_losses: list[float] | list[list[float]]
     max_weight: float = 1.0
@@ -905,6 +993,8 @@ class CreditPortfolioOptimisationResponse(BaseModel):
 
 class CreditStressTestingRequest(BaseModel):
     """Request parameters for credit_stress_testing()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     pd: list[float] | list[list[float]]
     lgd: list[float] | list[list[float]]
@@ -926,6 +1016,8 @@ class CreditStressTestingResponse(BaseModel):
 
 class AltmanZScoreCreditScoringRequest(BaseModel):
     """Request parameters for altman_z_score_credit_scoring()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     working_capital: float
     retained_earnings: float
@@ -953,6 +1045,8 @@ class AltmanZScoreCreditScoringResponse(BaseModel):
 class LogisticRegressionPdModelRequest(BaseModel):
     """Request parameters for logistic_regression_pd_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     features: list[float] | list[list[float]]
     defaults: list[float] | list[list[float]]
     max_iter: int = 100
@@ -975,6 +1069,8 @@ class LogisticRegressionPdModelResponse(BaseModel):
 class MachineLearningPdCalibrationRequest(BaseModel):
     """Request parameters for machine_learning_pd_calibration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     raw_scores: list[float] | list[list[float]]
     defaults: list[float] | list[list[float]]
     max_iter: int = 100
@@ -996,6 +1092,8 @@ class MachineLearningPdCalibrationResponse(BaseModel):
 class ThroughTheCyclePdAdjustmentRequest(BaseModel):
     """Request parameters for through_the_cycle_pd_adjustment()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     pit_pd: float
     long_run_average_pd: float
     cyclicality: float = 0.5
@@ -1014,6 +1112,8 @@ class ThroughTheCyclePdAdjustmentResponse(BaseModel):
 
 class PointInTimePdEstimationRequest(BaseModel):
     """Request parameters for point_in_time_pd_estimation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     ttc_pd: float
     macro_index: float
@@ -1034,6 +1134,8 @@ class PointInTimePdEstimationResponse(BaseModel):
 class RatingsMigrationMatrixRequest(BaseModel):
     """Request parameters for ratings_migration_matrix()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     from_rating: list[float] | list[list[float]]
     to_rating: list[float] | list[list[float]]
     n_states: int
@@ -1050,6 +1152,8 @@ class RatingsMigrationMatrixResponse(BaseModel):
 
 class RetailScorecardPdModelRequest(BaseModel):
     """Request parameters for retail_scorecard_pd_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     feature_values: list[float] | list[list[float]]
     points_per_feature: list[float] | list[list[float]]
@@ -1072,6 +1176,8 @@ class RetailScorecardPdModelResponse(BaseModel):
 class CorporateCreditScoringModelRequest(BaseModel):
     """Request parameters for corporate_credit_scoring_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     factor_scores: list[float] | list[list[float]]
     factor_weights: list[float] | list[list[float]]
     pd_floor: float = 0.0003
@@ -1090,6 +1196,8 @@ class CorporateCreditScoringModelResponse(BaseModel):
 
 class SovereignCreditRiskAssessmentRequest(BaseModel):
     """Request parameters for sovereign_credit_risk_assessment()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     debt_to_gdp: float
     fiscal_balance_pct: float
@@ -1110,6 +1218,8 @@ class SovereignCreditRiskAssessmentResponse(BaseModel):
 
 class SectorDefaultRateAnalysisRequest(BaseModel):
     """Request parameters for sector_default_rate_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     sector_defaults: list[float] | list[list[float]]
     sector_obligors: list[float] | list[list[float]]

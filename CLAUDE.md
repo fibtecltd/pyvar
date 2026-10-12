@@ -61,7 +61,8 @@ pyvar/
 ├── api/                       ← FastAPI routes and middleware
 │   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}
 │   ├── middleware/auth.py     ← JWT bearer validation
-│   └── responses.py           ← orjson response class
+│   ├── responses.py           ← orjson response class
+│   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
 │
 ├── storage/                   ← Persistence layer
 │   ├── models.py              ← SQLAlchemy async ORM (VaRJob audit table)

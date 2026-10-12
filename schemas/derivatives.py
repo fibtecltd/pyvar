@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class BlackScholesEuropeanOptionRequest(BaseModel):
     """Request parameters for black_scholes_european_option()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -37,6 +39,8 @@ class BlackScholesEuropeanOptionResponse(BaseModel):
 
 class BlackScholesGreeksRequest(BaseModel):
     """Request parameters for black_scholes_greeks()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -62,6 +66,8 @@ class BlackScholesGreeksResponse(BaseModel):
 class BinomialTreeOptionPricerRequest(BaseModel):
     """Request parameters for binomial_tree_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -85,6 +91,8 @@ class BinomialTreeOptionPricerResponse(BaseModel):
 
 class TrinomialTreeOptionPricerRequest(BaseModel):
     """Request parameters for trinomial_tree_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -110,6 +118,8 @@ class TrinomialTreeOptionPricerResponse(BaseModel):
 class MonteCarloOptionPricerRequest(BaseModel):
     """Request parameters for monte_carlo_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -134,6 +144,8 @@ class MonteCarloOptionPricerResponse(BaseModel):
 class DigitalOptionPricerRequest(BaseModel):
     """Request parameters for digital_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -155,6 +167,8 @@ class DigitalOptionPricerResponse(BaseModel):
 
 class BarrierOptionPricerRequest(BaseModel):
     """Request parameters for barrier_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -179,6 +193,8 @@ class BarrierOptionPricerResponse(BaseModel):
 
 class AsianOptionPricerRequest(BaseModel):
     """Request parameters for asian_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -212,6 +228,8 @@ class AsianOptionPricerResponse(BaseModel):
 class LookbackOptionPricerRequest(BaseModel):
     """Request parameters for lookback_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -244,6 +262,8 @@ class LookbackOptionPricerResponse(BaseModel):
 class AmericanOptionLsmRequest(BaseModel):
     """Request parameters for american_option_lsm()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -272,6 +292,8 @@ class AmericanOptionLsmResponse(BaseModel):
 
 class BermudanOptionPricerRequest(BaseModel):
     """Request parameters for bermudan_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -303,6 +325,8 @@ class BermudanOptionPricerResponse(BaseModel):
 
 class RainbowOptionPricerRequest(BaseModel):
     """Request parameters for rainbow_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spots: list[float] | list[list[float]]
     strike: float
@@ -338,6 +362,8 @@ class RainbowOptionPricerResponse(BaseModel):
 class BasketOptionPricerRequest(BaseModel):
     """Request parameters for basket_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spots: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
     strike: float
@@ -372,6 +398,8 @@ class BasketOptionPricerResponse(BaseModel):
 class SpreadOptionKirkApproximationRequest(BaseModel):
     """Request parameters for spread_option_kirk_approximation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot1: float
     spot2: float
     strike: float
@@ -393,6 +421,8 @@ class SpreadOptionKirkApproximationResponse(BaseModel):
 
 class CompoundOptionPricerRequest(BaseModel):
     """Request parameters for compound_option_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike_underlying: float
@@ -425,6 +455,8 @@ class CompoundOptionPricerResponse(BaseModel):
 class ChooserOptionPricerRequest(BaseModel):
     """Request parameters for chooser_option_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -447,6 +479,8 @@ class ChooserOptionPricerResponse(BaseModel):
 class BondPricerFixedCouponRequest(BaseModel):
     """Request parameters for bond_pricer_fixed_coupon()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     face_value: float
     coupon_rate: float
     yield_rate: float
@@ -466,6 +500,8 @@ class BondPricerFixedCouponResponse(BaseModel):
 
 class BondPricerFloatingRateRequest(BaseModel):
     """Request parameters for bond_pricer_floating_rate()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     face_value: float
     reference_rates: list[float] | list[list[float]]
@@ -487,6 +523,8 @@ class BondPricerFloatingRateResponse(BaseModel):
 class ZeroCouponBondPricerRequest(BaseModel):
     """Request parameters for zero_coupon_bond_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     face_value: float
     yield_rate: float
     maturity: float
@@ -504,6 +542,8 @@ class ZeroCouponBondPricerResponse(BaseModel):
 
 class InflationLinkedBondPricerRequest(BaseModel):
     """Request parameters for inflation_linked_bond_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     face_value: float
     real_coupon_rate: float
@@ -526,6 +566,8 @@ class InflationLinkedBondPricerResponse(BaseModel):
 class CallableBondPricerRequest(BaseModel):
     """Request parameters for callable_bond_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     face_value: float
     coupon_rate: float
     short_rate: float
@@ -547,6 +589,8 @@ class CallableBondPricerResponse(BaseModel):
 class PuttableBondPricerRequest(BaseModel):
     """Request parameters for puttable_bond_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     face_value: float
     coupon_rate: float
     short_rate: float
@@ -567,6 +611,8 @@ class PuttableBondPricerResponse(BaseModel):
 
 class ConvertibleBondPricerRequest(BaseModel):
     """Request parameters for convertible_bond_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     face_value: float
     coupon_rate: float
@@ -590,6 +636,8 @@ class ConvertibleBondPricerResponse(BaseModel):
 class DurationMacaulayRequest(BaseModel):
     """Request parameters for duration_macaulay()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
     yield_rate: float
@@ -607,6 +655,8 @@ class DurationMacaulayResponse(BaseModel):
 
 class ModifiedDurationRequest(BaseModel):
     """Request parameters for modified_duration()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -627,6 +677,8 @@ class ModifiedDurationResponse(BaseModel):
 class EffectiveDurationRequest(BaseModel):
     """Request parameters for effective_duration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     price_base: float
     price_up: float
     price_down: float
@@ -643,6 +695,8 @@ class EffectiveDurationResponse(BaseModel):
 
 class ConvexityRequest(BaseModel):
     """Request parameters for convexity()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -662,6 +716,8 @@ class ConvexityResponse(BaseModel):
 class Dv01PvbpRequest(BaseModel):
     """Request parameters for dv01_pvbp()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
     yield_rate: float
@@ -680,6 +736,8 @@ class Dv01PvbpResponse(BaseModel):
 class YieldToMaturityRequest(BaseModel):
     """Request parameters for yield_to_maturity()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     price: float
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -696,6 +754,8 @@ class YieldToMaturityResponse(BaseModel):
 
 class YieldToCallRequest(BaseModel):
     """Request parameters for yield_to_call()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     price: float
     face_value: float
@@ -716,6 +776,8 @@ class YieldToCallResponse(BaseModel):
 class ZSpreadCalculatorRequest(BaseModel):
     """Request parameters for z_spread_calculator()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     price: float
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -734,6 +796,8 @@ class ZSpreadCalculatorResponse(BaseModel):
 
 class AssetSwapSpreadRequest(BaseModel):
     """Request parameters for asset_swap_spread()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     bond_price: float
     cashflows: list[float] | list[list[float]]
@@ -755,6 +819,8 @@ class AssetSwapSpreadResponse(BaseModel):
 
 class OasOptionAdjustedSpreadRequest(BaseModel):
     """Request parameters for oas_option_adjusted_spread()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     market_price: float
     face_value: float
@@ -778,6 +844,8 @@ class OasOptionAdjustedSpreadResponse(BaseModel):
 class NelsonSiegelCurveFitRequest(BaseModel):
     """Request parameters for nelson_siegel_curve_fit()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     maturities: list[float] | list[list[float]]
     yields: list[float] | list[list[float]]
     tau_init: float = 1.5
@@ -797,6 +865,8 @@ class NelsonSiegelCurveFitResponse(BaseModel):
 
 class NelsonSiegelSvenssonCurveRequest(BaseModel):
     """Request parameters for nelson_siegel_svensson_curve()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     maturities: list[float] | list[list[float]]
     yields: list[float] | list[list[float]]
@@ -821,6 +891,8 @@ class NelsonSiegelSvenssonCurveResponse(BaseModel):
 class BootstrapYieldCurveRequest(BaseModel):
     """Request parameters for bootstrap_yield_curve()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     par_rates: list[float] | list[list[float]]
     maturities: list[float] | list[list[float]]
     frequency: int = 1
@@ -839,6 +911,8 @@ class BootstrapYieldCurveResponse(BaseModel):
 class SwapRateCurveRequest(BaseModel):
     """Request parameters for swap_rate_curve()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     discount_factors: list[float] | list[list[float]]
     maturities: list[float] | list[list[float]]
     frequency: int = 1
@@ -854,6 +928,8 @@ class SwapRateCurveResponse(BaseModel):
 
 class OisCurveSoniaSofrRequest(BaseModel):
     """Request parameters for ois_curve_sonia_sofr()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     ois_rates: list[float] | list[list[float]]
     maturities: list[float] | list[list[float]]
@@ -871,6 +947,8 @@ class OisCurveSoniaSofrResponse(BaseModel):
 
 class ForwardRateAgreementFraRequest(BaseModel):
     """Request parameters for forward_rate_agreement_fra()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     fra_rate: float
@@ -891,6 +969,8 @@ class ForwardRateAgreementFraResponse(BaseModel):
 
 class InterestRateSwapIrsPricerRequest(BaseModel):
     """Request parameters for interest_rate_swap_irs_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     fixed_rate: float
@@ -914,6 +994,8 @@ class InterestRateSwapIrsPricerResponse(BaseModel):
 
 class CrossCurrencySwapPricerRequest(BaseModel):
     """Request parameters for cross_currency_swap_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional_dom: float
     notional_for: float
@@ -939,6 +1021,8 @@ class CrossCurrencySwapPricerResponse(BaseModel):
 class OvernightIndexSwapOisRequest(BaseModel):
     """Request parameters for overnight_index_swap_ois()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notional: float
     fixed_rate: float
     compounded_rate: float
@@ -958,6 +1042,8 @@ class OvernightIndexSwapOisResponse(BaseModel):
 class TotalReturnSwapTrsRequest(BaseModel):
     """Request parameters for total_return_swap_trs()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notional: float
     asset_return: float
     financing_rate: float
@@ -976,6 +1062,8 @@ class TotalReturnSwapTrsResponse(BaseModel):
 
 class CreditDefaultSwapCdsPricerRequest(BaseModel):
     """Request parameters for credit_default_swap_cds_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     spread: float
@@ -1000,6 +1088,8 @@ class CreditDefaultSwapCdsPricerResponse(BaseModel):
 class EquitySwapPricerRequest(BaseModel):
     """Request parameters for equity_swap_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notional: float
     equity_return: float
     funding_rate: float
@@ -1018,6 +1108,8 @@ class EquitySwapPricerResponse(BaseModel):
 
 class CapletFloorletPricerBlackRequest(BaseModel):
     """Request parameters for caplet_floorlet_pricer_black()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     forward_rate: float
@@ -1039,6 +1131,8 @@ class CapletFloorletPricerBlackResponse(BaseModel):
 
 class CapFloorPricerRequest(BaseModel):
     """Request parameters for cap_floor_pricer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     forward_rates: list[float] | list[list[float]]
@@ -1062,6 +1156,8 @@ class CapFloorPricerResponse(BaseModel):
 class SwaptionPricerBlackRequest(BaseModel):
     """Request parameters for swaption_pricer_black()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notional: float
     forward_swap_rate: float
     strike: float
@@ -1081,6 +1177,8 @@ class SwaptionPricerBlackResponse(BaseModel):
 
 class SwaptionPricerSabrRequest(BaseModel):
     """Request parameters for swaption_pricer_sabr()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     notional: float
     forward_swap_rate: float
@@ -1106,6 +1204,8 @@ class SwaptionPricerSabrResponse(BaseModel):
 class VasicekInterestRateModelRequest(BaseModel):
     """Request parameters for vasicek_interest_rate_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     r0: float
     kappa: float
     theta: float
@@ -1130,6 +1230,8 @@ class VasicekInterestRateModelResponse(BaseModel):
 class CoxIngersollRossModelRequest(BaseModel):
     """Request parameters for cox_ingersoll_ross_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     r0: float
     kappa: float
     theta: float
@@ -1153,6 +1255,8 @@ class CoxIngersollRossModelResponse(BaseModel):
 class HullWhiteShortRateModelRequest(BaseModel):
     """Request parameters for hull_white_short_rate_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     r0: float
     kappa: float
     sigma: float
@@ -1175,6 +1279,8 @@ class HullWhiteShortRateModelResponse(BaseModel):
 class LmmBgmRateModelRequest(BaseModel):
     """Request parameters for lmm_bgm_rate_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     forward_rates: list[float] | list[list[float]]
     vols: list[float] | list[list[float]]
     tenor: float
@@ -1195,6 +1301,8 @@ class LmmBgmRateModelResponse(BaseModel):
 
 class HestonStochasticVolatilityModelRequest(BaseModel):
     """Request parameters for heston_stochastic_volatility_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -1221,6 +1329,8 @@ class HestonStochasticVolatilityModelResponse(BaseModel):
 class SabrVolatilityModelRequest(BaseModel):
     """Request parameters for sabr_volatility_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     forward: float
     strike: float
     tau: float
@@ -1241,6 +1351,8 @@ class SabrVolatilityModelResponse(BaseModel):
 class LocalVolatilityDupireModelRequest(BaseModel):
     """Request parameters for local_volatility_dupire_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     strikes: list[float] | list[list[float]]
     maturities: list[float] | list[list[float]]
     call_surface: list[float] | list[list[float]]
@@ -1260,6 +1372,8 @@ class LocalVolatilityDupireModelResponse(BaseModel):
 
 class RoughVolatilityRbergomiModelRequest(BaseModel):
     """Request parameters for rough_volatility_rbergomi_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -1298,6 +1412,8 @@ class RoughVolatilityRbergomiModelResponse(BaseModel):
 class VarianceGammaModelRequest(BaseModel):
     """Request parameters for variance_gamma_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -1332,6 +1448,8 @@ class VarianceGammaModelResponse(BaseModel):
 
 class NormalInverseGaussianModelRequest(BaseModel):
     """Request parameters for normal_inverse_gaussian_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -1369,6 +1487,8 @@ class NormalInverseGaussianModelResponse(BaseModel):
 class DisplacedDiffusionModelRequest(BaseModel):
     """Request parameters for displaced_diffusion_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -1390,6 +1510,8 @@ class DisplacedDiffusionModelResponse(BaseModel):
 class FxForwardPricerRequest(BaseModel):
     """Request parameters for fx_forward_pricer()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     rate_domestic: float
     rate_foreign: float
@@ -1408,6 +1530,8 @@ class FxForwardPricerResponse(BaseModel):
 
 class FxOptionPricerGarmanKohlhagenRequest(BaseModel):
     """Request parameters for fx_option_pricer_garman_kohlhagen()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float

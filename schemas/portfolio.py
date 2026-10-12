@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class MeanVarianceOptimisationRequest(BaseModel):
     """Request parameters for mean_variance_optimisation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     mean_returns: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
     risk_aversion: float = 1.0
@@ -35,6 +37,8 @@ class MeanVarianceOptimisationResponse(BaseModel):
 class MinimumVariancePortfolioRequest(BaseModel):
     """Request parameters for minimum_variance_portfolio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cov_matrix: list[float] | list[list[float]]
     allow_short: bool = False
     mean_returns: list[float] | list[list[float]] | None = None
@@ -52,6 +56,8 @@ class MinimumVariancePortfolioResponse(BaseModel):
 
 class MaximumSharpeRatioPortfolioRequest(BaseModel):
     """Request parameters for maximum_sharpe_ratio_portfolio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     mean_returns: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -71,6 +77,8 @@ class MaximumSharpeRatioPortfolioResponse(BaseModel):
 class RiskParityPortfolioRequest(BaseModel):
     """Request parameters for risk_parity_portfolio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cov_matrix: list[float] | list[list[float]]
     mean_returns: list[float] | list[list[float]] | None = None
     risk_free: float = 0.0
@@ -87,6 +95,8 @@ class RiskParityPortfolioResponse(BaseModel):
 
 class EqualWeightPortfolioRequest(BaseModel):
     """Request parameters for equal_weight_portfolio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     n_assets: int
     mean_returns: list[float] | list[list[float]] | None = None
@@ -106,6 +116,8 @@ class EqualWeightPortfolioResponse(BaseModel):
 
 class BlackLittermanModelRequest(BaseModel):
     """Request parameters for black_litterman_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     market_weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -129,6 +141,8 @@ class BlackLittermanModelResponse(BaseModel):
 class ResampledEfficientFrontierRequest(BaseModel):
     """Request parameters for resampled_efficient_frontier()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     mean_returns: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
     n_resamples: int = 50
@@ -149,6 +163,8 @@ class ResampledEfficientFrontierResponse(BaseModel):
 class RobustPortfolioOptimisationRequest(BaseModel):
     """Request parameters for robust_portfolio_optimisation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     mean_returns: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
     uncertainty: float = 0.05
@@ -166,6 +182,8 @@ class RobustPortfolioOptimisationResponse(BaseModel):
 
 class CvarConstrainedOptimisationRequest(BaseModel):
     """Request parameters for cvar_constrained_optimisation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     scenario_returns: list[float] | list[list[float]]
     mean_returns: list[float] | list[list[float]] | None = None
@@ -196,6 +214,8 @@ class CvarConstrainedOptimisationResponse(BaseModel):
 class FactorBasedOptimisationRequest(BaseModel):
     """Request parameters for factor_based_optimisation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     factor_exposures: list[float] | list[list[float]]
     factor_cov: list[float] | list[list[float]]
     specific_var: list[float] | list[list[float]]
@@ -216,6 +236,8 @@ class FactorBasedOptimisationResponse(BaseModel):
 
 class SharpeRatioRequest(BaseModel):
     """Request parameters for sharpe_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     risk_free: float = 0.0
@@ -239,6 +261,8 @@ class SharpeRatioResponse(BaseModel):
 class SortinoRatioRequest(BaseModel):
     """Request parameters for sortino_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     risk_free: float = 0.0
     target: float = 0.0
@@ -260,6 +284,8 @@ class SortinoRatioResponse(BaseModel):
 class CalmarRatioRequest(BaseModel):
     """Request parameters for calmar_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     periods_per_year: int = 252
 
@@ -277,6 +303,8 @@ class CalmarRatioResponse(BaseModel):
 
 class InformationRatioRequest(BaseModel):
     """Request parameters for information_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
@@ -296,6 +324,8 @@ class InformationRatioResponse(BaseModel):
 
 class TreynorRatioRequest(BaseModel):
     """Request parameters for treynor_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
@@ -317,6 +347,8 @@ class TreynorRatioResponse(BaseModel):
 class JensensAlphaRequest(BaseModel):
     """Request parameters for jensens_alpha()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
     risk_free: float = 0.0
@@ -337,6 +369,8 @@ class JensensAlphaResponse(BaseModel):
 class OmegaRatioRequest(BaseModel):
     """Request parameters for omega_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     threshold: float = 0.0
 
@@ -354,6 +388,8 @@ class OmegaRatioResponse(BaseModel):
 
 class TailRatioRequest(BaseModel):
     """Request parameters for tail_ratio()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     tail: float = 0.05
@@ -373,6 +409,8 @@ class TailRatioResponse(BaseModel):
 class UlcerIndexRequest(BaseModel):
     """Request parameters for ulcer_index()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     is_equity_curve: bool = False
 
@@ -388,6 +426,8 @@ class UlcerIndexResponse(BaseModel):
 
 class MaximumDrawdownRequest(BaseModel):
     """Request parameters for maximum_drawdown()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     is_equity_curve: bool = False
@@ -407,6 +447,8 @@ class MaximumDrawdownResponse(BaseModel):
 class AverageDrawdownRequest(BaseModel):
     """Request parameters for average_drawdown()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     is_equity_curve: bool = False
 
@@ -424,6 +466,8 @@ class AverageDrawdownResponse(BaseModel):
 class DrawdownDurationRequest(BaseModel):
     """Request parameters for drawdown_duration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     is_equity_curve: bool = False
 
@@ -440,6 +484,8 @@ class DrawdownDurationResponse(BaseModel):
 
 class ConditionalDrawdownAtRiskRequest(BaseModel):
     """Request parameters for conditional_drawdown_at_risk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     confidence_level: float = 0.95
@@ -467,6 +513,8 @@ class ConditionalDrawdownAtRiskResponse(BaseModel):
 class ReturnAttributionBrinsonRequest(BaseModel):
     """Request parameters for return_attribution_brinson()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     portfolio_weights: list[float] | list[list[float]]
     benchmark_weights: list[float] | list[list[float]]
     portfolio_returns: list[float] | list[list[float]]
@@ -491,6 +539,8 @@ class ReturnAttributionBrinsonResponse(BaseModel):
 class FactorReturnAttributionRequest(BaseModel):
     """Request parameters for factor_return_attribution()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     factor_exposures: list[float] | list[list[float]]
     factor_returns: list[float] | list[list[float]]
     specific_return: float
@@ -511,6 +561,8 @@ class FactorReturnAttributionResponse(BaseModel):
 class SectorAttributionRequest(BaseModel):
     """Request parameters for sector_attribution()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     portfolio_weights: list[float] | list[list[float]]
     benchmark_weights: list[float] | list[list[float]]
     portfolio_returns: list[float] | list[list[float]]
@@ -528,6 +580,8 @@ class SectorAttributionResponse(BaseModel):
 
 class CurrencyAttributionRequest(BaseModel):
     """Request parameters for currency_attribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     local_returns: list[float] | list[list[float]]
     fx_returns: list[float] | list[list[float]]
@@ -558,6 +612,8 @@ class CurrencyAttributionResponse(BaseModel):
 class GicsSectorExposureRequest(BaseModel):
     """Request parameters for gics_sector_exposure()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     sector_codes: list[str]
 
@@ -574,6 +630,8 @@ class GicsSectorExposureResponse(BaseModel):
 
 class FactorExposureAnalysisBarraRequest(BaseModel):
     """Request parameters for factor_exposure_analysis_barra()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_exposures: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
@@ -592,6 +650,8 @@ class FactorExposureAnalysisBarraResponse(BaseModel):
 class FamaFrench3FactorModelRequest(BaseModel):
     """Request parameters for fama_french_3_factor_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     excess_returns: list[float] | list[list[float]]
     factors: list[float] | list[list[float]]
 
@@ -606,6 +666,8 @@ class FamaFrench3FactorModelResponse(BaseModel):
 
 class Carhart4FactorModelRequest(BaseModel):
     """Request parameters for carhart_4_factor_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     excess_returns: list[float] | list[list[float]]
     factors: list[float] | list[list[float]]
@@ -622,6 +684,8 @@ class Carhart4FactorModelResponse(BaseModel):
 class FamaFrench5FactorModelRequest(BaseModel):
     """Request parameters for fama_french_5_factor_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     excess_returns: list[float] | list[list[float]]
     factors: list[float] | list[list[float]]
 
@@ -636,6 +700,8 @@ class FamaFrench5FactorModelResponse(BaseModel):
 
 class PrincipalComponentAnalysisRequest(BaseModel):
     """Request parameters for principal_component_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns_matrix: list[float] | list[list[float]]
     n_components: int | None = None
@@ -656,6 +722,8 @@ class PrincipalComponentAnalysisResponse(BaseModel):
 class CorrelationClusteringRequest(BaseModel):
     """Request parameters for correlation_clustering()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns_matrix: list[float] | list[list[float]]
     n_clusters: int = 2
 
@@ -672,6 +740,8 @@ class CorrelationClusteringResponse(BaseModel):
 
 class RegimeDetectionHmmRequest(BaseModel):
     """Request parameters for regime_detection_hmm()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     n_iter: int = 50
@@ -693,6 +763,8 @@ class RegimeDetectionHmmResponse(BaseModel):
 class PortfolioBetaRequest(BaseModel):
     """Request parameters for portfolio_beta()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
 
@@ -710,6 +782,8 @@ class PortfolioBetaResponse(BaseModel):
 class ActiveShareRequest(BaseModel):
     """Request parameters for active_share()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     benchmark_weights: list[float] | list[list[float]]
 
@@ -725,6 +799,8 @@ class ActiveShareResponse(BaseModel):
 
 class TrackingErrorRequest(BaseModel):
     """Request parameters for tracking_error()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
@@ -744,6 +820,8 @@ class TrackingErrorResponse(BaseModel):
 
 class ResidualRiskRequest(BaseModel):
     """Request parameters for residual_risk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     benchmark_returns: list[float] | list[list[float]]
@@ -765,6 +843,8 @@ class ResidualRiskResponse(BaseModel):
 class PortfolioTurnoverRequest(BaseModel):
     """Request parameters for portfolio_turnover()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights_before: list[float] | list[list[float]]
     weights_after: list[float] | list[list[float]]
 
@@ -780,6 +860,8 @@ class PortfolioTurnoverResponse(BaseModel):
 
 class TransactionCostAnalysisRequest(BaseModel):
     """Request parameters for transaction_cost_analysis()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     trade_prices: list[float] | list[list[float]]
     benchmark_prices: list[float] | list[list[float]]
@@ -808,6 +890,8 @@ class TransactionCostAnalysisResponse(BaseModel):
 class MarginalContributionToRiskRequest(BaseModel):
     """Request parameters for marginal_contribution_to_risk()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
 
@@ -826,6 +910,8 @@ class MarginalContributionToRiskResponse(BaseModel):
 class DiversificationRatioRequest(BaseModel):
     """Request parameters for diversification_ratio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
 
@@ -843,6 +929,8 @@ class DiversificationRatioResponse(BaseModel):
 class CorrelationMatrixPortfolioRequest(BaseModel):
     """Request parameters for correlation_matrix_portfolio()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns_matrix: list[float] | list[list[float]]
 
 
@@ -858,6 +946,8 @@ class CorrelationMatrixPortfolioResponse(BaseModel):
 
 class ConcentrationRiskHhiRequest(BaseModel):
     """Request parameters for concentration_risk_hhi()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
 
@@ -875,6 +965,8 @@ class ConcentrationRiskHhiResponse(BaseModel):
 
 class LiquidityAdjustedPortfolioVarRequest(BaseModel):
     """Request parameters for liquidity_adjusted_portfolio_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -906,6 +998,8 @@ class LiquidityAdjustedPortfolioVarResponse(BaseModel):
 
 class MonteCarloPortfolioSimulationRequest(BaseModel):
     """Request parameters for monte_carlo_portfolio_simulation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     mean_returns: list[float] | list[list[float]]
@@ -940,6 +1034,8 @@ class MonteCarloPortfolioSimulationResponse(BaseModel):
 class RebalancingOptimiserRequest(BaseModel):
     """Request parameters for rebalancing_optimiser()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     current_weights: list[float] | list[list[float]]
     target_weights: list[float] | list[list[float]]
     cost_bps: list[float] | list[list[float]]
@@ -963,6 +1059,8 @@ class RebalancingOptimiserResponse(BaseModel):
 class EsgScoreIntegrationRequest(BaseModel):
     """Request parameters for esg_score_integration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     esg_scores: list[float] | list[list[float]]
     min_esg_score: float | None = None
@@ -979,6 +1077,8 @@ class EsgScoreIntegrationResponse(BaseModel):
 
 class CarbonFootprintAttributionRequest(BaseModel):
     """Request parameters for carbon_footprint_attribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     carbon_intensities: list[float] | list[list[float]]

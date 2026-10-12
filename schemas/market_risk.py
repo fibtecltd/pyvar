@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class HistoricalSimulationVarRequest(BaseModel):
     """Request parameters for historical_simulation_var()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     portfolio_value: float
     confidence_level: float = 0.99
@@ -43,6 +45,8 @@ class HistoricalSimulationVarResponse(BaseModel):
 
 class FilteredHistoricalSimulationVarRequest(BaseModel):
     """Request parameters for filtered_historical_simulation_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     portfolio_value: float
@@ -72,6 +76,8 @@ class FilteredHistoricalSimulationVarResponse(BaseModel):
 
 class ParametricDeltaNormalVarRequest(BaseModel):
     """Request parameters for parametric_delta_normal_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -103,6 +109,8 @@ class ParametricDeltaNormalVarResponse(BaseModel):
 class CornishFisherVarRequest(BaseModel):
     """Request parameters for cornish_fisher_var()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     portfolio_value: float
     confidence_level: float = 0.99
@@ -133,6 +141,8 @@ class CornishFisherVarResponse(BaseModel):
 class MarginalVarRequest(BaseModel):
     """Request parameters for marginal_var()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
     confidence_level: float = 0.99
@@ -158,6 +168,8 @@ class MarginalVarResponse(BaseModel):
 
 class ComponentVarRequest(BaseModel):
     """Request parameters for component_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -186,6 +198,8 @@ class ComponentVarResponse(BaseModel):
 
 class IncrementalVarRequest(BaseModel):
     """Request parameters for incremental_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
@@ -217,6 +231,8 @@ class IncrementalVarResponse(BaseModel):
 class VarByRiskFactorRequest(BaseModel):
     """Request parameters for var_by_risk_factor()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     factor_exposures: list[float] | list[list[float]]
     factor_cov: list[float] | list[list[float]]
     portfolio_value: float
@@ -245,6 +261,8 @@ class VarByRiskFactorResponse(BaseModel):
 class VarFanChartRequest(BaseModel):
     """Request parameters for var_fan_chart()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     portfolio_value: float
     confidence_levels: list[float] = [0.9, 0.95, 0.99]
@@ -271,6 +289,8 @@ class VarFanChartResponse(BaseModel):
 
 class ConditionalVarEsRequest(BaseModel):
     """Request parameters for conditional_var_es()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     portfolio_value: float
@@ -299,6 +319,8 @@ class ConditionalVarEsResponse(BaseModel):
 class HistoricalExpectedShortfallRequest(BaseModel):
     """Request parameters for historical_expected_shortfall()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     portfolio_value: float
     confidence_level: float = 0.975
@@ -325,6 +347,8 @@ class HistoricalExpectedShortfallResponse(BaseModel):
 
 class MonteCarloExpectedShortfallRequest(BaseModel):
     """Request parameters for monte_carlo_expected_shortfall()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     portfolio_value: float
@@ -357,6 +381,8 @@ class MonteCarloExpectedShortfallResponse(BaseModel):
 class CvarDecompositionEulerRequest(BaseModel):
     """Request parameters for cvar_decomposition_euler()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     weights: list[float] | list[list[float]]
     cov_matrix: list[float] | list[list[float]]
     portfolio_value: float
@@ -384,6 +410,8 @@ class CvarDecompositionEulerResponse(BaseModel):
 
 class StressedExpectedShortfallRequest(BaseModel):
     """Request parameters for stressed_expected_shortfall()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     stress_start: int
@@ -414,6 +442,8 @@ class StressedExpectedShortfallResponse(BaseModel):
 class LiquidityAdjustedEsRequest(BaseModel):
     """Request parameters for liquidity_adjusted_es()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     es_base: float
     partial_es: list[float]
     liquidity_horizons: list[float]
@@ -432,6 +462,8 @@ class LiquidityAdjustedEsResponse(BaseModel):
 
 class EsAtMultipleConfidenceLevelsRequest(BaseModel):
     """Request parameters for es_at_multiple_confidence_levels()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     portfolio_value: float
@@ -457,6 +489,8 @@ class EsAtMultipleConfidenceLevelsResponse(BaseModel):
 
 class ExpectedShortfallContributionRequest(BaseModel):
     """Request parameters for expected_shortfall_contribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     asset_returns: list[float] | list[list[float]]
     weights: list[float] | list[list[float]]
@@ -486,6 +520,8 @@ class ExpectedShortfallContributionResponse(BaseModel):
 class HistoricalScenarioReplayRequest(BaseModel):
     """Request parameters for historical_scenario_replay()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     exposures: list[float] | list[list[float]]
     historical_factor_returns: list[float] | list[list[float]]
 
@@ -505,6 +541,8 @@ class HistoricalScenarioReplayResponse(BaseModel):
 class HypotheticalMultiFactorScenarioRequest(BaseModel):
     """Request parameters for hypothetical_multi_factor_scenario()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     exposures: list[float] | list[list[float]]
     shocks: list[float] | list[list[float]]
 
@@ -520,6 +558,8 @@ class HypotheticalMultiFactorScenarioResponse(BaseModel):
 
 class ReverseStressTestingRequest(BaseModel):
     """Request parameters for reverse_stress_testing()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     exposures: list[float] | list[list[float]]
     factor_cov: list[float] | list[list[float]]
@@ -540,6 +580,8 @@ class ReverseStressTestingResponse(BaseModel):
 class SensitivityStressProfileRequest(BaseModel):
     """Request parameters for sensitivity_stress_profile()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     exposures: list[float] | list[list[float]]
     factor_index: int
     shock_grid: list[float] | list[list[float]]
@@ -558,6 +600,8 @@ class SensitivityStressProfileResponse(BaseModel):
 class SectorStressScenarioRequest(BaseModel):
     """Request parameters for sector_stress_scenario()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     sector_exposures: list[float] | list[list[float]]
     sector_shocks: list[float] | list[list[float]]
     sector_names: list[str] | None = None
@@ -574,6 +618,8 @@ class SectorStressScenarioResponse(BaseModel):
 
 class MacroScenarioGeneratorRequest(BaseModel):
     """Request parameters for macro_scenario_generator()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     factor_cov: list[float] | list[list[float]]
     n_scenarios: int = 10000
@@ -593,6 +639,8 @@ class MacroScenarioGeneratorResponse(BaseModel):
 class ContagionStressScenarioRequest(BaseModel):
     """Request parameters for contagion_stress_scenario()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     initial_shock: list[float] | list[list[float]]
     contagion_matrix: list[float] | list[list[float]]
     rounds: int = 3
@@ -611,6 +659,8 @@ class ContagionStressScenarioResponse(BaseModel):
 class PortfolioDeltaAggregatedRequest(BaseModel):
     """Request parameters for portfolio_delta_aggregated()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     deltas: list[float] | list[list[float]]
     quantities: list[float] | list[list[float]]
     spot_prices: list[float] | list[list[float]] | None = None
@@ -627,6 +677,8 @@ class PortfolioDeltaAggregatedResponse(BaseModel):
 class GammaCrossGammaMatrixRequest(BaseModel):
     """Request parameters for gamma_cross_gamma_matrix()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     own_gammas: list[float] | list[list[float]]
     cross_gammas: list[float] | list[list[float]] | None = None
 
@@ -642,6 +694,8 @@ class GammaCrossGammaMatrixResponse(BaseModel):
 
 class VegaSurfaceBucketedRequest(BaseModel):
     """Request parameters for vega_surface_bucketed()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     vegas: list[float] | list[list[float]]
     expiry_buckets: list[float] | list[list[float]]
@@ -661,6 +715,8 @@ class VegaSurfaceBucketedResponse(BaseModel):
 
 class Dv01Pv01BucketedRequest(BaseModel):
     """Request parameters for dv01_pv01_bucketed()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
@@ -683,6 +739,8 @@ class Dv01Pv01BucketedResponse(BaseModel):
 class Cs01CreditSpreadRequest(BaseModel):
     """Request parameters for cs01_credit_spread()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     cashflows: list[float] | list[list[float]]
     times: list[float] | list[list[float]]
     risk_free_rate: float
@@ -700,6 +758,8 @@ class Cs01CreditSpreadResponse(BaseModel):
 
 class RhoInterestRateRequest(BaseModel):
     """Request parameters for rho_interest_rate()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -722,6 +782,8 @@ class RhoInterestRateResponse(BaseModel):
 class ThetaTimeDecayRequest(BaseModel):
     """Request parameters for theta_time_decay()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -743,6 +805,8 @@ class ThetaTimeDecayResponse(BaseModel):
 class CharmDeltaDecayRequest(BaseModel):
     """Request parameters for charm_delta_decay()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -762,6 +826,8 @@ class CharmDeltaDecayResponse(BaseModel):
 
 class VolgaVegaConvexityRequest(BaseModel):
     """Request parameters for volga_vega_convexity()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     spot: float
     strike: float
@@ -783,6 +849,8 @@ class VolgaVegaConvexityResponse(BaseModel):
 class VannaDeltaVegaCrossRequest(BaseModel):
     """Request parameters for vanna_delta_vega_cross()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     spot: float
     strike: float
     rate: float
@@ -801,6 +869,8 @@ class VannaDeltaVegaCrossResponse(BaseModel):
 
 class GreeksBasedPnlExplainRequest(BaseModel):
     """Request parameters for greeks_based_pnl_explain()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     delta: float
     gamma: float
@@ -828,6 +898,8 @@ class GreeksBasedPnlExplainResponse(BaseModel):
 class PnlAttributionTestFrtbPatRequest(BaseModel):
     """Request parameters for pnl_attribution_test_frtb_pat()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     risk_theoretical_pnl: list[float] | list[list[float]]
     hypothetical_pnl: list[float] | list[list[float]]
 
@@ -844,6 +916,8 @@ class PnlAttributionTestFrtbPatResponse(BaseModel):
 
 class ThetaCarryAttributionRequest(BaseModel):
     """Request parameters for theta_carry_attribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     theta: float
     time_step: float
@@ -863,6 +937,8 @@ class ThetaCarryAttributionResponse(BaseModel):
 class GammaPnlAttributionRequest(BaseModel):
     """Request parameters for gamma_pnl_attribution()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     gamma: float
     spot_move: float
 
@@ -878,6 +954,8 @@ class GammaPnlAttributionResponse(BaseModel):
 class VegaPnlAttributionRequest(BaseModel):
     """Request parameters for vega_pnl_attribution()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     vega: float
     vol_move: float
 
@@ -892,6 +970,8 @@ class VegaPnlAttributionResponse(BaseModel):
 
 class FxPnlAttributionRequest(BaseModel):
     """Request parameters for fx_pnl_attribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     fx_deltas: list[float] | list[list[float]]
     fx_moves: list[float] | list[list[float]]
@@ -910,6 +990,8 @@ class FxPnlAttributionResponse(BaseModel):
 class RatesPnlAttributionRequest(BaseModel):
     """Request parameters for rates_pnl_attribution()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     key_rate_sensitivities: list[float] | list[list[float]]
     yield_moves_bp: list[float] | list[list[float]]
     tenor_names: list[str] | None = None
@@ -926,6 +1008,8 @@ class RatesPnlAttributionResponse(BaseModel):
 
 class CreditPnlAttributionRequest(BaseModel):
     """Request parameters for credit_pnl_attribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     cs01_sensitivities: list[float] | list[list[float]]
     spread_moves_bp: list[float] | list[list[float]]
@@ -944,6 +1028,8 @@ class CreditPnlAttributionResponse(BaseModel):
 class ResidualPnlUnexplainedRequest(BaseModel):
     """Request parameters for residual_pnl_unexplained()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     actual_pnl: float
     explained_components: list[float] | list[list[float]]
 
@@ -960,6 +1046,8 @@ class ResidualPnlUnexplainedResponse(BaseModel):
 
 class TrafficLightBacktestingRequest(BaseModel):
     """Request parameters for traffic_light_backtesting()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     actual_returns: list[float] | list[list[float]]
     var_estimates: list[float] | list[list[float]]
@@ -978,6 +1066,8 @@ class TrafficLightBacktestingResponse(BaseModel):
 
 class KupiecPofTestRequest(BaseModel):
     """Request parameters for kupiec_pof_test()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     n_breaches: int
     n_observations: int
@@ -1005,6 +1095,8 @@ class KupiecPofTestResponse(BaseModel):
 class ChristoffersenIndependenceTestRequest(BaseModel):
     """Request parameters for christoffersen_independence_test()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     breaches: list[float] | list[list[float]]
 
 
@@ -1021,6 +1113,8 @@ class ChristoffersenIndependenceTestResponse(BaseModel):
 
 class CombinedBacktestingRequest(BaseModel):
     """Request parameters for combined_backtesting()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     breaches: list[float] | list[list[float]]
     confidence_level: float = 0.99
@@ -1048,6 +1142,8 @@ class CombinedBacktestingResponse(BaseModel):
 class BaselCapitalAddonMultiplierRequest(BaseModel):
     """Request parameters for basel_capital_addon_multiplier()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     n_breaches: int
 
 
@@ -1063,6 +1159,8 @@ class BaselCapitalAddonMultiplierResponse(BaseModel):
 
 class RollingVarBacktestRequest(BaseModel):
     """Request parameters for rolling_var_backtest()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     window: int = 250
@@ -1091,6 +1189,8 @@ class RollingVarBacktestResponse(BaseModel):
 class VarBreachClusterAnalysisRequest(BaseModel):
     """Request parameters for var_breach_cluster_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     breaches: list[float] | list[list[float]]
 
 
@@ -1107,6 +1207,8 @@ class VarBreachClusterAnalysisResponse(BaseModel):
 
 class VolatilitySurfaceImpliedVolRequest(BaseModel):
     """Request parameters for volatility_surface_implied_vol()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     market_prices: list[float] | list[list[float]]
     strikes: list[float] | list[list[float]]
@@ -1127,6 +1229,8 @@ class VolatilitySurfaceImpliedVolResponse(BaseModel):
 
 class Garch11VolatilityForecastRequest(BaseModel):
     """Request parameters for garch_11_volatility_forecast()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     alpha: float = 0.1
@@ -1149,6 +1253,8 @@ class Garch11VolatilityForecastResponse(BaseModel):
 class EgarchVolatilityModelRequest(BaseModel):
     """Request parameters for egarch_volatility_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     omega: float = -0.1
     alpha: float = 0.1
@@ -1167,6 +1273,8 @@ class EgarchVolatilityModelResponse(BaseModel):
 
 class GjrGarchAsymmetricModelRequest(BaseModel):
     """Request parameters for gjr_garch_asymmetric_model()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     alpha: float = 0.03
@@ -1189,6 +1297,8 @@ class GjrGarchAsymmetricModelResponse(BaseModel):
 class RealisedVolatilityRequest(BaseModel):
     """Request parameters for realised_volatility()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     annualisation_factor: int = 252
 
@@ -1206,6 +1316,8 @@ class RealisedVolatilityResponse(BaseModel):
 class CorrelationMatrixHistoricalRequest(BaseModel):
     """Request parameters for correlation_matrix_historical()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns_matrix: list[float] | list[list[float]]
 
 
@@ -1221,6 +1333,8 @@ class CorrelationMatrixHistoricalResponse(BaseModel):
 
 class DccGarchDynamicCorrelationRequest(BaseModel):
     """Request parameters for dcc_garch_dynamic_correlation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns_matrix: list[float] | list[list[float]]
     a: float = 0.02
@@ -1240,6 +1354,8 @@ class DccGarchDynamicCorrelationResponse(BaseModel):
 class RiskFactorPcaDecompositionRequest(BaseModel):
     """Request parameters for risk_factor_pca_decomposition()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns_matrix: list[float] | list[list[float]]
     n_components: int | None = None
 
@@ -1258,6 +1374,8 @@ class RiskFactorPcaDecompositionResponse(BaseModel):
 class FrtbSaSensitivityBasedMethodRequest(BaseModel):
     """Request parameters for frtb_sa_sensitivity_based_method()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     bucket_weighted_sensitivities: list[list[float]]
     intra_bucket_corr: float
     inter_bucket_corr: float
@@ -1275,6 +1393,8 @@ class FrtbSaSensitivityBasedMethodResponse(BaseModel):
 
 class FrtbSaDefaultRiskChargeRequest(BaseModel):
     """Request parameters for frtb_sa_default_risk_charge()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     jtd_long: list[float] | list[list[float]]
     jtd_short: list[float] | list[list[float]]
@@ -1295,6 +1415,8 @@ class FrtbSaDefaultRiskChargeResponse(BaseModel):
 class FrtbSaResidualRiskAddonRequest(BaseModel):
     """Request parameters for frtb_sa_residual_risk_addon()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     notionals: list[float] | list[list[float]]
     rrao_weights: list[float] | list[list[float]]
 
@@ -1310,6 +1432,8 @@ class FrtbSaResidualRiskAddonResponse(BaseModel):
 
 class FrtbImaExpectedShortfallRequest(BaseModel):
     """Request parameters for frtb_ima_expected_shortfall()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     confidence_level: float = 0.975
@@ -1334,6 +1458,8 @@ class FrtbImaExpectedShortfallResponse(BaseModel):
 
 class FrtbImaStressedPeriodFinderRequest(BaseModel):
     """Request parameters for frtb_ima_stressed_period_finder()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     window: int = 250
@@ -1360,6 +1486,8 @@ class FrtbImaStressedPeriodFinderResponse(BaseModel):
 class FrtbImaNonModellableRiskFactorsRequest(BaseModel):
     """Request parameters for frtb_ima_non_modellable_risk_factors()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     individual_ses: list[float] | list[list[float]]
     rho: float = 0.0
 
@@ -1375,6 +1503,8 @@ class FrtbImaNonModellableRiskFactorsResponse(BaseModel):
 
 class FrtbImaAggregateCapitalChargeRequest(BaseModel):
     """Request parameters for frtb_ima_aggregate_capital_charge()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     imcc: float
     ses: float
@@ -1394,6 +1524,8 @@ class FrtbImaAggregateCapitalChargeResponse(BaseModel):
 
 class ExtremeValueTheoryVarRequest(BaseModel):
     """Request parameters for extreme_value_theory_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     threshold_quantile: float = 0.95
@@ -1422,6 +1554,8 @@ class ExtremeValueTheoryVarResponse(BaseModel):
 class SpectralRiskMeasureRequest(BaseModel):
     """Request parameters for spectral_risk_measure()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     returns: list[float] | list[list[float]]
     risk_aversion: float = 25.0
 
@@ -1438,6 +1572,8 @@ class SpectralRiskMeasureResponse(BaseModel):
 
 class ComputeCvarRequest(BaseModel):
     """Request parameters for compute_cvar()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     sorted_losses: list[float] | list[list[float]]
     confidence_level: float
@@ -1461,6 +1597,8 @@ class ComputeCvarResponse(BaseModel):
 class ComputeLossPercentilesRequest(BaseModel):
     """Request parameters for compute_loss_percentiles()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     sorted_losses: list[float] | list[list[float]]
     percentiles: list[float] | None = None
 
@@ -1475,6 +1613,8 @@ class ComputeLossPercentilesResponse(BaseModel):
 
 class ComputeRollingVarRequest(BaseModel):
     """Request parameters for compute_rolling_var()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     returns: list[float] | list[list[float]]
     window: int = 250
@@ -1498,6 +1638,8 @@ class ComputeRollingVarResponse(BaseModel):
 
 class ComputeBreachesRequest(BaseModel):
     """Request parameters for compute_breaches()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     actual_returns: list[float] | list[list[float]]
     var_estimates: list[float] | list[list[float]]

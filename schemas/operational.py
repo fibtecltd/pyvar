@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class FrequencyDistributionFittingRequest(BaseModel):
     """Request parameters for frequency_distribution_fitting()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     annual_event_counts: list[float] | list[list[float]]
 
 
@@ -31,6 +33,8 @@ class FrequencyDistributionFittingResponse(BaseModel):
 
 class SeverityDistributionFittingRequest(BaseModel):
     """Request parameters for severity_distribution_fitting()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     loss_amounts: list[float] | list[list[float]]
     distribution: str = "lognormal"
@@ -49,6 +53,8 @@ class SeverityDistributionFittingResponse(BaseModel):
 
 class CompoundLossDistributionRequest(BaseModel):
     """Request parameters for compound_loss_distribution()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     frequency_lambda: float
     severity_mu: float
@@ -70,6 +76,8 @@ class CompoundLossDistributionResponse(BaseModel):
 
 class MonteCarloOpriskCapitalRequest(BaseModel):
     """Request parameters for monte_carlo_oprisk_capital()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     frequency_lambda: float
     severity_mu: float
@@ -102,6 +110,8 @@ class MonteCarloOpriskCapitalResponse(BaseModel):
 class OperationalVarOpvarRequest(BaseModel):
     """Request parameters for operational_var_opvar()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     annual_losses: list[float] | list[list[float]]
     confidence_level: float = 0.999
 
@@ -126,6 +136,8 @@ class OperationalVarOpvarResponse(BaseModel):
 
 class LossDistributionApproachLdaRequest(BaseModel):
     """Request parameters for loss_distribution_approach_lda()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     annual_event_counts: list[float] | list[list[float]]
     loss_amounts: list[float] | list[list[float]]
@@ -157,6 +169,8 @@ class LossDistributionApproachLdaResponse(BaseModel):
 class AdvancedMeasurementApproachAmaRequest(BaseModel):
     """Request parameters for advanced_measurement_approach_ama()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     annual_event_counts: list[float] | list[list[float]]
     loss_amounts: list[float] | list[list[float]]
     expected_loss_covered: bool = True
@@ -187,6 +201,8 @@ class AdvancedMeasurementApproachAmaResponse(BaseModel):
 class BaselStandardisedMeasurementSmaRequest(BaseModel):
     """Request parameters for basel_standardised_measurement_sma()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     business_indicator: float
     loss_component: float = 0.0
     use_ilm: bool = True
@@ -205,6 +221,8 @@ class BaselStandardisedMeasurementSmaResponse(BaseModel):
 class OpriskCapitalAllocationRequest(BaseModel):
     """Request parameters for oprisk_capital_allocation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     total_capital: float
     business_line_risks: list[float] | list[list[float]]
 
@@ -220,6 +238,8 @@ class OpriskCapitalAllocationResponse(BaseModel):
 
 class DiversificationBenefitOpriskRequest(BaseModel):
     """Request parameters for diversification_benefit_oprisk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     standalone_capitals: list[float] | list[list[float]]
     correlation: float = 0.0
@@ -237,6 +257,8 @@ class DiversificationBenefitOpriskResponse(BaseModel):
 
 class OpriskEconomicCapitalRequest(BaseModel):
     """Request parameters for oprisk_economic_capital()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     opvar: float
     expected_loss: float
@@ -257,6 +279,8 @@ class OpriskEconomicCapitalResponse(BaseModel):
 class InsuranceOffsetCalculationRequest(BaseModel):
     """Request parameters for insurance_offset_calculation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     gross_loss: float
     policy_limit: float
     deductible: float
@@ -276,6 +300,8 @@ class InsuranceOffsetCalculationResponse(BaseModel):
 class TailRiskScenarioOpriskRequest(BaseModel):
     """Request parameters for tail_risk_scenario_oprisk()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     annual_losses: list[float] | list[list[float]]
     tail_confidence: float = 0.999
     severity_multiplier: float = 1.0
@@ -294,6 +320,8 @@ class TailRiskScenarioOpriskResponse(BaseModel):
 class OpriskStressTestingRequest(BaseModel):
     """Request parameters for oprisk_stress_testing()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     base_capital: float
     frequency_shock: float
     severity_shock: float
@@ -311,6 +339,8 @@ class OpriskStressTestingResponse(BaseModel):
 class RcsaRiskIdentificationRequest(BaseModel):
     """Request parameters for rcsa_risk_identification()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     risk_register: list[dict[str, Any]]
 
 
@@ -325,6 +355,8 @@ class RcsaRiskIdentificationResponse(BaseModel):
 
 class RcsaInherentRiskScoringRequest(BaseModel):
     """Request parameters for rcsa_inherent_risk_scoring()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     likelihood: int
     impact: int
@@ -342,6 +374,8 @@ class RcsaInherentRiskScoringResponse(BaseModel):
 class RcsaResidualRiskScoringRequest(BaseModel):
     """Request parameters for rcsa_residual_risk_scoring()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     inherent_score: float
     control_effectiveness: float
 
@@ -357,6 +391,8 @@ class RcsaResidualRiskScoringResponse(BaseModel):
 
 class RcsaControlEffectivenessRequest(BaseModel):
     """Request parameters for rcsa_control_effectiveness()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     design_score: float
     operating_score: float
@@ -375,6 +411,8 @@ class RcsaControlEffectivenessResponse(BaseModel):
 class ControlTestingEffectivenessRequest(BaseModel):
     """Request parameters for control_testing_effectiveness()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     tests_passed: int
     tests_total: int
 
@@ -391,6 +429,8 @@ class ControlTestingEffectivenessResponse(BaseModel):
 
 class BusinessEnvironmentFactorBeiRequest(BaseModel):
     """Request parameters for business_environment_factor_bei()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     factor_scores: list[float] | list[list[float]]
     baseline: float = 3.0
@@ -410,6 +450,8 @@ class BusinessEnvironmentFactorBeiResponse(BaseModel):
 class InternalControlFactorIcfRequest(BaseModel):
     """Request parameters for internal_control_factor_icf()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     control_scores: list[float] | list[list[float]]
     baseline: float = 0.8
     sensitivity: float = 0.25
@@ -428,6 +470,8 @@ class InternalControlFactorIcfResponse(BaseModel):
 class LossEventClassificationBaselRequest(BaseModel):
     """Request parameters for loss_event_classification_basel()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     event_type: str
 
 
@@ -443,6 +487,8 @@ class LossEventClassificationBaselResponse(BaseModel):
 
 class LossDataCollectionFrameworkRequest(BaseModel):
     """Request parameters for loss_data_collection_framework()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     loss_events: list[dict[str, Any]]
     reporting_threshold: float
@@ -462,6 +508,8 @@ class LossDataCollectionFrameworkResponse(BaseModel):
 class ExternalLossDataIntegrationRequest(BaseModel):
     """Request parameters for external_loss_data_integration()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     internal_losses: list[float] | list[list[float]]
     external_losses: list[float] | list[list[float]]
     scaling_factor: float
@@ -480,6 +528,8 @@ class ExternalLossDataIntegrationResponse(BaseModel):
 class KeyRiskIndicatorKriLibraryRequest(BaseModel):
     """Request parameters for key_risk_indicator_kri_library()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     kri_definitions: list[dict[str, Any]]
 
 
@@ -494,6 +544,8 @@ class KeyRiskIndicatorKriLibraryResponse(BaseModel):
 
 class KriThresholdBreachDetectionRequest(BaseModel):
     """Request parameters for kri_threshold_breach_detection()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     value: float
     amber_threshold: float
@@ -513,6 +565,8 @@ class KriThresholdBreachDetectionResponse(BaseModel):
 class KriTrendAnalysisRequest(BaseModel):
     """Request parameters for kri_trend_analysis()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     observations: list[float] | list[list[float]]
     higher_is_worse: bool = True
 
@@ -530,6 +584,8 @@ class KriTrendAnalysisResponse(BaseModel):
 class ScenarioFrequencyEstimationRequest(BaseModel):
     """Request parameters for scenario_frequency_estimation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expected_events_per_year: float
     occurrences: int | None = None
     observation_years: float | None = None
@@ -546,6 +602,8 @@ class ScenarioFrequencyEstimationResponse(BaseModel):
 
 class ScenarioSeverityEstimationRequest(BaseModel):
     """Request parameters for scenario_severity_estimation()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     typical_loss: float
     worst_case_loss: float
@@ -565,6 +623,8 @@ class ScenarioSeverityEstimationResponse(BaseModel):
 class ScenarioExpertElicitationModelRequest(BaseModel):
     """Request parameters for scenario_expert_elicitation_model()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     expert_estimates: list[float] | list[list[float]]
     expert_weights: list[float] | list[list[float]] | None = None
 
@@ -581,6 +641,8 @@ class ScenarioExpertElicitationModelResponse(BaseModel):
 
 class ScenarioAnalysisOpriskRequest(BaseModel):
     """Request parameters for scenario_analysis_oprisk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     frequency_lambda: float
     severity_mu: float
@@ -611,6 +673,8 @@ class ScenarioAnalysisOpriskResponse(BaseModel):
 class CyberRiskLossEstimationRequest(BaseModel):
     """Request parameters for cyber_risk_loss_estimation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     records_exposed: float
     cost_per_record: float
     breach_probability: float
@@ -629,6 +693,8 @@ class CyberRiskLossEstimationResponse(BaseModel):
 
 class ConductRiskMetricRequest(BaseModel):
     """Request parameters for conduct_risk_metric()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     complaints: float
     customers: float
@@ -650,6 +716,8 @@ class ConductRiskMetricResponse(BaseModel):
 class ModelRiskAssessmentRequest(BaseModel):
     """Request parameters for model_risk_assessment()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     materiality: int
     complexity: int
     validation_score: float
@@ -668,6 +736,8 @@ class ModelRiskAssessmentResponse(BaseModel):
 class ItRiskScoringRequest(BaseModel):
     """Request parameters for it_risk_scoring()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     availability: float
     incident_count: float
     patch_compliance: float
@@ -684,6 +754,8 @@ class ItRiskScoringResponse(BaseModel):
 
 class ThirdPartyVendorRiskRequest(BaseModel):
     """Request parameters for third_party_vendor_risk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     criticality: int
     financial_health: float
@@ -702,6 +774,8 @@ class ThirdPartyVendorRiskResponse(BaseModel):
 
 class BusinessContinuityRiskScoreRequest(BaseModel):
     """Request parameters for business_continuity_risk_score()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     rto_hours: float
     rpo_hours: float
@@ -724,6 +798,8 @@ class BusinessContinuityRiskScoreResponse(BaseModel):
 class NearMissCaptureFrameworkRequest(BaseModel):
     """Request parameters for near_miss_capture_framework()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     events: list[dict[str, Any]]
 
 
@@ -740,6 +816,8 @@ class NearMissCaptureFrameworkResponse(BaseModel):
 class RootCauseAnalysisTemplateRequest(BaseModel):
     """Request parameters for root_cause_analysis_template()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     causal_factors: dict[str, Any]
 
 
@@ -755,6 +833,8 @@ class RootCauseAnalysisTemplateResponse(BaseModel):
 
 class RiskAppetiteStatementOpriskRequest(BaseModel):
     """Request parameters for risk_appetite_statement_oprisk()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     current_metric: float
     appetite_limit: float
@@ -774,6 +854,8 @@ class RiskAppetiteStatementOpriskResponse(BaseModel):
 class EscalationThresholdCalculationRequest(BaseModel):
     """Request parameters for escalation_threshold_calculation()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     loss_amount: float
     thresholds: dict[str, Any]
 
@@ -789,6 +871,8 @@ class EscalationThresholdCalculationResponse(BaseModel):
 
 class OpriskHeatMapGeneratorRequest(BaseModel):
     """Request parameters for oprisk_heat_map_generator()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     likelihoods: list[float] | list[list[float]]
     impacts: list[float] | list[list[float]]
@@ -807,6 +891,8 @@ class OpriskHeatMapGeneratorResponse(BaseModel):
 class RegulatoryComplianceScoreRequest(BaseModel):
     """Request parameters for regulatory_compliance_score()."""
 
+    model_config = ConfigDict(allow_inf_nan=False)
+
     requirements_met: list[float] | list[list[float]]
     weights: list[float] | list[list[float]] | None = None
 
@@ -823,6 +909,8 @@ class RegulatoryComplianceScoreResponse(BaseModel):
 
 class AuditFindingRiskScorerRequest(BaseModel):
     """Request parameters for audit_finding_risk_scorer()."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     severity: int
     likelihood: int
