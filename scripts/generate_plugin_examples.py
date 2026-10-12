@@ -35,7 +35,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import date
@@ -51,7 +50,7 @@ os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-1")
 logging.disable(logging.CRITICAL)
 
 import numpy as np  # noqa: E402
-from httpx import ASGITransport, AsyncClient  # noqa: E402
+from httpx import ASGITransport, AsyncClient, HTTPError  # noqa: E402
 
 from ingestion.fixtures import generate_fixture_parquet, generate_gbm_returns  # noqa: E402
 
@@ -1183,14 +1182,15 @@ async def ex_mcp() -> list[Example]:
         stderr=subprocess.DEVNULL,
     )
     try:
-        for _ in range(120):
-            try:
-                urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=1)
-                break
-            except OSError:
-                await asyncio.sleep(0.5)
-        else:
-            raise RuntimeError("local pyvar API did not start")
+        async with AsyncClient(timeout=1) as probe:
+            for _ in range(120):
+                try:
+                    await probe.get(f"http://127.0.0.1:{port}/health")
+                    break
+                except HTTPError:
+                    await asyncio.sleep(0.5)
+            else:
+                raise RuntimeError("local pyvar API did not start")
         env = {
             **os.environ,
             "PYVAR_API_KEY": create_access_token("example-mcp", "enterprise"),
