@@ -50,5 +50,10 @@ palette clash.
   missing `<link rel="icon">` set to `portal/index.html` (and every other
   portal page's `<head>`) — a real, site-wide, visible-to-every-visitor
   change, not made without a separate explicit go-ahead.
-- Whether `hero-wide-1200x630.png` should also become the actual `og:image`
-  meta tag for the portal (currently unset, unverified either way).
+- ~~Whether `hero-wide-1200x630.png` should become the portal's `og:image`.~~
+  Done: it is served as `portal/og-image.png` (2400×1260, same 1.91:1 ratio)
+  and every portal page with Open Graph tags points `og:image` at
+  `https://www.pyvar.com/og-image.png`. LinkedIn reads only `og:image`, so
+  before this link previews showed no picture.
+  `tests/test_portal_social_meta.py` pins it. `twitter:image` is unchanged
+  (still `apple-touch-icon.png`).
