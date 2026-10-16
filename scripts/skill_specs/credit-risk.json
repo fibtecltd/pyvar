@@ -1,0 +1,211 @@
+{
+  "skill": "credit-risk",
+  "domain": "credit-risk",
+  "client_ns": "credit_risk",
+  "title": "Credit Risk",
+  "version": "1.1.0",
+  "description": "Run pyvar's 55 credit-risk functions on the live pyvar.com API: expected loss, PD/LGD/EAD, Vasicek and Monte Carlo credit VaR, IRB and standardised capital, SA-CCR and XVA (CVA/DVA/FVA), CDS pricing, IFRS 9 ECL, Altman Z and other scoring models. Use when the user wants credit-risk numbers computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Credit-risk calculations: expected and unexpected loss, regulatory capital, portfolio credit models, counterparty risk and XVA, CDS, IFRS 9 ECL and scoring. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "credit-risk",
+    "PD",
+    "LGD",
+    "EAD",
+    "IRB",
+    "XVA",
+    "CVA",
+    "IFRS9",
+    "ECL",
+    "CDS",
+    "CCR",
+    "SA-CCR",
+    "KMV",
+    "Merton",
+    "scoring"
+  ],
+  "examples": [
+    {
+      "title": "Expected loss and Vasicek credit VaR on a 50m exposure",
+      "intro": "Expected loss is PD x LGD x EAD. The Vasicek single-factor model then gives the 99.9% loss quantile (the Basel IRB confidence level) for a granular portfolio.",
+      "calls": [
+        {
+          "function": "expected_loss_el_computation",
+          "request": {
+            "pd": 0.02,
+            "lgd": 0.45,
+            "ead": 50000000
+          },
+          "returns": [
+            "el",
+            "el_rate",
+            "pd",
+            "lgd",
+            "ead"
+          ]
+        },
+        {
+          "function": "credit_var_analytical_vasicek",
+          "request": {
+            "pd": 0.02,
+            "lgd": 0.45,
+            "ead_total": 50000000,
+            "asset_correlation": 0.15,
+            "confidence_level": 0.999
+          },
+          "returns": [
+            "var",
+            "el",
+            "ul",
+            "loss_rate_q",
+            "confidence_level"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Altman Z-score for one borrower",
+      "intro": "Balance-sheet and income inputs in any one currency unit. The result carries the score and its zone (safe above 2.99, distress below 1.81).",
+      "calls": [
+        {
+          "function": "altman_z_score_credit_scoring",
+          "request": {
+            "working_capital": 120,
+            "retained_earnings": 300,
+            "ebit": 90,
+            "market_value_equity": 800,
+            "sales": 1200,
+            "total_assets": 1000,
+            "total_liabilities": 400
+          },
+          "returns": [
+            "z_score",
+            "zone",
+            "x1",
+            "x2",
+            "x3",
+            "x4",
+            "x5"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Core Credit Metrics (EL/UL/PD/LGD/EAD)",
+      "intro": "",
+      "functions": [
+        "probability_of_default_pd_estimation",
+        "loss_given_default_lgd_model",
+        "exposure_at_default_ead_calculator",
+        "expected_loss_el_computation",
+        "unexpected_loss_ul_computation",
+        "recovery_rate_estimation",
+        "downturn_lgd_adjustment"
+      ]
+    },
+    {
+      "title": "Regulatory Capital (IRB/SA)",
+      "intro": "",
+      "functions": [
+        "irb_foundation_approach_capital",
+        "irb_advanced_approach_capital",
+        "basel_standardised_approach_rwa",
+        "maturity_adjustment_basel_irb",
+        "sme_correlation_factor_basel"
+      ]
+    },
+    {
+      "title": "Portfolio Credit Models",
+      "intro": "",
+      "functions": [
+        "credit_var_monte_carlo",
+        "credit_var_analytical_vasicek",
+        "creditmetrics_portfolio_model",
+        "kmv_merton_distance_to_default"
+      ]
+    },
+    {
+      "title": "Credit Scoring & PD Models",
+      "intro": "",
+      "functions": [
+        "altman_z_score_credit_scoring",
+        "logistic_regression_pd_model",
+        "machine_learning_pd_calibration",
+        "through_the_cycle_pd_adjustment",
+        "point_in_time_pd_estimation",
+        "retail_scorecard_pd_model"
+      ]
+    },
+    {
+      "title": "Migration & Correlation",
+      "intro": "",
+      "functions": [
+        "default_correlation_matrix",
+        "ratings_migration_matrix"
+      ]
+    },
+    {
+      "title": "Concentration Risk",
+      "intro": "",
+      "functions": [
+        "credit_concentration_risk_hhi"
+      ]
+    },
+    {
+      "title": "Counterparty Credit Risk (CCR/XVA)",
+      "intro": "",
+      "functions": [
+        "current_exposure_method_cem",
+        "standardised_approach_ccr_sa_ccr",
+        "potential_future_exposure_pfe",
+        "expected_positive_exposure_epe",
+        "effective_epe_regulatory",
+        "credit_valuation_adjustment_cva",
+        "debt_valuation_adjustment_dva",
+        "funding_valuation_adjustment_fva",
+        "capital_valuation_adjustment_kva",
+        "margin_valuation_adjustment_mva",
+        "xva_aggregation",
+        "cva_sensitivity_cva_greeks",
+        "wrong_way_risk_adjustment",
+        "counterparty_credit_risk_ccr_exposure",
+        "collateral_haircut_calculation"
+      ]
+    },
+    {
+      "title": "CDS & Credit Derivatives",
+      "intro": "",
+      "functions": [
+        "credit_spread_curve_bootstrap",
+        "cds_pricing_isda_standard",
+        "cds_spread_to_pd_conversion",
+        "credit_default_swap_var"
+      ]
+    },
+    {
+      "title": "IFRS 9 & ECL",
+      "intro": "",
+      "functions": [
+        "ifrs_9_stage_classification_pd_threshold",
+        "ifrs_9_lifetime_ecl_stage_2_3",
+        "ifrs_9_12_month_ecl_stage_1",
+        "ifrs_9_scenario_weighted_ecl",
+        "macroeconomic_overlays_ecl",
+        "ifrs_9_staging_criteria_assessment"
+      ]
+    },
+    {
+      "title": "Specialised Credit Models",
+      "intro": "",
+      "functions": [
+        "corporate_credit_scoring_model",
+        "sovereign_credit_risk_assessment",
+        "sector_default_rate_analysis",
+        "credit_portfolio_optimisation",
+        "credit_stress_testing"
+      ]
+    }
+  ],
+  "notes": {}
+}

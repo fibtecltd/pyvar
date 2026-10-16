@@ -1,17 +1,21 @@
 ---
 name: pyvar-arch-compute
 description: >
-  Activate when implementing or optimising pyvar compute workers: NumPy
-  vectorisation, Numba JIT for Monte Carlo loops, SciPy optimisation,
-  Dask distributed DataFrames, or Ray multi-node scale-out. Also covers
-  the Celery + Redis task queue dispatch pattern.
-version: "1.0.0"
+  Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
+  the pyvar compute workers are built: the Numba Monte Carlo kernel, SciPy GARCH fitting and
+  Celery task dispatch (Dask and Ray are installed but not wired in). Use only when working
+  inside a pyvar checkout or changing pyvar itself; not for general FastAPI, Redis, Numba or
+  similar questions, and not needed to call the pyvar API (use a domain skill such as
+  pyvar-market-risk for that).
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [numpy, numba, scipy, dask, ray, celery, redis, JIT, monte-carlo,
        parallelism, distributed, compute-workers, performance]
 ---
 
 # pyvar — Architecture: Compute Workers
+
+> **Who this is for:** contributors working inside a checkout of https://github.com/fibtecltd/pyvar. It documents how this layer is actually built, with real file paths and conventions. It is not an API guide: to *call* pyvar functions, use a domain skill such as `pyvar-market-risk` or `pyvar-portfolio-analytics`.
 
 ## Stack
 | Worker Type | Engine | Best for |

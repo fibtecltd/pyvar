@@ -109,6 +109,30 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Claude plugins: the 8 domain skills could not actually be used** — Usage
+  data for `pyvar-portfolio-analytics` (456 installs, 86 accounts ever active,
+  103 skill uses, 2 of 83 new accounts back the next day) pointed at the skill
+  itself. Each `SKILL.md` was a list of `pyvar.<domain>.<fn>(**params)` stubs:
+  no parameter names, no API key or base URL, no example, and a `pyvar.*`
+  Python namespace that does not exist (the real client is
+  `pyvar_client.Client(...).<domain>.<fn>`). 26 of market-risk's 68 function
+  names did not match a real endpoint, and 4 real ones were missing. The skills
+  are now rendered by `scripts/sync_skills.py` from `portal/functions.json` and
+  the live OpenAPI schema: a setup section (key, REST/client/MCP call shapes,
+  errors, the 10-calls/day free quota), two worked examples per domain that
+  `tests/test_skill_examples.py` re-runs against the real app, one-line
+  signatures with defaults, and `references/functions.md` with every
+  parameter's type and bounds. Hand-written domain caveats (regulatory
+  constants, known limitations, citations) are carried over verbatim in
+  `scripts/skill_specs/<skill>.tail.md`. `tests/test_skills_sync.py` fails when
+  a skill drifts from the catalog. Plugin versions: 1.1.0 (regulatory 1.2.0).
+
+- **Claude plugins: the 5 `arch-*` skills no longer present themselves as
+  general-purpose** — their descriptions matched generic FastAPI/Redis/Numba
+  questions, so Claude suggested them to people who were not working on pyvar.
+  They are contributor guides; the descriptions and a "Who this is for" note now
+  say so. Expect fewer installs of these five, not a regression.
+
 - **Portal "Try it" panel: percentage-parameter labels** — 120 parameters
   across 107 functions that are entered as a decimal fraction representing
   a percentage (`confidence_level=0.99`, `recovery_rate=0.4`,

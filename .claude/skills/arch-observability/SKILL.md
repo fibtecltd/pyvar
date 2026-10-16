@@ -1,17 +1,20 @@
 ---
 name: pyvar-arch-observability
 description: >
-  Activate when working on pyvar's observability or security layer:
-  Prometheus metrics, Grafana dashboards, Sentry error tracking, Bandit
-  static analysis, input validation hardening, or security scanning of
-  financial computation code.
-version: "1.0.0"
+  Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
+  pyvar is observed and hardened: Prometheus metrics, Sentry setup, Bandit in CI and
+  input-validation bounds enforced at the edge. Use only when working inside a pyvar checkout
+  or changing pyvar itself; not for general FastAPI, Redis, Numba or similar questions, and
+  not needed to call the pyvar API (use a domain skill such as pyvar-market-risk for that).
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [prometheus, grafana, sentry, bandit, observability, monitoring,
        security, metrics, tracing, alerting, input-validation]
 ---
 
 # pyvar — Architecture: Observability & Security
+
+> **Who this is for:** contributors working inside a checkout of https://github.com/fibtecltd/pyvar. It documents how this layer is actually built, with real file paths and conventions. It is not an API guide: to *call* pyvar functions, use a domain skill such as `pyvar-market-risk` or `pyvar-portfolio-analytics`.
 
 ## Stack
 | Component | Role |

@@ -1,6 +1,6 @@
 {
   "name": "pyvar-arch-compute",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Arch: NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch",
   "author": {
     "name": "Fibtec Limited",

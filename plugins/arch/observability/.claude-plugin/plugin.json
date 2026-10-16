@@ -1,6 +1,6 @@
 {
   "name": "pyvar-arch-observability",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Arch: Prometheus, Grafana, Sentry, Bandit, input validation security",
   "author": {
     "name": "Fibtec Limited",

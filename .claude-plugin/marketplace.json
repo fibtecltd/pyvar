@@ -3,7 +3,7 @@
   "owner": { "name": "Fibtec Limited", "url": "https://pyvar.com" },
   "description": "385 functions across 8 risk domains + 5 architecture layer skills. NumPy, Numba, Polars, PyArrow, Dask, Ray, FastAPI, Celery.",
   "plugins": [
-    { "name": "pyvar-market-risk",         "source": "./plugins/market-risk",         "description": "68 functions: VaR, ES, stress, Greeks, P&L attribution, backtesting, GARCH, FRTB SA/IMA" },
+    { "name": "pyvar-market-risk",         "source": "./plugins/market-risk",         "description": "71 functions: VaR, ES, stress, Greeks, P&L attribution, backtesting, GARCH, FRTB SA/IMA" },
     { "name": "pyvar-credit-risk",         "source": "./plugins/credit-risk",         "description": "55 functions: PD/LGD/EAD, IRB/SA, XVA full suite, IFRS 9 ECL, CDS, SA-CCR, scoring" },
     { "name": "pyvar-liquidity-risk",      "source": "./plugins/liquidity-risk",      "description": "40 functions: LCR, NSFR, HQLA, cash flow, ILAAP, intraday, LiqVaR" },
     { "name": "pyvar-operational-risk",    "source": "./plugins/operational-risk",    "description": "44 functions: LDA, AMA, SMA, RCSA, KRI, scenario, BEICF, cyber/model/IT risk" },

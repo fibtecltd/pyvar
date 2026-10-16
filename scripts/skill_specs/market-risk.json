@@ -1,0 +1,215 @@
+{
+  "skill": "market-risk",
+  "domain": "market-risk",
+  "client_ns": "market_risk",
+  "title": "Market Risk",
+  "version": "1.1.0",
+  "description": "Run pyvar's 71 market-risk functions on the live pyvar.com API: historical, parametric and filtered VaR, Expected Shortfall, stress tests, Greeks, P&L attribution, Basel backtesting (traffic light, Kupiec, Christoffersen), GARCH volatility and FRTB capital. Use when the user wants an actual VaR, ES, backtest or sensitivity number computed, not just the method explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Market-risk calculations: VaR, Expected Shortfall, stress testing, Greeks, P&L attribution, backtesting, volatility and FRTB capital. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "market-risk",
+    "VaR",
+    "ES",
+    "greeks",
+    "stress-test",
+    "backtesting",
+    "FRTB",
+    "GARCH",
+    "volatility",
+    "PCA",
+    "monte-carlo"
+  ],
+  "after_setup_md": "## Monte Carlo VaR is a separate, asynchronous job\n\n`monte_carlo_var_parametric_normal` is not one of the functions below: Monte Carlo VaR runs as a\nqueued job. `POST /api/v1/var/compute` returns `202` with a `task_id`; poll\n`GET /api/v1/var/result/{task_id}` until `status` is `success`. The Python client does both for\nyou: `client.var.compute(portfolio_value=..., returns=[...], n_simulations=10000)` blocks and returns\nthe finished result. Simulation caps per tier are 10,000 (free), 100,000 (pro) and 500,000\n(enterprise); above your cap the call fails with `403`. The job counts against the same daily\nquota as every other call. Antithetic sampling is not exposed through the API.",
+  "examples": [
+    {
+      "title": "VaR and Expected Shortfall on a 10m portfolio",
+      "intro": "Two years of daily log-returns in; the Basel one-day 99% VaR and the FRTB 97.5% Expected Shortfall out, as a fraction and in money. ES is the mean of the losses beyond the VaR threshold, so it is never smaller than VaR.",
+      "calls": [
+        {
+          "function": "historical_simulation_var",
+          "request": {
+            "returns": "<returns:500>",
+            "portfolio_value": 10000000,
+            "confidence_level": 0.99
+          },
+          "returns": [
+            "var_pct",
+            "var_abs",
+            "cvar_pct",
+            "cvar_abs",
+            "confidence_level",
+            "n_obs"
+          ]
+        },
+        {
+          "function": "historical_expected_shortfall",
+          "request": {
+            "returns": "<returns:500>",
+            "portfolio_value": 10000000,
+            "confidence_level": 0.975
+          },
+          "returns": [
+            "es_pct",
+            "es_abs",
+            "var_pct",
+            "n_tail",
+            "confidence_level"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Backtest result: capital multiplier and Kupiec test",
+      "intro": "Six VaR breaches in 250 trading days. The first call gives the Basel traffic-light capital multiplier; the second tests whether 6 breaches is consistent with a 99% VaR model.",
+      "calls": [
+        {
+          "function": "basel_capital_addon_multiplier",
+          "request": {
+            "n_breaches": 6
+          },
+          "returns": [
+            "multiplier",
+            "zone",
+            "n_breaches"
+          ]
+        },
+        {
+          "function": "kupiec_pof_test",
+          "request": {
+            "n_breaches": 6,
+            "n_observations": 250,
+            "confidence_level": 0.99
+          },
+          "returns": [
+            "lr_pof",
+            "p_value",
+            "critical_value",
+            "reject"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "VaR Models",
+      "intro": "",
+      "functions": [
+        "historical_simulation_var",
+        "filtered_historical_simulation_var",
+        "parametric_delta_normal_var",
+        "cornish_fisher_var",
+        "component_var",
+        "marginal_var",
+        "incremental_var",
+        "var_by_risk_factor",
+        "var_fan_chart",
+        "compute_loss_percentiles",
+        "extreme_value_theory_var"
+      ]
+    },
+    {
+      "title": "Expected Shortfall",
+      "intro": "",
+      "functions": [
+        "conditional_var_es",
+        "compute_cvar",
+        "historical_expected_shortfall",
+        "monte_carlo_expected_shortfall",
+        "cvar_decomposition_euler",
+        "stressed_expected_shortfall",
+        "liquidity_adjusted_es",
+        "es_at_multiple_confidence_levels",
+        "expected_shortfall_contribution",
+        "spectral_risk_measure"
+      ]
+    },
+    {
+      "title": "Stress Testing",
+      "intro": "",
+      "functions": [
+        "historical_scenario_replay",
+        "hypothetical_multi_factor_scenario",
+        "reverse_stress_testing",
+        "sensitivity_stress_profile",
+        "sector_stress_scenario",
+        "macro_scenario_generator",
+        "contagion_stress_scenario"
+      ]
+    },
+    {
+      "title": "Greeks & Sensitivities",
+      "intro": "",
+      "functions": [
+        "gamma_cross_gamma_matrix",
+        "vega_surface_bucketed",
+        "dv01_pv01_bucketed",
+        "cs01_credit_spread",
+        "rho_interest_rate",
+        "theta_time_decay",
+        "charm_delta_decay",
+        "volga_vega_convexity",
+        "vanna_delta_vega_cross",
+        "portfolio_delta_aggregated"
+      ]
+    },
+    {
+      "title": "P&L Attribution",
+      "intro": "",
+      "functions": [
+        "pnl_attribution_test_frtb_pat",
+        "theta_carry_attribution",
+        "gamma_pnl_attribution",
+        "vega_pnl_attribution",
+        "fx_pnl_attribution",
+        "rates_pnl_attribution",
+        "credit_pnl_attribution",
+        "residual_pnl_unexplained",
+        "greeks_based_pnl_explain"
+      ]
+    },
+    {
+      "title": "Backtesting",
+      "intro": "",
+      "functions": [
+        "traffic_light_backtesting",
+        "compute_breaches",
+        "kupiec_pof_test",
+        "christoffersen_independence_test",
+        "combined_backtesting",
+        "basel_capital_addon_multiplier",
+        "rolling_var_backtest",
+        "compute_rolling_var",
+        "var_breach_cluster_analysis"
+      ]
+    },
+    {
+      "title": "Volatility & Correlation",
+      "intro": "",
+      "functions": [
+        "garch_11_volatility_forecast",
+        "egarch_volatility_model",
+        "gjr_garch_asymmetric_model",
+        "realised_volatility",
+        "correlation_matrix_historical",
+        "dcc_garch_dynamic_correlation",
+        "risk_factor_pca_decomposition",
+        "volatility_surface_implied_vol"
+      ]
+    },
+    {
+      "title": "FRTB Capital",
+      "intro": "",
+      "functions": [
+        "frtb_sa_residual_risk_addon",
+        "frtb_ima_expected_shortfall",
+        "frtb_ima_stressed_period_finder",
+        "frtb_ima_non_modellable_risk_factors",
+        "frtb_ima_aggregate_capital_charge",
+        "frtb_sa_sensitivity_based_method",
+        "frtb_sa_default_risk_charge"
+      ]
+    }
+  ],
+  "notes": {}
+}

@@ -1,0 +1,263 @@
+{
+  "skill": "derivatives",
+  "domain": "derivatives",
+  "client_ns": "derivatives",
+  "title": "Derivatives Pricing",
+  "version": "1.1.0",
+  "description": "Run pyvar's 62 derivatives-pricing functions on the live pyvar.com API: Black-Scholes and tree options, Heston/SABR/Dupire/rough-vol models, exotic Monte Carlo options, bonds and duration, yield curves, swaps, swaptions, CDS and FX derivatives. Use when the user wants an instrument priced or its Greeks computed with real numbers. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Pricing calculations: vanilla and exotic options, stochastic-volatility models, bonds and yield curves, interest-rate and FX derivatives. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "derivatives",
+    "options",
+    "Black-Scholes",
+    "Heston",
+    "SABR",
+    "Dupire",
+    "LSM",
+    "bonds",
+    "yield-curve",
+    "IRS",
+    "CDS",
+    "swaption",
+    "FX",
+    "monte-carlo"
+  ],
+  "examples": [
+    {
+      "title": "Black-Scholes call price and Greeks",
+      "intro": "A six-month at-the-forward call. `tau` is in years, `rate` and `sigma` are decimals. Vega is per 1.00 of volatility (divide by 100 for per volatility point).",
+      "calls": [
+        {
+          "function": "black_scholes_european_option",
+          "request": {
+            "spot": 100,
+            "strike": 105,
+            "rate": 0.03,
+            "sigma": 0.2,
+            "tau": 0.5,
+            "option_type": "call"
+          },
+          "returns": [
+            "price",
+            "d1",
+            "d2"
+          ]
+        },
+        {
+          "function": "black_scholes_greeks",
+          "request": {
+            "spot": 100,
+            "strike": 105,
+            "rate": 0.03,
+            "sigma": 0.2,
+            "tau": 0.5,
+            "option_type": "call"
+          },
+          "returns": [
+            "delta",
+            "gamma",
+            "vega",
+            "theta",
+            "rho"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Fixed-coupon bond price and modified duration",
+      "intro": "A 10-year 5% semi-annual bond priced at a 4% yield, then its modified duration from the same cash flows (times in years).",
+      "calls": [
+        {
+          "function": "bond_pricer_fixed_coupon",
+          "request": {
+            "face_value": 100,
+            "coupon_rate": 0.05,
+            "yield_rate": 0.04,
+            "maturity": 10,
+            "frequency": 2
+          },
+          "returns": [
+            "price",
+            "clean_price",
+            "cashflows"
+          ]
+        },
+        {
+          "function": "modified_duration",
+          "request": {
+            "cashflows": [
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              2.5,
+              102.5
+            ],
+            "times": [
+              0.5,
+              1.0,
+              1.5,
+              2.0,
+              2.5,
+              3.0,
+              3.5,
+              4.0,
+              4.5,
+              5.0,
+              5.5,
+              6.0,
+              6.5,
+              7.0,
+              7.5,
+              8.0,
+              8.5,
+              9.0,
+              9.5,
+              10.0
+            ],
+            "yield_rate": 0.04,
+            "frequency": 2
+          },
+          "returns": [
+            "modified_duration",
+            "macaulay_duration",
+            "price"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Vanilla Options (BS & Trees)",
+      "intro": "",
+      "functions": [
+        "black_scholes_european_option",
+        "black_scholes_greeks",
+        "binomial_tree_option_pricer",
+        "trinomial_tree_option_pricer",
+        "monte_carlo_option_pricer"
+      ]
+    },
+    {
+      "title": "Stochastic Volatility Models",
+      "intro": "",
+      "functions": [
+        "heston_stochastic_volatility_model",
+        "sabr_volatility_model",
+        "local_volatility_dupire_model",
+        "rough_volatility_rbergomi_model",
+        "variance_gamma_model",
+        "normal_inverse_gaussian_model",
+        "displaced_diffusion_model"
+      ]
+    },
+    {
+      "title": "Exotic Options",
+      "intro": "",
+      "functions": [
+        "digital_option_pricer",
+        "barrier_option_pricer",
+        "asian_option_pricer",
+        "lookback_option_pricer",
+        "american_option_lsm",
+        "bermudan_option_pricer",
+        "rainbow_option_pricer",
+        "basket_option_pricer",
+        "spread_option_kirk_approximation",
+        "compound_option_pricer",
+        "chooser_option_pricer"
+      ]
+    },
+    {
+      "title": "Fixed Income Instruments",
+      "intro": "",
+      "functions": [
+        "bond_pricer_fixed_coupon",
+        "bond_pricer_floating_rate",
+        "zero_coupon_bond_pricer",
+        "inflation_linked_bond_pricer",
+        "callable_bond_pricer",
+        "puttable_bond_pricer",
+        "convertible_bond_pricer"
+      ]
+    },
+    {
+      "title": "Bond Analytics",
+      "intro": "",
+      "functions": [
+        "modified_duration",
+        "effective_duration",
+        "convexity",
+        "dv01_pvbp",
+        "yield_to_maturity",
+        "yield_to_call",
+        "asset_swap_spread",
+        "z_spread_calculator",
+        "oas_option_adjusted_spread",
+        "duration_macaulay"
+      ]
+    },
+    {
+      "title": "Yield Curve Construction",
+      "intro": "",
+      "functions": [
+        "nelson_siegel_curve_fit",
+        "nelson_siegel_svensson_curve",
+        "bootstrap_yield_curve",
+        "swap_rate_curve",
+        "ois_curve_sonia_sofr"
+      ]
+    },
+    {
+      "title": "Swaps, Caps, Swaptions & Rate Models",
+      "intro": "",
+      "functions": [
+        "cross_currency_swap_pricer",
+        "overnight_index_swap_ois",
+        "total_return_swap_trs",
+        "credit_default_swap_cds_pricer",
+        "equity_swap_pricer",
+        "caplet_floorlet_pricer_black",
+        "cap_floor_pricer",
+        "swaption_pricer_black",
+        "swaption_pricer_sabr",
+        "lmm_bgm_rate_model",
+        "forward_rate_agreement_fra",
+        "interest_rate_swap_irs_pricer"
+      ]
+    },
+    {
+      "title": "Short-Rate Models",
+      "intro": "Live in `engine/deriv_short_rate.py` (not FX — see naming note below).",
+      "functions": [
+        "hull_white_short_rate_model",
+        "cox_ingersoll_ross_model",
+        "vasicek_interest_rate_model"
+      ]
+    },
+    {
+      "title": "FX Derivatives",
+      "intro": "",
+      "functions": [
+        "fx_forward_pricer",
+        "fx_option_pricer_garman_kohlhagen"
+      ]
+    }
+  ],
+  "notes": {}
+}
