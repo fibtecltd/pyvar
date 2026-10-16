@@ -57,7 +57,7 @@
 <pre class="code-block" style="margin:20px 0">pip install pyvar-jupyter</pre>
 <p class="body-md" style="margin:16px 0">Installs <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> automatically. In a notebook cell:</p>
 <pre class="code-block" style="margin:20px 0">%load_ext pyvar_jupyter
-%pyvar_key eyJ...  # or export PYVAR_API_KEY before starting the kernel</pre>
+%pyvar_key pyvar_...  # or export PYVAR_API_KEY before starting the kernel</pre>
 <h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Your first call</h2>
 <pre class="code-block" style="margin:20px 0">%pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015] portfolio_value=1000000</pre>
 <p class="body-md" style="margin:16px 0">The result renders as a formatted HTML table in the cell output, and is also returned to <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">Out[]</code> — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">result["var_abs"]</code> works on it directly, same as the plain <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code> dict it wraps.</p>
@@ -94,14 +94,14 @@ empirical loss quantile — making no distributional assumption.</pre>
 <pre class="code-block" style="margin:20px 0">from pyvar_client import Client
 import pyvar_jupyter
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 result = client.market_risk.historical_simulation_var(
     returns=[0.01, -0.02, 0.015], portfolio_value=1_000_000,
 )
 pyvar_jupyter.show(result)</pre>
 <p class="body-md" style="margin:16px 0">The wrapped object still behaves like the underlying dict — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">show()</code> only changes how it <em>renders</em>.</p>
 <h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Session config, without repeating yourself</h2>
-<pre class="code-block" style="margin:20px 0">%pyvar_key eyJ...              # set/replace the API key for this kernel (in-memory only)
+<pre class="code-block" style="margin:20px 0">%pyvar_key pyvar_...              # set/replace the API key for this kernel (in-memory only)
 %pyvar_base_url http://localhost:8000   # point at a local/dev deployment instead of prod</pre>
 <p class="body-md" style="margin:16px 0">Neither is needed if <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">PYVAR_API_KEY</code> / <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">PYVAR_API_BASE_URL</code> are already set as environment variables before the kernel starts — the same variable names <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-client</code>'s own CLI and the <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar-mcp</code> plugin use, so one <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">.env</code> covers all three.</p>
 <hr style="border:none;border-top:1px solid var(--border);margin:40px 0"/>
@@ -110,7 +110,7 @@ pyvar_jupyter.show(result)</pre>
 <h3 class="h3" style="margin:32px 0 12px">1. Portfolio Monte Carlo VaR/CVaR</h3>
 <p class="body-md" style="margin:16px 0">A synthetic, fixed-seed daily return series, run through <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">var.compute</code> — the one async function in the whole API — at 99% confidence:</p>
 <pre class="code-block" style="margin:20px 0">%load_ext pyvar_jupyter
-%pyvar_key eyJ...
+%pyvar_key pyvar_...
 
 import random
 random.seed(7)

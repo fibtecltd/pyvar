@@ -89,3 +89,26 @@ def test_call_function_raises_pyvar_api_error_on_network_failure():
 
     assert exc_info.value.status_code == 0
     assert "connection refused" in exc_info.value.body
+
+
+def test_requests_identify_the_server_as_pyvar_mcp():
+    """X-Pyvar-Client lets the API attribute calls to this server (allowlisted label)."""
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    def fake_urlopen(request, timeout):
+        captured["client"] = request.get_header("X-pyvar-client")
+        return FakeResponse()
+
+    with patch("urllib.request.urlopen", fake_urlopen):
+        PyvarClient(api_key="pyvar_x").call_function("/api/v1/x", {})
+    assert captured["client"].startswith("pyvar-mcp/")

@@ -14,10 +14,14 @@ Reasoning:
 - Only /api/v1/* compute requests are tracked; /health, /metrics, /docs, etc.
   live outside that prefix and are skipped.
 
-The tier is read from the JWT here (best-effort, in the background task) rather
-than from the auth dependency: middleware runs around, not inside, the DI graph,
-so the decoded TokenPayload is not available. A second HS256 decode is cheap and
-happens off the hot path anyway.
+The tier comes from request.state.pyvar_tier when the auth dependency set it (the
+only source for an API key, which has no claims to decode); otherwise it falls back
+to a best-effort JWT decode here. Middleware runs around, not inside, the DI graph,
+so the decoded TokenPayload itself is not available.
+
+`client` records which official client made the call, from the X-Pyvar-Client header
+("pyvar-client/0.2.0" -> "pyvar-client") against an allowlist, so plugin adoption can
+be split by surface. It is deliberately not tied to a user id.
 """
 
 from __future__ import annotations
@@ -63,6 +67,19 @@ def _parse_path(path: str) -> tuple[str, str]:
     return parts[0], "/".join(parts[1:])
 
 
+_KNOWN_CLIENTS = frozenset({"pyvar-client", "pyvar-mcp", "pyvar-jupyter", "pyvar-cli"})
+
+
+def _client_name(header: str) -> str | None:
+    """Allowlisted client name from an X-Pyvar-Client header; "other" if unrecognised,
+    None if the header is absent. The allowlist bounds the stored/metric cardinality."""
+    header = header.strip()
+    if not header:
+        return None
+    name = header.split("/", 1)[0].strip().lower()
+    return name if name in _KNOWN_CLIENTS else "other"
+
+
 def _tier_from_auth(auth_header: str) -> str:
     """Best-effort tier extraction from the bearer JWT. 'unknown' on any failure."""
     if not auth_header.lower().startswith("bearer "):
@@ -75,16 +92,24 @@ def _tier_from_auth(auth_header: str) -> str:
         return "unknown"
 
 
-async def _persist_usage(path: str, auth_header: str, status_code: int, duration_ms: int) -> None:
+async def _persist_usage(
+    path: str,
+    auth_header: str,
+    status_code: int,
+    duration_ms: int,
+    tier_hint: str | None = None,
+    client: str | None = None,
+) -> None:
     """Insert one api_usage row. Best-effort: never raises into the caller."""
     try:
         domain, function_name = _parse_path(path)
         row = ApiUsage(
             domain=domain,
             function_name=function_name,
-            tier=_tier_from_auth(auth_header),
+            tier=tier_hint or _tier_from_auth(auth_header),
             duration_ms=duration_ms,
             status=status_code,
+            client=client,
         )
         sessionmaker = get_sessionmaker()
         async with sessionmaker() as session:
@@ -111,8 +136,12 @@ async def usage_tracking_middleware(
             # Capture header now (request object may be consumed downstream); the
             # decode + DB write happen in the background task, not here.
             auth_header = request.headers.get("authorization", "")
+            tier_hint = getattr(request.state, "pyvar_tier", None)
+            client = _client_name(request.headers.get("x-pyvar-client", ""))
             task = asyncio.create_task(
-                _persist_usage(request.url.path, auth_header, status_code, duration_ms)
+                _persist_usage(
+                    request.url.path, auth_header, status_code, duration_ms, tier_hint, client
+                )
             )
             _pending.add(task)
             task.add_done_callback(_pending.discard)

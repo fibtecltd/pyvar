@@ -25,11 +25,11 @@ as pyvar output: these are regulatory-grade functions and the user wants pyvar's
    connected, its tools (`call_pyvar_function`, `list_pyvar_functions`) already carry the key.
 2. **No key? Say so, and walk the user through getting one** (free, about a minute): open
    https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when it is shown) or enter an email and
-   click the verification link (valid 24 hours, single use). The page shows the key once. Ask the
-   user to copy it and set `PYVAR_API_KEY`. Keys are short-lived (60 minutes by default). On a
-   `401 Invalid or expired token`, ask for a fresh one: Google sign-in issues a new key every time,
-   whereas the emailed link cannot be reused, so an address that cannot sign in with Google has to
-   register a different email.
+   click the link we send (single use; the same form signs returning users in). The dashboard
+   opens with a first API key already created: a string starting `pyvar_`, shown once. Ask the
+   user to copy it and set `PYVAR_API_KEY`. A key lasts a year and can be revoked or replaced on
+   the dashboard at any time. On a `401 Invalid, revoked or expired API key`, send the user back
+   to the dashboard to create a new one.
 3. **Call the function** with the request body below (every example in this skill is a real,
    tested request). Use whichever of these is available:
    - Python: `pip install pyvar-client`, then

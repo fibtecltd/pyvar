@@ -124,7 +124,8 @@ async def test_register_existing_unverified_regenerates_token(app):
 
 
 @pytest.mark.asyncio
-async def test_register_already_verified_is_noop(app):
+async def test_register_already_verified_sends_a_signin_link(app):
+    """A returning user asks to sign in through the same form: they get a link."""
     existing = User(
         external_id="ext-2",
         email="verified@example.com",
@@ -140,8 +141,56 @@ async def test_register_already_verified_is_noop(app):
             )
 
     assert resp.status_code == 202
+    assert existing.email_verified is True
+    assert existing.verification_token  # a fresh single-use token was issued
+    mock_send.assert_called_once_with(
+        "verified@example.com", existing.verification_token, signin=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_register_verified_signin_link_is_throttled_per_address(app):
+    """A second request inside the interval sends nothing and returns the same 202."""
+    existing = User(
+        external_id="ext-2",
+        email="verified@example.com",
+        email_verified=True,
+        verification_token="already-sent",
+        verification_sent_at=datetime.now(timezone.utc) - timedelta(seconds=30),
+    )
+    session = FakeAsyncSession(lookup_result=existing)
+
+    with patch_sessionmaker(session), patch("api.routes.auth.send_verification_email") as mock_send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/auth/register", json={"email": "verified@example.com"}
+            )
+
+    assert resp.status_code == 202
     mock_send.assert_not_called()
-    assert existing.verification_token is None  # untouched
+    assert existing.verification_token == "already-sent"  # not rotated
+
+
+@pytest.mark.asyncio
+async def test_register_response_is_identical_for_every_outcome(app):
+    """No account enumeration: new, verified and throttled addresses look the same."""
+    bodies = []
+    for existing in (
+        None,
+        User(external_id="a", email="a@example.com", email_verified=True),
+        User(
+            external_id="b",
+            email="b@example.com",
+            email_verified=True,
+            verification_sent_at=datetime.now(timezone.utc),
+        ),
+    ):
+        session = FakeAsyncSession(lookup_result=existing)
+        with patch_sessionmaker(session), patch("api.routes.auth.send_verification_email"):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+                resp = await c.post("/api/v1/auth/register", json={"email": "x@example.com"})
+        bodies.append((resp.status_code, resp.json()))
+    assert len({str(b) for b in bodies}) == 1
 
 
 @pytest.mark.asyncio
@@ -423,3 +472,62 @@ async def test_google_sign_in_unverified_email_claim_returns_401(app, monkeypatc
 
     assert resp.status_code == 401
     assert session.added == []
+
+
+# ── Sign-in links for already-verified accounts ────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_verify_signin_link_works_once_and_keeps_original_verified_at(app):
+    first_verified = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    user = User(
+        external_id="ext-9",
+        email="back@example.com",
+        tier="pro",
+        email_verified=True,
+        verified_at=first_verified,
+        verification_token="signin-token",
+        verification_sent_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+    )
+    session = FakeAsyncSession(lookup_result=user)
+
+    with patch_sessionmaker(session):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/v1/auth/verify", params={"token": "signin-token"})
+
+    assert resp.status_code == 200
+    assert resp.json()["tier"] == "pro"
+    assert user.verification_token is None  # single use
+    # the daily "new verified accounts" count must not see a returning user as new
+    assert user.verified_at == first_verified
+
+
+@pytest.mark.asyncio
+async def test_verify_signin_link_expires_after_minutes_not_a_day(app):
+    user = User(
+        external_id="ext-9",
+        email="back@example.com",
+        email_verified=True,
+        verification_token="old-signin-token",
+        verification_sent_at=datetime.now(timezone.utc)
+        - timedelta(minutes=cfg.signin_link_expiry_minutes + 1),
+    )
+    session = FakeAsyncSession(lookup_result=user)
+
+    with patch_sessionmaker(session):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/v1/auth/verify", params={"token": "old-signin-token"})
+
+    assert resp.status_code == 400
+    assert "expired" in resp.json()["detail"]
+
+
+def test_signin_email_has_its_own_subject_and_short_expiry():
+    fake_client = MagicMock()
+    with patch("api.routes.auth.get_ses_client", return_value=fake_client):
+        send_verification_email("back@example.com", "tok", signin=True)
+    message = fake_client.send_email.call_args.kwargs["Message"]
+    assert message["Subject"]["Data"] == "Sign in to pyvar.com"
+    text = message["Body"]["Text"]["Data"]
+    assert "dashboard.html?token=tok" in text
+    assert f"{cfg.signin_link_expiry_minutes} minutes" in text

@@ -51,7 +51,7 @@ class PyvarMagics(Magics):
             raise PyvarDispatchError(
                 "No pyvar API key set. Run %pyvar_key <your-key>, or set the "
                 "PYVAR_API_KEY environment variable before starting the kernel. "
-                "Get a free-tier key at https://www.pyvar.com#get-api-key."
+                "Create an API key at https://www.pyvar.com#get-api-key."
             )
         self._client = Client(api_key=api_key, base_url=self._base_url)
         return self._client

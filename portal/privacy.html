@@ -71,7 +71,7 @@
 <p class="body-md">pyvar.com has one kind of account — there's no separate organisation/company concept, no name, and no physical address collected anywhere in sign-up:</p>
 <ul class="body-md">
 <li><strong>Your email address</strong> — your account identity. Any email address is accepted, including personal ones (no password required to sign up, and no payment card either).</li>
-<li><strong>Authentication data</strong> — pyvar.com uses no password at all. Access is via a signed JSON Web Token (JWT) issued after email verification or Google Sign-In (see §3). We hold a per-account identifier used to validate that token, not a password of any kind.</li>
+<li><strong>Authentication data</strong> — pyvar.com uses no password at all. You sign in with an emailed single-use link or Google Sign-In (see §3), which gives a short-lived (60-minute) signed JSON Web Token (JWT) used to manage your API keys. An API key is a random secret shown to you once; we store only its one-way SHA-256 hash, a name you choose, a short non-secret prefix so you can recognise it, and its creation, expiry, last-used and revocation times. We cannot recover a lost key; you create a new one and revoke the old. We hold a per-account identifier used to validate tokens and keys, not a password of any kind.</li>
 <li><strong>Billing and usage information</strong>, only if you upgrade to a paid tier — see §6.</li>
 </ul>
 

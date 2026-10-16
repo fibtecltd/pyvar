@@ -2,9 +2,14 @@
 api/routes/auth.py — minimum-viable account flow: email -> verify -> JWT
 
 Reasoning:
-- Minimum viable only (P8 Task 3 scope): no password, no login, no key
-  rotation, no account dashboard beyond the one-time JWT display. Anything
-  past that is a tracked follow-up, not built here.
+- Started as minimum viable (P8 Task 3): no password, no login, no key
+  rotation. That left a free "API key" that was a 60-minute JWT shown once and
+  could not be re-issued by email, so plugin users were locked out an hour after
+  installing. docs/plan-durable-api-keys.md added, still without passwords:
+    * the register form doubles as sign-in: an already-verified address gets a
+      short-lived single-use sign-in link (same response as every other outcome);
+    * a signed-in SESSION (the 60-minute JWT) can create, list and revoke durable
+      API keys (POST/GET/DELETE /auth/api-keys); the key is what a plugin holds.
 - Verification email delivery (#149): real SES send via get_ses_client(),
   now that pyvar.com's DNS decision (P8 Task 7 / #158) is resolved — Aruba
   stays, and pyvar-cdk/stacks/ses_stack.py verifies the pyvar.com domain
@@ -17,8 +22,10 @@ Reasoning:
   see its own docstring for why that's deliberately non-fatal.
 - Registering an already-registered-but-unverified email regenerates the
   token (handles a lost/expired first email) instead of erroring; an
-  already-VERIFIED email is a no-op. Both return the identical response —
-  the endpoint never reveals whether an address is registered.
+  already-VERIFIED email gets a sign-in link (at most one per
+  cfg.signin_link_min_interval_seconds, valid cfg.signin_link_expiry_minutes).
+  Every outcome returns the identical response — the endpoint never reveals
+  whether an address is registered.
 - Anti-abuse: register() previously had no throttling and no domain check
   at all. It now rejects known disposable/throwaway domains (see
   api/middleware/disposable_email.py's own docstring for why this is
@@ -38,17 +45,27 @@ from typing import Any
 
 import boto3
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from sqlalchemy import select
 
-from api.middleware.auth import create_access_token
+from api.middleware.api_keys import generate_key, invalidate_cached_key
+from api.middleware.auth import TokenPayload, create_access_token, require_session
 from api.middleware.disposable_email import is_disposable_email
 from api.middleware.rate_limit import enforce_register_rate_limit
 from config import get_settings
-from schemas.auth import GoogleSignInRequest, RegisterRequest, RegisterResponse, VerifyResponse
-from storage.models import User
+from schemas.auth import (
+    ApiKeyCreated,
+    ApiKeyInfo,
+    ApiKeyList,
+    CreateApiKeyRequest,
+    GoogleSignInRequest,
+    RegisterRequest,
+    RegisterResponse,
+    VerifyResponse,
+)
+from storage.models import ApiKey, User
 from storage.session import get_sessionmaker
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -66,7 +83,7 @@ def get_ses_client() -> Any:
     return boto3.client("ses", region_name=cfg.ses_region)
 
 
-def send_verification_email(email: str, token: str) -> None:
+def send_verification_email(email: str, token: str, *, signin: bool = False) -> None:
     """Send the verification link via SES (#149); log-only fallback on failure.
 
     Links to dashboard.html?token=... (portal/dashboard.html, served by this
@@ -85,25 +102,29 @@ def send_verification_email(email: str, token: str) -> None:
     """
     verify_url = f"{cfg.public_base_url}/dashboard.html?token={token}"
 
+    if signin:
+        subject = "Sign in to pyvar.com"
+        body = (
+            "Use the link below to sign in to pyvar.com and manage your API keys.\n\n"
+            f"{verify_url}\n\n"
+            f"This link works once and expires in {cfg.signin_link_expiry_minutes} minutes. "
+            "If you did not ask to sign in, you can ignore this email."
+        )
+    else:
+        subject = "Confirm your pyvar.com account"
+        body = (
+            "Confirm your pyvar.com account by visiting the link below.\n\n"
+            f"{verify_url}\n\n"
+            f"This link expires in {cfg.verification_token_expiry_minutes} minutes."
+        )
+
     try:
         get_ses_client().send_email(
             Source=cfg.ses_sender_email,
             Destination={"ToAddresses": [email]},
-            Message={
-                "Subject": {"Data": "Confirm your pyvar.com account"},
-                "Body": {
-                    "Text": {
-                        "Data": (
-                            "Confirm your pyvar.com account by visiting the link below.\n\n"
-                            f"{verify_url}\n\n"
-                            f"This link expires in {cfg.verification_token_expiry_minutes} "
-                            "minutes."
-                        )
-                    }
-                },
-            },
+            Message={"Subject": {"Data": subject}, "Body": {"Text": {"Data": body}}},
         )
-        logger.info("verification_email_sent", email=email)
+        logger.info("verification_email_sent", email=email, signin=signin)
     except Exception:  # noqa: BLE001 — best-effort send, see docstring for why
         if cfg.app_env == "development":
             # Dev-only: no real AWS/SES credentials locally, so this is the
@@ -137,7 +158,7 @@ def send_verification_email(email: str, token: str) -> None:
     dependencies=[Depends(enforce_register_rate_limit)],
 )
 async def register(body: RegisterRequest) -> RegisterResponse:
-    """Register an email; a verification token is issued (see send_verification_email)."""
+    """Register an email, or sign in with it: either way a link is emailed (see send_verification_email)."""
     if is_disposable_email(str(body.email)):
         # Same response shape as every other branch below — never reveal
         # *why* a registration didn't go through, so the blocklist itself
@@ -148,15 +169,12 @@ async def register(body: RegisterRequest) -> RegisterResponse:
 
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
+    signin = False
 
     async with get_sessionmaker()() as session:
         existing = (
             await session.execute(select(User).where(User.email == str(body.email)))
         ).scalar_one_or_none()
-
-        if existing is not None and existing.email_verified:
-            # Already active — never rotate a live account's token, never re-send.
-            return RegisterResponse()
 
         if existing is not None and existing.email_suppressed:
             # Permanent bounce or complaint on record (api/routes/internal.py) —
@@ -171,7 +189,22 @@ async def register(body: RegisterRequest) -> RegisterResponse:
             )
             return RegisterResponse()
 
-        if existing is not None:
+        if existing is not None and existing.email_verified:
+            # A returning user asking to sign in. Throttle per address (the per-IP limit
+            # alone would let one caller flood a victim's inbox from many IPs), and keep
+            # the link single-use and short-lived (verify() applies the shorter expiry).
+            last_sent = existing.verification_sent_at
+            if last_sent is not None and last_sent.tzinfo is None:
+                last_sent = last_sent.replace(tzinfo=timezone.utc)
+            if (
+                last_sent is not None
+                and (now - last_sent).total_seconds() < cfg.signin_link_min_interval_seconds
+            ):
+                return RegisterResponse()
+            existing.verification_token = token
+            existing.verification_sent_at = now
+            signin = True
+        elif existing is not None:
             existing.verification_token = token
             existing.verification_sent_at = now
         else:
@@ -185,15 +218,14 @@ async def register(body: RegisterRequest) -> RegisterResponse:
             )
         await session.commit()
 
-    send_verification_email(str(body.email), token)
+    send_verification_email(str(body.email), token, signin=signin)
     return RegisterResponse()
 
 
 @router.get("/verify", response_model=VerifyResponse)
 async def verify(token: str) -> VerifyResponse:
-    """Confirm a verification token and issue a free-tier JWT — shown once."""
+    """Confirm a link token and issue a 60-minute session JWT (for managing API keys)."""
     now = datetime.now(timezone.utc)
-    expiry_cutoff = now - timedelta(minutes=cfg.verification_token_expiry_minutes)
 
     async with get_sessionmaker()() as session:
         user = (
@@ -203,23 +235,150 @@ async def verify(token: str) -> VerifyResponse:
         if user is None:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Invalid or already-used verification link.",
+                "Invalid or already-used link.",
             )
-        if user.verification_sent_at is None or user.verification_sent_at < expiry_cutoff:
+        # A sign-in link (the account was already verified) lives minutes; the original
+        # confirmation link lives a day.
+        expiry_minutes = (
+            cfg.signin_link_expiry_minutes
+            if user.email_verified
+            else cfg.verification_token_expiry_minutes
+        )
+        expiry_cutoff = now - timedelta(minutes=expiry_minutes)
+        sent_at = user.verification_sent_at
+        if sent_at is not None and sent_at.tzinfo is None:
+            sent_at = sent_at.replace(tzinfo=timezone.utc)
+        if sent_at is None or sent_at < expiry_cutoff:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Verification link expired — register again.",
+                "This link has expired — request a new one at https://www.pyvar.com#get-api-key.",
             )
 
         user.email_verified = True
         user.verification_token = None
-        user.verified_at = now
+        # verified_at feeds the daily "new verified accounts" count (api/routes/internal.py):
+        # a returning user signing in must not be counted as newly verified.
+        user.verified_at = user.verified_at or now
         external_id = user.external_id
         tier = user.tier
         await session.commit()
 
     access_token = create_access_token(user_id=external_id, tier=tier)
     return VerifyResponse(access_token=access_token, tier=tier)
+
+
+# ── /auth/api-keys — durable keys, managed from a signed-in session ──────────────
+
+
+def _key_info(row: ApiKey) -> dict[str, Any]:
+    return {
+        "id": str(row.id),
+        "name": row.name,
+        "prefix": row.prefix,
+        "created_at": row.created_at,
+        "expires_at": row.expires_at,
+        "last_used_at": row.last_used_at,
+        "revoked_at": row.revoked_at,
+    }
+
+
+def _is_active(row: ApiKey, now: datetime) -> bool:
+    if row.revoked_at is not None:
+        return False
+    if row.expires_at is None:
+        return True
+    expires = (
+        row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=timezone.utc)
+    )
+    return expires > now
+
+
+async def _account_for(session: Any, user: TokenPayload) -> User:
+    account = (
+        await session.execute(select(User).where(User.external_id == user.user_id))
+    ).scalar_one_or_none()
+    if account is None or not account.email_verified:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "No verified account for this session.")
+    return account
+
+
+@router.post("/api-keys", response_model=ApiKeyCreated, status_code=status.HTTP_201_CREATED)
+async def create_api_key(
+    body: CreateApiKeyRequest, user: TokenPayload = Depends(require_session)
+) -> ApiKeyCreated:
+    """Create a durable API key. The secret is in this response only — it is not stored."""
+    now = datetime.now(timezone.utc)
+    async with get_sessionmaker()() as session:
+        account = await _account_for(session, user)
+        rows = (
+            (await session.execute(select(ApiKey).where(ApiKey.user_id == account.id)))
+            .scalars()
+            .all()
+        )
+        if sum(1 for r in rows if _is_active(r, now)) >= cfg.api_key_max_active_per_user:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"You already have {cfg.api_key_max_active_per_user} active API keys. "
+                "Revoke one before creating another.",
+            )
+        if len(rows) >= cfg.api_key_max_total_per_user:
+            raise HTTPException(status.HTTP_409_CONFLICT, "API key limit reached for this account.")
+        secret, prefix, digest = generate_key()
+        row = ApiKey(
+            user_id=account.id,
+            name=body.name,
+            prefix=prefix,
+            key_hash=digest,
+            created_at=now,
+            expires_at=now + timedelta(days=cfg.api_key_default_expiry_days),
+        )
+        session.add(row)
+        await session.commit()
+        # Log the prefix only; the secret never reaches logs, Sentry or the database.
+        logger.info("api_key_created", key_prefix=prefix, user_id=user.user_id)
+        return ApiKeyCreated(**_key_info(row), key=secret)
+
+
+@router.get("/api-keys", response_model=ApiKeyList)
+async def list_api_keys(user: TokenPayload = Depends(require_session)) -> ApiKeyList:
+    async with get_sessionmaker()() as session:
+        account = await _account_for(session, user)
+        rows = (
+            (
+                await session.execute(
+                    select(ApiKey)
+                    .where(ApiKey.user_id == account.id)
+                    .order_by(ApiKey.created_at.desc())
+                    .limit(50)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return ApiKeyList(keys=[ApiKeyInfo(**_key_info(r)) for r in rows])
+
+
+@router.delete("/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_api_key(
+    key_id: uuid.UUID, user: TokenPayload = Depends(require_session)
+) -> Response:
+    """Revoke a key (idempotent). The row is kept: keys are audit records."""
+    async with get_sessionmaker()() as session:
+        account = await _account_for(session, user)
+        row = (
+            await session.execute(
+                select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == account.id)
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No such API key.")
+        if row.revoked_at is None:
+            row.revoked_at = datetime.now(timezone.utc)
+            await session.commit()
+            logger.info("api_key_revoked", key_prefix=row.prefix, user_id=user.user_id)
+        digest = row.key_hash
+    await invalidate_cached_key(digest)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ── POST /auth/google ──────────────────────────────────────────────────────────

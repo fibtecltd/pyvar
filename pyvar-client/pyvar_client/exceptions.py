@@ -39,11 +39,12 @@ class PyvarError(Exception):
 
 
 class PyvarAuthError(PyvarError):
-    """401 -- the bearer token is missing, invalid, or expired.
+    """401 -- the API key is missing, invalid, revoked or expired.
 
-    Registration/verification is a one-time human step (email link) this
-    client does not automate -- see the Client docstring. There's nothing
-    to retry here; the caller needs a fresh token.
+    Signing in and creating a key is a human step (emailed link or Google
+    sign-in, then the dashboard) this client does not automate -- see the
+    Client docstring. There's nothing to retry here; the caller needs a new
+    key from https://www.pyvar.com#get-api-key.
     """
 
 

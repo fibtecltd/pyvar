@@ -109,6 +109,25 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **API keys: a free "key" was a 60-minute JWT, and a verified account could not
+  get another by email** — the credential every plugin user pasted once stopped
+  working an hour later; its tier was a claim inside the token (a Stripe upgrade
+  changed nothing until a new JWT was fetched); the emailed link was single use
+  and `POST /auth/register` for a verified address sent nothing, so only Google
+  sign-in could re-issue. New (`docs/plan-durable-api-keys.md`, migration
+  `0009_api_keys`): durable, revocable API keys (`pyvar_...`, 1 year, SHA-256
+  hashed, shown once, max 5 active) created from a signed-in session at
+  `POST/GET/DELETE /auth/api-keys` and managed on the dashboard; the register
+  form now doubles as sign-in for verified addresses (single-use 30-minute link,
+  one per 5 minutes per address, identical 202 for every outcome); a key's tier
+  is read from the database (Redis-cached 60 s) so upgrades apply, and a database
+  outage is a 503, never a 401. Keys cannot create keys. `pyvar_client.Client()`
+  reads `PYVAR_API_KEY` (client 0.2.0); `pyvar-mcp` 0.2.0 is launched with
+  `uvx pyvar-mcp` and has a PyPI trusted-publishing workflow. `X-Pyvar-Client`
+  is recorded (allowlisted) in the new `api_usage.client` column; no user
+  identifier is stored there. Privacy and terms text updated. Existing JWTs keep
+  working.
+
 - **Claude plugins: the 8 domain skills could not actually be used** — Usage
   data for `pyvar-portfolio-analytics` (456 installs, 86 accounts ever active,
   103 skill uses, 2 of 83 new accounts back the next day) pointed at the skill

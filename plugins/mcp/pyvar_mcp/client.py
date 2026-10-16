@@ -22,6 +22,7 @@ import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from importlib import metadata
 from typing import Any
 
 DEFAULT_API_BASE_URL = "https://www.pyvar.com"
@@ -43,6 +44,18 @@ class PyvarApiError(Exception):
         super().__init__(f"pyvar API returned HTTP {status_code}: {body}")
 
 
+def _client_id() -> str:
+    """ "pyvar-mcp/<version>", sent as X-Pyvar-Client so the API can attribute calls to this
+    server (an allowlisted label, never tied to a user)."""
+    try:
+        return f"pyvar-mcp/{metadata.version('pyvar-mcp')}"
+    except metadata.PackageNotFoundError:
+        return "pyvar-mcp/dev"
+
+
+CLIENT_ID = _client_id()
+
+
 @dataclass
 class PyvarClient:
     """Minimal synchronous client: one method, one job -- POST params to a
@@ -60,9 +73,10 @@ class PyvarClient:
         api_key = os.environ.get("PYVAR_API_KEY")
         if not api_key:
             raise RuntimeError(
-                "PYVAR_API_KEY is not set. Get a free-tier key from "
-                "https://www.pyvar.com#get-api-key and configure it when "
-                "installing this plugin."
+                "PYVAR_API_KEY is not set. Sign in at https://www.pyvar.com#get-api-key "
+                "(emailed link or Google), create an API key on the dashboard, and "
+                "configure it when installing this plugin. Keys last a year and can "
+                "be revoked there."
             )
         base_url = os.environ.get("PYVAR_API_BASE_URL", DEFAULT_API_BASE_URL)
         return cls(api_key=api_key, base_url=base_url)
@@ -79,6 +93,7 @@ class PyvarClient:
         data = json.dumps(params).encode()
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Authorization", f"Bearer {self.api_key}")
+        req.add_header("X-Pyvar-Client", CLIENT_ID)
         req.add_header("Content-Type", "application/json")
         try:
             with urllib.request.urlopen(

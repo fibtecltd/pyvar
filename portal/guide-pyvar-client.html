@@ -55,12 +55,12 @@
 <img src="guides-assets/layers-client.svg" alt="Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the middle layer" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
 <h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Install and authenticate</h2>
 <pre class="code-block" style="margin:20px 0">pip install pyvar-client</pre>
-<p class="body-md" style="margin:16px 0">Every call needs a bearer token — get a free-tier API key at <a href="index.html#get-api-key" style="color:var(--green)">pyvar.com</a> (no password, no credit card). The client has no registration flow of its own; that's a one-time human step via email verification.</p>
+<p class="body-md" style="margin:16px 0">Every call needs an API key — sign in at <a href="index.html#get-api-key" style="color:var(--green)">pyvar.com</a> (emailed link or Google; no password, no credit card) and create one on the dashboard. A key lasts a year and can be revoked there. The client has no sign-in flow of its own; it reads <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">PYVAR_API_KEY</code> if you don't pass <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">api_key=</code>.</p>
 <pre class="code-block" style="margin:20px 0">from pyvar_client import Client
 
-client = Client(api_key="eyJ...")</pre>
+client = Client(api_key="pyvar_...")</pre>
 <p class="body-md" style="margin:16px 0">Or as a context manager, which closes the underlying connection pool on exit:</p>
-<pre class="code-block" style="margin:20px 0">with Client(api_key="eyJ...") as client:
+<pre class="code-block" style="margin:20px 0">with Client(api_key="pyvar_...") as client:
     ...</pre>
 <h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">Your first call</h2>
 <p class="body-md" style="margin:16px 0">Every domain hangs off <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client</code> as its own namespace — <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.market_risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.credit_risk</code>, <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">client.derivatives</code>, and five more. One method per function, fully typed, so your editor's autocomplete already knows every parameter:</p>
@@ -112,7 +112,7 @@ except PyvarRateLimitError as e:
 <img src="guides-assets/client-retry-semantics.svg" alt="What retries automatically and what never does — any domain method and client.var.poll() auto-retry, client.var.submit() never does, to avoid double-submitting real compute work" style="max-width:100%;display:block;margin:28px auto;border-radius:var(--radius)"/>
 <h2 class="h2" style="margin:48px 0 18px;font-size:clamp(22px,2.4vw,30px)">The CLI that comes with it</h2>
 <p class="body-md" style="margin:16px 0"><code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pip install pyvar-client</code> also installs a <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">pyvar</code> command — stdlib <code style="font-family:var(--mono);color:var(--amber);background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:0.9em">argparse</code> only, no extra install step:</p>
-<pre class="code-block" style="margin:20px 0">export PYVAR_API_KEY="eyJ..."
+<pre class="code-block" style="margin:20px 0">export PYVAR_API_KEY="pyvar_..."
 
 pyvar market_risk historical_simulation_var --params-json \
     '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'</pre>
