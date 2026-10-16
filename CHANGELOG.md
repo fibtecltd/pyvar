@@ -109,6 +109,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **"Sign in with Google" rendered in the visitor's language ("Accedi con Google")** —
+  #381 added `?hl=en` to the Google Identity Services script URL, but that parameter
+  does not reach the button iframe (measured in headless Chromium with an it-IT locale:
+  the iframe URL carried no `hl`, so the button followed the browser/Google-account
+  language). The button's own `locale: 'en'` option in `portal/pyvar.js` does
+  (the iframe URL then carries `hl=en`). `tests/test_portal_google_signin.py` fails
+  on any `renderButton` call without it.
+- **`pyvar-jupyter`: notebook traffic was recorded as `pyvar-client`** — the package
+  wraps `pyvar_client.Client`, which stamps its own name on every request, so the
+  `pyvar-jupyter` label in the API's client allowlist was never sent. The magics now
+  relabel their requests (an httpx request hook, so `HTTP(S)_PROXY` still applies).
+  Also: `pyvar-client>=0.2.0` as the dependency floor, and the example notebooks and the
+  two portal guides show a `pyvar_...` key instead of a JWT-shaped or placeholder one.
 - **API keys: a free "key" was a 60-minute JWT, and a verified account could not
   get another by email** — the credential every plugin user pasted once stopped
   working an hour later; its tier was a claim inside the token (a Stripe upgrade

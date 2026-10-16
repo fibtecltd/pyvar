@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+import httpx
+
 from pyvar_jupyter._display import PyvarResult
 from tests.conftest import make_client
 
@@ -193,3 +195,31 @@ def test_line_magic_type_coercion(magics, json_response):
         "portfolio_value": 1000000,
         "confidence_level": 0.99,
     }
+
+
+def test_requests_are_labelled_pyvar_jupyter(magics, monkeypatch):
+    """The API counts adoption per client surface (api_usage.client). pyvar_client stamps
+    its own name on every request, so the notebook layer has to relabel it."""
+    from pyvar_client import Client
+    from pyvar_jupyter import _magics
+
+    seen: list[str] = []
+
+    def handler(request):
+        seen.append(request.headers["x-pyvar-client"])
+        return httpx.Response(200, json={"var_abs": 1.0})
+
+    monkeypatch.setenv("PYVAR_API_KEY", "pyvar_test")
+    monkeypatch.setattr(
+        _magics,
+        "Client",
+        lambda api_key, base_url: Client(
+            api_key=api_key, base_url=base_url, transport=httpx.MockTransport(handler)
+        ),
+    )
+
+    magics.pyvar("market_risk.historical_simulation_var returns=[0.01] portfolio_value=100")
+
+    assert len(seen) == 1
+    assert seen[0].startswith("pyvar-jupyter/")
+    assert not seen[0].startswith("pyvar-client/")
