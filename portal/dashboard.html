@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"/>
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>Get your API key — pyvar.com</title>
+<title>Your API keys — pyvar.com</title>
 <meta name="robots" content="noindex"/>
 <link rel="stylesheet" href="pyvar.css"/>
 <style>
@@ -19,6 +19,17 @@
 .dash-copy{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:2px;transition:all .15s;display:inline-block}
 .dash-copy:hover{border-color:var(--green);color:var(--green)}
 .dash-error{color:var(--red)}
+.dash-card.wide{max-width:780px}
+.key-table{width:100%;border-collapse:collapse;font-size:12px;margin:18px 0}
+.key-table th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border2)}
+.key-table td{padding:8px;border-bottom:1px solid var(--border);color:var(--text2)}
+.key-table .mono{font-family:var(--mono)}
+.key-table tr.key-revoked td,.key-table tr.key-expired td{color:var(--dim);text-decoration:line-through}
+.dash-btn{font-family:var(--mono);font-size:10px;color:var(--text2);background:none;border:1px solid var(--border2);border-radius:2px;padding:4px 10px;cursor:pointer}
+.dash-btn:hover{border-color:var(--red);color:var(--red)}
+.key-hint{font-family:var(--mono);font-size:11px;margin-top:10px}
+.key-form{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.key-form input{flex:1;min-width:180px;font-family:var(--mono);font-size:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:2px;color:var(--text)}
 </style>
 </head>
 <body>
@@ -29,7 +40,7 @@
 <section class="dash-wrap">
   <div class="container">
     <div class="dash-card" id="dashCard">
-      <div class="dash-title">Verifying your email…</div>
+      <div class="dash-title">Signing you in…</div>
       <div class="dash-body">One moment.</div>
     </div>
   </div>

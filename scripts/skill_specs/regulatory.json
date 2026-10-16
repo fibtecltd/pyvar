@@ -1,0 +1,173 @@
+{
+  "skill": "regulatory",
+  "domain": "regulatory",
+  "client_ns": "regulatory",
+  "title": "Regulatory Capital",
+  "version": "1.2.0",
+  "description": "Run pyvar's 30 regulatory-capital functions on the live pyvar.com API: Basel III/IV ratios and output floor, ICAAP/SREP Pillar 2, FRTB, MiFID II, EMIR/SFTR, AIFMD/UCITS/Solvency II and CRR2 buffers. Use when the user wants a capital ratio, buffer or regulatory test computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Regulatory calculations: capital ratios and buffers, Pillar 2, FRTB, MiFID II, EMIR, fund regulations. The thresholds are the published Basel/EU values and are fixed, not parameters. Pick the function in **Functions** below.",
+  "tags": [
+    "regulatory",
+    "Basel-III",
+    "Basel-IV",
+    "FRTB",
+    "MiFID-II",
+    "EMIR",
+    "SFTR",
+    "ICAAP",
+    "SREP",
+    "CET1",
+    "Solvency-II",
+    "CRR2"
+  ],
+  "examples": [
+    {
+      "title": "CET1 ratio, combined buffer and leverage ratio for one bank",
+      "intro": "Three independent calls on the same balance sheet (any one currency unit). Each returns the ratio and whether it meets the regulatory minimum.",
+      "calls": [
+        {
+          "function": "basel_iii_cet1_ratio",
+          "request": {
+            "cet1_capital": 12000000000,
+            "risk_weighted_assets": 100000000000
+          },
+          "returns": [
+            "cet1_ratio",
+            "minimum",
+            "surplus",
+            "compliant"
+          ]
+        },
+        {
+          "function": "combined_buffer_requirement",
+          "request": {
+            "capital_conservation_buffer_ratio": 0.025,
+            "countercyclical_buffer_ratio": 0.01,
+            "systemic_buffer_ratio": 0.01,
+            "risk_weighted_assets": 100000000000
+          },
+          "returns": [
+            "combined_buffer_ratio",
+            "combined_buffer_capital"
+          ]
+        },
+        {
+          "function": "basel_iii_leverage_ratio",
+          "request": {
+            "tier1_capital": 13000000000,
+            "total_exposure": 380000000000
+          },
+          "returns": [
+            "leverage_ratio",
+            "minimum",
+            "surplus",
+            "compliant"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Basel IV output floor",
+      "intro": "Internal-model RWA cannot fall below 72.5% of the standardised RWA. Here the floor binds.",
+      "calls": [
+        {
+          "function": "basel_iv_output_floor",
+          "request": {
+            "internal_model_rwa": 60000000000,
+            "standardised_rwa": 100000000000
+          },
+          "returns": [
+            "floored_rwa",
+            "floor_rwa",
+            "binding",
+            "rwa_uplift",
+            "floor_factor"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Basel III/IV Capital Ratios",
+      "intro": "",
+      "functions": [
+        "basel_iii_cet1_ratio",
+        "basel_iii_tier1_ratio",
+        "basel_iii_total_capital_ratio",
+        "basel_iii_leverage_ratio",
+        "basel_iv_output_floor"
+      ]
+    },
+    {
+      "title": "ICAAP / SREP / Pillar 2",
+      "intro": "",
+      "functions": [
+        "srep_capital_add_on",
+        "pillar_2a_capital",
+        "pillar_2b_stress_buffer",
+        "icaap_capital_assessment"
+      ]
+    },
+    {
+      "title": "FRTB Capital (SA & IMA)",
+      "intro": "",
+      "functions": [
+        "frtb_sa_market_risk_capital",
+        "frtb_ima_market_risk_capital",
+        "frtb_pl_attribution_test",
+        "frtb_trading_desk_aggregation"
+      ]
+    },
+    {
+      "title": "MiFID II",
+      "intro": "",
+      "functions": [
+        "mifid_ii_transaction_report_validator",
+        "mifid_ii_pre_trade_transparency",
+        "mifid_ii_post_trade_transparency",
+        "mifid_ii_best_execution_metric",
+        "mifid_ii_algorithm_documentation"
+      ]
+    },
+    {
+      "title": "EMIR & SFTR",
+      "intro": "",
+      "functions": [
+        "emir_trade_repository_report",
+        "emir_clearing_obligation_check",
+        "emir_margin_requirement",
+        "sftr_securities_finance_report"
+      ]
+    },
+    {
+      "title": "Fund Regulations (AIFMD/UCITS/Solvency II)",
+      "intro": "",
+      "functions": [
+        "aifmd_risk_metrics",
+        "ucits_kiid_risk_indicator",
+        "solvency_ii_scr_market_risk",
+        "solvency_ii_scr_credit_risk"
+      ]
+    },
+    {
+      "title": "CRR2 & Capital Buffers",
+      "intro": "",
+      "functions": [
+        "crr2_large_exposure_limit",
+        "capital_conservation_buffer",
+        "countercyclical_capital_buffer",
+        "combined_buffer_requirement"
+      ]
+    }
+  ],
+  "notes": {
+    "basel_iii_cet1_ratio": "Basel III Common Equity Tier 1 (CET1) ratio; minimum 4.5% (Basel III §50)",
+    "basel_iii_tier1_ratio": "Basel III Tier 1 Capital Ratio; minimum 6.0% (Basel III §50)",
+    "pillar_2a_capital": "sum of individual risk add-ons",
+    "frtb_pl_attribution_test": "Spearman rank correlation + variance ratio, jointly evaluated (CLAUDE.md §4.4 / BCBS d457)",
+    "mifid_ii_best_execution_metric": "quantity-weighted price improvement vs. a reference price, in bps. NOT an RTS 27/28 figure: RTS 27 (DR (EU) 2017/575) and RTS 28 (DR (EU) 2017/576) define different fields (simple/volume-weighted prices & spreads; execution-venue rankings), not this metric, and RTS 27 was repealed by the 2024 MiFIR review. A prior docstring cited \"RTS 27/28\" directly for this function; corrected in the citation cleanup pass (see \"Citation cleanup\" below). Useful internal TCA metric, just not a regulator-prescribed one.",
+    "emir_clearing_obligation_check": "EMIR REFIT (Reg. (EU) 2019/834) Art. 4a(1) / Art. 10(1). Takes `notionals: dict[str, float]` (gross notional per asset class the counterparty holds — NOT a single asset_class/notional pair) plus counterparty_category (\"FC\"/\"NFC+\"/ \"NFC-\") and clearing_thresholds. For an FC, breaching the threshold in ANY ONE asset class puts ALL of that counterparty's asset classes in scope (Art. 4a(1)) — this is why `notionals` must cover every class, not just the one being queried. For an NFC+, each asset class is evaluated independently (Art. 10(1)); NFC- is always exempt. Returns clearing_required as a dict keyed by asset class, plus an any_class_breached flag. See \"EMIR clearing scope\" below.",
+    "solvency_ii_scr_credit_risk": "Delegated Regulation (EU) 2015/35 Art. 200(1)-(3). Capital is a TIERED multiplier on sigma (the loss std. dev.), not a flat 3x: 3*sigma while sigma/total_LGD <= 7%; 5*sigma while 7%-20%; capped at total_LGD above 20%. No risk_factor parameter — the tiers are fixed by the Delegated Regulation. [LIMITATION] the variance computed is the intra-counterparty term only (independent-Bernoulli); Art. 201's inter-counterparty correlation term (V_inter) is not computed, so the true SCR is at least as large as what this returns — see \"Solvency II SCR credit-risk fix\" below."
+  }
+}

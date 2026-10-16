@@ -18,7 +18,9 @@ Reasoning:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, field_validator
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class RegisterRequest(BaseModel):
@@ -31,11 +33,16 @@ class RegisterRequest(BaseModel):
 
 
 class RegisterResponse(BaseModel):
-    message: str = "If that address isn't already verified, a verification link has been sent."
+    # One message for every outcome (new, unverified, verified, suppressed, throttled):
+    # the endpoint must never reveal whether an address already has an account.
+    message: str = "If that address can receive mail, a link to continue has been sent."
 
 
 class VerifyResponse(BaseModel):
-    """Returned on GET /auth/verify — the one time this JWT is shown."""
+    """Returned on GET /auth/verify and POST /auth/google: a 60-minute SESSION token.
+
+    It is what the dashboard uses to manage API keys; it is not the credential to
+    paste into a plugin (that is a durable key from POST /auth/api-keys)."""
 
     access_token: str
     token_type: str = "bearer"
@@ -48,3 +55,37 @@ class GoogleSignInRequest(BaseModel):
     issuer, audience, expiry) before anything in it is trusted."""
 
     id_token: str
+
+
+class CreateApiKeyRequest(BaseModel):
+    name: str = Field(default="default", min_length=1, max_length=64)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("name must not be blank")
+        return v
+
+
+class ApiKeyInfo(BaseModel):
+    """A key as listed in the dashboard: never includes the secret."""
+
+    id: str
+    name: str
+    prefix: str
+    created_at: datetime
+    expires_at: datetime | None
+    last_used_at: datetime | None
+    revoked_at: datetime | None
+
+
+class ApiKeyCreated(ApiKeyInfo):
+    """Returned once, by POST /auth/api-keys. `key` is never retrievable again."""
+
+    key: str
+
+
+class ApiKeyList(BaseModel):
+    keys: list[ApiKeyInfo]

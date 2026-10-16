@@ -15,17 +15,20 @@ what's actually deployed at pyvar.com.
 /plugin install pyvar-mcp@pyvar-marketplace
 ```
 
-You'll be prompted for a pyvar API key during install — get a free-tier one
-at <https://www.pyvar.com#get-api-key> (no password, no credit card).
+You'll be prompted for a pyvar API key during install. Sign in at
+<https://www.pyvar.com#get-api-key> (emailed link or Google; no password, no
+credit card) and create one on the dashboard. It starts with `pyvar_`, lasts a
+year, and you can revoke it there at any time.
 
-**One-time manual step, not yet automated:** this plugin's Python
-dependencies (`mcp`, `anyio`) aren't installed automatically by the plugin
-install flow above — run this once, from wherever the plugin marketplace
-checked this repo out to:
+The plugin starts the server with `uvx pyvar-mcp`, which downloads it from PyPI
+on first use, so it needs [uv](https://docs.astral.sh/uv/) on your PATH. No uv?
+Run `pip install pyvar-mcp` and change the plugin's `mcpServers` command to
+`pyvar-mcp` (with no `args`). Working from a checkout of this repo instead:
+`pip install -e plugins/mcp`.
 
-```
-pip install -e plugins/mcp
-```
+`pyvar-mcp` is published to PyPI by `.github/workflows/pyvar-mcp-publish.yml`
+when a `pyvar-mcp-v*` tag is pushed; until the first release exists, use the
+checkout install above.
 
 This installs the `pyvar-mcp` console command the plugin's `mcpServers`
 config invokes. If the tool calls fail with a "command not found" style

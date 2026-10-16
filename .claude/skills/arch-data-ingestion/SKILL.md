@@ -1,16 +1,20 @@
 ---
 name: pyvar-arch-data-ingestion
 description: >
-  Activate when working on pyvar's data ingestion layer: Polars lazy
-  scanning, filter pushdown, Parquet I/O, Arrow IPC, schema validation,
-  or converting subscriber market data into pyvar-ready formats.
-version: "1.0.0"
+  Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
+  pyvar ingests data: Polars lazy Parquet scans into NumPy arrays, PyArrow result schemas and
+  subscriber-data validation. Use only when working inside a pyvar checkout or changing pyvar
+  itself; not for general FastAPI, Redis, Numba or similar questions, and not needed to call
+  the pyvar API (use a domain skill such as pyvar-market-risk for that).
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [polars, pyarrow, parquet, arrow-ipc, data-ingestion,
        lazy-scan, filter-pushdown, schema, etl]
 ---
 
 # pyvar — Architecture: Data Ingestion
+
+> **Who this is for:** contributors working inside a checkout of https://github.com/fibtecltd/pyvar. It documents how this layer is actually built, with real file paths and conventions. It is not an API guide: to *call* pyvar functions, use a domain skill such as `pyvar-market-risk` or `pyvar-portfolio-analytics`.
 
 ## Stack
 | Component | Role |

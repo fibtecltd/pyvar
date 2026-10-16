@@ -1,16 +1,21 @@
 ---
 name: pyvar-arch-storage
 description: >
-  Activate when working on pyvar's storage layer: Redis result cache,
-  PostgreSQL schema design, SQLAlchemy ORM models, PyArrow + S3/MinIO
-  object storage, Parquet scenario files, or result TTL management.
-version: "1.0.0"
+  Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
+  pyvar stores results: the fail-open Redis result cache, SQLAlchemy async models and the
+  VaRJob audit table, S3 Parquet offload with presigned URLs. Use only when working inside a
+  pyvar checkout or changing pyvar itself; not for general FastAPI, Redis, Numba or similar
+  questions, and not needed to call the pyvar API (use a domain skill such as
+  pyvar-market-risk for that).
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [redis, postgresql, sqlalchemy, s3, minio, parquet, arrow-ipc,
        storage, cache, orm, object-storage, result-store]
 ---
 
 # pyvar — Architecture: Results & Storage
+
+> **Who this is for:** contributors working inside a checkout of https://github.com/fibtecltd/pyvar. It documents how this layer is actually built, with real file paths and conventions. It is not an API guide: to *call* pyvar functions, use a domain skill such as `pyvar-market-risk` or `pyvar-portfolio-analytics`.
 
 ## Stack
 | Store | Technology | Purpose |

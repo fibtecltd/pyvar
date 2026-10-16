@@ -33,6 +33,23 @@ from pyvar_client.exceptions import (
 )
 
 _RETRYABLE_STATUS = {500, 502, 503, 504}
+
+
+def _client_id() -> str:
+    """ "pyvar-client/<version>", sent as X-Pyvar-Client so the API can tell which official
+    client a call came from (an allowlisted label, never tied to a user)."""
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            return f"pyvar-client/{version('pyvar-client')}"
+        except PackageNotFoundError:
+            return "pyvar-client/dev"
+    except ImportError:  # pragma: no cover - importlib.metadata exists on every supported Python
+        return "pyvar-client/unknown"
+
+
+CLIENT_ID = _client_id()
 _MAX_RETRIES = 3
 _BACKOFF_BASE_SECONDS = 0.5
 
@@ -101,7 +118,7 @@ def send_request(
         PyvarError: any other 4xx/5xx after retries (if idempotent) are exhausted.
         httpx.HTTPError: a genuine network/timeout failure with no response at all.
     """
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}", "X-Pyvar-Client": CLIENT_ID}
     attempt = 0
 
     while True:

@@ -18,6 +18,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import os
 from types import TracebackType
 
 import httpx
@@ -41,7 +42,8 @@ class Client:
     """pyvar.com API client.
 
     Example:
-        >>> client = Client(api_key="eyJ...")
+        >>> client = Client()  # reads the PYVAR_API_KEY environment variable
+        >>> client = Client(api_key="pyvar_...")  # or pass a key explicitly
         >>> result = client.market_risk.historical_simulation_var(
         ...     returns=[...], portfolio_value=1_000_000, confidence_level=0.99,
         ... )
@@ -50,9 +52,11 @@ class Client:
         ... )  # blocks: submits, polls, returns the finished VaRResult
 
     Args:
-        api_key: Bearer JWT obtained via the portal's registration/
-            verification flow. Required -- this client has no
-            registration flow of its own.
+        api_key: A pyvar API key ("pyvar_...", created on the dashboard after
+            signing in at https://www.pyvar.com#get-api-key; it lasts a year and
+            can be revoked there). Defaults to the PYVAR_API_KEY environment
+            variable. A session JWT also works but expires after 60 minutes.
+            Required -- this client has no registration flow of its own.
         base_url: API base URL. Defaults to production.
         timeout: Per-request timeout in seconds, passed straight to httpx.
         transport: An httpx transport override. Not needed for real usage
@@ -64,14 +68,19 @@ class Client:
 
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None = None,
         *,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
+        if api_key is None:
+            api_key = os.environ.get("PYVAR_API_KEY")
         if not api_key:
-            raise ValueError("api_key is required")
+            raise ValueError(
+                "api_key is required: pass api_key=... or set the PYVAR_API_KEY environment "
+                "variable (create a key at https://www.pyvar.com#get-api-key)"
+            )
 
         self._api_key = api_key
         self._http = httpx.Client(base_url=base_url, timeout=timeout, transport=transport)

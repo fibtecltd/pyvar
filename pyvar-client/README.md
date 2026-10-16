@@ -18,7 +18,9 @@ pip install pyvar-client
 ```python
 from pyvar_client import Client
 
-client = Client(api_key="eyJ...")  # a JWT obtained via pyvar.com registration + email verification
+client = Client()  # reads PYVAR_API_KEY; or Client(api_key="pyvar_...")
+# Get a key: sign in at https://www.pyvar.com#get-api-key (email link or Google), then the
+# dashboard creates one. Keys last a year and can be revoked there.
 
 result = client.market_risk.historical_simulation_var(
     returns=[...],  # historical daily log-returns
@@ -31,7 +33,7 @@ print(result["var_pct"], result["var_abs"])
 Or as a context manager, which closes the underlying connection pool on exit:
 
 ```python
-with Client(api_key="eyJ...") as client:
+with Client() as client:
     ...
 ```
 
@@ -66,7 +68,7 @@ Every non-2xx response raises a typed exception, not a generic HTTP error:
 
 | Exception | Status | Notes |
 |---|---|---|
-| `PyvarAuthError` | 401 | Token missing, invalid, or expired. Register/verify at pyvar.com to get a new one — this client doesn't automate that flow. |
+| `PyvarAuthError` | 401 | Key missing, invalid, revoked or expired. Create a new one on the pyvar.com dashboard — this client doesn't automate that flow. |
 | `PyvarValidationError` | 422 | `.detail` carries the field-level validation errors. |
 | `PyvarRateLimitError` | 429 | `.retry_after` (seconds) from the response's `Retry-After` header. |
 | `PyvarComputeError` | — | A VaR job (`client.var.compute`) reached `status="failure"` server-side. `.task_id` and `.detail`. |
@@ -112,7 +114,7 @@ current and future method works without the CLI needing its own copy of the
 385-method catalogue.
 
 ```bash
-export PYVAR_API_KEY="eyJ..."   # or pass --api-key on every call
+export PYVAR_API_KEY="pyvar_..."   # or pass --api-key on every call
 
 pyvar market_risk historical_simulation_var --params-json \
     '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'

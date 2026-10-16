@@ -1,499 +1,217 @@
 ---
 name: pyvar-derivatives
 description: >
-  Activate for derivatives pricing: options (vanilla, exotic, stochastic vol),
-  fixed income, yield curves, interest rate derivatives, short-rate models, FX
-  derivatives, or any instrument valuation task. Covers 62 functions across 9
-  sub-domains.
-version: "1.0.0"
+  Run pyvar's 62 derivatives-pricing functions on the live pyvar.com API: Black-Scholes and
+  tree options, Heston/SABR/Dupire/rough-vol models, exotic Monte Carlo options, bonds and
+  duration, yield curves, swaps, swaptions, CDS and FX derivatives. Use when the user wants an
+  instrument priced or its Greeks computed with real numbers. Needs a free pyvar API key; the
+  skill explains how to get one.
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
-tags: [derivatives, options, Black-Scholes, Heston, SABR, Dupire, LSM,
-       bonds, yield-curve, IRS, CDS, swaption, FX, QuantLib, monte-carlo]
+tags: [derivatives, options, Black-Scholes, Heston, SABR, Dupire, LSM, bonds, yield-curve, IRS, CDS, swaption, FX, monte-carlo]
 ---
 
-# pyvar — Derivatives & Pricing  (62 functions)
+# pyvar — Derivatives Pricing  (62 functions)
 
-## Architecture context
-- **Compute**: NumPy/Numba (MC pricing), SciPy (calibration, integration). QuantLib is a
-  *test-only* dependency here (`requirements-heavy.txt`) — it backs `tests/validation/`
-  cross-validation (see below) but is never imported by `engine/` or `api/`.
-- **Queue**: none. `api/routes/derivatives.py` is auto-generated (`scripts/gen_p3.py`) and
-  calls each engine wrapper **synchronously, in-process** — no Celery task, no job ID, no
-  polling. This is unlike `/var/compute`, which is async via Celery/SQS with a `VaRJob`
-  audit row. Don't assume derivatives pricing follows the VaR job-submission pattern.
-- **Storage**: none. No Redis cache, no PostgreSQL persistence, no S3 offload for
-  derivatives results — every request is computed fresh and returned in the response body.
-- **API**: `POST /api/v1/derivatives/{function_name}` — one route per engine function, path
-  name matches the Python function name exactly (e.g. `POST
-  /api/v1/derivatives/rough_volatility_rbergomi_model`).
+Pricing calculations: vanilla and exotic options, stochastic-volatility models, bonds and yield curves, interest-rate and FX derivatives. Pick the function in **Functions** below; the **Worked examples** show the request shape.
 
----
+## Before you call anything
 
-## Vanilla Options (BS & Trees)
+This skill is a guide to the **live pyvar.com API**. It computes nothing by itself, and every
+function needs a pyvar API key. Don't substitute your own numpy/scipy code and present the result
+as pyvar output: these are regulatory-grade functions and the user wants pyvar's own numbers.
 
-```python
-pyvar.derivatives.black_scholes_european_option(
-    # Black-Scholes European Option
-    **params
-) -> float | dict
+1. **Find the key.** Look for `PYVAR_API_KEY` in the environment. If the pyvar MCP server is
+   connected, its tools (`call_pyvar_function`, `list_pyvar_functions`) already carry the key.
+2. **No key? Say so, and walk the user through getting one** (free, about a minute): open
+   https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when it is shown) or enter an email and
+   click the link we send (single use; the same form signs returning users in). The dashboard
+   opens with a first API key already created: a string starting `pyvar_`, shown once. Ask the
+   user to copy it and set `PYVAR_API_KEY`. A key lasts a year and can be revoked or replaced on
+   the dashboard at any time. On a `401 Invalid, revoked or expired API key`, send the user back
+   to the dashboard to create a new one.
+3. **Call the function** with the request body below (every example in this skill is a real,
+   tested request). Use whichever of these is available:
+   - Python: `pip install pyvar-client`, then
+     `Client(api_key=os.environ["PYVAR_API_KEY"]).derivatives.<function>(**body)`.
+   - REST: `POST https://www.pyvar.com/api/v1/derivatives/<function>` with header
+     `Authorization: Bearer $PYVAR_API_KEY` and the body as JSON.
+   - MCP: `call_pyvar_function(domain="derivatives", function_name="<function>", params=body)`.
+   If you cannot run code or reach the network (for example a sandbox with no internet), give the
+   user the exact `curl` command or Python snippet to run themselves instead of guessing a result.
+4. **Read the response.** Every function returns one JSON object. Quote the key numbers together
+   with the inputs you used (and units: rates and returns are decimals, so 0.02 means 2%).
+
+Errors: `401` bad or expired key; `422` a parameter is wrong (the `detail` field names it: fix it
+and retry, never resend the same body); `429` the daily quota is used up (free tier: 10 calls per
+day across all pyvar functions; the `Retry-After` header is in seconds): tell the user instead of
+retrying in a loop.
+
+## Worked examples
+
+Each request body below is the same set of keyword arguments for the Python client, the REST body and the MCP `params`. They were run against the real API.
+
+### 1. Black-Scholes call price and Greeks
+
+A six-month at-the-forward call. `tau` is in years, `rate` and `sigma` are decimals. Vega is per 1.00 of volatility (divide by 100 for per volatility point).
+
+`POST /api/v1/derivatives/black_scholes_european_option`
+
+```json
+{
+  "spot": 100,
+  "strike": 105,
+  "rate": 0.03,
+  "sigma": 0.2,
+  "tau": 0.5,
+  "option_type": "call"
+}
 ```
 
-```python
-pyvar.derivatives.black_scholes_greeks(
-    # Black-Scholes Greeks
-    **params
-) -> float | dict
+Returns: `price`, `d1`, `d2`.
+
+`POST /api/v1/derivatives/black_scholes_greeks`
+
+```json
+{
+  "spot": 100,
+  "strike": 105,
+  "rate": 0.03,
+  "sigma": 0.2,
+  "tau": 0.5,
+  "option_type": "call"
+}
 ```
 
-```python
-pyvar.derivatives.binomial_tree_option_pricer(
-    # Binomial Tree Option Pricer
-    **params
-) -> float | dict
+Returns: `delta`, `gamma`, `vega`, `theta`, `rho`.
+
+### 2. Fixed-coupon bond price and modified duration
+
+A 10-year 5% semi-annual bond priced at a 4% yield, then its modified duration from the same cash flows (times in years).
+
+`POST /api/v1/derivatives/bond_pricer_fixed_coupon`
+
+```json
+{
+  "face_value": 100,
+  "coupon_rate": 0.05,
+  "yield_rate": 0.04,
+  "maturity": 10,
+  "frequency": 2
+}
 ```
 
-```python
-pyvar.derivatives.trinomial_tree_option_pricer(
-    # Trinomial Tree Option Pricer
-    **params
-) -> float | dict
+Returns: `price`, `clean_price`, `cashflows`.
+
+`POST /api/v1/derivatives/modified_duration`
+
+```json
+{
+  "cashflows": [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 102.5],
+  "times": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0],
+  "yield_rate": 0.04,
+  "frequency": 2
+}
 ```
 
-```python
-pyvar.derivatives.monte_carlo_option_pricer(
-    # Monte Carlo Option Pricer
-    **params
-) -> float | dict
-```
-
-
-## Stochastic Volatility Models
-
-```python
-pyvar.derivatives.heston_stochastic_volatility_model(
-    # Heston Stochastic Volatility Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.sabr_volatility_model(
-    # SABR Volatility Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.local_volatility_dupire_model(
-    # Local Volatility (Dupire) Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.rough_volatility_rbergomi_model(
-    # Rough Volatility (rBergomi) Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.variance_gamma_model(
-    # Variance Gamma Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.normal_inverse_gaussian_model(
-    # Normal Inverse Gaussian Model
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.displaced_diffusion_model(
-    # Displaced Diffusion Model
-    **params
-) -> float | dict
-```
-
-
-## Exotic Options
-
-```python
-pyvar.derivatives.digital_option_pricer(
-    # Digital Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.barrier_option_pricer(
-    # Barrier Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.asian_option_pricer(
-    # Asian Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.lookback_option_pricer(
-    # Lookback Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.american_option_lsm(
-    # American Option (LSM)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.bermudan_option_pricer(
-    # Bermudan Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.rainbow_option_pricer(
-    # Rainbow Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.basket_option_pricer(
-    # Basket Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.spread_option_kirk_approximation(
-    # Spread Option (Kirk Approximation)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.compound_option_pricer(
-    # Compound Option Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.chooser_option_pricer(
-    # Chooser Option Pricer
-    **params
-) -> float | dict
-```
-
-
-## Fixed Income Instruments
-
-```python
-pyvar.derivatives.bond_pricer_fixed_coupon(
-    # Bond Pricer (Fixed Coupon)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.bond_pricer_floating_rate(
-    # Bond Pricer (Floating Rate)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.zero_coupon_bond_pricer(
-    # Zero Coupon Bond Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.inflation_linked_bond_pricer(
-    # Inflation-Linked Bond Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.callable_bond_pricer(
-    # Callable Bond Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.puttable_bond_pricer(
-    # Puttable Bond Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.convertible_bond_pricer(
-    # Convertible Bond Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.duration_macaulay(
-    # Duration (Macaulay)
-    **params
-) -> float | dict
-```
-
-
-## Bond Analytics
-
-```python
-pyvar.derivatives.modified_duration(
-    # Modified Duration
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.effective_duration(
-    # Effective Duration
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.convexity(
-    # Convexity
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.dv01_pvbp(
-    # DV01 / PVBP
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.yield_to_maturity(
-    # Yield to Maturity
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.yield_to_call(
-    # Yield to Call
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.asset_swap_spread(
-    # Asset Swap Spread
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.z_spread_calculator(
-    # Z-Spread Calculator
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.oas_option_adjusted_spread(
-    # OAS (Option-Adjusted Spread)
-    **params
-) -> float | dict
-```
-
-
-## Yield Curve Construction
-
-```python
-pyvar.derivatives.nelson_siegel_curve_fit(
-    # Nelson-Siegel Curve Fit
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.nelson_siegel_svensson_curve(
-    # Nelson-Siegel-Svensson Curve
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.bootstrap_yield_curve(
-    # Bootstrap Yield Curve
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.swap_rate_curve(
-    # Swap Rate Curve
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.ois_curve_sonia_sofr(
-    # OIS Curve (SONIA / SOFR)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.forward_rate_agreement_fra(
-    # Forward Rate Agreement (FRA)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.interest_rate_swap_irs_pricer(
-    # Interest Rate Swap (IRS) Pricer
-    **params
-) -> float | dict
-```
-
-
-## Interest Rate Derivatives
-
-```python
-pyvar.derivatives.cross_currency_swap_pricer(
-    # Cross-Currency Swap Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.overnight_index_swap_ois(
-    # Overnight Index Swap (OIS)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.total_return_swap_trs(
-    # Total Return Swap (TRS)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.credit_default_swap_cds_pricer(
-    # Credit Default Swap (CDS) Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.equity_swap_pricer(
-    # Equity Swap Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.caplet_floorlet_pricer_black(
-    # Caplet / Floorlet Pricer (Black)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.cap_floor_pricer(
-    # Cap / Floor Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.swaption_pricer_black(
-    # Swaption Pricer (Black)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.swaption_pricer_sabr(
-    # Swaption Pricer (SABR)
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.lmm_bgm_rate_model(
-    # LMM / BGM Rate Model
-    **params
-) -> float | dict
-```
-
-
-## Short-Rate Models
+Returns: `modified_duration`, `macaulay_duration`, `price`.
+
+## Functions (62)
+
+Every function is `POST /api/v1/derivatives/<name>`. Required parameters are listed bare, optional ones with their defaults (`name=default`). Types, bounds and formulas are in [references/functions.md](references/functions.md): read the entry before calling a function you have not used yet.
+
+### Vanilla Options (BS & Trees)
+
+- `black_scholes_european_option(spot, strike, rate, sigma, tau, option_type='call', div_yield=0.0)`: Black-Scholes-Merton price of a European option.
+- `black_scholes_greeks(spot, strike, rate, sigma, tau, option_type='call', div_yield=0.0)`: Closed-form Black-Scholes first-order Greeks.
+- `binomial_tree_option_pricer(spot, strike, rate, sigma, tau, n_steps=500, option_type='call', style='european', div_yield=0.0)`: Cox-Ross-Rubinstein binomial tree option price.
+- `trinomial_tree_option_pricer(spot, strike, rate, sigma, tau, n_steps=300, option_type='call', style='european', div_yield=0.0)`: Boyle trinomial tree option price.
+- `monte_carlo_option_pricer(spot, strike, rate, sigma, tau, n_simulations=100000, option_type='call', div_yield=0.0, seed=12345)`: Monte Carlo price of a European option (terminal GBM payoff).
+
+### Stochastic Volatility Models
+
+- `heston_stochastic_volatility_model(spot, strike, rate, tau, v0, kappa, theta, sigma, rho, option_type='call')`: Heston stochastic-volatility European option price (semi-analytic).
+- `sabr_volatility_model(forward, strike, tau, alpha, beta, rho, nu)`: SABR implied (lognormal/Black) volatility via Hagan's expansion.
+- `local_volatility_dupire_model(strikes, maturities, call_surface, rate, spot)`: Dupire local volatility surface from a call-price surface.
+- `rough_volatility_rbergomi_model(spot, strike, rate, tau, xi=0.04, eta=1.5, hurst=0.1, rho=-0.7, n_steps=50, n_simulations=50000, option_type='call', seed=2024, control_variate=False, greeks=False)`: Rough Bergomi (rBergomi) European option price via Monte Carlo.
+- `variance_gamma_model(spot, strike, rate, tau, sigma=0.2, theta=-0.1, nu=0.2, n_simulations=100000, option_type='call', seed=7, greeks=False)`: Variance Gamma European option price via Monte Carlo.
+- `normal_inverse_gaussian_model(spot, strike, rate, tau, alpha=15.0, beta=-5.0, delta=0.5, n_simulations=100000, option_type='call', seed=11, greeks=False)`: Normal Inverse Gaussian European option price via Monte Carlo.
+- `displaced_diffusion_model(spot, strike, rate, sigma, tau, displacement, option_type='call', div_yield=0.0)`: Displaced-diffusion (shifted lognormal) European option price.
+
+### Exotic Options
+
+- `digital_option_pricer(spot, strike, rate, sigma, tau, option_type='call', payout=1.0, div_yield=0.0)`: Cash-or-nothing digital (binary) option price.
+- `barrier_option_pricer(spot, strike, barrier, rate, sigma, tau, option_type='call', barrier_type='down-and-out', div_yield=0.0, rebate=0.0)`: Single-barrier option price (Reiner-Rubinstein closed form), with a.
+- `asian_option_pricer(spot, strike, rate, sigma, tau, n_steps=100, n_simulations=100000, option_type='call', average_type='arithmetic', div_yield=0.0, seed=21, qmc=False, greeks=False)`: Arithmetic-average Asian option price via Monte Carlo.
+- `lookback_option_pricer(spot, strike, rate, sigma, tau, n_steps=100, n_simulations=100000, option_type='call', strike_type='floating', div_yield=0.0, seed=31, qmc=False, greeks=False)`: Lookback option price via Monte Carlo.
+- `american_option_lsm(spot, strike, rate, sigma, tau, n_steps=50, n_simulations=100000, option_type='put', div_yield=0.0, seed=41, greeks=False)`: American option price via Longstaff-Schwartz Monte Carlo (LSM).
+- `bermudan_option_pricer(spot, strike, rate, sigma, tau, exercise_dates=4, n_steps=48, n_simulations=100000, option_type='put', div_yield=0.0, seed=51, greeks=False)`: Bermudan option price via LSM with discrete exercise dates.
+- `rainbow_option_pricer(spots, strike, rate, sigmas, tau, correlation, n_simulations=100000, option_type='call', rainbow_type='best-of', seed=61, greeks=False)`: Rainbow (best-of / worst-of) option price via Monte Carlo.
+- `basket_option_pricer(spots, weights, strike, rate, sigmas, tau, correlation, n_simulations=100000, option_type='call', seed=71, greeks=False)`: Basket option price via Monte Carlo on a weighted sum of assets.
+- `spread_option_kirk_approximation(spot1, spot2, strike, rate, sigma1, sigma2, rho, tau, option_type='call')`: Spread option price via Kirk's approximation.
+- `compound_option_pricer(spot, strike_underlying, strike_compound, rate, sigma, tau_compound, tau_underlying, n_simulations=200000, compound_type='call-on-call', div_yield=0.0, seed=81, greeks=False)`: Compound option (option-on-option) price via the Geske (1979) closed form.
+- `chooser_option_pricer(spot, strike, rate, sigma, tau_choose, tau_expiry, div_yield=0.0)`: Simple chooser option price (closed form).
+
+### Fixed Income Instruments
+
+- `bond_pricer_fixed_coupon(face_value, coupon_rate, yield_rate, maturity, frequency=2)`: Price a fixed-coupon bond by discounting its cashflows at a flat yield.
+- `bond_pricer_floating_rate(face_value, reference_rates, spread, discount_rates, maturity, frequency=4)`: Price a floating-rate note (FRN) from projected forward rates.
+- `zero_coupon_bond_pricer(face_value, yield_rate, maturity, frequency=2)`: Price a zero-coupon bond: ``face / (1 + y/m)^{m·T}``.
+- `inflation_linked_bond_pricer(face_value, real_coupon_rate, real_yield, maturity, inflation_rate, frequency=2)`: Price an inflation-linked (real) bond with index-uplifted principal.
+- `callable_bond_pricer(face_value, coupon_rate, short_rate, rate_vol, maturity, call_price, frequency=1)`: Price a callable bond (issuer's option) on a short-rate binomial tree.
+- `puttable_bond_pricer(face_value, coupon_rate, short_rate, rate_vol, maturity, put_price, frequency=1)`: Price a puttable bond (holder's option) on a short-rate binomial tree.
+- `convertible_bond_pricer(face_value, coupon_rate, yield_rate, maturity, conversion_ratio, stock_price, frequency=2)`: Price a convertible bond via the bond-floor + conversion-value maximum.
+
+### Bond Analytics
+
+- `modified_duration(cashflows, times, yield_rate, frequency=2)`: Modified duration = Macaulay duration / (1 + y/m).
+- `effective_duration(price_base, price_up, price_down, yield_shock)`: Effective duration from re-priced bond values under a parallel shock.
+- `convexity(cashflows, times, yield_rate, frequency=2)`: Bond convexity — the second-order yield sensitivity (always >= 0 for.
+- `dv01_pvbp(cashflows, times, yield_rate, frequency=2)`: DV01 / PVBP — price change for a 1 basis-point yield move.
+- `yield_to_maturity(price, cashflows, times, frequency=2)`: Yield to maturity — the flat rate that discounts cashflows to ``price``.
+- `yield_to_call(price, face_value, coupon_rate, call_price, call_date, frequency=2)`: Yield to call — yield assuming redemption at the first call date.
+- `asset_swap_spread(bond_price, cashflows, times, swap_rates, face_value=100.0, frequency=2, use_market_price=False)`: Par-par asset-swap spread.
+- `z_spread_calculator(price, cashflows, times, zero_rates, frequency=2)`: Z-spread — constant spread over the zero curve that reprices the bond.
+- `oas_option_adjusted_spread(market_price, face_value, coupon_rate, short_rate, rate_vol, maturity, call_price, frequency=1)`: Option-adjusted spread of a callable bond.
+- `duration_macaulay(cashflows, times, yield_rate, frequency=2)`: Macaulay duration — PV-weighted average time to cashflows (in years).
+
+### Yield Curve Construction
+
+- `nelson_siegel_curve_fit(maturities, yields, tau_init=1.5)`: Fit a Nelson-Siegel curve to observed yields.
+- `nelson_siegel_svensson_curve(maturities, yields, tau1_init=1.5, tau2_init=8.0)`: Fit the Nelson-Siegel-Svensson (six-parameter) curve.
+- `bootstrap_yield_curve(par_rates, maturities, frequency=1, face_value=1.0)`: Bootstrap zero (spot) rates from par-coupon bond rates.
+- `swap_rate_curve(discount_factors, maturities, frequency=1)`: Par swap rates implied by a discount-factor curve.
+- `ois_curve_sonia_sofr(ois_rates, maturities, frequency=1)`: Build an OIS (SONIA/SOFR) discount curve from quoted OIS swap rates.
+
+### Swaps, Caps, Swaptions & Rate Models
+
+- `cross_currency_swap_pricer(notional_dom, notional_for, fixed_rate_dom, fixed_rate_for, df_dom, df_for, accruals, fx_spot, pay_domestic=True)`: Price a fixed-fixed cross-currency swap (with notional exchange).
+- `overnight_index_swap_ois(notional, fixed_rate, compounded_rate, accrual, discount_factor, pay_fixed=True)`: Value a single-period overnight index swap.
+- `total_return_swap_trs(notional, asset_return, financing_rate, accrual, discount_factor, receive_total_return=True)`: Value a total-return swap leg.
+- `credit_default_swap_cds_pricer(notional, spread, hazard_rate, recovery_rate, maturity, discount_rate, frequency=4)`: Price a CDS via a flat-hazard-rate reduced-form model with.
+- `equity_swap_pricer(notional, equity_return, funding_rate, accrual, discount_factor, receive_equity=True)`: Value an equity swap leg (equity return vs funding).
+- `caplet_floorlet_pricer_black(notional, forward_rate, strike, vol, expiry, accrual, discount_factor, option_type='caplet')`: Price a single caplet/floorlet under the Black (lognormal) model.
+- `cap_floor_pricer(notional, forward_rates, strike, vols, expiries, accruals, discount_factors, option_type='cap')`: Price an interest-rate cap/floor as a strip of caplets/floorlets.
+- `swaption_pricer_black(notional, forward_swap_rate, strike, vol, expiry, annuity, option_type='payer')`: Price a European swaption under the Black model.
+- `swaption_pricer_sabr(notional, forward_swap_rate, strike, expiry, annuity, alpha, beta, rho, nu, option_type='payer')`: Price a swaption using a SABR-implied Black volatility.
+- `lmm_bgm_rate_model(forward_rates, vols, tenor, horizon, n_steps=20, n_simulations=20000, seed=104)`: LIBOR Market Model (BGM) forward-rate Monte Carlo simulation.
+- `forward_rate_agreement_fra(notional, fra_rate, forward_rate, start, end, discount_factor)`: Mark-to-market value of a forward rate agreement (long = pay fixed).
+- `interest_rate_swap_irs_pricer(notional, fixed_rate, forward_rates, discount_factors, accruals, pay_fixed=True)`: Price a vanilla fixed-vs-float interest-rate swap.
+
+### Short-Rate Models
 
 Live in `engine/deriv_short_rate.py` (not FX — see naming note below).
 
-```python
-pyvar.derivatives.hull_white_short_rate_model(
-    # Hull-White Short Rate Model
-    **params
-) -> float | dict
-```
+- `hull_white_short_rate_model(r0, kappa, sigma, maturity, theta_const=0.03, n_steps=100, n_simulations=50000, seed=103)`: Hull-White one-factor model with a constant mean-reversion level.
+- `cox_ingersoll_ross_model(r0, kappa, theta, sigma, maturity, n_steps=100, n_simulations=50000, seed=102)`: CIR model: closed-form ZCB price + simulated (non-negative) short rate.
+- `vasicek_interest_rate_model(r0, kappa, theta, sigma, maturity, n_steps=100, n_simulations=50000, seed=101)`: Vasicek model: closed-form zero-coupon bond price + simulated short rate.
 
-```python
-pyvar.derivatives.cox_ingersoll_ross_model(
-    # Cox-Ingersoll-Ross Model
-    **params
-) -> float | dict
-```
+### FX Derivatives
 
-```python
-pyvar.derivatives.vasicek_interest_rate_model(
-    # Vasicek Interest Rate Model
-    **params
-) -> float | dict
-```
-
-
-## FX Derivatives
-
-```python
-pyvar.derivatives.fx_forward_pricer(
-    # FX Forward Pricer
-    **params
-) -> float | dict
-```
-
-```python
-pyvar.derivatives.fx_option_pricer_garman_kohlhagen(
-    # FX Option Pricer (Garman-Kohlhagen)
-    **params
-) -> float | dict
-```
-
+- `fx_forward_pricer(spot, rate_domestic, rate_foreign, tau, notional=1.0, contracted_forward=None)`: FX forward rate and mark-to-market via covered interest-rate parity.
+- `fx_option_pricer_garman_kohlhagen(spot, strike, rate_domestic, rate_foreign, sigma, tau, option_type='call', notional=1.0)`: Garman-Kohlhagen FX option price.
 
 ## Naming convention
-- All functions under `pyvar.derivatives.*`
 - Prices in clean price (bonds, `bond_pricer_fixed_coupon` also returns a separate
   `clean_price` key) or premium (options)
 - option_type: "call" | "put"
@@ -511,7 +229,6 @@ pyvar.derivatives.fx_option_pricer_garman_kohlhagen(
   below. A few models don't return "price" at all: `sabr_volatility_model` →
   `{"implied_vol"}`, `local_volatility_dupire_model` → `{"local_vol", "strikes_inner",
   "maturities_inner"}`, `heston_stochastic_volatility_model` → `{"price", "P1", "P2"}`.
-
 ## Greeks (opt-in, bump-and-reprice)
 
 `greeks: bool = False` on the pricer's own signature — not a separate function, not a
@@ -538,7 +255,6 @@ cancels in the difference instead of adding to it). Verified support, exhaustive
   converges to a small positive value consistent with the closed-form European gamma.
 - `greeks=True` is mutually exclusive with `qmc=True` and with `control_variate=True`
   (raises `ValueError`) — deferred, not silently ignored.
-
 ## Variance reduction — verified per-function, not domain-wide
 
 Three distinct techniques were added to this codebase; none of them cover every pricer,
@@ -563,7 +279,6 @@ and antithetic variates in particular are **not** part of this domain at all:
   in `engine/montecarlo.py` — the **market-risk VaR/ES engine**, a different domain
   entirely. There is no antithetic option anywhere in `engine/deriv_*.py`. Don't
   document or assume it for any derivatives pricer.
-
 ## rBergomi kernel fix — what "the missing fractional-Brownian structure" means
 
 `rough_volatility_rbergomi_model` had three independent numerical-correctness bugs,
@@ -597,7 +312,6 @@ affects how a process behaves across multiple time points. Rough-vol / path-depe
 kernels need at least one test that checks two or more time points against each other
 (autocovariance, put-call parity at the model's own default parameters, or a known
 reduction limit), not just a terminal-price band.
-
 ## QuantLib cross-validation — real, but scoped
 
 QuantLib is a **test-only** dependency (see Architecture context above). Real,
@@ -617,8 +331,23 @@ by running `ql.IntegralCdsEngine` at shrinking step sizes and observing converge
 toward the engine's own price. Not every pricer in this domain has a QuantLib check —
 check `tests/validation/test_derivatives_ref.py` directly before assuming coverage for
 a function not listed above.
-
-## Dependencies
+## For contributors: dependencies
 numpy >= 1.26 · scipy >= 1.13 · pandas >= 2.2 · QuantLib >= 1.33 (test-only, via
 `requirements-heavy.txt` — the `QuantLib` PyPI package name, not the legacy
 `quantlib-python` alias) · numba >= 0.59
+
+## For contributors: architecture context
+- **Compute**: NumPy/Numba (MC pricing), SciPy (calibration, integration). QuantLib is a
+  *test-only* dependency here (`requirements-heavy.txt`) — it backs `tests/validation/`
+  cross-validation (see below) but is never imported by `engine/` or `api/`.
+- **Queue**: none. `api/routes/derivatives.py` is auto-generated (`scripts/gen_p3.py`) and
+  calls each engine wrapper **synchronously, in-process** — no Celery task, no job ID, no
+  polling. This is unlike `/var/compute`, which is async via Celery/SQS with a `VaRJob`
+  audit row. Don't assume derivatives pricing follows the VaR job-submission pattern.
+- **Storage**: none. No Redis cache, no PostgreSQL persistence, no S3 offload for
+  derivatives results — every request is computed fresh and returned in the response body.
+- **API**: `POST /api/v1/derivatives/{function_name}` — one route per engine function, path
+  name matches the Python function name exactly (e.g. `POST
+  /api/v1/derivatives/rough_volatility_rbergomi_model`).
+
+---

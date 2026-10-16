@@ -1,0 +1,188 @@
+{
+  "skill": "alm",
+  "domain": "alm",
+  "client_ns": "alm",
+  "title": "ALM and Balance Sheet",
+  "version": "1.1.0",
+  "description": "Run pyvar's 33 ALM and balance-sheet functions on the live pyvar.com API: duration gap, NII and EVE simulation, the six BCBS IRRBB shocks, repricing gap, non-maturity deposit and prepayment models, funds transfer pricing. Use when the user wants interest-rate-risk-in-the-banking-book numbers computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "ALM calculations: duration and repricing gaps, NII and EVE sensitivity, the IRRBB standardised framework, behavioural models and funds transfer pricing. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "ALM",
+    "NII",
+    "EVE",
+    "IRRBB",
+    "duration",
+    "repricing-gap",
+    "NMD",
+    "prepayment",
+    "FTP",
+    "convexity",
+    "basis-risk",
+    "pipeline-risk",
+    "balance-sheet",
+    "ICAAP"
+  ],
+  "examples": [
+    {
+      "title": "Duration gap and repricing gap on one balance sheet",
+      "intro": "The duration gap converts a parallel rate shock into an equity impact; the repricing gap shows the per-bucket asset and liability mismatch that drives NII.",
+      "calls": [
+        {
+          "function": "duration_gap_analysis",
+          "request": {
+            "asset_duration": 4.2,
+            "liability_duration": 2.1,
+            "total_assets": 1000000000,
+            "total_liabilities": 920000000,
+            "rate_shock": 0.01
+          },
+          "returns": [
+            "duration_gap",
+            "leverage_adjusted_gap",
+            "delta_eve",
+            "equity"
+          ]
+        },
+        {
+          "function": "repricing_gap_analysis",
+          "request": {
+            "bucket_assets": [
+              120,
+              200,
+              260,
+              220,
+              200
+            ],
+            "bucket_liabilities": [
+              300,
+              220,
+              180,
+              150,
+              150
+            ],
+            "bucket_labels": [
+              "0-3m",
+              "3-12m",
+              "1-3y",
+              "3-5y",
+              "5y+"
+            ]
+          },
+          "returns": [
+            "gap",
+            "cumulative_gap",
+            "total_gap"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "The six BCBS IRRBB rate shocks",
+      "intro": "The standardised shock vectors for a tenor grid: parallel up/down, short up/down, steepener and flattener. Feed them to the EVE and NII functions.",
+      "calls": [
+        {
+          "function": "irrbb_six_standard_rate_shocks",
+          "request": {
+            "tenors": [
+              0.25,
+              1,
+              2,
+              5,
+              10,
+              20
+            ],
+            "parallel_bps": 200,
+            "short_bps": 300,
+            "long_bps": 150
+          },
+          "returns": [
+            "parallel_up",
+            "parallel_down",
+            "steepener",
+            "flattener",
+            "short_up",
+            "short_down"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Duration & Gap Analysis",
+      "intro": "",
+      "functions": [
+        "duration_gap_analysis",
+        "macaulay_duration_balance_sheet",
+        "modified_duration_balance_sheet",
+        "effective_duration_alm",
+        "convexity_gap"
+      ]
+    },
+    {
+      "title": "NII & EVE Simulation",
+      "intro": "",
+      "functions": [
+        "nii_simulation_stress",
+        "economic_value_of_equity_eve",
+        "eve_sensitivity_analysis",
+        "nii_sensitivity_rate_shock",
+        "nii_simulation_baseline",
+        "liquidity_adjusted_nii"
+      ]
+    },
+    {
+      "title": "IRRBB Framework",
+      "intro": "[REGULATORY] BCBS d368 (\"Interest rate risk in the banking book\", April\n2016) Annex 2 defines the six prescribed shock scenarios constructed by\n`irrbb_six_standard_rate_shocks` (`engine/alm_irrbb.py`): parallel up/down\nare flat across tenor; short_up/short_down decay with tenor as\n`short_bps · e^(−t/4)`; steepener = `−0.65·short + 0.90·long` and\nflattener = `0.80·short − 0.60·long`, where `long` grows with tenor as\n`long_bps · (1 − e^(−t/4))`. These scalars and the tenor-decay shape match\nAnnex 2 exactly — `tests/validation/test_alm_ref.py` checks them against\nAnnex 2's own published worked example (t = 3.5y, |short| = |long| = 100bp\n→ steepener = +25.4bp), independently cross-confirmed against OSFI's\nInterest Rate Risk Management guideline, which reproduces the same\nexample. `interest_rate_risk_capital_irrbb` implements d368 Principle 12's\nsupervisory outlier test: a bank is an outlier if the worst-case ΔEVE\ndecline exceeds 15% of Tier-1 capital (`outlier_threshold=0.15` default).\nTwo citations in this module previously pointed at the wrong section\n(§115/§118, which don't exist in d368 in the cited sense) — fixed to\nAnnex 2 / Principle 12 in commit `364f961`.\n\n[LIMITATION — STALE SHOCK MAGNITUDES] `irrbb_six_standard_rate_shocks`'s\ndefaults (`parallel_bps=200`, `short_bps=300`, `long_bps=150`) are d368\n(2016)'s USD row, not current. BCBS d578 (\"Recalibration of shocks for\ninterest rate risk in the banking book\", July 2024,\nbis.org/bcbs/publ/d578.htm) recalibrated the per-currency shock sizes —\nwidening the calibration window to Dec 2015–Dec 2023, moving from a 99th\nto a 99.9th percentile, and rounding to the nearest 25bp instead of 50bp —\neffective 1 January 2026, already in effect as of this writing (2026-08).\nNeither this codebase's engine docstring nor this skill file could verify\nthe exact new per-currency figures against the primary BIS document or any\nsecondary summary: bis.org, forvismazars.com, kpmg.com and banking.vision\nare all blocked by this environment's network egress proxy, reproducing\nthe same 403s the original audit hit. The 200/300/150 defaults have\ndeliberately NOT been changed to a plausible-but-unverified number —\ncommitting an unverified figure here would repeat the exact failure mode\nalready found and fixed once in this codebase (a false \"QuantLib\ncross-validated\" claim, see `fix/iron-triangle-quantlib-claim`). Callers\nneeding d578-compliant shocks must pass `parallel_bps`/`short_bps`/\n`long_bps` explicitly, sourced from the primary document.\n\n[SCOPE NOTE] `behavioural_modelling_nmds`'s docstring cites \"BCBS d368 NMD\ntreatment\", but the function implements a bespoke core/non-core\nexponential-decay blend, not d368's actual standardised NMD methodology\n(maturity-capped slotting into tenor buckets). Treat it as an independent,\nunvalidated behavioural model, not a compliant implementation of the\nstandardised approach — `tests/validation/test_alm_ref.py` checks it only\nagainst its own documented formula, not against d368's slotting output.",
+      "functions": [
+        "irrbb_standardised_framework",
+        "irrbb_internal_model",
+        "irrbb_six_standard_rate_shocks",
+        "basis_risk_irrbb",
+        "option_risk_irrbb",
+        "pipeline_risk_measurement",
+        "interest_rate_risk_capital_irrbb"
+      ]
+    },
+    {
+      "title": "Repricing & Gap",
+      "intro": "",
+      "functions": [
+        "static_gap_analysis",
+        "dynamic_gap_analysis",
+        "repricing_gap_analysis",
+        "repricing_maturity_profile"
+      ]
+    },
+    {
+      "title": "Behavioural & Prepayment Models",
+      "intro": "",
+      "functions": [
+        "prepayment_model_mortgages",
+        "behavioural_modelling_nmds",
+        "non_maturity_deposit_stability",
+        "core_deposit_duration",
+        "loan_prepayment_rate_cpr"
+      ]
+    },
+    {
+      "title": "Funds Transfer Pricing (FTP)",
+      "intro": "",
+      "functions": [
+        "funds_transfer_pricing_ftp",
+        "ftp_curve_construction"
+      ]
+    },
+    {
+      "title": "ALM Strategic Analytics",
+      "intro": "",
+      "functions": [
+        "asset_liability_mismatch_index",
+        "structural_hedge_optimisation",
+        "alm_stress_test",
+        "balance_sheet_projection_model"
+      ]
+    }
+  ],
+  "notes": {}
+}

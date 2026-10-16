@@ -1,7 +1,7 @@
 """pyvar_jupyter -- %pyvar / %%pyvar magics and rich display for pyvar.com in Jupyter.
 
 >>> %load_ext pyvar_jupyter
->>> %pyvar_key eyJ...
+>>> %pyvar_key pyvar_...
 >>> %pyvar market_risk.monte_carlo_var returns=[0.01,-0.02,0.015] portfolio_value=1000000
 
 See README.md for the full magic syntax and the display helper, and

@@ -1,0 +1,222 @@
+{
+  "skill": "operational-risk",
+  "domain": "operational",
+  "client_ns": "operational_risk",
+  "title": "Operational Risk",
+  "version": "1.1.0",
+  "description": "Run pyvar's 44 operational-risk functions on the live pyvar.com API: Basel SMA capital, loss distribution approach (LDA/AMA) and OpVaR, RCSA scoring, KRI breach detection, scenario analysis, BEICF and cyber, model, IT and vendor risk. Use when the user wants operational-risk capital or indicator results computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Operational-risk calculations: SMA and LDA capital, loss data, RCSA, key risk indicators, scenario analysis and governance reporting. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "operational-risk",
+    "LDA",
+    "AMA",
+    "SMA",
+    "OpVaR",
+    "RCSA",
+    "KRI",
+    "BEICF",
+    "scenario-analysis",
+    "cyber-risk",
+    "model-risk",
+    "EVT"
+  ],
+  "examples": [
+    {
+      "title": "Basel SMA capital for a mid-sized bank",
+      "intro": "The Business Indicator drives the Business Indicator Component; with a loss component the Internal Loss Multiplier adjusts it. Any one currency unit.",
+      "calls": [
+        {
+          "function": "basel_standardised_measurement_sma",
+          "request": {
+            "business_indicator": 5000000000,
+            "loss_component": 0.0,
+            "use_ilm": true
+          },
+          "returns": [
+            "bic",
+            "ilm",
+            "sma_capital"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "KRI status, higher-is-worse and lower-is-worse",
+      "intro": "The same call classifies indicators where a rising value is bad (failed trades) and where a falling value is bad (staff coverage). Direction decides which side of the thresholds is worse.",
+      "calls": [
+        {
+          "function": "kri_threshold_breach_detection",
+          "request": {
+            "value": 0.07,
+            "amber_threshold": 0.05,
+            "red_threshold": 0.08,
+            "direction": "higher_breach"
+          },
+          "returns": [
+            "status",
+            "breached"
+          ]
+        },
+        {
+          "function": "kri_threshold_breach_detection",
+          "request": {
+            "value": 0.82,
+            "amber_threshold": 0.9,
+            "red_threshold": 0.8,
+            "direction": "lower_breach"
+          },
+          "returns": [
+            "status",
+            "breached"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Capital Models — LDA (`engine/oprisk_lda.py`)",
+      "intro": "**Regulatory status**: `advanced_measurement_approach_ama` and the LDA/OpVaR\npipeline below are **not** valid for Basel III/IV regulatory capital. The\nStandardised Measurement Approach (next section) replaced the AMA as the\nsole approach permitted for internationally active banks from 1 January\n2022 (BCBS d424, \"Basel III: Finalising post-crisis reforms\", Dec 2017).\nThe module's own docstring says this explicitly: AMA is \"retired under\nBasel III/IV ... retained here for economic-capital, internal scenario\nanalysis, and jurisdictions still on earlier timelines only.\" Use\n`basel_standardised_measurement_sma` for the actual regulatory number.\n`advanced_measurement_approach_ama`'s `expected_loss_covered` flag\nimplements the EL/UL choice in Basel II §669(b): if a bank can demonstrate\nexpected loss is already captured in provisioning/pricing, capital is\nunexpected-loss-only (OpVaR − EL); otherwise capital is the full OpVaR.\n\n`frequency_distribution_fitting` is **Poisson-only** (lambda = sample\nmean); the `dispersion` (var/mean) it returns is diagnostic only — a value\nfar from 1 flags over/under-dispersion relative to Poisson, but no\nnegative-binomial or other alternative frequency fit is implemented.\n`severity_distribution_fitting` is **lognormal-only** and raises\n`ValueError` for any other `distribution` argument — there is no Weibull,\nGamma, or EVT/generalised-Pareto alternative for the loss tail.",
+      "functions": [
+        "frequency_distribution_fitting",
+        "severity_distribution_fitting",
+        "compound_loss_distribution",
+        "monte_carlo_oprisk_capital",
+        "operational_var_opvar",
+        "loss_distribution_approach_lda",
+        "advanced_measurement_approach_ama"
+      ]
+    },
+    {
+      "title": "Capital Models — SMA & Economic Capital (`engine/oprisk_capital.py`)",
+      "intro": "`insurance_offset_calculation`'s 20%-of-capital cap and haircut language\nreflect the old **AMA** framework, where insurance mitigation was capped at\n20% of the AMA capital charge. The **SMA** that has actually replaced AMA\nfor regulatory capital does not recognise insurance mitigation at all — a\nwidely noted gap in the SMA design. So this function (and the\n`oprisk_economic_capital` mitigant it feeds) is only meaningful for\ninternal/economic capital; it has no bearing on the regulatory figure\nproduced by `basel_standardised_measurement_sma`.",
+      "functions": [
+        "basel_standardised_measurement_sma",
+        "oprisk_capital_allocation",
+        "diversification_benefit_oprisk",
+        "oprisk_economic_capital",
+        "insurance_offset_calculation",
+        "tail_risk_scenario_oprisk",
+        "oprisk_stress_testing"
+      ]
+    },
+    {
+      "title": "Loss Data (`engine/oprisk_rcsa.py`)",
+      "intro": "",
+      "functions": [
+        "loss_data_collection_framework",
+        "external_loss_data_integration",
+        "loss_event_classification_basel"
+      ]
+    },
+    {
+      "title": "RCSA Framework (`engine/oprisk_rcsa.py`)",
+      "intro": "",
+      "functions": [
+        "rcsa_risk_identification",
+        "rcsa_inherent_risk_scoring",
+        "rcsa_residual_risk_scoring",
+        "rcsa_control_effectiveness",
+        "control_testing_effectiveness"
+      ]
+    },
+    {
+      "title": "BEICF Factors (`engine/oprisk_rcsa.py`)",
+      "intro": "",
+      "functions": [
+        "business_environment_factor_bei",
+        "internal_control_factor_icf"
+      ]
+    },
+    {
+      "title": "KRI Library (`engine/oprisk_kri.py`)",
+      "intro": "",
+      "functions": [
+        "key_risk_indicator_kri_library",
+        "kri_threshold_breach_detection",
+        "kri_trend_analysis"
+      ]
+    },
+    {
+      "title": "Scenario Analysis (`engine/oprisk_scenario.py`)",
+      "intro": "",
+      "functions": [
+        "scenario_analysis_oprisk",
+        "scenario_expert_elicitation_model",
+        "scenario_severity_estimation",
+        "scenario_frequency_estimation"
+      ]
+    },
+    {
+      "title": "Emerging Risk Categories (`engine/oprisk_governance.py`)",
+      "intro": "These six are self-authored composite scores (weighted indices / caps\nchosen in this codebase) — none of them cite, or claim to implement, a\nspecific Basel/BCBS formula, unlike the Capital Models and Loss Data\nsections above. `model_risk_assessment` and `cyber_risk_loss_estimation`\nname the frameworks they take their *shape* from (SR 11-7 / PRA SS1/23-style\nmateriality x complexity tiering; a FAIR-style single-loss-expectancy\nestimate) but the specific weights and thresholds are pyvar's own, not\nvalues prescribed by those frameworks.",
+      "functions": [
+        "cyber_risk_loss_estimation",
+        "conduct_risk_metric",
+        "model_risk_assessment",
+        "it_risk_scoring",
+        "third_party_vendor_risk",
+        "business_continuity_risk_score"
+      ]
+    },
+    {
+      "title": "Governance & Reporting (`engine/oprisk_governance.py`)",
+      "intro": "",
+      "functions": [
+        "near_miss_capture_framework",
+        "root_cause_analysis_template",
+        "risk_appetite_statement_oprisk",
+        "escalation_threshold_calculation",
+        "oprisk_heat_map_generator",
+        "regulatory_compliance_score",
+        "audit_finding_risk_scorer"
+      ]
+    }
+  ],
+  "notes": {
+    "frequency_distribution_fitting": "Poisson MLE only (lambda, dispersion)",
+    "severity_distribution_fitting": "lognormal only; ValueError otherwise",
+    "compound_loss_distribution": "Poisson(freq) x lognormal(severity) MC",
+    "monte_carlo_oprisk_capital": "OpVaR quantile + ES; default confidence 0.999 (Basel AMA 99.9%/1yr), enforced in [0.90, 0.9999]",
+    "operational_var_opvar": "quantile reader over a supplied annual-loss sample",
+    "loss_distribution_approach_lda": "fit + simulate + capital, one call",
+    "advanced_measurement_approach_ama": "retired for Basel III/IV regulatory capital (superseded by SMA); economic-capital use only",
+    "basel_standardised_measurement_sma": "the only function here valid for Basel III/IV regulatory capital. BIC piecewise on Business Indicator buckets EUR [0,1bn]/(1bn,30bn]/(>30bn] at 12%/15%/18% marginal coefficients; ILM = ln(e-1+(LC/BIC)^0.8), LC = 15x average annual losses, bucket-1 banks may fix ILM=1 (BCBS d424, 2017)",
+    "oprisk_capital_allocation": "pro-rata by standalone risk, sums to total",
+    "diversification_benefit_oprisk": "sqrt(k @ corr @ k) under a single uniform pairwise correlation; an economic-capital technique, not a Basel-prescribed one",
+    "oprisk_economic_capital": "(OpVaR - EL) net of insurance + diversification",
+    "insurance_offset_calculation": "AMA-era 20% cap language; not recognised under the SMA that replaced AMA for regulatory capital",
+    "tail_risk_scenario_oprisk": "tail ES scaled by a severity multiplier",
+    "oprisk_stress_testing": "base capital x (1+freq_shock) x (1+sev_shock)",
+    "loss_data_collection_framework": "filters events at/above a reporting threshold",
+    "external_loss_data_integration": "pools internal + size-scaled external losses",
+    "loss_event_classification_basel": "validates against the 7 Basel II Level-1 event-type categories (BCBS 128, Annex 9)",
+    "rcsa_risk_identification": "validates/summarises a risk register by Basel category",
+    "rcsa_inherent_risk_scoring": "likelihood x impact, 1-25 on the 5x5 heat map",
+    "rcsa_residual_risk_scoring": "inherent x (1 - control_effectiveness)",
+    "rcsa_control_effectiveness": "weighted design/operating effectiveness",
+    "control_testing_effectiveness": "pass rate; \"effective\" at >= 95%",
+    "business_environment_factor_bei": "capital multiplier around 1.0 from forward-looking business-environment scores",
+    "internal_control_factor_icf": "capital multiplier; stronger controls reduce it",
+    "key_risk_indicator_kri_library": "validates/indexes a KRI registry",
+    "kri_threshold_breach_detection": "green/amber/red vs two-tier thresholds",
+    "kri_trend_analysis": "OLS slope -> deteriorating/improving/stable",
+    "scenario_analysis_oprisk": "single-scenario compound-loss Monte Carlo capital",
+    "scenario_expert_elicitation_model": "weighted consensus + dispersion across experts",
+    "scenario_severity_estimation": "lognormal calibrated from typical/worst-case (two-point)",
+    "scenario_frequency_estimation": "expert lambda, or occurrences/observation_years",
+    "cyber_risk_loss_estimation": "FAIR-style single-loss-expectancy estimate",
+    "conduct_risk_metric": "complaints/1000 + redress ratio, 0-100 index (no Basel citation)",
+    "model_risk_assessment": "materiality x complexity, SR 11-7 / PRA SS1/23-style tiering",
+    "it_risk_scoring": "availability/incidents/patching, 0-100 index (no Basel citation)",
+    "third_party_vendor_risk": "criticality/financial-health/concentration index",
+    "business_continuity_risk_score": "RTO vs max tolerable downtime, BCP-maturity discounted",
+    "near_miss_capture_framework": "zero-actual-loss/nonzero-potential-loss events",
+    "root_cause_analysis_template": "normalises causal-factor weights to shares",
+    "risk_appetite_statement_oprisk": "within_appetite/within_tolerance/breach",
+    "escalation_threshold_calculation": "highest governance tier a loss triggers",
+    "oprisk_heat_map_generator": "5x5 likelihood x impact grid + RAG per risk",
+    "regulatory_compliance_score": "weighted fraction of requirements met, 0-100",
+    "audit_finding_risk_scorer": "severity x likelihood + overdue-ageing uplift, capped 25"
+  }
+}

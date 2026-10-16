@@ -1,16 +1,21 @@
 ---
 name: pyvar-arch-api-gateway
 description: >
-  Activate when building or modifying pyvar's API gateway layer: FastAPI
-  route design, Pydantic request/response models, JWT authentication,
-  rate limiting, orjson serialisation, or OpenAPI schema generation.
-version: "1.0.0"
+  Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
+  the pyvar API gateway is built: FastAPI routers and route conventions, Pydantic v2 request
+  models, JWT authentication, tier-based rate limiting and orjson responses. Use only when
+  working inside a pyvar checkout or changing pyvar itself; not for general FastAPI, Redis,
+  Numba or similar questions, and not needed to call the pyvar API (use a domain skill such as
+  pyvar-market-risk for that).
+version: "1.1.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [fastapi, pydantic, JWT, orjson, rate-limiting, OpenAPI, CORS,
        middleware, authentication, api-gateway]
 ---
 
 # pyvar — Architecture: API Gateway
+
+> **Who this is for:** contributors working inside a checkout of https://github.com/fibtecltd/pyvar. It documents how this layer is actually built, with real file paths and conventions. It is not an API guide: to *call* pyvar functions, use a domain skill such as `pyvar-market-risk` or `pyvar-portfolio-analytics`.
 
 ## Stack
 | Component | Role |

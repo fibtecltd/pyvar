@@ -1,0 +1,190 @@
+{
+  "skill": "liquidity-risk",
+  "domain": "liquidity",
+  "client_ns": "liquidity_risk",
+  "title": "Liquidity Risk",
+  "version": "1.1.0",
+  "description": "Run pyvar's 40 liquidity-risk functions on the live pyvar.com API: LCR and NSFR, HQLA classification, cash-flow ladders, stress scenarios, survival horizon, intraday liquidity, funding concentration and liquidity VaR. Use when the user wants liquidity ratios or stress results computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
+  "tagline": "Liquidity-risk calculations: regulatory ratios (LCR/NSFR), HQLA, cash-flow ladders, stress scenarios, survival horizon, intraday and funding metrics. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
+  "tags": [
+    "liquidity-risk",
+    "LCR",
+    "NSFR",
+    "HQLA",
+    "cash-flow",
+    "ILAAP",
+    "survival-horizon",
+    "funding-risk",
+    "intraday",
+    "stress-test"
+  ],
+  "examples": [
+    {
+      "title": "LCR and NSFR against the 100% minimum",
+      "intro": "Any one currency unit throughout. LCR is HQLA over net outflows over 30 days (inflows capped at 75% of outflows); NSFR is available over required stable funding. Both are compliant at 1.0 or above.",
+      "calls": [
+        {
+          "function": "liquidity_coverage_ratio_lcr",
+          "request": {
+            "hqla": 1200000000,
+            "gross_outflows": 1000000000,
+            "gross_inflows": 300000000
+          },
+          "returns": [
+            "lcr",
+            "net_outflows",
+            "capped_inflows",
+            "hqla",
+            "compliant"
+          ]
+        },
+        {
+          "function": "net_stable_funding_ratio_nsfr",
+          "request": {
+            "available_stable_funding": 9500000000,
+            "required_stable_funding": 9000000000
+          },
+          "returns": [
+            "nsfr",
+            "asf",
+            "rsf",
+            "compliant"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Survival horizon under a stressed outflow path",
+      "intro": "How many full days the liquidity buffer lasts when net outflows accelerate. The horizon is the last day on which the cumulative net outflow is still covered.",
+      "calls": [
+        {
+          "function": "survival_horizon_calculator",
+          "request": {
+            "hqla": 500,
+            "daily_net_outflows": [
+              40,
+              60,
+              80,
+              100,
+              100,
+              90,
+              80,
+              70,
+              60,
+              50
+            ]
+          },
+          "returns": [
+            "survival_days",
+            "terminal_buffer",
+            "hqla"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Regulatory Ratios (LCR/NSFR)",
+      "intro": "",
+      "functions": [
+        "liquidity_coverage_ratio_lcr",
+        "net_stable_funding_ratio_nsfr",
+        "available_stable_funding_asf_calc",
+        "required_stable_funding_rsf_calc"
+      ]
+    },
+    {
+      "title": "Intraday Liquidity",
+      "intro": "(Moved out of the LCR/NSFR group above — these are BCBS 248 intraday\nmonitoring functions, not LCR/NSFR calculations.)",
+      "functions": [
+        "intraday_liquidity_monitor",
+        "intraday_liquidity_stress_test"
+      ]
+    },
+    {
+      "title": "HQLA Classification",
+      "intro": "",
+      "functions": [
+        "hqla_level_1_asset_classifier",
+        "hqla_level_2a_asset_classifier",
+        "hqla_level_2b_asset_classifier"
+      ]
+    },
+    {
+      "title": "Cash Flow Ladder",
+      "intro": "",
+      "functions": [
+        "cash_flow_ladder_30_day",
+        "cash_flow_ladder_1_year",
+        "liquidity_gap_analysis"
+      ]
+    },
+    {
+      "title": "Stress Scenarios",
+      "intro": "",
+      "functions": [
+        "liquidity_stress_scenario",
+        "idiosyncratic_stress_scenario",
+        "market_wide_stress_scenario",
+        "combined_stress_scenario"
+      ]
+    },
+    {
+      "title": "Buffer & Survival",
+      "intro": "",
+      "functions": [
+        "liquidity_buffer_sizing",
+        "contingency_funding_plan_trigger",
+        "wholesale_funding_concentration",
+        "survival_horizon_calculator"
+      ]
+    },
+    {
+      "title": "Funding Risk",
+      "intro": "",
+      "functions": [
+        "retail_deposit_runoff_rate",
+        "secured_funding_rollover_risk",
+        "asset_encumbrance_ratio",
+        "collateral_availability_analysis",
+        "repo_market_stress_haircut",
+        "fx_liquidity_risk_by_currency",
+        "intragroup_liquidity_flow",
+        "funding_cost_analysis",
+        "deposit_stability_classification"
+      ]
+    },
+    {
+      "title": "Internal Liquidity Metrics",
+      "intro": "",
+      "functions": [
+        "liquidity_transfer_pricing",
+        "ilaap_internal_liquidity_metric",
+        "ilaap_stress_testing_framework",
+        "liquidity_risk_appetite_threshold",
+        "early_warning_indicator_liquidity",
+        "central_bank_facility_eligibility",
+        "contingent_liquidity_risk"
+      ]
+    },
+    {
+      "title": "Advanced Liquidity Analytics",
+      "intro": "",
+      "functions": [
+        "liquidity_var_liqvar",
+        "funding_tenor_analysis",
+        "liquidity_scorecard_aggregation",
+        "cross_currency_liquidity_bridge"
+      ]
+    }
+  ],
+  "notes": {
+    "liquidity_coverage_ratio_lcr": "outflows are floored so recognised inflows can offset at most 75% of gross outflows (BCBS 238 §69, the default `inflow_cap`). compliant = (LCR >= 1.0).",
+    "intraday_liquidity_monitor": "negative cumulative position — BCBS 248's actual \"daily maximum intraday liquidity usage\" tool) AND `max_usage` (drop below opening balance). Only `net_debit_peak` is the genuine BCBS 248 figure — `max_usage` is an internal metric and the two diverge whenever the balance path never actually goes negative.",
+    "intraday_liquidity_stress_test": "delays a fraction of inflows (`delay_factor`); an internal stress design, not a specific BCBS 248 prescribed scenario.",
+    "hqla_level_2a_asset_classifier": "regulatory minimum haircut (BCBS 238 §52)",
+    "hqla_level_2b_asset_classifier": "regulatory minimum haircut (BCBS 238 §54); pass haircut=0.50 for the lower-grade-corporate/equity sub-bucket\n\n**Composition caps are not enforced by any function.** BCBS 238 §46-§47 caps\nLevel 2 assets at <= 40% of total HQLA and Level 2B at <= 15% of total HQLA.\nThese thresholds exist as constants in `engine/liquidity_ratios.py` but no\nfunction combines the three classifiers' output and checks them — callers\nmust sum the three `post_haircut_value` results themselves and apply the\n40%/15% checks.",
+    "combined_stress_scenario": "Combined Stress Scenario. NOT the Basel/EBA reference combined scenario: BCBS 238's own version runs off the LCR's regulator-set 3%/5%/10% retail run-off categories, not this function's flat 15% default (`retail_runoff`), which is an internal convention. The \"combined deficit never better than market-wide alone\" ordering property still holds regardless."
+  }
+}

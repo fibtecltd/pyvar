@@ -94,7 +94,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--api-key",
         default=None,
-        help="Bearer JWT. Falls back to the PYVAR_API_KEY environment variable.",
+        help="pyvar API key. Falls back to the PYVAR_API_KEY environment variable.",
     )
     parser.add_argument(
         "--base-url",

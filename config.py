@@ -29,6 +29,23 @@ class Settings(BaseSettings):
     # verification succeeds, not the one-time link itself.
     verification_token_expiry_minutes: int = 1440  # 24h
 
+    # ── Durable API keys (migration 0009, docs/plan-durable-api-keys.md) ──────────
+    # A key is what a person pastes into a plugin once, so unlike the 60-minute
+    # session JWT above it lasts a year by default and is revocable.
+    api_key_default_expiry_days: int = 365
+    api_key_max_active_per_user: int = 5
+    api_key_max_total_per_user: int = 50  # incl. revoked/expired; bounds create/revoke churn
+    # How long a resolved key (-> user, tier) is cached in Redis. Also the upper bound
+    # on how long a revocation or tier change takes to reach a cached key.
+    api_key_cache_ttl_seconds: int = 60
+    # Unknown/invalid keys per client IP per minute before 429, so random-key spraying
+    # cannot turn into unbounded database lookups.
+    api_key_failed_attempts_per_minute: int = 30
+    # A returning (already-verified) user asks for a sign-in link through the same form
+    # as registration: the link is short-lived, and at most one is sent per interval.
+    signin_link_expiry_minutes: int = 30
+    signin_link_min_interval_seconds: int = 300
+
     # Base URL this API is reachable at — used to build the verification
     # link sent by api/routes/auth.py's send_verification_email (#149).
     # Populated by _default_public_base_url() below when left empty; set

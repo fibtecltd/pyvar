@@ -281,10 +281,11 @@ async function initGoogleSignIn() {
   }
 }
 
-// POSTs the Google ID token to /api/v1/auth/google and shows the issued JWT
-// immediately — unlike the plain email form below, there's no "check your
-// inbox" step, since Google already verified the address server-side
-// (api/routes/auth.py::google_sign_in).
+// POSTs the Google ID token to /api/v1/auth/google. The reply is a 60-minute
+// SESSION token (not the credential to paste into a plugin); it is stored the same
+// way dashboard.html's email-link flow stores it, then the visitor lands on the
+// dashboard, where durable API keys are created and managed. No "check your inbox"
+// step: Google already verified the address server-side (api/routes/auth.py).
 async function handleGoogleCredential(response) {
   const resultEl = document.getElementById('googleKeyResult');
   if (!resultEl || !response?.credential) return;
@@ -299,18 +300,9 @@ async function handleGoogleCredential(response) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.detail || 'Google sign-in failed.');
 
-    // Same storage key dashboard.html's renderDashboard uses, so the "Try
-    // it" panels on domain pages pick this up identically either way.
+    // Same storage key the dashboard and the "Try it" panels on domain pages read.
     localStorage.setItem('pyvar_jwt', data.access_token);
-    resultEl.innerHTML = '<div class="dash-token" id="googleKeyToken"></div>'
-      + '<span class="dash-copy" id="googleKeyCopyBtn">copy</span>';
-    document.getElementById('googleKeyToken').textContent = data.access_token;
-    const copyBtn = document.getElementById('googleKeyCopyBtn');
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(data.access_token);
-      copyBtn.textContent = 'copied!';
-      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
-    });
+    window.location.href = 'dashboard.html';
   } catch (e) {
     // e.message can trace back to the API's own error detail — escape
     // before reinterpreting as HTML, same rule _escapeHtml()'s own comment
@@ -320,49 +312,179 @@ async function handleGoogleCredential(response) {
   }
 }
 
-// ── Dashboard page (P8 Task 3) — dashboard.html only ──────────────────────
-// Calls GET /api/v1/auth/verify?token=... and shows the issued JWT once.
+// ── Dashboard page — dashboard.html only ──────────────────────────────────
+// Two ways in: an emailed link (?token=..., exchanged once for a 60-minute session
+// by GET /auth/verify) or a session the Google flow left in localStorage. The
+// session is only used here, to manage durable API keys. The KEY is what people
+// paste into a plugin or script: it lasts a year and can be revoked at any time.
+
+// Tiny DOM builder. Everything from the API goes in via textContent, never innerHTML.
+function _h(tag, props, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  }
+  for (const c of children) el.append(c);
+  return el;
+}
+
+function _jwtPayload(jwt) {
+  try {
+    const b64 = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64));
+  } catch (e) { return null; }
+}
+
+function _sessionUsable(jwt) {
+  const p = jwt && _jwtPayload(jwt);
+  return !!(p && p.exp && p.exp * 1000 > Date.now() + 5000);
+}
+
+async function _keysApi(session, method, path, body) {
+  const res = await fetch(`${API_BASE}/api/v1/auth/api-keys${path}`, {
+    method,
+    headers: { 'Authorization': `Bearer ${session}`, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = res.status === 204 ? {} : await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function _signInAgain(card, message) {
+  card.replaceChildren(
+    _h('div', { class: 'dash-title' }, 'Sign in to manage your API keys'),
+    _h('div', { class: 'dash-body' }, message + ' '),
+  );
+  card.lastChild.append(_h('a', { href: 'index.html#get-api-key' }, 'Sign in or get a key'), '.');
+}
+
 async function renderDashboard() {
   const card = document.getElementById('dashCard');
   if (!card) return;
 
-  const token = new URLSearchParams(window.location.search).get('token');
-  if (!token) {
-    card.innerHTML = '<div class="dash-title">No verification token</div>'
-      + '<div class="dash-body dash-error">This page expects a <code>?token=</code> link from your verification email.</div>';
+  const linkToken = new URLSearchParams(window.location.search).get('token');
+  let session = null;
+  let tier = 'free';
+  try {
+    if (linkToken) {
+      const res = await fetch(`${API_BASE}/api/v1/auth/verify?token=${encodeURIComponent(linkToken)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'The link may be invalid or expired.');
+      session = data.access_token;
+      tier = data.tier;
+      localStorage.setItem('pyvar_jwt', session);
+      // The link is single-use: drop it from the address bar so a reload (or a shared
+      // screenshot) falls back to the stored session rather than a spent token.
+      window.history.replaceState(null, '', 'dashboard.html');
+    } else {
+      session = localStorage.getItem('pyvar_jwt');
+      if (!_sessionUsable(session)) {
+        _signInAgain(card, 'Your session has ended (sessions last 60 minutes).');
+        return;
+      }
+      tier = (_jwtPayload(session) || {}).tier || 'free';
+    }
+  } catch (e) {
+    // e.message can trace back to window.location.search (the ?token=... read
+    // above) via the fetch URL and any error text a browser or server derives
+    // from it -- escape before reinterpreting as HTML, same rule as the comment
+    // above _escapeHtml().
+    const safeMessage = _escapeHtml((e && e.message) || 'The link may be invalid or expired.');
+    card.innerHTML = '<div class="dash-title">Sign-in failed</div>'
+      + `<div class="dash-body dash-error">${safeMessage} <a href="index.html#get-api-key">Request a new link</a>.</div>`;
     return;
   }
+  await renderKeyManager(card, session, tier);
+}
 
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/verify?token=${encodeURIComponent(token)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Verification failed');
+function _fmtDate(iso) {
+  return iso ? new Date(iso).toISOString().slice(0, 10) : '—';
+}
 
-    // Also stored for the "Try it" panels (P8 Task 5) on domain pages, so a
-    // visitor who verified once doesn't have to re-paste their key per function.
-    localStorage.setItem('pyvar_jwt', data.access_token);
+async function renderKeyManager(card, session, tier, freshKey) {
+  card.className = 'dash-card wide';
+  const listed = await _keysApi(session, 'GET', '');
+  if (listed.status === 401) { _signInAgain(card, 'Your session has ended.'); return; }
+  if (!listed.ok) {
+    card.replaceChildren(
+      _h('div', { class: 'dash-title' }, 'Could not load your keys'),
+      _h('div', { class: 'dash-body dash-error' }, listed.data.detail || 'Try again shortly.'),
+    );
+    return;
+  }
+  let keys = listed.data.keys;
 
-    card.innerHTML = '<div class="dash-title">You\'re verified</div>'
-      + '<div class="dash-body">Here\'s your API key (JWT), ' + data.tier + ' tier. It\'s shown once — copy it now.</div>'
-      + '<div class="dash-token" id="dashToken"></div>'
-      + '<span class="dash-copy" id="dashCopyBtn">copy</span>';
-    document.getElementById('dashToken').textContent = data.access_token;
-    const copyBtn = document.getElementById('dashCopyBtn');
+  // First sign-in ever: hand over a first key straight away, so there is nothing to
+  // work out. Only when the account has never had a key (a user who revoked them
+  // all is not given a surprise new one).
+  let created = freshKey || null;
+  if (!created && keys.length === 0) {
+    const first = await _keysApi(session, 'POST', '', { name: 'default' });
+    if (first.ok) {
+      created = first.data;
+      keys = (await _keysApi(session, 'GET', '')).data.keys || [];
+    }
+  }
+
+  const rerender = (fresh) => renderKeyManager(card, session, tier, fresh);
+  const parts = [
+    _h('div', { class: 'dash-title' }, 'Your API keys'),
+    _h('div', { class: 'dash-body' }, `${tier.charAt(0).toUpperCase() + tier.slice(1)} tier. A key lasts a year and works until you revoke it. `
+      + 'Treat it like a password: set it as PYVAR_API_KEY, never commit it.'),
+  ];
+
+  if (created) {
+    const keyBox = _h('div', { class: 'dash-token' }, created.key);
+    const copyBtn = _h('span', { class: 'dash-copy' }, 'copy');
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(data.access_token);
+      navigator.clipboard.writeText(created.key);
       copyBtn.textContent = 'copied!';
       setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
     });
-  } catch (e) {
-    // e.message can trace back to window.location.search (the ?token=...
-    // this function reads above) via the fetch URL and any error text a
-    // browser or server derives from it -- escape before reinterpreting as
-    // HTML, same rule as the comment above _escapeHtml() states for API
-    // response text.
-    const safeMessage = _escapeHtml((e && e.message) || 'The link may be invalid or expired.');
-    card.innerHTML = '<div class="dash-title">Verification failed</div>'
-      + `<div class="dash-body dash-error">${safeMessage} <a href="index.html#get-api-key">Register again</a>.</div>`;
+    parts.push(
+      _h('div', { class: 'dash-body' }, `New key “${created.name}”. It is shown only once; copy it now.`),
+      keyBox,
+      copyBtn,
+      _h('div', { class: 'dash-body key-hint' }, 'export PYVAR_API_KEY=' + created.prefix + '…'),
+    );
   }
+
+  const now = Date.now();
+  const rows = keys.map((k) => {
+    const expired = k.expires_at && new Date(k.expires_at).getTime() <= now;
+    const status = k.revoked_at ? 'revoked' : (expired ? 'expired' : 'active');
+    const action = status === 'active'
+      ? _h('button', { class: 'dash-btn', onclick: async () => {
+          if (!window.confirm('Revoke this key? Anything using it stops working immediately.')) return;
+          const r = await _keysApi(session, 'DELETE', `/${encodeURIComponent(k.id)}`);
+          if (r.ok) rerender(null);
+        } }, 'Revoke')
+      : document.createTextNode('');
+    return _h('tr', { class: 'key-' + status },
+      _h('td', {}, k.name), _h('td', { class: 'mono' }, k.prefix + '…'),
+      _h('td', {}, _fmtDate(k.created_at)), _h('td', {}, _fmtDate(k.expires_at)),
+      _h('td', {}, _fmtDate(k.last_used_at)), _h('td', {}, status), _h('td', {}, action));
+  });
+  if (rows.length) {
+    parts.push(_h('table', { class: 'key-table' },
+      _h('thead', {}, _h('tr', {}, ...['Name', 'Key', 'Created', 'Expires', 'Last used', 'Status', ''].map((c) => _h('th', {}, c)))),
+      _h('tbody', {}, ...rows)));
+  }
+
+  const nameInput = _h('input', { class: 'get-key-input', maxlength: '64', placeholder: 'name, e.g. laptop or CI', 'aria-label': 'Key name' });
+  const makeBtn = _h('button', { class: 'btn-green', onclick: async () => {
+    makeBtn.disabled = true;
+    const r = await _keysApi(session, 'POST', '', { name: nameInput.value.trim() || 'default' });
+    if (r.ok) { rerender(r.data); return; }
+    makeBtn.disabled = false;
+    errorEl.textContent = r.data.detail || 'Could not create a key.';
+  } }, 'Create another key');
+  const errorEl = _h('div', { class: 'dash-body dash-error' });
+  parts.push(_h('div', { class: 'get-key-form key-form' }, nameInput, makeBtn), errorEl);
+
+  card.replaceChildren(...parts);
 }
 
 // ── Search (P8 Task 4) ─────────────────────────────────────────────────────

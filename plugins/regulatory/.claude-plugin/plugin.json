@@ -1,6 +1,6 @@
 {
   "name": "pyvar-regulatory",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "30 functions: Basel III/IV, FRTB, ICAAP/SREP, MiFID II, EMIR, Solvency II, CRR2",
   "author": {
     "name": "Fibtec Limited",

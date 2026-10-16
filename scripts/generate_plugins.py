@@ -90,6 +90,15 @@ def main() -> None:
 
         shutil.copyfile(skill_md_path, plugin_dir / "SKILL.md")
 
+        # references/ (per-function parameter tables for the domain skills) ships with the
+        # plugin; copy it fresh so a file removed from the source can't linger in plugins/.
+        references_src = skill_md_path.parent / "references"
+        references_dst = plugin_dir / "references"
+        if references_dst.exists():
+            shutil.rmtree(references_dst)
+        if references_src.is_dir():
+            shutil.copytree(references_src, references_dst)
+
         plugin_json = {
             "name": plugin_name,
             "version": fm["version"],

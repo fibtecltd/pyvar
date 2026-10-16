@@ -28,7 +28,7 @@ startCommand:
       pyvarApiKey:
         type: "string"
         title: "pyvar API key"
-        description: "Free-tier key from https://www.pyvar.com#get-api-key"
+        description: "pyvar API key (pyvar_...), created on the dashboard after signing in at https://www.pyvar.com#get-api-key"
     # Matches .claude-plugin/plugin.json's userConfig.pyvar_api_key exactly --
     # same field, same free-tier source, just Smithery's own schema shape.
 

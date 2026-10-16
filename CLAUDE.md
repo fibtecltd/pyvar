@@ -467,6 +467,11 @@ pytest -v --cov=. --cov-report=term-missing
 6. Add engine tests verifying numerical properties
 7. Add API tests verifying auth, validation, tier enforcement
 8. Update this CLAUDE.md section 2 with the new files
+9. Regenerate the published Claude skills so they list the new function with real
+   parameters: `python3 scripts/generate_function_catalog.py`, then
+   `python3 scripts/sync_skills.py` (assign the function to a group in
+   `scripts/skill_specs/<domain>.json`), then `python3 scripts/generate_plugins.py`.
+   `tests/test_skills_sync.py` fails until all three are done.
 
 ### Adding a new domain (e.g. Credit Risk endpoints)
 1. Create schemas/credit.py, tasks/credit_task.py, api/routes/credit.py

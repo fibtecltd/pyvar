@@ -1,0 +1,64 @@
+name: pyvar-mcp publish
+
+# Triggered by pushing a tag like pyvar-mcp-v0.2.0 -- its own tag scheme, same
+# reasoning as pyvar-client-publish.yml and pyvar-jupyter-publish.yml: this
+# package's SemVer is independent of the API's and the other packages'.
+#
+# WHY THIS EXISTS: plugins/mcp/.claude-plugin/plugin.json launches the server
+# with `uvx pyvar-mcp`, which downloads it from PyPI on first use. Until this
+# workflow has run once, that name does not exist on PyPI and the plugin cannot
+# start for anyone (until it has run, pypi.org/pypi/pyvar-mcp/json is a 404).
+#
+# ONE-TIME MANUAL BOOTSTRAP REQUIRED (same as pyvar-client-publish.yml): create
+# the "pyvar-mcp" project on PyPI with Trusted Publishing for this exact
+# repo/workflow/environment (fibtecltd/pyvar, pyvar-mcp-publish.yml, "pypi")
+# BEFORE the first tag push -- or use PyPI's "pending publisher" flow (set up
+# from the PyPI UI) so this workflow can create the project on first publish.
+# No API token is stored anywhere: OIDC trusted publishing needs none.
+#
+# The first release is pyvar-mcp-v0.2.0 (the version in plugins/mcp/pyproject.toml).
+
+on:
+  push:
+    tags:
+      - "pyvar-mcp-v*"
+
+jobs:
+  build-and-publish:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing (OIDC) -- no API token needed
+      contents: read # required by actions/checkout -- declaring `permissions:` at all
+      # zeroes every unlisted scope, so without this the default GITHUB_TOKEN can't
+      # even read this (private) repo and checkout fails with "Repository not found"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Tag must match the package version
+        # A mismatched tag would publish a version nobody asked for (PyPI never
+        # allows re-uploading a version), so fail before building anything.
+        run: |
+          python3 - <<'PY'
+          import os, tomllib
+          with open("plugins/mcp/pyproject.toml", "rb") as fh:
+              version = tomllib.load(fh)["project"]["version"]
+          tag = os.environ["GITHUB_REF_NAME"].removeprefix("pyvar-mcp-v")
+          assert tag == version, f"tag {tag!r} != pyproject version {version!r}"
+          PY
+
+      - name: Build
+        working-directory: plugins/mcp
+        run: |
+          pip install build
+          python3 -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: plugins/mcp/dist

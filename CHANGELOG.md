@@ -109,6 +109,49 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **API keys: a free "key" was a 60-minute JWT, and a verified account could not
+  get another by email** — the credential every plugin user pasted once stopped
+  working an hour later; its tier was a claim inside the token (a Stripe upgrade
+  changed nothing until a new JWT was fetched); the emailed link was single use
+  and `POST /auth/register` for a verified address sent nothing, so only Google
+  sign-in could re-issue. New (`docs/plan-durable-api-keys.md`, migration
+  `0009_api_keys`): durable, revocable API keys (`pyvar_...`, 1 year, SHA-256
+  hashed, shown once, max 5 active) created from a signed-in session at
+  `POST/GET/DELETE /auth/api-keys` and managed on the dashboard; the register
+  form now doubles as sign-in for verified addresses (single-use 30-minute link,
+  one per 5 minutes per address, identical 202 for every outcome); a key's tier
+  is read from the database (Redis-cached 60 s) so upgrades apply, and a database
+  outage is a 503, never a 401. Keys cannot create keys. `pyvar_client.Client()`
+  reads `PYVAR_API_KEY` (client 0.2.0); `pyvar-mcp` 0.2.0 is launched with
+  `uvx pyvar-mcp` and has a PyPI trusted-publishing workflow. `X-Pyvar-Client`
+  is recorded (allowlisted) in the new `api_usage.client` column; no user
+  identifier is stored there. Privacy and terms text updated. Existing JWTs keep
+  working.
+
+- **Claude plugins: the 8 domain skills could not actually be used** — Usage
+  data for `pyvar-portfolio-analytics` (456 installs, 86 accounts ever active,
+  103 skill uses, 2 of 83 new accounts back the next day) pointed at the skill
+  itself. Each `SKILL.md` was a list of `pyvar.<domain>.<fn>(**params)` stubs:
+  no parameter names, no API key or base URL, no example, and a `pyvar.*`
+  Python namespace that does not exist (the real client is
+  `pyvar_client.Client(...).<domain>.<fn>`). 26 of market-risk's 68 function
+  names did not match a real endpoint, and 4 real ones were missing. The skills
+  are now rendered by `scripts/sync_skills.py` from `portal/functions.json` and
+  the live OpenAPI schema: a setup section (key, REST/client/MCP call shapes,
+  errors, the 10-calls/day free quota), two worked examples per domain that
+  `tests/test_skill_examples.py` re-runs against the real app, one-line
+  signatures with defaults, and `references/functions.md` with every
+  parameter's type and bounds. Hand-written domain caveats (regulatory
+  constants, known limitations, citations) are carried over verbatim in
+  `scripts/skill_specs/<skill>.tail.md`. `tests/test_skills_sync.py` fails when
+  a skill drifts from the catalog. Plugin versions: 1.1.0 (regulatory 1.2.0).
+
+- **Claude plugins: the 5 `arch-*` skills no longer present themselves as
+  general-purpose** — their descriptions matched generic FastAPI/Redis/Numba
+  questions, so Claude suggested them to people who were not working on pyvar.
+  They are contributor guides; the descriptions and a "Who this is for" note now
+  say so. Expect fewer installs of these five, not a regression.
+
 - **Portal "Try it" panel: percentage-parameter labels** — 120 parameters
   across 107 functions that are entered as a decimal fraction representing
   a percentage (`confidence_level=0.99`, `recovery_rate=0.4`,

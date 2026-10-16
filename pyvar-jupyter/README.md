@@ -17,7 +17,7 @@ Installs `pyvar-client` as a dependency automatically.
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key eyJ...          # or export PYVAR_API_KEY before starting the kernel
+%pyvar_key pyvar_...          # or export PYVAR_API_KEY before starting the kernel
 
 %pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015] portfolio_value=1000000
 ```
@@ -91,7 +91,7 @@ HTML rendering — useful in a loop or a script cell where you're calling
 from pyvar_client import Client
 import pyvar_jupyter
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 result = client.market_risk.historical_simulation_var(
     returns=[0.01, -0.02, 0.015], portfolio_value=1_000_000,
 )
@@ -111,7 +111,7 @@ for a follow-up once that metadata has a real client-facing source.
 ## Session config magics
 
 ```python
-%pyvar_key eyJ...              # set/replace the API key for this kernel (in-memory only)
+%pyvar_key pyvar_...              # set/replace the API key for this kernel (in-memory only)
 %pyvar_base_url http://localhost:8000   # point at a local/dev deployment instead of prod
 ```
 

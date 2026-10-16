@@ -1,6 +1,6 @@
 {
   "name": "pyvar-arch-data-ingestion",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Arch: Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation",
   "author": {
     "name": "Fibtec Limited",
