@@ -12,7 +12,7 @@ authors = [{ name = "Fibtec Limited" }]
 requires-python = ">=3.11"
 # pyvar-client does all the actual HTTP/auth/error-mapping work -- this
 # package only adds the IPython magic layer on top, not a second API client.
-dependencies = ["pyvar-client>=0.1.2", "ipython>=8.0"]
+dependencies = ["pyvar-client>=0.2.0", "ipython>=8.0"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",

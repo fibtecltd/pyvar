@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import os
+from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING
 
 from IPython.core.magic import Magics, line_cell_magic, line_magic, magics_class
 
@@ -34,6 +36,37 @@ from pyvar_jupyter._dispatch import (
     tokenize_key_value_line,
 )
 from pyvar_jupyter._display import PyvarResult
+
+if TYPE_CHECKING:
+    import httpx
+
+
+def _client_id() -> str:
+    """ "pyvar-jupyter/<version>", sent as X-Pyvar-Client. The API stores only an
+    allowlisted label like this one (api_usage.client), never anything about the user."""
+    try:
+        return f"pyvar-jupyter/{version('pyvar-jupyter')}"
+    except PackageNotFoundError:
+        return "pyvar-jupyter/dev"
+
+
+CLIENT_ID = _client_id()
+
+
+def _label_requests(client: Client) -> Client:
+    """Make this client's calls count as notebook usage rather than generic pyvar-client use.
+
+    pyvar_client stamps every request with its own name, and a per-request header beats a
+    client default, so the label is rewritten in an httpx request hook. A custom transport
+    would also work but makes httpx ignore HTTP(S)_PROXY, which breaks notebooks behind
+    a corporate proxy.
+    """
+
+    def _hook(request: httpx.Request) -> None:
+        request.headers["X-Pyvar-Client"] = CLIENT_ID
+
+    client._http.event_hooks["request"].append(_hook)
+    return client
 
 
 @magics_class
@@ -53,7 +86,7 @@ class PyvarMagics(Magics):
                 "PYVAR_API_KEY environment variable before starting the kernel. "
                 "Create an API key at https://www.pyvar.com#get-api-key."
             )
-        self._client = Client(api_key=api_key, base_url=self._base_url)
+        self._client = _label_requests(Client(api_key=api_key, base_url=self._base_url))
         return self._client
 
     @line_magic

@@ -127,12 +127,13 @@
 <!-- Google Identity Services — only renders a button if /public/config
      reports google_sign_in_enabled (pyvar.js::initGoogleSignIn). Harmless,
      unused network fetch otherwise; no credentials embedded here.
-     ?hl=en pins the button/consent UI to English regardless of the
-     viewer's browser or Google-account locale (GIS otherwise
-     auto-detects and renders e.g. "Accedi con Google" for an
-     Italian-locale visitor) -- every other string on pyvar.com is
-     English-only, so the one Google-rendered widget on the page
-     shouldn't be the exception. -->
+     Every other string on pyvar.com is English-only, so the one
+     Google-rendered widget on the page shouldn't be the exception: GIS
+     otherwise auto-detects the viewer's browser/Google-account language
+     and renders e.g. "Accedi con Google" for an Italian visitor.
+     The button's language is pinned by `locale: 'en'` in pyvar.js's
+     renderButton call. ?hl=en below only covers the library's own UI
+     (it does not reach the button iframe, which is what #381 assumed). -->
 <script src="https://accounts.google.com/gsi/client?hl=en" async defer onload="initGoogleSignIn()"></script>
 <script src="pyvar.js"></script>
 <script>document.write(buildNav('home'))</script>

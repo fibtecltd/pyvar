@@ -132,7 +132,7 @@ pyvar list-functions --domain market_risk</pre>
 <pre class="code-block" style="margin:20px 0">pip install pyvar-client</pre>
 <pre class="code-block" style="margin:20px 0">from pyvar_client import Client
 
-with Client(api_key="your-free-tier-key") as client:
+with Client(api_key="pyvar_...") as client:
     result = client.market_risk.historical_simulation_var(
         returns=[0.01, -0.02, 0.015, 0.008, -0.011],
         portfolio_value=1_000_000,
