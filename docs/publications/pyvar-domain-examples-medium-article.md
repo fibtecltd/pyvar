@@ -69,7 +69,7 @@ jupyter notebook pyvar-jupyter/examples/04_credit_risk_expected_loss.ipynb
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key your-free-tier-key
+%pyvar_key pyvar_...
 
 %pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=5000000
 ```

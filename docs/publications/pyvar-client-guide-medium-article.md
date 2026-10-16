@@ -21,18 +21,18 @@ pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricin
 pip install pyvar-client
 ```
 
-Every call needs a bearer token — get a free-tier API key at [pyvar.com](https://www.pyvar.com#get-api-key) (no password, no credit card). The client has no registration flow of its own; that's a one-time human step via email verification.
+Every call needs an API key. Sign in at [pyvar.com](https://www.pyvar.com#get-api-key) with Google or an emailed link (no password, no credit card) and create a key on the dashboard: it starts with `pyvar_`, is shown once, lasts a year and can be revoked there. The client has no registration flow of its own; it reads the key from the `PYVAR_API_KEY` environment variable when you call `Client()` with no arguments.
 
 ```python
 from pyvar_client import Client
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 ```
 
 Or as a context manager, which closes the underlying connection pool on exit:
 
 ```python
-with Client(api_key="eyJ...") as client:
+with Client(api_key="pyvar_...") as client:
     ...
 ```
 
@@ -98,7 +98,7 @@ Every non-2xx response raises a typed exception, not a generic HTTP error:
 
 | Exception | Status | What it carries |
 |---|---|---|
-| `PyvarAuthError` | 401 | Token missing, invalid, or expired |
+| `PyvarAuthError` | 401 | Key missing, invalid, revoked or expired |
 | `PyvarValidationError` | 422 | `.detail` — field-level validation errors |
 | `PyvarRateLimitError` | 429 | `.retry_after` (seconds), from the response header |
 | `PyvarComputeError` | — | A VaR job reached `status="failure"` server-side; `.task_id`, `.detail` |
@@ -127,7 +127,7 @@ Every synchronous domain function is idempotent — pure compute, no side effect
 `pip install pyvar-client` also installs a `pyvar` command — stdlib `argparse` only, no extra install step:
 
 ```bash
-export PYVAR_API_KEY="eyJ..."
+export PYVAR_API_KEY="pyvar_..."
 
 pyvar market_risk historical_simulation_var --params-json \
     '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'
@@ -166,7 +166,7 @@ pip install pyvar-client
 ```python
 from pyvar_client import Client
 
-with Client(api_key="your-free-tier-key") as client:
+with Client(api_key="pyvar_...") as client:
     result = client.market_risk.historical_simulation_var(
         returns=[0.01, -0.02, 0.015, 0.008, -0.011],
         portfolio_value=1_000_000,

@@ -1,38 +1,16 @@
-# Plan: durable API keys, sign-in for returning users, and a plugin that can start
+# API keys, sign-in and the plugin launch path
 
-Status: implemented in PR #388 (branch `claude/fibtec-redesign-continue-3i4abm`).
-Decisions below were taken by the project owner on 2026-10-16; each one is a choice
-between named alternatives, recorded so it is not re-litigated by accident.
-
-## Why
-
-Directory usage for `pyvar-portfolio-analytics` (456 installs, 366 installer accounts,
-86 accounts ever active, 103 skill uses, 2 of 83 new accounts back the next day, 0 errors
-in 27,003 loads) said people install the plugins and then cannot get anything done.
-Two layers of cause:
-
-1. **The skills gave Claude nothing to run** (no key, URL, parameters or namespace that
-   exists; 26 of market-risk's 68 names were not real endpoints). Fixed by
-   `scripts/sync_skills.py` (Part 1 of the PR).
-2. **The credential was unusable for a plugin.** The "API key" was the session JWT:
-   - valid 60 minutes (`jwt_expiry_minutes`), shown once on the dashboard;
-   - the tier is a claim inside it, so a Stripe upgrade changed nothing until a new JWT
-     was fetched (and `docs`/the REST guide said no other refresh existed);
-   - the emailed verification link is single use, and `POST /auth/register` for an
-     already-verified address sent nothing, so only "Sign in with Google" could issue a
-     second token. A user who verified a non-Google address could never get another;
-   - `pyvar-mcp` asks for this key once at install, so it stopped working an hour later;
-   - `pyvar-mcp` was not on PyPI (`pypi.org/pypi/pyvar-mcp/json` was a 404), and a plugin
-     install never installs the `pyvar-mcp` command it launches.
+Status: in place. This describes how authentication works today. The choices below are
+between named alternatives, recorded so they are not re-litigated by accident.
 
 ## Decisions
 
 | Question | Chosen | Rejected |
 |---|---|---|
-| Key model | Durable, revocable, hashed API keys | Just lengthen the JWT (cannot be revoked, tier stays stale); short JWT + refresh tokens (most moving parts, awkward for paste-once users) |
-| Returning users on non-Google email | Email sign-in link through the existing register form, plus Google | Google only; passwords (contradicts the privacy policy's "no password") |
+| Key model | Durable, revocable, hashed API keys | Just lengthen the session token (cannot be revoked, tier goes stale); short session token plus refresh tokens (most moving parts, awkward for paste-once users) |
+| Returning users on a non-Google email | Email sign-in link through the register form, plus Google | Google only; passwords (contradicts the privacy policy's "no password") |
 | Default key lifetime | 1 year, then rotate | Never expires; 90 days |
-| `pyvar-mcp` delivery | PyPI via trusted publishing, plugin launches `uvx pyvar-mcp` | Git-based `uvx` stopgap; both |
+| `pyvar-mcp` delivery | PyPI via trusted publishing, plugin launches `uvx pyvar-mcp` | Git-based `uvx`; both |
 
 ## Design
 
@@ -44,10 +22,10 @@ Two layers of cause:
   (CLAUDE.md §3.3); revoking sets `revoked_at`.
 - **Authentication**: `get_current_user` accepts either a session JWT or a `pyvar_` key and
   returns the same `TokenPayload`, so rate limiting (one per-user bucket), billing and the
-  VaR audit see one account either way. A key's **tier is read from the database**, not
-  from a claim, so an upgrade or an automatic downgrade applies to keys within the cache
-  TTL.
-- **Cost of the extra lookup**: a resolved key is cached in Redis for
+  VaR audit see one account either way. A JWT's tier is a claim inside it; a key's tier is
+  **read from the database**, so an upgrade or an automatic downgrade applies to keys
+  within the cache TTL.
+- **Cost of the lookup**: a resolved key is cached in Redis for
   `api_key_cache_ttl_seconds` (60 s). A hit costs one Redis GET and no database
   connection (the async pool is 5 + 5). Revoking deletes the cache entry, so revocation is
   immediate on the same Redis. Unknown keys are negatively cached for 30 s.
@@ -61,53 +39,70 @@ Two layers of cause:
   requires a signed-in **session** (JWT). An API key cannot create or revoke keys, so a
   leaked key cannot mint replacements. Max 5 active keys and 50 in total per account.
 - **Returning users**: `POST /auth/register` for an already-verified, non-suppressed
-  address now emails a single-use sign-in link (valid `signin_link_expiry_minutes` = 30,
+  address emails a single-use sign-in link (valid `signin_link_expiry_minutes` = 30,
   at most one per `signin_link_min_interval_seconds` = 300 per address, on top of the
-  existing per-IP limit). Every outcome returns the identical 202, so the form still
-  cannot be used to probe which addresses have accounts. `verified_at` is not overwritten
-  by a sign-in (the daily "new verified accounts" count reads it).
-- **Dashboard** (`portal/dashboard.html`): first sign-in creates a first key
+  per-IP limit). Every outcome returns the identical 202, so the form cannot be used to
+  probe which addresses have accounts. `verified_at` is not overwritten by a sign-in (the
+  daily "new verified accounts" count reads it).
+- **Dashboard** (`portal/dashboard.html`): the first sign-in creates a first key
   automatically (only if the account has *never* had one); afterwards it lists, creates
-  and revokes keys. The session JWT stays in `localStorage` under `pyvar_jwt`, as before,
-  for the "Try it" panels. All API text is inserted with `textContent`.
-- **Clients**: `pyvar_client.Client()` reads `PYVAR_API_KEY`; the client and `pyvar-mcp`
-  send `X-Pyvar-Client: <name>/<version>`. The API records an allowlisted name in
-  `api_usage.client` (otherwise `other`, or NULL if absent). **No user identifier is
-  stored in `api_usage`**; adoption by surface is visible, per-user retention is not.
-  `api_keys.last_used_at` gives "keys used in the last 7/30 days" without logging
-  per-request identity.
+  and revokes keys. The session JWT stays in `localStorage` under `pyvar_jwt` for the
+  "Try it" panels. All API text is inserted with `textContent`.
+- **Sign-in button**: the Google button on the home page is pinned to English with the
+  `locale: 'en'` option of `renderButton`. The `hl` parameter on the library URL does not
+  reach the button iframe. `tests/test_portal_google_signin.py` fails on any button
+  without the option.
+- **Clients**: `pyvar_client.Client()` reads `PYVAR_API_KEY`. `pyvar-client`, `pyvar-mcp`
+  and `pyvar-jupyter` each send `X-Pyvar-Client: <name>/<version>`; `pyvar-jupyter` wraps
+  `pyvar-client`, so it rewrites the header in an httpx request hook (a custom transport
+  would make httpx ignore `HTTP(S)_PROXY`). The API records an allowlisted name in
+  `api_usage.client` (`pyvar-client`, `pyvar-mcp`, `pyvar-jupyter`, `pyvar-cli`, otherwise
+  `other`, or NULL if absent). The `pyvar` command-line tool goes through the same client
+  transport, so it is reported as `pyvar-client`; `pyvar-cli` is allowlisted but not sent.
+  **No user identifier is stored in `api_usage`**; adoption by surface is visible,
+  per-user retention is not. `api_keys.last_used_at` gives "keys used in the last 7/30
+  days" without logging per-request identity.
 - **Plugins**: the 8 domain skills tell Claude to send people to the dashboard for a key;
-  `plugins/mcp` launches `uvx pyvar-mcp`; `.github/workflows/pyvar-mcp-publish.yml`
-  publishes on a `pyvar-mcp-v*` tag.
+  `plugins/mcp` launches `uvx pyvar-mcp`. Each package publishes to PyPI from its own
+  tag (`pyvar-client-v*`, `pyvar-mcp-v*`, `pyvar-jupyter-v*`) through trusted publishing
+  (OIDC, GitHub environment `pypi`, no token stored).
+
+## Settings
+
+All in `config.py`; each is an environment variable of the same name in upper case.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `jwt_expiry_minutes` | 60 | Session token lifetime |
+| `api_key_default_expiry_days` | 365 | Key lifetime |
+| `api_key_max_active_per_user` | 5 | Active keys per account |
+| `api_key_max_total_per_user` | 50 | Keys per account including revoked and expired |
+| `api_key_cache_ttl_seconds` | 60 | Redis cache for a resolved key (and the longest a tier change waits) |
+| `api_key_failed_attempts_per_minute` | 30 | Unknown-key attempts per client address before 429 |
+| `signin_link_expiry_minutes` | 30 | Sign-in link lifetime |
+| `signin_link_min_interval_seconds` | 300 | Minimum gap between sign-in links to one address |
+
+The 30-second negative cache for unknown keys is the module constant `_NEGATIVE_TTL_SECONDS`
+in `api/middleware/api_keys.py`.
+
+## Where the code is
+
+- `api/middleware/api_keys.py`: key generation, hashing, the cache, the failure counter.
+- `api/middleware/auth.py`: `get_current_user` (key or session), `require_session`.
+- `api/routes/auth.py`, `schemas/auth.py`: register and sign-in, verify, Google, key routes.
+- `storage/models.py` (`ApiKey`, `ApiUsage.client`), `migrations/versions/0009_api_keys.py`.
+- `portal/dashboard.html`, `portal/pyvar.js`: the dashboard and the sign-in button.
 
 ## Security notes
 
 - Keys never reach logs, Sentry or the database in clear: creation logs only the prefix.
-- `portal/privacy.html` and `portal/terms.html` now say we store a hash, a name, a prefix and
-  timestamps, and that a lost key cannot be recovered. **Needs the owner's read.**
-- WebSocket streaming (`/var/stream/{task_id}`) still accepts a session JWT only: a key in a query
+- `portal/privacy.html` and `portal/terms.html` say what is stored (a hash, a name, a
+  prefix and timestamps) and that a lost key cannot be recovered.
+- WebSocket streaming (`/var/stream/{task_id}`) accepts a session JWT only: a key in a query
   string would end up in access logs. Revisit before offering keys there.
-- Existing JWTs keep working everywhere; nothing is migrated.
 
-## Rollout (order matters)
-
-1. Merge. The pipeline runs the Alembic step (`0009_api_keys`: new table and
-   `api_usage.client`, purely additive) before the new API tasks start.
-2. Approve **Prod promptly** after Dev is green. The plugin directory scans `master` about
-   every 6 hours and auto-publishes the 12 plugins that are not reviewer-gated, and their
-   skills now describe a dashboard that creates keys. Merging and then waiting days to
-   promote leaves a window where the skills describe something production does not do yet.
-3. Do the PyPI bootstrap for `pyvar-mcp` (create the project / pending publisher with
-   trusted publishing for `fibtecltd/pyvar`, `pyvar-mcp-publish.yml`, environment `pypi`),
-   then push the tag `pyvar-mcp-v0.2.0`. `pyvar-jupyter-publish.yml` has the same
-   one-time bootstrap and `pyvar-jupyter` was also absent from PyPI when checked.
-4. Push `pyvar-client-v0.2.0` to publish the client that reads `PYVAR_API_KEY`.
-5. Confirm the production value of `JWT_EXPIRY_MINUTES` (the repo default is 60).
-
-## Not done here (decide separately)
+## Not covered (decide separately)
 
 - Per-user retention analytics (needs a user dimension in usage records: a privacy-policy
   decision).
 - Key use over WebSocket, scoped keys (read-only / per-domain), and a per-key rate bucket.
-- Rewriting `docs/publications/*` articles that describe the old JWT flow; they record what
-  was true when published.

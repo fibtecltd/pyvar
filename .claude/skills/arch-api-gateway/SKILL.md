@@ -3,11 +3,11 @@ name: pyvar-arch-api-gateway
 description: >
   Architecture notes for contributors to the pyvar codebase (github.com/fibtecltd/pyvar): how
   the pyvar API gateway is built: FastAPI routers and route conventions, Pydantic v2 request
-  models, JWT authentication, tier-based rate limiting and orjson responses. Use only when
+  models, session-token and API-key authentication, tier-based rate limiting and orjson responses. Use only when
   working inside a pyvar checkout or changing pyvar itself; not for general FastAPI, Redis,
   Numba or similar questions, and not needed to call the pyvar API (use a domain skill such as
   pyvar-market-risk for that).
-version: "1.1.0"
+version: "1.1.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [fastapi, pydantic, JWT, orjson, rate-limiting, OpenAPI, CORS,
        middleware, authentication, api-gateway]
@@ -22,7 +22,8 @@ tags: [fastapi, pydantic, JWT, orjson, rate-limiting, OpenAPI, CORS,
 |---|---|
 | **FastAPI** | Async HTTP framework, OpenAPI auto-docs |
 | **Pydantic v2** | Request validation, response serialisation |
-| **JWT (python-jose)** | Subscriber authentication & token refresh |
+| **JWT (python-jose)** | Session tokens (60 minutes): what the dashboard holds, and what manages API keys |
+| **API keys** | Durable `pyvar_` keys for plugins and scripts: SHA-256 stored, Redis-cached lookup |
 | **orjson** | High-performance JSON (3-10x faster than stdlib) |
 | **Rate limiting** | slowapi / redis-py sliding window per subscriber |
 
@@ -90,34 +91,42 @@ class OrjsonResponse(JSONResponse):
         )
 ```
 
-## JWT middleware
+## Authentication: session JWT or API key
 ```python
-# api/middleware/auth.py — HTTPBearer + python-jose, not OAuth2PasswordBearer
-# (there is no token-issuing /auth/token OAuth2 flow; auth.py mints JWTs from
-# a plain email/password register+login pair instead).
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
-
+# api/middleware/auth.py — HTTPBearer for both credentials. Session tokens are
+# python-jose JWTs; keys are "pyvar_" + 32 random bytes (api/middleware/api_keys.py).
+# There is no password: sign-in is an emailed link or Google (api/routes/auth.py),
+# which returns a 60-minute session token; the session creates and revokes keys.
 bearer_scheme = HTTPBearer()
 
 class TokenPayload:
-    def __init__(self, sub: str, tier: str = "free"):
+    def __init__(self, sub: str, tier: str = "free", auth_method: str = "jwt", key_id=None):
         self.user_id = sub
+        self.auth_method = auth_method  # "jwt" | "api_key"
         self.tier = tier  # free | pro | enterprise | internal
         self.max_simulations = {
             "free": 10_000, "pro": 100_000, "enterprise": 500_000, "internal": 500_000,
         }.get(tier, 10_000)
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> TokenPayload:
-    try:
-        payload = jwt.decode(credentials.credentials, cfg.jwt_secret, algorithms=[cfg.jwt_algorithm])
-        return TokenPayload(sub=payload["sub"], tier=payload.get("tier", "free"))
-    except JWTError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+async def get_current_user(request: Request, credentials = Depends(bearer_scheme)) -> TokenPayload:
+    token = credentials.credentials
+    if looks_like_api_key(token):  # starts with "pyvar_"
+        payload = await _payload_from_api_key(request, token)  # tier read from the database
+    else:
+        payload = decode_token_payload(token)  # 401 on JWTError, tier from the claim
+    request.state.pyvar_tier = payload.tier  # the usage middleware reads it from here
+    return payload
+
+async def require_session(user = Depends(get_current_user)) -> TokenPayload:
+    # key management routes only: an API key (auth_method "api_key") gets 403
 ```
+A key is resolved by its SHA-256: a Redis hit (60 s) costs one GET and no database
+connection; a miss reads `api_keys` joined to `users` and caches the result. An unknown,
+revoked or expired key is a 401 (cached as invalid for 30 s), more than 30 of them a minute
+from one address is a 429, and a database error is a 503, never a 401. Redis errors fall
+through to the database. `api/middleware/api_keys.py` has the details and
+`docs/plan-durable-api-keys.md` the design.
+
 `"internal"` is a distinct tier from `"enterprise"` — it's the service JWT
 `pyvar-cdk/lambda/public_data_publisher/handler.py` mints every 15 minutes to
 refresh the homepage demo, kept separate so its calls don't pollute real

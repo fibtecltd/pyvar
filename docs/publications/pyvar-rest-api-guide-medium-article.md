@@ -15,9 +15,9 @@
 
 ![Three surfaces, one set of 385 functions — pyvar-jupyter wraps pyvar-client wraps the REST API, this guide covers the foundation layer](./assets/diagrams/layers-rest-api.svg)
 
-## Get an account: register, verify, get a token
+## Get an account: register, sign in, create an API key
 
-There's no password and no credit card for the free tier — just an email:
+There's no password and no credit card for the free tier — just an email. The same call both registers a new address and signs a returning one in:
 
 ```bash
 curl -X POST https://www.pyvar.com/api/v1/auth/register \
@@ -25,21 +25,30 @@ curl -X POST https://www.pyvar.com/api/v1/auth/register \
   -d '{"email": "you@example.com"}'
 ```
 
-Returns `202 Accepted` immediately (whether or not the email exists yet, or is disposable/suppressed — the response shape never reveals which, so the registration flow can't be used to probe email validity). A verification link arrives by email; clicking it hits:
+Returns `202 Accepted` immediately (whether or not the email exists yet, or is disposable/suppressed — the response shape never reveals which, so the registration flow can't be used to probe email validity). A link arrives by email (single-use; a sign-in link for an existing account is valid for 30 minutes, at most one is sent every 5 minutes per address). Clicking it hits:
 
 ```bash
 curl "https://www.pyvar.com/api/v1/auth/verify?token=..."
 ```
 
-which returns your first JWT:
+which returns a 60-minute session token. ("Sign in with Google" on the homepage returns the same thing.) The session is only for managing keys:
 
 ```json
 {"access_token": "eyJ...", "tier": "free"}
 ```
 
-That token is a bearer credential — every subsequent call sends it as `Authorization: Bearer eyJ...`. There's no login/refresh endpoint; this is the one and only place a free-tier token gets issued (Pro accounts get a second one, see below).
+Use it to create an API key — the credential you actually keep:
 
-![Getting a token: register returns 202 Accepted, click the emailed link to verify, verify returns the first access token, then Bearer eyJ... is sent on every call from here on](./assets/diagrams/rest-auth-sequence.svg)
+```bash
+curl -X POST https://www.pyvar.com/api/v1/auth/api-keys \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -d '{"name": "laptop"}'
+# {"key": "pyvar_...", "prefix": "pyvar_AbCd1234", "expires_at": "...", ...}
+```
+
+The key is shown once; pyvar stores only its hash. Every call then sends `Authorization: Bearer pyvar_...` (the Python client and the MCP server read it from `PYVAR_API_KEY`). A key lasts a year, you can hold up to five at a time, and `DELETE /auth/api-keys/{id}` (or the dashboard) revokes one immediately. A key cannot create or revoke keys; only a signed-in session can. The dashboard does all of this without `curl`: it creates your first key on first sign-in and lists, creates and revokes keys after that. Lost a key? Sign in again and create a new one. (A session token and a key both work as a bearer credential on every endpoint.)
+
+![Getting an API key: register returns 202 Accepted, click the emailed link or sign in with Google to get a 60-minute session, POST /auth/api-keys from that session returns a pyvar_ key shown once, then Bearer pyvar_... is sent on every call, lasts a year and can be revoked any time](./assets/diagrams/rest-auth-sequence.svg)
 
 ## Your first computation
 
@@ -47,7 +56,7 @@ Every one of pyvar's 385 functions is a `POST` under `/api/v1/<domain>/<function
 
 ```bash
 curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var \
-  -H "Authorization: Bearer eyJ..." \
+  -H "Authorization: Bearer pyvar_..." \
   -H "Content-Type: application/json" \
   -d '{
     "returns": [0.01, -0.02, 0.015, 0.008, -0.011],
@@ -64,12 +73,12 @@ The 8 domain prefixes: `/market-risk`, `/credit-risk`, `/derivatives`, `/liquidi
 
 ```bash
 curl -X POST https://www.pyvar.com/api/v1/var/compute \
-  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -H "Authorization: Bearer pyvar_..." -H "Content-Type: application/json" \
   -d '{"portfolio_value": 1000000, "returns": [...], "n_simulations": 100000}'
 # {"task_id": "..."}
 
 curl "https://www.pyvar.com/api/v1/var/result/<task_id>" \
-  -H "Authorization: Bearer eyJ..."
+  -H "Authorization: Bearer pyvar_..."
 # {"status": "success", "result": {...}}   (or "pending" / "failure")
 ```
 
@@ -77,7 +86,7 @@ curl "https://www.pyvar.com/api/v1/var/result/<task_id>" \
 
 ## Tiers and what they actually control
 
-Your tier is baked into the JWT itself as a claim — decoded once per request, no database lookup on the hot path:
+A session token carries your tier as a claim, decoded once per request with no database lookup. An API key looks your tier up (cached for up to 60 seconds), so an upgrade applies to a key almost immediately:
 
 | Tier | Max simulations per `var.compute` call | Daily request cap (all endpoints combined) |
 |---|---|---|
@@ -122,18 +131,18 @@ This isn't a silent downgrade — it writes an audit record and sends a notifica
 
 ```bash
 curl -X POST https://www.pyvar.com/api/v1/billing/checkout \
-  -H "Authorization: Bearer eyJ..."
+  -H "Authorization: Bearer pyvar_..."
 # {"checkout_url": "https://checkout.stripe.com/..."}
 ```
 
-Redirect to that URL — it's Stripe's own hosted Checkout page, so pyvar's infrastructure never touches card details directly. After payment, Stripe redirects back to pyvar's dashboard with a `?checkout_session_id=...` query parameter, which the frontend exchanges for a fresh token:
+Redirect to that URL — it's Stripe's own hosted Checkout page, so pyvar's infrastructure never touches card details directly. After payment, Stripe redirects back to pyvar's dashboard with a `?checkout_session_id=...` query parameter, which the frontend exchanges for a fresh session token:
 
 ```bash
 curl "https://www.pyvar.com/api/v1/billing/checkout/complete?session_id=cs_..."
 # {"access_token": "eyJ...", "tier": "pro"}
 ```
 
-That exchange step matters more than it looks: your existing JWT's `tier` claim doesn't update itself just because Stripe processed a payment — the database changes immediately (via a webhook Stripe calls server-to-server), but an *already-issued* token keeps whatever tier it was minted with until you fetch a new one. `GET /billing/checkout/complete` is that one bridge — without it, a successful subscription would be real in the database but invisible to the API until some other token refresh happened. There isn't one; this is it.
+If you use a session token, that exchange step matters: your existing JWT's `tier` claim doesn't update itself just because Stripe processed a payment — the database changes immediately (via a webhook Stripe calls server-to-server), but an *already-issued* token keeps whatever tier it was minted with until you fetch a new one. `GET /billing/checkout/complete` is that one bridge — without it, a successful subscription would be real in the database but invisible to a session token until it was replaced. API keys do not need this step: they read the tier from the database, so a key created before the upgrade is Pro as soon as its short cache entry lapses.
 
 ## What's deliberately out of scope today
 
@@ -142,16 +151,20 @@ Enterprise tier is a manual, sales-assisted process — there's no self-service 
 ## Try it
 
 ```bash
-# 1. Register (check your email for the link)
+# 1. Register or sign in (check your email for the link)
 curl -X POST https://www.pyvar.com/api/v1/auth/register \
   -H "Content-Type: application/json" -d '{"email": "you@example.com"}'
 
-# 2. Verify (from the emailed link) -- copy the access_token
+# 2. Verify (from the emailed link) -- copy the access_token (a 60-minute session)
 curl "https://www.pyvar.com/api/v1/auth/verify?token=..."
 
-# 3. Compute something
+# 3. Create an API key with that session -- copy the key, it is shown once
+curl -X POST https://www.pyvar.com/api/v1/auth/api-keys \
+  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" -d '{}'
+
+# 4. Compute something
 curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var \
-  -H "Authorization: Bearer eyJ..." -H "Content-Type: application/json" \
+  -H "Authorization: Bearer pyvar_..." -H "Content-Type: application/json" \
   -d '{"returns": [0.01,-0.02,0.015,0.008,-0.011], "portfolio_value": 1000000}'
 ```
 
@@ -159,11 +172,12 @@ curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var 
 
 ## Sources
 
-- [`api/routes/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/auth.py) — registration, verification, JWT issuance.
-- [`api/middleware/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/auth.py) — JWT decoding, `TokenPayload`, per-tier `max_simulations`.
+- [`api/routes/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/auth.py) — registration and sign-in, the session token, API key management.
+- [`api/middleware/auth.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/auth.py) — session-token and API-key authentication, `TokenPayload`, per-tier `max_simulations`.
+- [`api/middleware/api_keys.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/api_keys.py) — key generation, hashing, the cache and the failure modes.
 - [`api/middleware/rate_limit.py`](https://github.com/fibtecltd/pyvar/blob/master/api/middleware/rate_limit.py) — daily and monthly request-count caps, the shared-scope design, downgrade trigger.
 - [`api/routes/var.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/var.py) — the async `var.compute`/`var.result` endpoints, the monthly simulation-count cap.
-- [`api/routes/billing.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/billing.py) — Stripe Checkout flow, the JWT-staleness bridge, webhook-driven tier changes.
+- [`api/routes/billing.py`](https://github.com/fibtecltd/pyvar/blob/master/api/routes/billing.py) — Stripe Checkout flow, the session-token refresh bridge, webhook-driven tier changes.
 - [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py) — the actual numeric limits (`rate_limit_free_daily`, `rate_limit_pro_daily`, `rate_limit_pro_monthly_requests`, `rate_limit_pro_monthly_simulations`) quoted directly.
 - [`main.py`](https://github.com/fibtecltd/pyvar/blob/master/main.py) — router registration, the 8 domain prefixes, `/docs` OpenAPI UI.
 - [`docs/publications/pyvar-client-guide-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-client-guide-medium-article.md), [`pyvar-jupyter-guide-medium-article.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-jupyter-guide-medium-article.md) — the companion SDK/notebook guides this piece complements without repeating.

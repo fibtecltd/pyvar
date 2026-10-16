@@ -87,7 +87,7 @@ python scripts/p7_bench.py   # the actual benchmark script cited above, runs loc
 ```python
 from pyvar_client import Client
 
-with Client(api_key="your-free-tier-key") as client:
+with Client(api_key="pyvar_...") as client:
     result = client.market_risk.historical_simulation_var(
         returns=[0.01, -0.02, 0.015, 0.008, -0.011],
         portfolio_value=1_000_000,

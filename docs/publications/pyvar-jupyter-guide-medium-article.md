@@ -26,7 +26,7 @@ Installs `pyvar-client` automatically. In a notebook cell:
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key eyJ...  # or export PYVAR_API_KEY before starting the kernel
+%pyvar_key pyvar_...  # or export PYVAR_API_KEY before starting the kernel
 ```
 
 ## Your first call
@@ -90,7 +90,7 @@ empirical loss quantile — making no distributional assumption.
 from pyvar_client import Client
 import pyvar_jupyter
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 result = client.market_risk.historical_simulation_var(
     returns=[0.01, -0.02, 0.015], portfolio_value=1_000_000,
 )
@@ -102,7 +102,7 @@ The wrapped object still behaves like the underlying dict — `show()` only chan
 ## Session config, without repeating yourself
 
 ```python
-%pyvar_key eyJ...              # set/replace the API key for this kernel (in-memory only)
+%pyvar_key pyvar_...              # set/replace the API key for this kernel (in-memory only)
 %pyvar_base_url http://localhost:8000   # point at a local/dev deployment instead of prod
 ```
 
@@ -120,7 +120,7 @@ A synthetic, fixed-seed daily return series, run through `var.compute` — the o
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key eyJ...
+%pyvar_key pyvar_...
 
 import random
 random.seed(7)
@@ -259,7 +259,7 @@ Then, in a fresh notebook:
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key your-free-tier-key
+%pyvar_key pyvar_...
 
 %pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015,0.008,-0.011] portfolio_value=1000000
 ```

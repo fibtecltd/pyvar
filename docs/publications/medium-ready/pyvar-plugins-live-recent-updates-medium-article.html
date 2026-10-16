@@ -98,13 +98,13 @@ docker compose up
 <tbody>
 <tr>
 <td>Steps</td>
-<td>Register → check inbox → click the verification link</td>
+<td>Enter your address → check inbox → click the link</td>
 <td>Click the sign-in button</td>
 </tr>
 <tr>
 <td>Result</td>
-<td>A JWT, after the link is clicked</td>
-<td>A JWT, immediately</td>
+<td>A signed-in session, after the link is clicked</td>
+<td>A signed-in session, immediately</td>
 </tr>
 <tr>
 <td>Verification</td>
@@ -113,7 +113,7 @@ docker compose up
 </tr>
 </tbody>
 </table>
-<p><code>POST /auth/google</code> verifies the ID token Google Identity Services hands the frontend — signature, issuer, audience, expiry — and either creates a new verified account or signs into an existing one matched by email. Both paths issue the same kind of JWT, usable identically across every API call afterward.</p>
+<p><code>POST /auth/google</code> verifies the ID token Google Identity Services hands the frontend — signature, issuer, audience, expiry — and either creates a new verified account or signs into an existing one matched by email. Both paths end in the same place: a signed-in session on the dashboard, where you create the API key (<code>pyvar_...</code>, valid for a year, revocable) that plugins and scripts use. The same email form signs a returning user in.</p>
 <h2>Try it</h2>
 <pre><code>/plugin marketplace add fibtecltd/pyvar
 /plugin install pyvar-market-risk@pyvar-marketplace   # any of the 13 published skills

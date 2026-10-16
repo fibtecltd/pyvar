@@ -22,6 +22,24 @@ list. Not independently validated for regulatory use — see
 
 ---
 
+## Using pyvar.com
+
+The hosted API at <https://www.pyvar.com> is free to try (10 calls a day on the free tier).
+Sign in at <https://www.pyvar.com#get-api-key> with Google or an emailed link, then create an
+API key on the dashboard. A key starts with `pyvar_`, is shown once, lasts a year and can be
+revoked there. Send it as `Authorization: Bearer pyvar_...`, or set `PYVAR_API_KEY`.
+
+| Surface | Install |
+|---|---|
+| Claude Code skills | `/plugin marketplace add fibtecltd/pyvar`, then `/plugin install pyvar-market-risk@pyvar-marketplace` (one skill per domain) |
+| MCP server | `/plugin install pyvar-mcp@pyvar-marketplace`, which starts `uvx pyvar-mcp` |
+| Python client | `pip install pyvar-client` (`Client()` reads `PYVAR_API_KEY`) |
+| Notebooks | `pip install pyvar-jupyter`, then `%load_ext pyvar_jupyter` |
+
+How keys work, and their settings: `docs/plan-durable-api-keys.md`.
+
+---
+
 ## Repository layout
 
 ```
@@ -43,7 +61,7 @@ pyvar/
 ├── schemas/var.py              ← Pydantic v2 request/response models
 ├── ingestion/                  ← Polars lazy scan + PyArrow I/O
 ├── tasks/var_task.py           ← Celery task wrapping the engine
-├── api/                        ← FastAPI routes + JWT middleware
+├── api/                        ← FastAPI routes + session-token and API-key middleware
 ├── storage/                    ← SQLAlchemy ORM + S3 Parquet writer
 ├── observability/              ← Prometheus + Sentry + structlog
 ├── ui/app.py                   ← Streamlit dashboard
@@ -52,7 +70,8 @@ pyvar/
 ├── migrations/                 ← Alembic migrations
 │   └── versions/
 │       ├── 0001_initial.py     ← var_jobs audit table
-│       └── 0002_users_and_tier.py
+│       ├── 0002_users_and_tier.py
+│       └── …                   ← through 0009_api_keys.py (see the directory)
 │
 ├── scripts/
 │   ├── db.py                   ← Alembic CLI wrapper
@@ -110,7 +129,7 @@ docker run -d --name pyvar-postgres -p 5432:5432 \
 python scripts/db.py upgrade
 ```
 
-Creates: `alembic_version`, `var_jobs`, `users` tables.
+Creates: `alembic_version`, `var_jobs`, `users`, `api_usage`, `api_keys`, `billing_events` tables.
 To review SQL without applying: `cat scripts/upgrade_head.sql`
 
 ### 4. Generate fixture data

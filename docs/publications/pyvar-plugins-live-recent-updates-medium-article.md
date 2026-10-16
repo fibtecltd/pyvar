@@ -49,11 +49,11 @@ That's the whole setup. No bind mounts, no external Docker network to create fir
 
 | | Email | Google |
 |---|---|---|
-| Steps | Register → check inbox → click the verification link | Click the sign-in button |
-| Result | A JWT, after the link is clicked | A JWT, immediately |
+| Steps | Enter your address → check inbox → click the link | Click the sign-in button |
+| Result | A signed-in session, after the link is clicked | A signed-in session, immediately |
 | Verification | Confirmed by the link click | Confirmed by Google's own `email_verified` claim |
 
-`POST /auth/google` verifies the ID token Google Identity Services hands the frontend — signature, issuer, audience, expiry — and either creates a new verified account or signs into an existing one matched by email. Both paths issue the same kind of JWT, usable identically across every API call afterward.
+`POST /auth/google` verifies the ID token Google Identity Services hands the frontend — signature, issuer, audience, expiry — and either creates a new verified account or signs into an existing one matched by email. Both paths end in the same place: a signed-in session on the dashboard, where you create the API key (`pyvar_...`, valid for a year, revocable) that plugins and scripts use. The same email form signs a returning user in.
 
 ## Try it
 
