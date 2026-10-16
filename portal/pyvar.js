@@ -273,7 +273,16 @@ async function initGoogleSignIn() {
       client_id: publicConfig.google_client_id,
       callback: handleGoogleCredential,
     });
-    google.accounts.id.renderButton(container, { theme: 'outline', size: 'large', width: 320 });
+    // locale: 'en' is what pins the button's language. The ?hl=en on the library URL in
+    // index.html does not reach the button iframe (checked: its URL carries no hl), so
+    // without this option the button follows the browser/Google-account language
+    // ("Accedi con Google" for an Italian visitor).
+    google.accounts.id.renderButton(container, {
+      theme: 'outline',
+      size: 'large',
+      width: 320,
+      locale: 'en',
+    });
     wrapper.style.display = 'block';
   } catch (e) {
     // Offline / pre-deploy / CORS — same fail-quiet posture as
