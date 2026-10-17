@@ -156,7 +156,9 @@ class Settings(BaseSettings):
     # as config so they can be retuned from real api_usage data post-launch
     # without a code change. enterprise and internal (service/cron JWTs) tiers
     # are unconditionally exempt — no setting needed for them.
-    rate_limit_unauth_per_hour: int = 5  # per-IP, /public/status.json + demo-result.json only
+    # per-IP, /public/status.json + demo-result.json only. A home-page load makes three of
+    # these calls, so 60 is about 20 loads an hour; the limit caps S3 reads, not visitors.
+    rate_limit_unauth_per_hour: int = 60
     rate_limit_free_daily: int = 10  # per-user, all /api/v1 compute endpoints
     rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
     rate_limit_register_per_hour: int = 5  # per-IP, POST /auth/register only

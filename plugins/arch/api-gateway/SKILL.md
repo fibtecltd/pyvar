@@ -141,7 +141,7 @@ customer-tier usage analytics.
 #   pro tier:          cfg.rate_limit_pro_daily     = 500/day
 #   enterprise/internal: unconditionally exempt
 #   unauthenticated /public/status.json and /public/demo-result.json (the S3-backed files):
-#                      cfg.rate_limit_unauth_per_hour = 5/hour, per IP; /public/config is not limited
+#                      cfg.rate_limit_unauth_per_hour = 60/hour, per IP; /public/config is not limited
 #
 # Backend: Redis-backed (limits.storage.RedisStorage, the same ElastiCache
 # Serverless cluster as storage/redis_client.py::redis_url()) — NOT slowapi's

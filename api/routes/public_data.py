@@ -24,10 +24,10 @@ Reasoning:
 - The per-IP hourly limit (enforce_public_rate_limit) is applied per route, to
   the two files that read S3, and NOT to /public/config. The limit exists to
   cap S3 reads; /public/config reads settings only and the home page calls it
-  on every load. Put on the whole router, it shared one 5/hour bucket with
-  status.json and demo-result.json (three more calls per page load), so from
-  the second page load in an hour it answered 429 and the Google sign-in
-  button, which hides itself on any non-200, disappeared.
+  on every load. Put on the whole router, it shared one per-IP hourly bucket
+  with status.json and demo-result.json (three more calls per page load), so
+  once that bucket was spent it answered 429 and the Google sign-in button,
+  which hides itself on any non-200, disappeared.
 """
 
 from __future__ import annotations
