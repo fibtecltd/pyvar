@@ -7,13 +7,14 @@ Reasoning:
   app (create_app() behind httpx's ASGITransport, same pattern as tests/),
   the architecture examples call the real modules (api/, engine/, ingestion/,
   storage/, observability/), and the pyvar-mcp examples spawn the real MCP
-  server over stdio against a local uvicorn instance.
+  server over stdio against a local uvicorn instance, and the pyvar-client and
+  pyvar-jupyter examples run those packages against the same kind of instance.
 - Inputs are synthetic (ingestion.fixtures) and AWS is mocked with moto, per
   the project's testing rules -- no real market data and no real AWS calls.
 - Prose sits next to the code that produces its numbers (f-strings over the
   captured results), so a changed engine result changes the document with it.
 
-Usage (from the repo root, with the app dependencies, moto and pyvar-mcp installed):
+Usage (from the repo root, with the app dependencies, moto, pyvar-mcp, pyvar-client and pyvar-jupyter installed):
     python scripts/generate_plugin_examples.py                # writes docs/plugin-examples.md
     python scripts/generate_plugin_examples.py --skip-mcp     # without the MCP stdio examples
     python scripts/generate_plugin_examples.py --out /tmp/x.md
@@ -1168,12 +1169,9 @@ def _free_port() -> int:
         return int(s.getsockname()[1])
 
 
-async def ex_mcp() -> list[Example]:
-    from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
-
-    from api.middleware.auth import create_access_token
-
+@contextlib.asynccontextmanager
+async def _local_api() -> AsyncIterator[int]:
+    """A real uvicorn instance of the pyvar API on a free port; yields the port."""
     port = _free_port()
     server = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port)],
@@ -1191,6 +1189,19 @@ async def ex_mcp() -> list[Example]:
                     await asyncio.sleep(0.5)
             else:
                 raise RuntimeError("local pyvar API did not start")
+        yield port
+    finally:
+        server.terminate()
+        server.wait(timeout=15)
+
+
+async def ex_mcp() -> list[Example]:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    from api.middleware.auth import create_access_token
+
+    async with _local_api() as port:
         env = {
             **os.environ,
             "PYVAR_API_KEY": create_access_token("example-mcp", "enterprise"),
@@ -1224,9 +1235,6 @@ async def ex_mcp() -> list[Example]:
                 "call_pyvar_function",
                 {"domain": "alm", "function_name": "no_such_function", "params": {}},
             )
-    finally:
-        server.terminate()
-        server.wait(timeout=15)
 
     generic = [t.name for t in tools[:2]]
     shown = functions[:2]
@@ -1307,6 +1315,258 @@ async def ex_mcp() -> list[Example]:
     return [ex1, ex2]
 
 
+# ── PyPI package examples: pyvar-client, pyvar-jupyter, and one call through every surface ──
+
+
+async def ex_packages(skip_mcp: bool) -> list[Example]:
+    """Run the Python client, the notebook magics and (unless skipped) the MCP server
+    against a real local API, and check that every surface returns the same numbers."""
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    from api.middleware.auth import create_access_token
+    from pyvar_client import Client
+    from pyvar_client.exceptions import PyvarAuthError, PyvarValidationError
+    from pyvar_jupyter._magics import PyvarMagics
+
+    token = create_access_token("example-packages", "enterprise")
+    el_function = "expected_loss_el_computation"
+    el_body = {"pd": 0.02, "lgd": 0.45, "ead": 1_000_000}
+    returns = [float(x) for x in generate_gbm_returns(500, mu=0.0004, sigma=0.011, seed=7)]
+    small_returns = [0.01, -0.02, 0.015, 0.008, -0.011]
+    bad_el_body = {"pd": 1.7, "lgd": 0.45, "ead": 1_000_000}
+
+    def run_client(base_url: str) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        with patch.dict(os.environ, {"PYVAR_API_KEY": token}):
+            with Client(base_url=base_url) as client:  # the key comes from PYVAR_API_KEY
+                out["el"] = client.credit_risk.expected_loss_el_computation(**el_body)
+                out["var"] = client.market_risk.historical_simulation_var(
+                    returns=returns, portfolio_value=10_000_000, confidence_level=0.99
+                )
+                try:
+                    client.credit_risk.expected_loss_el_computation(**bad_el_body)
+                except PyvarValidationError as exc:
+                    out["validation"] = exc
+        with Client(api_key="not-a-valid-key", base_url=base_url) as bad:
+            try:
+                bad.credit_risk.expected_loss_el_computation(**el_body)
+            except PyvarAuthError as exc:
+                out["auth"] = exc
+        return out
+
+    def run_magics(base_url: str) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        env = {"PYVAR_API_KEY": token, "PYVAR_API_BASE_URL": base_url}
+        with patch.dict(os.environ, env):
+            magics = PyvarMagics(shell=None)
+            line = f"credit_risk.{el_function} pd=0.02 lgd=0.45 ead=1000000"
+            out["line"] = magics.pyvar(line).data
+            out["var"] = magics.pyvar(
+                "market_risk.historical_simulation_var "
+                f"returns={json.dumps(small_returns, separators=(',', ':'))} portfolio_value=1000000"
+            ).data
+            out["cell"] = magics.pyvar(
+                f"credit_risk.{el_function}",
+                cell=json.dumps({"pd": 0.05, "lgd": 0.4, "ead": 2_000_000}),
+            ).data
+            captured = io.StringIO()
+            with contextlib.redirect_stdout(captured):
+                magics.pyvar(f"credit_risk.{el_function}")
+            out["signature"] = captured.getvalue().strip()
+        return out
+
+    mcp_text = ""
+    async with _local_api() as port:
+        base_url = f"http://127.0.0.1:{port}"
+        async with AsyncClient(base_url=base_url, timeout=30) as http:
+            headers = {"Authorization": f"Bearer {token}"}
+            rest_el = (
+                await http.post(f"/api/v1/credit-risk/{el_function}", json=el_body, headers=headers)
+            ).json()
+            rest_var = (
+                await http.post(
+                    "/api/v1/market-risk/historical_simulation_var",
+                    json={
+                        "returns": returns,
+                        "portfolio_value": 10_000_000,
+                        "confidence_level": 0.99,
+                    },
+                    headers=headers,
+                )
+            ).json()
+        client_out = await asyncio.to_thread(run_client, base_url)
+        magic_out = await asyncio.to_thread(run_magics, base_url)
+        if not skip_mcp:
+            env = {**os.environ, "PYVAR_API_KEY": token, "PYVAR_API_BASE_URL": base_url}
+            params = StdioServerParameters(
+                command=str(Path(sys.executable).parent / "pyvar-mcp"), env=env
+            )
+            async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+                await session.initialize()
+                call = await session.call_tool(
+                    "call_pyvar_function",
+                    {"domain": "credit-risk", "function_name": el_function, "params": el_body},
+                )
+                mcp_text = str(call.content[0].text)
+
+    same = client_out["el"] == rest_el == magic_out["line"]
+    if not skip_mcp:
+        same = same and json.loads(mcp_text) == rest_el
+    if not same or client_out["var"] != rest_var:
+        raise RuntimeError(
+            "the surfaces disagree: " + pretty([rest_el, client_out["el"], magic_out["line"]])
+        )
+
+    curl = (
+        f"curl -X POST https://www.pyvar.com/api/v1/credit-risk/{el_function} \\\n"
+        '  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \\\n'
+        f"  -d '{json.dumps(el_body)}'"
+    )
+    steps = [
+        Step("REST", curl, pretty(rest_el), call_lang="bash", status=200),
+        Step(
+            "pyvar-client",
+            "from pyvar_client import Client\n\n"
+            "with Client() as client:  # reads PYVAR_API_KEY\n"
+            f"    client.credit_risk.{el_function}(pd=0.02, lgd=0.45, ead=1_000_000)",
+            pretty(client_out["el"]),
+            call_lang="python",
+        ),
+        Step(
+            "pyvar-jupyter",
+            f"%pyvar credit_risk.{el_function} pd=0.02 lgd=0.45 ead=1000000",
+            pretty(magic_out["line"]),
+            call_lang="text",
+        ),
+    ]
+    if not skip_mcp:
+        steps.append(
+            Step(
+                "pyvar-mcp",
+                pretty({"domain": "credit-risk", "function_name": el_function, "params": el_body}),
+                mcp_text,
+                call_lang="json",
+            )
+        )
+    el = rest_el["el"]
+    surfaces = "REST, the Python client, the notebook magic" + (
+        "" if skip_mcp else " and the MCP tool"
+    )
+    ex_surfaces = Example(
+        "surfaces",
+        "The same call through every surface",
+        "Expected loss for a 1,000,000 exposure with a 2% probability of default and 45% loss given "
+        "default, asked four ways. The API is a local pyvar API; against pyvar.com the only differences "
+        "are the host and the key.",
+        steps,
+        f"{surfaces} return identical results, and the script fails if they ever differ. "
+        f"Expected loss is 0.02 x 0.45 x 1,000,000 = {el:,.0f}.",
+    )
+
+    var = client_out["var"]
+    ex_client1 = Example(
+        "pyvar-client",
+        "A computation from Python",
+        "Client() with no arguments reads the key from PYVAR_API_KEY (this run also passes base_url to "
+        "reach a local API; against pyvar.com the default is enough). Two years of daily returns "
+        "(500 observations, generate_gbm_returns(500, mu=0.0004, sigma=0.011, seed=7)) go to the same "
+        "function the market-risk skill's first example uses.",
+        [
+            Step(
+                "historical_simulation_var",
+                "from pyvar_client import Client\n\n"
+                "with Client() as client:  # reads PYVAR_API_KEY\n"
+                "    result = client.market_risk.historical_simulation_var(\n"
+                "        returns=returns,  # 500 daily log-returns\n"
+                "        portfolio_value=10_000_000,\n"
+                "        confidence_level=0.99,\n"
+                "    )\n"
+                "    result",
+                pretty(var),
+                call_lang="python",
+            )
+        ],
+        f"The 99% VaR is {var['var_pct'] * 100:.2f}% of the book, {var['var_abs']:,.0f}, the same numbers "
+        f"the REST call returns (checked in this run) and the market-risk skill reports. The client "
+        f"is a thin typed layer: one method per function, one dict back.",
+    )
+    auth_exc, val_exc = client_out["auth"], client_out["validation"]
+    ex_client2 = Example(
+        "pyvar-client",
+        "Errors you can branch on",
+        'Every non-2xx response raises a typed exception, so code can tell "fix the request" from '
+        '"get a new key" from "back off".',
+        [
+            Step(
+                "a key the API does not accept",
+                'with Client(api_key="not-a-valid-key") as client:\n'
+                f"    client.credit_risk.{el_function}(pd=0.02, lgd=0.45, ead=1_000_000)",
+                f"{type(auth_exc).__name__} (HTTP {auth_exc.response_status}): {auth_exc}",
+                call_lang="python",
+                result_lang="text",
+            ),
+            Step(
+                "a value the API rejects",
+                f"client.credit_risk.{el_function}(pd=1.7, lgd=0.45, ead=1_000_000)",
+                f"{type(val_exc).__name__} (HTTP {val_exc.response_status}): {val_exc}\n"
+                f"response_body = {val_exc.response_body!r}",
+                call_lang="python",
+                result_lang="text",
+            ),
+        ],
+        "A 401 is PyvarAuthError and a 422 is PyvarValidationError: the message names the problem, "
+        "response_body holds the raw body, and detail lists per-field entries when the API sends them "
+        "that way. A 429 is PyvarRateLimitError with the Retry-After seconds. Server errors are retried "
+        "with backoff for idempotent calls before they surface.",
+    )
+
+    line_var = magic_out["var"]
+    ex_jupyter1 = Example(
+        "pyvar-jupyter",
+        "The line magic",
+        "After %load_ext pyvar_jupyter and a key (%pyvar_key, or PYVAR_API_KEY in the environment), "
+        "parameters go on the line as key=value tokens, each read as a Python literal.",
+        [
+            Step(
+                "%pyvar",
+                "%pyvar market_risk.historical_simulation_var "
+                f"returns={json.dumps(small_returns, separators=(',', ':'))} portfolio_value=1000000",
+                pretty(line_var),
+                call_lang="text",
+            )
+        ],
+        f"The cell shows an HTML table and also returns the dict, so result['var_abs'] "
+        f"({line_var['var_abs']:,.2f}) works on it directly.",
+    )
+    cell = magic_out["cell"]
+    ex_jupyter2 = Example(
+        "pyvar-jupyter",
+        "The cell magic, and asking a function what it needs",
+        "Nested or large parameters go in a JSON body. Called with no parameters, the magic prints "
+        "the function's signature and docstring instead of making a doomed request.",
+        [
+            Step(
+                "%%pyvar",
+                f"%%pyvar credit_risk.{el_function}\n"
+                + json.dumps({"pd": 0.05, "lgd": 0.4, "ead": 2_000_000}),
+                pretty(cell),
+                call_lang="text",
+            ),
+            Step(
+                "%pyvar with no parameters",
+                f"%pyvar credit_risk.{el_function}",
+                magic_out["signature"],
+                call_lang="text",
+                result_lang="text",
+            ),
+        ],
+        f"Expected loss is 0.05 x 0.4 x 2,000,000 = {cell['el']:,.0f}. The signature lists every "
+        f"parameter with its type and default, which is what to read before building a request.",
+    )
+    return [ex_client1, ex_client2, ex_jupyter1, ex_jupyter2, ex_surfaces]
+
+
 # ── Rendering ────────────────────────────────────────────────────────────────
 
 PLUGINS: list[tuple[str, str, str]] = [
@@ -1324,15 +1584,23 @@ PLUGINS: list[tuple[str, str, str]] = [
     ("arch-storage", "pyvar-arch-storage", "Redis cache and S3 results"),
     ("arch-observability", "pyvar-arch-observability", "validation and Prometheus metrics"),
     ("pyvar-mcp", "pyvar-mcp", "385 functions as MCP tools"),
+    ("pyvar-client", "pyvar-client", "the Python client, on PyPI"),
+    ("pyvar-jupyter", "pyvar-jupyter", "%pyvar magics for notebooks, on PyPI"),
+    (
+        "surfaces",
+        "One call, every surface",
+        "REST, pyvar-client, pyvar-jupyter and pyvar-mcp agree",
+    ),
 ]
 
 
 def render(examples: list[Example], with_mcp: bool) -> str:
     out: list[str] = [
         "# pyvar plugin examples\n",
-        "Two worked examples for each of pyvar's Claude Code plugins: the eight domain skills, the five "
-        "architecture skills and the `pyvar-mcp` server. Every request, response and number below was produced "
-        "by running the real pyvar code, and the prose is generated from those results by "
+        "Two worked examples for each of pyvar's Claude Code plugins (the eight domain skills, the five "
+        "architecture skills and the `pyvar-mcp` server) and for the `pyvar-client` and `pyvar-jupyter` "
+        "packages, then one call run through every surface. Every request, response and number below was "
+        "produced by running the real pyvar code, and the prose is generated from those results by "
         "`scripts/generate_plugin_examples.py`.\n",
         "## How these were produced\n",
         "- **Domain plugins** POST to the real FastAPI app (`create_app()` behind an in-process HTTP transport), "
@@ -1342,6 +1610,9 @@ def render(examples: list[Example], with_mcp: bool) -> str:
         "and the audit database are replaced by stand-ins where a request would otherwise need them, and AWS "
         "is mocked with moto.",
         "- **pyvar-mcp** is the real MCP server, started over stdio and pointed at a local pyvar API.",
+        "- **pyvar-client** and **pyvar-jupyter** are the real packages, run against a local pyvar API "
+        "(a real uvicorn process). A session token stands in for an API key: both are bearer "
+        "credentials and the client code path is identical.",
         "- All inputs are synthetic (`ingestion.fixtures.generate_gbm_returns`), with the seed shown next to "
         "each call. No real market data and no real AWS services are used.\n",
         "To regenerate this file: `python scripts/generate_plugin_examples.py`.\n",
@@ -1389,6 +1660,7 @@ async def main_async(skip_mcp: bool) -> list[Example]:
     examples.extend(await ex_observability())
     if not skip_mcp:
         examples.extend(await ex_mcp())
+    examples.extend(await ex_packages(skip_mcp))
     return examples
 
 

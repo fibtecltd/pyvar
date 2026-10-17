@@ -77,6 +77,26 @@ def tile(cv: Any, x: float, y: float, w: float, h: float, accent: bool) -> None:
     )
 
 
+def tiles_figure(
+    title: str, subtitle: str, tiles: list[tuple[str, str, str, bool]], out: Path, name: str
+) -> Path:
+    """A 2 x 2 grid of fact tiles: (big number, bold label, small line, accent).
+
+    Also used by scripts/generate_article_headers.py for the article header images."""
+    rows = (len(tiles) + 1) // 2
+    w, h, gap = 820.0, 220.0, 40.0
+    cv = g.Canvas(1800, int(150 + rows * (h + gap)), title, subtitle)
+    for i, (big, line, small, accent) in enumerate(tiles):
+        x = 60.0 + (i % 2) * (w + gap)
+        y = 150.0 + (i // 2) * (h + gap)
+        tile(cv, x, y, w, h, accent)
+        color = g.CLAY if accent else g.SLATE
+        cv.text(x + w / 2, y + 62, big, size=30, weight="bold", color=color, max_w=w - 40)
+        cv.text(x + w / 2, y + 140, line, size=10.5, weight="bold", max_w=w - 40)
+        cv.text(x + w / 2, y + 182, small, size=9, color=g.MUTED, max_w=w - 40)
+    return cv.save(out, name)
+
+
 def fig_header(out: Path) -> Path:
     functions, domains = catalogue_counts()
     skills, examples, calls = example_counts()
@@ -85,13 +105,6 @@ def fig_header(out: Path) -> Path:
     max_active = default("api_key_max_active_per_user")
     g.need(skills == domains, f"{skills} domain skills but {domains} domains in the catalogue")
 
-    cv = g.Canvas(
-        1800,
-        670,
-        "What is in place",
-        "Read from the function catalogue, the skill specs and config.py when this figure is drawn.",
-    )
-    w, h, gap = 820.0, 220.0, 40.0
     tiles = [
         (f"{functions}", f"functions in {domains} domains", "one catalogue, one REST API", False),
         (
@@ -113,15 +126,13 @@ def fig_header(out: Path) -> Path:
             False,
         ),
     ]
-    for i, (big, line, small, accent) in enumerate(tiles):
-        x = 60.0 + (i % 2) * (w + gap)
-        y = 150.0 + (i // 2) * (h + gap)
-        tile(cv, x, y, w, h, accent)
-        color = g.CLAY if accent else g.SLATE
-        cv.text(x + w / 2, y + 62, big, size=30, weight="bold", color=color, max_w=w - 40)
-        cv.text(x + w / 2, y + 140, line, size=10.5, weight="bold", max_w=w - 40)
-        cv.text(x + w / 2, y + 182, small, size=9, color=g.MUTED, max_w=w - 40)
-    return cv.save(out, "plugins-end-to-end-header")
+    return tiles_figure(
+        "What is in place",
+        "Read from the function catalogue, the skill specs and config.py when this figure is drawn.",
+        tiles,
+        out,
+        "plugins-end-to-end-header",
+    )
 
 
 def fig_setup_flow(out: Path) -> Path:

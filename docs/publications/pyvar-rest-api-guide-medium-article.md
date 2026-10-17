@@ -2,6 +2,12 @@
 
 *A practical guide to the raw REST API underneath `pyvar-client` and `pyvar-jupyter` — for anyone calling it with `curl`, from a language other than Python, or who just wants to know exactly what's happening under the SDK.*
 
+![Four tiles: 385 POST endpoints under /api/v1/<domain>/<function>; 8 domain prefixes; 10 free-tier calls a day, 500 on Pro in one shared bucket across every endpoint; and 10,000 simulations per Monte Carlo call on the free tier, 100,000 on Pro and 500,000 on Enterprise.](./assets/headers/header-pyvar-rest-api-guide.png)
+
+*The REST API at a glance, read from the code.*
+
+> **Update (October 2026):** This article has been updated to reflect the latest changes in authentication: a signed-in session manages durable API keys, which are what calls carry; a key's tier is read from the database; and the same call is shown through the Python client, notebooks and MCP.
+
 > **Draft status:** not yet published. Every endpoint, status code, and
 > limit below is taken directly from this repository's own route handlers,
 > middleware, and `config.py` — see **Sources** at the end. Needs review
@@ -66,6 +72,38 @@ curl -X POST https://www.pyvar.com/api/v1/market-risk/historical_simulation_var 
 ```
 
 The 8 domain prefixes: `/market-risk`, `/credit-risk`, `/derivatives`, `/liquidity`, `/operational`, `/portfolio`, `/regulatory`, `/alm`. The full, live list of all 385 functions and their exact request/response schemas is browsable at [`/docs`](https://www.pyvar.com/docs) — FastAPI's auto-generated OpenAPI UI, always in sync with what's actually deployed since it's generated from the same route definitions this article describes.
+
+## The same call from the other surfaces
+
+The REST call above is what every other surface sends for you. Expected loss for a 1,000,000 exposure, asked through each package. [`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) runs all four surfaces against a real local API and fails if the results ever differ.
+
+**pyvar-client** (`pip install pyvar-client`)
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+**pyvar-jupyter** (`pip install pyvar-jupyter`, then `%load_ext pyvar_jupyter`)
+
+```
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+**pyvar-mcp** (the `call_pyvar_function` tool, arguments shown as JSON)
+
+```json
+{"domain": "credit-risk", "function_name": "expected_loss_el_computation",
+ "params": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}
+```
+
+Every surface returns the same result:
+
+```json
+{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
+```
 
 ## The one async endpoint
 

@@ -33,6 +33,8 @@ th { background: #f6f6f6; }
 </style></head><body>
 <div class="instructions"><strong>How to use this file:</strong> open it in a browser, select all the content below the instructions box (Cmd/Ctrl+A once you've clicked into the article body), copy, then paste into a new Medium story. Medium should pick up headings, bold/italic, links, blockquotes, tables, and code blocks automatically. Verify each code block converted to Medium's native code block (not a plain paragraph). This conversion is a best-effort based on how Medium's rich-paste generally behaves; it hasn't been tested against a live Medium account.</div>
 <h1>pyvar Full: the Whole Platform, One `docker compose up` Away</h1><em class="subtitle">A companion to pyvar Local — same open-source engine, but this one ships the real API, auth, async job dispatch, and billing surface too, running entirely on your own infrastructure.</em><blockquote>
+<p><strong>Update (October 2026):</strong> This article has been updated to reflect the latest changes in authentication: sign-in in the local stack now ends in an API key you create against your own API, and the Python client, the notebook magics and the MCP server can all be pointed at it.</p>
+</blockquote><blockquote>
 <p><strong>Draft status:</strong> not yet published. Every claim below — what's in the compose stack, what's deliberately inert, why the S3 offload path is safe to leave unconfigured — is verified against the actual <code>pyvar-full/</code> files and the <code>tasks/var_task.py</code>/<code>storage/s3.py</code> code they depend on, at drafting time. See <strong>Sources</strong> at the end.</p>
 </blockquote>
 <hr />
@@ -56,7 +58,27 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   -H &quot;Content-Type: application/json&quot; \
   -d '{&quot;email&quot;: &quot;you@example.com&quot;}'
 </code></pre>
-<p>From there it's the identical REST API <a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md">already documented</a> for the hosted service — same auth flow, same 385 functions across 8 domains, same request/response shapes. Point your existing pyvar client code at <code>localhost:8000</code> instead of <code>pyvar.com</code> and it should just work.</p>
+<p>From there it's the identical REST API <a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md">already documented</a> for the hosted service — same sign-in, same 385 functions across 8 domains, same request/response shapes. The one local difference is email: with no AWS credentials the stack cannot send the sign-in link, so in development mode the API logs it instead. After the register call above, read the token from the API's log, trade it for a 60-minute session, and create a key:</p>
+<pre><code>docker compose logs pyvar-api | grep verification_email_send_failed   # the log line carries the token
+
+curl &quot;http://localhost:8000/api/v1/auth/verify?token=&lt;token&gt;&quot;          # returns a 60-minute session
+
+curl -X POST http://localhost:8000/api/v1/auth/api-keys \
+  -H &quot;Authorization: Bearer &lt;session&gt;&quot; -H &quot;Content-Type: application/json&quot; -d '{&quot;name&quot;: &quot;local&quot;}'
+</code></pre>
+<p>The last call returns a <code>pyvar_...</code> key, shown once. Then point each client at the stack with a base URL:</p>
+<pre><code>from pyvar_client import Client
+
+with Client(api_key=&quot;pyvar_...&quot;, base_url=&quot;http://localhost:8000&quot;) as client:
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+</code></pre>
+<pre><code>%pyvar_base_url http://localhost:8000
+%pyvar_key pyvar_...
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+</code></pre>
+<pre><code>PYVAR_API_BASE_URL=http://localhost:8000 PYVAR_API_KEY=pyvar_... uvx pyvar-mcp
+</code></pre>
+<p>Each returns <code>{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}</code>.</p>
 <h2>The billing question, answered by just checking</h2>
 <p>Shipping the whole app means shipping <code>api/routes/billing.py</code> too — the same Stripe-integrated route the hosted service uses for Pro-tier Checkout. The obvious question: does a publicly-distributed local image really need a commercial billing route baked in?</p>
 <p>Rather than guess, this got checked directly. <code>_require_billing_configured()</code> — the function every billing route calls first — 503s cleanly whenever <code>STRIPE_SECRET_KEY</code> isn't set. <code>pyvar-full/local-eval.env</code> leaves it blank. So the answer turned out to be: nothing to strip out, nothing to configure. The route exists, does nothing without real keys, and costs zero setup either way. If you want to exercise Checkout locally, drop Stripe test-mode keys into <code>local-eval.env</code> yourself.</p>

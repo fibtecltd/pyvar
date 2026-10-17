@@ -2,6 +2,8 @@
 
 *A follow-up to "How We Built a Regulatory-Grade Financial Risk Platform End-to-End with Claude Code" — same discipline, turned on the two weeks since publication instead of the build itself.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in sign-in and credentials since it was written: callers now authenticate with durable API keys, described in [From /plugin install to a Computed Number](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-end-to-end-medium-article.md). The daily report discussed here counts newly verified accounts, which is what issuing a token meant at the time.
+
 > **Draft status:** not yet published. Every number below is checked against
 > this repository at drafting time (`CHANGELOG.md`, `git log`, `README.md`,
 > `docs/known-issues.md`) — see **Sources** at the end. Needs your review

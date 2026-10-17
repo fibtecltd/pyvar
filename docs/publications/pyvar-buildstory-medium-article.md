@@ -4,6 +4,8 @@
 
 ![pyvar header](./pyvar-buildstory-header.jpg)
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in where the platform stands: the Claude skills are now generated with real parameters and tested examples, callers authenticate with durable API keys, and `pyvar-client`, `pyvar-jupyter` and `pyvar-mcp` are all on PyPI. The build story itself is unchanged; the current state is in [From /plugin install to a Computed Number](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-end-to-end-medium-article.md).
+
 Somewhere in the first draft of pyvar's Solvency II module, one compounding factor went missing — a few missing lines in one formula. The consequence wasn't small: an insurer running it would have been told it needed roughly 79% less regulatory capital than Solvency II actually requires.
 
 No human caught it by reading the code. It was caught because the code was made to prove itself — cross-validated against QuantLib and published worked examples, run and re-run against every domain until the numbers either matched or didn't. This time, they didn't.
@@ -61,9 +63,7 @@ MCP server and a Jupyter extension.
 
 ## Illustration 1 — how a request actually flows
 
-This is the real path, not a simplified one. Three client surfaces
-(MCP, SDK, Jupyter) all converge on one `pyvar-client` SDK, so there's no
-duplicated auth/retry logic to keep in sync across them:
+This is the real path, not a simplified one. Three client surfaces (MCP, SDK, Jupyter) reach the same REST API: `pyvar-jupyter` wraps `pyvar-client`, so those two share one auth and retry path, and `pyvar-mcp` is a deliberately small standard-library client (a 30-second timeout, no retries) over the same endpoints:
 
 ![How a request actually flows](./request_flow.png)
 
@@ -293,20 +293,9 @@ you get from actually running the code isn't a very good advertisement for
 
 ![Three integration surfaces, one SDK](./three_surfaces.png)
 
-None of these three duplicate HTTP or auth logic. That's a deliberate
-constraint, not an accident: `pyvar-mcp`'s tool catalogue
-(`plugins/mcp/pyvar_mcp/_generated/functions.py`) and the plugin manifest
-(`.claude-plugin/marketplace.json`, `plugins/*`) are both generated
-directly from the repo's own source of truth
-(`.claude/skills/*`, `portal/functions.json`), with CI failing the build if
-committed output ever drifts from what regenerating produces. The same
-discipline that verifies a formula's correctness — don't trust it, run it
-and check — applies to code generation too.
+None of these three keeps a hand-written copy of the API. That's a deliberate constraint, not an accident: `pyvar-mcp`'s tool catalogue (`plugins/mcp/pyvar_mcp/_generated/functions.py`) and the plugin manifest (`.claude-plugin/marketplace.json`, `plugins/*`) are both generated directly from the repo's own source of truth (`.claude/skills/*`, `portal/functions.json`), with CI failing the build if committed output ever drifts from what regenerating produces. The same discipline that verifies a formula's correctness — don't trust it, run it and check — applies to code generation too.
 
-`pyvar-mcp` also ships 13 Claude Code skills (8 domain skills, one per risk
-domain, plus 5 covering pyvar's own architecture) — the difference between
-a model knowing a function *exists* and knowing *when* a risk team would
-actually reach for it.
+The same marketplace also carries 13 Claude Code skills (8 domain skills, one per risk domain, plus 5 covering pyvar's own architecture) — the difference between a model knowing a function *exists* and knowing *when* a risk team would actually reach for it. The domain skills are generated from the function catalogue, so each function carries its real route, parameters and defaults, and a test runs every worked example against the real API.
 
 ---
 
@@ -334,6 +323,48 @@ actually reach for it.
   as of publication.
 
 ---
+
+## Where it stands now (October 2026)
+
+`pyvar-client` 0.2.0, `pyvar-mcp` 0.2.0 and `pyvar-jupyter` 0.1.0 are on PyPI. Callers sign in with Google or an emailed link and create a durable API key on the dashboard; the keys last a year and can be revoked. One call, through each surface:
+
+Expected loss for a 1,000,000 exposure with a 2% probability of default and 45% loss given default. [`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) runs it through all four against a real local API and fails if the results ever differ.
+
+**REST**
+
+```bash
+curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computation \
+  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \
+  -d '{"pd": 0.02, "lgd": 0.45, "ead": 1000000}'
+```
+
+**pyvar-client** (`pip install pyvar-client`)
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+**pyvar-jupyter** (`pip install pyvar-jupyter`, then `%load_ext pyvar_jupyter`)
+
+```
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+**pyvar-mcp** (the `call_pyvar_function` tool, arguments shown as JSON)
+
+```json
+{"domain": "credit-risk", "function_name": "expected_loss_el_computation",
+ "params": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}
+```
+
+Every surface returns the same result:
+
+```json
+{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
+```
 
 ## Why it matters: cost, speed, and transparency
 

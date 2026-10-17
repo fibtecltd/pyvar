@@ -1,12 +1,13 @@
 # pyvar plugin examples
 
-Two worked examples for each of pyvar's Claude Code plugins: the eight domain skills, the five architecture skills and the `pyvar-mcp` server. Every request, response and number below was produced by running the real pyvar code, and the prose is generated from those results by `scripts/generate_plugin_examples.py`.
+Two worked examples for each of pyvar's Claude Code plugins (the eight domain skills, the five architecture skills and the `pyvar-mcp` server) and for the `pyvar-client` and `pyvar-jupyter` packages, then one call run through every surface. Every request, response and number below was produced by running the real pyvar code, and the prose is generated from those results by `scripts/generate_plugin_examples.py`.
 
 ## How these were produced
 
 - **Domain plugins** POST to the real FastAPI app (`create_app()` behind an in-process HTTP transport), authenticated with a JWT, exactly as the endpoints are called in production.
 - **Architecture plugins** call the real modules: the gateway routes and middleware, `engine.montecarlo`, `ingestion.loader`, `storage.s3` and `observability.setup`. The Celery queue and the audit database are replaced by stand-ins where a request would otherwise need them, and AWS is mocked with moto.
 - **pyvar-mcp** is the real MCP server, started over stdio and pointed at a local pyvar API.
+- **pyvar-client** and **pyvar-jupyter** are the real packages, run against a local pyvar API (a real uvicorn process). A session token stands in for an API key: both are bearer credentials and the client code path is identical.
 - All inputs are synthetic (`ingestion.fixtures.generate_gbm_returns`), with the seed shown next to each call. No real market data and no real AWS services are used.
 
 To regenerate this file: `python scripts/generate_plugin_examples.py`.
@@ -1582,3 +1583,238 @@ Unknown function 'no_such_function' in domain 'alm'. Use list_pyvar_functions to
 ```
 
 **What to notice.** The generic tool and the named tool return identical results (expected loss of 9,000). A missing parameter is caught before any request is made, with the expected parameter names listed; a value outside the allowed range comes back from the API as an HTTP 422 message; an unknown function name points the model back to list_pyvar_functions. Each is flagged is_error, so the model can read it and correct the call.
+
+## pyvar-client
+
+*the Python client, on PyPI*
+
+### Example 1: A computation from Python
+
+Client() with no arguments reads the key from PYVAR_API_KEY (this run also passes base_url to reach a local API; against pyvar.com the default is enough). Two years of daily returns (500 observations, generate_gbm_returns(500, mu=0.0004, sigma=0.011, seed=7)) go to the same function the market-risk skill's first example uses.
+
+**historical_simulation_var**
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    result = client.market_risk.historical_simulation_var(
+        returns=returns,  # 500 daily log-returns
+        portfolio_value=10_000_000,
+        confidence_level=0.99,
+    )
+    result
+```
+
+Result:
+
+```json
+{
+  "var_pct": 0.02380457,
+  "var_abs": 238045.72,
+  "cvar_pct": 0.02908383,
+  "cvar_abs": 290838.34,
+  "confidence_level": 0.99,
+  "n_obs": 500
+}
+```
+
+**What to notice.** The 99% VaR is 2.38% of the book, 238,046, the same numbers the REST call returns (checked in this run) and the market-risk skill reports. The client is a thin typed layer: one method per function, one dict back.
+
+### Example 2: Errors you can branch on
+
+Every non-2xx response raises a typed exception, so code can tell "fix the request" from "get a new key" from "back off".
+
+**a key the API does not accept**
+
+```python
+with Client(api_key="not-a-valid-key") as client:
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+Result:
+
+```text
+PyvarAuthError (HTTP 401): Authentication failed -- token missing, invalid, or expired.
+```
+
+**a value the API rejects**
+
+```python
+client.credit_risk.expected_loss_el_computation(pd=1.7, lgd=0.45, ead=1_000_000)
+```
+
+Result:
+
+```text
+PyvarValidationError (HTTP 422): Request failed validation.
+response_body = {'detail': 'pd must be in [0, 1]'}
+```
+
+**What to notice.** A 401 is PyvarAuthError and a 422 is PyvarValidationError: the message names the problem, response_body holds the raw body, and detail lists per-field entries when the API sends them that way. A 429 is PyvarRateLimitError with the Retry-After seconds. Server errors are retried with backoff for idempotent calls before they surface.
+
+## pyvar-jupyter
+
+*%pyvar magics for notebooks, on PyPI*
+
+### Example 1: The line magic
+
+After %load_ext pyvar_jupyter and a key (%pyvar_key, or PYVAR_API_KEY in the environment), parameters go on the line as key=value tokens, each read as a Python literal.
+
+**%pyvar**
+
+```text
+%pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015,0.008,-0.011] portfolio_value=1000000
+```
+
+Result:
+
+```json
+{
+  "var_pct": 0.02,
+  "var_abs": 20000.0,
+  "cvar_pct": 0.02,
+  "cvar_abs": 20000.0,
+  "confidence_level": 0.99,
+  "n_obs": 5
+}
+```
+
+**What to notice.** The cell shows an HTML table and also returns the dict, so result['var_abs'] (20,000.00) works on it directly.
+
+### Example 2: The cell magic, and asking a function what it needs
+
+Nested or large parameters go in a JSON body. Called with no parameters, the magic prints the function's signature and docstring instead of making a doomed request.
+
+**%%pyvar**
+
+```text
+%%pyvar credit_risk.expected_loss_el_computation
+{"pd": 0.05, "lgd": 0.4, "ead": 2000000}
+```
+
+Result:
+
+```json
+{
+  "el": 40000.0,
+  "el_rate": 0.02,
+  "pd": 0.05,
+  "lgd": 0.4,
+  "ead": 2000000.0
+}
+```
+
+**%pyvar with no parameters**
+
+```text
+%pyvar credit_risk.expected_loss_el_computation
+```
+
+Result:
+
+```text
+expected_loss_el_computation(*, pd: 'float', lgd: 'float', ead: 'float') -> 'dict[str, Any]'
+
+Expected Loss ``EL = PD * LGD * EAD``.
+
+Returns:
+    The raw API response as a dict.
+```
+
+**What to notice.** Expected loss is 0.05 x 0.4 x 2,000,000 = 40,000. The signature lists every parameter with its type and default, which is what to read before building a request.
+
+## One call, every surface
+
+*REST, pyvar-client, pyvar-jupyter and pyvar-mcp agree*
+
+### Example 1: The same call through every surface
+
+Expected loss for a 1,000,000 exposure with a 2% probability of default and 45% loss given default, asked four ways. The API is a local pyvar API; against pyvar.com the only differences are the host and the key.
+
+**REST**
+
+```bash
+curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computation \
+  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \
+  -d '{"pd": 0.02, "lgd": 0.45, "ead": 1000000}'
+```
+
+Result (HTTP 200):
+
+```json
+{
+  "el": 9000.0,
+  "el_rate": 0.009,
+  "pd": 0.02,
+  "lgd": 0.45,
+  "ead": 1000000.0
+}
+```
+
+**pyvar-client**
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+Result:
+
+```json
+{
+  "el": 9000.0,
+  "el_rate": 0.009,
+  "pd": 0.02,
+  "lgd": 0.45,
+  "ead": 1000000.0
+}
+```
+
+**pyvar-jupyter**
+
+```text
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+Result:
+
+```json
+{
+  "el": 9000.0,
+  "el_rate": 0.009,
+  "pd": 0.02,
+  "lgd": 0.45,
+  "ead": 1000000.0
+}
+```
+
+**pyvar-mcp**
+
+```json
+{
+  "domain": "credit-risk",
+  "function_name": "expected_loss_el_computation",
+  "params": {
+    "pd": 0.02,
+    "lgd": 0.45,
+    "ead": 1000000
+  }
+}
+```
+
+Result:
+
+```json
+{
+  "el": 9000.0,
+  "el_rate": 0.009,
+  "pd": 0.02,
+  "lgd": 0.45,
+  "ead": 1000000.0
+}
+```
+
+**What to notice.** REST, the Python client, the notebook magic and the MCP tool return identical results, and the script fails if they ever differ. Expected loss is 0.02 x 0.45 x 1,000,000 = 9,000.

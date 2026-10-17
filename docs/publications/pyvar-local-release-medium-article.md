@@ -2,6 +2,8 @@
 
 *A GitHub Release, not a SaaS signup — for institutions whose data-governance policy won't let position or portfolio data leave the building, even to a stateless API.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in the hosted API it is contrasted with, which now authenticates with durable API keys. pyvar Local is unchanged and still needs no key, no account and no network call.
+
 > **Draft status:** not yet published. Every fact below — the release tag, the build date, the asset size, the CLI output shape — is verified against the actual `fibtecltd/pyvar` GitHub Release and repo source at drafting time. See **Sources** at the end.
 
 ---

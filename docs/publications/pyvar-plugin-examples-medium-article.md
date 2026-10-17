@@ -6,6 +6,8 @@
 
 *Eight of the twenty-eight results in this article, each produced by a real pyvar call.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in the plugins: the domain skills are regenerated with each function's real parameters and an API-key setup section, and Part four adds examples for the two Python packages, `pyvar-client` and `pyvar-jupyter`, and one call through every surface.
+
 ---
 
 pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk platform: 385 functions across eight domains — market risk, credit risk, liquidity, operational risk, portfolio analytics, regulatory capital, derivatives and ALM — behind a single REST API. It reaches Claude Code through fourteen plugins: eight domain skills, five architecture skills and the `pyvar-mcp` server.
@@ -280,7 +282,7 @@ free tier, 50,000 simulations              → 403  "Your 'free' tier allows a m
 pro tier, 50,000 simulations               → 202  {"status": "pending", "message": "Job queued successfully"}
 ```
 
-The JWT carries the tier, and the tier's simulation cap — 10,000 free, 100,000 pro, 500,000 enterprise — is enforced before anything is queued.
+The JWT carries the tier, and the tier's simulation cap — 10,000 free, 100,000 pro, 500,000 enterprise — is enforced before anything is queued. (An API key resolves to the same account; its tier is read from the database instead of a claim.)
 
 ![Flow chart of six checks on POST /api/v1/var/compute with their outcomes: JWT authentication 401, daily quota 429, request validation 422, result cache 200, tier simulation cap 403, audit row and dispatch 202.](./assets/plugin-examples/plugin-examples-gateway-path.png)
 
@@ -428,15 +430,106 @@ A missing parameter is caught before any request is made; an out-of-range value 
 *Figure 11. One call, three failure paths. Each failure comes back as a readable tool result flagged is_error.*
 
 
+## Part four: the Python packages, and one call through every surface
+
+The same API reaches Python through `pyvar-client` and notebooks through `pyvar-jupyter`; both are on PyPI. Their examples run the real packages against a real local pyvar API, and a session token stands in for an API key (both are bearer credentials, and the client code path is identical).
+
+### pyvar-client
+
+**"What is the 99% VaR of a 10 million portfolio?"** — from Python, with the key in `PYVAR_API_KEY`:
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    result = client.market_risk.historical_simulation_var(
+        returns=returns,  # 500 daily log-returns, seed 7
+        portfolio_value=10_000_000,
+        confidence_level=0.99,
+    )
+```
+
+```json
+{"var_pct": 0.02380457, "var_abs": 238045.72, "cvar_pct": 0.02908383,
+ "cvar_abs": 290838.34, "confidence_level": 0.99, "n_obs": 500}
+```
+
+The 99% VaR is 2.38% of the book, 238,046: the same numbers the REST call and the market-risk skill report. Every non-2xx response raises a typed exception, so code can tell "fix the request" from "get a new key":
+
+```
+PyvarAuthError (HTTP 401): Authentication failed -- token missing, invalid, or expired.
+PyvarValidationError (HTTP 422): Request failed validation.
+response_body = {'detail': 'pd must be in [0, 1]'}
+```
+
+### pyvar-jupyter
+
+After `%load_ext pyvar_jupyter` and a key (`%pyvar_key`, or `PYVAR_API_KEY` in the environment), parameters go on the line as `key=value` tokens, or in a JSON body for the cell magic:
+
+```
+%%pyvar credit_risk.expected_loss_el_computation
+{"pd": 0.05, "lgd": 0.4, "ead": 2000000}
+```
+
+```json
+{"el": 40000.0, "el_rate": 0.02, "pd": 0.05, "lgd": 0.4, "ead": 2000000.0}
+```
+
+Called with no parameters, the magic prints the function's signature instead of making a doomed request:
+
+```
+expected_loss_el_computation(*, pd: 'float', lgd: 'float', ead: 'float') -> 'dict[str, Any]'
+```
+
+### One call, every surface
+
+Expected loss for a 1,000,000 exposure with a 2% probability of default and 45% loss given default, asked through REST, both packages and the MCP server. The script that produces this document fails if the results ever differ.
+
+**REST**
+
+```bash
+curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computation \
+  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \
+  -d '{"pd": 0.02, "lgd": 0.45, "ead": 1000000}'
+```
+
+**pyvar-client** (`pip install pyvar-client`)
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+**pyvar-jupyter** (`pip install pyvar-jupyter`, then `%load_ext pyvar_jupyter`)
+
+```
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+**pyvar-mcp** (the `call_pyvar_function` tool, arguments shown as JSON)
+
+```json
+{"domain": "credit-risk", "function_name": "expected_loss_el_computation",
+ "params": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}
+```
+
+Every surface returns the same result:
+
+```json
+{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
+```
+
 ## Reproduce every number
 
-All twenty-eight examples, with their complete requests and responses, are in `docs/plugin-examples.md`, generated by one script from the repository root:
+All the examples, with their complete requests and responses (twenty-eight for the plugins and five more for the packages), are in `docs/plugin-examples.md`, generated by one script from the repository root:
 
 ```bash
 python scripts/generate_plugin_examples.py
 ```
 
-It runs the real application, the real modules and the real MCP server on synthetic data (`ingestion.fixtures`), mocks AWS with moto, and produces identical output on every run.
+It runs the real application, the real modules, the real MCP server, `pyvar-client` and `pyvar-jupyter` on synthetic data (`ingestion.fixtures`), mocks AWS with moto, and produces identical output on every run.
 
 The twelve figures — this article's header, seven charts and four diagrams — come from a second script that draws from the same runs and fails if any plotted number disagrees with the API result it illustrates:
 

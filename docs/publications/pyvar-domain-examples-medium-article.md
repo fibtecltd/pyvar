@@ -2,6 +2,12 @@
 
 *A companion to the pyvar-jupyter guide: real code, real inputs, and real computed results — tables and charts included — for every risk domain pyvar covers, not just the two the original three examples happened to touch.*
 
+![Four tiles: 9 worked example notebooks, 01 to 09 in pyvar-jupyter/examples; 8 risk domains in the catalogue; 385 functions available; and pyvar-jupyter version 0.1.0.](./assets/headers/header-pyvar-domain-examples.png)
+
+*Nine notebooks at a glance, read from the code.*
+
+> **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-jupyter` and API keys: the package is now on PyPI (`pip install pyvar-jupyter`), and every notebook sets up with a `pyvar_...` key from the dashboard.
+
 > **Draft status:** not yet published. Every number, table, and chart below
 > was produced by actually running the corresponding `engine/` function
 > locally with the exact inputs shown — none of it is estimated or
