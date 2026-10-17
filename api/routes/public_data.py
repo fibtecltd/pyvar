@@ -21,6 +21,13 @@ Reasoning:
 - The boto3 S3 call is synchronous; run_in_threadpool keeps it from blocking
   the event loop, the same concern storage/session.py's async engine exists
   to avoid for the DB.
+- The per-IP hourly limit (enforce_public_rate_limit) is applied per route, to
+  the two files that read S3, and NOT to /public/config. The limit exists to
+  cap S3 reads; /public/config reads settings only and the home page calls it
+  on every load. Put on the whole router, it shared one per-IP hourly bucket
+  with status.json and demo-result.json (three more calls per page load), so
+  once that bucket was spent it answered 429 and the Google sign-in button,
+  which hides itself on any non-200, disappeared.
 """
 
 from __future__ import annotations
@@ -28,14 +35,18 @@ from __future__ import annotations
 from typing import Any
 
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from starlette.concurrency import run_in_threadpool
 
+from api.middleware.rate_limit import enforce_public_rate_limit
 from config import get_settings
 from storage.s3 import get_s3_client
 
 router = APIRouter(tags=["Public"])
 cfg = get_settings()
+
+# The S3-backed files only; see the module docstring for why /public/config is left out.
+_s3_rate_limited = [Depends(enforce_public_rate_limit)]
 
 
 def _read_object(key: str) -> bytes:
@@ -57,12 +68,12 @@ async def _serve_public_json(key: str) -> Response:
     )
 
 
-@router.get("/public/status.json", include_in_schema=False)
+@router.get("/public/status.json", include_in_schema=False, dependencies=_s3_rate_limited)
 async def get_status_json() -> Response:
     return await _serve_public_json("public/status.json")
 
 
-@router.get("/public/demo-result.json", include_in_schema=False)
+@router.get("/public/demo-result.json", include_in_schema=False, dependencies=_s3_rate_limited)
 async def get_demo_result_json() -> Response:
     return await _serve_public_json("public/demo-result.json")
 

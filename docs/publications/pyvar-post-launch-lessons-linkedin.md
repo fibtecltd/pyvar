@@ -1,10 +1,5 @@
 # LinkedIn adaptation — "What broke in the two weeks after launch"
 
-**Draft status:** not yet published. Shorter standalone adaptation of
-`pyvar-post-launch-lessons-medium-article.md`, same pattern as the first
-article's LinkedIn version — post once the Medium piece is live and link to
-it.
-
 ---
 
 Two weeks after we open-sourced pyvar.com (built end-to-end with Claude Code), we turned the same "verify by running it" discipline on our own infrastructure. Here's what it found.

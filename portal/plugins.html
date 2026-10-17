@@ -129,8 +129,8 @@
         <div class="install-step">
           <div class="install-num">3</div>
           <div>
-            <div class="install-title">One manual step for the MCP server, for now</div>
-            <div class="install-body">The plugin install flow doesn't yet install its Python dependencies — run <code style="font-family:var(--mono);color:var(--amber)">pip install -e plugins/mcp</code> once, from wherever the marketplace checked this repo out to. If a tool call fails with "command not found", this is almost certainly why.</div>
+            <div class="install-title">The MCP server needs uv</div>
+            <div class="install-body">The plugin starts the server with <code style="font-family:var(--mono);color:var(--amber)">uvx pyvar-mcp</code>, which downloads it from PyPI the first time, so <a href="https://docs.astral.sh/uv/" style="color:var(--green)">uv</a> must be on your PATH. If a tool call fails with "command not found", a missing uv is almost certainly why.</div>
           </div>
         </div>
       </div>

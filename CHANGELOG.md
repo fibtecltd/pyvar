@@ -109,6 +109,29 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The "Sign in with Google" button disappeared after a second page load** — the home page reads
+  `GET /public/config` to learn whether Google sign-in is configured and hides the button on any
+  non-200. `main.py` applied the per-IP limit (`rate_limit_unauth_per_hour`, 5 an hour) to the
+  whole `/public` router, so `/public/config` shared one bucket with `status.json` and
+  `demo-result.json`: a page load makes four of those calls, and from the second load in an hour
+  `/public/config` answered 429 ("Rate limit exceeded. Please retry later."). The limit now sits
+  on the two S3-backed files only (`api/routes/public_data.py`); `/public/config` reads settings,
+  not S3, and is not limited. Tests pin both directions. The limit on those two files is now 60 an
+  hour per IP (about 20 page loads): at 5, the status pill, the nav version and the terminal demo
+  fell back to their static defaults from the second load.
+- **The plugins page, the Claude-plugins guide and the `pyvar-mcp` README still told people to run
+  `pip install -e plugins/mcp`** — the plugin has launched `uvx pyvar-mcp` from PyPI since 0.2.0.
+  All three now say the server needs `uv` on the PATH (a missing `uv` is what a "command not
+  found" error means now), and the README no longer says a PyPI release is still to come. The
+  README is also the PyPI page, so `pyvar-mcp` 0.2.1 (next entry) carries the corrected text.
+- **`pyvar-mcp` 0.2.1: the server now tells MCP clients which version it is** — the `initialize`
+  reply carried an empty `serverInfo.version`. The version is read once from the package
+  metadata (`pyvar_mcp.__version__`) and used for both that reply and the `X-Pyvar-Client`
+  label, so they cannot differ; tests pin both. Ships as `pyvar-mcp` 0.2.1 (tag `pyvar-mcp-v0.2.1`;
+  the plugin manifest moves to 0.2.1 too), which also republishes the PyPI page with the corrected
+  install text. The plugin runs `uvx pyvar-mcp` without a version, so new installs get 0.2.1; a
+  machine that already has 0.2.0 cached moves when uv refreshes its cache (`uvx --refresh
+  pyvar-mcp` forces it).
 - **`pyvar-client`: the 401 message named a token, and the `pyvar` command was counted as
   `pyvar-client`** — `PyvarAuthError` now reads "the API key is missing, invalid, revoked or
   expired" and says where to create a new one. `Client` takes an optional `client_name` for the

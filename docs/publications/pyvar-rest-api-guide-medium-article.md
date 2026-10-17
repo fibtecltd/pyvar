@@ -8,13 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in authentication: a signed-in session manages durable API keys, which are what calls carry; a key's tier is read from the database; and the same call is shown through the Python client, notebooks and MCP.
 
-> **Draft status:** not yet published. Every endpoint, status code, and
-> limit below is taken directly from this repository's own route handlers,
-> middleware, and `config.py` — see **Sources** at the end. Needs review
-> before it goes anywhere. Diagrams are local SVGs (`./assets/diagrams/`)
-> for repo/GitHub preview — re-upload them through Medium's own editor at
-> publish time; relative paths don't carry over.
-
 ---
 
 `pyvar-client` and `pyvar-jupyter` (covered in their own companion guides) are the recommended way to use pyvar.com from Python. This piece is for everything else: calling the REST API directly with `curl`, from another language, or just understanding exactly what the SDK is doing on your behalf.

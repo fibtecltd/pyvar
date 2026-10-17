@@ -1,6 +1,6 @@
 {
   "name": "pyvar-arch-api-gateway",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Arch: FastAPI, Pydantic v2, JWT and API-key auth, orjson, rate limiting, OpenAPI",
   "author": {
     "name": "Fibtec Limited",

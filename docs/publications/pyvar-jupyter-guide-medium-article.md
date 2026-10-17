@@ -8,14 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-jupyter`, now on PyPI: API-key setup (`%pyvar_key pyvar_...` or `PYVAR_API_KEY`), the `pyvar-client` 0.2.0 dependency, and the client label the API records for notebook calls.
 
-> **Draft status:** not yet published. Every example below is taken
-> directly from `pyvar-jupyter`'s own README and its nine shipped example
-> notebooks (`pyvar-jupyter/examples/*.ipynb`) — see **Sources** at the
-> end. Needs review before it goes anywhere.
-> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
-> re-upload them through Medium's own editor at publish time; relative
-> paths don't carry over.
-
 ---
 
 `pyvar-jupyter` adds IPython magics and rich HTML display on top of `pyvar-client` — the notebook-ergonomics layer, not a second API client. If you already know `pyvar-client`, everything here is the same 385 functions, called with less typing.

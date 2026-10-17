@@ -4,11 +4,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in sign-in and credentials since it was written: callers now authenticate with durable API keys, described in [From /plugin install to a Computed Number](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-end-to-end-medium-article.md). The daily report discussed here counts newly verified accounts, which is what issuing a token meant at the time.
 
-> **Draft status:** not yet published. Every number below is checked against
-> this repository at drafting time (`CHANGELOG.md`, `git log`, `README.md`,
-> `docs/known-issues.md`) — see **Sources** at the end. Needs your review
-> before it goes anywhere.
-
 ---
 
 Our first article ended on a deliberately modest note: no named enterprise customers yet, and the next real chapter would be "checkable the same way everything above was — `git log`, PyPI, the live API, not a slide deck." Two weeks and seven merged pull requests later (`#326`–`#332`), that's exactly the standard we're holding this follow-up to. Not a highlight reel — a look at what the same "verify by running it" discipline caught in our *own* infrastructure this time, including one feature that shipped, ran silently wrong for over a week, and only surfaced because someone went looking.

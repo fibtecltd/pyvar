@@ -12,7 +12,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pyvar_mcp.client import DEFAULT_API_BASE_URL, PyvarApiError, PyvarClient
+from pyvar_mcp import __version__
+from pyvar_mcp.client import CLIENT_ID, DEFAULT_API_BASE_URL, PyvarApiError, PyvarClient
+
+
+def test_client_label_carries_the_same_version_the_server_reports():
+    assert CLIENT_ID == f"pyvar-mcp/{__version__}"
 
 
 def test_from_env_reads_api_key(monkeypatch):

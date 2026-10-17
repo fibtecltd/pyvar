@@ -4,8 +4,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in authentication: sign-in in the local stack now ends in an API key you create against your own API, and the Python client, the notebook magics and the MCP server can all be pointed at it.
 
-> **Draft status:** not yet published. Every claim below — what's in the compose stack, what's deliberately inert, why the S3 offload path is safe to leave unconfigured — is verified against the actual `pyvar-full/` files and the `tasks/var_task.py`/`storage/s3.py` code they depend on, at drafting time. See **Sources** at the end.
-
 ---
 
 Two weeks ago this publication covered [pyvar Local](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-local-release-medium-article.md) — an offline, no-API-key Docker image for institutions that can't send position data to any third-party endpoint, even a stateless one. It ships the compute engine and a CLI. Deliberately, it doesn't ship a server: no auth, no REST routes, no async job queue.

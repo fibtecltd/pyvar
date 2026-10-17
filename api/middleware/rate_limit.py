@@ -32,8 +32,9 @@ Reasoning:
   Every one of the 386 endpoints already takes that same dependency itself;
   FastAPI caches dependency results per request by default, so this does NOT
   cause a second JWT decode on top of the one each endpoint already pays for.
-- enforce_public_rate_limit (for api/routes/public_data.py's two unauthenticated
-  endpoints) is IP-keyed. The app sits behind ALB + CloudFront, and
+- enforce_public_rate_limit (for api/routes/public_data.py's two S3-backed
+  files, status.json and demo-result.json; applied per route there, never to
+  /public/config, which the home page calls on every load) is IP-keyed. The app sits behind ALB + CloudFront, and
   pyvar-cdk/stacks/api_stack.py's ALB listener enforces X-Origin-Verify (a
   shared secret only CloudFront knows) — any request that reaches the ALB
   directly, bypassing CloudFront, is rejected with 403. That guarantee means
@@ -223,7 +224,7 @@ async def enforce_compute_rate_limit(
 
 
 async def enforce_public_rate_limit(request: Request) -> None:
-    """Per-IP hourly quota for the two unauthenticated /public/* endpoints."""
+    """Per-IP hourly quota for the two S3-backed /public/ files (not /public/config)."""
     client_ip = get_trusted_client_ip(request)
     item = limits.parse(f"{cfg.rate_limit_unauth_per_hour}/hour")
 

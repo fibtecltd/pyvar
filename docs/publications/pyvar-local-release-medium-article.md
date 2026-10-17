@@ -4,8 +4,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in the hosted API it is contrasted with, which now authenticates with durable API keys. pyvar Local is unchanged and still needs no key, no account and no network call.
 
-> **Draft status:** not yet published. Every fact below — the release tag, the build date, the asset size, the CLI output shape — is verified against the actual `fibtecltd/pyvar` GitHub Release and repo source at drafting time. See **Sources** at the end.
-
 ---
 
 pyvar.com's regulatory-grade risk functions — VaR, Expected Shortfall, credit PD/LGD/EAD, liquidity ratios, operational risk, the rest of the eight domains — are built to be called over a REST API. That's the right shape for most users. It's the wrong shape for a specific, real category of institution: one whose data-governance policy simply doesn't permit sending position or portfolio data to *any* third-party endpoint, stateless or not, encrypted or not. For that case, the answer isn't "trust us, nothing is logged" — it's "don't send it anywhere."

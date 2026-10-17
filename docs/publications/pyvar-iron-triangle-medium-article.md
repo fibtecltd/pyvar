@@ -4,15 +4,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in how callers authenticate: the free tier now starts with an API key from the dashboard, and the code snippets use `pyvar_...` keys. The cost, speed and accuracy figures keep the dates they were measured on.
 
-> **Draft status:** not yet published. Every figure below is checked against
-> this repository at drafting time (`CLAUDE.md`, `docs/p7-numba-profiling-results.md`,
-> `docs/p9-scenario-volume-cost-audit.md`, `docs/p8-iron-triangle-data.md`,
-> `docs/proposals/pyvar-iron-triangle-benchmark.docx`) — see **Sources** at
-> the end. Needs review before it goes anywhere.
-> Diagrams are local SVGs (`./assets/diagrams/`, `./assets/tables/`) for
-> repo/GitHub preview — re-upload them through Medium's own editor at
-> publish time; relative paths don't carry over.
-
 ---
 
 The iron triangle — cost, speed, quality, pick two — is the usual way to size up any engineering tradeoff, risk infrastructure included. pyvar's positioning argument, laid out in full in the accompanying internal benchmark document, is narrower and more falsifiable than "we do all three": being free and open source removes cost as a constraint almost entirely, a JIT-compiled parallel compute engine keeps speed competitive without proprietary infrastructure, and open methodology is a different, arguably stronger, kind of accuracy claim than a vendor's own internal validation — auditable correctness in place of trust in a brand.

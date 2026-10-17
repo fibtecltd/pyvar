@@ -26,7 +26,7 @@ from starlette.routing import Match, Mount
 from starlette.types import Scope
 
 from api.errors import request_validation_error_handler
-from api.middleware.rate_limit import enforce_compute_rate_limit, enforce_public_rate_limit
+from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.middleware.usage import usage_tracking_middleware
 from api.responses import OrjsonResponse
 from api.routes.alm import router as alm_router
@@ -195,8 +195,9 @@ def create_app() -> FastAPI:
         app.include_router(domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit)
 
     # No prefix — matches portal/pyvar.js's `${API_BASE}/public/...` fetches.
-    # Unauthenticated, so a separate per-IP (not per-user) limit.
-    app.include_router(public_data_router, dependencies=[Depends(enforce_public_rate_limit)])
+    # Unauthenticated; the per-IP limit is applied per route inside public_data.py
+    # (the two S3-backed files only, not /public/config).
+    app.include_router(public_data_router)
 
     # ── Health check ────────────────────────────────────────────────────────
     @app.get("/health", tags=["system"], include_in_schema=False)

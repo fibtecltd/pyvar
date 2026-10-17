@@ -34,7 +34,7 @@ import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
-from . import catalogue
+from . import __version__, catalogue
 from .client import PyvarApiError, PyvarClient
 
 SERVER_NAME = "pyvar-mcp"
@@ -189,7 +189,12 @@ def build_server() -> Server:
             return _error_result(f"Unknown tool: {name!r}")
         return _invoke(client, entry, arguments)
 
-    return Server(SERVER_NAME, on_list_tools=handle_list_tools, on_call_tool=handle_call_tool)
+    return Server(
+        SERVER_NAME,
+        version=__version__,
+        on_list_tools=handle_list_tools,
+        on_call_tool=handle_call_tool,
+    )
 
 
 async def _amain() -> None:
