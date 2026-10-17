@@ -11,7 +11,7 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 - **Article:** `pyvar-client-guide-medium-article.md`
 - **Where:** under the title and subtitle
 - **Caption:** pyvar-client at a glance, read from the code.
-- **Alt text:** Four tiles: 385 functions, one method each, in 8 domain namespaces plus var for the async Monte Carlo job; 3 automatic retries with exponential backoff from 0.5 seconds, idempotent calls only; 1 runtime dependency, httpx at version 0.27 or later; and the current version, 0.2.0, which reads PYVAR_API_KEY from the environment.
+- **Alt text:** Four tiles: 385 functions, one method each, in 8 domain namespaces plus var for the async Monte Carlo job; 3 automatic retries with exponential backoff from 0.5 seconds, idempotent calls only; 1 runtime dependency, httpx at version 0.27 or later; and the current version, 0.3.0, which reads PYVAR_API_KEY from the environment.
 
 ## 2. `header-pyvar-domain-examples.png`
 

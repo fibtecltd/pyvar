@@ -51,7 +51,7 @@ def test_401_raises_pyvar_auth_error():
     assert exc_info.value.response_status == 401
     # the message names the credential people actually hold, and says where to get a new one
     assert "API key" in str(exc_info.value)
-    assert "pyvar.com" in str(exc_info.value)
+    assert "#get-api-key" in str(exc_info.value)
 
 
 def test_422_raises_pyvar_validation_error_with_field_detail():

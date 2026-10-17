@@ -3,9 +3,8 @@
 Python SDK for [pyvar.com](https://www.pyvar.com)'s open-source risk computation API —
 385 functions across 8 domains, one typed client.
 
-> **Status:** v0.2.0-track, built ahead of its originally planned schedule (see
-> `docs/pyvar_release_plan.md` in the main repo). Alpha — the API surface may
-> still change before a 1.0 release.
+> **Status:** alpha (see `docs/pyvar_release_plan.md` in the main repo) — the API
+> surface may still change before a 1.0 release.
 
 ## Install
 

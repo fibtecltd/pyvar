@@ -2,11 +2,11 @@
 
 *A practical guide to `pyvar-client` — install, auth, your first call, the one async function in the whole API, error handling, retries, and the CLI that comes free with it.*
 
-![Four tiles: 385 functions, one method each, in 8 domain namespaces plus var for the async Monte Carlo job; 3 automatic retries with exponential backoff from 0.5 seconds, idempotent calls only; 1 runtime dependency, httpx at version 0.27 or later; and the current version, 0.2.0, which reads PYVAR_API_KEY from the environment.](./assets/headers/header-pyvar-client-guide.png)
+![Four tiles: 385 functions, one method each, in 8 domain namespaces plus var for the async Monte Carlo job; 3 automatic retries with exponential backoff from 0.5 seconds, idempotent calls only; 1 runtime dependency, httpx at version 0.27 or later; and the current version, 0.3.0, which reads PYVAR_API_KEY from the environment.](./assets/headers/header-pyvar-client-guide.png)
 
 *pyvar-client at a glance, read from the code.*
 
-> **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-client` 0.2.0: API keys instead of one-hour tokens (`Client()` reads `PYVAR_API_KEY`), a 401 that now also covers revoked keys, and the client label the API records.
+> **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-client` 0.2.0 and 0.3.0: API keys instead of one-hour tokens (`Client()` reads `PYVAR_API_KEY`) in 0.2.0, then in 0.3.0 a 401 message that names the API key and a `client_name` option for the label the API records (the `pyvar` command reports `pyvar-cli`).
 
 > **Draft status:** not yet published. Every example below runs against
 > `pyvar-client`'s actual source (`pyvar-client/pyvar_client/`) and its own

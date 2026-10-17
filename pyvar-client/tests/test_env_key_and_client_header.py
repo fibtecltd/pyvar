@@ -41,7 +41,7 @@ def test_no_key_anywhere_says_how_to_get_one(monkeypatch):
     monkeypatch.delenv("PYVAR_API_KEY", raising=False)
     with pytest.raises(ValueError, match="PYVAR_API_KEY") as excinfo:
         Client()
-    assert "pyvar.com" in str(excinfo.value)
+    assert "#get-api-key" in str(excinfo.value)
 
 
 def test_an_explicitly_empty_key_is_rejected_even_if_the_environment_has_one(monkeypatch):
