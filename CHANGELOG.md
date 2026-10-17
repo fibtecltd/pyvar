@@ -109,6 +109,14 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The "Sign in with Google" button disappeared after a second page load** — the home page reads
+  `GET /public/config` to learn whether Google sign-in is configured and hides the button on any
+  non-200. `main.py` applied the per-IP limit (`rate_limit_unauth_per_hour`, 5 an hour) to the
+  whole `/public` router, so `/public/config` shared one bucket with `status.json` and
+  `demo-result.json`: a page load makes four of those calls, and from the second load in an hour
+  `/public/config` answered 429 ("Rate limit exceeded. Please retry later."). The limit now sits
+  on the two S3-backed files only (`api/routes/public_data.py`); `/public/config` reads settings,
+  not S3, and is not limited. Tests pin both directions.
 - **`pyvar-client`: the 401 message named a token, and the `pyvar` command was counted as
   `pyvar-client`** — `PyvarAuthError` now reads "the API key is missing, invalid, revoked or
   expired" and says where to create a new one. `Client` takes an optional `client_name` for the

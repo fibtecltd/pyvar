@@ -156,7 +156,7 @@ class Settings(BaseSettings):
     # as config so they can be retuned from real api_usage data post-launch
     # without a code change. enterprise and internal (service/cron JWTs) tiers
     # are unconditionally exempt — no setting needed for them.
-    rate_limit_unauth_per_hour: int = 5  # per-IP, /public/* only
+    rate_limit_unauth_per_hour: int = 5  # per-IP, /public/status.json + demo-result.json only
     rate_limit_free_daily: int = 10  # per-user, all /api/v1 compute endpoints
     rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
     rate_limit_register_per_hour: int = 5  # per-IP, POST /auth/register only
