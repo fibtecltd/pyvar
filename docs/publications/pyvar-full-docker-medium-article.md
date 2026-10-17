@@ -2,6 +2,8 @@
 
 *A companion to pyvar Local — same open-source engine, but this one ships the real API, auth, async job dispatch, and billing surface too, running entirely on your own infrastructure.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in authentication: sign-in in the local stack now ends in an API key you create against your own API, and the Python client, the notebook magics and the MCP server can all be pointed at it.
+
 > **Draft status:** not yet published. Every claim below — what's in the compose stack, what's deliberately inert, why the S3 offload path is safe to leave unconfigured — is verified against the actual `pyvar-full/` files and the `tasks/var_task.py`/`storage/s3.py` code they depend on, at drafting time. See **Sources** at the end.
 
 ---
@@ -34,7 +36,37 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   -d '{"email": "you@example.com"}'
 ```
 
-From there it's the identical REST API [already documented](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md) for the hosted service — same auth flow, same 385 functions across 8 domains, same request/response shapes. Point your existing pyvar client code at `localhost:8000` instead of `pyvar.com` and it should just work.
+From there it's the identical REST API [already documented](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md) for the hosted service — same sign-in, same 385 functions across 8 domains, same request/response shapes. The one local difference is email: with no AWS credentials the stack cannot send the sign-in link, so in development mode the API logs it instead. After the register call above, read the token from the API's log, trade it for a 60-minute session, and create a key:
+
+```bash
+docker compose logs pyvar-api | grep verification_email_send_failed   # the log line carries the token
+
+curl "http://localhost:8000/api/v1/auth/verify?token=<token>"          # returns a 60-minute session
+
+curl -X POST http://localhost:8000/api/v1/auth/api-keys \
+  -H "Authorization: Bearer <session>" -H "Content-Type: application/json" -d '{"name": "local"}'
+```
+
+The last call returns a `pyvar_...` key, shown once. Then point each client at the stack with a base URL:
+
+```python
+from pyvar_client import Client
+
+with Client(api_key="pyvar_...", base_url="http://localhost:8000") as client:
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+```
+%pyvar_base_url http://localhost:8000
+%pyvar_key pyvar_...
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+```bash
+PYVAR_API_BASE_URL=http://localhost:8000 PYVAR_API_KEY=pyvar_... uvx pyvar-mcp
+```
+
+Each returns `{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}`.
 
 ## The billing question, answered by just checking
 

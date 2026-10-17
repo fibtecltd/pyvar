@@ -3,9 +3,8 @@
 Python SDK for [pyvar.com](https://www.pyvar.com)'s open-source risk computation API —
 385 functions across 8 domains, one typed client.
 
-> **Status:** v0.2.0-track, built ahead of its originally planned schedule (see
-> `docs/pyvar_release_plan.md` in the main repo). Alpha — the API surface may
-> still change before a 1.0 release.
+> **Status:** alpha (see `docs/pyvar_release_plan.md` in the main repo) — the API
+> surface may still change before a 1.0 release.
 
 ## Install
 
@@ -36,6 +35,11 @@ Or as a context manager, which closes the underlying connection pool on exit:
 with Client() as client:
     ...
 ```
+
+Each request carries an `X-Pyvar-Client: pyvar-client/<version>` header, a label the API
+counts calls by (it is never tied to a user). The `pyvar` command sends `pyvar-cli`;
+`Client(client_name=...)` sets the label, for pyvar's own packages (a name the API does not
+know is recorded as `other`).
 
 ## The one async function: Monte Carlo VaR
 

@@ -48,6 +48,7 @@ pyvar/
 │
 ├── schemas/                   ← Pydantic v2 request/response models
 │   ├── var.py                 ← VaRRequest, VaRResult, JobResponse
+│   ├── auth.py                ← sign-in and API key request/response models
 │   └── derivatives.py         ← Request/response models for derivatives pricers, incl. Greek
 │                                  fields (delta/gamma/vega/theta/rho) on greeks=True pricers
 │
@@ -60,12 +61,15 @@ pyvar/
 │
 ├── api/                       ← FastAPI routes and middleware
 │   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}
-│   ├── middleware/auth.py     ← JWT bearer validation
+│   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
+│   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
+│   ├── middleware/api_keys.py ← key hashing, Redis-cached lookup, failed-attempt throttle
+│   ├── middleware/usage.py    ← api_usage rows, allowlisted X-Pyvar-Client label
 │   ├── responses.py           ← orjson response class
 │   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
 │
 ├── storage/                   ← Persistence layer
-│   ├── models.py              ← SQLAlchemy async ORM (VaRJob audit table)
+│   ├── models.py              ← SQLAlchemy async ORM (VaRJob audit table, users, API keys, usage)
 │   └── s3.py                  ← PyArrow + boto3 Parquet writer to S3/MinIO
 │
 ├── observability/             ← Monitoring and logging
@@ -164,6 +168,23 @@ AWS:        CELERY_BROKER_URL = sqs://
 - IMDSv2 is required on all EC2 instances. Do not disable.
 - CloudFront WAF WebACL MUST remain in us-east-1. The EdgeStack is
   deliberately deployed to us-east-1 — do not change this.
+```
+
+### 3.5 API keys and authentication
+
+```
+- A key is "pyvar_" + 32 random bytes. Only its SHA-256 is stored. After creation never
+  log, return or store a key in clear; log only the display prefix.
+- api_keys rows are never deleted. Revoking sets revoked_at.
+- A database error while resolving a key is a 503: never a 401, never a pass.
+  Redis errors fail open to the database (Redis is only a cache).
+- A key's tier is read from the database (cached api_key_cache_ttl_seconds). Do not move
+  it into a token claim.
+- Key management routes need a session JWT (require_session). An API key must not be
+  able to create or revoke keys.
+- POST /auth/register returns the identical 202 for every outcome, so it cannot be used
+  to find out which addresses have accounts.
+- Design, settings and failure modes: docs/plan-durable-api-keys.md.
 ```
 
 ---

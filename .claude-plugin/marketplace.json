@@ -11,7 +11,7 @@
     { "name": "pyvar-regulatory",          "source": "./plugins/regulatory",          "description": "30 functions: Basel III/IV, FRTB, ICAAP/SREP, MiFID II, EMIR, Solvency II, CRR2" },
     { "name": "pyvar-derivatives",         "source": "./plugins/derivatives",         "description": "62 functions: BS/Heston/SABR/Dupire/LSM, exotic options, bonds, IRS/CDS, FX" },
     { "name": "pyvar-alm",                 "source": "./plugins/alm",                 "description": "33 functions: Duration gap, NII/EVE, IRRBB 6 shocks, repricing, NMD, FTP" },
-    { "name": "pyvar-arch-api-gateway",    "source": "./plugins/arch/api-gateway",    "description": "Arch: FastAPI, Pydantic v2, JWT, orjson, rate limiting, OpenAPI" },
+    { "name": "pyvar-arch-api-gateway",    "source": "./plugins/arch/api-gateway",    "description": "Arch: FastAPI, Pydantic v2, JWT and API-key auth, orjson, rate limiting, OpenAPI" },
     { "name": "pyvar-arch-data-ingestion", "source": "./plugins/arch/data-ingestion", "description": "Arch: Polars lazy scan, PyArrow, Parquet, Arrow IPC, schema validation" },
     { "name": "pyvar-arch-compute",        "source": "./plugins/arch/compute",        "description": "Arch: NumPy/Numba JIT, SciPy, Dask, Ray, Celery+Redis task dispatch" },
     { "name": "pyvar-arch-storage",        "source": "./plugins/arch/storage",        "description": "Arch: Redis cache, PostgreSQL/SQLAlchemy, S3/MinIO Parquet object store" },

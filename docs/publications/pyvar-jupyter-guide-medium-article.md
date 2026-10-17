@@ -2,6 +2,12 @@
 
 *A practical guide to `%pyvar`/`%%pyvar` IPython magics — quick start, line vs. cell magic, discoverability, and nine complete worked notebooks, one per risk domain, you can run today.*
 
+![Four tiles: 3 magics (%pyvar, %pyvar_base_url and %pyvar_key); 9 worked example notebooks in pyvar-jupyter/examples; 385 functions from one magic, any domain.function with parameters as key=value or JSON; and the current version, 0.1.0.](./assets/headers/header-pyvar-jupyter-guide.png)
+
+*pyvar-jupyter at a glance, read from the code.*
+
+> **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-jupyter`, now on PyPI: API-key setup (`%pyvar_key pyvar_...` or `PYVAR_API_KEY`), the `pyvar-client` 0.2.0 dependency, and the client label the API records for notebook calls.
+
 > **Draft status:** not yet published. Every example below is taken
 > directly from `pyvar-jupyter`'s own README and its nine shipped example
 > notebooks (`pyvar-jupyter/examples/*.ipynb`) — see **Sources** at the
@@ -26,7 +32,7 @@ Installs `pyvar-client` automatically. In a notebook cell:
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key eyJ...  # or export PYVAR_API_KEY before starting the kernel
+%pyvar_key pyvar_...  # or export PYVAR_API_KEY before starting the kernel
 ```
 
 ## Your first call
@@ -90,7 +96,7 @@ empirical loss quantile — making no distributional assumption.
 from pyvar_client import Client
 import pyvar_jupyter
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 result = client.market_risk.historical_simulation_var(
     returns=[0.01, -0.02, 0.015], portfolio_value=1_000_000,
 )
@@ -102,7 +108,7 @@ The wrapped object still behaves like the underlying dict — `show()` only chan
 ## Session config, without repeating yourself
 
 ```python
-%pyvar_key eyJ...              # set/replace the API key for this kernel (in-memory only)
+%pyvar_key pyvar_...              # set/replace the API key for this kernel (in-memory only)
 %pyvar_base_url http://localhost:8000   # point at a local/dev deployment instead of prod
 ```
 
@@ -120,7 +126,7 @@ A synthetic, fixed-seed daily return series, run through `var.compute` — the o
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key eyJ...
+%pyvar_key pyvar_...
 
 import random
 random.seed(7)
@@ -248,6 +254,40 @@ result
 
 `base_eve` comes out to roughly £61.45m; of the six shocks, `parallel_up` produces the largest fall (−£4.96m) and is also `worst_case` here. A longer-duration liability book would instead see `parallel_down` or `steepener` dominate — precisely why the framework tests all six rather than assuming parallel risk always binds.
 
+## The same call from the other surfaces
+
+The magic returns what the API returns, so the same call from the other surfaces gives the same result. Expected loss for a 1,000,000 exposure ([`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) runs these and the magic against a real local API and fails if the results differ):
+
+**REST**
+
+```bash
+curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computation \
+  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \
+  -d '{"pd": 0.02, "lgd": 0.45, "ead": 1000000}'
+```
+
+**pyvar-client** (`pip install pyvar-client`)
+
+```python
+from pyvar_client import Client
+
+with Client() as client:  # reads PYVAR_API_KEY
+    client.credit_risk.expected_loss_el_computation(pd=0.02, lgd=0.45, ead=1_000_000)
+```
+
+**pyvar-mcp** (the `call_pyvar_function` tool, arguments shown as JSON)
+
+```json
+{"domain": "credit-risk", "function_name": "expected_loss_el_computation",
+ "params": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}
+```
+
+Every surface returns the same result:
+
+```json
+{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
+```
+
 ## Try it
 
 ```bash
@@ -259,7 +299,7 @@ Then, in a fresh notebook:
 
 ```python
 %load_ext pyvar_jupyter
-%pyvar_key your-free-tier-key
+%pyvar_key pyvar_...
 
 %pyvar market_risk.historical_simulation_var returns=[0.01,-0.02,0.015,0.008,-0.011] portfolio_value=1000000
 ```

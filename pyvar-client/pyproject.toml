@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyvar-client"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python SDK for pyvar.com's open-source risk computation API"
 readme = "README.md"
 # PEP 639: an SPDX expression and a license file, not the deprecated `{ text = ... }`

@@ -109,6 +109,12 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`pyvar-client`: the 401 message named a token, and the `pyvar` command was counted as
+  `pyvar-client`** — `PyvarAuthError` now reads "the API key is missing, invalid, revoked or
+  expired" and says where to create a new one. `Client` takes an optional `client_name` for the
+  `X-Pyvar-Client` label (validated as a short lowercase token), and the `pyvar` command passes
+  `pyvar-cli`, the name the API's allowlist already had and nothing sent. Ships in `pyvar-client`
+  0.3.0 (a new optional argument, so a minor version).
 - **"Sign in with Google" rendered in the visitor's language ("Accedi con Google")** —
   #381 added `?hl=en` to the Google Identity Services script URL, but that parameter
   does not reach the button iframe (measured in headless Chromium with an it-IT locale:

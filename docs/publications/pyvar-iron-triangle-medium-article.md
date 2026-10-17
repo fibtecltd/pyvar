@@ -2,6 +2,8 @@
 
 *"Pick two" is the usual framing of cost, speed, and accuracy. Here's the actual architecture, the cherry-picked technology stack, and the methodology pyvar uses to argue it doesn't have to pick.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in how callers authenticate: the free tier now starts with an API key from the dashboard, and the code snippets use `pyvar_...` keys. The cost, speed and accuracy figures keep the dates they were measured on.
+
 > **Draft status:** not yet published. Every figure below is checked against
 > this repository at drafting time (`CLAUDE.md`, `docs/p7-numba-profiling-results.md`,
 > `docs/p9-scenario-volume-cost-audit.md`, `docs/p8-iron-triangle-data.md`,
@@ -37,7 +39,7 @@ Three design decisions carry essentially the entire cost and speed story.
 
 ![One kernel call, three load-bearing rules — random numbers are pre-drawn in pure Python before the JIT region, @njit(parallel=True, cache=True) runs prange across CPU cores and skips recompilation on a fresh Spot worker, the kernel returns only an ndarray, and the public wrapper converts to Python types outside the compiled region](./assets/diagrams/deepdive-kernel-lifecycle.svg)
 
-**Only one function in the whole API is actually asynchronous.** The MCP server, `pyvar-client`, and `pyvar-jupyter` all converge on one SDK, so there is no duplicated auth or retry logic to keep in sync across three surfaces. 384 of 385 functions return a direct JSON response. Only `var.compute` — the one function whose Monte Carlo path count makes submit-and-poll worth it — goes through Celery/SQS FIFO to a worker fleet, with `task_acks_late=True` so a Spot interruption never silently loses a job mid-run.
+**Only one function in the whole API is actually asynchronous.** The MCP server, `pyvar-client`, and `pyvar-jupyter` all call the same REST API: `pyvar-jupyter` wraps `pyvar-client`, so those two share one auth and retry path, and `pyvar-mcp` is a deliberately small standard-library client (a 30-second timeout, no retries) over the same endpoints. 384 of 385 functions return a direct JSON response. Only `var.compute` — the one function whose Monte Carlo path count makes submit-and-poll worth it — goes through Celery/SQS FIFO to a worker fleet, with `task_acks_late=True` so a Spot interruption never silently loses a job mid-run.
 
 ![Only one endpoint is actually async — the MCP server, pyvar-client, and pyvar-jupyter all converge on one REST API, which splits into 384 synchronous functions returning a direct JSON response and one async var.compute endpoint that queues onto SQS FIFO for a Celery worker on EC2 Spot to poll and complete](./assets/diagrams/deepdive-request-path.svg)
 
@@ -87,7 +89,7 @@ python scripts/p7_bench.py   # the actual benchmark script cited above, runs loc
 ```python
 from pyvar_client import Client
 
-with Client(api_key="your-free-tier-key") as client:
+with Client(api_key="pyvar_...") as client:
     result = client.market_risk.historical_simulation_var(
         returns=[0.01, -0.02, 0.015, 0.008, -0.011],
         portfolio_value=1_000_000,

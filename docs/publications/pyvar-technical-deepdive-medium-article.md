@@ -2,6 +2,8 @@
 
 *A technical deep dive into how pyvar.com actually runs — the Numba kernel design, the async job pipeline, and the AWS architecture underneath it.*
 
+> **Update (October 2026):** This article has been updated to reflect the latest changes in the request path: authentication is now an API-key check, cached in Redis, beside the stateless session-token decode, and each client surface sends its own label. Its engine and infrastructure figures keep the dates they were measured on.
+
 > **Draft status:** not yet published. Every number and code excerpt below
 > is checked against this repository at drafting time (`engine/montecarlo.py`,
 > `docs/p7-numba-profiling-results.md`, `pyvar-cdk/stacks/*.py`) — see
@@ -78,13 +80,19 @@ For a sanity check that these aren't just fast-but-wrong numbers: `american_opti
 
 ## The request path: only one function is actually async
 
-Three client surfaces — the MCP server, the `pyvar-client` SDK, and `pyvar-jupyter`'s IPython magics — all converge on one SDK, so there's no duplicated auth or retry logic to keep in sync. But only `var.compute` goes through the async Celery/SQS job queue. The other 384 functions are synchronous request/response.
+Three client surfaces — the MCP server, the `pyvar-client` SDK, and `pyvar-jupyter`'s IPython magics — call the same REST API. `pyvar-jupyter` wraps `pyvar-client`, so those two share one auth and retry path; `pyvar-mcp` is a deliberately small standard-library client with a 30-second timeout and no retries. But only `var.compute` goes through the async Celery/SQS job queue. The other 384 functions are synchronous request/response.
 
 That split isn't arbitrary — it's about which functions actually run long enough to justify submit-and-poll instead of a direct HTTP response, and Monte Carlo path count is the deciding factor. This is also why `pyvar-jupyter`'s `%pyvar` magic can return a result inline with no polling loop of its own: `var.compute`'s submit/poll cycle is hidden entirely inside the SDK, and everything else was never async to begin with.
 
 For the one function that does queue: the SQS queue is FIFO, `task_acks_late=True` is non-negotiable (removing it means an interrupted Spot instance loses the job permanently, not just delays it), and the queue's visibility timeout must exceed the worst-case simulation runtime — if a new simulation type ever takes longer than the current timeout, both the Celery task timeout and the SQS visibility timeout in the CDK stack need updating together, or a still-running job gets redelivered to a second worker while the first one is still working on it.
 
 ![Only one endpoint is actually async — the MCP server, pyvar-client, and pyvar-jupyter all converge on one REST API, which splits into 384 synchronous functions returning a direct JSON response and one async var.compute endpoint that queues onto SQS FIFO for a Celery worker on EC2 Spot to poll and complete](./assets/diagrams/deepdive-request-path.svg)
+
+In front of all 385 sits one authentication dependency. A session token is decoded statelessly. An API key (`pyvar_...`) is looked up by its SHA-256 through a 60-second Redis cache, with the database behind it: a hit costs one Redis read and no database connection, which matters because the async pool is small (5 plus 5 connections). A database error is a 503, never a 401, and a Redis outage only slows lookups down.
+
+![Flow chart: a Bearer pyvar_ key is hashed with SHA-256 and looked up in Redis. A hit returns the account and tier. A miss goes to the database by hash; found is cached for 60 seconds and returned; not found returns 401, cached for 30 seconds, and past 30 bad keys a minute from one address returns 429; a database error returns 503.](./assets/plugins-end-to-end/plugins-end-to-end-key-check.png)
+
+*What happens to a key on every call. A cache hit costs one Redis read and no database connection; only misses reach the database.*
 
 ## The infrastructure: paying for compute only when there's a queue to drain
 

@@ -31,7 +31,7 @@ from pyvar_client._generated.market_risk import MarketRiskNamespace
 from pyvar_client._generated.operational import OperationalNamespace
 from pyvar_client._generated.portfolio import PortfolioNamespace
 from pyvar_client._generated.regulatory import RegulatoryNamespace
-from pyvar_client._transport import send_request
+from pyvar_client._transport import client_id_for, send_request
 from pyvar_client._var import VarNamespace
 
 DEFAULT_BASE_URL = "https://www.pyvar.com"
@@ -59,6 +59,10 @@ class Client:
             Required -- this client has no registration flow of its own.
         base_url: API base URL. Defaults to production.
         timeout: Per-request timeout in seconds, passed straight to httpx.
+        client_name: The name this client reports in the X-Pyvar-Client header
+            ("<name>/<version>"). Defaults to "pyvar-client". Meant for pyvar's own
+            packages (the `pyvar` command reports "pyvar-cli"); the API counts calls
+            by this label and records any name it does not know as "other".
         transport: An httpx transport override. Not needed for real usage
             -- exists so tests can swap in an httpx.MockTransport instead
             of making real HTTP calls (see tests/conftest.py), the same
@@ -72,8 +76,10 @@ class Client:
         *,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
+        client_name: str | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
+        self._client_id = client_id_for(client_name)
         if api_key is None:
             api_key = os.environ.get("PYVAR_API_KEY")
         if not api_key:
@@ -112,6 +118,7 @@ class Client:
             json_body=json_body,
             params=params,
             idempotent=idempotent,
+            client_id=self._client_id,
         )
 
     def close(self) -> None:

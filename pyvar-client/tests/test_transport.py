@@ -49,6 +49,9 @@ def test_401_raises_pyvar_auth_error():
     with pytest.raises(PyvarAuthError) as exc_info:
         client.market_risk.historical_simulation_var(returns=[0.01] * 60, portfolio_value=1.0)
     assert exc_info.value.response_status == 401
+    # the message names the credential people actually hold, and says where to get a new one
+    assert "API key" in str(exc_info.value)
+    assert "#get-api-key" in str(exc_info.value)
 
 
 def test_422_raises_pyvar_validation_error_with_field_detail():

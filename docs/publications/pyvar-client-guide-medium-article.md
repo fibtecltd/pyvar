@@ -2,6 +2,12 @@
 
 *A practical guide to `pyvar-client` — install, auth, your first call, the one async function in the whole API, error handling, retries, and the CLI that comes free with it.*
 
+![Four tiles: 385 functions, one method each, in 8 domain namespaces plus var for the async Monte Carlo job; 3 automatic retries with exponential backoff from 0.5 seconds, idempotent calls only; 1 runtime dependency, httpx at version 0.27 or later; and the current version, 0.3.0, which reads PYVAR_API_KEY from the environment.](./assets/headers/header-pyvar-client-guide.png)
+
+*pyvar-client at a glance, read from the code.*
+
+> **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-client` 0.2.0 and 0.3.0: API keys instead of one-hour tokens (`Client()` reads `PYVAR_API_KEY`) in 0.2.0, then in 0.3.0 a 401 message that names the API key and a `client_name` option for the label the API records (the `pyvar` command reports `pyvar-cli`).
+
 > **Draft status:** not yet published. Every example below runs against
 > `pyvar-client`'s actual source (`pyvar-client/pyvar_client/`) and its own
 > README — see **Sources** at the end. Needs review before it goes anywhere.
@@ -21,18 +27,18 @@ pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricin
 pip install pyvar-client
 ```
 
-Every call needs a bearer token — get a free-tier API key at [pyvar.com](https://www.pyvar.com#get-api-key) (no password, no credit card). The client has no registration flow of its own; that's a one-time human step via email verification.
+Every call needs an API key. Sign in at [pyvar.com](https://www.pyvar.com#get-api-key) with Google or an emailed link (no password, no credit card) and create a key on the dashboard: it starts with `pyvar_`, is shown once, lasts a year and can be revoked there. The client has no registration flow of its own; it reads the key from the `PYVAR_API_KEY` environment variable when you call `Client()` with no arguments. Each request carries an `X-Pyvar-Client: pyvar-client/<version>` header, an allowlisted label the API counts calls by (never tied to a user); the `pyvar` command described below sends `pyvar-cli` instead.
 
 ```python
 from pyvar_client import Client
 
-client = Client(api_key="eyJ...")
+client = Client(api_key="pyvar_...")
 ```
 
 Or as a context manager, which closes the underlying connection pool on exit:
 
 ```python
-with Client(api_key="eyJ...") as client:
+with Client(api_key="pyvar_...") as client:
     ...
 ```
 
@@ -98,7 +104,7 @@ Every non-2xx response raises a typed exception, not a generic HTTP error:
 
 | Exception | Status | What it carries |
 |---|---|---|
-| `PyvarAuthError` | 401 | Token missing, invalid, or expired |
+| `PyvarAuthError` | 401 | Key missing, invalid, revoked or expired |
 | `PyvarValidationError` | 422 | `.detail` — field-level validation errors |
 | `PyvarRateLimitError` | 429 | `.retry_after` (seconds), from the response header |
 | `PyvarComputeError` | — | A VaR job reached `status="failure"` server-side; `.task_id`, `.detail` |
@@ -122,12 +128,43 @@ Every synchronous domain function is idempotent — pure compute, no side effect
 
 ![What retries automatically and what never does — any domain method and client.var.poll() auto-retry, client.var.submit() never does, to avoid double-submitting real compute work](./assets/diagrams/client-retry-semantics.svg)
 
+## The same call from a notebook, Claude Code and curl
+
+`pyvar-jupyter` wraps this client, and `pyvar-mcp` is a separate, small client for Claude Code. Expected loss for a 1,000,000 exposure, asked through the REST API and the two other packages ([`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) runs these and the Python call above against a real local API and fails if the results differ):
+
+**REST**
+
+```bash
+curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computation \
+  -H "Authorization: Bearer $PYVAR_API_KEY" -H "Content-Type: application/json" \
+  -d '{"pd": 0.02, "lgd": 0.45, "ead": 1000000}'
+```
+
+**pyvar-jupyter** (`pip install pyvar-jupyter`, then `%load_ext pyvar_jupyter`)
+
+```
+%pyvar credit_risk.expected_loss_el_computation pd=0.02 lgd=0.45 ead=1000000
+```
+
+**pyvar-mcp** (the `call_pyvar_function` tool, arguments shown as JSON)
+
+```json
+{"domain": "credit-risk", "function_name": "expected_loss_el_computation",
+ "params": {"pd": 0.02, "lgd": 0.45, "ead": 1000000}}
+```
+
+Every surface returns the same result:
+
+```json
+{"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
+```
+
 ## The CLI that comes with it
 
 `pip install pyvar-client` also installs a `pyvar` command — stdlib `argparse` only, no extra install step:
 
 ```bash
-export PYVAR_API_KEY="eyJ..."
+export PYVAR_API_KEY="pyvar_..."
 
 pyvar market_risk historical_simulation_var --params-json \
     '{"returns": [0.01, -0.02, 0.015], "portfolio_value": 1000000}'
@@ -166,7 +203,7 @@ pip install pyvar-client
 ```python
 from pyvar_client import Client
 
-with Client(api_key="your-free-tier-key") as client:
+with Client(api_key="pyvar_...") as client:
     result = client.market_risk.historical_simulation_var(
         returns=[0.01, -0.02, 0.015, 0.008, -0.011],
         portfolio_value=1_000_000,
