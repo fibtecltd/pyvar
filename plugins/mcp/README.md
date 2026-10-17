@@ -21,21 +21,15 @@ credit card) and create one on the dashboard. It starts with `pyvar_`, lasts a
 year, and you can revoke it there at any time.
 
 The plugin starts the server with `uvx pyvar-mcp`, which downloads it from PyPI
-on first use, so it needs [uv](https://docs.astral.sh/uv/) on your PATH. No uv?
-Run `pip install pyvar-mcp` and change the plugin's `mcpServers` command to
-`pyvar-mcp` (with no `args`). Working from a checkout of this repo instead:
-`pip install -e plugins/mcp`.
+on first use, so it needs [uv](https://docs.astral.sh/uv/) on your PATH. If the
+tool calls fail with a "command not found" style error, a missing uv is almost
+certainly why. No uv? Run `pip install pyvar-mcp` and change the plugin's
+`mcpServers` command to `pyvar-mcp` (with no `args`). Working from a checkout of
+this repo instead: `pip install -e plugins/mcp`.
 
 `pyvar-mcp` is published to PyPI by `.github/workflows/pyvar-mcp-publish.yml`
-when a `pyvar-mcp-v*` tag is pushed; until the first release exists, use the
-checkout install above.
-
-This installs the `pyvar-mcp` console command the plugin's `mcpServers`
-config invokes. If the tool calls fail with a "command not found" style
-error, this step is almost certainly why. A future revision may publish
-`pyvar-mcp` to PyPI (mirroring `pyvar-client`'s own release workflow) and
-switch the plugin to `uvx pyvar-mcp`, removing this step entirely — tracked
-as an open question in `docs/p10-skills-and-plugin-plan.md`.
+when a `pyvar-mcp-v*` tag is pushed (trusted publishing; the tag must equal the
+version in `pyproject.toml`).
 
 ## Tools
 

@@ -119,6 +119,11 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   not S3, and is not limited. Tests pin both directions. The limit on those two files is now 60 an
   hour per IP (about 20 page loads): at 5, the status pill, the nav version and the terminal demo
   fell back to their static defaults from the second load.
+- **The plugins page, the Claude-plugins guide and the `pyvar-mcp` README still told people to run
+  `pip install -e plugins/mcp`** — the plugin has launched `uvx pyvar-mcp` from PyPI since 0.2.0.
+  All three now say the server needs `uv` on the PATH (a missing `uv` is what a "command not
+  found" error means now), and the README no longer says a PyPI release is still to come. The
+  PyPI page for `pyvar-mcp` 0.2.0 keeps its old text until the next `pyvar-mcp` release.
 - **`pyvar-client`: the 401 message named a token, and the `pyvar` command was counted as
   `pyvar-client`** — `PyvarAuthError` now reads "the API key is missing, invalid, revoked or
   expired" and says where to create a new one. `Client` takes an optional `client_name` for the
