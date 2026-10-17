@@ -14,6 +14,7 @@ from unittest.mock import patch
 import mcp.types as types
 import pytest
 
+from pyvar_mcp import __version__
 from pyvar_mcp.main import build_server
 
 
@@ -21,6 +22,16 @@ from pyvar_mcp.main import build_server
 def server(monkeypatch):
     monkeypatch.setenv("PYVAR_API_KEY", "test-key")
     return build_server()
+
+
+def test_server_tells_mcp_clients_its_name_and_version(server):
+    # The initialize reply's serverInfo is built from these options. It used to carry an empty
+    # version, so a client could not tell which pyvar-mcp it was talking to.
+    options = server.create_initialization_options()
+
+    assert options.server_name == "pyvar-mcp"
+    assert options.server_version == __version__
+    assert options.server_version != ""
 
 
 def _list_tools_handler(server):

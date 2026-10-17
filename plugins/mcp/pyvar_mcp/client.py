@@ -22,8 +22,9 @@ import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from importlib import metadata
 from typing import Any
+
+from . import __version__
 
 DEFAULT_API_BASE_URL = "https://www.pyvar.com"
 REQUEST_TIMEOUT_SECONDS = 30
@@ -44,16 +45,10 @@ class PyvarApiError(Exception):
         super().__init__(f"pyvar API returned HTTP {status_code}: {body}")
 
 
-def _client_id() -> str:
-    """ "pyvar-mcp/<version>", sent as X-Pyvar-Client so the API can attribute calls to this
-    server (an allowlisted label, never tied to a user)."""
-    try:
-        return f"pyvar-mcp/{metadata.version('pyvar-mcp')}"
-    except metadata.PackageNotFoundError:
-        return "pyvar-mcp/dev"
-
-
-CLIENT_ID = _client_id()
+# "pyvar-mcp/<version>", sent as X-Pyvar-Client so the API can attribute calls to this server
+# (an allowlisted label, never tied to a user). The version is the one the server reports to
+# MCP clients when they connect: pyvar_mcp.__version__.
+CLIENT_ID = f"pyvar-mcp/{__version__}"
 
 
 @dataclass

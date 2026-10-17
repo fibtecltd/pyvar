@@ -1,6 +1,6 @@
 {
   "name": "pyvar-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server exposing all 385 pyvar.com risk functions (VaR, credit, derivatives, liquidity, operational risk, portfolio analytics, ALM, regulatory) as Claude Code tools, via the live pyvar API",
   "author": {
     "name": "Fibtec Limited",
