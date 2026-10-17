@@ -457,7 +457,7 @@ with Client() as client:  # reads PYVAR_API_KEY
 The 99% VaR is 2.38% of the book, 238,046: the same numbers the REST call and the market-risk skill report. Every non-2xx response raises a typed exception, so code can tell "fix the request" from "get a new key":
 
 ```
-PyvarAuthError (HTTP 401): Authentication failed -- token missing, invalid, or expired.
+PyvarAuthError (HTTP 401): Authentication failed -- the API key is missing, invalid, revoked or expired. Create a new one at https://www.pyvar.com#get-api-key.
 PyvarValidationError (HTTP 422): Request failed validation.
 response_body = {'detail': 'pd must be in [0, 1]'}
 ```

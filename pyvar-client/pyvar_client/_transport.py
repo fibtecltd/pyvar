@@ -20,6 +20,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any
 
@@ -35,21 +36,38 @@ from pyvar_client.exceptions import (
 _RETRYABLE_STATUS = {500, 502, 503, 504}
 
 
-def _client_id() -> str:
-    """ "pyvar-client/<version>", sent as X-Pyvar-Client so the API can tell which official
-    client a call came from (an allowlisted label, never tied to a user)."""
+def _package_version() -> str:
     try:
         from importlib.metadata import PackageNotFoundError, version
 
         try:
-            return f"pyvar-client/{version('pyvar-client')}"
+            return version("pyvar-client")
         except PackageNotFoundError:
-            return "pyvar-client/dev"
+            return "dev"
     except ImportError:  # pragma: no cover - importlib.metadata exists on every supported Python
-        return "pyvar-client/unknown"
+        return "unknown"
 
 
-CLIENT_ID = _client_id()
+_CLIENT_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
+
+
+def client_id_for(client_name: str | None = None) -> str:
+    """ "<name>/<version>", sent as X-Pyvar-Client so the API can tell which official client a
+    call came from (an allowlisted label, never tied to a user). The name defaults to
+    "pyvar-client"; the version is always this package's.
+
+    Raises:
+        ValueError: client_name is not a short lowercase token (letters, digits, ".", "_", "-").
+    """
+    name = "pyvar-client" if client_name is None else client_name
+    if not _CLIENT_NAME.match(name):
+        raise ValueError(
+            f"client_name must be a short lowercase token like 'pyvar-cli', got {client_name!r}"
+        )
+    return f"{name}/{_package_version()}"
+
+
+CLIENT_ID = client_id_for()
 _MAX_RETRIES = 3
 _BACKOFF_BASE_SECONDS = 0.5
 
@@ -67,7 +85,8 @@ def _raise_for_status(response: httpx.Response) -> None:
 
     if response.status_code == 401:
         raise PyvarAuthError(
-            "Authentication failed -- token missing, invalid, or expired.",
+            "Authentication failed -- the API key is missing, invalid, revoked or expired. "
+            "Create a new one at https://www.pyvar.com#get-api-key.",
             response_status=401,
             response_body=body,
         )
@@ -105,6 +124,7 @@ def send_request(
     json_body: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
     idempotent: bool = True,
+    client_id: str = CLIENT_ID,
 ) -> dict[str, Any]:
     """Send one request, mapping the response to a dict or a PyvarError subclass.
 
@@ -118,7 +138,7 @@ def send_request(
         PyvarError: any other 4xx/5xx after retries (if idempotent) are exhausted.
         httpx.HTTPError: a genuine network/timeout failure with no response at all.
     """
-    headers = {"Authorization": f"Bearer {token}", "X-Pyvar-Client": CLIENT_ID}
+    headers = {"Authorization": f"Bearer {token}", "X-Pyvar-Client": client_id}
     attempt = 0
 
     while True:

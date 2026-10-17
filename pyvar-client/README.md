@@ -37,6 +37,11 @@ with Client() as client:
     ...
 ```
 
+Each request carries an `X-Pyvar-Client: pyvar-client/<version>` header, a label the API
+counts calls by (it is never tied to a user). The `pyvar` command sends `pyvar-cli`;
+`Client(client_name=...)` sets the label, for pyvar's own packages (a name the API does not
+know is recorded as `other`).
+
 ## The one async function: Monte Carlo VaR
 
 Every domain function is synchronous request/response — call it, get the result.

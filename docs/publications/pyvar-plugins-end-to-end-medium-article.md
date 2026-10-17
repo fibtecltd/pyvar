@@ -73,7 +73,7 @@ One limit: the streaming endpoint for Monte Carlo VaR (`WS /api/v1/var/stream/{t
 
 ## One label per surface
 
-The API counts calls by client surface, using an allowlisted `X-Pyvar-Client` header. `pyvar-client`, `pyvar-mcp` and `pyvar-jupyter` each send their own name; anything else is recorded as `other`, and a call with no header as nothing at all. The allowlist bounds how many distinct values can ever be stored. `pyvar-jupyter` wraps `pyvar-client`, which stamps its own name on every request, so the notebook magics relabel their requests in an httpx request hook. (A custom transport would also work, but it makes httpx ignore `HTTP(S)_PROXY`, which breaks notebooks behind a corporate proxy.)
+The API counts calls by client surface, using an allowlisted `X-Pyvar-Client` header. `pyvar-client`, `pyvar-mcp`, `pyvar-jupyter` and the `pyvar` command (as `pyvar-cli`) each send their own name; anything else is recorded as `other`, and a call with no header as nothing at all. The allowlist bounds how many distinct values can ever be stored. `pyvar-jupyter` wraps `pyvar-client`, which stamps its own name on every request, so the notebook magics relabel their requests in an httpx request hook. (A custom transport would also work, but it makes httpx ignore `HTTP(S)_PROXY`, which breaks notebooks behind a corporate proxy.)
 
 ## What is measured, and what is not
 

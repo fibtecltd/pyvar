@@ -27,7 +27,7 @@ pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricin
 pip install pyvar-client
 ```
 
-Every call needs an API key. Sign in at [pyvar.com](https://www.pyvar.com#get-api-key) with Google or an emailed link (no password, no credit card) and create a key on the dashboard: it starts with `pyvar_`, is shown once, lasts a year and can be revoked there. The client has no registration flow of its own; it reads the key from the `PYVAR_API_KEY` environment variable when you call `Client()` with no arguments. Each request carries an `X-Pyvar-Client: pyvar-client/<version>` header, an allowlisted label the API counts calls by (never tied to a user).
+Every call needs an API key. Sign in at [pyvar.com](https://www.pyvar.com#get-api-key) with Google or an emailed link (no password, no credit card) and create a key on the dashboard: it starts with `pyvar_`, is shown once, lasts a year and can be revoked there. The client has no registration flow of its own; it reads the key from the `PYVAR_API_KEY` environment variable when you call `Client()` with no arguments. Each request carries an `X-Pyvar-Client: pyvar-client/<version>` header, an allowlisted label the API counts calls by (never tied to a user); the `pyvar` command described below sends `pyvar-cli` instead.
 
 ```python
 from pyvar_client import Client

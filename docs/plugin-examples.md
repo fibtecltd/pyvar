@@ -1635,7 +1635,7 @@ with Client(api_key="not-a-valid-key") as client:
 Result:
 
 ```text
-PyvarAuthError (HTTP 401): Authentication failed -- token missing, invalid, or expired.
+PyvarAuthError (HTTP 401): Authentication failed -- the API key is missing, invalid, revoked or expired. Create a new one at https://www.pyvar.com#get-api-key.
 ```
 
 **a value the API rejects**

@@ -52,13 +52,13 @@ between named alternatives, recorded so they are not re-litigated by accident.
   `locale: 'en'` option of `renderButton`. The `hl` parameter on the library URL does not
   reach the button iframe. `tests/test_portal_google_signin.py` fails on any button
   without the option.
-- **Clients**: `pyvar_client.Client()` reads `PYVAR_API_KEY`. `pyvar-client`, `pyvar-mcp`
-  and `pyvar-jupyter` each send `X-Pyvar-Client: <name>/<version>`; `pyvar-jupyter` wraps
-  `pyvar-client`, so it rewrites the header in an httpx request hook (a custom transport
-  would make httpx ignore `HTTP(S)_PROXY`). The API records an allowlisted name in
-  `api_usage.client` (`pyvar-client`, `pyvar-mcp`, `pyvar-jupyter`, `pyvar-cli`, otherwise
-  `other`, or NULL if absent). The `pyvar` command-line tool goes through the same client
-  transport, so it is reported as `pyvar-client`; `pyvar-cli` is allowlisted but not sent.
+- **Clients**: `pyvar_client.Client()` reads `PYVAR_API_KEY`. `pyvar-client`, `pyvar-mcp`,
+  `pyvar-jupyter` and the `pyvar` command each send `X-Pyvar-Client: <name>/<version>`. The
+  command passes `client_name="pyvar-cli"` to `Client`; `pyvar-jupyter` wraps `pyvar-client`
+  and rewrites the header in an httpx request hook (a custom transport would make httpx
+  ignore `HTTP(S)_PROXY`). The API records an allowlisted name in `api_usage.client`
+  (`pyvar-client`, `pyvar-mcp`, `pyvar-jupyter`, `pyvar-cli`, otherwise `other`, or NULL if
+  absent).
   **No user identifier is stored in `api_usage`**; adoption by surface is visible,
   per-user retention is not. `api_keys.last_used_at` gives "keys used in the last 7/30
   days" without logging per-request identity.

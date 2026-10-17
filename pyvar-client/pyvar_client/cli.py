@@ -193,7 +193,9 @@ def build_client(
     if not api_key:
         raise ValueError("no API key -- pass --api-key or set PYVAR_API_KEY.")
     base_url = args.base_url or os.environ.get("PYVAR_BASE_URL") or DEFAULT_BASE_URL
-    return client_factory(api_key=api_key, base_url=base_url, timeout=args.timeout)
+    return client_factory(
+        api_key=api_key, base_url=base_url, timeout=args.timeout, client_name="pyvar-cli"
+    )
 
 
 def _load_params(args: argparse.Namespace) -> dict[str, Any] | None:
