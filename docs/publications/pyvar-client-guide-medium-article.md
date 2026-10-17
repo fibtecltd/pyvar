@@ -8,13 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-client` 0.2.0 and 0.3.0: API keys instead of one-hour tokens (`Client()` reads `PYVAR_API_KEY`) in 0.2.0, then in 0.3.0 a 401 message that names the API key and a `client_name` option for the label the API records (the `pyvar` command reports `pyvar-cli`).
 
-> **Draft status:** not yet published. Every example below runs against
-> `pyvar-client`'s actual source (`pyvar-client/pyvar_client/`) and its own
-> README — see **Sources** at the end. Needs review before it goes anywhere.
-> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
-> re-upload them through Medium's own editor at publish time; relative
-> paths don't carry over.
-
 ---
 
 pyvar.com exposes 385 risk functions — VaR, credit scoring, derivatives pricing, liquidity ratios, and more — as a REST API. `pyvar-client` is the official Python SDK: one typed client, one namespace per domain, no HTTP client code to write by hand. This is a hands-on guide to actually using it, not a feature list.

@@ -8,15 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in `pyvar-jupyter` and API keys: the package is now on PyPI (`pip install pyvar-jupyter`), and every notebook sets up with a `pyvar_...` key from the dashboard.
 
-> **Draft status:** not yet published. Every number, table, and chart below
-> was produced by actually running the corresponding `engine/` function
-> locally with the exact inputs shown — none of it is estimated or
-> reconstructed from memory. See **Sources** at the end. Needs review
-> before it goes anywhere.
-> Diagrams are local JPGs/SVGs (`./assets/diagrams/`, `./assets/tables/`)
-> for repo/GitHub preview — re-upload them through Medium's own editor at
-> publish time; relative paths don't carry over.
-
 ---
 
 `pyvar-jupyter/examples/` started with three worked notebooks — Monte Carlo VaR, a Basel backtest, and an American option — and they were good notebooks, but they only actually touched two of pyvar's eight risk domains. Six more now exist, one per remaining domain: Credit Risk, Liquidity Risk, Operational Risk, Portfolio Analytics, Regulatory, and ALM. This piece walks through what each one actually computes, with the real output rendered as a table or a chart rather than left as a wall of numbers in a code cell.

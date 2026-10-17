@@ -62,4 +62,4 @@ The six images in `assets/headers/` come from `python scripts/generate_article_h
 
 ## Placement
 
-Under the title and subtitle, before the update note and the draft-status block. In the Markdown, `![alt](./assets/headers/<file>.png)` followed by an italic caption line; in the Medium-ready HTML, the same, with the image embedded. `assets/headers/README.md` lists each image with its caption and alt text.
+Under the title and subtitle, before the update note. In the Markdown, `![alt](./assets/headers/<file>.png)` followed by an italic caption line; in the Medium-ready HTML, the same, with the image embedded. `assets/headers/README.md` lists each image with its caption and alt text.

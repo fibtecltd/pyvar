@@ -8,11 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in account sign-in and API keys (a returning user signs in with the same email form, and a signed-in session creates the key that plugins and scripts use), in how `pyvar-mcp` is installed, and in the Python packages. The plugin review statuses it listed are no longer stated, since they change.
 
-> **Draft status:** not yet published. Every fact below is checked against
-> this repository at drafting time (`.claude-plugin/marketplace.json`,
-> `config.py`, `docker-compose.yml`, `api/routes/auth.py`, `api/routes/var.py`) —
-> see **Sources** at the end. Needs review before it goes anywhere.
-
 ---
 
 pyvar.com is an open-source (Apache-2.0), Numba-accelerated risk computation platform covering VaR, credit risk, derivatives, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital — 385 functions behind a single REST API. Here's what's available today.

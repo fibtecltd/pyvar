@@ -8,15 +8,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in how the plugins are built, installed and authenticated. The eight domain skills are now generated with each function's real parameters and tested worked examples, the API uses durable API keys instead of one-hour tokens, and `pyvar-mcp` starts with `uvx` from PyPI. A real result for every plugin has been added, along with the same call through every surface.
 
-> **Draft status:** not yet published. Every fact below is checked against
-> this repository at drafting time (`.claude-plugin/marketplace.json`,
-> `docs/proposals/marketplace-submission-content-per-plugin.md`,
-> `plugins/mcp/README.md`, `portal/functions.json`) — see **Sources** at the
-> end. Needs review before it goes anywhere.
-> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
-> re-upload them through Medium's own editor at publish time; relative
-> paths don't carry over.
-
 ---
 
 A REST API with 385 functions is only as useful as the thing calling it knowing which one to reach for. pyvar.com — an open-source (Apache-2.0), Numba-accelerated risk computation platform covering VaR, credit risk, derivatives, liquidity, operational risk, portfolio analytics, ALM, and regulatory capital — solved that by shipping straight into the tool its own build process already lived in: Claude Code.

@@ -4,14 +4,6 @@
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in the request path: authentication is now an API-key check, cached in Redis, beside the stateless session-token decode, and each client surface sends its own label. Its engine and infrastructure figures keep the dates they were measured on.
 
-> **Draft status:** not yet published. Every number and code excerpt below
-> is checked against this repository at drafting time (`engine/montecarlo.py`,
-> `docs/p7-numba-profiling-results.md`, `pyvar-cdk/stacks/*.py`) — see
-> **Sources** at the end. Needs review before it goes anywhere.
-> Diagrams are local SVGs (`./assets/diagrams/`) for repo/GitHub preview —
-> re-upload them through Medium's own editor at publish time; relative
-> paths don't carry over.
-
 ---
 
 Our first article told the story of building pyvar with Claude Code and the regulatory challenges it worked through along the way. This one is narrower and more mechanical on purpose: how does 100,000 Monte Carlo paths become a number in 2 to 10 seconds, what happens to that request between a client's HTTP call and a worker actually running it, and what does the AWS infrastructure underneath look like when nobody's paying for idle capacity. Every claim here is something you can point at a file and check.
