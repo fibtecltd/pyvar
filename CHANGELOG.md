@@ -129,7 +129,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   metadata (`pyvar_mcp.__version__`) and used for both that reply and the `X-Pyvar-Client`
   label, so they cannot differ; tests pin both. Ships as `pyvar-mcp` 0.2.1 (tag `pyvar-mcp-v0.2.1`;
   the plugin manifest moves to 0.2.1 too), which also republishes the PyPI page with the corrected
-  install text. The plugin runs `uvx pyvar-mcp` unpinned, so it picks the new release up on its own.
+  install text. The plugin runs `uvx pyvar-mcp` without a version, so new installs get 0.2.1; a
+  machine that already has 0.2.0 cached moves when uv refreshes its cache (`uvx --refresh
+  pyvar-mcp` forces it).
 - **`pyvar-client`: the 401 message named a token, and the `pyvar` command was counted as
   `pyvar-client`** — `PyvarAuthError` now reads "the API key is missing, invalid, revoked or
   expired" and says where to create a new one. `Client` takes an optional `client_name` for the
