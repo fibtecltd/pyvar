@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>What Broke in the Two Weeks After Launch (and What a Stale Cost Estimate Taught Us About Our Own Infrastructure)</title>
+<style>
+body { max-width: 760px; margin: 40px auto; padding: 0 20px;
+       font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a;
+       line-height: 1.6; font-size: 18px; }
+h1 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 34px;
+     font-weight: 700; line-height: 1.25; margin: 0.4em 0 0.3em; }
+h2 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 26px;
+     font-weight: 700; margin: 1.4em 0 0.4em; }
+h3 { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 21px;
+     font-weight: 700; margin: 1.2em 0 0.4em; }
+p { margin: 0.9em 0; }
+em.subtitle { display: block; font-style: italic; color: #555; font-size: 20px;
+              margin: 0 0 1em; }
+code { font-family: SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em;
+       background: #f2f2f2; padding: 0.1em 0.3em; border-radius: 3px; }
+pre { background: #f6f6f6; border-radius: 6px; padding: 14px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; font-size: 14px; line-height: 1.5; }
+blockquote { border-left: 3px solid #ccc; margin: 1em 0; padding: 0.2em 0 0.2em 1.2em;
+             color: #555; font-style: italic; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; display: block; margin: 1.2em 0; }
+a { color: #1a6b8a; }
+ul, ol { padding-left: 1.4em; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1.2em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+th { background: #f6f6f6; }
+.instructions { background: #fff8e6; border: 1px solid #e8d38a; border-radius: 8px;
+                padding: 14px 18px; margin-bottom: 2em; font-family: -apple-system, sans-serif;
+                font-size: 14px; color: #6b5900; }
+</style></head><body>
+<div class="instructions"><strong>How to use this file:</strong> open it in a browser, select all the content below this box (click into the article body, then Cmd/Ctrl+A), copy, and paste into a new Medium story. Headings, bold/italic, links should carry over.</div>
+<h1>What Broke in the Two Weeks After Launch (and What a Stale Cost Estimate Taught Us About Our Own Infrastructure)</h1><em class="subtitle">A follow-up to "How We Built a Regulatory-Grade Financial Risk Platform End-to-End with Claude Code" — same discipline, turned on the two weeks since publication instead of the build itself.</em><blockquote>
+<p><strong>Update (October 2026):</strong> This article has been updated to reflect the latest changes in sign-in and credentials since it was written: callers now authenticate with durable API keys, described in <a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-end-to-end-medium-article.md">From /plugin install to a Computed Number</a>. The daily report discussed here counts newly verified accounts, which is what issuing a token meant at the time.</p>
+</blockquote>
+<hr />
+<p>Our first article ended on a deliberately modest note: no named enterprise customers yet, and the next real chapter would be "checkable the same way everything above was — <code>git log</code>, PyPI, the live API, not a slide deck." Two weeks and seven merged pull requests later (<code>#326</code>–<code>#332</code>), that's exactly the standard we're holding this follow-up to. Not a highlight reel — a look at what the same "verify by running it" discipline caught in our <em>own</em> infrastructure this time, including one feature that shipped, ran silently wrong for over a week, and only surfaced because someone went looking.</p>
+<h2>A feature that never actually deployed</h2>
+<p>PR #328 added a small, useful thing: a daily email report of JWT token issuance, <code>TokenReportStack</code> — a per-environment scheduled Lambda that queries a new <code>users.verified_at</code> column and emails the count to <code>info@pyvar.com</code> every morning.</p>
+<p>It merged. CI went green. Nothing in the pipeline complained.</p>
+<p>It also never once sent an email, in either environment, because it was never actually deployed. The stack had been added to <code>pyvar-cdk/app.py</code>'s list of standalone stacks — the ones you can <code>cdk deploy</code> by hand — but never wired into <code>PyvarDeployStage</code>, which is the object the <em>pipeline</em> actually walks on every run. The pipeline had no idea <code>TokenReportStack</code> existed. A green pipeline run and a deployed feature are not the same claim, and this is exactly the gap between them.</p>
+<p>That alone would be a clean, boring find-and-fix story. What made it worth writing about is what it was standing next to: a second, older gap that had been there all along, waiting for a commit like this one to trigger it.</p>
+<h2>The gap underneath the gap</h2>
+<p><code>TokenReportStack</code> needed a migration — <code>0006_user_verified_at</code>, adding the column the report queries. The migration step in the pipeline runs <code>ecs run-task --task-definition &lt;family-name&gt;</code>, which resolves to whichever task-definition revision is currently marked ACTIVE in ECS.</p>
+<p>Here's the problem: that step runs <em>before</em> the same pipeline stage's <code>ApiStack</code> deploy registers the new revision pointing at the image this exact pipeline run just built. So "the currently ACTIVE revision" means <em>last</em> run's image — the one built before this commit existed — not the one that actually needs the new column.</p>
+<p>A migration introduced in the same commit as the code that depends on it silently never applies. The pipeline reports success. The application code ships. The column it expects doesn't exist. This is worse than a loud failure, because a loud failure gets noticed.</p>
+<p><code>0006_user_verified_at</code> hit this exactly — confirmed missing in both dev and prod, despite a fully green pipeline history. The fix: instead of running the bare family name, clone the family's current task definition with only the image swapped to the one this run just built, register that as a one-off revision, and run that specific revision ARN. The next migration that ships alongside its own feature commit will actually see the column it's adding.</p>
+<p>A third finding turned up in the same investigation, smaller but worth a line: <code>TokenReportStack</code>'s Lambda still couldn't send email even once deployed correctly — <code>ses:SendEmail</code> came back 403 against the SES configuration-set resource, despite the identity-level <code>grant_send_email()</code> already being in place. AWS wants a second, separate grant against the configuration set itself whenever an identity has one attached as its default. This is the same gap <code>api_stack.py</code>'s ECS task role had already hit and documented once before — the kind of thing that's obvious in hindsight and invisible until you hit it a second time.</p>
+<p>None of these three were caught by code review. They were caught by checking whether the feature actually worked in the deployed environment, not by trusting that green CI meant it did.</p>
+<h2>The cost number we'd been quoting wrong</h2>
+<p>Separately: our README had been advertising <strong>"~£126/month at 500 jobs/day"</strong> as pyvar's AWS running cost. That number was never an observed cost. It was a pre-launch planning <em>target</em>, written down in <code>docs/pyvar_release_plan.md</code> before a single real job had run against real infrastructure, and it stayed in the README long after launch made it checkable.</p>
+<p>The real, confirmed prod AWS invoice (2026-08-31) is <strong>$900–1,000/month</strong>.</p>
+<p>More than double the old figure, in a different currency, and — this is the part actually worth knowing if you're costing out infrastructure like this — job volume barely moves it. A dedicated audit (<code>docs/p9-scenario-volume-cost-audit.md</code>) found Monte Carlo compute itself running at roughly sub-cent per scenario even at 1,000,000 scenarios a month. The real cost driver is the fixed baseline: VPC interface endpoints, the NAT gateway, ElastiCache, Aurora's floor capacity, Fargate's always-on base tasks — infrastructure you pay for whether one job runs or a million do.</p>
+<p>That's the correction, and it's also the more useful fact underneath it: if you're estimating what a service like this costs to run, the question that matters isn't "how many requests will we get" — it's "what's the fixed floor, and how much of our budget does that alone commit us to before a single customer request arrives."</p>
+<h2>A partner-program story with a twist</h2>
+<p>We'd applied to Anthropic's Claude Partner Network as a "Customer Story" — a case study naming a customer who'd built success on Claude. It came back declined, citing three gaps: Claude wasn't named explicitly enough on the pages we'd linked, no measurable result was stated, and — the one that mattered most — <strong>"the customer is not named; anonymous stories cannot count as public references."</strong></p>
+<p>Anthropic Partner Support's follow-up pointed us to the actual right track: a <strong>Public Case Study</strong>, the same submission form, used when there's no named third-party customer and the roles look different — Fibtec as the Partner, Claude Code as the Product that built pyvar.com end-to-end, and the open pyvar.com community itself as the Client. We resubmitted with that framing made explicit, the three public references (the live product, the source repository, and our first article), and the measurable claim already in that article — pyvar's self-scored Iron Triangle efficiency score against traditional enterprise risk vendors — stated plainly instead of left implicit in narrative.</p>
+<p><strong>Two of the three original gaps closed. The third didn't.</strong> The reassessment came back with a single remaining reason, quoted verbatim: the published story "does not meet: A named third-party customer." Neither the explicit-Claude-mention nor the measurable-result gap was cited the second time — those fixes evidently landed. The "community as client" reframing didn't move the third gap at all: whatever criterion actually gets applied here treats "a named third-party customer" as literal and non-negotiable, not a role a project can argue its way into satisfying.</p>
+<p>That's a cleaner lesson than we expected going in. This isn't a form-filling mistake made twice — it's a real eligibility criterion an Apache-2.0 product with no client engagements genuinely doesn't meet, and won't until one exists. The honest move isn't a third resubmission with a cleverer argument for why "the community" should count as a customer; it's what our own case-study PRD said before any of this played out: revisit Partner Network standing once there's an actual joint-customer deployment to name, not before.</p>
+<p>The useful part for anyone else building an open-source product with Claude: "Customer Story" and "Public Case Study" share one submission form, but they don't share every criterion. A role-reframing argument can fix the parts that are genuinely about framing (naming the product, stating a result) and still run straight into the one part that isn't — a literal named third party.</p>
+<h2>One almost-comedic footnote</h2>
+<p>While documenting all of the above, we nearly created a fresh instance of the exact class of problem this whole post is about. Our CD pipeline runs a full Test/Build/Dev-deploy cycle on every push to <code>master</code> unless the changed paths fall inside one of eight excluded top-level directories — a limit set by AWS CodePipeline's own hard cap on push-filter path entries, not a choice we made. <code>docs/</code> is one of the eight excluded directories. <code>CLAUDE.md</code>, sitting at the repo root, is not, and there was no room left on the list to add it.</p>
+<p>Editing <code>CLAUDE.md</code> itself to record this quirk would have started the very pipeline execution the note was describing. Caught before merge, and moved to <code>docs/known-issues.md</code> instead — which is why that particular gap lives there rather than in <code>CLAUDE.md</code> proper, and why its own header explains exactly why.</p>
+<p>Low-stakes, bounded (the in-pipeline skip-gates no-op when nothing deploy-relevant changed, and Prod sits behind a required manual approval regardless), and left as an accepted low-frequency cost rather than a fix — but a nice, small demonstration that "verify by running it" catches things you didn't set out to look for.</p>
+<h2>What actually shipped, checkable today</h2>
+<ul>
+<li><strong>Seven merged PRs since the first article</strong> (<code>#326</code>–<code>#332</code>): the Sentry noise fix, the JWT report feature and the two gaps in its deploy, the CHANGELOG backfill, the cost/contact corrections, this session's own roadmap-and-marketplace work, and the market-data-adapter groundwork.</li>
+<li><strong><code>v0.2.0</code></strong> — tagged and published as a real GitHub Release (2026-09-08), with an actual changelog, closing a gap where the release process itself had gone quiet since <code>v0.1.0</code>.</li>
+<li><strong>The README's cost line now reads $900–1,000/month</strong>, sourced to a real invoice, not a pre-launch target.</li>
+<li><strong>The Partner Network resubmission</strong> — sent, reassessed, and declined again on the one structural criterion detailed above (no named third-party customer), after the framing/measurable-result gaps from round one closed.</li>
+</ul>
+<h2>Why this one matters</h2>
+<p>The first article's thesis was that verification thorough enough to publish becomes cheap enough to actually do, when an AI agent is doing the heavy lifting. This one is the same thesis pointed at ourselves, two weeks later: a feature that looked shipped wasn't, a cost figure that looked current wasn't, and a partner submission that looked resolved on resubmission still hit a real eligibility gap, not just a form mismatch. None of these were caught by anyone reading the code and nodding. They were caught by someone going back and actually checking — which is, not coincidentally, the only thing that scales past a launch date.</p>
+<hr />
+<h2>Sources</h2>
+<ul>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/CHANGELOG.md"><code>CHANGELOG.md</code></a> — <code>[0.2.0]</code> and <code>[Unreleased]</code> sections, quoted directly above.</li>
+<li><code>git log</code>, PRs <a href="https://github.com/fibtecltd/pyvar/pull/326"><code>#326</code></a>–<a href="https://github.com/fibtecltd/pyvar/pull/332"><code>#332</code></a> — commit history and merged-PR range since the first article's publication commit.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/README.md"><code>README.md</code></a> — current AWS cost line and tech-stack summary.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/p9-scenario-volume-cost-audit.md"><code>docs/p9-scenario-volume-cost-audit.md</code></a> — the cost breakdown and the sub-cent-per-scenario finding.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/known-issues.md"><code>docs/known-issues.md</code></a> — the CodePipeline push-filter top-level-file gap.</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/partner-hub-public-case-study-resubmission-email.md"><code>docs/partner-hub-public-case-study-resubmission-email.md</code></a> — the Partner Network resubmission text and its final outcome (declined 2026-09-15, per its own "Outcome" section).</li>
+<li>GitHub Releases, <code>fibtecltd/pyvar</code> — <a href="https://github.com/fibtecltd/pyvar/releases/tag/v0.2.0"><code>v0.2.0</code></a> (published 2026-09-08), <a href="https://github.com/fibtecltd/pyvar/releases/tag/v0.1.0"><code>v0.1.0</code></a> (published 2026-08-23).</li>
+<li><a href="https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-buildstory-medium-article.md"><code>docs/publications/pyvar-buildstory-medium-article.md</code></a> — the first article this piece follows up on.</li>
+</ul>
+</body></html>
