@@ -1,0 +1,19 @@
+<svg width="921" height="276" viewBox="0 0 921 276" xmlns="http://www.w3.org/2000/svg">
+<rect width="921" height="276" fill="#ffffff"/>
+<text x="460.5" y="36" font-family="Helvetica, Arial, sans-serif" font-size="20.5" font-weight="700" fill="#22303a" text-anchor="middle" >Two ways into an account</text>
+<rect x="30" y="76" width="861" height="42" rx="6" fill="#4c6b7a" stroke="#4c6b7a" stroke-width="1.5"/>
+<text x="155" y="103" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="start" >Email</text>
+<text x="519" y="103" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="start" >Google</text>
+<rect x="30" y="118" width="861" height="46" rx="0" fill="#eef2f4" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Steps</tspan></text>
+<text x="155" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Enter your address → check inbox → click the link</tspan></text>
+<text x="519" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Click the sign-in button</tspan></text>
+<rect x="30" y="164" width="861" height="46" rx="0" fill="#ffffff" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Result</tspan></text>
+<text x="155" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">A signed-in session, after the link is clicked</tspan></text>
+<text x="519" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">A signed-in session, immediately</tspan></text>
+<rect x="30" y="210" width="861" height="46" rx="0" fill="#eef2f4" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Verification</tspan></text>
+<text x="155" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Confirmed by the link click</tspan></text>
+<text x="519" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Confirmed by Google&#x27;s own </tspan><tspan font-family="SFMono-Regular, Menlo, Consolas, monospace">email_verified</tspan><tspan font-family="Helvetica, Arial, sans-serif"> claim</tspan></text>
+</svg>

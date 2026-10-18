@@ -1,0 +1,19 @@
+<svg width="873" height="276" viewBox="0 0 873 276" xmlns="http://www.w3.org/2000/svg">
+<rect width="873" height="276" fill="#ffffff"/>
+<text x="436.5" y="36" font-family="Helvetica, Arial, sans-serif" font-size="20.5" font-weight="700" fill="#22303a" text-anchor="middle" >Two ways to get a result</text>
+<rect x="30" y="76" width="813" height="42" rx="6" fill="#4c6b7a" stroke="#4c6b7a" stroke-width="1.5"/>
+<text x="228" y="103" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="start" >Poll</text>
+<text x="503" y="103" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff" text-anchor="start" >Stream</text>
+<rect x="30" y="118" width="813" height="46" rx="0" fill="#eef2f4" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Endpoint</tspan></text>
+<text x="228" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="SFMono-Regular, Menlo, Consolas, monospace">GET /var/result/{task_id}</tspan></text>
+<text x="503" y="146" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="SFMono-Regular, Menlo, Consolas, monospace">WS /api/v1/var/stream/{task_id}</tspan></text>
+<rect x="30" y="164" width="813" height="46" rx="0" fill="#ffffff" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">How you get the result</tspan></text>
+<text x="228" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Ask until the status flips to </tspan><tspan font-family="SFMono-Regular, Menlo, Consolas, monospace">SUCCESS</tspan></text>
+<text x="503" y="192" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">Held open, pushed the instant the job completes</tspan></text>
+<rect x="30" y="210" width="813" height="46" rx="0" fill="#eef2f4" stroke="#c7d1d6" stroke-width="1"/>
+<text x="42" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">What it costs</tspan></text>
+<text x="228" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">One request per check</tspan></text>
+<text x="503" y="238" font-family="Helvetica, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#22303a" text-anchor="start" xml:space="preserve"><tspan font-family="Helvetica, Arial, sans-serif">One connection, no polling loop</tspan></text>
+</svg>
