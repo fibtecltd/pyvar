@@ -2,7 +2,7 @@
 
 *385 risk functions, 649 commits, and a native MCP server—how an AI agent co-authored a production-ready quantitative finance ecosystem.*
 
-![pyvar header](./pyvar-buildstory-header.jpg)
+![pyvar header](./assets/pyvar-buildstory-header.jpg)
 
 > **Update (October 2026):** This article has been updated to reflect the latest changes in where the platform stands: the Claude skills are now generated with real parameters and tested examples, callers authenticate with durable API keys, and `pyvar-client`, `pyvar-jupyter` and `pyvar-mcp` are all on PyPI. The build story itself is unchanged; the current state is in [From /plugin install to a Computed Number](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-plugins-end-to-end-medium-article.md).
 
@@ -12,13 +12,13 @@ No human caught it by reading the code. It was caught because the code was made 
 
 That's the moment this article is really about: not that an AI agent wrote financial software, but what happened when that software got checked.
 
-![79%: how much required regulatory capital pyvar's first Solvency II draft understated, caught before production](./cold_open_stat.png)
+![79%: how much required regulatory capital pyvar's first Solvency II draft understated, caught before production](./assets/cold_open_stat.png)
 
 pyvar.com is an open-source (Apache-2.0) engine for exactly this kind of high-stakes number — 385 functions covering Value-at-Risk, Expected Shortfall, credit risk, derivatives Greeks, and regulatory capital across Basel, Solvency II, EMIR, and more. What makes it worth writing about isn't the domain coverage on its own. It's that the whole thing — math kernels, deployment pipeline, and the validation suite described above — was built end-to-end by Claude Code.
 
 ## At a glance
 
-![At a glance: 385 functions across 8 domains, 649 commits with 131 co-authored by Claude, 4 regulatory challenges resolved pre-launch, 23.6% caveats disclosed inline, Apache-2.0 licensed](./glance_strip.png)
+![At a glance: 385 functions across 8 domains, 649 commits with 131 co-authored by Claude, 4 regulatory challenges resolved pre-launch, 23.6% caveats disclosed inline, Apache-2.0 licensed](./assets/glance_strip.png)
 
 If that's all you came for, that's the shape of it. Everything below is the receipts — every number in this article is checkable against `git log`, `CHANGELOG.md`, `portal/functions.json`, or a live API call, including three corrections we made to this article itself when a claim didn't survive being checked:
 
@@ -57,7 +57,7 @@ kernels, resolved real regulatory challenges before they shipped, built the CI/C
 pipeline, and then built its own way back into the Claude ecosystem via an
 MCP server and a Jupyter extension.
 
-![385 risk functions across 8 domains](./domain_tree.png)
+![385 risk functions across 8 domains](./assets/domain_tree.png)
 
 ---
 
@@ -65,7 +65,7 @@ MCP server and a Jupyter extension.
 
 This is the real path, not a simplified one. Three client surfaces (MCP, SDK, Jupyter) reach the same REST API: `pyvar-jupyter` wraps `pyvar-client`, so those two share one auth and retry path, and `pyvar-mcp` is a deliberately small standard-library client (a 30-second timeout, no retries) over the same endpoints:
 
-![How a request actually flows](./request_flow.png)
+![How a request actually flows](./assets/request_flow.png)
 
 Only `var.compute` goes through the async job queue — it's the one function
 whose Monte Carlo path count makes submit-and-poll worth it. The other 384
@@ -223,7 +223,7 @@ carry a documented `caveat` field in the public function catalogue
 independent-verification gap, disclosed to every API caller in the same
 response payload the function itself returns data in:
 
-![The honesty mechanism, in numbers](./honesty.png)
+![The honesty mechanism, in numbers](./assets/honesty.png)
 
 That 23.6% number is worth pausing on, because getting it required a real
 correction mid-session: the first pass at counting caveats checked a
@@ -291,7 +291,7 @@ you get from actually running the code isn't a very good advertisement for
 
 ## Illustration 3 — three integration surfaces, one SDK
 
-![Three integration surfaces, one SDK](./three_surfaces.png)
+![Three integration surfaces, one SDK](./assets/three_surfaces.png)
 
 None of these three keeps a hand-written copy of the API. That's a deliberate constraint, not an accident: `pyvar-mcp`'s tool catalogue (`plugins/mcp/pyvar_mcp/_generated/functions.py`) and the plugin manifest (`.claude-plugin/marketplace.json`, `plugins/*`) are both generated directly from the repo's own source of truth (`.claude/skills/*`, `portal/functions.json`), with CI failing the build if committed output ever drifts from what regenerating produces. The same discipline that verifies a formula's correctness — don't trust it, run it and check — applies to code generation too.
 
@@ -370,7 +370,7 @@ Every surface returns the same result:
 
 None of the rigor above means much commercially unless it adds up to something worth choosing over the alternative. pyvar.com scores itself against traditional enterprise risk vendors — Bloomberg, MSCI, Murex, Moody's Analytics and similar — using Fibtec's own Iron Triangle efficiency model: cost efficiency, speed, and transparency/auditability, each normalised 0–1 and inverted so a bigger shape reads as a better outcome.
 
-![Cost, speed, transparency — pyvar vs traditional enterprise risk vendors on Fibtec's Iron Triangle model](./iron_triangle.png)
+![Cost, speed, transparency — pyvar vs traditional enterprise risk vendors on Fibtec's Iron Triangle model](./assets/iron_triangle.png)
 
 To be direct about what this is and isn't: it's a self-scored, illustrative positioning, not an independent or audited benchmark, and no named vendor's product was actually tested to produce it. Traditional vendors bring decades of regulatory acceptance and institutional trust that an Apache-2.0 project launched this year hasn't earned yet — that's a real gap, and this chart doesn't dispute it.
 
