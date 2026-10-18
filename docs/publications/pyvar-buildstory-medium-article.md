@@ -326,7 +326,7 @@ The same marketplace also carries 13 Claude Code skills (8 domain skills, one pe
 
 ## Where it stands now (October 2026)
 
-`pyvar-client` 0.3.0, `pyvar-mcp` 0.2.0 and `pyvar-jupyter` 0.1.0 are on PyPI. Callers sign in with Google or an emailed link and create a durable API key on the dashboard; the keys last a year and can be revoked. One call, through each surface:
+`pyvar-client` 0.3.0, `pyvar-mcp` 0.2.1 and `pyvar-jupyter` 0.1.0 are on PyPI. Callers sign in with Google or an emailed link and create a durable API key on the dashboard; the keys last a year and can be revoked. One call, through each surface:
 
 Expected loss for a 1,000,000 exposure with a 2% probability of default and 45% loss given default. [`docs/plugin-examples.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plugin-examples.md) runs it through all four against a real local API and fails if the results ever differ.
 
