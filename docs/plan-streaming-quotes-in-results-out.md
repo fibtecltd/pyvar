@@ -1,10 +1,24 @@
 # Exploration: streaming quotes in, calculation results out
 
-**Status: exploration only — no code, no infrastructure change.** Requested
-2026-10-22: a streaming in/out service for event-driven, quasi-real-time market
-quotes in → calculation and pricing results out, independent of any market-data
-provider, keeping the current REST API JSON structure. This document proposes
-approaches and compares them. It decides nothing; §8 lists what needs a decision.
+**Status: exploration, with two decisions recorded — no code, no infrastructure
+change yet.** Requested 2026-10-22: a streaming in/out service for event-driven,
+quasi-real-time market quotes in → calculation and pricing results out, independent
+of any market-data provider, keeping the current REST API JSON structure. This
+document proposes approaches and compares them.
+
+**Decisions recorded (Filippo, after review of PR #395):**
+1. **WebSocket JSON is the default transport** (§5), with HTTP micro-batch as the
+   documented fallback.
+2. **The recommended path (§6) is accepted**, including its gates: Phase 0
+   (measure and specify), then the stream core shipped as Approach D, Approach A as a
+   capped prototype, Approach B only if the gates are met, Approach C only if replay
+   is demanded.
+
+**Still open** (§8): latency class (1), first asset classes (3), audience and tier
+(4), legal review of customer-supplied vendor data (5), short-lived stream tokens
+(6), and where the code lives (7). Phase 0 also needs two things measured first: the
+per-function latencies and the WebSocket path through CloudFront (§2.2, §6), which
+are being run by a delegated AWS agent before implementation starts.
 
 **Provenance:** drafted with Claude Code (AI-assisted), like most documents in this
 repository (see "Use of Generative AI" in `README.md`). It is not part of any grant
