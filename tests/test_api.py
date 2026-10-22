@@ -687,6 +687,7 @@ def test_stream_var_result_polls_until_job_completes(ws_client, free_token):
     mock_pubsub.aclose = AsyncMock()
     mock_redis_client = MagicMock()
     mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_redis_client.aclose = AsyncMock()
 
     with (
         patch(
@@ -706,4 +707,111 @@ def test_stream_var_result_polls_until_job_completes(ws_client, free_token):
     assert data["status"] == "success"
     assert data["result"]["var_abs"] == 28_000.0
     mock_pubsub.subscribe.assert_awaited_once_with("pyvar:var-job-done:polling-task")
+    mock_pubsub.unsubscribe.assert_awaited_once()
+
+
+def _pending_then_success():
+    pending_result = MagicMock()
+    pending_result.state = "PENDING"
+    success_result = MagicMock()
+    success_result.state = "SUCCESS"
+    success_result.result = MOCK_VAR_RESULT
+    success_result.kwargs = {}
+    return pending_result, success_result
+
+
+def test_stream_var_result_builds_its_redis_client_from_the_shared_url(ws_client, free_token):
+    """Regression: the route used cfg.redis_url, which defaults to localhost, so in AWS
+    (where only CELERY_RESULT_BACKEND carries the ElastiCache address) every pending job
+    crashed the socket. It must use storage.redis_client.redis_url(), like every other
+    Redis caller, which also rewrites the ssl_cert_reqs flag redis-py cannot parse."""
+    pending_result, success_result = _pending_then_success()
+    mock_pubsub = MagicMock()
+    mock_pubsub.subscribe = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(return_value=None)
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.aclose = AsyncMock()
+    mock_redis_client = MagicMock()
+    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_redis_client.aclose = AsyncMock()
+    shared_url = "rediss://elasticache.example:6379/0?ssl_cert_reqs=none"
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
+        patch("api.routes.var.redis_url", return_value=shared_url),
+        patch(
+            "api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client
+        ) as mock_from_url,
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/url-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    mock_from_url.assert_called_once_with(shared_url)
+    mock_redis_client.aclose.assert_awaited_once()
+
+
+def test_stream_var_result_falls_back_to_polling_when_subscribe_fails(ws_client, free_token):
+    """Regression: a Redis failure at subscribe time was not covered by the route's
+    'fall back to polling' handling, so it crashed the socket instead. The job result
+    must still arrive on the poll, and the half-built client must still be closed."""
+    import redis.exceptions
+
+    pending_result, success_result = _pending_then_success()
+    mock_pubsub = MagicMock()
+    mock_pubsub.subscribe = AsyncMock(side_effect=redis.exceptions.ConnectionError("down"))
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.aclose = AsyncMock()
+    mock_redis_client = MagicMock()
+    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_redis_client.aclose = AsyncMock()
+    sleep = AsyncMock()
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var.asyncio.sleep", sleep),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/down-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert data["result"]["var_abs"] == 28_000.0
+    sleep.assert_awaited()  # it waited between polls instead of spinning
+    mock_pubsub.unsubscribe.assert_not_awaited()  # never subscribed, so nothing to undo
+    mock_pubsub.aclose.assert_awaited_once()
+    mock_redis_client.aclose.assert_awaited_once()
+
+
+def test_stream_var_result_waits_between_polls_when_pubsub_read_fails(ws_client, free_token):
+    """Regression: when get_message raised straight away the loop fell through to the
+    next poll with no wait (the wait lived inside get_message), so a Pub/Sub outage
+    turned the route into a busy loop against the result backend."""
+    import redis.exceptions
+
+    pending_result, success_result = _pending_then_success()
+    mock_pubsub = MagicMock()
+    mock_pubsub.subscribe = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(side_effect=redis.exceptions.ConnectionError("dropped"))
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.aclose = AsyncMock()
+    mock_redis_client = MagicMock()
+    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_redis_client.aclose = AsyncMock()
+    sleep = AsyncMock()
+
+    with (
+        patch(
+            "api.routes.var.AsyncResult",
+            side_effect=[pending_result, pending_result, pending_result, success_result],
+        ),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var.asyncio.sleep", sleep),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/drop-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert mock_pubsub.get_message.await_count == 1  # tried once, then stopped using Pub/Sub
+    assert sleep.await_count >= 1
     mock_pubsub.unsubscribe.assert_awaited_once()

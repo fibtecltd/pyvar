@@ -52,6 +52,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
@@ -87,6 +88,7 @@ from api.routes.caching import cache_check, write_result_to_cache
 from config import get_settings
 from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
 from storage.models import VaRJob
+from storage.redis_client import redis_url
 from storage.s3 import hydrate_presigned_url
 from storage.session import get_sessionmaker
 from tasks.var_task import celery_app, compute_var_task
@@ -444,6 +446,11 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     authoritative state via _build_job_result_response rather than trusting
     the Pub/Sub payload's contents. A lost Pub/Sub message therefore costs
     at most one poll interval of extra latency, never a hung connection.
+    The same holds if Pub/Sub is unavailable altogether, at subscribe time or
+    later: the route then polls every cfg.var_stream_poll_interval_seconds.
+    The client comes from storage.redis_client.redis_url(), the same helper
+    every other Redis caller uses, not cfg.redis_url (its localhost default
+    is not the cache in AWS, where only CELERY_RESULT_BACKEND carries it).
     Bounded overall by cfg.var_stream_max_wait_seconds so a job that never
     reaches a terminal state cannot hold a worker slot open indefinitely.
     """
@@ -468,11 +475,23 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
         await websocket.close()
         return
 
-    pubsub = None
+    redis_client: Any = None
+    pubsub: Any = None
+    subscribed = False  # a subscription exists and must be undone on the way out
+    pubsub_usable = False  # still worth waiting on get_message; else poll on a timer
     try:
-        redis_client = aioredis.Redis.from_url(cfg.redis_url)
-        pubsub = redis_client.pubsub()
-        await pubsub.subscribe(f"pyvar:var-job-done:{task_id}")
+        try:
+            redis_client = aioredis.Redis.from_url(redis_url())
+            pubsub = redis_client.pubsub()
+            await pubsub.subscribe(f"pyvar:var-job-done:{task_id}")
+            subscribed = True
+            pubsub_usable = True
+        except Exception:  # noqa: BLE001 — Pub/Sub only speeds delivery up; the poll below decides
+            logger.warning(
+                "Redis Pub/Sub unavailable for VaR stream — polling only",
+                extra={"task_id": task_id},
+                exc_info=True,
+            )
 
         deadline = time.monotonic() + cfg.var_stream_max_wait_seconds
         while time.monotonic() < deadline:
@@ -480,17 +499,23 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
             # wakes this loop promptly; _build_job_result_response below is
             # the sole source of truth, whether woken by a push or by this
             # call's own timeout elapsing (a plain poll tick).
-            try:
-                await pubsub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cfg.var_stream_poll_interval_seconds,
-                )
-            except Exception:  # noqa: BLE001 — Pub/Sub outage falls through to the poll below
-                logger.warning(
-                    "Redis Pub/Sub read failed on VaR stream — continuing on poll alone",
-                    extra={"task_id": task_id},
-                    exc_info=True,
-                )
+            if pubsub_usable:
+                try:
+                    await pubsub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=cfg.var_stream_poll_interval_seconds,
+                    )
+                except Exception:  # noqa: BLE001 — Pub/Sub outage falls through to the poll below
+                    logger.warning(
+                        "Redis Pub/Sub read failed on VaR stream — continuing on poll alone",
+                        extra={"task_id": task_id},
+                        exc_info=True,
+                    )
+                    pubsub_usable = False
+            else:
+                # Nothing to wait on, so wait out the poll interval here;
+                # otherwise this loop would spin against the result backend.
+                await asyncio.sleep(cfg.var_stream_poll_interval_seconds)
 
             job_result = await _build_job_result_response(task_id)
             if job_result.status in (JobStatus.SUCCESS, JobStatus.FAILURE):
@@ -514,10 +539,19 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     finally:
         if pubsub is not None:
             try:
-                await pubsub.unsubscribe()
+                if subscribed:
+                    await pubsub.unsubscribe()
                 await pubsub.aclose()
             except Exception:  # noqa: BLE001 — best-effort cleanup only
                 logger.warning(
                     "Failed to clean up Redis Pub/Sub subscription",
+                    extra={"task_id": task_id},
+                )
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except Exception:  # noqa: BLE001 — best-effort cleanup only
+                logger.warning(
+                    "Failed to close Redis client for VaR stream",
                     extra={"task_id": task_id},
                 )

@@ -29,8 +29,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from celery.exceptions import Retry
 
+import tasks.var_task as var_task_module
 from config import get_settings
-from tasks.var_task import _write_terminal_audit, compute_var_task
+from tasks.var_task import _publish_job_event, _write_terminal_audit, compute_var_task
 
 cfg = get_settings()
 
@@ -275,3 +276,26 @@ def test_compute_var_task_s3_offload_failure_falls_back_to_inline():
 
     assert "s3_key" not in result
     assert result["loss_dist"] == LARGE_MOCK_RESULT["loss_dist"]
+
+
+# ── _publish_job_event: Redis URL ───────────────────────────────────────────────
+
+
+def test_publish_job_event_uses_the_shared_redis_url(monkeypatch):
+    """Regression: the publisher built its client from the raw CELERY_RESULT_BACKEND,
+    whose uppercase ssl_cert_reqs=CERT_NONE redis-py rejects (see
+    storage.redis_client.redis_url). In AWS that made every publish fail, silently,
+    because the publisher swallows errors. It must use the corrected shared URL."""
+    monkeypatch.setenv(
+        "CELERY_RESULT_BACKEND", "rediss://elasticache.example:6379/0?ssl_cert_reqs=CERT_NONE"
+    )
+    monkeypatch.setattr(var_task_module, "_redis_client", None)
+    fake_client = MagicMock()
+
+    with patch("redis.Redis.from_url", return_value=fake_client) as mock_from_url:
+        _publish_job_event("task-1", "success")
+
+    (url,), _ = mock_from_url.call_args
+    assert "ssl_cert_reqs=none" in url
+    assert "CERT_NONE" not in url
+    fake_client.publish.assert_called_once_with("pyvar:var-job-done:task-1", "success")
