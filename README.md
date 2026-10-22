@@ -235,10 +235,27 @@ sources (`tests/validation/`), and AI-assisted changes go through the same
 review and test gates as any other change before merging.
 
 Commit-level provenance: commits with meaningful AI assistance carry a
-`Co-Authored-By: Claude` trailer — 222 of 677 commits at time of writing,
-checkable directly via `git log --grep="Co-Authored-By: Claude"`. This
-project predates any external funding; the trailer convention documents
-process, not a compliance requirement imposed after the fact.
+`Co-Authored-By: Claude` trailer, and some were authored by a Claude
+identity directly. On 22 October 2026, 333 of the 727 commits on `master`
+(46%) carried at least one of the two markers: 198 have the trailer, 187
+are authored by Claude, 52 are both. Nearly every commit since September
+2026 carries one. The markers are a lower bound, not a measure of how
+much of the code is AI-written: a commit made by hand after an
+AI-assisted session may carry neither. On a full clone (not `--depth`),
+the figures can be recomputed with:
+
+```bash
+git rev-list --count HEAD                                     # all commits
+git log -i --grep="Co-Authored-By: Claude" --oneline | wc -l  # trailer
+git log --author="Claude" --oneline | wc -l                   # Claude author
+(git log -i --grep="Co-Authored-By: Claude" --format=%H; \
+ git log --author="Claude" --format=%H) | sort -u | wc -l     # either marker
+```
+
+`-i` matters: squash-merge messages carry the trailer in lower case, and
+without it the trailer count is 121, not 198. This project predates any
+external funding; the trailer convention documents process, not a
+compliance requirement imposed after the fact.
 
 For a full, checkable account of the build — including four regulatory
 bugs found and corrected before launch through this project's own
