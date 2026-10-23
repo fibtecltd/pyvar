@@ -249,6 +249,13 @@ class Settings(BaseSettings):
     # interval as a safety net rather than trusting Pub/Sub delivery alone — see
     # that route's own docstring for the full reliability design.
     var_stream_poll_interval_seconds: float = 2.0
+    # The worker publishes the completion marker from inside the task body and Celery
+    # stores the result only after the task returns, so the first read after a push can
+    # still see the job as pending (measured on dev: 2.036 s, a whole poll interval).
+    # After a push, the route re-checks this many times, this far apart (about 1 s in
+    # all), before it goes back to waiting.
+    var_stream_wake_recheck_count: int = 10
+    var_stream_wake_recheck_seconds: float = 0.1
     # Generous vs. CLAUDE.md's "seconds-to-minutes" Monte Carlo runtime — bounds
     # how long a single WebSocket connection can be held open so a job that never
     # reaches a terminal state cannot pin a worker slot indefinitely.

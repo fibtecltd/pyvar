@@ -109,6 +109,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`WS /api/v1/var/stream/{task_id}` waited a whole poll interval after a push that arrived just
+  before the result was stored** — follow-up to the fix below, found by the second Phase 0 run on
+  dev. `tasks/var_task.py` publishes the completion marker from inside the task body (line 354) and
+  returns on the next line; Celery stores the result only after the function returns (checked in the
+  installed Celery 5.6.3: `mark_as_done` runs after the task function, and the `task_success` signal
+  after the store). The marker therefore always reaches the route before the result exists. The route
+  re-read the state, saw the job still pending, and waited a full `var_stream_poll_interval_seconds`
+  (2.036 s on the one dev job that was pending when its socket opened; polling alone would have
+  averaged about 1 s). After a push that still reads as pending, the route now re-checks
+  `var_stream_wake_recheck_count` times (10), `var_stream_wake_recheck_seconds` apart (0.1 s), then
+  goes back to waiting. The check sits on the API side so it does not depend on how fast workers pick
+  up new code (they clone `master` at boot). Two regression tests; each fails when the re-check is
+  removed, left unbounded or never triggered. How often the route lost the race before this change is
+  not known: one pending sample. Measure with jobs that are still running when the socket opens.
+
 - **`WS /api/v1/var/stream/{task_id}` crashed on any job that had not finished yet** — found by the
   Phase 0 measurements for the streaming exploration (`docs/plan-streaming-quotes-in-results-out.md`),
   which opened the socket on dev (HTTP 101 through CloudFront, WAF and the ALB) and watched the server
@@ -124,8 +139,10 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   The worker's publisher (`tasks/var_task.py`, `_publish_job_event`) had the same class of fault: it
   passed the raw `CELERY_RESULT_BACKEND` to `redis.Redis.from_url`, and its uppercase
   `ssl_cert_reqs=CERT_NONE` is rejected by redis-py (documented in `redis_url()`), which the
-  publisher's catch-all swallowed. That is inferred from the code, not observed: the worker has no
-  logs. It now uses `redis_url()` too. Four regression tests; each fails when its fix is reverted.
+  publisher's catch-all swallowed. That was inferred from the code when this was fixed; the worker
+  log group (`/pyvar/dev/worker`) has since confirmed it: 54 "Failed to publish job-completion
+  event" warnings in the three days before the fix and none after. It now uses `redis_url()` too.
+  Four regression tests; each fails when its fix is reverted.
 
 - **The "Sign in with Google" button disappeared after a second page load** — the home page reads
   `GET /public/config` to learn whether Google sign-in is configured and hides the button on any
