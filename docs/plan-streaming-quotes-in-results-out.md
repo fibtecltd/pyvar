@@ -70,12 +70,12 @@ needs no job queue for almost everything.
 |---|---|
 | Domain handlers call the engine **inline** in `async def` handlers; only `public_data.py` and `var.py` use `run_in_threadpool` | `api/routes/market_risk.py:272-287`, `grep run_in_threadpool api/` |
 | Monte Carlo VaR (100,000 paths) takes 2–10 s and is the only async-job function | iron-triangle article, line 18 |
-| **No per-function latency measurements** for the other 384 exist in the repo docs | searched iron-triangle article and `docs/p9-scenario-volume-cost-audit.md` |
+| Per-function latency: none existed in the repo docs; **Phase 0 measured 283 of 385** (§9.1) | searched the iron-triangle article and `docs/p9-scenario-volume-cost-audit.md`; Phase 0 reports |
 | API tasks: 0.5 vCPU, 1 GiB, 2–10 tasks, comment "API is I/O-bound, not CPU-bound" | `pyvar-cdk/config.py:79-82` |
 | Request path: CloudFront → WAF → ALB → Fargate, no API Gateway; ALB only accepts requests carrying CloudFront's secret header | `edge_stack.py:43`, `api_stack.py:464-499` |
-| ALB idle timeout is not set in CDK, so it is the AWS default (believed 60 s — **to verify**) | `grep idle_timeout pyvar-cdk/` finds nothing |
+| ALB idle timeout is 60 s: not set in CDK, so the AWS default, and read from the live ALB in Phase 0 | `grep idle_timeout pyvar-cdk/` finds nothing; Phase 0 report |
 | Graceful shutdown window on deploy: 30 s, so open connections are cut at every rolling deploy | `api_stack.py:368` |
-| One WebSocket route exists: `WS /api/v1/var/stream/{task_id}` (job-completion push), session JWT in `?token=`, Redis Pub/Sub, 15-minute cap. How it behaves through CloudFront/ALB in production is **untested** — the earlier doc §7 says no AWS-level change was made | `api/routes/var.py:414-498` |
+| One WebSocket route exists: `WS /api/v1/var/stream/{task_id}` (job-completion push), session JWT in `?token=`, Redis Pub/Sub, 15-minute cap. It crashed on any job that was not finished yet until the fix in #396; after it, **tested on dev through CloudFront, WAF and the ALB** (§9.4). Prod has not been probed directly | `api/routes/var.py`, `CHANGELOG.md`, Phase 0 reports |
 | Account-wide request quotas: free 10/day, pro 500/day and 5,000/month; one counter shared by all `/api/v1` compute endpoints, Redis-backed | `config.py:161-184`, `api/middleware/rate_limit.py` |
 | API keys: `pyvar_…`, 365 days, SHA-256 stored; session JWT 60 min; key management needs a session | `docs/plan-durable-api-keys.md`, CLAUDE.md §3.5 |
 | The Monte Carlo VaR kernel seeds NumPy's **global** RNG (`np.random.seed(seed)`), default seed 42 | `engine/montecarlo.py:92,121-122` |
@@ -181,6 +181,8 @@ should run in separate processes or with per-call generators.
   Instead, mint a short-lived stream token (for example `POST /api/v1/stream/token`,
   valid for tens of seconds, single use) with a session or key, and present it in the
   first frame.
+- Confirmed in Phase 0: CloudFront standard logging is on, so a token in the URL is stored
+  in S3 (§9.3).
 - The key's tier is read from the database, as for REST (CLAUDE.md §3.5).
 
 ### 3.8 Metering and tiers
@@ -361,7 +363,7 @@ The transport is a separate choice from the approach.
 | **Server-Sent Events + HTTP POST** | Plain HTTP, simple through proxies; auto-reconnect with `Last-Event-ID` | One-way: quotes go in by separate POSTs; buffering by intermediaries can delay events |
 | **gRPC bidirectional streaming** | Typed, efficient, strong tooling | Does not keep "the same JSON" unless payloads are JSON strings; poor browser support; more to operate behind CloudFront |
 | **MQTT (broker)** | Built for pub/sub and flaky links; many feed adapters exist | A new broker and auth model; topics do not map neatly to function calls |
-| **HTTP micro-batch** (`POST` events, receive results, or webhook out) | No long-lived connection; works with today's infrastructure | Not push; high call rates collide with request quotas; webhook delivery reliability |
+| **HTTP micro-batch** (`POST` events, receive results, or webhook out) | No long-lived connection; works with today's infrastructure | Not push; high call rates collide with request quotas and with the WAF's per-IP limit of 100 requests per 300 s (§9.3), which would need an exemption for any streaming path; webhook delivery reliability |
 
 Suggested default: **WebSocket JSON**, with HTTP micro-batch as a documented
 fallback for clients that cannot keep a socket open. Both would use the same
@@ -381,6 +383,8 @@ messages from §3 and Appendix A.
    - Set the eligible-function flags from measurements.
    - Verify ALB idle timeout, CloudFront and WAF behaviour for WebSockets with a
      throwaway echo endpoint.
+   **Status (2026-10-23):** latency measured for 283 of 385 functions, and edge and
+   WebSocket behaviour measured on dev; see §9. What remains is listed in §9.5.
 1. **Phase 1 — a stream core library with no AWS dependency:** bindings, rolling
    windows, triggers, conflation, digests. Ship it first as **Approach D**.
    Replay-determinism tests come with it.
@@ -401,7 +405,7 @@ at least a few real users; legal position on §3.9.
 
 1. **Demand is unproven.** The NLnet text itself says main users today are
    individual developers and researchers. Stage-gate spending accordingly.
-2. **Latency is unknown** until Phase 0 measures it.
+2. **Latency is now measured for 283 of 385 functions** (§9.1); 103 are unmeasured.
 3. **Data licensing** of customer quotes (§3.9) needs a legal check for any hosted
    variant.
 4. **Abuse and cost control:** many subscriptions, long windows and heavy functions
@@ -416,18 +420,25 @@ at least a few real users; legal position on §3.9.
    `resume_from` behaviour; scale-in does too.
 8. **Determinism claims:** only for functions that are deterministic; stochastic
    functions need seed handling and process isolation (§3.6).
-9. **The earlier WebSocket route is untested through the edge** (§2.2); do not build
-   on an assumption that it works.
+9. **The WebSocket route is now tested through the edge on dev** (§9.4), after a fix;
+   prod has not been probed directly.
 10. **Pipeline cost:** when implementation starts, any change outside the eight
     excluded directories triggers a CodePipeline run (CLAUDE.md §8.1).
 11. **Provenance:** the share of AI-assisted code in the repository will grow with
     this feature; keep the README's disclosure accurate.
+12. **WAF per-IP limit:** 100 requests per 300 s, handshakes included; shared office
+    IPs and reconnect storms can reach it (§9.3).
+13. **Worker code follows `master` at boot** (§9.4), outside the pipeline's approval
+    step; relevant to any stream function that runs on workers.
+14. **Cold start:** about 2.5 minutes from zero workers (§9.4). A stream function that
+    needs a worker inherits it; functions that run in the API process do not.
 
 ---
 
 ## 8. Decisions needed from Filippo
 
-1. **Latency class:** is "within a few seconds" right, or is sub-second needed?
+1. **Latency class:** is "within a few seconds" right, or is sub-second needed? (Measured
+   data is in §9.1.)
 2. **Hosted, self-hosted, or both**, and in what order? (This document recommends D
    first.)
 3. **First asset classes and functions** worth making stream-eligible.
@@ -436,6 +447,87 @@ at least a few real users; legal position on §3.9.
 6. **Authentication:** agree on short-lived stream tokens instead of keys in URLs.
 7. **Where the code lives:** in this repository or a separate one (a separate package
    keeps the AI-assisted share of the main codebase easier to account for).
+
+---
+
+## 9. Phase 0 results
+
+Two measurement runs by a delegated AWS agent (2026-10-22 and 2026-10-23) on the dev
+stack, plus one `/health` sample on prod. The numbers are the agent's; the code
+readings are mine. The per-function table (`partA_all.csv`, 386 rows) has not been
+received yet, so the eligibility flags in §3.10 are **not set**.
+
+### 9.1 Compute latency (in-process, 0.5 vCPU Fargate task, no network)
+
+- Measured: 283 of 385 functions (the 28 documented examples plus best-effort bodies
+  built from the catalogue). 103 returned 422 for the generated body and are
+  **unmeasured**: credit 19, portfolio 19, market 17, liquidity 17, operational 17,
+  derivatives 8, ALM 4, regulatory 2.
+- By warm p50 (service time): under 50 ms for 269; 50-250 ms for 2; 250 ms-1 s for 10;
+  1-5 s for 2; none above 5 s. Slowest: rBergomi about 3.8 s, `american_option_lsm`
+  1.2 s, `lmm_bgm` 0.78 s, `nelson_siegel_svensson` 0.71 s, `cox_ingersoll_ross` 0.69 s.
+- p95 is inflated by the CPU quota (§9.2); do not use it to set eligibility.
+- A fresh process takes 8.4-14.5 s to import the app (median 8.8 s). With an empty
+  Numba cache the first call took a median 6 ms, six functions 0.65-2.2 s and the
+  parallel kernels 1.7-2.6 s. Stream workers must be long-lived and pre-warmed.
+
+### 9.2 CPU budget
+
+- The p95 plateau near 53 ms is the 0.5 vCPU quota. Closed loop (28 examples, 100 calls
+  each): p50 2.7 ms, p95 52.9 ms, CPU duty capped at 0.50. Paced at about 30% duty: p95
+  4.0 ms, plateau gone; it returns when the loop is closed again. The cgroup counters
+  show nothing from inside the container, so the quota cannot be read directly.
+- Planning figure: below about 35% sustained duty at roughly 3.7 ms per call, on the
+  order of 90 computations per second per task. Handler time only; it excludes socket
+  I/O, quote binding and serialisation.
+- Two Numba threads buy nothing at 0.5 vCPU; one thread was 16% faster on the heaviest
+  of three functions tested (`asian_option_pricer`, 512 ms against 608 ms).
+
+### 9.3 Edge and network
+
+- Read from the live stack: CloudFront's default behaviour serves `/api/*` (all
+  methods; all viewer headers except Host forwarded; origin read timeout 30 s, keepalive
+  5 s). ALB idle timeout 60 s; stickiness cookie 3,600 s; deregistration delay 300 s but
+  ECS stop timeout 30 s, so the effective drain is 30 s. CloudFront standard logging is
+  on; ALB and WAF logging are off.
+- WAF (us-east-1): `RateLimitPerIp` 100 requests per 300 s per IP, block, all paths;
+  `AggregateRateLimit` 6,000 per 300 s; no WebSocket-specific rule. Handshakes count;
+  frames are believed not to (untested).
+- `/health` through the edge on prod, from one vantage point (Paris POP): keep-alive
+  TTFB p50 34.6 ms, p95 52.5 ms; a fresh connection 153 ms. In-process `/health` is
+  2.4 ms at p50, so the edge adds about 32 ms.
+- TLS: all 15 handshakes succeeded with no ALPN, `http/1.1`, and `h2,http/1.1`. Offering
+  h2 gets h2 selected, and a WebSocket cannot upgrade over it, so clients must offer
+  `http/1.1` only. One earlier attempt closed during the upgrade and is unexplained.
+
+### 9.4 WebSocket route (dev, after the fix)
+
+- The upgrade returned 101 in 79-115 ms through CloudFront, WAF and ALB.
+- Three pending sockets (no client pings; a ping every 25 s; every 50 s) each held 901 s
+  and ended with the server's timeout frame and close code 1000. uvicorn sent its own
+  ping every 20 s (45 per socket), so the sockets were never idle on the wire: the ALB's
+  60 s idle timeout and CloudFront's idle limit were not exercised, and a client that
+  does not answer pings was not tested. The ping interval should be set explicitly.
+- Push against poll, 7 jobs: six finished before their socket opened (jobs ran 25-45 ms;
+  the socket opened about 0.1 s after the POST response) and took the already-finished
+  path, about 0.25 s from submit to frame. One was pending when its socket opened and
+  its lag was 2.036 s, one poll tick. Cause: the worker publishes before Celery stores
+  the result (`tasks/var_task.py` lines 354-355; Celery stores after the function
+  returns). The route now re-checks briefly after a push (`CHANGELOG.md`). How often it
+  lost this race before is not known: one sample.
+- Cold start: with the worker group at zero, a job waited 159 s from POST to worker
+  pickup, and the first task on a fresh worker ran 5.65 s against 25-45 ms warm.
+- Workers get their code by `git clone` of `master` at boot (`compute_stack.py`:
+  "Hypothesis B", with a TODO to replace it with the baked AMI), not through the
+  pipeline. A worker runs whatever `master` holds when it boots.
+
+### 9.5 Still to do in Phase 0
+
+- `partA_all.csv`: set the eligibility flags and list the 103 unmeasured functions.
+- A batch of jobs that are still running when the socket opens, to measure the push lag
+  with and without the re-check. The earlier cap of 10 sockets needs raising.
+- Optional: one WebSocket probe on prod. The pipeline's prod smoke test passed, but the
+  route itself has not been probed there.
 
 ---
 
