@@ -167,3 +167,20 @@ downstream infra work — the Redis Pub/Sub design above was specifically
 chosen to defer that, not to require it), and streaming for the other 7
 domains (only VaR — the reference implementation this session's `plugins/`
 marketplace work already treats as the flagship domain).
+
+## 8. Correction after the Phase 0 measurements (found 2026-10-22)
+
+Two statements above turned out to be wrong:
+
+- **The §7 route did not work in AWS for a job that had not finished yet.** It
+  built its Redis client from `cfg.redis_url`, whose default is `localhost`, not
+  from `storage/redis_client.py::redis_url()`; in AWS only `CELERY_RESULT_BACKEND`
+  carries the cache address. `subscribe` raised `ConnectionError` and the socket
+  closed 12 ms after the HTTP 101 upgrade. Only the "already terminal" fast path
+  worked. The "never trusts Pub/Sub alone" design held in the tests only because
+  they mock Redis. The worker's publisher had the same class of fault, inferred
+  from the code and not observed (the worker has no logs). Both are fixed in the
+  change that adds this note; see `CHANGELOG.md`.
+- **§2 says every compute endpoint is submit-and-poll.** That is true of
+  `/api/v1/var/compute` only; the other 384 of 385 functions are synchronous.
+  See `docs/plan-streaming-quotes-in-results-out.md` §2.1.

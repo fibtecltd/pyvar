@@ -28,6 +28,7 @@ from sqlalchemy import CursorResult, update
 
 from config import get_settings
 from storage.models import VaRJob
+from storage.redis_client import redis_url
 from storage.s3 import write_result_to_s3
 from storage.session import get_sync_sessionmaker
 
@@ -170,7 +171,9 @@ def _write_terminal_audit(
 # client only finding out on its next poll. Uses a plain sync redis-py client
 # (this task runs in a sync Celery worker process, same reasoning as
 # get_sync_sessionmaker above) talking to the SAME broker/backend Redis instance
-# celery_app already connects to — no new infrastructure.
+# celery_app already connects to — no new infrastructure. The URL comes from
+# storage.redis_client.redis_url(), which also corrects the ssl_cert_reqs flag
+# redis-py cannot parse in the form CELERY_RESULT_BACKEND carries it.
 #
 # Redis Pub/Sub has no persistence or replay: a message published while no
 # subscriber is listening is lost forever, not queued. This is a KNOWN,
@@ -199,9 +202,9 @@ def _publish_job_event(task_id: str, job_status: str) -> None:
         if _redis_client is None:
             import redis
 
-            _redis_client = redis.Redis.from_url(
-                os.environ.get("CELERY_RESULT_BACKEND", cfg.redis_url)
-            )
+            # redis_url(), not the raw CELERY_RESULT_BACKEND: the raw value's
+            # uppercase ssl_cert_reqs=CERT_NONE is rejected by redis-py.
+            _redis_client = redis.Redis.from_url(redis_url())
         _redis_client.publish(f"pyvar:var-job-done:{task_id}", job_status)
     except Exception:  # noqa: BLE001 — must never break the task, see module note
         logger.warning(

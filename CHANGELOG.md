@@ -109,6 +109,24 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`WS /api/v1/var/stream/{task_id}` crashed on any job that had not finished yet** — found by the
+  Phase 0 measurements for the streaming exploration (`docs/plan-streaming-quotes-in-results-out.md`),
+  which opened the socket on dev (HTTP 101 through CloudFront, WAF and the ALB) and watched the server
+  close it 12 ms later. The route built its Redis client from `cfg.redis_url`, whose default is
+  `localhost`; in AWS only `CELERY_RESULT_BACKEND` carries the ElastiCache address, so `subscribe`
+  raised `ConnectionError` and, being outside the route's "fall back to polling" handling, took the
+  socket down. Only jobs already finished at connect time (the fast path) worked, so the push the
+  streaming document describes (`docs/plan-streaming-realtime-pricing.md` §7) was never seen working.
+  The route now uses `storage.redis_client.redis_url()` like every other Redis caller; a Redis failure
+  at subscribe time, or later, makes it poll every `var_stream_poll_interval_seconds` instead of
+  failing, and it no longer spins against the result backend when a Pub/Sub read fails (the wait lived
+  inside `get_message`, so a failing read skipped it). It also closes the Redis client it opens.
+  The worker's publisher (`tasks/var_task.py`, `_publish_job_event`) had the same class of fault: it
+  passed the raw `CELERY_RESULT_BACKEND` to `redis.Redis.from_url`, and its uppercase
+  `ssl_cert_reqs=CERT_NONE` is rejected by redis-py (documented in `redis_url()`), which the
+  publisher's catch-all swallowed. That is inferred from the code, not observed: the worker has no
+  logs. It now uses `redis_url()` too. Four regression tests; each fails when its fix is reverted.
+
 - **The "Sign in with Google" button disappeared after a second page load** — the home page reads
   `GET /public/config` to learn whether Google sign-in is configured and hides the button on any
   non-200. `main.py` applied the per-IP limit (`rate_limit_unauth_per_hour`, 5 an hour) to the
