@@ -815,3 +815,72 @@ def test_stream_var_result_waits_between_polls_when_pubsub_read_fails(ws_client,
     assert mock_pubsub.get_message.await_count == 1  # tried once, then stopped using Pub/Sub
     assert sleep.await_count >= 1
     mock_pubsub.unsubscribe.assert_awaited_once()
+
+
+def _wake_up_pubsub(messages):
+    """A Pub/Sub double whose get_message yields `messages` in order (None = poll timeout)."""
+    mock_pubsub = MagicMock()
+    mock_pubsub.subscribe = AsyncMock()
+    mock_pubsub.get_message = AsyncMock(side_effect=messages)
+    mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.aclose = AsyncMock()
+    mock_redis_client = MagicMock()
+    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
+    mock_redis_client.aclose = AsyncMock()
+    return mock_pubsub, mock_redis_client
+
+
+def test_stream_var_result_rechecks_quickly_after_a_wake_up_that_beats_the_result_store(
+    ws_client, free_token
+):
+    """Regression: the worker publishes before returning, and Celery stores the result only
+    after the return, so the first read after a push can still see the job as pending. The
+    route then waited a whole poll interval (2.036 s measured on dev). It must re-check
+    within a fraction of a second instead."""
+    from config import get_settings
+
+    cfg = get_settings()
+    pending_result, success_result = _pending_then_success()
+    # fast-path check, read after the wake-up, one recheck still pending, then stored
+    results = [pending_result, pending_result, pending_result, success_result]
+    mock_pubsub, mock_redis_client = _wake_up_pubsub([{"type": "message", "data": b"success"}])
+    sleep = AsyncMock()
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=results),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var.asyncio.sleep", sleep),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/race-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert mock_pubsub.get_message.await_count == 1  # no second, full-length wait
+    waits = [call.args[0] for call in sleep.await_args_list]
+    assert waits == [cfg.var_stream_wake_recheck_seconds] * 2
+    assert cfg.var_stream_poll_interval_seconds not in waits
+
+
+def test_stream_var_result_wake_up_recheck_is_bounded_then_polling_resumes(ws_client, free_token):
+    """The quick re-check is a short grace window, not a spin: if the job is still pending
+    after it, the route goes back to waiting on Pub/Sub or the poll interval."""
+    from config import get_settings
+
+    cfg = get_settings()
+    pending_result, success_result = _pending_then_success()
+    # fast path + read after the wake-up + every recheck pending, then success on the next poll
+    results = [pending_result] * (2 + cfg.var_stream_wake_recheck_count) + [success_result]
+    mock_pubsub, mock_redis_client = _wake_up_pubsub([{"type": "message", "data": b"x"}, None])
+    sleep = AsyncMock()
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=results),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var.asyncio.sleep", sleep),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/slow-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert sleep.await_count == cfg.var_stream_wake_recheck_count
+    assert mock_pubsub.get_message.await_count == 2  # woke, rechecked, then waited normally

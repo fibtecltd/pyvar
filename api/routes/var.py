@@ -410,6 +410,16 @@ async def get_var_result(
     )
 
 
+async def _send_if_terminal(websocket: WebSocket, task_id: str) -> bool:
+    """Read the job's authoritative state; if it is terminal, push it and close the socket."""
+    job_result = await _build_job_result_response(task_id)
+    if job_result.status in (JobStatus.SUCCESS, JobStatus.FAILURE):
+        await websocket.send_text(job_result.model_dump_json())
+        await websocket.close()
+        return True
+    return False
+
+
 # ── WS /var/stream/{task_id} ──────────────────────────────────────────────────
 
 
@@ -448,6 +458,11 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     at most one poll interval of extra latency, never a hung connection.
     The same holds if Pub/Sub is unavailable altogether, at subscribe time or
     later: the route then polls every cfg.var_stream_poll_interval_seconds.
+    A push can also arrive just before the result is stored (the worker
+    publishes from inside the task, Celery stores after it returns), so after
+    a push that still reads as pending the route re-checks
+    cfg.var_stream_wake_recheck_count times, cfg.var_stream_wake_recheck_seconds
+    apart, before it waits again.
     The client comes from storage.redis_client.redis_url(), the same helper
     every other Redis caller uses, not cfg.redis_url (its localhost default
     is not the cache in AWS, where only CELERY_RESULT_BACKEND carries it).
@@ -499,12 +514,14 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
             # wakes this loop promptly; _build_job_result_response below is
             # the sole source of truth, whether woken by a push or by this
             # call's own timeout elapsing (a plain poll tick).
+            woken_by_push = False
             if pubsub_usable:
                 try:
-                    await pubsub.get_message(
+                    message = await pubsub.get_message(
                         ignore_subscribe_messages=True,
                         timeout=cfg.var_stream_poll_interval_seconds,
                     )
+                    woken_by_push = message is not None
                 except Exception:  # noqa: BLE001 — Pub/Sub outage falls through to the poll below
                     logger.warning(
                         "Redis Pub/Sub read failed on VaR stream — continuing on poll alone",
@@ -517,11 +534,17 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
                 # otherwise this loop would spin against the result backend.
                 await asyncio.sleep(cfg.var_stream_poll_interval_seconds)
 
-            job_result = await _build_job_result_response(task_id)
-            if job_result.status in (JobStatus.SUCCESS, JobStatus.FAILURE):
-                await websocket.send_text(job_result.model_dump_json())
-                await websocket.close()
+            if await _send_if_terminal(websocket, task_id):
                 return
+            if woken_by_push:
+                # tasks/var_task.py publishes before the task returns, and Celery
+                # stores the result only after that, so this read can lose the race
+                # against the store. Re-check shortly rather than waiting a whole
+                # poll interval (2.036 s measured on dev).
+                for _ in range(cfg.var_stream_wake_recheck_count):
+                    await asyncio.sleep(cfg.var_stream_wake_recheck_seconds)
+                    if await _send_if_terminal(websocket, task_id):
+                        return
 
         await websocket.send_text(
             JobResultResponse(

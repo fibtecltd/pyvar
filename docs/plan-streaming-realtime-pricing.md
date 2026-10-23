@@ -179,8 +179,11 @@ Two statements above turned out to be wrong:
   closed 12 ms after the HTTP 101 upgrade. Only the "already terminal" fast path
   worked. The "never trusts Pub/Sub alone" design held in the tests only because
   they mock Redis. The worker's publisher had the same class of fault, inferred
-  from the code and not observed (the worker has no logs). Both are fixed in the
-  change that adds this note; see `CHANGELOG.md`.
+  from the code at the time and later confirmed in the worker log group (54
+  "Failed to publish" warnings in the three days before the fix, none after).
+  Both are fixed; see `CHANGELOG.md`. A third issue followed: the push reaches
+  the route before Celery stores the result, so a push alone cost a whole poll
+  interval; the route now re-checks briefly after a push.
 - **§2 says every compute endpoint is submit-and-poll.** That is true of
   `/api/v1/var/compute` only; the other 384 of 385 functions are synchronous.
   See `docs/plan-streaming-quotes-in-results-out.md` §2.1.
