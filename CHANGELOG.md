@@ -109,6 +109,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Workers never offloaded large results to S3** — found by the third Phase 0 run on dev (jobs of
+  500_000 simulations came back as 10.9 MB frames). `pyvar-cdk/stacks/compute_stack.py` wrote the
+  worker's `celery.env` without `S3_BUCKET`, so `config.py`'s default `pyvar-results` was used, a
+  bucket that does not exist: every job above `s3_result_offload_threshold` (10_000, so pro,
+  enterprise and internal tiers only) logged `S3 result offload failed` (`NoSuchBucket` on
+  `PutObject`) and fell back to an inline `loss_dist`, about 22 bytes per simulation, through the
+  Redis result backend, every `GET /var/result` and every WebSocket frame. The fallback is a WARNING
+  and the worker alarm counts ERROR and CRITICAL only, so nothing alerted. The worker role was already
+  granted `PutObject` on the right bucket (`data.result_bucket.grant_put`); only the variable was
+  missing. The env file now sets `S3_BUCKET` to the same bucket the API presigns from. The dev and
+  prod compute templates differ from before only in the launch template's user data; the data stack's
+  existing `ResultBucket` output is referenced, the one `api_stack.py` already uses. Takes effect when
+  a worker next boots (the ASG scales to zero; its rolling-update policy replaces any running one).
+  `tests/test_cdk_worker_env.py` parses the CDK source (no CDK import) and fails when the worker env
+  file loses the line or the API and worker stop naming the same bucket expression. Whether prod
+  workers logged the same failure was not checked; the code path is identical.
+
 - **`WS /api/v1/var/stream/{task_id}` waited a whole poll interval after a push that arrived just
   before the result was stored** — follow-up to the fix below, found by the second Phase 0 run on
   dev. `tasks/var_task.py` publishes the completion marker from inside the task body (line 354) and
