@@ -174,6 +174,15 @@ class ComputeStack(Stack):
             f"AWS_DEFAULT_REGION={cfg.region}\n"
             "NUMBA_CACHE_DIR=/opt/numba_cache\n"
             f"PYVAR_ENV_NAME={cfg.env_name}\n"
+            # Large-result offload (#130, tasks/var_task.py): the worker writes the
+            # Parquet to this bucket and the API presigns from the same one
+            # (api_stack.py sets the identical S3_BUCKET). Left unset, the worker
+            # used config.py's "pyvar-results" default -- a bucket that does not
+            # exist -- so every job above s3_result_offload_threshold logged
+            # "S3 result offload failed" (a WARNING, invisible to the ERROR-only
+            # alarm) and kept loss_dist inline in the Redis result backend, about
+            # 22 bytes per simulation: 10.9 MB at 500_000.
+            f"S3_BUCKET={data.result_bucket.bucket_name}\n"
             # P7 Task 3: benchmarked concurrency 1/2/4 on c5.xlarge (10 VaR jobs,
             # n_simulations=100_000 each, submitted through the real API). 1->2
             # cut total wall-clock ~26% (5.76s -> 4.28s); 2->4 gave no further

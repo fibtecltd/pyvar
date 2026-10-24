@@ -109,6 +109,48 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`WS /api/v1/var/stream/{task_id}` kept abandoned sockets alive for 15 minutes and had no limit on
+  how many it held** — found by the fourth Phase 0 run (0d) on dev, which opened sockets on one
+  0.5 vCPU / 1 GiB task until its memory stop rule fired at 135 (92.8%). An idle task sits at
+  787 MiB; the 135 sockets added about 1.2 MiB each on average (0.16 MiB over the first 50, 0.7 over
+  the next 50, about 3 over the last 35). After the harness closed all 135, the handlers went on
+  polling Redis (about 4,000 reads a minute) and holding 232 to 253 Redis connections until each
+  one's own 900 s wait ended: the API logged 135 "Client disconnected" lines, 900 to 902 s after
+  each socket opened. Memory reached 98.1% and stayed there with no sockets and 1% CPU. The route
+  only ever sends, and Starlette reports a closed client only on a receive or a send, so it found
+  out when the final timeout frame failed. Since the fix below made sockets for unfinished jobs stay
+  open, prod runs the same route on the same task size; nothing there was measured. A reader task
+  now ends the handler within one poll interval of the client leaving, which releases its Redis
+  connection and subscription. Sockets that wait are capped per process
+  (`var_stream_max_connections`, 50) and per user (`var_stream_max_connections_per_user`, 10);
+  over a cap the route closes with 1013, and a job that is already finished is still answered
+  first. The caps are counted per API task, so with N tasks a user can hold N times the per-user
+  figure. 50 is the count at which dev read 77.7% memory; it is a stopgap, not a capacity figure.
+  Not fixed here: the cost per socket. Every socket builds its own Redis client, and redis-py
+  creates one TLS context per connection (0.83 MiB each, measured locally on OpenSSL 3.0.13, the
+  same order as the 1.2 MiB seen), but the growth on dev was not linear, so that is a suspect, not
+  a finding; nor is why memory stayed at 98.1% after the handlers ended. The next step is one
+  shared Pub/Sub subscriber per process instead of a client per socket, then a re-run of the dev
+  measurement to 150 sockets and beyond, stepped so CloudWatch's one to two minute lag cannot
+  overshoot the stop rule. Five regression tests, each fails when its guard is removed.
+
+- **Workers never offloaded large results to S3** — found by the third Phase 0 run on dev (jobs of
+  500_000 simulations came back as 10.9 MB frames). `pyvar-cdk/stacks/compute_stack.py` wrote the
+  worker's `celery.env` without `S3_BUCKET`, so `config.py`'s default `pyvar-results` was used, a
+  bucket that does not exist: every job above `s3_result_offload_threshold` (10_000, so pro,
+  enterprise and internal tiers only) logged `S3 result offload failed` (`NoSuchBucket` on
+  `PutObject`) and fell back to an inline `loss_dist`, about 22 bytes per simulation, through the
+  Redis result backend, every `GET /var/result` and every WebSocket frame. The fallback is a WARNING
+  and the worker alarm counts ERROR and CRITICAL only, so nothing alerted. The worker role was already
+  granted `PutObject` on the right bucket (`data.result_bucket.grant_put`); only the variable was
+  missing. The env file now sets `S3_BUCKET` to the same bucket the API presigns from. The dev and
+  prod compute templates differ from before only in the launch template's user data; the data stack's
+  existing `ResultBucket` output is referenced, the one `api_stack.py` already uses. Takes effect when
+  a worker next boots (the ASG scales to zero; its rolling-update policy replaces any running one).
+  `tests/test_cdk_worker_env.py` parses the CDK source (no CDK import) and fails when the worker env
+  file loses the line or the API and worker stop naming the same bucket expression. Whether prod
+  workers logged the same failure was not checked; the code path is identical.
+
 - **`WS /api/v1/var/stream/{task_id}` waited a whole poll interval after a push that arrived just
   before the result was stored** — follow-up to the fix below, found by the second Phase 0 run on
   dev. `tasks/var_task.py` publishes the completion marker from inside the task body (line 354) and

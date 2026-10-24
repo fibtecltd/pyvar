@@ -260,6 +260,14 @@ class Settings(BaseSettings):
     # how long a single WebSocket connection can be held open so a job that never
     # reaches a terminal state cannot pin a worker slot indefinitely.
     var_stream_max_wait_seconds: int = 900  # 15 minutes
+    # Open WS /var/stream sockets one API process (one Fargate task) holds in total and per
+    # user. Phase 0d on dev: an idle 1 GiB task sits at 787 MiB, each socket added about
+    # 1.2 MiB (steeper past 100) and 135 sockets reached 93% with the memory not coming back,
+    # so 50 keeps a task near the 78% it showed at that count. Counted per process: with N
+    # tasks a user can hold N times the per-user figure. Over a cap the route closes with
+    # 1013 (try again later); a job that is already finished is never refused.
+    var_stream_max_connections: int = 50
+    var_stream_max_connections_per_user: int = 10
 
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
