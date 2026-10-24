@@ -423,6 +423,57 @@ async def _send_if_terminal(websocket: WebSocket, task_id: str) -> bool:
 # ── WS /var/stream/{task_id} ──────────────────────────────────────────────────
 
 
+class _StreamSlots:
+    """Open-socket budget of this process: one total cap, one cap per user.
+
+    Counted in the API process (one Fargate task), so with N tasks a user can hold N times the
+    per-user cap. Plain counters need no lock: acquire and release never await.
+    """
+
+    def __init__(self) -> None:
+        self.active = 0
+        self._by_user: dict[str, int] = {}
+
+    def acquire(self, user_id: str) -> str | None:
+        """Reserve a slot. Returns None on success, else the reason it was refused."""
+        if self.active >= cfg.var_stream_max_connections:
+            return "Too many open streams on this server"
+        if self._by_user.get(user_id, 0) >= cfg.var_stream_max_connections_per_user:
+            return "Too many open streams for this account"
+        self.active += 1
+        self._by_user[user_id] = self._by_user.get(user_id, 0) + 1
+        return None
+
+    def release(self, user_id: str) -> None:
+        self.active -= 1
+        remaining = self._by_user.get(user_id, 0) - 1
+        if remaining > 0:
+            self._by_user[user_id] = remaining
+        else:
+            self._by_user.pop(user_id, None)
+
+
+_stream_slots = _StreamSlots()
+
+
+async def _wait_for_disconnect(websocket: WebSocket) -> None:
+    """Return once the client has gone, discarding anything it sends in the meantime.
+
+    stream_var_result only sends, and Starlette reports a closed client only on a receive or a
+    send, so without this reader a client that left was noticed when the 900 s wait ended and
+    the final frame failed to send. Until then its handler kept polling Redis every poll
+    interval and held its Redis connection and memory (135 abandoned sockets on dev: about
+    4,000 reads a minute for 14 minutes, memory not released).
+    """
+    try:
+        while True:
+            message = await websocket.receive()
+            if message["type"] == "websocket.disconnect":
+                return
+    except (WebSocketDisconnect, RuntimeError):
+        return
+
+
 @router.websocket("/stream/{task_id}")
 async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     """Push the VaR job result the instant it completes, instead of polling.
@@ -468,6 +519,13 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     is not the cache in AWS, where only CELERY_RESULT_BACKEND carries it).
     Bounded overall by cfg.var_stream_max_wait_seconds so a job that never
     reaches a terminal state cannot hold a worker slot open indefinitely.
+
+    Resource limits: a waiting socket costs about 1.2 MiB and a Redis connection, and a
+    1 GiB task idles at 787 MiB (Phase 0d), so the sockets that wait are capped per process
+    and per user (cfg.var_stream_max_connections, ..._per_user; over a cap the route closes
+    with 1013). A job that is already finished is answered before the cap applies. A reader
+    task notices a client that has gone within one poll interval and ends the handler, which
+    releases the slot and the Redis connection.
     """
     await websocket.accept()
 
@@ -476,7 +534,7 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
         return
     try:
-        decode_token_payload(token)
+        user = decode_token_payload(token)
     except JWTError:
         await websocket.close(
             code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or expired token"
@@ -490,6 +548,17 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
         await websocket.close()
         return
 
+    refusal = _stream_slots.acquire(user.user_id)
+    if refusal is not None:
+        logger.warning(
+            "VaR stream refused: open-stream cap reached",
+            extra={"task_id": task_id, "reason": refusal, "open_streams": _stream_slots.active},
+        )
+        await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER, reason=refusal)
+        return
+
+    # Nothing between acquire() above and the try below may raise, or the slot leaks.
+    disconnect_watcher = asyncio.create_task(_wait_for_disconnect(websocket))
     redis_client: Any = None
     pubsub: Any = None
     subscribed = False  # a subscription exists and must be undone on the way out
@@ -510,6 +579,9 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
 
         deadline = time.monotonic() + cfg.var_stream_max_wait_seconds
         while time.monotonic() < deadline:
+            if disconnect_watcher.done():
+                logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
+                return
             # The message itself is never trusted as the result — it only
             # wakes this loop promptly; _build_job_result_response below is
             # the sole source of truth, whether woken by a push or by this
@@ -560,6 +632,8 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     except WebSocketDisconnect:
         logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
     finally:
+        disconnect_watcher.cancel()
+        _stream_slots.release(user.user_id)
         if pubsub is not None:
             try:
                 if subscribed:

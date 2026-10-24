@@ -611,7 +611,17 @@ async def test_get_result_failure(app, free_token):
 
 
 @pytest.fixture
-def ws_client(app):
+def stream_slots():
+    """A fresh open-socket budget per test, so a failing test cannot leak slots into the next."""
+    import api.routes.var as var_routes
+
+    slots = var_routes._StreamSlots()
+    with patch.object(var_routes, "_stream_slots", slots):
+        yield slots
+
+
+@pytest.fixture
+def ws_client(app, stream_slots):
     from fastapi.testclient import TestClient
 
     return TestClient(app)
@@ -884,3 +894,169 @@ def test_stream_var_result_wake_up_recheck_is_bounded_then_polling_resumes(ws_cl
     assert data["status"] == "success"
     assert sleep.await_count == cfg.var_stream_wake_recheck_count
     assert mock_pubsub.get_message.await_count == 2  # woke, rechecked, then waited normally
+
+
+# ── WS /var/stream/{task_id}: open-socket limits and abandoned clients ─────────
+#
+# Phase 0d on dev: 135 abandoned sockets kept polling Redis for the full 900 s wait (the route
+# never read from the socket, so it could not see the client go) and the 1 GiB task, idling at
+# 787 MiB, ended at 98% memory. These tests pin the two guards: the handler ends when the client
+# leaves, and a process refuses sockets over its budget.
+
+
+def _wait_until(predicate, timeout=2.0):
+    """Poll `predicate` from the test thread; the handler runs on TestClient's own loop."""
+    import time
+
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        if predicate():
+            return True
+        time.sleep(0.01)
+    return predicate()
+
+
+def _idle_pubsub():
+    """A Pub/Sub double whose get_message really waits (like the 2 s timeout), then yields None."""
+    import asyncio
+
+    async def _wait(**_kwargs):
+        await asyncio.sleep(0.02)
+
+    mock_pubsub, mock_redis_client = _wake_up_pubsub([])
+    mock_pubsub.get_message = AsyncMock(side_effect=_wait)
+    return mock_pubsub, mock_redis_client
+
+
+def _never_finishing_job():
+    pending_result = MagicMock()
+    pending_result.state = "PENDING"
+    return pending_result
+
+
+def test_stream_var_result_ends_when_the_client_disconnects(ws_client, free_token, stream_slots):
+    """Regression: the handler waited out the whole max-wait before noticing a closed client."""
+    from config import get_settings
+
+    cfg = get_settings()
+    mock_pubsub, mock_redis_client = _idle_pubsub()
+
+    with (
+        patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
+        patch.object(cfg, "var_stream_max_wait_seconds", 30),
+        patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/gone-task?token=" + free_token) as ws:
+            assert _wait_until(lambda: stream_slots.active == 1)
+            ws.close()
+            # Still inside the block: the harness cancels a handler that is left running when
+            # the block exits, so only a handler that notices the close by itself gets here.
+            assert _wait_until(lambda: stream_slots.active == 0)
+
+    mock_pubsub.unsubscribe.assert_awaited_once()
+    mock_redis_client.aclose.assert_awaited_once()
+
+
+def test_stream_var_result_releases_its_slot_when_the_job_completes(
+    ws_client, free_token, stream_slots
+):
+    pending_result, success_result = _pending_then_success()
+    mock_pubsub, mock_redis_client = _wake_up_pubsub([None])
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/slot-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert stream_slots.active == 0
+
+
+def test_stream_var_result_refuses_sockets_over_the_process_cap(
+    ws_client, free_token, pro_token, stream_slots
+):
+    from config import get_settings
+
+    cfg = get_settings()
+    mock_pubsub, mock_redis_client = _idle_pubsub()
+
+    with (
+        patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
+        patch.object(
+            cfg, "var_stream_max_wait_seconds", 3
+        ),  # a wrongly admitted socket ends, not hangs
+        patch.object(cfg, "var_stream_max_connections", 1),
+        patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/first?token=" + free_token):
+            assert _wait_until(lambda: stream_slots.active == 1)
+            with pytest.raises(WebSocketDisconnect) as exc_info:
+                # another user, so only the process-wide cap can refuse it
+                with ws_client.websocket_connect(
+                    "/api/v1/var/stream/second?token=" + pro_token
+                ) as ws:
+                    ws.receive_text()
+            assert exc_info.value.code == status.WS_1013_TRY_AGAIN_LATER
+            assert "server" in exc_info.value.reason
+            assert stream_slots.active == 1  # a refused socket takes no slot
+
+    assert stream_slots.active == 0
+
+
+def test_stream_var_result_caps_sockets_per_user(ws_client, free_token, pro_token, stream_slots):
+    from config import get_settings
+
+    cfg = get_settings()
+    mock_pubsub, mock_redis_client = _idle_pubsub()
+
+    with (
+        patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
+        patch.object(
+            cfg, "var_stream_max_wait_seconds", 3
+        ),  # a wrongly admitted socket ends, not hangs
+        patch.object(cfg, "var_stream_max_connections_per_user", 1),
+        patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
+        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/mine?token=" + free_token):
+            assert _wait_until(lambda: stream_slots.active == 1)
+            # a different user still gets a socket
+            with ws_client.websocket_connect("/api/v1/var/stream/theirs?token=" + pro_token):
+                assert _wait_until(lambda: stream_slots.active == 2)
+                with pytest.raises(WebSocketDisconnect) as exc_info:
+                    with ws_client.websocket_connect(
+                        "/api/v1/var/stream/mine-too?token=" + free_token
+                    ) as ws:
+                        ws.receive_text()
+                assert exc_info.value.code == status.WS_1013_TRY_AGAIN_LATER
+                assert "account" in exc_info.value.reason
+
+    assert stream_slots.active == 0
+
+
+def test_stream_var_result_answers_a_finished_job_even_at_the_cap(
+    ws_client, free_token, stream_slots
+):
+    """The cap guards sockets that wait. A job that is already done is answered and closed at
+    once, so it must not be refused however full the process is."""
+    from config import get_settings
+
+    cfg = get_settings()
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = MOCK_VAR_RESULT
+    mock_async_result.kwargs = {}
+
+    with (
+        patch.object(cfg, "var_stream_max_connections", 0),
+        patch("api.routes.var.AsyncResult", return_value=mock_async_result),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/done-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+    assert stream_slots.active == 0
