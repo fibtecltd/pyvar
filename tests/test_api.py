@@ -623,7 +623,7 @@ class _FakeBus:
         self.unregistered = []
         self.log = None  # an optional shared list, to check the order against other events
 
-    def register(self, task_id):
+    async def register(self, task_id):
         import asyncio
 
         self.registered.append(task_id)
