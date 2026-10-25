@@ -159,6 +159,13 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 ENV NUMBA_CACHE_DIR=/home/pyvar/.cache/numba
 ENV PYTHONUNBUFFERED=1
 
+# glibc gives every thread its own malloc arena and rarely returns freed memory from them to
+# the OS. After open WebSockets closed, 50 sockets left 60 to 110 MiB of freed heap held by
+# the process (local reproduction against a TLS Redis; malloc_trim returned most of it), and
+# the default kept creeping up with every cycle while two arenas levelled off. Python holds
+# no objects for that memory; the cap only limits how many arenas the allocator keeps.
+ENV MALLOC_ARENA_MAX=2
+
 # Start uvicorn
 CMD ["uvicorn", "main:app", \
      "--host", "0.0.0.0", \
