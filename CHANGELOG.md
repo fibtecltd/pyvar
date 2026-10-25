@@ -109,6 +109,41 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The dev cache refuses `PSUBSCRIBE`, and the shared subscriber of #400 retried once a second for
+  ever** — found by Phase 0f on dev. ElastiCache Serverless (Redis 7.1) answers `PSUBSCRIBE` with
+  `ResponseError: unknown command 'psubscribe'`. Every socket then polled every 2 s (push lag
+  1.69-1.87 s instead of 30-170 ms), the designed fallback. But the reader reset its back-off right
+  after *sending* the command, and a server that refuses answers on the next read, so the reset
+  happened every time: one retry a second per process, each with a new TLS connection. 3,022
+  failures in 30 minutes, idle CPU 1.5% to about 8%, memory rising 0.3 to 0.8 points a minute with
+  no sockets open (84.7% of 1 GiB at the end, still climbing). #400 had expected the fallback to
+  cost nothing; the loop was what had not been tested, and its unit tests modelled a send that
+  fails, not a refusal that arrives later. Reproduced locally against a Redis with the command
+  renamed away (same error text): 234 failure lines in 120 s, +57 MiB, 6-10% of a core.
+  The subscriber now sends `SUBSCRIBE` for each waiting job's own channel on one shared
+  connection per process, the command the per-socket code used on dev (push measured at 30-172 ms
+  in Phase 0e). It applies changes between 50 ms reads, so a new waiter wakes an idle reader at
+  once, drops a channel when its last waiter leaves, gives its connection back after 60 s unused,
+  and `healthy` turns on only when the server confirms a subscription. The back-off doubles from
+  1 s to 30 s and resets only on that confirmation. `close()` no longer depends on a cancel
+  arriving (`asyncio.wait_for` can swallow one before Python 3.12). Against the same refusing
+  Redis: 8 failure lines in 120 s, +15 MiB and flat, about 0.7% CPU. Against a working Redis,
+  two workers, five cycles of 50 sockets: memory held after the sockets close +19, +24, +26, +28,
+  +29 MiB (the code of #398: +76 to +209), 9-10 Redis connections (73-87), 6 of 6 pushes 53-54 ms
+  after the store, a result stored without a message delivered by the safety poll after 9.2 s,
+  and new sockets pushed 52-55 ms after a Redis restart (one took 1.2 s, on a worker still
+  reconnecting, polling at the short interval).
+  A first version applied subscriptions only on a 500 ms tick: 50 sockets arrived at their second
+  state read together, each on its own thread and Redis connection, and memory was worse (+42 to
+  +64 MiB, 33-50 connections). Corrected before this entry.
+  Fifteen guards were removed one at a time (the back-off reset after the send, `healthy` set
+  after the send, stale channels kept, a reconnect that keeps the old subscription set, no wait
+  for the subscription, a wait while the connection is down, no wake of an idle reader, a message
+  that wakes every waiter, a reader that never gives its connection back, ignored confirmations,
+  a wrong channel name, register after the second read, the disconnect check, the slot release,
+  the interval choice) and each made a named test fail. Not measured on AWS: the new subscriber
+  itself; Phase 0g should show the push lag and a flat memory.
+
 - **`WS /api/v1/var/stream/{task_id}` built a Redis client and subscription for every socket; it now
   shares one subscription per worker process** — follow-up to the entry below, from Phase 0e on
   dev (50 sockets closed, about 84 MiB not returned, 37 Redis connections left against 6) and a
@@ -141,8 +176,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   creeping across cycles in the one-worker runs (+93 MiB after 15 cycles against +62 with it); in
   the two-worker five-cycle run the difference was small (+41 against +39).
   Not measured on AWS: `PSUBSCRIBE` on the ElastiCache Serverless cache (the route used
-  `SUBSCRIBE` before). If it were refused, the subscriber would log a warning and every socket
-  would poll every 2 s, as it does today; the dev check should show the push lag.
+  `SUBSCRIBE` before). Phase 0f then showed that the dev cache refuses it, and that the retry
+  loop made the refusal costly; see the entry above, which replaces the pattern subscription.
   Ten tests for the subscriber (`tests/test_job_done_bus.py`) and the stream-route tests in
   `tests/test_api.py`, rewritten around it. Twelve guards were removed one at a time (register
   before the read, unregister, the interval choice, the disconnect check, the slot release, the

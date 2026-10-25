@@ -458,40 +458,73 @@ class _StreamSlots:
 _stream_slots = _StreamSlots()
 
 
-# Every job's completion is published on its own channel (tasks/var_task.py). One
-# pattern subscription per API process hears all of them and wakes the sockets that wait.
-_JOB_DONE_PATTERN = "pyvar:var-job-done:*"
+# Every job's completion is published on its own channel (tasks/var_task.py). One Redis
+# connection per API process subscribes to the channels of the jobs that sockets wait for.
+def _job_done_channel(task_id: str) -> str:
+    return f"pyvar:var-job-done:{task_id}"
+
+
+_BUS_POLL_SECONDS = 0.05  # how long the reader waits on the connection before it applies changes
+_BUS_IDLE_TICK_SECONDS = 1.0  # how often an idle reader checks whether to give its connection back
+_BUS_SUBSCRIBE_WAIT_SECONDS = 2.0  # most a registering socket waits for its subscription
+_BUS_IDLE_CLOSE_SECONDS = 60.0  # the reader closes its connection after this long unused
+_BUS_CLOSE_WAIT_SECONDS = 5.0  # most close() waits for the reader to stop
 
 
 class _JobDoneBus:
-    """One Redis Pub/Sub subscription per API process, shared by every waiting stream socket.
+    """One Redis Pub/Sub connection per API process, shared by every waiting stream socket.
 
     Phase 0 on dev, then a local reproduction against a TLS Redis: a client and Pub/Sub
     subscription per socket cost about 1.7 MiB per socket (each Redis connection builds its own
-    TLS context, 0.8 MiB) and 1.2 to 1.8 Redis connections per socket. A shared subscriber
-    costs about 0.6 MiB per socket and no connection per socket.
+    TLS context, 0.8 MiB) and 1.2 to 1.8 Redis connections per socket. A shared connection
+    costs about 0.6 MiB per socket and none per socket.
+
+    It subscribes to one channel per job that has a waiter (SUBSCRIBE, the command the
+    ElastiCache Serverless cache is known to accept: a pattern subscription, PSUBSCRIBE, is
+    refused there with "unknown command") and drops the channel when the last waiter leaves.
+    The reader task owns the connection and applies those changes between short reads (a
+    waiter that arrives while the connection is idle wakes it at once).
 
     A message only wakes a waiter. Pub/Sub has no persistence, so the route still reads the
     authoritative state after every wake-up and on a timer, and `healthy` says whether that
-    timer can be slow: while the subscriber is down the sockets poll at the old, short interval.
+    timer can be slow: it turns true only when the server has confirmed a subscription, and
+    false whenever the connection fails; while it is false the sockets poll at the short
+    interval. After a failure the reader retries with a back-off that only resets once a
+    subscription is confirmed again. Sending SUBSCRIBE proves nothing: a server that refuses
+    it answers later, on the read, which is how a reset after the send made the retry loop spin
+    once a second on dev (Phase 0f: 3,022 failures in half an hour, memory and CPU creeping).
     """
 
     def __init__(self) -> None:
         self._waiters: dict[str, set[asyncio.Event]] = {}
+        self._subscribed: set[str] = set()  # task ids the live connection has been told about
+        self._sent: dict[str, asyncio.Event] = {}  # set once a task's SUBSCRIBE has been sent
         self._reader: asyncio.Task[None] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._down = False  # the connection failed and is not back yet
+        self._closing = False
+        self._changed = asyncio.Event()  # a waiter came or went: the reader should look now
         self.healthy = False
 
-    def register(self, task_id: str) -> asyncio.Event:
-        """Start listening for `task_id`; call it BEFORE the first state read, so a completion
-        between that read and the registration is not missed. Returns the event to wait on."""
+    async def register(self, task_id: str) -> asyncio.Event:
+        """Start listening for `task_id` and wait (briefly) until the subscription is sent; call
+        it BEFORE the first state read, so a completion between that read and the registration
+        is not missed. Returns the event to wait on."""
         loop = asyncio.get_running_loop()
         if self._reader is None or self._reader.done() or self._loop is not loop:
             self.healthy = False
+            self._down = False
+            self._closing = False
+            self._changed = asyncio.Event()
             self._loop = loop
             self._reader = loop.create_task(self._read_forever())
         event = asyncio.Event()
         self._waiters.setdefault(task_id, set()).add(event)
+        self._changed.set()
+        if task_id not in self._subscribed and not self._down:
+            sent = self._sent.setdefault(task_id, asyncio.Event())
+            with contextlib.suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(sent.wait(), timeout=_BUS_SUBSCRIBE_WAIT_SECONDS)
         return event
 
     def unregister(self, task_id: str, event: asyncio.Event) -> None:
@@ -500,36 +533,72 @@ class _JobDoneBus:
             waiters.discard(event)
             if not waiters:
                 del self._waiters[task_id]
+                self._sent.pop(task_id, None)
+                self._changed.set()
 
     async def close(self) -> None:
         """Stop the subscriber (application shutdown)."""
         reader, self._reader = self._reader, None
+        self._closing = True  # a cancel can be swallowed (asyncio.wait_for before Python 3.12)
         if reader is not None and not reader.done():
             reader.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await reader
+            await asyncio.wait({reader}, timeout=_BUS_CLOSE_WAIT_SECONDS)
+            if not reader.done():
+                logger.warning("The job-done subscriber did not stop")
 
     def _dispatch(self, message: dict[str, Any]) -> None:
-        if message.get("type") != "pmessage":
-            return
         channel = message["channel"]
         name = channel.decode() if isinstance(channel, bytes) else str(channel)
         for event in tuple(self._waiters.get(name.rsplit(":", 1)[-1], ())):
             event.set()
 
+    async def _apply_subscriptions(self, pubsub: Any) -> None:
+        wanted = set(self._waiters)
+        new, stale = wanted - self._subscribed, self._subscribed - wanted
+        if new:
+            await pubsub.subscribe(*(_job_done_channel(task_id) for task_id in new))
+            self._subscribed |= new
+            self._down = False
+            for task_id in new:
+                sent = self._sent.get(task_id)
+                if sent is not None:
+                    sent.set()
+        if stale:
+            await pubsub.unsubscribe(*(_job_done_channel(task_id) for task_id in stale))
+            self._subscribed -= stale
+
     async def _read_forever(self) -> None:
         backoff = 1.0
-        while True:
+        while not self._closing:
             client: Any = None
             pubsub: Any = None
+            self._subscribed = set()
+            idle_since = time.monotonic()
             try:
                 client = aioredis.Redis.from_url(redis_url(), health_check_interval=30)
                 pubsub = client.pubsub()
-                await pubsub.psubscribe(_JOB_DONE_PATTERN)
-                self.healthy = True
-                backoff = 1.0
-                async for message in pubsub.listen():
-                    self._dispatch(message)
+                while not self._closing:
+                    await self._apply_subscriptions(pubsub)
+                    if not self._subscribed:
+                        if time.monotonic() - idle_since > _BUS_IDLE_CLOSE_SECONDS:
+                            return  # nobody has waited for a while: give the connection back
+                        self._changed.clear()
+                        with contextlib.suppress(asyncio.TimeoutError):
+                            await asyncio.wait_for(
+                                self._changed.wait(), timeout=_BUS_IDLE_TICK_SECONDS
+                            )
+                        continue
+                    idle_since = time.monotonic()
+                    message = await pubsub.get_message(
+                        ignore_subscribe_messages=False, timeout=_BUS_POLL_SECONDS
+                    )
+                    if message is None:
+                        continue
+                    if message["type"] == "subscribe":
+                        self.healthy = True  # the server accepted it
+                        backoff = 1.0
+                    elif message["type"] == "message":
+                        self._dispatch(message)
             except asyncio.CancelledError:
                 raise
             except Exception:  # noqa: BLE001 — Pub/Sub only speeds delivery up; sockets poll
@@ -539,6 +608,9 @@ class _JobDoneBus:
                 )
             finally:
                 self.healthy = False
+                self._down = True
+                for sent in tuple(self._sent.values()):
+                    sent.set()  # nobody should keep waiting for a subscription that is gone
                 for closable in (pubsub, client):
                     if closable is not None:
                         try:
@@ -608,7 +680,7 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     resource with an inconsistent security model. Tightening both together
     is a separate decision, out of scope for this change.
 
-    Reliability: waits on the shared Redis Pub/Sub subscription of this process
+    Reliability: waits on the shared Redis Pub/Sub connection of this process
     (_JobDoneBus; tasks/var_task.py's _publish_job_event publishes on the channel) but never
     trusts it alone: Pub/Sub has no persistence or replay, so every wake-up, and a timer
     (cfg.var_stream_safety_poll_seconds while the subscriber is up, the shorter
@@ -662,7 +734,7 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     # Nothing between acquire() above and the try below may raise, or the slot leaks.
     disconnect_watcher = asyncio.create_task(_wait_for_disconnect(websocket))
     # Register before the state read below: a completion in between is then not lost.
-    wake = _job_done_bus.register(task_id)
+    wake = await _job_done_bus.register(task_id)
     try:
         if await _send_if_terminal(websocket, task_id):
             return
