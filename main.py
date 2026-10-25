@@ -42,6 +42,7 @@ from api.routes.operational import router as operational_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.public_data import router as public_data_router
 from api.routes.regulatory import router as regulatory_router
+from api.routes.var import close_job_done_bus
 from api.routes.var import router as var_router
 from config import get_settings
 from observability.setup import setup_observability
@@ -105,7 +106,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown: close DB connections, flush Sentry, etc.
+    # Shutdown: stop the shared job-done subscriber (DB connections, Sentry flush, etc. TBD).
+    await close_job_done_bus()
 
 
 def create_app() -> FastAPI:

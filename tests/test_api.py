@@ -608,6 +608,31 @@ async def test_get_result_failure(app, free_token):
 # than httpx.AsyncClient — httpx has no WebSocket support. Uses the same `app`
 # fixture (create_app()) as every async test above; a plain FastAPI instance
 # works identically with either client.
+#
+# The route waits on the process-wide Pub/Sub subscriber (_JobDoneBus). These tests replace it
+# with a stand-in, so none of them touches Redis or starts a reader task; the subscriber itself
+# is tested in tests/test_job_done_bus.py.
+
+
+class _FakeBus:
+    """Stands in for _JobDoneBus: records registrations, wakes nobody, owns no Redis."""
+
+    def __init__(self, healthy=False):
+        self.healthy = healthy
+        self.registered = []
+        self.unregistered = []
+        self.log = None  # an optional shared list, to check the order against other events
+
+    def register(self, task_id):
+        import asyncio
+
+        self.registered.append(task_id)
+        if self.log is not None:
+            self.log.append("register")
+        return asyncio.Event()
+
+    def unregister(self, task_id, event):
+        self.unregistered.append(task_id)
 
 
 @pytest.fixture
@@ -621,24 +646,46 @@ def stream_slots():
 
 
 @pytest.fixture
-def ws_client(app, stream_slots):
+def job_bus():
+    import api.routes.var as var_routes
+
+    bus = _FakeBus()
+    with patch.object(var_routes, "_job_done_bus", bus):
+        yield bus
+
+
+@pytest.fixture
+def ws_client(app, stream_slots, job_bus):
     from fastapi.testclient import TestClient
 
     return TestClient(app)
 
 
-def test_stream_var_result_already_success_sends_immediately(ws_client, free_token):
+def _pending_then_success():
+    pending_result = MagicMock()
+    pending_result.state = "PENDING"
+    success_result = MagicMock()
+    success_result.state = "SUCCESS"
+    success_result.result = MOCK_VAR_RESULT
+    success_result.kwargs = {}
+    return pending_result, success_result
+
+
+def _never_finishing_job():
+    pending_result = MagicMock()
+    pending_result.state = "PENDING"
+    return pending_result
+
+
+def test_stream_var_result_already_success_sends_immediately(ws_client, free_token, job_bus):
     """If the job is already terminal when the client connects, the fast path
-    sends the result immediately with no Redis Pub/Sub subscription at all."""
+    sends the result immediately without waiting on the subscriber at all."""
     mock_async_result = MagicMock()
     mock_async_result.state = "SUCCESS"
     mock_async_result.result = MOCK_VAR_RESULT
     mock_async_result.kwargs = {}
 
-    with (
-        patch("api.routes.var.AsyncResult", return_value=mock_async_result),
-        patch("api.routes.var.aioredis.Redis.from_url") as mock_redis_from_url,
-    ):
+    with patch("api.routes.var.AsyncResult", return_value=mock_async_result):
         with ws_client.websocket_connect(
             "/api/v1/var/stream/already-done-task?token=" + free_token
         ) as ws:
@@ -646,8 +693,7 @@ def test_stream_var_result_already_success_sends_immediately(ws_client, free_tok
 
     assert data["status"] == "success"
     assert data["result"]["var_abs"] == 28_000.0
-    # The fast path never touches Redis — the job was already terminal.
-    mock_redis_from_url.assert_not_called()
+    assert job_bus.registered == []  # the job was already terminal
 
 
 def test_stream_var_result_already_failure_sends_immediately(ws_client, free_token):
@@ -680,34 +726,23 @@ def test_stream_var_result_invalid_token_closes_policy_violation(ws_client):
     assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
 
 
-def test_stream_var_result_polls_until_job_completes(ws_client, free_token):
-    """Job is PENDING on the first check, SUCCESS on the second — exercises
-    the Pub/Sub-subscribe-and-poll loop, not just the immediate fast path."""
-    pending_result = MagicMock()
-    pending_result.state = "PENDING"
-    success_result = MagicMock()
-    success_result.state = "SUCCESS"
-    success_result.result = MOCK_VAR_RESULT
-    success_result.kwargs = {}
+def test_stream_var_result_waits_on_the_subscriber_then_sends_the_result(
+    ws_client, free_token, job_bus
+):
+    """Pending on the fast path and on the read after registering, then stored by the time the
+    wait ends: the result is pushed and the registration is undone."""
+    from config import get_settings
 
-    mock_pubsub = MagicMock()
-    mock_pubsub.subscribe = AsyncMock()
-    mock_pubsub.get_message = AsyncMock(return_value=None)
-    mock_pubsub.unsubscribe = AsyncMock()
-    mock_pubsub.aclose = AsyncMock()
-    mock_redis_client = MagicMock()
-    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
-    mock_redis_client.aclose = AsyncMock()
+    cfg = get_settings()
+    pending_result, success_result = _pending_then_success()
+    wait = AsyncMock(return_value=False)
 
     with (
         patch(
             "api.routes.var.AsyncResult",
-            side_effect=[pending_result, success_result],
+            side_effect=[pending_result, pending_result, success_result],
         ),
-        patch(
-            "api.routes.var.aioredis.Redis.from_url",
-            return_value=mock_redis_client,
-        ),
+        patch("api.routes.var._wait_for_wake", wait),
     ):
         with ws_client.websocket_connect(
             "/api/v1/var/stream/polling-task?token=" + free_token
@@ -716,128 +751,59 @@ def test_stream_var_result_polls_until_job_completes(ws_client, free_token):
 
     assert data["status"] == "success"
     assert data["result"]["var_abs"] == 28_000.0
-    mock_pubsub.subscribe.assert_awaited_once_with("pyvar:var-job-done:polling-task")
-    mock_pubsub.unsubscribe.assert_awaited_once()
+    assert job_bus.registered == ["polling-task"]
+    assert job_bus.unregistered == ["polling-task"]
+    # the subscriber is down (the fake's default), so the short interval applies
+    assert wait.await_args.args[1] == cfg.var_stream_poll_interval_seconds
 
 
-def _pending_then_success():
-    pending_result = MagicMock()
-    pending_result.state = "PENDING"
-    success_result = MagicMock()
-    success_result.state = "SUCCESS"
-    success_result.result = MOCK_VAR_RESULT
-    success_result.kwargs = {}
-    return pending_result, success_result
+def test_stream_var_result_polls_slowly_only_while_the_subscriber_is_up(
+    ws_client, free_token, job_bus
+):
+    from config import get_settings
 
-
-def test_stream_var_result_builds_its_redis_client_from_the_shared_url(ws_client, free_token):
-    """Regression: the route used cfg.redis_url, which defaults to localhost, so in AWS
-    (where only CELERY_RESULT_BACKEND carries the ElastiCache address) every pending job
-    crashed the socket. It must use storage.redis_client.redis_url(), like every other
-    Redis caller, which also rewrites the ssl_cert_reqs flag redis-py cannot parse."""
+    cfg = get_settings()
+    job_bus.healthy = True
     pending_result, success_result = _pending_then_success()
-    mock_pubsub = MagicMock()
-    mock_pubsub.subscribe = AsyncMock()
-    mock_pubsub.get_message = AsyncMock(return_value=None)
-    mock_pubsub.unsubscribe = AsyncMock()
-    mock_pubsub.aclose = AsyncMock()
-    mock_redis_client = MagicMock()
-    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
-    mock_redis_client.aclose = AsyncMock()
-    shared_url = "rediss://elasticache.example:6379/0?ssl_cert_reqs=none"
-
-    with (
-        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
-        patch("api.routes.var.redis_url", return_value=shared_url),
-        patch(
-            "api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client
-        ) as mock_from_url,
-    ):
-        with ws_client.websocket_connect("/api/v1/var/stream/url-task?token=" + free_token) as ws:
-            data = ws.receive_json()
-
-    assert data["status"] == "success"
-    mock_from_url.assert_called_once_with(shared_url)
-    mock_redis_client.aclose.assert_awaited_once()
-
-
-def test_stream_var_result_falls_back_to_polling_when_subscribe_fails(ws_client, free_token):
-    """Regression: a Redis failure at subscribe time was not covered by the route's
-    'fall back to polling' handling, so it crashed the socket instead. The job result
-    must still arrive on the poll, and the half-built client must still be closed."""
-    import redis.exceptions
-
-    pending_result, success_result = _pending_then_success()
-    mock_pubsub = MagicMock()
-    mock_pubsub.subscribe = AsyncMock(side_effect=redis.exceptions.ConnectionError("down"))
-    mock_pubsub.unsubscribe = AsyncMock()
-    mock_pubsub.aclose = AsyncMock()
-    mock_redis_client = MagicMock()
-    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
-    mock_redis_client.aclose = AsyncMock()
-    sleep = AsyncMock()
-
-    with (
-        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
-        patch("api.routes.var.asyncio.sleep", sleep),
-    ):
-        with ws_client.websocket_connect("/api/v1/var/stream/down-task?token=" + free_token) as ws:
-            data = ws.receive_json()
-
-    assert data["status"] == "success"
-    assert data["result"]["var_abs"] == 28_000.0
-    sleep.assert_awaited()  # it waited between polls instead of spinning
-    mock_pubsub.unsubscribe.assert_not_awaited()  # never subscribed, so nothing to undo
-    mock_pubsub.aclose.assert_awaited_once()
-    mock_redis_client.aclose.assert_awaited_once()
-
-
-def test_stream_var_result_waits_between_polls_when_pubsub_read_fails(ws_client, free_token):
-    """Regression: when get_message raised straight away the loop fell through to the
-    next poll with no wait (the wait lived inside get_message), so a Pub/Sub outage
-    turned the route into a busy loop against the result backend."""
-    import redis.exceptions
-
-    pending_result, success_result = _pending_then_success()
-    mock_pubsub = MagicMock()
-    mock_pubsub.subscribe = AsyncMock()
-    mock_pubsub.get_message = AsyncMock(side_effect=redis.exceptions.ConnectionError("dropped"))
-    mock_pubsub.unsubscribe = AsyncMock()
-    mock_pubsub.aclose = AsyncMock()
-    mock_redis_client = MagicMock()
-    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
-    mock_redis_client.aclose = AsyncMock()
-    sleep = AsyncMock()
+    wait = AsyncMock(return_value=False)
 
     with (
         patch(
             "api.routes.var.AsyncResult",
-            side_effect=[pending_result, pending_result, pending_result, success_result],
+            side_effect=[pending_result, pending_result, success_result],
         ),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
-        patch("api.routes.var.asyncio.sleep", sleep),
+        patch("api.routes.var._wait_for_wake", wait),
     ):
-        with ws_client.websocket_connect("/api/v1/var/stream/drop-task?token=" + free_token) as ws:
+        with ws_client.websocket_connect("/api/v1/var/stream/up-task?token=" + free_token) as ws:
             data = ws.receive_json()
 
     assert data["status"] == "success"
-    assert mock_pubsub.get_message.await_count == 1  # tried once, then stopped using Pub/Sub
-    assert sleep.await_count >= 1
-    mock_pubsub.unsubscribe.assert_awaited_once()
+    assert wait.await_args.args[1] == cfg.var_stream_safety_poll_seconds
+    assert cfg.var_stream_safety_poll_seconds > cfg.var_stream_poll_interval_seconds
 
 
-def _wake_up_pubsub(messages):
-    """A Pub/Sub double whose get_message yields `messages` in order (None = poll timeout)."""
-    mock_pubsub = MagicMock()
-    mock_pubsub.subscribe = AsyncMock()
-    mock_pubsub.get_message = AsyncMock(side_effect=messages)
-    mock_pubsub.unsubscribe = AsyncMock()
-    mock_pubsub.aclose = AsyncMock()
-    mock_redis_client = MagicMock()
-    mock_redis_client.pubsub = MagicMock(return_value=mock_pubsub)
-    mock_redis_client.aclose = AsyncMock()
-    return mock_pubsub, mock_redis_client
+def test_stream_var_result_registers_before_the_state_read_that_follows_the_fast_path(
+    ws_client, free_token, job_bus
+):
+    """A completion between the fast-path read and the registration would otherwise be missed:
+    the route must be registered before it reads the state a second time."""
+    order = []
+    job_bus.log = order
+    pending_result, success_result = _pending_then_success()
+    reads = iter([pending_result, pending_result, success_result])
+
+    def next_read(*_args, **_kwargs):
+        order.append("read")
+        return next(reads)
+
+    with (
+        patch("api.routes.var.AsyncResult", side_effect=next_read),
+        patch("api.routes.var._wait_for_wake", AsyncMock(return_value=False)),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/order-task?token=" + free_token) as ws:
+            ws.receive_json()
+
+    assert order[:3] == ["read", "register", "read"]
 
 
 def test_stream_var_result_rechecks_quickly_after_a_wake_up_that_beats_the_result_store(
@@ -851,41 +817,42 @@ def test_stream_var_result_rechecks_quickly_after_a_wake_up_that_beats_the_resul
 
     cfg = get_settings()
     pending_result, success_result = _pending_then_success()
-    # fast-path check, read after the wake-up, one recheck still pending, then stored
-    results = [pending_result, pending_result, pending_result, success_result]
-    mock_pubsub, mock_redis_client = _wake_up_pubsub([{"type": "message", "data": b"success"}])
+    # fast path, read after registering, read after the wake-up, one recheck pending, then stored
+    results = [pending_result, pending_result, pending_result, pending_result, success_result]
+    wait = AsyncMock(return_value=True)
     sleep = AsyncMock()
 
     with (
         patch("api.routes.var.AsyncResult", side_effect=results),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var._wait_for_wake", wait),
         patch("api.routes.var.asyncio.sleep", sleep),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/race-task?token=" + free_token) as ws:
             data = ws.receive_json()
 
     assert data["status"] == "success"
-    assert mock_pubsub.get_message.await_count == 1  # no second, full-length wait
+    assert wait.await_count == 1  # no second, full-length wait
     waits = [call.args[0] for call in sleep.await_args_list]
     assert waits == [cfg.var_stream_wake_recheck_seconds] * 2
     assert cfg.var_stream_poll_interval_seconds not in waits
 
 
-def test_stream_var_result_wake_up_recheck_is_bounded_then_polling_resumes(ws_client, free_token):
+def test_stream_var_result_wake_up_recheck_is_bounded_then_waiting_resumes(ws_client, free_token):
     """The quick re-check is a short grace window, not a spin: if the job is still pending
-    after it, the route goes back to waiting on Pub/Sub or the poll interval."""
+    after it, the route goes back to waiting."""
     from config import get_settings
 
     cfg = get_settings()
     pending_result, success_result = _pending_then_success()
-    # fast path + read after the wake-up + every recheck pending, then success on the next poll
-    results = [pending_result] * (2 + cfg.var_stream_wake_recheck_count) + [success_result]
-    mock_pubsub, mock_redis_client = _wake_up_pubsub([{"type": "message", "data": b"x"}, None])
+    # fast path + read after registering + read after the wake-up + every recheck pending,
+    # then success after the second, ordinary wait
+    results = [pending_result] * (3 + cfg.var_stream_wake_recheck_count) + [success_result]
+    wait = AsyncMock(side_effect=[True, False])
     sleep = AsyncMock()
 
     with (
         patch("api.routes.var.AsyncResult", side_effect=results),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch("api.routes.var._wait_for_wake", wait),
         patch("api.routes.var.asyncio.sleep", sleep),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/slow-task?token=" + free_token) as ws:
@@ -893,7 +860,7 @@ def test_stream_var_result_wake_up_recheck_is_bounded_then_polling_resumes(ws_cl
 
     assert data["status"] == "success"
     assert sleep.await_count == cfg.var_stream_wake_recheck_count
-    assert mock_pubsub.get_message.await_count == 2  # woke, rechecked, then waited normally
+    assert wait.await_count == 2  # woke, rechecked, then waited normally
 
 
 # ── WS /var/stream/{task_id}: open-socket limits and abandoned clients ─────────
@@ -916,36 +883,18 @@ def _wait_until(predicate, timeout=2.0):
     return predicate()
 
 
-def _idle_pubsub():
-    """A Pub/Sub double whose get_message really waits (like the 2 s timeout), then yields None."""
-    import asyncio
-
-    async def _wait(**_kwargs):
-        await asyncio.sleep(0.02)
-
-    mock_pubsub, mock_redis_client = _wake_up_pubsub([])
-    mock_pubsub.get_message = AsyncMock(side_effect=_wait)
-    return mock_pubsub, mock_redis_client
-
-
-def _never_finishing_job():
-    pending_result = MagicMock()
-    pending_result.state = "PENDING"
-    return pending_result
-
-
-def test_stream_var_result_ends_when_the_client_disconnects(ws_client, free_token, stream_slots):
+def test_stream_var_result_ends_when_the_client_disconnects(
+    ws_client, free_token, stream_slots, job_bus
+):
     """Regression: the handler waited out the whole max-wait before noticing a closed client."""
     from config import get_settings
 
     cfg = get_settings()
-    mock_pubsub, mock_redis_client = _idle_pubsub()
 
     with (
         patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
         patch.object(cfg, "var_stream_max_wait_seconds", 30),
         patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/gone-task?token=" + free_token) as ws:
             assert _wait_until(lambda: stream_slots.active == 1)
@@ -953,20 +902,20 @@ def test_stream_var_result_ends_when_the_client_disconnects(ws_client, free_toke
             # Still inside the block: the harness cancels a handler that is left running when
             # the block exits, so only a handler that notices the close by itself gets here.
             assert _wait_until(lambda: stream_slots.active == 0)
-
-    mock_pubsub.unsubscribe.assert_awaited_once()
-    mock_redis_client.aclose.assert_awaited_once()
+            assert _wait_until(lambda: job_bus.unregistered == ["gone-task"])
 
 
 def test_stream_var_result_releases_its_slot_when_the_job_completes(
     ws_client, free_token, stream_slots
 ):
     pending_result, success_result = _pending_then_success()
-    mock_pubsub, mock_redis_client = _wake_up_pubsub([None])
 
     with (
-        patch("api.routes.var.AsyncResult", side_effect=[pending_result, success_result]),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
+        patch(
+            "api.routes.var.AsyncResult",
+            side_effect=[pending_result, pending_result, success_result],
+        ),
+        patch("api.routes.var._wait_for_wake", AsyncMock(return_value=False)),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/slot-task?token=" + free_token) as ws:
             data = ws.receive_json()
@@ -981,16 +930,12 @@ def test_stream_var_result_refuses_sockets_over_the_process_cap(
     from config import get_settings
 
     cfg = get_settings()
-    mock_pubsub, mock_redis_client = _idle_pubsub()
 
     with (
         patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
-        patch.object(
-            cfg, "var_stream_max_wait_seconds", 3
-        ),  # a wrongly admitted socket ends, not hangs
+        patch.object(cfg, "var_stream_max_wait_seconds", 3),  # a wrongly admitted socket ends
         patch.object(cfg, "var_stream_max_connections", 1),
         patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/first?token=" + free_token):
             assert _wait_until(lambda: stream_slots.active == 1)
@@ -1011,16 +956,12 @@ def test_stream_var_result_caps_sockets_per_user(ws_client, free_token, pro_toke
     from config import get_settings
 
     cfg = get_settings()
-    mock_pubsub, mock_redis_client = _idle_pubsub()
 
     with (
         patch.object(cfg, "var_stream_poll_interval_seconds", 0.05),
-        patch.object(
-            cfg, "var_stream_max_wait_seconds", 3
-        ),  # a wrongly admitted socket ends, not hangs
+        patch.object(cfg, "var_stream_max_wait_seconds", 3),  # a wrongly admitted socket ends
         patch.object(cfg, "var_stream_max_connections_per_user", 1),
         patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
-        patch("api.routes.var.aioredis.Redis.from_url", return_value=mock_redis_client),
     ):
         with ws_client.websocket_connect("/api/v1/var/stream/mine?token=" + free_token):
             assert _wait_until(lambda: stream_slots.active == 1)

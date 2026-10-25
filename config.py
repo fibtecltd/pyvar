@@ -245,9 +245,10 @@ class Settings(BaseSettings):
     # WebSocket alternative to polling GET /var/result/{task_id}: the client holds
     # one connection open and the server pushes the result the moment the Celery
     # task completes, via Redis Pub/Sub. Pub/Sub has no persistence or replay, so
-    # api/routes/var.py's stream_var_result also polls the result backend on this
-    # interval as a safety net rather than trusting Pub/Sub delivery alone — see
-    # that route's own docstring for the full reliability design.
+    # api/routes/var.py's stream_var_result also polls the result backend as a safety net
+    # rather than trusting Pub/Sub delivery alone: on this interval while the shared
+    # subscriber is down (var_stream_safety_poll_seconds while it is up) — see that
+    # route's own docstring for the full reliability design.
     var_stream_poll_interval_seconds: float = 2.0
     # The worker publishes the completion marker from inside the task body and Celery
     # stores the result only after the task returns, so the first read after a push can
@@ -256,18 +257,23 @@ class Settings(BaseSettings):
     # all), before it goes back to waiting.
     var_stream_wake_recheck_count: int = 10
     var_stream_wake_recheck_seconds: float = 0.1
+    # While the shared Pub/Sub subscriber is up, a waiting socket re-reads the job state this
+    # often as a safety net (a lost message costs at most this long); while it is down the
+    # shorter var_stream_poll_interval_seconds applies.
+    var_stream_safety_poll_seconds: float = 10.0
     # Generous vs. CLAUDE.md's "seconds-to-minutes" Monte Carlo runtime — bounds
     # how long a single WebSocket connection can be held open so a job that never
     # reaches a terminal state cannot pin a worker slot indefinitely.
     var_stream_max_wait_seconds: int = 900  # 15 minutes
-    # Open WS /var/stream sockets one API process (one Fargate task) holds in total and per
-    # user. Phase 0d on dev: an idle 1 GiB task sits at 787 MiB, each socket added about
-    # 1.2 MiB (steeper past 100) and 135 sockets reached 93% with the memory not coming back,
-    # so 50 keeps a task near the 78% it showed at that count. Counted per process: with N
-    # tasks a user can hold N times the per-user figure. Over a cap the route closes with
-    # 1013 (try again later); a job that is already finished is never refused.
-    var_stream_max_connections: int = 50
-    var_stream_max_connections_per_user: int = 10
+    # Open WS /var/stream sockets one uvicorn worker process holds in total and per user. The
+    # image runs two workers per task (Dockerfile), so a task holds up to twice these, and
+    # with N tasks a user can hold 2 x N times the per-user figure. Phase 0d on dev: an idle
+    # 1 GiB task sat at 787 MiB and 135 sockets, each with its own Redis client, reached 93%
+    # with the memory not coming back. 25 and 5 give the intended 50 and 10 per task. Over a
+    # cap the route closes with 1013 (try again later); a job that is already finished is
+    # never refused.
+    var_stream_max_connections: int = 25
+    var_stream_max_connections_per_user: int = 5
 
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None
