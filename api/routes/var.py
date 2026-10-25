@@ -53,6 +53,7 @@ Reasoning:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 import uuid
@@ -426,8 +427,9 @@ async def _send_if_terminal(websocket: WebSocket, task_id: str) -> bool:
 class _StreamSlots:
     """Open-socket budget of this process: one total cap, one cap per user.
 
-    Counted in the API process (one Fargate task), so with N tasks a user can hold N times the
-    per-user cap. Plain counters need no lock: acquire and release never await.
+    Counted per uvicorn worker process, not per task: the image runs two workers
+    (Dockerfile), so a task holds up to twice the caps and, with N tasks, a user can hold
+    2 x N times the per-user cap. Plain counters need no lock: acquire and release never await.
     """
 
     def __init__(self) -> None:
@@ -454,6 +456,115 @@ class _StreamSlots:
 
 
 _stream_slots = _StreamSlots()
+
+
+# Every job's completion is published on its own channel (tasks/var_task.py). One
+# pattern subscription per API process hears all of them and wakes the sockets that wait.
+_JOB_DONE_PATTERN = "pyvar:var-job-done:*"
+
+
+class _JobDoneBus:
+    """One Redis Pub/Sub subscription per API process, shared by every waiting stream socket.
+
+    Phase 0 on dev, then a local reproduction against a TLS Redis: a client and Pub/Sub
+    subscription per socket cost about 1.7 MiB per socket (each Redis connection builds its own
+    TLS context, 0.8 MiB) and 1.2 to 1.8 Redis connections per socket. A shared subscriber
+    costs about 0.6 MiB per socket and no connection per socket.
+
+    A message only wakes a waiter. Pub/Sub has no persistence, so the route still reads the
+    authoritative state after every wake-up and on a timer, and `healthy` says whether that
+    timer can be slow: while the subscriber is down the sockets poll at the old, short interval.
+    """
+
+    def __init__(self) -> None:
+        self._waiters: dict[str, set[asyncio.Event]] = {}
+        self._reader: asyncio.Task[None] | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self.healthy = False
+
+    def register(self, task_id: str) -> asyncio.Event:
+        """Start listening for `task_id`; call it BEFORE the first state read, so a completion
+        between that read and the registration is not missed. Returns the event to wait on."""
+        loop = asyncio.get_running_loop()
+        if self._reader is None or self._reader.done() or self._loop is not loop:
+            self.healthy = False
+            self._loop = loop
+            self._reader = loop.create_task(self._read_forever())
+        event = asyncio.Event()
+        self._waiters.setdefault(task_id, set()).add(event)
+        return event
+
+    def unregister(self, task_id: str, event: asyncio.Event) -> None:
+        waiters = self._waiters.get(task_id)
+        if waiters is not None:
+            waiters.discard(event)
+            if not waiters:
+                del self._waiters[task_id]
+
+    async def close(self) -> None:
+        """Stop the subscriber (application shutdown)."""
+        reader, self._reader = self._reader, None
+        if reader is not None and not reader.done():
+            reader.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reader
+
+    def _dispatch(self, message: dict[str, Any]) -> None:
+        if message.get("type") != "pmessage":
+            return
+        channel = message["channel"]
+        name = channel.decode() if isinstance(channel, bytes) else str(channel)
+        for event in tuple(self._waiters.get(name.rsplit(":", 1)[-1], ())):
+            event.set()
+
+    async def _read_forever(self) -> None:
+        backoff = 1.0
+        while True:
+            client: Any = None
+            pubsub: Any = None
+            try:
+                client = aioredis.Redis.from_url(redis_url(), health_check_interval=30)
+                pubsub = client.pubsub()
+                await pubsub.psubscribe(_JOB_DONE_PATTERN)
+                self.healthy = True
+                backoff = 1.0
+                async for message in pubsub.listen():
+                    self._dispatch(message)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 — Pub/Sub only speeds delivery up; sockets poll
+                logger.warning(
+                    "Shared job-done subscriber failed — streams poll until it is back",
+                    exc_info=True,
+                )
+            finally:
+                self.healthy = False
+                for closable in (pubsub, client):
+                    if closable is not None:
+                        try:
+                            await closable.aclose()
+                        except Exception:  # noqa: BLE001 — best-effort cleanup only
+                            logger.warning("Failed to close the job-done subscriber")
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 30.0)
+
+
+_job_done_bus = _JobDoneBus()
+
+
+async def close_job_done_bus() -> None:
+    """Application shutdown hook (main.py lifespan)."""
+    await _job_done_bus.close()
+
+
+async def _wait_for_wake(event: asyncio.Event, timeout: float) -> bool:
+    """Wait up to `timeout` for a push. True if one arrived (and is now consumed)."""
+    try:
+        await asyncio.wait_for(event.wait(), timeout=timeout)
+    except asyncio.TimeoutError:
+        return False
+    event.clear()
+    return True
 
 
 async def _wait_for_disconnect(websocket: WebSocket) -> None:
@@ -497,33 +608,24 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     resource with an inconsistent security model. Tightening both together
     is a separate decision, out of scope for this change.
 
-    Reliability: subscribes to the Redis Pub/Sub channel
-    tasks/var_task.py's _publish_job_event publishes on, but never trusts it
-    alone — Pub/Sub has no persistence or replay, so a message published in
-    the gap between this route's own first state check and its subscribe
-    call would otherwise be lost forever. pubsub.get_message's own timeout
-    (cfg.var_stream_poll_interval_seconds) doubles as a poll interval: every
-    wake-up, whether from a pushed message or a plain timeout, re-reads the
-    authoritative state via _build_job_result_response rather than trusting
-    the Pub/Sub payload's contents. A lost Pub/Sub message therefore costs
-    at most one poll interval of extra latency, never a hung connection.
-    The same holds if Pub/Sub is unavailable altogether, at subscribe time or
-    later: the route then polls every cfg.var_stream_poll_interval_seconds.
-    A push can also arrive just before the result is stored (the worker
-    publishes from inside the task, Celery stores after it returns), so after
-    a push that still reads as pending the route re-checks
-    cfg.var_stream_wake_recheck_count times, cfg.var_stream_wake_recheck_seconds
+    Reliability: waits on the shared Redis Pub/Sub subscription of this process
+    (_JobDoneBus; tasks/var_task.py's _publish_job_event publishes on the channel) but never
+    trusts it alone: Pub/Sub has no persistence or replay, so every wake-up, and a timer
+    (cfg.var_stream_safety_poll_seconds while the subscriber is up, the shorter
+    cfg.var_stream_poll_interval_seconds while it is not), re-reads the authoritative state via
+    _build_job_result_response rather than trusting the message. The socket registers with the
+    subscriber before its first state read, so a completion in between is not lost. A lost
+    message therefore costs at most one timer interval, never a hung connection.
+    A push can also arrive just before the result is stored (the worker publishes from inside
+    the task, Celery stores after it returns), so after a push that still reads as pending the
+    route re-checks cfg.var_stream_wake_recheck_count times, cfg.var_stream_wake_recheck_seconds
     apart, before it waits again.
-    The client comes from storage.redis_client.redis_url(), the same helper
-    every other Redis caller uses, not cfg.redis_url (its localhost default
-    is not the cache in AWS, where only CELERY_RESULT_BACKEND carries it).
     Bounded overall by cfg.var_stream_max_wait_seconds so a job that never
     reaches a terminal state cannot hold a worker slot open indefinitely.
 
-    Resource limits: a waiting socket costs about 1.2 MiB and a Redis connection, and a
-    1 GiB task idles at 787 MiB (Phase 0d), so the sockets that wait are capped per process
-    and per user (cfg.var_stream_max_connections, ..._per_user; over a cap the route closes
-    with 1013). A job that is already finished is answered before the cap applies. A reader
+    Resource limits: a waiting socket still costs memory, so the sockets that wait are capped
+    per worker process and per user (cfg.var_stream_max_connections, ..._per_user; over a cap
+    the route closes with 1013). A job that is already finished is answered before the cap applies. A reader
     task notices a client that has gone within one poll interval and ends the handler, which
     releases the slot and the Redis connection.
     """
@@ -559,52 +661,26 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
 
     # Nothing between acquire() above and the try below may raise, or the slot leaks.
     disconnect_watcher = asyncio.create_task(_wait_for_disconnect(websocket))
-    redis_client: Any = None
-    pubsub: Any = None
-    subscribed = False  # a subscription exists and must be undone on the way out
-    pubsub_usable = False  # still worth waiting on get_message; else poll on a timer
+    # Register before the state read below: a completion in between is then not lost.
+    wake = _job_done_bus.register(task_id)
     try:
-        try:
-            redis_client = aioredis.Redis.from_url(redis_url())
-            pubsub = redis_client.pubsub()
-            await pubsub.subscribe(f"pyvar:var-job-done:{task_id}")
-            subscribed = True
-            pubsub_usable = True
-        except Exception:  # noqa: BLE001 — Pub/Sub only speeds delivery up; the poll below decides
-            logger.warning(
-                "Redis Pub/Sub unavailable for VaR stream — polling only",
-                extra={"task_id": task_id},
-                exc_info=True,
-            )
+        if await _send_if_terminal(websocket, task_id):
+            return
 
         deadline = time.monotonic() + cfg.var_stream_max_wait_seconds
         while time.monotonic() < deadline:
             if disconnect_watcher.done():
                 logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
                 return
-            # The message itself is never trusted as the result — it only
-            # wakes this loop promptly; _build_job_result_response below is
-            # the sole source of truth, whether woken by a push or by this
-            # call's own timeout elapsing (a plain poll tick).
-            woken_by_push = False
-            if pubsub_usable:
-                try:
-                    message = await pubsub.get_message(
-                        ignore_subscribe_messages=True,
-                        timeout=cfg.var_stream_poll_interval_seconds,
-                    )
-                    woken_by_push = message is not None
-                except Exception:  # noqa: BLE001 — Pub/Sub outage falls through to the poll below
-                    logger.warning(
-                        "Redis Pub/Sub read failed on VaR stream — continuing on poll alone",
-                        extra={"task_id": task_id},
-                        exc_info=True,
-                    )
-                    pubsub_usable = False
-            else:
-                # Nothing to wait on, so wait out the poll interval here;
-                # otherwise this loop would spin against the result backend.
-                await asyncio.sleep(cfg.var_stream_poll_interval_seconds)
+            # The message itself is never trusted as the result — it only wakes this loop
+            # promptly; _build_job_result_response below is the sole source of truth,
+            # whether woken by a push or by this wait's own timeout (a plain poll tick).
+            interval = (
+                cfg.var_stream_safety_poll_seconds
+                if _job_done_bus.healthy
+                else cfg.var_stream_poll_interval_seconds
+            )
+            woken_by_push = await _wait_for_wake(wake, interval)
 
             if await _send_if_terminal(websocket, task_id):
                 return
@@ -634,21 +710,4 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     finally:
         disconnect_watcher.cancel()
         _stream_slots.release(user.user_id)
-        if pubsub is not None:
-            try:
-                if subscribed:
-                    await pubsub.unsubscribe()
-                await pubsub.aclose()
-            except Exception:  # noqa: BLE001 — best-effort cleanup only
-                logger.warning(
-                    "Failed to clean up Redis Pub/Sub subscription",
-                    extra={"task_id": task_id},
-                )
-        if redis_client is not None:
-            try:
-                await redis_client.aclose()
-            except Exception:  # noqa: BLE001 — best-effort cleanup only
-                logger.warning(
-                    "Failed to close Redis client for VaR stream",
-                    extra={"task_id": task_id},
-                )
+        _job_done_bus.unregister(task_id, wake)

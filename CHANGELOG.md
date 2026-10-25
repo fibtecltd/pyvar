@@ -109,6 +109,46 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`WS /api/v1/var/stream/{task_id}` built a Redis client and subscription for every socket; it now
+  shares one subscription per worker process** — follow-up to the entry below, from Phase 0e on
+  dev (50 sockets closed, about 84 MiB not returned, 37 Redis connections left against 6) and a
+  local reproduction: the real app under uvicorn with the image's flags and two workers, a
+  TLS-only Redis, 50 idle sockets per cycle, memory summed over both workers. Python-side object
+  counts stayed flat after every cycle (no leaked tasks, clients or TLS contexts) and
+  `malloc_trim` handed back most of the retained memory, so it was freed heap that the allocator
+  keeps, not a leak. What made it large was the per-socket client: every Redis connection builds
+  its own TLS context (0.83 MiB, measured on OpenSSL 3.0.13). With the code of #398 the first 50
+  sockets cost 1.51 MiB each and the memory held after they closed grew with every cycle (+76,
+  +118, +142, +174, +209 MiB over five cycles) with 73-87 Redis connections open. Now one
+  `_JobDoneBus` per process holds a single pattern subscription on `pyvar:var-job-done:*` and
+  wakes the sockets that wait: 0.62 MiB per socket, +31, +36, +37, +39, +41 MiB over the same
+  five cycles, about 20 Redis connections. A socket registers with the subscriber before its
+  first state read, so a completion in between is not lost. The state is still re-read after
+  every wake-up, because Pub/Sub keeps nothing; the timer behind it is
+  `var_stream_safety_poll_seconds` (10 s) while the subscriber is up and the old 2 s
+  `var_stream_poll_interval_seconds` while it is down. The subscriber reconnects with a back-off
+  from 1 s to 30 s and is closed at shutdown (`main.py` lifespan).
+  Run end to end locally with the real code and two workers, playing the worker's part (publish,
+  then store 50 ms later): 6 of 6 frames arrived 53-55 ms after the store; a result stored with
+  no message was delivered 9.4 s later by the safety poll; with Redis restarted, the socket that
+  was waiting was dropped (the result read raises, as before this change) and new sockets were
+  pushed 52-54 ms after the store once the subscriber had reconnected.
+  The caps are now per worker process with defaults of 25 and 5, which give the 50 and 10 per
+  task #398 meant: the image runs two uvicorn workers (`Dockerfile`), and Phase 0e's 11th and
+  51st sockets were not refused because each worker counted separately. #398's description and
+  entry said "per task", which was wrong.
+  `MALLOC_ARENA_MAX=2` is set in the image, as a separate change: without it the held memory kept
+  creeping across cycles in the one-worker runs (+93 MiB after 15 cycles against +62 with it); in
+  the two-worker five-cycle run the difference was small (+41 against +39).
+  Not measured on AWS: `PSUBSCRIBE` on the ElastiCache Serverless cache (the route used
+  `SUBSCRIBE` before). If it were refused, the subscriber would log a warning and every socket
+  would poll every 2 s, as it does today; the dev check should show the push lag.
+  Ten tests for the subscriber (`tests/test_job_done_bus.py`) and the stream-route tests in
+  `tests/test_api.py`, rewritten around it. Twelve guards were removed one at a time (register
+  before the read, unregister, the interval choice, the disconnect check, the slot release, the
+  quick re-check, message type, routing, `healthy`, back-off growth, the pattern, client
+  cleanup) and each made a named test fail.
+
 - **`WS /api/v1/var/stream/{task_id}` kept abandoned sockets alive for 15 minutes and had no limit on
   how many it held** — found by the fourth Phase 0 run (0d) on dev, which opened sockets on one
   0.5 vCPU / 1 GiB task until its memory stop rule fired at 135 (92.8%). An idle task sits at
@@ -124,8 +164,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   connection and subscription. Sockets that wait are capped per process
   (`var_stream_max_connections`, 50) and per user (`var_stream_max_connections_per_user`, 10);
   over a cap the route closes with 1013, and a job that is already finished is still answered
-  first. The caps are counted per API task, so with N tasks a user can hold N times the per-user
-  figure. 50 is the count at which dev read 77.7% memory; it is a stopgap, not a capacity figure.
+  first. The caps are counted per uvicorn worker process, not per task as first written here:
+  the image runs two workers, so a task holds up to twice the figures (corrected in the entry
+  above). 50 is the count at which dev read 77.7% memory; it is a stopgap, not a capacity figure.
   Not fixed here: the cost per socket. Every socket builds its own Redis client, and redis-py
   creates one TLS context per connection (0.83 MiB each, measured locally on OpenSSL 3.0.13, the
   same order as the 1.2 MiB seen), but the growth on dev was not linear, so that is a suspect, not
