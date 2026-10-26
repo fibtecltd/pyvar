@@ -274,6 +274,11 @@ class Settings(BaseSettings):
     # never refused.
     var_stream_max_connections: int = 25
     var_stream_max_connections_per_user: int = 5
+    # Lifetime of the token POST /var/stream-token/{task_id} mints for WS /var/stream/{task_id}.
+    # The token travels in the URL (a browser cannot set a header on a WebSocket handshake) and
+    # URLs are logged, so it is short, scoped to one task and unusable anywhere else. It only has
+    # to outlive the handshake that follows the call; an open socket keeps working after it ends.
+    var_stream_token_ttl_seconds: int = 60
 
     # ── Observability ─────────────────────────────────────────────────────────
     sentry_dsn: str | None = None

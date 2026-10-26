@@ -67,7 +67,9 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Path,
     Request,
+    Response,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -77,7 +79,12 @@ from sqlalchemy import update
 from starlette.concurrency import run_in_threadpool
 
 from api.middleware import rate_limit as rate_limit_module
-from api.middleware.auth import TokenPayload, decode_token_payload, get_current_user
+from api.middleware.auth import (
+    TokenPayload,
+    create_stream_token,
+    decode_stream_payload,
+    get_current_user,
+)
 from api.middleware.billing_lifecycle import (
     DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
     EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
@@ -87,7 +94,14 @@ from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
 from config import get_settings
-from schemas.var import JobResponse, JobResultResponse, JobStatus, VaRRequest, VaRResult
+from schemas.var import (
+    JobResponse,
+    JobResultResponse,
+    JobStatus,
+    StreamTokenResponse,
+    VaRRequest,
+    VaRResult,
+)
 from storage.models import VaRJob
 from storage.redis_client import redis_url
 from storage.s3 import hydrate_presigned_url
@@ -657,6 +671,44 @@ async def _wait_for_disconnect(websocket: WebSocket) -> None:
         return
 
 
+@router.post(
+    "/stream-token/{task_id}",
+    response_model=StreamTokenResponse,
+    summary="Mint a short-lived token for WS /var/stream/{task_id}",
+    description=(
+        "Exchanges the credential in the Authorization header, an API key or a session token, "
+        "for a token that opens the result stream of this one job. It is valid for "
+        "var_stream_token_ttl_seconds (60 s), and no other route accepts it. Pass it as "
+        "?token= when you open WS /api/v1/var/stream/{task_id}."
+    ),
+)
+async def mint_stream_token(
+    response: Response,
+    task_id: str = Path(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"),
+    user: TokenPayload = Depends(get_current_user),
+) -> StreamTokenResponse:
+    """Mint the ?token= for WS /var/stream/{task_id}, so an API key never goes in a URL.
+
+    Why: the stream is opened with a URL, a WebSocket handshake cannot carry an Authorization
+    header, and URLs are logged (the API log, CloudFront). An API key is valid for a year, so it
+    must not be the thing in that URL. This route takes the credential in a header, where it
+    belongs, and returns a token that lasts var_stream_token_ttl_seconds, opens one task's
+    stream and nothing else (create_stream_token), so a leaked URL is worth nothing a minute
+    later.
+
+    No ownership check, deliberately: like GET /var/result/{task_id} and the stream itself, any
+    authenticated caller who knows a task_id is served (see stream_var_result). This does not
+    widen what a caller can read; it only changes how they authenticate to read it. It is not
+    metered against the compute quota, like the poll endpoint.
+    """
+    response.headers["Cache-Control"] = "no-store"
+    return StreamTokenResponse(
+        task_id=task_id,
+        token=create_stream_token(user.user_id, task_id),
+        expires_in=cfg.var_stream_token_ttl_seconds,
+    )
+
+
 @router.websocket("/stream/{task_id}")
 async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     """Push the VaR job result the instant it completes, instead of polling.
@@ -665,12 +717,13 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     §3, shape #1) — same compute, same Monte Carlo kernel, just a different
     result-delivery transport than GET /var/result/{task_id}.
 
-    Auth: the JWT travels as a ?token= query parameter, not the standard
+    Auth: the token travels as a ?token= query parameter, not the standard
     Authorization header — browser WebSocket clients cannot set arbitrary
     headers on the opening handshake, so this is the conventional pattern
-    for token-authenticated WebSocket routes. Validated with the SAME
-    decode_token_payload() get_current_user uses for every HTTP route, so
-    the security boundary is identical either way.
+    for token-authenticated WebSocket routes. It is either a stream token for THIS task
+    (POST /var/stream-token/{task_id}: 60 s, one task, minted for an API key or a session) or a
+    session JWT; both are signed by the same key and checked by decode_stream_payload(). An API
+    key is not accepted here directly because the URL is logged.
 
     Authorization scope: deliberately mirrors GET /var/result/{task_id}
     exactly — any authenticated user who knows a task_id can stream its
@@ -708,7 +761,7 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
         return
     try:
-        user = decode_token_payload(token)
+        user = decode_stream_payload(token, task_id)
     except JWTError:
         await websocket.close(
             code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or expired token"

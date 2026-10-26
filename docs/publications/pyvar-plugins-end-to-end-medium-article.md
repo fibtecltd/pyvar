@@ -69,7 +69,7 @@ That matters because the async database pool is deliberately small (5 plus 5 con
 - **Revoking is immediate.** It deletes the cache entry, so a revoked key stops working on the next call.
 - **Using a key does not write per request.** `last_used_at` is refreshed at most hourly, on the cache-miss path.
 
-One limit: the streaming endpoint for Monte Carlo VaR (`WS /api/v1/var/stream/{task_id}`) accepts a session token only, because a key in a query string would end up in access logs.
+One limit: the streaming endpoint for Monte Carlo VaR (`WS /api/v1/var/stream/{task_id}`) never takes a key itself, because a key in a query string would end up in access logs. Exchange the key for a 60-second, single-task stream token with `POST /api/v1/var/stream-token/{task_id}` and put that in the query string instead.
 
 ## One label per surface
 

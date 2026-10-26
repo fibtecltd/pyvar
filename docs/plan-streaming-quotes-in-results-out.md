@@ -188,6 +188,12 @@ should run in separate processes or with per-call generators.
   first frame.
 - Confirmed in Phase 0: CloudFront standard logging is on, so a token in the URL is stored
   in S3 (§9.3).
+- Built for the job-result stream (WS `/var/stream/{task_id}`): `POST /api/v1/var/stream-token/{task_id}`
+  takes an API key or a session in the header and returns a token valid for 60 s
+  (`var_stream_token_ttl_seconds`), bound to that one task and carrying an `aud` claim so every
+  other route refuses it; the stream accepts it, or a session JWT, and never a key. It is not
+  single use (that needs state in Redis). The quote stream would reuse the exchange with a
+  different audience.
 - The key's tier is read from the database, as for REST (CLAUDE.md §3.5).
 
 ### 3.8 Metering and tiers
@@ -468,7 +474,9 @@ at least a few real users; legal position on §3.9.
     defaults of 25 sockets and 5 per user per worker mean 50 and 10 per task. Refusals were
     seen on dev (4 and 6 in 0f); the per-user cap has not been probed.
 17. **Tokens in logs:** `?token=<JWT>` lands in the API log group (30-day retention) as
-    well as CloudFront's standard logs (§3.7).
+    well as CloudFront's standard logs (§3.7). The result stream now has a 60 s, one-task token
+    for this (§3.7), so a logged URL is dead a minute later; a session JWT is still accepted
+    there and would still be logged for its hour.
 18. **Pub/Sub on the cache:** the dev cache refuses pattern subscriptions (§9.8), so only
     per-channel `SUBSCRIBE` and `PUBLISH` are used. Pub/Sub keeps nothing, so every stream
     path keeps a state read behind the push (§9.9).
@@ -488,7 +496,8 @@ at least a few real users; legal position on §3.9.
 3. **First asset classes and functions** worth making stream-eligible.
 4. **Audience and tier:** Enterprise-only, Pro add-on, or open?
 5. **Legal review** of customer-supplied vendor data, before any hosted offering.
-6. **Authentication:** agree on short-lived stream tokens instead of keys in URLs.
+6. **Authentication:** agree on short-lived stream tokens instead of keys in URLs. (Built for
+   the result stream, §3.7; the quote stream would reuse it.)
 7. **Where the code lives:** in this repository or a separate one (a separate package
    keeps the AI-assisted share of the main codebase easier to account for).
 
@@ -737,7 +746,8 @@ at once for a new waiter.
   0h never reached them.
 - Eligibility flags in `portal/functions.json` from the CSV (§3.10); the 15 slower
   functions get coarse cadence.
-- Short-lived stream tokens, and the `?token=` in the API log (§3.7, risk 17).
+- Stop accepting the session JWT on the stream once clients have moved to stream tokens
+  (§3.7, risk 17), and decide whether a token should be single use.
 - Optional: one WebSocket probe on prod. The pipeline's prod smoke test passed, but the
   route itself has not been probed there.
 

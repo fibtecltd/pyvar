@@ -141,3 +141,11 @@ class JobResultResponse(BaseModel):
     status: JobStatus
     result: VaRResult | None = None
     error: str | None = None
+
+
+class StreamTokenResponse(BaseModel):
+    """Returned on POST /var/stream-token/{task_id}: the ?token= for WS /var/stream/{task_id}."""
+
+    task_id: str
+    token: str = Field(description="Short-lived token, valid for this task's stream only")
+    expires_in: int = Field(description="Seconds until the token expires; connect before then")

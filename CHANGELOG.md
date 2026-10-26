@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
+  can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
+  `Authorization` header and URLs are logged (the API log, CloudFront), so until now the stream
+  took only a 60-minute session token in `?token=`, which an API-key client does not have. The new
+  route exchanges either credential, sent in a header, for a token that lasts
+  `var_stream_token_ttl_seconds` (60 s), opens the stream of that one task and is refused by every
+  other route (it carries an `aud` claim, so `decode_token_payload`, `get_current_user` and
+  `require_session` reject it without a check of their own; it carries no tier). The stream still
+  accepts a session JWT as before; an API key is still refused there. Like the poll endpoint, the
+  route does no ownership check and is not metered against the compute quota. Tests in
+  `tests/test_api.py`.
+
 - **`pyvar Local` download page (item 2)** — `portal/local.html`, linked
   from the main nav and the footer's "Developers" column
   (`portal/pyvar.js`). Confirmed the `pyvar-local` build+publish pipeline

@@ -8,7 +8,7 @@
 
 ---
 
-pyvar.com's streaming service is now available. This piece is the practical version: what it is, the four steps to use it, and what it measured.
+The pyvar streaming service is now available on the dev endpoint, `https://dev.pyvar.com`. Every example below uses it, and every number was measured against it. This piece is the practical version: what it is, the four steps to use it, and how it performed.
 
 **Scope, so nobody is surprised.** What is available is *result streaming* for the asynchronous Monte Carlo VaR job: you submit a job, and the answer is pushed to you when it is done instead of being fetched in a loop. It is not a market-data feed. You cannot push quotes in, and the other 385 functions are unchanged: they return their result in the POST response.
 
@@ -32,12 +32,12 @@ The frame is the same JSON the poll endpoint returns, so code that already handl
 
 ## Use it in four steps
 
-**1. Get a session token.** The stream takes the 60-minute session token, not an API key. A `pyvar_...` key sent in its place is refused. A browser cannot set an `Authorization` header on a WebSocket handshake, so the token goes in the query string. Signing in is the same two calls as in the [REST API guide](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md): `POST /api/v1/auth/register`, then the link in the email (`GET /api/v1/auth/verify?token=...`), which returns `{"access_token": "eyJ...", "tier": "free"}`. "Sign in with Google" returns the same thing.
+**1. Have a credential.** An API key (`pyvar_...`, created after you sign in; the [REST API guide](https://github.com/fibtecltd/pyvar/blob/master/docs/publications/pyvar-rest-api-guide-medium-article.md) walks through it) or the 60-minute session token that signing in returns. Both work for the next two calls. Neither goes in the WebSocket URL; step 3 explains why.
 
-**2. Submit the job.** An API key or the session token both work here:
+**2. Submit the job.**
 
 ```bash
-curl -X POST https://www.pyvar.com/api/v1/var/compute \
+curl -X POST https://dev.pyvar.com/api/v1/var/compute \
   -H "Authorization: Bearer pyvar_..." -H "Content-Type: application/json" \
   -d '{"portfolio_value": 1000000, "returns": [...252 daily log-returns...],
        "confidence_level": 0.99, "horizon_days": 1, "n_simulations": 10000}'
@@ -45,27 +45,48 @@ curl -X POST https://www.pyvar.com/api/v1/var/compute \
 
 A `202` carries the `task_id` to stream. A `200` means an identical request was answered from the cache: the result is already in the body (with `task_id` set to `"cached"`) and there is nothing to wait for. A `403` means `n_simulations` is above your tier's cap (10,000 on the free tier, 100,000 on Pro, 500,000 on Enterprise).
 
-**3. Open the socket.** In Python with the `websockets` package:
+**3. Get a stream token.** A browser cannot set an `Authorization` header on a WebSocket handshake, so a credential would have to travel in the URL, and URLs get logged. Exchange yours for a token that is safe to put there:
+
+```bash
+curl -X POST https://dev.pyvar.com/api/v1/var/stream-token/$TASK_ID \
+  -H "Authorization: Bearer pyvar_..."
+# {"task_id": "...", "token": "eyJ...", "expires_in": 60}
+```
+
+The token lasts 60 seconds, opens the stream of that one task, and is refused by every other endpoint, so a URL that ends up in a log is worth nothing a minute later. Connect right after you get it.
+
+**4. Open the socket and read the frame.** In Python, with `httpx` and `websockets`:
 
 ```python
 import json
+
+import httpx
 import websockets
 
-async def stream_result(task_id: str, session_token: str) -> dict:
-    url = f"wss://www.pyvar.com/api/v1/var/stream/{task_id}?token={session_token}"
+BASE = "https://dev.pyvar.com"
+
+
+async def stream_result(task_id: str, api_key: str) -> dict:
+    async with httpx.AsyncClient(base_url=BASE) as http:
+        minted = await http.post(
+            f"/api/v1/var/stream-token/{task_id}",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        minted.raise_for_status()
+    url = f"wss://dev.pyvar.com/api/v1/var/stream/{task_id}?token={minted.json()['token']}"
     async with websockets.connect(url) as ws:
         return json.loads(await ws.recv())  # one frame; the server closes after it
 ```
 
-In a browser, the standard API does the same:
+In a browser, the standard API does the same. Mint the token on your own server if you hold an API key (a key should not sit in page JavaScript), or with the signed-in session token if the page has one:
 
 ```javascript
-const ws = new WebSocket(`wss://www.pyvar.com/api/v1/var/stream/${taskId}?token=${sessionToken}`);
+const ws = new WebSocket(`wss://dev.pyvar.com/api/v1/var/stream/${taskId}?token=${streamToken}`);
 ws.onmessage = (event) => render(JSON.parse(event.data));
 ws.onclose = (event) => { if (event.code === 1013) pollInstead(taskId); };
 ```
 
-**4. Read the frame.** For a 10,000-path job on a year of synthetic daily returns, a local run of this code produced the following (`loss_dist` shortened here to its first and last values; it holds all 10,000 sorted losses):
+For a 10,000-path job on a year of synthetic daily returns, a local run of this code produced the following frame (`loss_dist` shortened here to its first and last values; it holds all 10,000 sorted losses):
 
 ```json
 {"task_id": "3f2b...", "status": "success", "error": null,
@@ -85,7 +106,7 @@ ws.onclose = (event) => { if (event.code === 1013) pollInstead(taskId); };
 |---|---|
 | The job finishes | One frame, `success` or `failure`, then close code 1000 |
 | The job had finished before you connected | The same frame at once, then close 1000 |
-| No token, or an invalid, expired or API-key token | The handshake completes, then close 1008 ("Missing token" or "Invalid or expired token") |
+| No token; an invalid, expired or wrong-task token; or an API key | The handshake completes, then close 1008 ("Missing token" or "Invalid or expired token") |
 | Too many open streams | Close 1013 ("Too many open streams on this server" or "...for this account"): poll instead, or retry later |
 | Nothing after 900 seconds | A frame with status `pending` and the text "Timed out waiting for job completion - the job may still be running; poll GET /var/result/{task_id} to check.", then close 1000 |
 
@@ -94,11 +115,11 @@ Four practical notes:
 - **One socket per job.** Open it after the `202`. A job that is already done is answered before the stream limits apply.
 - **Limits.** Waiting streams are capped per server process: 25 in all and 5 per account, with two processes in each API container. At the cap you get 1013, and the poll endpoint still works.
 - **HTTP/1.1 only.** A WebSocket cannot upgrade over HTTP/2. Browsers and the common libraries handle this; if you build your own TLS context, offer `http/1.1` and not `h2`. The server pings every 20 seconds, and standard clients answer on their own.
-- **The token is in the URL.** URLs are logged by the API and by the CDN in front of it. That is why this route takes a short-lived session token and not an API key, and why you should not paste stream URLs into tickets. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
+- **Keep the key out of the URL.** The stream takes a stream token, or a session token, and never an API key: URLs are logged by the API and by the CDN in front of it. A stream token is worth nothing a minute later, so a logged URL is harmless; a session token lasts an hour, so prefer the stream token. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
 
 ## How it performs
 
-All measurements are from the dev stack: the same container image and task size as production (0.5 vCPU and 1 GiB per API container, two server processes), driven by a scripted client in AWS through CloudFront, the WAF and the load balancer. The production route passes the pipeline's smoke test but has not been run through this harness yet. Push lag is read against the worker's own "succeeded in" log time (about 10 ms of error), and each run used three jobs, so read the figures as an order of magnitude, not a distribution.
+All measurements are from `dev.pyvar.com`: 0.5 vCPU and 1 GiB per API container, two server processes, driven by a scripted client in AWS through CloudFront, the WAF and the load balancer. Push lag is read against the worker's own "succeeded in" log time (about 10 ms of error), and each run used three jobs, so read the figures as an order of magnitude, not a distribution.
 
 | Measure | Result |
 |---|---|
