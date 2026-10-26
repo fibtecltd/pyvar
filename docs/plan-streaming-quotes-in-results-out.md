@@ -1,8 +1,9 @@
 # Exploration: streaming quotes in, calculation results out
 
 **Status: exploration, with two decisions recorded — no streaming-service code and no
-new infrastructure yet.** (Phase 0 found and fixed four defects in the existing
-job-completion route and its deployment: §9.0.) Requested 2026-10-22: a streaming in/out service for event-driven,
+new infrastructure yet.** (Phase 0 found four defects in the existing
+job-completion route and its deployment, and its checks found two more in the first fixes; all
+six are fixed: §9.0.) Requested 2026-10-22: a streaming in/out service for event-driven,
 quasi-real-time market quotes in → calculation and pricing results out, independent
 of any market-data provider, keeping the current REST API JSON structure. This
 document proposes approaches and compares them.
@@ -19,9 +20,8 @@ document proposes approaches and compares them.
 (4), legal review of customer-supplied vendor data (5), short-lived stream tokens
 (6), and where the code lives (7). Phase 0 is measured (§9): per-function latency for
 all 385 functions, the WebSocket path through CloudFront, and what one API task holds.
-Two problems stay open: what a socket costs in memory and why that memory is not
-returned (§9.5, §9.6), and the socket caps, which count per uvicorn worker, two per
-task (§9.6).
+One problem stays open: on dev, every cycle of sockets still leaves 2-4 MiB more
+memory in use, a step that has been shrinking but has not reached zero (§9.9).
 
 **Provenance:** drafted with Claude Code (AI-assisted), like most documents in this
 repository (see "Use of Generative AI" in `README.md`). It is not part of any grant
@@ -79,7 +79,8 @@ needs no job queue for almost everything.
 | Request path: CloudFront → WAF → ALB → Fargate, no API Gateway; ALB only accepts requests carrying CloudFront's secret header | `edge_stack.py:43`, `api_stack.py:464-499` |
 | ALB idle timeout is 60 s: not set in CDK, so the AWS default, and read from the live ALB in Phase 0 | `grep idle_timeout pyvar-cdk/` finds nothing; Phase 0 report |
 | Graceful shutdown window on deploy: 30 s, so open connections are cut at every rolling deploy | `api_stack.py:368` |
-| One WebSocket route exists: `WS /api/v1/var/stream/{task_id}` (job-completion push), session JWT in `?token=`, Redis Pub/Sub, 15-minute cap. It crashed on any job that was not finished yet until #396, raced the result store until #397, and kept abandoned sockets for 15 minutes with no limit until #398; **tested on dev through CloudFront, WAF and the ALB** (§9.4-9.6). Prod has not been probed directly | `api/routes/var.py`, `CHANGELOG.md`, Phase 0 reports |
+| One WebSocket route exists: `WS /api/v1/var/stream/{task_id}` (job-completion push), session JWT in `?token=`, Redis Pub/Sub, 15-minute cap. It crashed on any job that was not finished yet until #396, raced the result store until #397, kept abandoned sockets for 15 minutes with no limit until #398, and built a Redis client per socket until #400-#402 replaced it with one shared Pub/Sub connection per worker process (§9.7-9.9); **tested on dev through CloudFront, WAF and the ALB** (§9.4-9.6). Prod has not been probed directly | `api/routes/var.py`, `CHANGELOG.md`, Phase 0 reports |
+| The dev cache (ElastiCache Serverless, Redis 7.1) refuses `PSUBSCRIBE` ("unknown command"); per-channel `SUBSCRIBE` and `PUBLISH` work | Phase 0f (§9.8) |
 | Account-wide request quotas: free 10/day, pro 500/day and 5,000/month; one counter shared by all `/api/v1` compute endpoints, Redis-backed | `config.py:161-184`, `api/middleware/rate_limit.py` |
 | API keys: `pyvar_…`, 365 days, SHA-256 stored; session JWT 60 min; key management needs a session | `docs/plan-durable-api-keys.md`, CLAUDE.md §3.5 |
 | The Monte Carlo VaR kernel seeds NumPy's **global** RNG (`np.random.seed(seed)`), default seed 42 | `engine/montecarlo.py:92,121-122` |
@@ -187,6 +188,12 @@ should run in separate processes or with per-call generators.
   first frame.
 - Confirmed in Phase 0: CloudFront standard logging is on, so a token in the URL is stored
   in S3 (§9.3).
+- Built for the job-result stream (WS `/var/stream/{task_id}`): `POST /api/v1/var/stream-token/{task_id}`
+  takes an API key or a session in the header and returns a token valid for 60 s
+  (`var_stream_token_ttl_seconds`), bound to that one task and carrying an `aud` claim so every
+  other route refuses it; the stream accepts it, or a session JWT, and never a key. It is not
+  single use (that needs state in Redis). The quote stream would reuse the exchange with a
+  different audience.
 - The key's tier is read from the database, as for REST (CLAUDE.md §3.5).
 
 ### 3.8 Metering and tiers
@@ -406,9 +413,9 @@ messages from §3 and Appendix A.
    - Set the eligible-function flags from measurements.
    - Verify ALB idle timeout, CloudFront and WAF behaviour for WebSockets with a
      throwaway echo endpoint.
-   **Status (2026-10-24):** latency measured for all 385 functions, edge and WebSocket
-   behaviour and the load one task carries measured on dev; see §9. What remains is
-   listed in §9.7.
+   **Status (2026-10-26):** latency measured for all 385 functions; edge, WebSocket
+   behaviour and the load one task carries measured on dev; the job-completion route fixed
+   and re-checked on dev three times; see §9. What remains is listed in §9.10.
 1. **Phase 1 — a stream core library with no AWS dependency:** bindings, rolling
    windows, triggers, conflation, digests. Ship it first as **Approach D**.
    Replay-determinism tests come with it.
@@ -457,14 +464,25 @@ at least a few real users; legal position on §3.9.
     step; relevant to any stream function that runs on workers.
 14. **Cold start:** about 2.5 minutes from zero workers (§9.4). A stream function that
     needs a worker inherits it; functions that run in the API process do not.
-15. **Memory per socket, and memory that is not returned** (§9.5, §9.6): about 1.2-1.7 MiB
-    per socket on a task that idles at 63-77% of 1 GiB, and about 84 MiB stayed allocated
-    after 50 sockets closed. Autoscaling reacts to CPU and request count, not memory, so
-    memory pressure does not add tasks; an out-of-memory kill restarts the task.
-16. **Caps count per uvicorn worker** (§9.6): two budgets per task, so the effective
-    limits are double what #398 stated.
+15. **Memory per socket, and memory that is not returned** (§9.5-9.9): the first design cost
+    1.2-1.7 MiB per socket and left tens of MiB allocated after sockets closed. With one
+    shared Pub/Sub connection per process it is about 0.6 MiB per socket in a local run, but
+    on dev each 30-socket cycle still leaves 2-4 MiB more in use after six cycles; the steps
+    shrink and have not reached zero. Autoscaling reacts to CPU and request count, not
+    memory, so memory pressure does not add tasks; an out-of-memory kill restarts the task.
+16. **Caps count per uvicorn worker** (§9.6, §9.8): the image runs two workers, so the
+    defaults of 25 sockets and 5 per user per worker mean 50 and 10 per task. Refusals were
+    seen on dev (4 and 6 in 0f); the per-user cap has not been probed.
 17. **Tokens in logs:** `?token=<JWT>` lands in the API log group (30-day retention) as
-    well as CloudFront's standard logs (§3.7).
+    well as CloudFront's standard logs (§3.7). The result stream now has a 60 s, one-task token
+    for this (§3.7), so a logged URL is dead a minute later; a session JWT is still accepted
+    there and would still be logged for its hour.
+18. **Pub/Sub on the cache:** the dev cache refuses pattern subscriptions (§9.8), so only
+    per-channel `SUBSCRIBE` and `PUBLISH` are used. Pub/Sub keeps nothing, so every stream
+    path keeps a state read behind the push (§9.9).
+19. **Retry loops:** a subscriber that resets its back-off when it *sends* a command, not
+    when the server confirms it, spins against a server that refuses (§9.8). Any stream
+    component that reconnects needs the same rule.
 
 ---
 
@@ -478,7 +496,8 @@ at least a few real users; legal position on §3.9.
 3. **First asset classes and functions** worth making stream-eligible.
 4. **Audience and tier:** Enterprise-only, Pro add-on, or open?
 5. **Legal review** of customer-supplied vendor data, before any hosted offering.
-6. **Authentication:** agree on short-lived stream tokens instead of keys in URLs.
+6. **Authentication:** agree on short-lived stream tokens instead of keys in URLs. (Built for
+   the result stream, §3.7; the quote stream would reuse it.)
 7. **Where the code lives:** in this repository or a separate one (a separate package
    keeps the AI-assisted share of the main codebase easier to account for).
 
@@ -486,10 +505,11 @@ at least a few real users; legal position on §3.9.
 
 ## 9. Phase 0 results
 
-Five measurement runs by a delegated AWS agent against the dev stack: Phase 0
-(2026-10-22), 0b and 0c (2026-10-23), 0d (late on 2026-10-23, UTC) and 0e (2026-10-24),
-plus one `/health` sample on prod. The numbers are the agent's; the code readings are
-mine.
+Eight measurement runs by a delegated AWS agent against the dev stack: Phase 0
+(2026-10-22), 0b and 0c (2026-10-23), 0d (late on 2026-10-23, UTC), 0e (2026-10-24), 0f and
+0g (2026-10-25) and 0h (2026-10-26), plus one `/health` sample on prod. The numbers are the
+agent's; the code readings are mine. §9.7 reports local reproductions in my sandbox (a
+TLS-only Redis, the real app under uvicorn with two workers), which are not AWS numbers.
 
 ### 9.0 Defects the measurements found
 
@@ -499,9 +519,13 @@ mine.
 | 2 | The worker publishes before Celery stores the result, so the route re-read "pending" and waited a whole poll (2.036 s) | 0b | #397 |
 | 3 | Workers had no `S3_BUCKET`: every result above 10,000 simulations stayed inline (10.9 MB at 500,000), logged as a WARNING no alarm watches | 0c | #398 |
 | 4 | Abandoned sockets stayed alive for the full 900 s wait, and nothing limited how many a process or user could hold | 0d | #398 |
+| 5 | The shared subscriber of #400 used `PSUBSCRIBE`, which the cache refuses, and its retry loop reset the back-off right after *sending* the command, so it retried once a second per process (3,022 failures in 30 minutes, idle CPU 1.5% to about 8%, memory creeping with no sockets) | 0f | #401 |
+| 6 | With the subscriber up the route waited on a 10 s timer and noticed a closed client only when it ended (up to 10.04 s) | 0g | #402 |
+| 7 | Every thread of the pool that reads results built its own Celery result backend (Redis client, connection pool, TLS context, about 1 MiB), and retired threads' backends stayed in reference cycles until the next full garbage collection: up to 21 live backends per process against 2-3 threads | local profiling (§9.11) | #403 |
 
-Open: memory per socket and memory that is not returned (§9.5, §9.6); the caps count per
-worker process (§9.6).
+Defects 5 and 6 were introduced by the fixes for 3 and 4 and found by re-measuring them.
+Defect 7 (§9.11) was found by profiling the per-cycle memory step (§9.9) locally and is
+fixed in #403; the step has not been re-measured on dev.
 
 ### 9.1 Compute latency (in-process, 0.5 vCPU Fargate task, no network)
 
@@ -578,7 +602,10 @@ worker process (§9.6).
   frame 10.9 MB (about 1.7 s to deliver). After #398 (0e, frames of 1.7 KB, three jobs):
   **30, 127 and 172 ms after the worker stored the result** (the worker log's
   "succeeded in" time, ±15 ms), with the socket opened 157-282 ms before each job
-  finished. A job already finished when the socket opens is answered in 21 ms (22 kB).
+  finished. A job already finished when the socket opens is answered in 21 ms (22 kB). With the
+  shared subscriber on dev: **29, 125 and 156 ms** (0g) and **128, 129 and 166 ms** (0h),
+  ±10 ms. In between, while the cache refused the pattern subscription and every socket
+  polled every 2 s, 1.69, 1.84 and 1.87 s (0f).
 - Cold start: with the worker group at zero, a job waited 159 s from POST to worker
   pickup (an earlier run) and 162 s from POST to success (0e, including 6.2 s on the cold
   task).
@@ -644,18 +671,126 @@ target, which never triggered). Idle sockets on pending job ids, one new socket 
   separates a bounded high-water mark from a leak is repeated open-and-close cycles:
   a plateau or steady growth.
 
-### 9.7 Still to do
+### 9.7 Local reproduction, and what the shared subscriber changed
 
-- A local reproduction with a TLS Redis: memory per socket, repeated cycles, leftover
-  connections; then the candidate fixes.
-- The rework: one shared Pub/Sub subscriber per process instead of a client per socket,
-  per-worker cap defaults (25 and 5), corrected comments. Then a stepped re-run of 0d
-  (25 sockets per step, held three minutes) with at least 15 service users, because the
-  per-user cap is 10, and a dev-only cap override above 50.
+A local run (my sandbox, not AWS): the real app under uvicorn with the image's flags and
+two workers, a TLS-only Redis, 50 idle sockets per cycle, memory summed over both workers.
+Python object counts stayed flat after every cycle (no leaked tasks, clients or contexts)
+and `malloc_trim` handed back most of the retained memory: freed heap that the allocator
+keeps, not a leak. What made it large was the per-socket Redis client; each Redis
+connection builds its own TLS context (0.83 MiB, measured on OpenSSL 3.0.13).
+
+| Memory held after the sockets close, change from start | cycle 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| a client per socket (#398) | +76 MiB | +118 | +142 | +174 | +209 |
+| one pattern subscription (the version of #400) | +31 | +36 | +37 | +39 | +41 |
+| one `SUBSCRIBE` per job on one connection (#401) | +19 | +24 | +26 | +28 | +29 |
+
+Per socket, first cycle: 1.51 MiB, then 0.62, then 0.38. Redis connections at hold: 73-87,
+then about 20, then 9-10. With the image's `MALLOC_ARENA_MAX=2` the difference was small with two
+workers (+41 against +39) and larger in one-worker runs of 15 cycles (+93 against +62).
+Playing the worker's part (publish, then store 50 ms later): pushed 53-54 ms after the
+store; a result stored with no message was delivered by the safety poll after 9.2 s; after
+a Redis restart new sockets were pushed 52-55 ms after the store (one took 1.2 s, on a
+worker still reconnecting and polling at the short interval).
+
+A first version of #401 applied subscriptions only on the reader's 500 ms tick. Sockets
+arriving together then read the job state together, each on its own thread and Redis
+connection, and memory was worse (+42 to +64 MiB, 33-50 connections). The reader now wakes
+at once for a new waiter.
+
+### 9.8 #400 on dev (0f): the cache refuses `PSUBSCRIBE`
+
+- The shared subscriber of #400 got `ResponseError: unknown command 'psubscribe'` from the dev
+  cache (ElastiCache Serverless, Redis 7.1) at its first use. Every socket then polled every
+  2 s, as designed: lag 1,694, 1,871 and 1,837 ms.
+- The retry loop made it costly. The back-off was reset after the command was *sent*; a
+  server that refuses answers on the next read, so the reset happened every time. One
+  retry a second per process, each with a new TLS connection: 199 failure lines in the
+  first test window, 3,022 in 30 minutes, about 116 a minute. Idle CPU went from 1.5% to
+  about 8%; memory rose 0.8, then 0.33 points a minute with no sockets open and reached
+  84.7% of 1 GiB; cache connections went from 5 to 38. #400 had expected the fallback to
+  cost nothing; its unit tests modelled a send that fails, not a refusal that arrives later.
+- A local Redis with the command renamed away gave the same error text and reproduced it:
+  234 failure lines in 120 s, +57 MiB and rising, 6-10% of a core. The fix (#401) gave 8
+  lines, +15 MiB flat, about 0.7%.
+- The same run showed the per-worker caps working: 4 and 6 refusals ("Too many open
+  streams on this server") with 40 sockets per cycle, and every closed socket released within
+  1.75 s while the timer was 2 s.
+- Log gap: the refusal and disconnect lines carry only the event, level, logger and time;
+  no task id, reason or open-stream count, so refusals can be counted but not attributed.
+
+### 9.9 #401 and #402 on dev (0g, 0h)
+
+- **0g (#401).** Push 29, 125 and 156 ms; 0 failure lines in 70 live checks; ten idle
+  minutes flat (memory slope 0.000 points a minute, CPU 1.1%, 37 cache connections). But
+  63 of 120 closed sockets were released more than 4 s after the close, up to 10.04 s: with
+  the subscriber up the route waits on the 10 s timer and looked at the disconnect reader
+  only when it ended (defect 6).
+- **0h (#402).** The reader's completion now wakes the wait. 180 of 180 closed sockets were
+  released within 0.22 s; push 128, 129 and 166 ms; 0 failure lines and 0 errors over 79
+  minutes; handshakes 73-158 ms; no stop rule fired (memory peaked at 67.2%).
+- **The step per cycle.** Memory "before" each of six 30-socket cycles rose by +1.94 (this
+  one includes the jobs), +0.88, +0.59, +0.20, +0.39 and +0.39 points, i.e. 2-4 MiB in the
+  last four; 0g had been about +0.9 points a cycle. A burst of 20 sockets in 0g cost the same
+  as 40, so the step is per cycle, not per socket. Cache connections rose +8, +8, then held
+  at 22-28 (4 at idle, 26 after the run). The plateau fits the thread-pool explanation
+  (the synchronous result reads each take a connection with its own TLS context, up to a
+  saturation point); the cause was not measured, and six cycles cannot show whether the
+  memory step reaches zero. The idle level ended 6 points (about 60 MiB) above a fresh task.
+
+### 9.10 Still to do
+
+- Re-run the 30-socket cycles on dev with #403 deployed (a "0i"): the local numbers of §9.11
+  do not reproduce the size of the step seen on AWS (2-4 MiB a cycle), so only a dev run can say
+  what it is now. Also the soak's remaining native growth (§9.11).
+- Give the refusal and disconnect log lines their context (task id, reason, open streams).
+- Probe the caps above 25 sockets per worker and 5 per user on dev; the 30-socket cycles of
+  0h never reached them.
 - Eligibility flags in `portal/functions.json` from the CSV (§3.10); the 15 slower
   functions get coarse cadence.
+- Stop accepting the session JWT on the stream once clients have moved to stream tokens
+  (§3.7, risk 17), and decide whether a token should be single use.
 - Optional: one WebSocket probe on prod. The pipeline's prod smoke test passed, but the
   route itself has not been probed there.
+
+### 9.11 The memory step, profiled (local, my sandbox; not AWS)
+
+Setup: the real app under uvicorn (two workers, uvloop, httptools, `MALLOC_ARENA_MAX=2`), a
+TLS-only Redis on the same machine, 30 idle sockets opened and closed per cycle, memory summed
+over both workers. The profiled runs also had each worker dump, every 10 cycles, its object counts
+by type, its Redis connection pool and glibc `mallinfo2` (signal handlers in a wrapper module,
+not in the repository).
+
+- **What grew.** The 150-cycle soak of §9.9's open question (old code) rose to +77.2 MiB and was
+  still climbing at 0.55 MiB a cycle, with the cache's connection count rising from 11 to 44. The
+  dumps showed the cause: `RedisBackend`, `SSLContext` and `ConnectionPool` objects piled up, up
+  to 21 `RedisBackend` per process against 2-3 live pool threads, and dropped in batches when the
+  cyclic collector ran. Celery keeps a result backend per thread unless the backend class is
+  thread-safe, and the Redis backend is not; the result reads run in Starlette's thread pool,
+  whose threads are retired after 10 idle seconds (anyio). A forced `gc.collect()` plus
+  `malloc_trim` after 60 cycles took the processes from +46.3 to +26.4 MiB.
+- **The change.** `_shared_result_backend()` gives every read one backend (its Redis client is
+  thread-safe and the reads use nothing else of it).
+
+| | Old code | One shared backend |
+|---|---|---|
+| Memory gained, cycle 10 / 50 / 100 / 150 (MiB) | 21.8 / 40.2 / 53.1 / 77.2 | 22.9 / 32.2 / 35.8 / 47.9 |
+| Slope over the last quarter (MiB a cycle) | 0.55 | 0.21 |
+| Most cache connections | 44 | 10 |
+| `RedisBackend` per process (60-cycle profile) | up to 21 | 2 |
+| Returned by `gc.collect()` + `malloc_trim` at cycle 60 (MiB) | 19.9 | 3.1 |
+
+- **What is left.** The soak still climbs, 0.2 MiB a cycle (about 7 KiB a socket), and 150 cycles
+  do not show a plateau. A bare Starlette WebSocket route with no Redis and no pool threads, same
+  flags, gained +12.8 MiB over 60 cycles at 0.06 (second half) to 0.12 (last quarter) MiB a cycle,
+  so about half of what is left is the framework and the allocator, not this code. The rest is not
+  in Python objects (counts flat over 50 cycles; lists grew by about ten a cycle) and was not
+  located.
+- **What this does not say.** On AWS the step was +0.2 to +0.4 points of 1 GiB a cycle (2-4 MiB),
+  ten or more times the local figure for the same 30 sockets. The sandbox reproduces the mechanism
+  and the direction, not the size. Whether the AWS step falls, and by how much, needs a dev run
+  (§9.10).
 
 ---
 

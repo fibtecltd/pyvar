@@ -60,7 +60,7 @@ pyvar/
 │   └── var_task.py
 │
 ├── api/                       ← FastAPI routes and middleware
-│   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}
+│   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}  WS /var/stream/{id}  POST /var/stream-token/{id}
 │   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
 │   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
 │   ├── middleware/api_keys.py ← key hashing, Redis-cached lookup, failed-attempt throttle
@@ -184,6 +184,11 @@ AWS:        CELERY_BROKER_URL = sqs://
   able to create or revoke keys.
 - POST /auth/register returns the identical 202 for every outcome, so it cannot be used
   to find out which addresses have accounts.
+- WS /var/stream/{task_id} takes its credential in the URL (a handshake cannot carry a header,
+  and URLs are logged), so an API key is never accepted there. POST /var/stream-token/{task_id}
+  exchanges a key or session for a 60 s, one-task token with an `aud` claim and no tier; every
+  other route must keep refusing it (decode_token_payload does, by that claim). Do not drop the
+  `aud`, and do not accept it in get_current_user.
 - Design, settings and failure modes: docs/plan-durable-api-keys.md.
 ```
 

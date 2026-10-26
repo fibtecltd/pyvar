@@ -1,6 +1,6 @@
 # Header images
 
-6 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
+7 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
 
 Regenerate every image with `python scripts/generate_article_headers.py` (needs `matplotlib`). Every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
 
@@ -47,3 +47,10 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 - **Where:** under the title and subtitle
 - **Caption:** The REST API at a glance, read from the code.
 - **Alt text:** Four tiles: 385 POST endpoints under /api/v1/<domain>/<function>; 8 domain prefixes; 10 free-tier calls a day, 500 on Pro in one shared bucket across every endpoint; and 10,000 simulations per Monte Carlo call on the free tier, 100,000 on Pro and 500,000 on Enterprise.
+
+## 7. `header-pyvar-streaming-results.png`
+
+- **Article:** `pyvar-streaming-results-medium-article.md`
+- **Where:** under the title and subtitle
+- **Caption:** The result stream at a glance, read from the code.
+- **Alt text:** Four tiles: 1 frame, the result, then the server closes, with the same JSON as GET /var/result/{task_id}; 900 seconds, the longest a stream waits; 25 open streams per server process, 5 per account, with close code 1013 over the cap; and 10 seconds, the longest a lost push can delay a result.

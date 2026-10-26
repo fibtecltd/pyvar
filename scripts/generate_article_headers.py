@@ -304,6 +304,50 @@ def head_rest_guide() -> tuple[str, str, list[Tile]]:
     )
 
 
+def setting(name: str) -> float:
+    """A setting's built-in default as a number (config.Settings; ints and floats alike)."""
+    value = ff.Settings.model_fields[name].default
+    g.need(isinstance(value, (int, float)), f"{name} default is not a number: {value!r}")
+    return float(value)
+
+
+def head_streaming_results() -> tuple[str, str, list[Tile]]:
+    wait = int(setting("var_stream_max_wait_seconds"))
+    per_process = int(setting("var_stream_max_connections"))
+    per_account = int(setting("var_stream_max_connections_per_user"))
+    safety = setting("var_stream_safety_poll_seconds")
+    return (
+        "The result stream at a glance",
+        "Read from the route, the schemas and config.py when this image is drawn.",
+        [
+            (
+                "1 frame",
+                "the result, then the server closes",
+                "same JSON as GET /var/result/{task_id}",
+                False,
+            ),
+            (
+                f"{wait} s",
+                "the longest a stream waits",
+                "then a pending frame and a close; polling still works",
+                True,
+            ),
+            (
+                f"{per_process}",
+                "open streams per server process",
+                f"{per_account} per account; over the cap the close code is 1013",
+                True,
+            ),
+            (
+                f"{safety:g} s",
+                "the longest a lost push can delay a result",
+                "a timer re-reads the stored result if a message is missed",
+                False,
+            ),
+        ],
+    )
+
+
 HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-plugins": head_plugins,
     "pyvar-plugins-live-recent-updates": head_live_updates,
@@ -311,6 +355,7 @@ HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-jupyter-guide": head_jupyter_guide,
     "pyvar-domain-examples": head_domain_examples,
     "pyvar-rest-api-guide": head_rest_guide,
+    "pyvar-streaming-results": head_streaming_results,
 }
 
 

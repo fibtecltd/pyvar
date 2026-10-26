@@ -1024,3 +1024,165 @@ def test_stream_var_result_answers_a_finished_job_even_at_the_cap(
 
     assert data["status"] == "success"
     assert stream_slots.active == 0
+
+
+# ── POST /var/stream-token/{task_id} ──────────────────────────────────────────
+#
+# The WebSocket handshake cannot carry an Authorization header and URLs are logged, so the
+# stream is opened with a token minted here: 60 s, one task, refused by every other route.
+
+
+async def _mint(app, task_id, headers):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        return await client.post(f"/api/v1/var/stream-token/{task_id}", headers=headers)
+
+
+def _raw_claims(token: str) -> dict:
+    """The claims as signed, without the audience check, to assert what the token carries."""
+    from jose import jwt as jose_jwt
+
+    from config import get_settings
+
+    cfg = get_settings()
+    return jose_jwt.decode(
+        token, cfg.jwt_secret, algorithms=[cfg.jwt_algorithm], options={"verify_aud": False}
+    )
+
+
+@pytest.mark.asyncio
+async def test_stream_token_is_minted_for_a_session_and_bound_to_the_task(app, free_token):
+    from api.middleware.auth import decode_stream_payload
+    from config import get_settings
+
+    cfg = get_settings()
+    resp = await _mint(app, "job-1", auth_headers(free_token))
+
+    assert resp.status_code == 200
+    assert resp.headers["cache-control"] == "no-store"
+    body = resp.json()
+    assert body["task_id"] == "job-1"
+    assert body["expires_in"] == cfg.var_stream_token_ttl_seconds == 60
+    claims = _raw_claims(body["token"])
+    assert claims["sub"] == "test-user" and claims["tid"] == "job-1"
+    assert claims["exp"] - claims["iat"] == cfg.var_stream_token_ttl_seconds
+    assert "tier" not in claims  # a tier is never read from a token minted for an API key
+    assert decode_stream_payload(body["token"], "job-1").user_id == "test-user"
+
+
+@pytest.mark.asyncio
+async def test_stream_token_is_minted_for_an_api_key_without_the_key_reaching_the_token(app):
+    from api.middleware.api_keys import ResolvedKey
+
+    secret = "pyvar_" + "k" * 43
+    resolved = ResolvedKey(key_id="key-1", user_id="key-user", tier="pro")
+    with patch("api.middleware.auth.resolve_api_key", AsyncMock(return_value=resolved)):
+        resp = await _mint(app, "job-2", auth_headers(secret))
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert secret not in resp.text
+    assert _raw_claims(body["token"])["sub"] == "key-user"
+
+
+@pytest.mark.asyncio
+async def test_stream_token_needs_a_credential(app):
+    resp = await _mint(app, "job-3", {})
+    assert resp.status_code in (401, 403)
+    resp = await _mint(app, "job-3", auth_headers("not-a-token"))
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("task_id", ["has space", "x" * 65, "a.b", "a%2Fb"])
+async def test_stream_token_rejects_a_task_id_that_is_not_an_id(app, free_token, task_id):
+    resp = await _mint(app, task_id, auth_headers(free_token))
+    assert resp.status_code in (404, 422)  # 404 where the path itself no longer matches
+
+
+@pytest.mark.asyncio
+async def test_a_stream_token_is_refused_everywhere_but_the_stream(app, free_token):
+    """It travels in a logged URL, so it must open nothing else: not another token, not a
+    result read, not API key management."""
+    token = (await _mint(app, "job-4", auth_headers(free_token))).json()["token"]
+    headers = auth_headers(token)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get("/api/v1/var/result/job-4", headers=headers)).status_code == 401
+        assert (
+            await client.post("/api/v1/auth/api-keys", json={}, headers=headers)
+        ).status_code == 401
+        assert (
+            await client.post("/api/v1/var/stream-token/job-4", headers=headers)
+        ).status_code == 401
+
+
+def _mint_sync(client, task_id: str) -> str:
+    resp = client.post(
+        f"/api/v1/var/stream-token/{task_id}", headers=auth_headers(create_access_token("u-1"))
+    )
+    assert resp.status_code == 200
+    return str(resp.json()["token"])
+
+
+def test_stream_token_opens_the_stream_of_its_own_task(ws_client):
+    token = _mint_sync(ws_client, "token-task")
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = MOCK_VAR_RESULT
+    mock_async_result.kwargs = {}
+
+    with patch("api.routes.var.AsyncResult", return_value=mock_async_result):
+        with ws_client.websocket_connect(f"/api/v1/var/stream/token-task?token={token}") as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"
+
+
+def test_stream_token_does_not_open_another_tasks_stream(ws_client):
+    token = _mint_sync(ws_client, "task-a")
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with ws_client.websocket_connect(f"/api/v1/var/stream/task-b?token={token}") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_an_expired_stream_token_closes_policy_violation(ws_client):
+    from config import get_settings
+
+    cfg = get_settings()
+    with patch.object(cfg, "var_stream_token_ttl_seconds", -5):
+        token = _mint_sync(ws_client, "late-task")
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with ws_client.websocket_connect(f"/api/v1/var/stream/late-task?token={token}") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_stream_token_signed_for_another_audience_is_refused(ws_client):
+    from jose import jwt as jose_jwt
+
+    from config import get_settings
+
+    cfg = get_settings()
+    forged = jose_jwt.encode(
+        {"sub": "u-1", "aud": "something-else", "tid": "aud-task", "exp": 9_999_999_999},
+        cfg.jwt_secret,
+        algorithm=cfg.jwt_algorithm,
+    )
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with ws_client.websocket_connect(f"/api/v1/var/stream/aud-task?token={forged}") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_a_session_token_still_opens_any_stream(ws_client, free_token):
+    mock_async_result = MagicMock()
+    mock_async_result.state = "SUCCESS"
+    mock_async_result.result = MOCK_VAR_RESULT
+    mock_async_result.kwargs = {}
+
+    with patch("api.routes.var.AsyncResult", return_value=mock_async_result):
+        with ws_client.websocket_connect("/api/v1/var/stream/any-task?token=" + free_token) as ws:
+            data = ws.receive_json()
+
+    assert data["status"] == "success"

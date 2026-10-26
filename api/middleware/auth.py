@@ -16,6 +16,11 @@ Reasoning:
   api/middleware/api_keys.py). Both resolve to the same TokenPayload, so rate
   limiting, billing and audit see one account either way. A key's tier is read
   from the database (cached briefly), a JWT's from its claims.
+- A third, narrower token exists for WS /var/stream/{task_id}: a 60 s token for one task,
+  minted by POST /var/stream-token/{task_id} for whoever holds either credential above. A
+  WebSocket handshake cannot carry an Authorization header, so the token goes in the URL, and
+  URLs are logged; that is why it is short, scoped to one task and has an audience claim that
+  makes every other route refuse it (create_stream_token, decode_stream_payload).
 """
 
 from __future__ import annotations
@@ -33,6 +38,9 @@ from config import get_settings
 
 cfg = get_settings()
 bearer_scheme = HTTPBearer()
+
+# `aud` of the token POST /var/stream-token/{task_id} mints for the WebSocket stream route.
+STREAM_TOKEN_AUDIENCE = "pyvar-stream"
 
 
 class TokenPayload:
@@ -64,11 +72,9 @@ class TokenPayload:
 def decode_token_payload(token: str) -> TokenPayload:
     """Decode and validate a raw JWT string into a TokenPayload.
 
-    Shared by get_current_user (Authorization header, every HTTP route) and
-    api/routes/var.py's WebSocket stream route (a ?token= query parameter —
-    browser WebSocket clients cannot set a custom Authorization header on
-    the opening handshake), so the validation logic is identical for both
-    transports rather than duplicated.
+    Used by get_current_user (Authorization header, every HTTP route). A stream token
+    (create_stream_token) carries an audience and is refused here; the WebSocket route validates
+    its ?token= with decode_stream_payload, which also accepts a session JWT.
 
     Raises:
         JWTError: on any validation failure (missing/invalid/expired token,
@@ -88,6 +94,51 @@ def decode_token_payload(token: str) -> TokenPayload:
         raise JWTError("Missing subject claim")
 
     return TokenPayload(sub=user_id, tier=tier)
+
+
+def create_stream_token(user_id: str, task_id: str) -> str:
+    """Mint the short-lived, single-task token for WS /var/stream/{task_id}.
+
+    Carries no tier (a key's tier is read from the database, never from a claim) and an
+    audience claim: python-jose rejects a token that has an `aud` when the decoder names no
+    audience, so decode_token_payload (every HTTP route, including require_session) refuses
+    this token without any check of its own. It is good for the WebSocket route and nothing else.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": user_id,
+        "aud": STREAM_TOKEN_AUDIENCE,
+        "tid": task_id,
+        "iat": now,
+        "exp": now + timedelta(seconds=cfg.var_stream_token_ttl_seconds),
+    }
+    return str(jwt.encode(payload, cfg.jwt_secret, algorithm=cfg.jwt_algorithm))
+
+
+def decode_stream_payload(token: str, task_id: str) -> TokenPayload:
+    """Validate the ?token= of WS /var/stream/{task_id}: a stream token for this task, or a
+    session JWT (accepted since before stream tokens existed, so existing clients keep working).
+
+    Raises:
+        JWTError: invalid, expired or unsigned token, a missing subject, or a stream token
+            minted for a different task.
+    """
+    payload = jwt.decode(
+        token,
+        cfg.jwt_secret,
+        algorithms=[cfg.jwt_algorithm],
+        audience=STREAM_TOKEN_AUDIENCE,
+    )
+    user_id: str = payload.get("sub")
+    if not user_id:
+        raise JWTError("Missing subject claim")
+    # A session JWT has no audience and passes the decode above for any task; a stream token
+    # always has one and is good for exactly the task it was minted for.
+    if payload.get("aud") is not None and payload.get("tid") != task_id:
+        raise JWTError("Stream token was issued for a different task")
+    return TokenPayload(sub=user_id, tier=payload.get("tier", "free"))
 
 
 async def get_current_user(

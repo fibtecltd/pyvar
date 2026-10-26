@@ -33,9 +33,9 @@ The install command above is a direct GitHub-source marketplace add, live agains
 | How you get the result | Ask until the status flips to `SUCCESS` | Held open, pushed the instant the job completes |
 | What it costs | One request per check | One connection, no polling loop |
 
-Both read from the same authoritative job state, so the stream endpoint never has to be trusted blindly: every wake-up — pushed or timed out — re-reads that state directly, bounded by `var_stream_max_wait_seconds` (900s). A result is never more than one poll interval (2s) stale on either path.
+Both read from the same authoritative job state, so the stream endpoint never has to be trusted blindly: every wake-up — pushed or timed out — re-reads that state directly, bounded by `var_stream_max_wait_seconds` (900s). A lost push costs at most one timer interval: 10s while the push channel is up, 2s while it is not.
 
-One difference: the poll path accepts an API key like every other endpoint, while the stream accepts a session token only, because a key in a query string would end up in access logs.
+One difference: the poll path accepts an API key like every other endpoint, while the stream never takes a key itself, because a key in a query string would end up in access logs. Exchange the key for a 60-second, single-task stream token with `POST /api/v1/var/stream-token/{task_id}`, and open the stream with that.
 
 ## One command, the full stack
 

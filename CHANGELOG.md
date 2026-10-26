@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
+  can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
+  `Authorization` header and URLs are logged (the API log, CloudFront), so until now the stream
+  took only a 60-minute session token in `?token=`, which an API-key client does not have. The new
+  route exchanges either credential, sent in a header, for a token that lasts
+  `var_stream_token_ttl_seconds` (60 s), opens the stream of that one task and is refused by every
+  other route (it carries an `aud` claim, so `decode_token_payload`, `get_current_user` and
+  `require_session` reject it without a check of their own; it carries no tier). The stream still
+  accepts a session JWT as before; an API key is still refused there. Like the poll endpoint, the
+  route does no ownership check and is not metered against the compute quota. Tests in
+  `tests/test_api.py`.
+
 - **`pyvar Local` download page (item 2)** — `portal/local.html`, linked
   from the main nav and the footer's "Developers" column
   (`portal/pyvar.js`). Confirmed the `pyvar-local` build+publish pipeline
@@ -108,6 +120,24 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   wiring) remain hard-gated behind decisions only Filippo can make.
 
 ### Fixed
+
+- **Result reads built a Celery backend per pool thread, which showed as memory growing with
+  socket churn** — found by profiling the 30-sockets-per-cycle soak locally (two uvicorn workers,
+  a TLS Redis). Celery keeps one result backend per thread unless the backend class is
+  thread-safe, and the Redis backend is not. `_read_celery_result` runs in Starlette's thread
+  pool, whose threads are retired after 10 idle seconds, so each new pool thread built its own
+  client, connection pool and TLS context (about 1 MiB), and a retired thread's backend stayed
+  in a reference cycle until the next full garbage collection: up to 21 live `RedisBackend`
+  objects per process against 2-3 threads, and a forced `gc.collect()` plus `malloc_trim` gave
+  back 20 of the 46 MiB the processes had gained after 60 cycles. `_shared_result_backend()` now
+  hands every read the same backend (its Redis client is thread-safe and the reads use nothing
+  else of it). Applies to `GET /var/result/{task_id}` as well as the stream. Local, same soak
+  (30 sockets a cycle, two workers): memory gained after 10 / 50 / 100 / 150 cycles went from
+  21.8 / 40.2 / 53.1 / 77.2 MiB to 22.9 / 32.2 / 35.8 / 47.9 MiB, the most cache connections from
+  44 to 10, and `RedisBackend` objects per process from up to 21 to 2. The soak still climbs about
+  0.2 MiB a cycle, half of which a bare Starlette WebSocket app shows too; the size of the step on
+  AWS has not been re-measured. Tests in `tests/test_result_backend.py`; details in
+  `docs/plan-streaming-quotes-in-results-out.md` section 9.11.
 
 - **A closed `WS /api/v1/var/stream/{task_id}` client was noticed only when the safety timer ended** —
   found by Phase 0g on dev, the check of the fix below. With the subscriber up, the route waits up
