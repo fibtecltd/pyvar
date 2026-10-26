@@ -109,6 +109,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **A closed `WS /api/v1/var/stream/{task_id}` client was noticed only when the safety timer ended** —
+  found by Phase 0g on dev, the check of the fix below. With the subscriber up, the route waits up
+  to `var_stream_safety_poll_seconds` (10 s) between state reads and looked at the disconnect
+  reader only after that wait: 63 of 120 sockets in three 40-socket cycles were released more than
+  4 s after the client closed, up to 10.04 s, where the 2 s timer of #398 had given 1.75 s at most.
+  The slot and the registration of a closed client therefore lived until its next tick. The
+  reader's completion now wakes the wait (a done-callback sets the wake event) and the route
+  checks it right after the wait. Regression test with a 30 s timer: it fails when the callback is
+  removed, and the earlier disconnect test fails when the check is. The same run found the push
+  working on dev for the first time: 29, 125 and 156 ms after the worker stored the result, no
+  failure lines in 70 live checks, and a flat 10-minute idle (memory slope 0.000 points a minute,
+  CPU 1.1%, 37 cache connections) - while each socket cycle still left memory about 9 MiB higher
+  (63.2 to 67.6% over four cycles) and about 7 more cache connections, which the entry does not
+  explain.
+
 - **The dev cache refuses `PSUBSCRIBE`, and the shared subscriber of #400 retried once a second for
   ever** — found by Phase 0f on dev. ElastiCache Serverless (Redis 7.1) answers `PSUBSCRIBE` with
   `ResponseError: unknown command 'psubscribe'`. Every socket then polled every 2 s (push lag

@@ -905,6 +905,29 @@ def test_stream_var_result_ends_when_the_client_disconnects(
             assert _wait_until(lambda: job_bus.unregistered == ["gone-task"])
 
 
+def test_stream_var_result_releases_a_closed_client_at_once_even_with_a_long_timer(
+    ws_client, free_token, stream_slots, job_bus
+):
+    """Regression (Phase 0g on dev): while the subscriber is up the route waits on a 10 s safety
+    timer, and only looked at the disconnect reader when that timer ended, so a closed client
+    held its slot for up to 10 s. Leaving must wake the wait."""
+    from config import get_settings
+
+    cfg = get_settings()
+    job_bus.healthy = True
+
+    with (
+        patch.object(cfg, "var_stream_safety_poll_seconds", 30.0),
+        patch.object(cfg, "var_stream_max_wait_seconds", 60),
+        patch("api.routes.var.AsyncResult", return_value=_never_finishing_job()),
+    ):
+        with ws_client.websocket_connect("/api/v1/var/stream/quick-task?token=" + free_token) as ws:
+            assert _wait_until(lambda: stream_slots.active == 1)
+            ws.close()
+            assert _wait_until(lambda: stream_slots.active == 0, timeout=3.0)
+            assert _wait_until(lambda: job_bus.unregistered == ["quick-task"], timeout=3.0)
+
+
 def test_stream_var_result_releases_its_slot_when_the_job_completes(
     ws_client, free_token, stream_slots
 ):

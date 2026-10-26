@@ -99,7 +99,10 @@ async def bus():
 @pytest.fixture(autouse=True)
 def _quick_reader():
     """Short reads, so the reader applies changes and notices closes within milliseconds."""
-    with patch.object(var_routes, "_BUS_POLL_SECONDS", 0.01):
+    with (
+        patch.object(var_routes, "_BUS_POLL_SECONDS", 0.01),
+        patch.object(var_routes, "_BUS_IDLE_TICK_SECONDS", 0.05),
+    ):
         yield
 
 
