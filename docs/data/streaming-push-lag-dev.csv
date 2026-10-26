@@ -5,3 +5,6 @@ run,job,lag_ms,reference,source
 0h,1,128,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
 0h,2,129,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
 0h,3,166,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0i,1,155,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.12
+0i,2,126,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.12
+0i,3,128,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.12

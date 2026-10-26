@@ -3,7 +3,7 @@
 
 Reasoning:
 - The plotted push delays are read from docs/data/streaming-push-lag-dev.csv (the six jobs of
-  runs 0g and 0h in docs/plan-streaming-quotes-in-results-out.md section 9.9), and the poll
+  runs 0g, 0h and 0i in docs/plan-streaming-quotes-in-results-out.md sections 9.9 and 9.12), and the poll
   band's width from the shipped setting var_stream_poll_interval_seconds in config.py, so the
   figure cannot drift from the numbers in the article.
 - Same house look as scripts/generate_plugin_figures.py (slate and clay on white). The poll
@@ -45,7 +45,7 @@ def read_push_lags() -> dict[str, list[int]]:
     with LAG_CSV.open(encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
             runs.setdefault(row["run"], []).append(int(row["lag_ms"]))
-    g.need(len(runs) == 2, f"expected two runs in {LAG_CSV.name}, found {sorted(runs)}")
+    g.need(len(runs) == 3, f"expected three runs in {LAG_CSV.name}, found {sorted(runs)}")
     g.need(all(len(v) == 3 for v in runs.values()), "expected three jobs per run")
     return runs
 
@@ -57,7 +57,10 @@ def fig_push_lag_vs_poll(out: Path) -> Path:
     g.need(max(all_lags) < poll_ms / 4, "push delays are no longer small against the poll band")
 
     fig, ax = plt.subplots(figsize=(9.0, 3.3))
-    rows = [("Poll every 2 s", 0.0), ("Push, run 0g", 1.0), ("Push, run 0h", 2.0)]
+    run_names = sorted(runs)
+    rows = [("Poll every 2 s", 0.0)] + [
+        (f"Push, run {run}", float(i)) for i, run in enumerate(run_names, 1)
+    ]
 
     # The band a poll could return the result in: anywhere between 0 and one interval.
     ax.barh(0.0, poll_ms, height=0.5, color=g.SLATE_FILL, edgecolor=g.SLATE, linewidth=1.2)
@@ -81,8 +84,8 @@ def fig_push_lag_vs_poll(out: Path) -> Path:
         color=g.INK,
     )
 
-    for run, y in (("0g", 1.0), ("0h", 2.0)):
-        lags = runs[run]
+    for run, y in ((run, float(i)) for i, run in enumerate(run_names, 1)):
+        lags = sorted(runs[run])
         # Dots closer than one marker width would hide each other: step the later one up.
         ys = [y + (0.16 if i and lag - lags[i - 1] < 8 else 0.0) for i, lag in enumerate(lags)]
         ax.scatter(
@@ -106,7 +109,7 @@ def fig_push_lag_vs_poll(out: Path) -> Path:
 
     ax.set_yticks([y for _, y in rows])
     ax.set_yticklabels([label for label, _ in rows], fontsize=10, color=g.INK)
-    ax.set_ylim(-0.6, 2.6)
+    ax.set_ylim(-0.6, len(run_names) + 0.6)
     ax.set_xlim(0, poll_ms)
     ax.set_xticks([0, 500, 1000, 1500, poll_ms])
     ax.set_xticklabels([f"{t:,}" for t in (0, 500, 1000, 1500, poll_ms)], fontsize=9, color=g.MUTED)
