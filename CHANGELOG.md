@@ -121,6 +121,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Result reads built a Celery backend per pool thread, which showed as memory growing with
+  socket churn** — found by profiling the 30-sockets-per-cycle soak locally (two uvicorn workers,
+  a TLS Redis). Celery keeps one result backend per thread unless the backend class is
+  thread-safe, and the Redis backend is not. `_read_celery_result` runs in Starlette's thread
+  pool, whose threads are retired after 10 idle seconds, so each new pool thread built its own
+  client, connection pool and TLS context (about 1 MiB), and a retired thread's backend stayed
+  in a reference cycle until the next full garbage collection: up to 21 live `RedisBackend`
+  objects per process against 2-3 threads, and a forced `gc.collect()` plus `malloc_trim` gave
+  back 20 of the 46 MiB the processes had gained after 60 cycles. `_shared_result_backend()` now
+  hands every read the same backend (its Redis client is thread-safe and the reads use nothing
+  else of it). Applies to `GET /var/result/{task_id}` as well as the stream. Tests in
+  `tests/test_result_backend.py`.
+
 - **A closed `WS /api/v1/var/stream/{task_id}` client was noticed only when the safety timer ended** —
   found by Phase 0g on dev, the check of the fix below. With the subscriber up, the route waits up
   to `var_stream_safety_poll_seconds` (10 s) between state reads and looked at the disconnect

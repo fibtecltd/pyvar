@@ -55,6 +55,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -333,6 +334,32 @@ async def submit_var(
 # ── GET /var/result/{task_id} ─────────────────────────────────────────────────
 
 
+_result_backend: Any = None
+_result_backend_lock = threading.Lock()
+
+
+def _shared_result_backend() -> Any:
+    """The one result-backend object every thread reading a result goes through.
+
+    Celery gives each thread its own backend unless the backend class is marked thread-safe,
+    and the Redis one is not. Every worker thread of the pool that runs _read_celery_result
+    therefore built a backend of its own: its own client, connection pool and TLS context
+    (about 1 MiB). anyio retires a pool thread after 10 idle seconds, so a long-lived process
+    built a new set each time load came back, and a retired thread's backend lingers in a
+    reference cycle until the cyclic collector next runs a full pass: memory that kept growing
+    with socket churn. These reads use nothing of the backend but its Redis client, which is
+    thread-safe, so one backend serves them all.
+    """
+    global _result_backend
+    if _result_backend is None:
+        with _result_backend_lock:
+            if _result_backend is None:
+                backend = celery_app.backend
+                backend.client  # noqa: B018 - build the client here, once, not racing in threads
+                _result_backend = backend
+    return _result_backend
+
+
 def _read_celery_result(task_id: str) -> tuple[str, Any, dict[str, Any] | None]:
     """Blocking Celery/result-backend read — call via run_in_threadpool, never inline.
 
@@ -345,7 +372,7 @@ def _read_celery_result(task_id: str) -> tuple[str, Any, dict[str, Any] | None]:
     that stall can now last; running the read in a thread here bounds the blast
     radius to this one request even if it still stalls the full 5s.
     """
-    async_result = AsyncResult(task_id, app=celery_app)
+    async_result = AsyncResult(task_id, backend=_shared_result_backend(), app=celery_app)
     state = async_result.state
     raw_result = async_result.result if state in ("SUCCESS", "FAILURE") else None
     kwargs = async_result.kwargs if state == "SUCCESS" else None
