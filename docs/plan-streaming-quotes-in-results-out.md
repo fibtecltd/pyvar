@@ -521,9 +521,11 @@ TLS-only Redis, the real app under uvicorn with two workers), which are not AWS 
 | 4 | Abandoned sockets stayed alive for the full 900 s wait, and nothing limited how many a process or user could hold | 0d | #398 |
 | 5 | The shared subscriber of #400 used `PSUBSCRIBE`, which the cache refuses, and its retry loop reset the back-off right after *sending* the command, so it retried once a second per process (3,022 failures in 30 minutes, idle CPU 1.5% to about 8%, memory creeping with no sockets) | 0f | #401 |
 | 6 | With the subscriber up the route waited on a 10 s timer and noticed a closed client only when it ended (up to 10.04 s) | 0g | #402 |
+| 7 | Every thread of the pool that reads results built its own Celery result backend (Redis client, connection pool, TLS context, about 1 MiB), and retired threads' backends stayed in reference cycles until the next full garbage collection: up to 21 live backends per process against 2-3 threads | local profiling (§9.11) | #403 |
 
 Defects 5 and 6 were introduced by the fixes for 3 and 4 and found by re-measuring them.
-Open: the per-cycle memory step (§9.9).
+Defect 7 (§9.11) was found by profiling the per-cycle memory step (§9.9) locally and is
+fixed in #403; the step has not been re-measured on dev.
 
 ### 9.1 Compute latency (in-process, 0.5 vCPU Fargate task, no network)
 
@@ -739,8 +741,9 @@ at once for a new waiter.
 
 ### 9.10 Still to do
 
-- A local soak of about 60 cycles, to see whether the memory step reaches zero or stays
-  linear; profile it if it stays.
+- Re-run the 30-socket cycles on dev with #403 deployed (a "0i"): the local numbers of §9.11
+  do not reproduce the size of the step seen on AWS (2-4 MiB a cycle), so only a dev run can say
+  what it is now. Also the soak's remaining native growth (§9.11).
 - Give the refusal and disconnect log lines their context (task id, reason, open streams).
 - Probe the caps above 25 sockets per worker and 5 per user on dev; the 30-socket cycles of
   0h never reached them.
@@ -750,6 +753,44 @@ at once for a new waiter.
   (§3.7, risk 17), and decide whether a token should be single use.
 - Optional: one WebSocket probe on prod. The pipeline's prod smoke test passed, but the
   route itself has not been probed there.
+
+### 9.11 The memory step, profiled (local, my sandbox; not AWS)
+
+Setup: the real app under uvicorn (two workers, uvloop, httptools, `MALLOC_ARENA_MAX=2`), a
+TLS-only Redis on the same machine, 30 idle sockets opened and closed per cycle, memory summed
+over both workers. The profiled runs also had each worker dump, every 10 cycles, its object counts
+by type, its Redis connection pool and glibc `mallinfo2` (signal handlers in a wrapper module,
+not in the repository).
+
+- **What grew.** The 150-cycle soak of §9.9's open question (old code) rose to +77.2 MiB and was
+  still climbing at 0.55 MiB a cycle, with the cache's connection count rising from 11 to 44. The
+  dumps showed the cause: `RedisBackend`, `SSLContext` and `ConnectionPool` objects piled up, up
+  to 21 `RedisBackend` per process against 2-3 live pool threads, and dropped in batches when the
+  cyclic collector ran. Celery keeps a result backend per thread unless the backend class is
+  thread-safe, and the Redis backend is not; the result reads run in Starlette's thread pool,
+  whose threads are retired after 10 idle seconds (anyio). A forced `gc.collect()` plus
+  `malloc_trim` after 60 cycles took the processes from +46.3 to +26.4 MiB.
+- **The change.** `_shared_result_backend()` gives every read one backend (its Redis client is
+  thread-safe and the reads use nothing else of it).
+
+| | Old code | One shared backend |
+|---|---|---|
+| Memory gained, cycle 10 / 50 / 100 / 150 (MiB) | 21.8 / 40.2 / 53.1 / 77.2 | 22.9 / 32.2 / 35.8 / 47.9 |
+| Slope over the last quarter (MiB a cycle) | 0.55 | 0.21 |
+| Most cache connections | 44 | 10 |
+| `RedisBackend` per process (60-cycle profile) | up to 21 | 2 |
+| Returned by `gc.collect()` + `malloc_trim` at cycle 60 (MiB) | 19.9 | 3.1 |
+
+- **What is left.** The soak still climbs, 0.2 MiB a cycle (about 7 KiB a socket), and 150 cycles
+  do not show a plateau. A bare Starlette WebSocket route with no Redis and no pool threads, same
+  flags, gained +12.8 MiB over 60 cycles at 0.06 (second half) to 0.12 (last quarter) MiB a cycle,
+  so about half of what is left is the framework and the allocator, not this code. The rest is not
+  in Python objects (counts flat over 50 cycles; lists grew by about ten a cycle) and was not
+  located.
+- **What this does not say.** On AWS the step was +0.2 to +0.4 points of 1 GiB a cycle (2-4 MiB),
+  ten or more times the local figure for the same 30 sockets. The sandbox reproduces the mechanism
+  and the direction, not the size. Whether the AWS step falls, and by how much, needs a dev run
+  (§9.10).
 
 ---
 

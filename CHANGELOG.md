@@ -131,8 +131,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   objects per process against 2-3 threads, and a forced `gc.collect()` plus `malloc_trim` gave
   back 20 of the 46 MiB the processes had gained after 60 cycles. `_shared_result_backend()` now
   hands every read the same backend (its Redis client is thread-safe and the reads use nothing
-  else of it). Applies to `GET /var/result/{task_id}` as well as the stream. Tests in
-  `tests/test_result_backend.py`.
+  else of it). Applies to `GET /var/result/{task_id}` as well as the stream. Local, same soak
+  (30 sockets a cycle, two workers): memory gained after 10 / 50 / 100 / 150 cycles went from
+  21.8 / 40.2 / 53.1 / 77.2 MiB to 22.9 / 32.2 / 35.8 / 47.9 MiB, the most cache connections from
+  44 to 10, and `RedisBackend` objects per process from up to 21 to 2. The soak still climbs about
+  0.2 MiB a cycle, half of which a bare Starlette WebSocket app shows too; the size of the step on
+  AWS has not been re-measured. Tests in `tests/test_result_backend.py`; details in
+  `docs/plan-streaming-quotes-in-results-out.md` section 9.11.
 
 - **A closed `WS /api/v1/var/stream/{task_id}` client was noticed only when the safety timer ended** —
   found by Phase 0g on dev, the check of the fix below. With the subscriber up, the route waits up

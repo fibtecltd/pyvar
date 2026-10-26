@@ -128,8 +128,6 @@ All measurements are from `dev.pyvar.com`: 0.5 vCPU and 1 GiB per API container,
 | WebSocket handshake through the edge | 73 to 158 ms |
 | Server frees a closed client's slot | within 0.22 s, for 180 of 180 sockets |
 | Errors and failure log lines over 79 minutes of repeated 30-socket cycles | 0 |
-| API container memory in that run | peak 67.2% of 1 GiB |
-| API container at rest with the stream route ready, ten minutes | 1.1% CPU, memory flat |
 
 Against polling every 2 seconds, the arithmetic is simple: a result stored at a random moment waits between 0 and 2 seconds for the next poll, 1 second on average, while the push takes around 0.13 s. The saving is largest for short jobs and for interfaces where a person is watching a spinner. For a long batch, polling every few seconds costs nothing noticeable.
 
@@ -139,7 +137,7 @@ Against polling every 2 seconds, the arithmetic is simple: a result stored at a 
 
 What streaming does not change is everything before the result is stored. On dev, with the worker pool at zero (it scales to zero about four minutes after the last job), one job took 162 seconds from POST to success, 6.2 s of it on the cold worker. And the compute itself is whatever the job needs: the other 385 functions are ordinary synchronous calls, and measured in-process on the same container size 371 of their 386 example requests had a median under 50 ms (overall median 5.9 ms), the slowest being the rough-volatility pricer at about 4 seconds.
 
-**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the latest AWS run held 30 sockets at a time across the container. Memory under churn is the figure to watch. In a 150-cycle local soak of the same code (30 sockets opened and closed per cycle, two server processes, a TLS Redis on the same machine, so not AWS numbers), the processes' combined memory rose 40 MiB over the first 50 cycles, was nearly flat from cycle 50 to 75 (40 to 42 MiB), then climbed again to 77 MiB at cycle 150: about 0.5 MiB per cycle, roughly 17 KiB per socket, with no errors. That is slow against a 1 GiB container, but it had not levelled off when the run stopped, and its cause has not been profiled yet.
+**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the latest AWS run held 30 sockets at a time across the container. Memory under churn is the figure to watch. In a 150-cycle local soak of the same code (30 sockets opened and closed per cycle, two server processes, a TLS Redis on the same machine, so not AWS numbers), the processes' combined memory had grown by 23 MiB after 10 cycles, 32 after 50, 36 after 100 and 48 after 150, with no errors and never more than 10 connections to the cache. At the end that is about 0.2 MiB per cycle, roughly 7 KiB per socket, and it had not levelled off. A bare WebSocket route with no pyvar code in it, run the same way, grew by 0.06 to 0.12 MiB per cycle, so about half of that is the server framework itself. Read it as: each socket leaves a few KiB behind in a long-lived process. How much that matters depends on how many sockets a container serves between restarts, and the size of the step on AWS has not been re-measured.
 
 ## Sources
 
