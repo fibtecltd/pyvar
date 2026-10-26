@@ -1,0 +1,7 @@
+run,job,lag_ms,reference,source
+0g,1,29,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0g,2,125,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0g,3,156,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0h,1,128,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0h,2,129,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
+0h,3,166,worker log "succeeded in" time (+-10 ms),docs/plan-streaming-quotes-in-results-out.md 9.9
