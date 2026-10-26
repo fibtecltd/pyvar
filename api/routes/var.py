@@ -698,8 +698,8 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     Resource limits: a waiting socket still costs memory, so the sockets that wait are capped
     per worker process and per user (cfg.var_stream_max_connections, ..._per_user; over a cap
     the route closes with 1013). A job that is already finished is answered before the cap applies. A reader
-    task notices a client that has gone within one poll interval and ends the handler, which
-    releases the slot and the Redis connection.
+    task notices a client that has gone and wakes the handler, which ends at once and
+    releases the slot and its registration.
     """
     await websocket.accept()
 
@@ -735,15 +735,15 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
     disconnect_watcher = asyncio.create_task(_wait_for_disconnect(websocket))
     # Register before the state read below: a completion in between is then not lost.
     wake = await _job_done_bus.register(task_id)
+    # While the subscriber is up the timer below is long (10 s): a client that leaves must wake
+    # the wait, or its handler, its slot and its registration live until the timer ends.
+    disconnect_watcher.add_done_callback(lambda _task: wake.set())
     try:
         if await _send_if_terminal(websocket, task_id):
             return
 
         deadline = time.monotonic() + cfg.var_stream_max_wait_seconds
         while time.monotonic() < deadline:
-            if disconnect_watcher.done():
-                logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
-                return
             # The message itself is never trusted as the result — it only wakes this loop
             # promptly; _build_job_result_response below is the sole source of truth,
             # whether woken by a push or by this wait's own timeout (a plain poll tick).
@@ -754,6 +754,9 @@ async def stream_var_result(websocket: WebSocket, task_id: str) -> None:
             )
             woken_by_push = await _wait_for_wake(wake, interval)
 
+            if disconnect_watcher.done():
+                logger.info("Client disconnected from VaR stream", extra={"task_id": task_id})
+                return
             if await _send_if_terminal(websocket, task_id):
                 return
             if woken_by_push:
