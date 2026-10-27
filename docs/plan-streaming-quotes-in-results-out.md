@@ -476,7 +476,8 @@ at least a few real users; legal position on §3.9.
 17. **Tokens in logs:** `?token=<JWT>` lands in the API log group (30-day retention) as
     well as CloudFront's standard logs (§3.7). The result stream now has a 60 s, one-task token
     for this (§3.7), so a logged URL is dead a minute later; a session JWT is still accepted
-    there and would still be logged for its hour.
+    there and would still be logged for its hour. 0i confirmed the API access line holds the
+    stream token in clear (§9.12); the CloudFront logs were not checked.
 18. **Pub/Sub on the cache:** the dev cache refuses pattern subscriptions (§9.8), so only
     per-channel `SUBSCRIBE` and `PUBLISH` are used. Pub/Sub keeps nothing, so every stream
     path keeps a state read behind the push (§9.9).
@@ -505,9 +506,10 @@ at least a few real users; legal position on §3.9.
 
 ## 9. Phase 0 results
 
-Eight measurement runs by a delegated AWS agent against the dev stack: Phase 0
+Ten measurement runs by a delegated AWS agent against the dev stack: Phase 0
 (2026-10-22), 0b and 0c (2026-10-23), 0d (late on 2026-10-23, UTC), 0e (2026-10-24), 0f and
-0g (2026-10-25) and 0h (2026-10-26), plus one `/health` sample on prod. The numbers are the
+0g (2026-10-25), 0h (2026-10-26), 0i (after #403 was deployed, §9.12) and 0j (§9.13), plus one
+`/health` sample on prod. The numbers are the
 agent's; the code readings are mine. §9.7 reports local reproductions in my sandbox (a
 TLS-only Redis, the real app under uvicorn with two workers), which are not AWS numbers.
 
@@ -525,7 +527,7 @@ TLS-only Redis, the real app under uvicorn with two workers), which are not AWS 
 
 Defects 5 and 6 were introduced by the fixes for 3 and 4 and found by re-measuring them.
 Defect 7 (§9.11) was found by profiling the per-cycle memory step (§9.9) locally and is
-fixed in #403; the step has not been re-measured on dev.
+fixed in #403 and re-measured on dev in 0i (§9.12).
 
 ### 9.1 Compute latency (in-process, 0.5 vCPU Fargate task, no network)
 
@@ -604,8 +606,9 @@ fixed in #403; the step has not been re-measured on dev.
   "succeeded in" time, ±15 ms), with the socket opened 157-282 ms before each job
   finished. A job already finished when the socket opens is answered in 21 ms (22 kB). With the
   shared subscriber on dev: **29, 125 and 156 ms** (0g) and **128, 129 and 166 ms** (0h),
-  ±10 ms. In between, while the cache refused the pattern subscription and every socket
-  polled every 2 s, 1.69, 1.84 and 1.87 s (0f).
+  ±10 ms, and **155, 126 and 128 ms** (0i, opened with a stream token, §9.12). In between,
+  while the cache refused the pattern subscription and every socket polled every 2 s, 1.69,
+  1.84 and 1.87 s (0f).
 - Cold start: with the worker group at zero, a job waited 159 s from POST to worker
   pickup (an earlier run) and 162 s from POST to success (0e, including 6.2 s on the cold
   task).
@@ -741,9 +744,13 @@ at once for a new waiter.
 
 ### 9.10 Still to do
 
-- Re-run the 30-socket cycles on dev with #403 deployed (a "0i"): the local numbers of §9.11
-  do not reproduce the size of the step seen on AWS (2-4 MiB a cycle), so only a dev run can say
-  what it is now. Also the soak's remaining native growth (§9.11).
+- Memory: 0j measured about 1 MiB a cycle that follows the cycles, not the sockets, and has not
+  levelled off in 50 cycles (§9.13). Locally the cause is the shared subscriber's idle close, and
+  keeping its client fixes it (§9.14); the fix is not in the repository yet. Once it is deployed,
+  repeat 0j (about 20 cycles of 30 sockets, hold 15 s, watch 60 s) to see the AWS step fall.
+- Redact `token=` in the API access line (§3.7, risk 17), and check the CloudFront logs.
+- The API-key path on dev: 0i could not create a test user (the dev database is private, with no
+  Data API), so minting with a real key has only been tested locally.
 - Give the refusal and disconnect log lines their context (task id, reason, open streams).
 - Probe the caps above 25 sockets per worker and 5 per user on dev; the 30-socket cycles of
   0h never reached them.
@@ -789,8 +796,146 @@ not in the repository).
   located.
 - **What this does not say.** On AWS the step was +0.2 to +0.4 points of 1 GiB a cycle (2-4 MiB),
   ten or more times the local figure for the same 30 sockets. The sandbox reproduces the mechanism
-  and the direction, not the size. Whether the AWS step falls, and by how much, needs a dev run
-  (§9.10).
+  and the direction, not the size. The dev run with #403 deployed is §9.12: the cache connections
+  stopped stepping, the memory step fell to 0.27 points a cycle (about 2.8 MiB), still about
+  fourteen times the local 0.2 MiB.
+
+### 9.12 #403 on dev (0i)
+
+Image `pyvar-dev-api:40893c3`, one task, rollout completed; an unauthenticated POST to the mint
+route returned 401 (so the change is deployed).
+
+- **Token flow, three jobs of 500,000 simulations.** Mint 76, 101 and 81 ms (200, `Cache-Control:
+  no-store`, `x-cache: Miss from cloudfront`, `expires_in` 60); frames 1,753, 1,751 and 1,755
+  bytes; push lag **155, 126 and 128 ms** (median 128; the agent's clock was 29-32 ms behind and
+  was corrected, ±10 ms). The socket opened 55-126 ms before the worker's log line, so each job
+  was in flight, with little margin: the mint sits between the POST and the socket and takes 76-101
+  ms, and a faster job could finish first.
+- **Claims** of one token: `aud` `pyvar-stream`, `tid` equal to the task id, `exp - iat` 60, no
+  tier; the claims are `aud`, `exp`, `iat`, `sub`, `tid`.
+- **Negative checks**, all as designed (every socket answered 101, then closed):
+
+| Check | Result |
+|---|---|
+| Token minted for task X used on task Y | close 1008 "Invalid or expired token" |
+| No token | 1008 "Missing token" |
+| `pyvar_` plus 43 random characters as the token | 1008 "Invalid or expired token" |
+| Mint, wait 65 s, open | 1008 "Invalid or expired token" |
+| Stream token as Bearer on `GET /var/result/{id}`, `POST /auth/api-keys`, `POST /var/stream-token/{id}` | 401 "Invalid or expired token: Invalid audience", each |
+| Service JWT as `?token=` on a finished job | the frame (1,753 bytes) |
+| Mint with no Authorization / with id `a b` | 401 "Not authenticated" / 422 `string_pattern_mismatch` |
+
+- **Not tested: the API-key path.** No test key under `pyvar/dev/`; the dev Aurora cluster is
+  private (10.0.4.17, port 5432 times out from the agent's host) with no Data API; a verified user
+  needs a database read or write, and ECS Exec or a one-off task would be service changes. Nothing
+  was registered or created.
+- **The stream token is in the API log in clear.** All three request lines read
+  `WebSocket /api/v1/var/stream/{id}?token=<token> [accepted]`. It is good for 60 s and one task,
+  but redacting `token=` in that line would close the gap. The CloudFront edge logs were not
+  checked.
+- **Six cycles of 30 sockets** (hold 30 s, watch 2 min). 180 of 180 handshakes returned 101
+  (median 81-83 ms per cycle, worst 152 ms); no refusals; every closed socket was released within
+  0.20 s (median 0.04-0.10 s per cycle); `/health` 88 calls, all 200, 72-140 ms.
+- **Memory and cache connections** (1-minute CloudWatch; "before" is the last full minute before
+  a cycle's first socket):
+
+| Cycle | Memory % before / hold / T+1 / T+2 | Cache connections |
+|---|---|---|
+| 1 | 63.95 / 64.40 / 64.45 / 64.45 | 10 / 13 / 12 / 13 |
+| 2 | 64.45 / 64.55 / 64.55 / 64.55 | 12 / 13 / 11 / 13 |
+| 3 | 64.55 / 64.75 / 64.75 / 64.81 | 11 / 13 / 11 / 11 |
+| 4 | 64.75 / 64.89 / 64.94 / 65.06 | 11 / 11 / 9 / 11 |
+| 5 | 64.94 / 65.23 / 65.33 / 65.33 | 9 / 12 / 11 / 11 |
+| 6 | 65.33 / 65.53 / 65.53 / 65.53 | 11 / 13 / 13 / 11 |
+
+  The memory "before" stepped +0.50, +0.10, +0.20, +0.20, +0.39 points (mean 0.27, about 2.8 MiB;
+  0h's cycles 2-6 averaged 0.49), with no decay to zero in six cycles. The cache connections did
+  not step: 10, 12, 11, 11, 9, 11 before each cycle (0h reached 22-28). Five minutes after the
+  last cycle: memory 65.53% (flat for the previous six minutes), cache 11, CPU 1.10%; the task
+  had started at 61.82% and 5 connections, and the four jobs and eight sockets of Part 1 alone
+  took it to 63.95%. CPU at hold was 1.7-3.2% (0h: 3.1-4.5%).
+- **Failure lines.** None: 0 "Shared job-done subscriber failed" and 0 ERROR from the task's start
+  to the end of the run (2 h 22 min, 58 live checks). The `ssl_cert_reqs` warning from Redis client
+  creation appeared 4 times in the task's life, three at startup, against 67-74 a run before; the
+  agent's inference is that this fits one shared backend.
+- **Not shown.** Whether memory levels off (six cycles; at 0.27 points a cycle, 85% is about 70
+  cycles away if the line is straight); the caps (30 sockets over two processes never reach 25 per
+  process); a cold start (the warm-up took 6 s because a worker was warm); cycle 1's "before" falls
+  inside the tail of Part 1.
+- **Against the local run (§9.11).** 2.8 MiB a cycle on AWS against 0.2 MiB locally for the same 30
+  sockets: the sandbox does not reproduce the size, and the difference has no explanation yet.
+
+### 9.13 A longer run on dev (0j)
+
+The same task as 0i (`pyvar-dev-api:40893c3`, started 2026-10-26 19:56 UTC); it began at 65.6%
+(672 MiB) after 0i's six cycles. Container Insights had `MemoryUtilized` for the service (whole
+MiB a minute); the percentage is that figure divided by 10.24, so MiB adds no resolution. Part 1:
+10 cycles of 10 sockets (a socket every 4 s, hold 15 s, close all, watch 60 s). Part 2: 40 cycles of
+30 sockets (a socket every 5 s, same hold and watch). Part 3: ten minutes with no sockets. The
+per-cycle data is `docs/data/streaming-memory-cycles-dev.csv`.
+
+| Span | Memory before, % (MiB) | Step per cycle |
+|---|---|---|
+| Part 1, cycles 1-10 (10 sockets) | 65.63 to 66.55 (672 to 681) | 0.117 points, 1.17 MiB |
+| Part 2, cycles 1-10 (30 sockets) | 66.60 to 67.48 (682 to 691) | 0.110 points, 1.13 MiB |
+| Part 2, cycles 31-40 | 68.95 to 69.63 (706 to 713) | 0.075 points, 0.77 MiB |
+| Part 2, all 40 cycles | 66.60 to 69.63 | 0.075 points, 0.75 MiB |
+
+- **Does it level off? No, it slows.** 672 to 715 MiB (+43 MiB, +4.2 points) over 50 cycles and
+  1,300 sockets; the slope fell by about a third and is not near zero. The early-finish check (the
+  value 8 cycles earlier within 0.15 points) never held: +0.78 at cycle 12, at least +0.29 at cycle
+  27, +0.63 at cycle 40. On a straight line from the last ten cycles the 85% mark (870 MiB) is about
+  200 cycles away.
+- **Per socket or per cycle? Per cycle.** Part 1 stepped +0.098 to +0.103 points a cycle (about 1.0
+  MiB) with 10 sockets and 111 s cycles; the first ten cycles of Part 2 stepped +0.098 with 30
+  sockets and 220 s cycles. Per cycle they match; per socket they differ 3 times (0.010 against
+  0.0033 points) and per minute 2 times. The step is about 1 MiB and the metric resolves 1 MiB, so
+  this sits at the resolution limit.
+- **Idle drift: none.** 715 MiB for the whole ten minutes of Part 3 (0.00 points); CPU 1.2-2.1%.
+- **Cache connections:** 11-18 (per-minute maximum), 11-17 before a cycle; wandering, with steps of
+  +2, +2, -2, +1, +1, +2, -1, -1; 11 at the start, 15 at the end.
+- **Sockets and logs.** 1,300 handshakes, all 101 (median 80 ms, worst 638 ms); no refusals (30
+  sockets over two processes never reach 25 each); every socket released within 0.65 s, none later
+  than 2 s; `/health` 494 calls, all 200, 68-185 ms. 0 "Shared job-done subscriber failed", 0 ERROR
+  (342 live checks). Memory peaked at 69.82%; no restart, no 429, 403 or 5xx.
+- **Against 0i.** 0i's six cycles (hold 30 s, watch 2 min) stepped 0.27 points, 2.8 MiB, a cycle;
+  0j's first ten stepped 1.1 MiB. The cycle shape differed and 0i's figure is six readings at 0.1
+  point; neither is precise.
+- **A hypothesis for the step** (the 0j agent's, tested locally in §9.14): every cycle's 60 s watch
+  lets the shared subscriber idle-close its Redis connection (`_BUS_IDLE_CLOSE_SECONDS`, 60 s), and
+  the next cycle rebuilds it.
+- **Caveats.** Whole-MiB resolution makes single steps noisy (0 to 2.4 MiB); the conclusions rest on
+  the 10- to 40-cycle means. A small CPU rise at the end of Part 3 is unexplained.
+
+### 9.14 What each cycle leaves behind (local, my sandbox; not AWS)
+
+My earlier local soaks never idle-closed the shared subscriber: a cycle there lasted about 5 s and the
+close needs 60 s with nobody waiting. That is why they stepped about 0.2 MiB a cycle while 0j stepped
+about 1 MiB. To test the 0j agent's hypothesis, the same soak (30 sockets a cycle, hold 3 s, watch
+8 s, two workers, TLS Redis, 60 cycles) was run with the idle close set to 4 s, so that every cycle
+closes the subscriber and the next one rebuilds it; against a control with the close off; and
+against the change below. Memory gained, mean of each ten cycles (MiB):
+
+| Run | Cycles 1-10 | 11-20 | 21-30 | 31-40 | 41-50 | 51-60 | Slope, second half | Most cache connections |
+|---|---|---|---|---|---|---|---|---|
+| Idle close every cycle (the code as it is) | 29.5 | 38.0 | 45.5 | 50.7 | 56.3 | 60.8 | 0.50 | 14 |
+| No idle close (control) | 20.6 | 23.8 | 25.4 | 26.9 | 29.1 | 32.2 | 0.26 | 10 |
+| Idle close every cycle, client kept | 16.4 | 18.8 | 19.9 | 22.1 | 24.5 | 26.6 | 0.23 | 8 |
+
+- **The rebuild is the cost.** Closing and rebuilding every cycle added about 28 MiB over 60 cycles
+  (about 0.5 MiB a rebuild at first, less later as garbage collection catches up). Each rebuild
+  makes a new client, a new connection object and a new TLS context (0.8 MiB); the old ones are not
+  freed until the cyclic collector runs.
+- **The change.** `_JobDoneBus` keeps its Redis client for the life of the process. The idle close
+  lets go only of the Pub/Sub object; the next subscription takes the same connection object, with
+  the TLS context it already holds. A failed connection is still dropped and rebuilt, and the client
+  is closed at shutdown. With it the soak with a close every cycle ended below the control
+  (26.6 against 32.2 MiB; run-to-run spread is a few MiB) and the growth was the 0.2 MiB a cycle the
+  framework alone shows (§9.11).
+- **What this does not show.** The rebuild cost here, about 0.5 MiB, is half of 0j's 1 MiB a cycle,
+  and nothing here has run on AWS. On AWS a rebuild happens whenever the subscriber sits unused for
+  60 s, which any quiet minute between jobs causes, so real traffic pays it too. The change is not in
+  the repository yet; it needs a repeat of 0j on dev (§9.10).
 
 ---
 
