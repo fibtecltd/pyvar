@@ -477,7 +477,9 @@ at least a few real users; legal position on §3.9.
     well as CloudFront's standard logs (§3.7). The result stream now has a 60 s, one-task token
     for this (§3.7), so a logged URL is dead a minute later; a session JWT is still accepted
     there and would still be logged for its hour. 0i confirmed the API access line holds the
-    stream token in clear (§9.12); the CloudFront logs were not checked.
+    stream token in clear (§9.12), and 0k that CloudFront's standard logs do too: 27 of the 41
+    request lines in one log object carried `token=` (§9.15). The token is dead a minute later; the
+    lines are not redacted at either place.
 18. **Pub/Sub on the cache:** the dev cache refuses pattern subscriptions (§9.8), so only
     per-channel `SUBSCRIBE` and `PUBLISH` are used. Pub/Sub keeps nothing, so every stream
     path keeps a state read behind the push (§9.9).
@@ -506,9 +508,9 @@ at least a few real users; legal position on §3.9.
 
 ## 9. Phase 0 results
 
-Ten measurement runs by a delegated AWS agent against the dev stack: Phase 0
+Eleven measurement runs by a delegated AWS agent against the dev stack: Phase 0
 (2026-10-22), 0b and 0c (2026-10-23), 0d (late on 2026-10-23, UTC), 0e (2026-10-24), 0f and
-0g (2026-10-25), 0h (2026-10-26), 0i (after #403 was deployed, §9.12) and 0j (§9.13), plus one
+0g (2026-10-25), 0h (2026-10-26), 0i (after #403 was deployed, §9.12), 0j (§9.13) and 0k (after #405, §9.15), plus one
 `/health` sample on prod. The numbers are the
 agent's; the code readings are mine. §9.7 reports local reproductions in my sandbox (a
 TLS-only Redis, the real app under uvicorn with two workers), which are not AWS numbers.
@@ -524,10 +526,12 @@ TLS-only Redis, the real app under uvicorn with two workers), which are not AWS 
 | 5 | The shared subscriber of #400 used `PSUBSCRIBE`, which the cache refuses, and its retry loop reset the back-off right after *sending* the command, so it retried once a second per process (3,022 failures in 30 minutes, idle CPU 1.5% to about 8%, memory creeping with no sockets) | 0f | #401 |
 | 6 | With the subscriber up the route waited on a 10 s timer and noticed a closed client only when it ended (up to 10.04 s) | 0g | #402 |
 | 7 | Every thread of the pool that reads results built its own Celery result backend (Redis client, connection pool, TLS context, about 1 MiB), and retired threads' backends stayed in reference cycles until the next full garbage collection: up to 21 live backends per process against 2-3 threads | local profiling (§9.11) | #403 |
+| 8 | The shared subscriber rebuilt its whole Redis client every time it idled out (60 s with nobody waiting), leaving a new connection object and TLS context behind each time: about 1 MiB a socket cycle on dev | 0j (§9.13), reproduced locally (§9.14) | #405 |
 
 Defects 5 and 6 were introduced by the fixes for 3 and 4 and found by re-measuring them.
 Defect 7 (§9.11) was found by profiling the per-cycle memory step (§9.9) locally and is
-fixed in #403 and re-measured on dev in 0i (§9.12).
+fixed in #403 and re-measured on dev in 0i (§9.12). Defect 8 was found by 0j (§9.13), reproduced
+locally (§9.14), fixed in #405 and re-measured on dev in 0k (§9.15): the step is gone.
 
 ### 9.1 Compute latency (in-process, 0.5 vCPU Fargate task, no network)
 
@@ -744,11 +748,11 @@ at once for a new waiter.
 
 ### 9.10 Still to do
 
-- Memory: 0j measured about 1 MiB a cycle that follows the cycles, not the sockets, and has not
-  levelled off in 50 cycles (§9.13). Locally the cause is the shared subscriber's idle close, and
-  keeping its client fixes it (§9.14); the fix is in `_JobDoneBus` and has not run on AWS. Once it is deployed,
-  repeat 0j (about 20 cycles of 30 sockets, hold 15 s, watch 60 s) to see the AWS step fall.
-- Redact `token=` in the API access line (§3.7, risk 17), and check the CloudFront logs.
+- Memory: settled by #405 on dev (0k, §9.15): 630 to 637 MiB over 24 cycles, flat from cycle 16 and
+  while idle. A longer run (a few hours of mixed traffic) would show whether anything else creeps; the
+  framework's own growth locally (§9.11) is the thing to watch.
+- Redact `token=` in the API access line (§3.7, risk 17). CloudFront's standard logs hold it too and
+  cannot be redacted at the edge; with a 60 s token that is a retention question, not a leak.
 - The API-key path on dev: 0i could not create a test user (the dev database is private, with no
   Data API), so minting with a real key has only been tested locally.
 - Give the refusal and disconnect log lines their context (task id, reason, open streams).
@@ -935,8 +939,46 @@ against the change below. Memory gained, mean of each ten cycles (MiB):
 - **What this does not show.** The rebuild cost here, about 0.5 MiB, is half of 0j's 1 MiB a cycle,
   and nothing here has run on AWS. On AWS a rebuild happens whenever the subscriber sits unused for
   60 s, which any quiet minute between jobs causes, so real traffic pays it too. The change is in
-  `_JobDoneBus` (`api/routes/var.py`, tests in `tests/test_job_done_bus.py`); it needs a repeat of 0j
-  on dev once deployed (§9.10).
+  `_JobDoneBus` (`api/routes/var.py`, tests in `tests/test_job_done_bus.py`); 0k (§9.15) repeated the
+  dev run after it was deployed, and the step is gone.
+
+### 9.15 After #405, on dev (0k)
+
+Image `pyvar-dev-api:2dd839f` (task definition :156, rollout completed, task up 43 min and never
+restarted). Part 1: 24 cycles of 10 sockets (two accounts, 5 each; a socket every 4 s, hold 15 s,
+close all, watch 70 s, so the subscriber idles out about 61 s after every close). Part 2: 5 idle
+minutes. Memory is `MemoryUtilized` in whole MiB; the per-cycle data is
+`docs/data/streaming-memory-cycles-dev-0k.csv`.
+
+| Span | Memory before (MiB) | Step per cycle, 0k | Step per cycle, 0j |
+|---|---|---|---|
+| Cycles 1-10 | 630 to 634 | 0.35 MiB | 1.17 MiB |
+| Cycles 15-24 | 636 to 637 | 0.05 MiB | 0.77 MiB |
+| Cycles 17-24 | 637 throughout | 0.00 MiB | |
+
+- **It levels off.** 630 to 637 MiB (+7 MiB), flat from cycle 16 and for the 5 idle minutes after
+  (0.00 MiB of drift; CPU 1.1%). 0j gained 43 MiB over 50 cycles. The 24-cycle extension rule (a rise
+  of more than 8 MiB between cycles 4 and 24) did not apply: 633 to 637.
+- **The early steps** (+2, +1, 0, +1, then zeros, +1, +1, then zeros, +1, then eight zeros) probably
+  include first-use work in the two server processes; at 1 MiB resolution that cannot be separated.
+  Cycles 3-12 alone give 0.25 MiB a cycle.
+- **Cache connections:** 5 to 12 a minute, 7 before cycle 1 and 11 from cycle 17; back to 7 within two
+  minutes of the last cycle, against a baseline of 6-7, so no net step (0j: 11-18). Most "before"
+  minutes overlap the previous cycle's hold, so the idle part is the clean reading.
+- **Sockets and logs:** 240 handshakes, all 101 (median 80 ms, worst 159 ms); no refusals; 240 client
+  closes with code 1000, every socket released within 0.063 s (median 0.052 s); `/health` 146 calls,
+  all 200 (median 91 ms, worst 291 ms). 0 "Shared job-done subscriber failed", 0 "Failed to close
+  the job-done subscriber", 0 ERROR, 0 refusals. Peak 46 requests in any 300 s window. No stop rule
+  fired, no restart.
+- **CloudFront logs.** In one standard-log object (delivered 15:43 UTC), 27 of 41 request lines
+  contained `token=`, all of them stream-route lines (counted, never printed).
+- **Caveats.** The baseline was not pristine: a VaR job queued at about 15:06 (memory 615 to 628
+  MiB, cache connections 1 to 6) and another touch at 15:21 added 2 MiB and 1 connection before the
+  first socket, so cycle 1's 630 includes them. The ALB connection metric is not a concurrency count
+  and was not used. The agent rebuilt its harness (the 0j one was gone) and tested it only against a
+  local mock before the first live request.
+- **What this closes.** Defect 8 (§9.0): keeping the client across the idle close removed the per-cycle
+  step on AWS as it did locally (§9.14). What 0k does not show is a long run under mixed traffic.
 
 ---
 

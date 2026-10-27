@@ -6,9 +6,9 @@ Reasoning:
   runs 0g, 0h and 0i in docs/plan-streaming-quotes-in-results-out.md sections 9.9 and 9.12), and the poll
   band's width from the shipped setting var_stream_poll_interval_seconds in config.py, so the
   figure cannot drift from the numbers in the article.
-- The memory chart reads docs/data/streaming-memory-cycles-dev.csv (Phase 0j,
-  docs/plan-streaming-quotes-in-results-out.md section 9.13): the API task's memory just before each
-  socket cycle, as the agent reported it, in per cent of 1 GiB.
+- The memory chart reads docs/data/streaming-memory-cycles-dev-0k.csv (Phase 0k,
+  docs/plan-streaming-quotes-in-results-out.md section 9.15): the API task's memory just before each
+  socket cycle on the shipped build, as the agent reported it, in MiB.
 - Same house look as scripts/generate_plugin_figures.py (slate and clay on white). The poll
   band is slate and the measured pushes are clay; identity never rests on colour alone: the two
   are different marks (a band and dots) and both are labelled on the chart.
@@ -40,8 +40,7 @@ plt = g.plt
 
 DEFAULT_OUT = ROOT / "docs" / "publications" / "assets" / "streaming-results"
 LAG_CSV = ROOT / "docs" / "data" / "streaming-push-lag-dev.csv"
-MEMORY_CSV = ROOT / "docs" / "data" / "streaming-memory-cycles-dev.csv"
-TASK_MEMORY_MIB = 1024  # the dev API task's memory limit
+MEMORY_CSV = ROOT / "docs" / "data" / "streaming-memory-cycles-dev-0k.csv"
 
 
 def read_push_lags() -> dict[str, list[int]]:
@@ -56,77 +55,61 @@ def read_push_lags() -> dict[str, list[int]]:
 
 
 def read_memory_cycles() -> list[dict[str, float]]:
-    """One row per socket cycle: cycle number overall, part, sockets, memory before and after."""
+    """One row per socket cycle of Phase 0k: the task's memory (MiB) before each cycle."""
     rows: list[dict[str, float]] = []
     with MEMORY_CSV.open(encoding="utf-8", newline="") as handle:
-        for index, row in enumerate(csv.DictReader(handle), 1):
+        for row in csv.DictReader(handle):
             rows.append(
                 {
-                    "n": float(index),
-                    "part": float(row["part"]),
+                    "cycle": float(row["cycle"]),
                     "sockets": float(row["sockets"]),
-                    "before": float(row["before"]),
-                    "t1": float(row["t1"]),
+                    "before": float(row["before_mib"]),
+                    "t1": float(row["t1_mib"]),
                 }
             )
-    g.need(len(rows) == 50, f"expected 50 cycles in {MEMORY_CSV.name}, found {len(rows)}")
+    g.need(len(rows) == 24, f"expected 24 cycles in {MEMORY_CSV.name}, found {len(rows)}")
     return rows
 
 
 def fig_memory_per_cycle(out: Path) -> Path:
     rows = read_memory_cycles()
-    xs = [r["n"] for r in rows]
+    xs = [r["cycle"] for r in rows]
     ys = [r["before"] for r in rows]
-    first_mib = ys[0] * TASK_MEMORY_MIB / 100
-    last_mib = rows[-1]["t1"] * TASK_MEMORY_MIB / 100
-    split = sum(1 for r in rows if r["part"] == 1) + 0.5
+    final = ys[-1]
+    # the first cycle from which memory never moves again
+    settled = next(i for i in range(len(ys)) if all(v == final for v in ys[i:]))
 
     fig, ax = plt.subplots(figsize=(9.0, 3.6))
-    ax.axvspan(0.5, split, color=g.SLATE_FILL, zorder=0)
+    ax.axvspan(xs[settled] - 0.5, xs[-1] + 0.5, color=g.SLATE_FILL, zorder=0)
     ax.plot(xs, ys, color=g.CLAY, linewidth=2, zorder=3)
     ax.scatter(xs, ys, s=22, color=g.CLAY, edgecolor="white", linewidth=1, zorder=4)
-    top = max(ys) + 0.45
+    top = max(ys) + 2.2
     ax.text(
-        (0.5 + split) / 2,
-        top,
-        "10 sockets a cycle",
-        ha="center",
-        va="top",
-        fontsize=9.5,
-        color=g.INK,
-    )
-    ax.text(
-        (split + xs[-1] + 0.5) / 2,
-        top,
-        "30 sockets a cycle",
+        (xs[settled] + xs[-1]) / 2,
+        top - 0.4,
+        f"flat at {final:.0f} MiB from cycle {xs[settled]:.0f}",
         ha="center",
         va="top",
         fontsize=9.5,
         color=g.INK,
     )
     ax.annotate(
-        f"{first_mib:.0f} MiB",
+        f"{ys[0]:.0f} MiB",
         (xs[0], ys[0]),
         xytext=(6, -16),
         textcoords="offset points",
         fontsize=9.5,
         color=g.INK,
     )
-    ax.annotate(
-        f"{last_mib:.0f} MiB after the last cycle",
-        (xs[-1], ys[-1]),
-        xytext=(-6, 10),
-        textcoords="offset points",
-        ha="right",
-        fontsize=9.5,
-        color=g.INK,
-    )
     ax.set_xlim(0.5, xs[-1] + 0.5)
-    ax.set_ylim(min(ys) - 0.5, top + 0.1)
+    ax.set_ylim(min(ys) - 1.5, top)
+    ax.set_xticks([1, 5, 10, 15, 20, 24])
     ax.set_xlabel(
-        "Socket cycle (open, hold 15 s, close all, watch 60 s)", fontsize=9.5, color=g.MUTED
+        "Socket cycle (10 sockets: open, hold 15 s, close all, watch 70 s)",
+        fontsize=9.5,
+        color=g.MUTED,
     )
-    ax.set_ylabel("Memory before the cycle, % of 1 GiB", fontsize=9.5, color=g.MUTED)
+    ax.set_ylabel("Memory before the cycle, MiB of 1,024", fontsize=9.5, color=g.MUTED)
     ax.tick_params(colors=g.MUTED, labelsize=9, length=0)
     ax.yaxis.grid(True, color=g.GRID, linewidth=0.8)
     ax.set_axisbelow(True)
@@ -134,7 +117,7 @@ def fig_memory_per_cycle(out: Path) -> Path:
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color(g.GRID)
     ax.set_title(
-        "Memory creeps about 1 MiB a cycle, whether a cycle opens 10 sockets or 30",
+        f"Memory settles at {final:.0f} MiB after {xs[settled]:.0f} cycles and stays there",
         loc="left",
         fontsize=11,
         fontweight="bold",

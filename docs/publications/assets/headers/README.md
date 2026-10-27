@@ -1,6 +1,6 @@
 # Header images
 
-7 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
+8 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
 
 Regenerate every image with `python scripts/generate_article_headers.py` (needs `matplotlib`). Every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
 
@@ -54,3 +54,10 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 - **Where:** under the title and subtitle
 - **Caption:** The result stream at a glance, read from the code.
 - **Alt text:** Four tiles: 1 frame, the result, then the server closes, with the same JSON as GET /var/result/{task_id}; 900 seconds, the longest a stream waits; 25 open streams per server process, 5 per account, with close code 1013 over the cap; and 10 seconds, the longest a lost push can delay a result.
+
+## 8. `header-pyvar-overview.png`
+
+- **Article:** `pyvar-overview-medium-article.md`
+- **Where:** under the title and subtitle
+- **Caption:** pyvar at a glance, read from the code.
+- **Alt text:** Four tiles: 385 risk functions in 8 domains; 10 free calls a day with no card; 14 plugins to ask in plain language (8 domain skills, 5 architecture skills, 1 MCP server); and 5 services in one docker compose up (migrate, pyvar-api, worker, redis, postgres).

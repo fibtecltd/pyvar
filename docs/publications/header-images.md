@@ -1,6 +1,6 @@
 # Header images for the Medium articles
 
-Every article should open with a header image directly under its title and subtitle. Ten have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
+Every article should open with a header image directly under its title and subtitle. Eleven have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
 
 ## Status
 
@@ -16,13 +16,14 @@ Every article should open with a header image directly under its title and subti
 | `pyvar-domain-examples-medium-article.md` | Included: `assets/headers/header-pyvar-domain-examples.png` |
 | `pyvar-rest-api-guide-medium-article.md` | Included: `assets/headers/header-pyvar-rest-api-guide.png` |
 | `pyvar-streaming-results-medium-article.md` | Included: `assets/headers/header-pyvar-streaming-results.png` |
+| `pyvar-overview-medium-article.md` | Included: `assets/headers/header-pyvar-overview.png` |
 | `pyvar-technical-deepdive-medium-article.md` | Idea 1 |
 | `pyvar-iron-triangle-medium-article.md` | Idea 2 |
 | `pyvar-local-release-medium-article.md` | Idea 3 |
 | `pyvar-full-docker-medium-article.md` | Idea 4 |
 | `pyvar-post-launch-lessons-medium-article.md` | Idea 5 |
 
-The seven images in `assets/headers/` come from `python scripts/generate_article_headers.py`. They are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. Medium takes PNG or JPG, not SVG.
+The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. They are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. Medium takes PNG or JPG, not SVG.
 
 ## Ideas
 
