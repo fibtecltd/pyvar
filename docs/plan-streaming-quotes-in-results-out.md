@@ -745,7 +745,9 @@ at once for a new waiter.
 ### 9.10 Still to do
 
 - Memory: 0j measured about 1 MiB a cycle that follows the cycles, not the sockets, and has not
-  levelled off in 50 cycles (§9.13). Find what each cycle leaves behind (hypothesis in §9.13).
+  levelled off in 50 cycles (§9.13). Locally the cause is the shared subscriber's idle close, and
+  keeping its client fixes it (§9.14); the fix is not in the repository yet. Once it is deployed,
+  repeat 0j (about 20 cycles of 30 sockets, hold 15 s, watch 60 s) to see the AWS step fall.
 - Redact `token=` in the API access line (§3.7, risk 17), and check the CloudFront logs.
 - The API-key path on dev: 0i could not create a test user (the dev database is private, with no
   Data API), so minting with a real key has only been tested locally.
@@ -899,8 +901,41 @@ per-cycle data is `docs/data/streaming-memory-cycles-dev.csv`.
 - **Against 0i.** 0i's six cycles (hold 30 s, watch 2 min) stepped 0.27 points, 2.8 MiB, a cycle;
   0j's first ten stepped 1.1 MiB. The cycle shape differed and 0i's figure is six readings at 0.1
   point; neither is precise.
+- **A hypothesis for the step** (the 0j agent's, tested locally in §9.14): every cycle's 60 s watch
+  lets the shared subscriber idle-close its Redis connection (`_BUS_IDLE_CLOSE_SECONDS`, 60 s), and
+  the next cycle rebuilds it.
 - **Caveats.** Whole-MiB resolution makes single steps noisy (0 to 2.4 MiB); the conclusions rest on
   the 10- to 40-cycle means. A small CPU rise at the end of Part 3 is unexplained.
+
+### 9.14 What each cycle leaves behind (local, my sandbox; not AWS)
+
+My earlier local soaks never idle-closed the shared subscriber: a cycle there lasted about 5 s and the
+close needs 60 s with nobody waiting. That is why they stepped about 0.2 MiB a cycle while 0j stepped
+about 1 MiB. To test the 0j agent's hypothesis, the same soak (30 sockets a cycle, hold 3 s, watch
+8 s, two workers, TLS Redis, 60 cycles) was run with the idle close set to 4 s, so that every cycle
+closes the subscriber and the next one rebuilds it; against a control with the close off; and
+against the change below. Memory gained, mean of each ten cycles (MiB):
+
+| Run | Cycles 1-10 | 11-20 | 21-30 | 31-40 | 41-50 | 51-60 | Slope, second half | Most cache connections |
+|---|---|---|---|---|---|---|---|---|
+| Idle close every cycle (the code as it is) | 29.5 | 38.0 | 45.5 | 50.7 | 56.3 | 60.8 | 0.50 | 14 |
+| No idle close (control) | 20.6 | 23.8 | 25.4 | 26.9 | 29.1 | 32.2 | 0.26 | 10 |
+| Idle close every cycle, client kept | 16.4 | 18.8 | 19.9 | 22.1 | 24.5 | 26.6 | 0.23 | 8 |
+
+- **The rebuild is the cost.** Closing and rebuilding every cycle added about 28 MiB over 60 cycles
+  (about 0.5 MiB a rebuild at first, less later as garbage collection catches up). Each rebuild
+  makes a new client, a new connection object and a new TLS context (0.8 MiB); the old ones are not
+  freed until the cyclic collector runs.
+- **The change.** `_JobDoneBus` keeps its Redis client for the life of the process. The idle close
+  lets go only of the Pub/Sub object; the next subscription takes the same connection object, with
+  the TLS context it already holds. A failed connection is still dropped and rebuilt, and the client
+  is closed at shutdown. With it the soak with a close every cycle ended below the control
+  (26.6 against 32.2 MiB; run-to-run spread is a few MiB) and the growth was the 0.2 MiB a cycle the
+  framework alone shows (§9.11).
+- **What this does not show.** The rebuild cost here, about 0.5 MiB, is half of 0j's 1 MiB a cycle,
+  and nothing here has run on AWS. On AWS a rebuild happens whenever the subscriber sits unused for
+  60 s, which any quiet minute between jobs causes, so real traffic pays it too. The change is not in
+  the repository yet; it needs a repeat of 0j on dev (§9.10).
 
 ---
 
