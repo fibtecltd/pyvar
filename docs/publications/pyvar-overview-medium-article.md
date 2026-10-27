@@ -2,7 +2,7 @@
 
 *From a five-line VaR call to a Basel IV output floor, pyvar puts the numbers a risk function is asked for behind one API that anyone can read, rerun and check. A tour for the engineers who build with it and the finance people who sign off on what comes out.*
 
-![A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background.](./assets/headers/header-pyvar-overview.png)
+![A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background, with the pyvar logo and name small in the top-left corner.](./assets/headers/header-pyvar-overview.png)
 
 ---
 

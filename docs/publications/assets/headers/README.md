@@ -59,7 +59,7 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 
 - **Article:** `pyvar-overview-medium-article.md`
 - **Where:** under the title and subtitle, no caption
-- **What it is:** a picture, not fact tiles: the dot-matrix bell curve kept in `source/bell-dot-matrix.jpg`, saved unchanged in size (1303 x 682) as PNG by `generate_article_headers.py`. To change it, replace the source file and run `python scripts/generate_article_headers.py --only overview`.
-- **Alt text:** A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background.
+- **What it is:** a picture, not fact tiles: the dot-matrix bell curve kept in `source/bell-dot-matrix.jpg`, saved at its own size (1303 x 682) as PNG by `generate_article_headers.py`, with the small pyvar mark and wordmark added in the empty top-left corner. To change it, replace the source file and run `python scripts/generate_article_headers.py --only overview`.
+- **Alt text:** A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background, with the pyvar logo and name small in the top-left corner.
 
 The tiles that used to be this header are now the article's second image, `../overview/at-a-glance.png`, with the pyvar logo and each plan's call limits (`python scripts/generate_overview_figures.py`).

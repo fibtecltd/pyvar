@@ -369,7 +369,7 @@ ART_HEADERS: dict[str, str] = {"pyvar-overview": "bell-dot-matrix.jpg"}
 
 
 def art_header(key: str, out: Path) -> Path:
-    """The article's artwork, saved as header-<key>.png at its own size."""
+    """The article's artwork with a small pyvar wordmark, saved as header-<key>.png at its size."""
     from PIL import Image
 
     source = ART_SOURCES / ART_HEADERS[key]
@@ -379,9 +379,29 @@ def art_header(key: str, out: Path) -> Path:
     width, height = rgb.size
     g.need(1.8 <= width / height <= 2.0, f"{source.name} is {width}x{height}, not roughly 2:1")
     g.need(width >= 1200, f"{source.name} is only {width}px wide; Medium wants 1200 or more")
+    # The picture at its own size, with the small pyvar mark and wordmark in the empty top-left
+    # corner (the bell's slope leaves it clear). Pixel coordinates, y down.
+    fig = g.plt.figure(figsize=(width / g.DPI, height / g.DPI), dpi=g.DPI, facecolor="white")
+    ax = fig.add_axes((0, 0, 1, 1))
+    ax.imshow(rgb, extent=(0, width, height, 0), interpolation="nearest", aspect="auto")
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.axis("off")
+    g.logo_mark(ax, 52, 34, 0.46, lw=3.6)
+    ax.text(
+        118,
+        34 + 0.46 * 42,
+        "pyvar",
+        fontsize=15,
+        fontweight="bold",
+        color=g.H_NAVY,
+        ha="left",
+        va="center",
+    )
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"header-{key}.png"
-    rgb.save(path, optimize=True)
+    fig.savefig(path, dpi=g.DPI, facecolor="white")
+    g.plt.close(fig)
     return path
 
 
