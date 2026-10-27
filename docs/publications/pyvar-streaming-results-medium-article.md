@@ -117,7 +117,7 @@ Four practical notes:
 - **One socket per job.** Open it after the `202`. A job that is already done is answered before the stream limits apply.
 - **Limits.** Waiting streams are capped per server process: 25 in all and 5 per account, with two processes in each API container. At the cap you get 1013, and the poll endpoint still works.
 - **HTTP/1.1 only.** A WebSocket cannot upgrade over HTTP/2. Browsers and the common libraries handle this; if you build your own TLS context, offer `http/1.1` and not `h2`. The server pings every 20 seconds, and standard clients answer on their own.
-- **Keep the key out of the URL.** The stream takes a stream token, or a session token, and never an API key. URLs are logged by the API and by the CDN in front of it, and the API's access log records the full URL, token included. That is harmless for a stream token, which is worth nothing a minute later; a session token lasts an hour, so prefer the stream token. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
+- **Keep the key out of the URL.** The stream takes a stream token, or a session token, and never an API key. URLs are logged by the API and by the CDN in front of it, and both record the full URL, token included. That is harmless for a stream token, which is worth nothing a minute later; a session token lasts an hour, so prefer the stream token. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
 
 ## How it performs
 
@@ -128,12 +128,12 @@ All measurements are from `dev.pyvar.com`: 0.5 vCPU and 1 GiB per API container,
 | Minting a stream token | 76, 81 and 101 ms |
 | Frame after the worker stored the result | 126, 128 and 155 ms in the latest run, opened with a stream token; 128, 129 and 166 ms and 29, 125 and 156 ms in the two before |
 | Socket opened on a job that had already finished | 21 ms (one measurement, a 22 kB frame) |
-| WebSocket handshake through the edge | 1,300 of 1,300 returned 101; median 80 ms, worst 638 ms |
-| Server frees a closed client's slot | within 0.65 s, for 1,300 of 1,300 sockets |
-| Errors and failure log lines across 56 socket cycles (1,480 sockets) on one task | 0 |
-| API container, idle | 61.8% of 1 GiB memory, 1.1% CPU, 5 cache connections |
+| WebSocket handshake through the edge | 1,540 of 1,540 returned 101 in two runs; median 80 ms, worst 638 ms |
+| Server frees a closed client's slot | within 0.65 s, for 1,540 of 1,540 sockets |
+| Errors and failure log lines across 80 socket cycles (1,720 sockets) on two tasks | 0 |
+| API container, idle | 61 to 62% of 1 GiB memory, 1.1% CPU, 5 to 7 cache connections |
 | API container with 30 sockets held | 1.7 to 3.2% CPU; 9 to 13 cache connections in every cycle |
-| API container after 50 socket cycles (1,300 sockets), then 10 idle minutes | 672 to 715 MiB of 1 GiB, flat while idle; 11 to 18 cache connections, not stepping |
+| API container after 24 socket cycles (240 sockets), then 5 idle minutes | 630 to 637 MiB of 1 GiB, flat from cycle 16 and while idle; 5 to 12 cache connections, not stepping |
 
 Against polling every 2 seconds, the arithmetic is simple: a result stored at a random moment waits between 0 and 2 seconds for the next poll, 1 second on average, while the push takes around 0.13 s. The saving is largest for short jobs and for interfaces where a person is watching a spinner. For a long batch, polling every few seconds costs nothing noticeable.
 
@@ -143,11 +143,11 @@ Against polling every 2 seconds, the arithmetic is simple: a result stored at a 
 
 What streaming does not change is everything before the result is stored. On dev, with the worker pool at zero (it scales to zero about four minutes after the last job), one job took 162 seconds from POST to success, 6.2 s of it on the cold worker. And the compute itself is whatever the job needs: the other 385 functions are ordinary synchronous calls, and measured in-process on the same container size 371 of their 386 example requests had a median under 50 ms (overall median 5.9 ms), the slowest being the rough-volatility pricer at about 4 seconds.
 
-**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the longest dev run held 30 sockets at a time across the container, 40 times, and no socket was ever refused. Memory under churn is the figure to watch. Over 50 cycles and 1,300 sockets (10 cycles of 10 sockets, then 40 of 30) the container's memory grew from 672 MiB to 715 MiB: about 1 MiB a cycle at first, easing to 0.77 MiB a cycle over the last ten. The step followed the number of cycles, not the number of sockets: about 1 MiB a cycle for 10-socket cycles and for 30-socket ones alike (the metric resolves 1 MiB, so that comparison is at its limit). It did not drift while the container then sat idle for ten minutes, and the cache connections wandered between 11 and 18 without stepping. The curve is slowing but has not levelled off; on a straight line from the last ten cycles, the 85% mark (870 MiB) is about 200 cycles away.
+**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the largest run held 30 sockets at a time across the container, 40 times, and no socket was ever refused. Memory under churn is the figure to watch, and on the current build it settles. Over 24 cycles of 10 sockets (open, hold 15 s, close all, watch 70 s) the container's memory went from 630 MiB to 637 MiB: about 0.35 MiB a cycle over the first ten, then nothing. Cycles 16 to 24 all read 637 MiB, and it stayed at 637 MiB through five idle minutes afterwards. The cache connections moved between 5 and 12 and ended where they began, with no net step, and all 240 sockets were released within 0.07 s of closing.
 
-![Line chart: the container's memory before each of 50 socket cycles, from 65.6% to 69.6% of 1 GiB (672 to 715 MiB after the last cycle), rising about 1 MiB a cycle for both the 10-socket and the 30-socket cycles.](./assets/streaming-results/memory-per-cycle.png)
+![Line chart: the container's memory before each of 24 socket cycles, rising from 630 MiB to 637 MiB over the first 16 cycles and then flat at 637 MiB for the remaining 8.](./assets/streaming-results/memory-per-cycle.png)
 
-*Memory before each socket cycle, 50 cycles on dev.*
+*Memory before each socket cycle, 24 cycles on dev.*
 
 ## Sources
 
@@ -156,6 +156,6 @@ What streaming does not change is everything before the result is stored. On dev
 - [`tasks/var_task.py`](https://github.com/fibtecltd/pyvar/blob/master/tasks/var_task.py): the worker's completion signal.
 - [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py): the 900 s wait, the stream limits, the 10 s safety re-read.
 - [`docs/plan-streaming-quotes-in-results-out.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plan-streaming-quotes-in-results-out.md), section 9: the measurement runs behind the table above. [`docs/data/streaming-phase0d-latency.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-phase0d-latency.csv): the per-function latencies.
-- [`docs/data/streaming-push-lag-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-push-lag-dev.csv): the nine push delays in the first chart. [`docs/data/streaming-memory-cycles-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-memory-cycles-dev.csv): the 50 cycles of the memory chart.
+- [`docs/data/streaming-push-lag-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-push-lag-dev.csv): the nine push delays in the first chart. [`docs/data/streaming-memory-cycles-dev-0k.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-memory-cycles-dev-0k.csv): the 24 cycles of the memory chart.
 
 *How this was made: written with Claude Code. The AWS measurements were taken by a scripted agent on the dev stack and are quoted from its reports; the example frame was produced locally on the code in this repository. Minting with a real API key is covered by the test suite but was not run on dev, where the agent minted with a service session token.*
