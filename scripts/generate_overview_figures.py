@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""scripts/generate_overview_figures.py — the two figures of the pyvar overview Medium article.
+"""scripts/generate_overview_figures.py — the three figures of the pyvar overview Medium article.
 
 Reasoning:
+- The at-a-glance infographic states counts and plan limits, so every number is read from the
+  repository when the image is drawn: the function catalogue, the plugin manifest, the compose
+  file, config.py, the token model's per-tier simulation caps and the rate limiter's list of
+  tiers exempt from the daily quota. The logo is the brand mark drawn by
+  generate_plugin_figures.logo_mark (docs/brand/favicon.svg geometry).
 - The domain map states function counts, so the counts are read from portal/functions.json when
   the image is drawn and the script fails if a domain is missing. The one-line question under each
   count is editorial and lives in DOMAIN_QUESTIONS.
@@ -32,6 +37,11 @@ sys.path.insert(0, str(ROOT))
 
 import generate_plugin_figures as g  # noqa: E402  (palette, rcParams, save)
 import generate_plugin_flow_figures as ff  # noqa: E402  (tiles grid, catalogue reader)
+from generate_article_headers import (  # noqa: E402  (plugin manifest, compose file, tier caps)
+    compose_services,
+    plugin_counts,
+    simulation_caps,
+)
 
 plt = g.plt
 
@@ -75,6 +85,153 @@ def counts() -> dict[str, int]:
         out[entry["domain"]] = out.get(entry["domain"], 0) + 1
     g.need(set(out) == set(DOMAIN_QUESTIONS), f"domains differ: {sorted(out)}")
     return out
+
+
+def fig_at_a_glance(out: Path) -> Path:
+    from api.middleware.rate_limit import _EXEMPT_TIERS
+
+    functions, domains = ff.catalogue_counts()
+    plugins, domain_skills, arch_skills, mcp = plugin_counts()
+    services = compose_services()
+    free_day = ff.default("rate_limit_free_daily")
+    pro_day = ff.default("rate_limit_pro_daily")
+    pro_month = ff.default("rate_limit_pro_monthly_requests")
+    pro_month_sims = ff.default("rate_limit_pro_monthly_simulations")
+    free_sims, pro_sims, ent_sims = simulation_caps()
+    g.need("enterprise" in _EXEMPT_TIERS, "Enterprise is no longer exempt from the daily quota")
+
+    width, height = 1800, 1040
+    cv = g.Canvas(width, height, "", "")
+    g.logo_mark(cv.ax, 60, 38, 0.62, lw=5.0)
+    cv.text(158, 66, "pyvar at a glance", size=17, weight="bold", ha="left", max_w=900)
+    cv.text(
+        60,
+        120,
+        "Counts read from the function catalogue, the plugin manifest and the compose file; "
+        "plan limits read from config.py.",
+        size=10.5,
+        color=g.MUTED,
+        ha="left",
+        max_w=width - 120,
+    )
+
+    gap = 40.0
+    col_w = (width - 120 - 2 * gap) / 3
+    xs = [60.0 + i * (col_w + gap) for i in range(3)]
+
+    # row 1: what is in the box
+    facts = [
+        (
+            f"{functions}",
+            f"risk functions in {domains} domains",
+            "market, credit, liquidity,\nALM, operational and more",
+        ),
+        (
+            f"{plugins}",
+            "plugins to ask in plain language",
+            f"{domain_skills} domain skills, {arch_skills} architecture skills,\n{mcp} MCP server",
+        ),
+        (
+            f"{len(services)} services",
+            "in one docker compose up",
+            ", ".join(services[:3]) + ",\n" + ", ".join(services[3:]),
+        ),
+    ]
+    top, tile_h = 160.0, 230.0
+    for i, (big, line, small) in enumerate(facts):
+        accent = i == 1
+        ff.tile(cv, xs[i], top, col_w, tile_h, accent)
+        color = g.CLAY if accent else g.SLATE
+        cv.text(
+            xs[i] + col_w / 2, top + 55, big, size=28, weight="bold", color=color, max_w=col_w - 40
+        )
+        cv.text(xs[i] + col_w / 2, top + 118, line, size=10, weight="bold", max_w=col_w - 40)
+        cv.text(xs[i] + col_w / 2, top + 175, small, size=8.8, color=g.MUTED, max_w=col_w - 40)
+
+    # row 2: what each plan allows
+    label_y = top + tile_h + 70
+    cv.text(60, label_y, "What each plan allows", size=14, weight="bold", ha="left", max_w=900)
+    cv.text(
+        60,
+        label_y + 40,
+        "Calls are counted per account, across every /api/v1 compute endpoint.",
+        size=10,
+        color=g.MUTED,
+        ha="left",
+        max_w=width - 120,
+    )
+    plans = [
+        (
+            "Free",
+            f"{free_day}",
+            "calls a day",
+            f"{free_sims:,} simulations per request\nEmail or Google sign-in, no card",
+            False,
+        ),
+        (
+            "Pro",
+            f"{pro_day}",
+            "calls a day",
+            f"{pro_month:,} calls a month\n{pro_month_sims:,} simulations a month\n"
+            f"{pro_sims:,} simulations per request",
+            True,
+        ),
+        (
+            "Enterprise",
+            "No cap",
+            "on calls a day",
+            f"{ent_sims:,} simulations per request\nArranged with the team, by email",
+            False,
+        ),
+    ]
+    card_top, card_h = label_y + 85, 350.0
+    for (name, big, unit, small, accent), x in zip(plans, xs):
+        ff.tile(cv, x, card_top, col_w, card_h, accent)
+        color = g.CLAY if accent else g.SLATE
+        cv.text(
+            x + 36,
+            card_top + 44,
+            name.upper(),
+            size=10.5,
+            weight="bold",
+            color=color,
+            ha="left",
+            max_w=col_w - 72,
+        )
+        cv.ax.plot([x + 36, x + col_w - 36], [card_top + 78] * 2, color="white", lw=2.2)
+        cv.text(
+            x + col_w / 2,
+            card_top + 138,
+            big,
+            size=28,
+            weight="bold",
+            color=color,
+            max_w=col_w - 40,
+        )
+        cv.text(x + col_w / 2, card_top + 196, unit, size=10, weight="bold", max_w=col_w - 40)
+        cv.text(x + col_w / 2, card_top + 282, small, size=8.8, color=g.MUTED, max_w=col_w - 40)
+
+    foot = card_top + card_h + 46
+    cv.text(
+        60,
+        foot,
+        "A Pro account that reaches a monthly cap moves to Free until its next billing date.",
+        size=9,
+        color=g.MUTED,
+        ha="left",
+        max_w=width - 120,
+    )
+    cv.text(
+        60,
+        foot + 36,
+        "Monthly figures are current settings and may change. "
+        "Pro and Enterprise: write to info@pyvar.com.",
+        size=9,
+        color=g.MUTED,
+        ha="left",
+        max_w=width - 120,
+    )
+    return cv.save(out, "at-a-glance")
 
 
 def fig_domain_map(out: Path) -> Path:
@@ -156,6 +313,7 @@ def main() -> None:
     )
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     args = parser.parse_args()
+    print("wrote", fig_at_a_glance(Path(args.out)))
     print("wrote", fig_domain_map(Path(args.out)))
     print("wrote", fig_role_grid(Path(args.out)))
 

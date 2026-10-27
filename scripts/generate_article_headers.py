@@ -10,6 +10,10 @@ Reasoning:
   (scripts/generate_plugin_flow_figures.py::tiles_figure).
 - Medium does not accept SVG, so the output is PNG. The script fails if any label overflows its
   tile.
+- A header can also be a picture instead of a grid of facts: ART_HEADERS maps an article to the
+  artwork kept under docs/publications/assets/headers/source/, saved as PNG at its own size
+  (the overview article's dot-matrix bell curve). The script fails if the picture is not
+  roughly 2:1, the shape Medium and social previews crop to.
 
 Usage (repo root; matplotlib and pyyaml are tooling dependencies only:
 pip install matplotlib pyyaml):
@@ -39,6 +43,7 @@ import generate_plugin_figures as g  # noqa: E402
 import generate_plugin_flow_figures as ff  # noqa: E402  (tiles grid, config readers)
 
 DEFAULT_OUT = ROOT / "docs" / "publications" / "assets" / "headers"
+ART_SOURCES = DEFAULT_OUT / "source"
 Tile = tuple[str, str, str, bool]
 
 
@@ -348,42 +353,6 @@ def head_streaming_results() -> tuple[str, str, list[Tile]]:
     )
 
 
-def head_overview() -> tuple[str, str, list[Tile]]:
-    functions, domains = ff.catalogue_counts()
-    total, domain, arch, mcp = plugin_counts()
-    services = compose_services()
-    return (
-        "pyvar at a glance",
-        "Read from the function catalogue, config.py, the plugin manifest and the compose file when this image is drawn.",
-        [
-            (
-                f"{functions}",
-                f"risk functions in {domains} domains",
-                "market, credit, liquidity, ALM, operational and more",
-                False,
-            ),
-            (
-                f"{ff.default('rate_limit_free_daily')} a day",
-                "free calls, with no card",
-                "email or Google sign-in; Pro and Enterprise on request",
-                True,
-            ),
-            (
-                f"{total}",
-                "plugins to ask in plain language",
-                f"{domain} domain skills, {arch} architecture skills, {mcp} MCP server",
-                True,
-            ),
-            (
-                f"{len(services)} services",
-                "in one docker compose up",
-                f"{', '.join(services)}",
-                False,
-            ),
-        ],
-    )
-
-
 HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-plugins": head_plugins,
     "pyvar-plugins-live-recent-updates": head_live_updates,
@@ -392,8 +361,48 @@ HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-domain-examples": head_domain_examples,
     "pyvar-rest-api-guide": head_rest_guide,
     "pyvar-streaming-results": head_streaming_results,
-    "pyvar-overview": head_overview,
 }
+
+
+# article -> artwork file under ART_SOURCES
+ART_HEADERS: dict[str, str] = {"pyvar-overview": "bell-dot-matrix.jpg"}
+
+
+def art_header(key: str, out: Path) -> Path:
+    """The article's artwork with a small pyvar wordmark, saved as header-<key>.png at its size."""
+    from PIL import Image
+
+    source = ART_SOURCES / ART_HEADERS[key]
+    g.need(source.is_file(), f"artwork for {key} not found: {source}")
+    with Image.open(source) as picture:
+        rgb = picture.convert("RGB")
+    width, height = rgb.size
+    g.need(1.8 <= width / height <= 2.0, f"{source.name} is {width}x{height}, not roughly 2:1")
+    g.need(width >= 1200, f"{source.name} is only {width}px wide; Medium wants 1200 or more")
+    # The picture at its own size, with the small pyvar mark and wordmark in the empty top-left
+    # corner (the bell's slope leaves it clear). Pixel coordinates, y down.
+    fig = g.plt.figure(figsize=(width / g.DPI, height / g.DPI), dpi=g.DPI, facecolor="white")
+    ax = fig.add_axes((0, 0, 1, 1))
+    ax.imshow(rgb, extent=(0, width, height, 0), interpolation="nearest", aspect="auto")
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.axis("off")
+    g.logo_mark(ax, 52, 34, 0.46, lw=3.6)
+    ax.text(
+        118,
+        34 + 0.46 * 42,
+        "pyvar",
+        fontsize=15,
+        fontweight="bold",
+        color=g.H_NAVY,
+        ha="left",
+        va="center",
+    )
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"header-{key}.png"
+    fig.savefig(path, dpi=g.DPI, facecolor="white")
+    g.plt.close(fig)
+    return path
 
 
 def main() -> None:
@@ -401,13 +410,17 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--out", default=str(DEFAULT_OUT))
-    parser.add_argument("--only", default="", help="comma-separated: " + ", ".join(HEADERS))
+    names = [*HEADERS, *ART_HEADERS]
+    parser.add_argument("--only", default="", help="comma-separated: " + ", ".join(names))
     args = parser.parse_args()
     only = [n for n in args.only.split(",") if n]
-    keys = [k for k in HEADERS if not only or k in only or k.removeprefix("pyvar-") in only]
+    keys = [k for k in names if not only or k in only or k.removeprefix("pyvar-") in only]
     if only and not keys:
         raise SystemExit(f"unknown header(s): {', '.join(only)}")
     for key in keys:
+        if key in ART_HEADERS:
+            print("wrote", art_header(key, Path(args.out)))
+            continue
         title, subtitle, tiles = HEADERS[key]()
         print("wrote", ff.tiles_figure(title, subtitle, tiles, Path(args.out), f"header-{key}"))
 

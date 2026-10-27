@@ -2,9 +2,7 @@
 
 *From a five-line VaR call to a Basel IV output floor, pyvar puts the numbers a risk function is asked for behind one API that anyone can read, rerun and check. A tour for the engineers who build with it and the finance people who sign off on what comes out.*
 
-![Four tiles: 385 risk functions in 8 domains; 10 free calls a day with no card; 14 plugins to ask in plain language (8 domain skills, 5 architecture skills, 1 MCP server); and 5 services in one docker compose up (migrate, pyvar-api, worker, redis, postgres).](./assets/headers/header-pyvar-overview.png)
-
-*pyvar at a glance, read from the code.*
+![A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background, with the pyvar logo and name small in the top-left corner.](./assets/headers/header-pyvar-overview.png)
 
 ---
 
@@ -17,6 +15,10 @@ It is four in the afternoon, and two people in the same bank need the same kind 
 It is one question in two accents: *can I see how this number was made, and can I make it again?* pyvar is built so that the answer is yes.
 
 pyvar is an open-source (Apache-2.0) API with **385 risk functions in eight domains**: market risk, derivatives, credit, portfolio analytics, operational risk, liquidity, ALM and regulatory capital. Every function is a plain call with plain inputs, every regulatory constant is a line of code you can search for, and the same call works from `curl`, from Python, from a notebook, or from a plain-language request to Claude.
+
+![The pyvar logo and "pyvar at a glance": 385 risk functions in 8 domains; 14 plugins to ask in plain language (8 domain skills, 5 architecture skills, 1 MCP server); 5 services in one docker compose up (migrate, pyvar-api, worker, redis, postgres). Below, what each plan allows: Free, 10 calls a day and 10,000 simulations per request; Pro, 500 calls a day, 5,000 calls and 2,000,000 simulations a month and 100,000 simulations per request; Enterprise, no cap on calls a day and 500,000 simulations per request. A Pro account that reaches a monthly cap moves to Free until its next billing date. Pro and Enterprise: write to info@pyvar.com.](./assets/overview/at-a-glance.png)
+
+*pyvar at a glance, and what each plan allows. Every number is read from the code when the image is drawn.*
 
 **How to read this.** The paragraphs are for everyone. Code appears under a bold "For engineers" line, so if you sign off on numbers rather than write the code, skip those. Every worked number below comes from a real run on synthetic inputs with fixed seeds, so your team can reproduce it.
 
@@ -158,7 +160,7 @@ curl -X POST https://www.pyvar.com/api/v1/credit-risk/expected_loss_el_computati
 # {"el": 9000.0, "el_rate": 0.009, "pd": 0.02, "lgd": 0.45, "ead": 1000000.0}
 ```
 
-The free tier allows 10 calls a day and up to 10,000 simulations per Monte Carlo call. Pro and Enterprise tiers exist for higher limits and larger runs; for details, email [info@pyvar.com](mailto:info@pyvar.com).
+The free tier allows 10 calls a day and up to 10,000 simulations per Monte Carlo call. Pro allows 500 calls a day and up to 100,000 simulations per call; Enterprise has no daily cap and takes up to 500,000 simulations per call. The infographic near the top has the full list. For details on either, email [info@pyvar.com](mailto:info@pyvar.com).
 
 ## Where to go next
 

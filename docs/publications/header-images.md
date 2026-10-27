@@ -23,7 +23,7 @@ Every article should open with a header image directly under its title and subti
 | `pyvar-full-docker-medium-article.md` | Idea 4 |
 | `pyvar-post-launch-lessons-medium-article.md` | Idea 5 |
 
-The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. They are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. Medium takes PNG or JPG, not SVG.
+The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. Seven are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. The eighth, the overview article's, is a picture (a dot-matrix bell curve, source in `assets/headers/source/`); the overview's fact tiles are its second image, `assets/overview/at-a-glance.png`. Medium takes PNG or JPG, not SVG.
 
 ## Ideas
 
