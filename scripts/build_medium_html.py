@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scripts/build_medium_html.py — the Medium-ready HTML of the result-streaming article.
+"""scripts/build_medium_html.py — the Medium-ready HTML of an article (streaming, overview).
 
 Reasoning:
 - Medium's editor drops pasted <table> elements, so every markdown table of the article is drawn
@@ -39,18 +39,28 @@ ARTICLE = PUB / "pyvar-streaming-results-medium-article.md"
 DEFAULT_HTML_DIR = PUB / "medium-ready"
 DEFAULT_TABLES_DIR = PUB / "assets" / "tables"
 
-# markdown heading above a table -> (image file stem, title drawn on the image, first column share)
-TABLES = {
-    "What the server does with your socket": (
-        "streaming-results-socket-table",
-        "Frames and close codes",
-        0.36,
-    ),
-    "How it performs": (
-        "streaming-results-measures-table",
-        "Measured on dev.pyvar.com",
-        0.40,
-    ),
+# per article: markdown heading above a table -> (image file stem, title drawn on the image,
+# share of the width for each column)
+ARTICLES = {
+    "pyvar-streaming-results-medium-article": {
+        "What the server does with your socket": (
+            "streaming-results-socket-table",
+            "Frames and close codes",
+            [0.36, 0.64],
+        ),
+        "How it performs": (
+            "streaming-results-measures-table",
+            "Measured on dev.pyvar.com",
+            [0.40, 0.60],
+        ),
+    },
+    "pyvar-overview-medium-article": {
+        "Seven ways in, one engine": (
+            "overview-ways-in-table",
+            "Seven ways in",
+            [0.17, 0.30, 0.53],
+        ),
+    },
 }
 
 # Table look, in logical pixels (the JPG is drawn at twice that, like the existing ones).
@@ -167,11 +177,13 @@ def tokens(cell: str) -> list[tuple[str, bool, bool]]:
 def wrap(measure: Measurer, cell: str, width: float) -> list[list[tuple[str, bool, float]]]:
     """Lines of (word, is_code, x offset) that fit `width`."""
     space = measure.width("n n", False) - measure.width("nn", False)
+    mono_space = measure.width("n n", True) - measure.width("nn", True)
     lines: list[list[tuple[str, bool, float]]] = [[]]
     x = 0.0
+    previous_code = False
     for word, code, glue in tokens(cell):
         w = measure.width(word, code)
-        gap = 0.0 if glue else space
+        gap = 0.0 if glue else (mono_space if code and previous_code else space)
         if lines[-1] and not glue and x + gap + w > width:
             lines.append([])
             x = 0.0
@@ -180,6 +192,7 @@ def wrap(measure: Measurer, cell: str, width: float) -> list[list[tuple[str, boo
             x += gap
         lines[-1].append((word, code, x))
         x += w
+        previous_code = code
     return lines
 
 
@@ -188,14 +201,16 @@ def draw_table(
     header: list[str],
     rows: list[list[str]],
     title: str,
-    first_share: float,
+    shares: list[float],
     path: Path,
 ) -> tuple[int, int]:
     from matplotlib.patches import FancyBboxPatch, Rectangle
 
+    g.need(len(shares) == len(header), "one width share per column")
     inner = WIDTH - 2 * MARGIN
-    col_x = [MARGIN + PAD_X, MARGIN + inner * first_share + PAD_X]
-    col_w = [inner * first_share - 2 * PAD_X, inner * (1 - first_share) - 2 * PAD_X]
+    starts = [sum(shares[:k]) for k in range(len(shares))]
+    col_x = [MARGIN + inner * start + PAD_X for start in starts]
+    col_w = [inner * share - 2 * PAD_X for share in shares]
     laid = [[wrap(measure, cell, col_w[k]) for k, cell in enumerate(row)] for row in rows]
     heights = [max(len(c) for c in row) * LINE_H + 2 * PAD_Y - 4 for row in laid]
     top = 76
@@ -242,7 +257,7 @@ def draw_table(
             family=SANS,
         )
     y = top + HEADER_H
-    for n, (row, h) in enumerate(zip(laid, heights)):
+    for n, (row, h) in enumerate(zip(laid, heights, strict=True)):
         ax.add_patch(
             Rectangle(
                 (MARGIN, y), inner, h, fc=ROW_ALT if n % 2 == 0 else "white", ec=BORDER, lw=1 * pt
@@ -270,21 +285,21 @@ def draw_table(
 
 
 def alt_text(title: str, header: list[str], rows: list[list[str]]) -> str:
-    body = "; ".join(f"{r[0]}: {r[1]}" for r in rows)
-    return re.sub(
-        r"\s+", " ", f"Table, {title} ({header[0]} / {header[1]}). {body}".replace("`", "")
-    )
+    sep = ": " if len(header) == 2 else " - "
+    body = "; ".join(sep.join(r) for r in rows)
+    return re.sub(r"\s+", " ", f"Table, {title} ({' / '.join(header)}). {body}".replace("`", ""))
 
 
-def tables_to_images(text: str, tables_dir: Path) -> str:
+def tables_to_images(text: str, tables_dir: Path, article: str) -> str:
     """Draw every table of `text` to a JPG and put an image reference in its place."""
     measure = Measurer()
     lines = text.split("\n")
     for first, last, heading, header, rows in reversed(parse_tables(text)):
-        g.need(heading in TABLES, f"no image settings for the table under {heading!r}")
-        stem, title, share = TABLES[heading]
+        settings = ARTICLES[article]
+        g.need(heading in settings, f"no image settings for the table under {heading!r}")
+        stem, title, shares = settings[heading]
         path = tables_dir / f"{stem}.jpg"
-        draw_table(measure, header, rows, title, share, path)
+        draw_table(measure, header, rows, title, shares, path)
         rel = f"./assets/tables/{stem}.jpg"
         lines[first : last + 1] = [f"![{alt_text(title, header, rows)}]({rel})"]
     return "\n".join(lines)
@@ -302,7 +317,7 @@ def embed(match: re.Match[str], base: Path, override: dict[str, Path]) -> str:
 
 
 def build(article: Path, html_dir: Path, tables_dir: Path) -> Path:
-    text = tables_to_images(article.read_text(encoding="utf-8"), tables_dir)
+    text = tables_to_images(article.read_text(encoding="utf-8"), tables_dir, article.stem)
     work = article.parent / ".build-medium.md"
     work.write_text(text, encoding="utf-8")
     try:
@@ -330,7 +345,7 @@ def build(article: Path, html_dir: Path, tables_dir: Path) -> Path:
     # an image alone in a paragraph is a bare <img>, as in the other pages
     body = re.sub(r"<p>(<img [^>]*?/>)</p>", r"\1", body)
     # the table images were drawn into tables_dir, which may not be the article's assets/tables
-    override = {f"./assets/tables/{p.name}": p for p in tables_dir.glob("streaming-results-*.jpg")}
+    override = {f"./assets/tables/{p.name}": p for p in tables_dir.glob("*.jpg")}
     body = re.sub(
         r'<img src="(?P<src>[^"]+)" alt="(?P<alt>[^"]*)" />',
         lambda m: embed(m, article.parent, override),

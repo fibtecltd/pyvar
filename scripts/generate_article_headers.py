@@ -348,6 +348,42 @@ def head_streaming_results() -> tuple[str, str, list[Tile]]:
     )
 
 
+def head_overview() -> tuple[str, str, list[Tile]]:
+    functions, domains = ff.catalogue_counts()
+    total, domain, arch, mcp = plugin_counts()
+    services = compose_services()
+    return (
+        "pyvar at a glance",
+        "Read from the function catalogue, config.py, the plugin manifest and the compose file when this image is drawn.",
+        [
+            (
+                f"{functions}",
+                f"risk functions in {domains} domains",
+                "market, credit, liquidity, ALM, operational and more",
+                False,
+            ),
+            (
+                f"{ff.default('rate_limit_free_daily')} a day",
+                "free calls, with no card",
+                "email or Google sign-in; Pro and Enterprise on request",
+                True,
+            ),
+            (
+                f"{total}",
+                "plugins to ask in plain language",
+                f"{domain} domain skills, {arch} architecture skills, {mcp} MCP server",
+                True,
+            ),
+            (
+                f"{len(services)} services",
+                "in one docker compose up",
+                f"{', '.join(services)}",
+                False,
+            ),
+        ],
+    )
+
+
 HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-plugins": head_plugins,
     "pyvar-plugins-live-recent-updates": head_live_updates,
@@ -356,6 +392,7 @@ HEADERS: dict[str, Callable[[], tuple[str, str, list[Tile]]]] = {
     "pyvar-domain-examples": head_domain_examples,
     "pyvar-rest-api-guide": head_rest_guide,
     "pyvar-streaming-results": head_streaming_results,
+    "pyvar-overview": head_overview,
 }
 
 
