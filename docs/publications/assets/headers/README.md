@@ -2,7 +2,7 @@
 
 8 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
 
-Regenerate every image with `python scripts/generate_article_headers.py` (needs `matplotlib`). Every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
+Regenerate every image with `python scripts/generate_article_headers.py` (needs `matplotlib`; the picture header also needs `pillow`, which matplotlib installs). Seven are fact tiles, and every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
 
 The other articles' headers, and ideas for the five that have none, are in `../../header-images.md`.
 
@@ -58,6 +58,8 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 ## 8. `header-pyvar-overview.png`
 
 - **Article:** `pyvar-overview-medium-article.md`
-- **Where:** under the title and subtitle
-- **Caption:** pyvar at a glance, read from the code.
-- **Alt text:** Four tiles: 385 risk functions in 8 domains; 10 free calls a day with no card; 14 plugins to ask in plain language (8 domain skills, 5 architecture skills, 1 MCP server); and 5 services in one docker compose up (migrate, pyvar-api, worker, redis, postgres).
+- **Where:** under the title and subtitle, no caption
+- **What it is:** a picture, not fact tiles: the dot-matrix bell curve kept in `source/bell-dot-matrix.jpg`, saved unchanged in size (1303 x 682) as PNG by `generate_article_headers.py`. To change it, replace the source file and run `python scripts/generate_article_headers.py --only overview`.
+- **Alt text:** A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background.
+
+The tiles that used to be this header are now the article's second image, `../overview/at-a-glance.png`, with the pyvar logo and each plan's call limits (`python scripts/generate_overview_figures.py`).
