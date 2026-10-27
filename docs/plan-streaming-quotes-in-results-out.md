@@ -506,10 +506,10 @@ at least a few real users; legal position on §3.9.
 
 ## 9. Phase 0 results
 
-Nine measurement runs by a delegated AWS agent against the dev stack: Phase 0
+Ten measurement runs by a delegated AWS agent against the dev stack: Phase 0
 (2026-10-22), 0b and 0c (2026-10-23), 0d (late on 2026-10-23, UTC), 0e (2026-10-24), 0f and
-0g (2026-10-25), 0h (2026-10-26) and 0i (after #403 was deployed, §9.12), plus one `/health`
-sample on prod. The numbers are the
+0g (2026-10-25), 0h (2026-10-26), 0i (after #403 was deployed, §9.12) and 0j (§9.13), plus one
+`/health` sample on prod. The numbers are the
 agent's; the code readings are mine. §9.7 reports local reproductions in my sandbox (a
 TLS-only Redis, the real app under uvicorn with two workers), which are not AWS numbers.
 
@@ -744,9 +744,8 @@ at once for a new waiter.
 
 ### 9.10 Still to do
 
-- A longer dev soak (about 40 cycles of 30 sockets) to see whether memory levels off: at the
-  0.27 points a cycle of 0i the 85% mark is about 70 cycles away if the line is straight (§9.12).
-  The AWS step is about fourteen times the local one and that is unexplained.
+- Memory: 0j measured about 1 MiB a cycle that follows the cycles, not the sockets, and has not
+  levelled off in 50 cycles (§9.13). Find what each cycle leaves behind (hypothesis in §9.13).
 - Redact `token=` in the API access line (§3.7, risk 17), and check the CloudFront logs.
 - The API-key path on dev: 0i could not create a test user (the dev database is private, with no
   Data API), so minting with a real key has only been tested locally.
@@ -863,6 +862,45 @@ route returned 401 (so the change is deployed).
   inside the tail of Part 1.
 - **Against the local run (§9.11).** 2.8 MiB a cycle on AWS against 0.2 MiB locally for the same 30
   sockets: the sandbox does not reproduce the size, and the difference has no explanation yet.
+
+### 9.13 A longer run on dev (0j)
+
+The same task as 0i (`pyvar-dev-api:40893c3`, started 2026-10-26 19:56 UTC); it began at 65.6%
+(672 MiB) after 0i's six cycles. Container Insights had `MemoryUtilized` for the service (whole
+MiB a minute); the percentage is that figure divided by 10.24, so MiB adds no resolution. Part 1:
+10 cycles of 10 sockets (a socket every 4 s, hold 15 s, close all, watch 60 s). Part 2: 40 cycles of
+30 sockets (a socket every 5 s, same hold and watch). Part 3: ten minutes with no sockets. The
+per-cycle data is `docs/data/streaming-memory-cycles-dev.csv`.
+
+| Span | Memory before, % (MiB) | Step per cycle |
+|---|---|---|
+| Part 1, cycles 1-10 (10 sockets) | 65.63 to 66.55 (672 to 681) | 0.117 points, 1.17 MiB |
+| Part 2, cycles 1-10 (30 sockets) | 66.60 to 67.48 (682 to 691) | 0.110 points, 1.13 MiB |
+| Part 2, cycles 31-40 | 68.95 to 69.63 (706 to 713) | 0.075 points, 0.77 MiB |
+| Part 2, all 40 cycles | 66.60 to 69.63 | 0.075 points, 0.75 MiB |
+
+- **Does it level off? No, it slows.** 672 to 715 MiB (+43 MiB, +4.2 points) over 50 cycles and
+  1,300 sockets; the slope fell by about a third and is not near zero. The early-finish check (the
+  value 8 cycles earlier within 0.15 points) never held: +0.78 at cycle 12, at least +0.29 at cycle
+  27, +0.63 at cycle 40. On a straight line from the last ten cycles the 85% mark (870 MiB) is about
+  200 cycles away.
+- **Per socket or per cycle? Per cycle.** Part 1 stepped +0.098 to +0.103 points a cycle (about 1.0
+  MiB) with 10 sockets and 111 s cycles; the first ten cycles of Part 2 stepped +0.098 with 30
+  sockets and 220 s cycles. Per cycle they match; per socket they differ 3 times (0.010 against
+  0.0033 points) and per minute 2 times. The step is about 1 MiB and the metric resolves 1 MiB, so
+  this sits at the resolution limit.
+- **Idle drift: none.** 715 MiB for the whole ten minutes of Part 3 (0.00 points); CPU 1.2-2.1%.
+- **Cache connections:** 11-18 (per-minute maximum), 11-17 before a cycle; wandering, with steps of
+  +2, +2, -2, +1, +1, +2, -1, -1; 11 at the start, 15 at the end.
+- **Sockets and logs.** 1,300 handshakes, all 101 (median 80 ms, worst 638 ms); no refusals (30
+  sockets over two processes never reach 25 each); every socket released within 0.65 s, none later
+  than 2 s; `/health` 494 calls, all 200, 68-185 ms. 0 "Shared job-done subscriber failed", 0 ERROR
+  (342 live checks). Memory peaked at 69.82%; no restart, no 429, 403 or 5xx.
+- **Against 0i.** 0i's six cycles (hold 30 s, watch 2 min) stepped 0.27 points, 2.8 MiB, a cycle;
+  0j's first ten stepped 1.1 MiB. The cycle shape differed and 0i's figure is six readings at 0.1
+  point; neither is precise.
+- **Caveats.** Whole-MiB resolution makes single steps noisy (0 to 2.4 MiB); the conclusions rest on
+  the 10- to 40-cycle means. A small CPU rise at the end of Part 3 is unexplained.
 
 ---
 

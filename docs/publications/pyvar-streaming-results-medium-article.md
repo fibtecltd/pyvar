@@ -128,11 +128,12 @@ All measurements are from `dev.pyvar.com`: 0.5 vCPU and 1 GiB per API container,
 | Minting a stream token | 76, 81 and 101 ms |
 | Frame after the worker stored the result | 126, 128 and 155 ms in the latest run, opened with a stream token; 128, 129 and 166 ms and 29, 125 and 156 ms in the two before |
 | Socket opened on a job that had already finished | 21 ms (one measurement, a 22 kB frame) |
-| WebSocket handshake through the edge | median 81 to 83 ms in each cycle, worst 152 ms, 180 of 180 returned 101 |
-| Server frees a closed client's slot | within 0.20 s, for 180 of 180 sockets |
+| WebSocket handshake through the edge | 1,300 of 1,300 returned 101; median 80 ms, worst 638 ms |
+| Server frees a closed client's slot | within 0.65 s, for 1,300 of 1,300 sockets |
 | Errors and failure log lines over the 2 h 22 min the task ran, including six 30-socket cycles | 0 |
 | API container, idle | 61.8% of 1 GiB memory, 1.1% CPU, 5 cache connections |
 | API container with 30 sockets held | 1.7 to 3.2% CPU; 9 to 13 cache connections in every cycle |
+| API container after 50 socket cycles (1,300 sockets), then 10 idle minutes | 672 to 715 MiB of 1 GiB, flat while idle; 11 to 18 cache connections, not stepping |
 
 Against polling every 2 seconds, the arithmetic is simple: a result stored at a random moment waits between 0 and 2 seconds for the next poll, 1 second on average, while the push takes around 0.13 s. The saving is largest for short jobs and for interfaces where a person is watching a spinner. For a long batch, polling every few seconds costs nothing noticeable.
 
@@ -142,7 +143,11 @@ Against polling every 2 seconds, the arithmetic is simple: a result stored at a 
 
 What streaming does not change is everything before the result is stored. On dev, with the worker pool at zero (it scales to zero about four minutes after the last job), one job took 162 seconds from POST to success, 6.2 s of it on the cold worker. And the compute itself is whatever the job needs: the other 385 functions are ordinary synchronous calls, and measured in-process on the same container size 371 of their 386 example requests had a median under 50 ms (overall median 5.9 ms), the slowest being the rough-volatility pricer at about 4 seconds.
 
-**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the latest AWS run held 30 sockets at a time across the container, six times, and no socket was ever refused. Memory under churn is the figure to watch. The container's memory was 63.95% just before the first cycle and 65.53% after the sixth, with each cycle adding between 0.1 and 0.5 points: 0.27 on average, about 3 MiB for 30 sockets opened and closed. It had not levelled off after six cycles, and then stayed flat at 65.53% for the five minutes that followed. The cache connections did not grow: 9 to 13 in every cycle. Extrapolated in a straight line, which six cycles cannot confirm, the 85% mark is about 70 such cycles, or roughly 2,000 sockets, away. A longer run on dev to see whether it levels off has not been done.
+**Holding sockets open.** The per-process limits (25 and 5) are configuration, not a measured maximum: the longest dev run held 30 sockets at a time across the container, 40 times, and no socket was ever refused. Memory under churn is the figure to watch. Over 50 cycles and 1,300 sockets (10 cycles of 10 sockets, then 40 of 30) the container's memory grew from 672 MiB to 715 MiB: about 1 MiB a cycle at first, easing to 0.77 MiB a cycle over the last ten. The step followed the number of cycles, not the number of sockets: about 1 MiB a cycle for 10-socket cycles and for 30-socket ones alike (the metric resolves 1 MiB, so that comparison is at its limit). It did not drift while the container then sat idle for ten minutes, and the cache connections wandered between 11 and 18 without stepping. The curve is slowing but has not levelled off; on a straight line from the last ten cycles, the 85% mark (870 MiB) is about 200 cycles away.
+
+![Line chart: the container's memory before each of 50 socket cycles, from 65.6% to 69.6% of 1 GiB (672 to 715 MiB after the last cycle), rising about 1 MiB a cycle for both the 10-socket and the 30-socket cycles.](./assets/streaming-results/memory-per-cycle.png)
+
+*Memory before each socket cycle, 50 cycles on dev.*
 
 ## Sources
 
@@ -151,6 +156,6 @@ What streaming does not change is everything before the result is stored. On dev
 - [`tasks/var_task.py`](https://github.com/fibtecltd/pyvar/blob/master/tasks/var_task.py): the worker's completion signal.
 - [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py): the 900 s wait, the stream limits, the 10 s safety re-read.
 - [`docs/plan-streaming-quotes-in-results-out.md`](https://github.com/fibtecltd/pyvar/blob/master/docs/plan-streaming-quotes-in-results-out.md), section 9: the measurement runs behind the table above. [`docs/data/streaming-phase0d-latency.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-phase0d-latency.csv): the per-function latencies.
-- [`docs/data/streaming-push-lag-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-push-lag-dev.csv): the nine push delays in the chart.
+- [`docs/data/streaming-push-lag-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-push-lag-dev.csv): the nine push delays in the first chart. [`docs/data/streaming-memory-cycles-dev.csv`](https://github.com/fibtecltd/pyvar/blob/master/docs/data/streaming-memory-cycles-dev.csv): the 50 cycles of the memory chart.
 
 *How this was made: written with Claude Code. The AWS measurements were taken by a scripted agent on the dev stack and are quoted from its reports; the example frame was produced locally on the code in this repository. Minting with a real API key is covered by the test suite but was not run on dev, where the agent minted with a service session token.*
