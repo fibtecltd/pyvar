@@ -746,7 +746,7 @@ at once for a new waiter.
 
 - Memory: 0j measured about 1 MiB a cycle that follows the cycles, not the sockets, and has not
   levelled off in 50 cycles (§9.13). Locally the cause is the shared subscriber's idle close, and
-  keeping its client fixes it (§9.14); the fix is not in the repository yet. Once it is deployed,
+  keeping its client fixes it (§9.14); the fix is in `_JobDoneBus` and has not run on AWS. Once it is deployed,
   repeat 0j (about 20 cycles of 30 sockets, hold 15 s, watch 60 s) to see the AWS step fall.
 - Redact `token=` in the API access line (§3.7, risk 17), and check the CloudFront logs.
 - The API-key path on dev: 0i could not create a test user (the dev database is private, with no
@@ -934,8 +934,9 @@ against the change below. Memory gained, mean of each ten cycles (MiB):
   framework alone shows (§9.11).
 - **What this does not show.** The rebuild cost here, about 0.5 MiB, is half of 0j's 1 MiB a cycle,
   and nothing here has run on AWS. On AWS a rebuild happens whenever the subscriber sits unused for
-  60 s, which any quiet minute between jobs causes, so real traffic pays it too. The change is not in
-  the repository yet; it needs a repeat of 0j on dev (§9.10).
+  60 s, which any quiet minute between jobs causes, so real traffic pays it too. The change is in
+  `_JobDoneBus` (`api/routes/var.py`, tests in `tests/test_job_done_bus.py`); it needs a repeat of 0j
+  on dev once deployed (§9.10).
 
 ---
 
