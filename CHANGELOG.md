@@ -121,6 +121,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The shared subscriber rebuilt its Redis client every time it idled out, which cost about 1 MiB
+  per socket cycle on dev** — found by Phase 0j on dev (50 cycles of 10 or 30 sockets: 672 to 715
+  MiB, about 1 MiB a cycle, following the number of cycles and not of sockets) and reproduced
+  locally. `_JobDoneBus` lets its Pub/Sub connection go after `_BUS_IDLE_CLOSE_SECONDS` (60 s) with
+  nobody waiting, and every 0j cycle's 60 s watch let it; the restart built a new
+  `aioredis.Redis` client, so a new connection object and a new TLS context (0.8 MiB) that stayed
+  until the cyclic collector ran. The bus now keeps its client for the life of the process and the
+  idle close lets go of the Pub/Sub object only: the next subscription takes the same pooled
+  connection object, with the TLS context it already holds. A failed or stopped reader still closes
+  the client, and a client of another event loop is not reused. Locally, with the close forced every
+  cycle (30 sockets, 60 cycles, two workers, TLS Redis): +60.8 MiB with the old code, +32.2 with
+  the close off, +26.6 with this change; most cache connections 14, 10 and 8. Not yet measured on
+  AWS: repeat Phase 0j once it is deployed. Tests in `tests/test_job_done_bus.py`; details in
+  `docs/plan-streaming-quotes-in-results-out.md` section 9.14.
+
 - **Result reads built a Celery backend per pool thread, which showed as memory growing with
   socket churn** — found by profiling the 30-sockets-per-cycle soak locally (two uvicorn workers,
   a TLS Redis). Celery keeps one result backend per thread unless the backend class is
@@ -135,8 +150,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   (30 sockets a cycle, two workers): memory gained after 10 / 50 / 100 / 150 cycles went from
   21.8 / 40.2 / 53.1 / 77.2 MiB to 22.9 / 32.2 / 35.8 / 47.9 MiB, the most cache connections from
   44 to 10, and `RedisBackend` objects per process from up to 21 to 2. The soak still climbs about
-  0.2 MiB a cycle, half of which a bare Starlette WebSocket app shows too; the size of the step on
-  AWS has not been re-measured. Tests in `tests/test_result_backend.py`; details in
+  0.2 MiB a cycle, half of which a bare Starlette WebSocket app shows too. On dev (Phases 0i and 0j)
+  the cache connections stopped stepping (9-18 against 22-28) and the memory step was about
+  1 MiB a cycle, explained by the entry above. Tests in `tests/test_result_backend.py`; details in
   `docs/plan-streaming-quotes-in-results-out.md` section 9.11.
 
 - **A closed `WS /api/v1/var/stream/{task_id}` client was noticed only when the safety timer ended** —

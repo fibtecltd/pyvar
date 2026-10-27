@@ -349,9 +349,17 @@ async def test_registering_while_the_connection_is_down_does_not_wait_for_it(bus
         await bus.close()
 
 
-async def test_the_reader_gives_its_connection_back_when_nobody_waits_and_restarts_on_demand(bus):
+async def test_an_idle_reader_lets_its_pubsub_go_but_keeps_the_client_for_the_next_waiter(bus):
+    """Phase 0j on dev: memory rose about 1 MiB every socket cycle, and the cycles were longer
+    than the idle close. Each restart built a new client, so a new connection and a new TLS
+    context (0.8 MiB) that was not freed until the garbage collector ran. Locally, with the
+    close forced every cycle: +60.8 MiB after 60 cycles, against +26.6 with the client kept.
+    The Pub/Sub object goes; the client, and so the connection object it hands out again, stays."""
     first, second = _FakePubSub(), _FakePubSub()
-    from_url, clients = _client_for(first, second)
+    client = MagicMock()
+    client.pubsub = MagicMock(side_effect=[first, second])
+    client.aclose = AsyncMock()
+    from_url = MagicMock(return_value=client)
 
     with (
         patch.object(var_routes.aioredis.Redis, "from_url", from_url),
@@ -365,7 +373,8 @@ async def test_the_reader_gives_its_connection_back_when_nobody_waits_and_restar
             if bus._reader.done():
                 break
         assert bus._reader.done()
-        clients[0].aclose.assert_awaited()
+        first.aclose.assert_awaited()
+        client.aclose.assert_not_awaited()
         assert first.get_message_calls > 0
 
         await bus.register("task-2")
@@ -374,7 +383,27 @@ async def test_the_reader_gives_its_connection_back_when_nobody_waits_and_restar
         assert "pyvar:var-job-done:task-2" in second.subscribed
         await bus.close()
 
-    assert from_url.call_count == 2
+    assert from_url.call_count == 1  # one client for the life of the process
+    assert client.pubsub.call_count == 2
+    client.aclose.assert_awaited()  # and it is closed at shutdown
+
+
+async def test_a_client_that_belongs_to_another_event_loop_is_not_reused(bus):
+    stale = MagicMock()
+    stale.pubsub = MagicMock(side_effect=AssertionError("a client of another loop was used"))
+    pubsub = _FakePubSub()
+    from_url, clients = _client_for(pubsub)
+    bus._client = stale
+    bus._loop = object()  # an earlier loop
+
+    with patch.object(var_routes.aioredis.Redis, "from_url", from_url):
+        await bus.register("task-1")
+        await _settle()
+        assert bus.healthy
+        await bus.close()
+
+    assert from_url.call_count == 1
+    clients[0].aclose.assert_awaited()
 
 
 async def test_close_stops_the_reader(bus):

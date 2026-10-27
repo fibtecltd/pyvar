@@ -508,7 +508,7 @@ def _job_done_channel(task_id: str) -> str:
 _BUS_POLL_SECONDS = 0.05  # how long the reader waits on the connection before it applies changes
 _BUS_IDLE_TICK_SECONDS = 1.0  # how often an idle reader checks whether to give its connection back
 _BUS_SUBSCRIBE_WAIT_SECONDS = 2.0  # most a registering socket waits for its subscription
-_BUS_IDLE_CLOSE_SECONDS = 60.0  # the reader closes its connection after this long unused
+_BUS_IDLE_CLOSE_SECONDS = 60.0  # the reader lets its Pub/Sub connection go after this long unused
 _BUS_CLOSE_WAIT_SECONDS = 5.0  # most close() waits for the reader to stop
 
 
@@ -541,6 +541,7 @@ class _JobDoneBus:
         self._subscribed: set[str] = set()  # task ids the live connection has been told about
         self._sent: dict[str, asyncio.Event] = {}  # set once a task's SUBSCRIBE has been sent
         self._reader: asyncio.Task[None] | None = None
+        self._client: Any = None  # kept across idle closes: see _read_forever
         self._loop: asyncio.AbstractEventLoop | None = None
         self._down = False  # the connection failed and is not back yet
         self._closing = False
@@ -557,6 +558,8 @@ class _JobDoneBus:
             self._down = False
             self._closing = False
             self._changed = asyncio.Event()
+            if self._loop is not loop:
+                self._client = None  # it belongs to another loop
             self._loop = loop
             self._reader = loop.create_task(self._read_forever())
         event = asyncio.Event()
@@ -611,18 +614,20 @@ class _JobDoneBus:
     async def _read_forever(self) -> None:
         backoff = 1.0
         while not self._closing:
-            client: Any = None
             pubsub: Any = None
+            idle = False
             self._subscribed = set()
             idle_since = time.monotonic()
             try:
-                client = aioredis.Redis.from_url(redis_url(), health_check_interval=30)
-                pubsub = client.pubsub()
+                if self._client is None:
+                    self._client = aioredis.Redis.from_url(redis_url(), health_check_interval=30)
+                pubsub = self._client.pubsub()
                 while not self._closing:
                     await self._apply_subscriptions(pubsub)
                     if not self._subscribed:
                         if time.monotonic() - idle_since > _BUS_IDLE_CLOSE_SECONDS:
-                            return  # nobody has waited for a while: give the connection back
+                            idle = True
+                            return  # nobody has waited for a while: let the connection go
                         self._changed.clear()
                         with contextlib.suppress(asyncio.TimeoutError):
                             await asyncio.wait_for(
@@ -652,10 +657,17 @@ class _JobDoneBus:
                 self._down = True
                 for sent in tuple(self._sent.values()):
                     sent.set()  # nobody should keep waiting for a subscription that is gone
-                for closable in (pubsub, client):
-                    if closable is not None:
+                closable: list[Any] = [pubsub]
+                if not idle:
+                    # a failed or stopped connection is dropped; an idle one is kept, so that
+                    # the next subscription reuses its connection object and the TLS context
+                    # that object already holds, instead of building (and leaving) a new one
+                    closable.append(self._client)
+                    self._client = None
+                for item in closable:
+                    if item is not None:
                         try:
-                            await closable.aclose()
+                            await item.aclose()
                         except Exception:  # noqa: BLE001 — best-effort cleanup only
                             logger.warning("Failed to close the job-done subscriber")
             await asyncio.sleep(backoff)
