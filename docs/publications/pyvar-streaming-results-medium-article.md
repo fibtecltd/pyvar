@@ -14,11 +14,11 @@ The pyvar streaming service is now available on the dev endpoint, `https://dev.p
 
 ## What changes for a client
 
-Until now an asynchronous VaR job had one way out:
+Until now an asynchronous VaR job had one way out, a polling loop:
 
 ```
 POST /api/v1/var/compute            ->  202 {"task_id": "..."}
-GET  /api/v1/var/result/{task_id}   ->  pending ... pending ... success    (every N seconds)
+GET  /api/v1/var/result/{task_id}   ->  pending ... pending ... success
 ```
 
 Now there is a second way:
@@ -117,7 +117,7 @@ Four practical notes:
 - **One socket per job.** Open it after the `202`. A job that is already done is answered before the stream limits apply.
 - **Limits.** Waiting streams are capped per server process: 25 in all and 5 per account, with two processes in each API container. At the cap you get 1013, and the poll endpoint still works.
 - **HTTP/1.1 only.** A WebSocket cannot upgrade over HTTP/2. Browsers and the common libraries handle this; if you build your own TLS context, offer `http/1.1` and not `h2`. The server pings every 20 seconds, and standard clients answer on their own.
-- **Keep the key out of the URL.** The stream takes a stream token, or a session token, and never an API key: URLs are logged by the API and by the CDN in front of it. The API's access log does record the full URL, token included, so what matters is that a stream token is worth nothing a minute later: a logged URL is harmless; a session token lasts an hour, so prefer the stream token. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
+- **Keep the key out of the URL.** The stream takes a stream token, or a session token, and never an API key. URLs are logged by the API and by the CDN in front of it, and the API's access log records the full URL, token included. That is harmless for a stream token, which is worth nothing a minute later; a session token lasts an hour, so prefer the stream token. Like the poll endpoint, the stream answers any signed-in caller who holds the task id, and task ids are random UUIDs, so treat one like a secret in shared logs.
 
 ## How it performs
 
@@ -130,7 +130,7 @@ All measurements are from `dev.pyvar.com`: 0.5 vCPU and 1 GiB per API container,
 | Socket opened on a job that had already finished | 21 ms (one measurement, a 22 kB frame) |
 | WebSocket handshake through the edge | 1,300 of 1,300 returned 101; median 80 ms, worst 638 ms |
 | Server frees a closed client's slot | within 0.65 s, for 1,300 of 1,300 sockets |
-| Errors and failure log lines over the 2 h 22 min the task ran, including six 30-socket cycles | 0 |
+| Errors and failure log lines across 56 socket cycles (1,480 sockets) on one task | 0 |
 | API container, idle | 61.8% of 1 GiB memory, 1.1% CPU, 5 cache connections |
 | API container with 30 sockets held | 1.7 to 3.2% CPU; 9 to 13 cache connections in every cycle |
 | API container after 50 socket cycles (1,300 sockets), then 10 idle minutes | 672 to 715 MiB of 1 GiB, flat while idle; 11 to 18 cache connections, not stepping |
