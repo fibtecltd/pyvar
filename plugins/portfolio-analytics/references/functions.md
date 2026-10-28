@@ -538,7 +538,7 @@ for its own interaction effect, so the three currency sub-effects sum
 exactly to ``currency_effect`` (which itself sums with ``local_effect``
 to ``total_return``, as before).
 
-Formula (LaTeX): `\text{(default)}\;\; R^{local}_i = w_i r^{L}_i, \quad R^{fx}_i = w_i\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\right] \\ \text{(Karnosky-Singer, opt-in)}\;\; p_i = \frac{1+r^L_i}{1+r^{L,f}_i}-1, \quad f_i = \frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \quad s_i = \frac{1+r^{FX}_i}{1+f_i}-1 \\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)`
+Formula (LaTeX): `\text{(default)}\;\; R^{local}_i = w_i r^{L}_i, \quad R^{fx}_i = w_i\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\right] \\ \text{(Karnosky-Singer, opt-in)}\;\; p_i = \frac{1+r^L_i}{1+r^{L,f}_i}-1, \quad f_i = \frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\ s_i = \frac{1+r^{FX}_i}{1+f_i}-1 \\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -781,7 +781,7 @@ and unexecuted alike) -- this function still does not model any
 explicit commission/fee leg, which some treatments of Perold's
 decomposition include as a further, separate component.
 
-Formula (LaTeX): `Slippage_{bps} = \frac{\sum_i s \cdot (p_i - b_i) \cdot q_i}{\sum_i b_i q_i} \times 10^4 \\ \text{(opt-in)}\;\; Delay_{bps} = \frac{\sum_i s \cdot (b_i - d_i) \cdot q_i}{\sum_i d_i q_i} \times 10^4, \quad IS_{bps} = \frac{\sum_i s \cdot (p_i - d_i) \cdot q_i}{\sum_i d_i q_i} \times 10^4 \\ \text{(opt-in)}\;\; Opportunity_{bps} = \frac{s\cdot(c - d)\cdot u}{\sum_i d_i q_i + d\cdot u} \times 10^4, \quad TotalIS_{bps} = \frac{\sum_i s\cdot(p_i - d_i)\cdot q_i + s\cdot(c-d)\cdot u}{\sum_i d_i q_i + d\cdot u} \times 10^4`
+Formula (LaTeX): `Slippage_{bps} = \frac{\sum_i s \cdot (p_i - b_i) \cdot q_i}{\sum_i b_i q_i} \times 10^4 \\ \text{(opt-in)}\;\; Delay_{bps} = \frac{\sum_i s \cdot (b_i - d_i) \cdot q_i}{\sum_i d_i q_i} \times 10^4, \\ IS_{bps} = \frac{\sum_i s \cdot (p_i - d_i) \cdot q_i}{\sum_i d_i q_i} \times 10^4 \\ \text{(opt-in)}\;\; Opportunity_{bps} = \frac{s\cdot(c - d)\cdot u}{\sum_i d_i q_i + d\cdot u} \times 10^4, \\ TotalIS_{bps} = \frac{\sum_i s\cdot(p_i - d_i)\cdot q_i + s\cdot(c-d)\cdot u}{\sum_i d_i q_i + d\cdot u} \times 10^4`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -846,7 +846,7 @@ intensity-scaled quantity with no ownership interpretation -- an
 investor's ownership share can never legitimately attribute more than
 the company's own total emissions (verified in tests).
 
-Formula (LaTeX): `WACI = \sum_i w_i \cdot CI_i \\ \text{(default)}\;\; E_i = w_i \cdot V_{port} \cdot CI_i \\ \text{(PCAF, opt-in)}\;\; \text{share}_i = \frac{w_i V_{port}}{V^{company}_i}, \quad E_i = \text{share}_i \cdot E^{company}_i, \quad E_{total} = \sum_i E_i`
+Formula (LaTeX): `WACI = \sum_i w_i \cdot CI_i \\ \text{(default)}\;\; E_i = w_i \cdot V_{port} \cdot CI_i \\ \text{(PCAF, opt-in)}\;\; \text{share}_i = \frac{w_i V_{port}}{V^{company}_i}, \quad E_i = \text{share}_i \cdot E^{company}_i, \\ E_{total} = \sum_i E_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

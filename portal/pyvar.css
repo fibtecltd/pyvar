@@ -205,14 +205,31 @@ a { color: inherit; text-decoration: none; }
   background: transparent; cursor: pointer; flex-shrink: 0;
 }
 .tryit-close:hover { color: var(--text2); border-color: var(--border2); }
-.tryit-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; }
+.tryit-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; overflow-wrap: anywhere; }
 /* ── Formula block (P11 item 5) ── */
 .tryit-formula:empty { display: none; }
 .tryit-formula {
   background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px 16px; margin-bottom: 18px; overflow-x: auto;
+  padding: 14px 16px; margin-bottom: 18px;
 }
-.tryit-formula-katex { font-size: 14px; color: var(--text); }
+/* Only the formula line scrolls, never the legend or the note under it. It spans the full width of
+   the box (negative margin, padding put back) so a long formula scrolls under the border. */
+.tryit-formula-katex {
+  font-size: 14px; color: var(--text);
+  margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: thin;
+  /* A formula too wide even after wrapping scrolls sideways; the shaded edge (drawn only on a
+     side that has more to scroll to) tells the reader so, since overlay scrollbars stay hidden. */
+  background:
+    linear-gradient(to right, var(--bg3) 30%, transparent) left center / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--bg3) 30%, transparent) right center / 28px 100% no-repeat local,
+    linear-gradient(to right, rgba(31,30,29,0.16), transparent) left center / 12px 100% no-repeat scroll,
+    linear-gradient(to left, rgba(31,30,29,0.16), transparent) right center / 12px 100% no-repeat scroll;
+}
+/* KaTeX keeps a display formula on one line; let it wrap at relations and operators instead of
+   running off the right edge of the panel (long formulas are also split at clause boundaries in
+   scripts/data/function_formulas.json). */
+.tryit-formula-katex .katex-display > .katex { white-space: normal; }
+.tryit-formula-katex .katex-display > .katex > .katex-html { display: block; }
 .tryit-formula-legend {
   display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px;
   padding-top: 10px; border-top: 1px solid var(--border);
