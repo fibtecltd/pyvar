@@ -17,7 +17,8 @@ Reasoning:
   PNG or JPG.
 - Tooling dependency of this script only:  pip install playwright  (it launches the Chromium it
   finds; pass --chromium PATH for a browser installed elsewhere). The site must be reachable, or
-  pass --site http://localhost:8080 for a local copy of portal/.
+  pass --site http://127.0.0.1:8077 for a local copy of portal/ (python -m http.server 8077
+  --directory portal), which shows a portal change before it is deployed.
 
 Usage (repo root):
     python scripts/generate_site_screenshots.py
@@ -133,7 +134,7 @@ async def capture(shot: Shot, site: str, out: Path, chromium: str | None) -> Pat
     from playwright.async_api import FloatRect, Route, ViewportSize, async_playwright
 
     entry = catalogue()[shot.function]
-    proxy = os.environ.get("HTTPS_PROXY")
+    proxy = os.environ.get("HTTPS_PROXY") if site.startswith("https://") else None
     posted: list[dict[str, Any]] = []
 
     async with gpe.gateway_client() as client:

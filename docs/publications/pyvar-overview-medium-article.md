@@ -193,6 +193,6 @@ The free tier allows 10 calls a day and up to 10,000 simulations per Monte Carlo
 - [`tests/validation/`](https://github.com/fibtecltd/pyvar/tree/master/tests/validation): the external-reference suites, one per domain.
 - [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md): the tiers, the stack, the cost, the AI-use disclosure and the disclaimer.
 - [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py): the free-tier limits.
-- [`scripts/generate_site_screenshots.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_site_screenshots.py): the four Try it screenshots. It opens the live pyvar.com page, fills the panel in and presses Run; the result shown is what the real application returns for exactly the inputs the panel sent.
+- [`scripts/generate_site_screenshots.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_site_screenshots.py): the four Try it screenshots. It opens the pyvar.com page, fills the panel in and presses Run; the result shown is what the real application returns for exactly the inputs the panel sent.
 
 *How this was made: written with Claude Code from the repository's own examples, counts and documentation. Every figure is from a run on synthetic inputs with a fixed seed or from the repository itself; the AWS timings come from scripted runs on the dev stack.*
