@@ -128,7 +128,7 @@ Formula (LaTeX): `EVE = \sum_i CF_i^A e^{-r_i^A t_i^A} - \sum_j CF_j^L e^{-r_j^L
 [REGULATORY] BCBS d368. Reports ΔEVE for every prescribed scenario and the
 worst case — the headline supervisory metric.
 
-Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k},\quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0),\quad \Delta EVE_{worst}=\min_s\Delta EVE_s`
+Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0), \\ \Delta EVE_{worst}=\min_s\Delta EVE_s`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -197,7 +197,7 @@ Formula (LaTeX): `NII_{adj} = NII_{base} + B\,(y_B-c_F-p_{liq})`
 of net banking-book cashflows under the shocked curve; the regulatory metric
 is the maximum loss (most negative ΔEVE).
 
-Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k},\quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0),\quad \Delta EVE_{worst}=\min_s \Delta EVE_s`
+Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0), \\ \Delta EVE_{worst}=\min_s \Delta EVE_s`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -216,7 +216,7 @@ Unlike the standardised framework this accepts an arbitrary matrix of
 rate-shock scenarios (e.g. historical or Monte Carlo simulated) and reports
 the EVE distribution and a 99% worst-case.
 
-Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k},\quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0),\quad WorstCase_{99}=\mathrm{Percentile}_{1\%}\big(\{\Delta EVE_s\}\big)`
+Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+\Delta r_s)-EVE(r_0), \\ WorstCase_{99}=\mathrm{Percentile}_{1\%}\big(\{\Delta EVE_s\}\big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -238,7 +238,7 @@ as ``e^{−t/4}``). See the module docstring for a [LIMITATION] on the
 default shock magnitudes (``parallel_bps``/``short_bps``/``long_bps``) --
 BCBS d578 recalibrated these in 2024, effective 2026.
 
-Formula (LaTeX): `\begin{aligned}s_{short}(t) &= \dfrac{short_{bps}}{10^4}e^{-t/4},\quad s_{long}(t)=\dfrac{long_{bps}}{10^4}\big(1-e^{-t/4}\big)\\Steepener &= -0.65\,s_{short}+0.90\,s_{long},\quad Flattener = 0.80\,s_{short}-0.60\,s_{long},\quad Parallel_{\pm}=\pm\dfrac{parallel_{bps}}{10^4}\end{aligned}`
+Formula (LaTeX): `\begin{aligned}s_{short}(t) &= \dfrac{short_{bps}}{10^4}e^{-t/4},\\s_{long}(t) &= \dfrac{long_{bps}}{10^4}\big(1-e^{-t/4}\big)\\Steepener &= -0.65\,s_{short}+0.90\,s_{long},\\Flattener &= 0.80\,s_{short}-0.60\,s_{long},\\Parallel_{\pm} &= \pm\dfrac{parallel_{bps}}{10^4}\end{aligned}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -308,7 +308,7 @@ named the wrong section; the 15%-of-Tier-1 supervisory outlier test is set
 out under Principle 12): a bank is an outlier if the worst-case EVE
 decline exceeds 15% of Tier-1 capital. Capital implied is the breach amount.
 
-Formula (LaTeX): `Decline = \big|\min(\Delta EVE_{worst},0)\big|,\quad Threshold=\theta\cdot Tier1,\quad AddOn=\max(Decline-Threshold,0)`
+Formula (LaTeX): `Decline = \big|\min(\Delta EVE_{worst},0)\big|, \quad Threshold=\theta\cdot Tier1, \\ AddOn=\max(Decline-Threshold,0)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -388,7 +388,7 @@ balance each month), not a single closed-form cashflow expression.
 
 Higher CPR shortens the weighted-average life (WAL) of the pool.
 
-Formula (LaTeX): `\begin{aligned}PMT &= \dfrac{P\,r_m}{1-(1+r_m)^{-n}},\ r_m=\dfrac{r}{12},\ n=12T,\quad SMM = 1-(1-CPR)^{1/12}\\I_m &= B_{m-1}r_m,\quad P_m^{sched}=\min(PMT-I_m,\,B_{m-1}),\quad Prepay_m = SMM\,(B_{m-1}-P_m^{sched})\\CF_m &= I_m+P_m^{sched}+Prepay_m,\quad B_m = B_{m-1}-P_m^{sched}-Prepay_m\\WAL &= \dfrac{\sum_m (m/12)\,CF_m}{\sum_m CF_m}\end{aligned}`
+Formula (LaTeX): `\begin{aligned}PMT &= \dfrac{P\,r_m}{1-(1+r_m)^{-n}},\ r_m=\dfrac{r}{12},\ n=12T,\\SMM &= 1-(1-CPR)^{1/12}\\I_m &= B_{m-1}r_m,\\P_m^{sched} &= \min(PMT-I_m,\,B_{m-1}),\\Prepay_m &= SMM\,(B_{m-1}-P_m^{sched})\\CF_m &= I_m+P_m^{sched}+Prepay_m,\\B_m &= B_{m-1}-P_m^{sched}-Prepay_m\\WAL &= \dfrac{\sum_m (m/12)\,CF_m}{\sum_m CF_m}\end{aligned}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -410,7 +410,7 @@ this model addresses, not the calculation performed here.
 slowly; non-core (volatile) deposits run off quickly. Returns the projected
 surviving balance and the effective average life.
 
-Formula (LaTeX): `B_{surv} = B\,f_{core}\,e^{-r_{core} H} + B\,(1-f_{core})\,e^{-r_{nc} H} \quad EL = \dfrac{B f_{core}/r_{core} + B(1-f_{core})/r_{nc}}{B}`
+Formula (LaTeX): `B_{surv} = B\,f_{core}\,e^{-r_{core} H} + B\,(1-f_{core})\,e^{-r_{nc} H} \\ EL = \dfrac{B f_{core}/r_{core} + B(1-f_{core})/r_{nc}}{B}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -428,7 +428,7 @@ Stable balance = the low percentile of the historical balance series (the
 level retained with ``confidence_level`` probability); the volatile portion
 is the remainder versus the current balance.
 
-Formula (LaTeX): `B_{stable} = \mathrm{Percentile}_{(1-c)\times100\%}\big(\{B_t\}\big) \quad B_{volatile} = \max(B_{current}-B_{stable},0) \quad f_{stable} = \dfrac{B_{stable}}{B_{current}}`
+Formula (LaTeX): `B_{stable} = \mathrm{Percentile}_{(1-c)\times100\%}\big(\{B_t\}\big) \quad B_{volatile} = \max(B_{current}-B_{stable},0) \\ f_{stable} = \dfrac{B_{stable}}{B_{current}}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -591,7 +591,7 @@ Tier-1 capital ratio and the 15% outlier-test check on top.
 expresses the worst-case loss as a fraction of Tier-1 capital (the
 supervisory outlier ratio).
 
-Formula (LaTeX): `\Delta EVE_{worst} = \min_s\big(EVE(r_0+\Delta r_s)-EVE(r_0)\big) \quad Ratio = \dfrac{\big|\min(\Delta EVE_{worst},0)\big|}{Tier1}`
+Formula (LaTeX): `\Delta EVE_{worst} = \min_s\big(EVE(r_0+\Delta r_s)-EVE(r_0)\big) \\ Ratio = \dfrac{\big|\min(\Delta EVE_{worst},0)\big|}{Tier1}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -608,7 +608,7 @@ Formula (LaTeX): `\Delta EVE_{worst} = \min_s\big(EVE(r_0+\Delta r_s)-EVE(r_0)\b
 Assets and liabilities grow geometrically; equity is the residual; NII each
 year is ``assets·yield − liabilities·cost``. Returns the projected paths.
 
-Formula (LaTeX): `A_t = A_0(1+g_A)^t,\quad L_t = L_0(1+g_L)^t,\quad E_t = A_t-L_t,\quad NII_t = A_t y_A - L_t c_L,\quad t=1,\dots,n`
+Formula (LaTeX): `A_t = A_0(1+g_A)^t, \quad L_t = L_0(1+g_L)^t, \quad E_t = A_t-L_t, \\ NII_t = A_t y_A - L_t c_L, \quad t=1,\dots,n`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

@@ -829,7 +829,7 @@ At the boundary cases ``x = 0`` or ``x = n`` (zero or 100% observed breach
 rate) the likelihood ratio is computed with a simplified one-sided form to
 avoid ``ln(0)``; the general two-sided expression applies for ``0 < x < n``.
 
-Formula (LaTeX): `LR_{POF} = -2\Big[(n-x)\ln(1-p) + x\ln p - (n-x)\ln(1-\hat\pi) - x\ln\hat\pi\Big],\quad p = 1-\alpha,\ \hat\pi = x/n`
+Formula (LaTeX): `LR_{POF} = -2\Big[(n-x)\ln(1-p) + x\ln p - (n-x)\ln(1-\hat\pi) - x\ln\hat\pi\Big], \\ p = 1-\alpha,\ \hat\pi = x/n`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -930,7 +930,7 @@ independence assumption that the Christoffersen test formalises.
 This is an algorithmic run-length computation over the breach sequence,
 not a closed-form statistic.
 
-Formula (LaTeX): `\text{clusters} = \{\text{maximal runs of consecutive } b_t=1\}\\ n_{clusters}=|\text{clusters}|,\quad \max\_len=\max_i \text{len}(run_i),\quad \overline{len}=\frac{1}{n_{clusters}}\sum_i \text{len}(run_i)`
+Formula (LaTeX): `\text{clusters} = \{\text{maximal runs of consecutive } b_t=1\} \\ n_{clusters}=|\text{clusters}|, \quad \max\_len=\max_i \text{len}(run_i), \\ \overline{len}=\frac{1}{n_{clusters}}\sum_i \text{len}(run_i)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

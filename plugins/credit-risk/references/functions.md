@@ -140,7 +140,7 @@ Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for
 senior unsecured and 75% for subordinated claims (CRE32). EAD and maturity
 are also supervisory (M defaults to 2.5 years).
 
-Formula (LaTeX): `LGD_{sup} = 0.45\ (\text{senior unsecured})\ \text{or}\ 0.75\ (\text{subordinated}) \\ K = \max\!\left(0,\ \left[LGD_{sup}\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}\right) - PD\cdot LGD_{sup}\right]\cdot MA\right), \quad RWA = 12.5\cdot K\cdot EAD`
+Formula (LaTeX): `LGD_{sup} = 0.45\ (\text{senior unsecured})\ \text{or}\ 0.75\ (\text{subordinated}) \\ K = \max\!\left(0,\,\left[LGD_{sup}\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}\right) - PD\cdot LGD_{sup}\right]MA\right), \\ RWA = 12.5\cdot K\cdot EAD`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -161,7 +161,7 @@ Under A-IRB the bank supplies its own PD, LGD, EAD and effective maturity.
 The risk-weight function is identical to F-IRB; only the parameter sources
 differ.
 
-Formula (LaTeX): `K = \max\!\left(0,\ \left[LGD\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}\right) - PD\cdot LGD\right]\cdot MA\right), \quad RWA = 12.5\cdot K\cdot EAD \\ MA = \frac{1+(M-2.5)\,b(PD)}{1-1.5\,b(PD)}, \quad b(PD)=(0.11852-0.05478\ln PD)^2`
+Formula (LaTeX): `K = \max\!\left(0,\ \left[LGD\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}\right) - PD\cdot LGD\right]\cdot MA\right), \\ RWA = 12.5\cdot K\cdot EAD \\ MA = \frac{1+(M-2.5)\,b(PD)}{1-1.5\,b(PD)}, \quad b(PD)=(0.11852-0.05478\ln PD)^2`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -230,7 +230,7 @@ the loss quantile (VaR) and the mean tail loss (ES / CVaR). Expected Loss is
 the simulation mean; Unexpected Loss is ``VaR - EL`` (economic-capital
 convention).
 
-Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{default}_i \iff A_i<\Phi^{-1}(PD_i) \\ L = \sum_i LGD_i\,EAD_i\,\mathbb{1}[\text{default}_i], \quad VaR = \text{quantile}_q(L), \quad ES = \mathbb{E}[L\mid L\ge VaR]`
+Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{default}_i \iff A_i<\Phi^{-1}(PD_i) \\ L = \sum_i LGD_i\,EAD_i\,\mathbb{1}[\text{default}_i], \quad VaR = \text{quantile}_q(L), \\ ES = \mathbb{E}[L\mid L\ge VaR]`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -298,7 +298,7 @@ including default as the last"): index 0 is the best rating, index
 ``n_states - 2`` the worst non-default rating, and index ``n_states - 1``
 is always default.
 
-Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{default}_i \iff A_i<\Phi^{-1}(PD_i) \\ L = \sum_i LGD_i\,EAD_i\,\mathbb{1}[\text{default}_i], \quad VaR = \text{quantile}_q(L), \quad ES = \mathbb{E}[L\mid L\ge VaR]`
+Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{default}_i \iff A_i<\Phi^{-1}(PD_i) \\ L = \sum_i LGD_i\,EAD_i\,\mathbb{1}[\text{default}_i], \quad VaR = \text{quantile}_q(L), \\ ES = \mathbb{E}[L\mid L\ge VaR]`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -465,7 +465,7 @@ The default correlation between two obligors is
 where the joint default probability is the bivariate normal CDF
 ``Phi_2(N^{-1}(PD_i), N^{-1}(PD_j); rho_A)`` with asset correlation rho_A.
 
-Formula (LaTeX): `p_{ij} = \Phi_2\big(\Phi^{-1}(PD_i),\Phi^{-1}(PD_j);\ \rho^A_{ij}\big), \quad \rho^D_{ij} = \frac{p_{ij}-PD_i PD_j}{\sqrt{PD_i(1-PD_i)\,PD_j(1-PD_j)}}`
+Formula (LaTeX): `p_{ij} = \Phi_2\big(\Phi^{-1}(PD_i),\Phi^{-1}(PD_j);\ \rho^A_{ij}\big), \\ \rho^D_{ij} = \frac{p_{ij}-PD_i PD_j}{\sqrt{PD_i(1-PD_i)\,PD_j(1-PD_j)}}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -537,7 +537,7 @@ AddOn_aggregate`` with the regulatory recognition-of-excess-collateral
 multiplier ``multiplier = min(1, 0.05 + 0.95 * exp((MtM - C)/(1.9 * AddOn)))``.
 The supervisory ``alpha`` is 1.4.
 
-Formula (LaTeX): `RC = \max(MtM-C,\ 0), \quad \text{mult} = \min\!\left(1,\ 0.05+0.95\,e^{(MtM-C)/(1.9\,AddOn)}\right) \\ PFE = \text{mult}\cdot AddOn, \quad EAD = \alpha\,(RC+PFE)`
+Formula (LaTeX): `RC = \max(MtM-C,\ 0), \\ \text{mult} = \min\!\left(1,\ 0.05+0.95\,e^{(MtM-C)/(1.9\,AddOn)}\right) \\ PFE = \text{mult}\cdot AddOn, \quad EAD = \alpha\,(RC+PFE)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -955,7 +955,7 @@ This multiplicative overlay structure is a bespoke internal design
 choice, confirmed against BIS/EBA sources not to reproduce a specific
 published or regulatory ECL-overlay formula.
 
-Formula (LaTeX): `m = \max\Big(1+\sum_j \beta_j f_j,\ 0\Big), \quad ECL_{model}=ECL_{base}\cdot m, \quad ECL_{adj}=\max(ECL_{model}+O,\ 0)`
+Formula (LaTeX): `m = \max\Big(1+\sum_j \beta_j f_j,\ 0\Big), \quad ECL_{model}=ECL_{base}\cdot m, \\ ECL_{adj}=\max(ECL_{model}+O,\ 0)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1027,7 +1027,7 @@ This is a bespoke internal composite-indicator model, confirmed against
 BIS/EBA sources not to match any specific published sovereign-risk
 methodology (e.g. a rating-agency or IMF framework).
 
-Formula (LaTeX): `\text{score} = \text{clip}\big(50-40D+200F+100CA+3FX+40G,\ 0,\ 100\big), \quad PD = \frac{1}{1+e^{(\text{score}-30)/12}}`
+Formula (LaTeX): `\text{score} = \text{clip}\big(50-40D+200F+100CA+3FX+40G,\ 0,\ 100\big), \\ PD = \frac{1}{1+e^{(\text{score}-30)/12}}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

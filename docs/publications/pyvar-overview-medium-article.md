@@ -20,7 +20,7 @@ pyvar is an open-source (Apache-2.0) API with **385 risk functions in eight doma
 
 *pyvar at a glance, and what each plan allows. Every number is read from the code when the image is drawn.*
 
-**How to read this.** The paragraphs are for everyone. Code appears under a bold "For engineers" line, so if you sign off on numbers rather than write the code, skip those. Every worked number below comes from a real run on synthetic inputs with fixed seeds, so your team can reproduce it.
+**How to read this.** The paragraphs are for everyone. Code appears under a bold "For engineers" line, followed by a screenshot of the same call in the Try it panel on pyvar.com, so if you sign off on numbers rather than write the code, skip those. Every worked number below comes from a real run on synthetic inputs with fixed seeds, so your team can reproduce it.
 
 ## Eight desks, one API
 
@@ -60,6 +60,10 @@ print(result["var_abs"], result["cvar_abs"])  # 238045.72 290838.34
 
 The returns are synthetic, `generate_gbm_returns(500, mu=0.0004, sigma=0.011, seed=7)` from the repository's fixtures, which is why the figures repeat exactly.
 
+![The Try it panel for Historical Simulation VaR on the pyvar.com Market Risk page: the formula, a masked API key, the 500 returns, a portfolio value of 10,000,000 and a confidence level of 0.99, and the result: var_abs 238045.72 and cvar_abs 290838.34 over 500 observations.](./assets/overview/site-market-risk-try-it.png)
+
+*The same call in the Try it panel of the Market Risk page on pyvar.com. The key is masked.*
+
 ### "What will defaults cost us, and how much capital sits behind that?"
 
 A 50-million exposure with a 2% probability of default and a 45% loss given default has an expected loss of **450,000**, 0.9% of the exposure. That is the price of the risk. The Vasicek single-factor model gives the loss that capital must absorb at 99.9%: **3,967,401**, which leaves an **unexpected loss of 3,517,401** on top of the expected loss. The first number belongs in pricing; the second is what economic capital has to cover.
@@ -75,6 +79,10 @@ with Client() as client:
     )
 print(el["el"], var["var"], var["ul"])  # 450000.0 3967401.130789 3517401.130789
 ```
+
+![The Try it panel for Credit VaR Analytical Vasicek on the pyvar.com Credit Risk page: the formula, a masked API key, a probability of default of 0.02, a loss given default of 0.45, a total exposure of 50,000,000, an asset correlation of 0.15 and a confidence level of 0.999, and the result: var 3967401.130789, el 450000 and ul 3517401.130789.](./assets/overview/site-credit-risk-try-it.png)
+
+*The Vasicek call in the Try it panel of the Credit Risk page; the expected-loss call has a panel of its own.*
 
 ### "Can we get through a bad fortnight, and what does a rate shock do to us?"
 
@@ -92,6 +100,10 @@ curl -X POST https://www.pyvar.com/api/v1/liquidity/survival_horizon_calculator 
 # {"survival_days": 10, "terminal_buffer": -1000000.0, "hqla": 100000000.0}
 ```
 
+![The Try it panel for Survival Horizon Calculator on the pyvar.com Liquidity Risk page: the formula, a masked API key, 100,000,000 of high-quality liquid assets and a 12-day list of net outflows, and the result: survival_days 10, terminal_buffer -1000000 and hqla 100000000.](./assets/overview/site-liquidity-try-it.png)
+
+*The same function in the Try it panel of the Liquidity Risk page, which takes the 12-day outflow path as a list.*
+
 ### "Do we clear the ratios, and does the Basel IV floor bite?"
 
 CET1 capital of 5.2 billion on 41 billion of risk-weighted assets is a **12.68% ratio**, 8.18 points over the 4.5% minimum. Stacking the conservation, countercyclical and systemic buffers gives a combined requirement of 4.5%, which is 1.845 billion of capital, and a leverage ratio of 3.63% against the 3% floor.
@@ -107,6 +119,10 @@ with Client() as client:
     )
 print(floor["binding"], floor["rwa_uplift"])  # True 1725000000.0
 ```
+
+![The Try it panel for Basel IV Output Floor on the pyvar.com Regulatory and Compliance page: the formula, a masked API key, internal-model RWA of 28,000,000,000, standardised RWA of 41,000,000,000 and a floor factor of 0.725, and the result: floored_rwa 29725000000, binding true and rwa_uplift 1725000000.](./assets/overview/site-regulatory-try-it.png)
+
+*The same call in the Try it panel of the Regulatory and Compliance page.*
 
 ### The same pattern, on the other desks
 
@@ -177,5 +193,6 @@ The free tier allows 10 calls a day and up to 10,000 simulations per Monte Carlo
 - [`tests/validation/`](https://github.com/fibtecltd/pyvar/tree/master/tests/validation): the external-reference suites, one per domain.
 - [`README.md`](https://github.com/fibtecltd/pyvar/blob/master/README.md): the tiers, the stack, the cost, the AI-use disclosure and the disclaimer.
 - [`config.py`](https://github.com/fibtecltd/pyvar/blob/master/config.py): the free-tier limits.
+- [`scripts/generate_site_screenshots.py`](https://github.com/fibtecltd/pyvar/blob/master/scripts/generate_site_screenshots.py): the four Try it screenshots. It opens the pyvar.com page, fills the panel in and presses Run; the result shown is what the real application returns for exactly the inputs the panel sent.
 
 *How this was made: written with Claude Code from the repository's own examples, counts and documentation. Every figure is from a run on synthetic inputs with a fixed seed or from the repository itself; the AWS timings come from scripted runs on the dev stack.*

@@ -74,7 +74,7 @@
     "formula": {
       "caveat": "Wraps eve_sensitivity_analysis's six-shock \u0394EVE computation and expresses the worst-case loss as a fraction of Tier-1 capital; only tier1_capital appears as a distinct symbol above -- the underlying \u0394EVE per scenario follows the same PV formula as economic_value_of_equity_eve / eve_sensitivity_analysis.",
       "citation": "BCBS d368",
-      "formula_latex": "\\Delta EVE_{worst} = \\min_s\\big(EVE(r_0+\\Delta r_s)-EVE(r_0)\\big) \\quad Ratio = \\dfrac{\\big|\\min(\\Delta EVE_{worst},0)\\big|}{Tier1}",
+      "formula_latex": "\\Delta EVE_{worst} = \\min_s\\big(EVE(r_0+\\Delta r_s)-EVE(r_0)\\big) \\\\ Ratio = \\dfrac{\\big|\\min(\\Delta EVE_{worst},0)\\big|}{Tier1}",
       "symbol_map": {
         "tier1_capital": "Tier1"
       }
@@ -251,7 +251,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "A_t = A_0(1+g_A)^t,\\quad L_t = L_0(1+g_L)^t,\\quad E_t = A_t-L_t,\\quad NII_t = A_t y_A - L_t c_L,\\quad t=1,\\dots,n",
+      "formula_latex": "A_t = A_0(1+g_A)^t, \\quad L_t = L_0(1+g_L)^t, \\quad E_t = A_t-L_t, \\\\ NII_t = A_t y_A - L_t c_L, \\quad t=1,\\dots,n",
       "symbol_map": {
         "asset_growth_rate": "g_A",
         "asset_yield": "y_A",
@@ -410,7 +410,7 @@
     "formula": {
       "caveat": "Docstring cites BCBS d368 NMD treatment, but the code implements a bespoke core/non-core exponential-decay blend rather than d368's actual standardised NMD slotting methodology -- treat as an independent, unvalidated behavioural model, not a compliant d368 implementation.",
       "citation": "BCBS d368",
-      "formula_latex": "B_{surv} = B\\,f_{core}\\,e^{-r_{core} H} + B\\,(1-f_{core})\\,e^{-r_{nc} H} \\quad EL = \\dfrac{B f_{core}/r_{core} + B(1-f_{core})/r_{nc}}{B}",
+      "formula_latex": "B_{surv} = B\\,f_{core}\\,e^{-r_{core} H} + B\\,(1-f_{core})\\,e^{-r_{nc} H} \\\\ EL = \\dfrac{B f_{core}/r_{core} + B(1-f_{core})/r_{nc}}{B}",
       "symbol_map": {
         "core_fraction": "f_{core}",
         "core_runoff_rate": "r_{core}",
@@ -991,7 +991,7 @@
     "formula": {
       "caveat": null,
       "citation": "BCBS d368",
-      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad \\Delta EVE_{worst}=\\min_s\\Delta EVE_s",
+      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k}, \\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0), \\\\ \\Delta EVE_{worst}=\\min_s\\Delta EVE_s",
       "symbol_map": {
         "base_rates": "r_{0,k}",
         "net_cashflows": "CF_k",
@@ -1192,7 +1192,7 @@
     "formula": {
       "caveat": null,
       "citation": "BCBS d368 Principle 12",
-      "formula_latex": "Decline = \\big|\\min(\\Delta EVE_{worst},0)\\big|,\\quad Threshold=\\theta\\cdot Tier1,\\quad AddOn=\\max(Decline-Threshold,0)",
+      "formula_latex": "Decline = \\big|\\min(\\Delta EVE_{worst},0)\\big|, \\quad Threshold=\\theta\\cdot Tier1, \\\\ AddOn=\\max(Decline-Threshold,0)",
       "symbol_map": {
         "outlier_threshold": "\\theta",
         "tier1_capital": "Tier1",
@@ -1263,7 +1263,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad WorstCase_{99}=\\mathrm{Percentile}_{1\\%}\\big(\\{\\Delta EVE_s\\}\\big)",
+      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k}, \\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0), \\\\ WorstCase_{99}=\\mathrm{Percentile}_{1\\%}\\big(\\{\\Delta EVE_s\\}\\big)",
       "symbol_map": {
         "base_rates": "r_{0,k}",
         "net_cashflows": "CF_k",
@@ -1335,7 +1335,7 @@
     "formula": {
       "caveat": null,
       "citation": "BCBS d368 Annex 2",
-      "formula_latex": "\\begin{aligned}s_{short}(t) &= \\dfrac{short_{bps}}{10^4}e^{-t/4},\\quad s_{long}(t)=\\dfrac{long_{bps}}{10^4}\\big(1-e^{-t/4}\\big)\\\\Steepener &= -0.65\\,s_{short}+0.90\\,s_{long},\\quad Flattener = 0.80\\,s_{short}-0.60\\,s_{long},\\quad Parallel_{\\pm}=\\pm\\dfrac{parallel_{bps}}{10^4}\\end{aligned}",
+      "formula_latex": "\\begin{aligned}s_{short}(t) &= \\dfrac{short_{bps}}{10^4}e^{-t/4},\\\\s_{long}(t) &= \\dfrac{long_{bps}}{10^4}\\big(1-e^{-t/4}\\big)\\\\Steepener &= -0.65\\,s_{short}+0.90\\,s_{long},\\\\Flattener &= 0.80\\,s_{short}-0.60\\,s_{long},\\\\Parallel_{\\pm} &= \\pm\\dfrac{parallel_{bps}}{10^4}\\end{aligned}",
       "symbol_map": {
         "long_bps": "long_{bps}",
         "parallel_bps": "parallel_{bps}",
@@ -1431,7 +1431,7 @@
     "formula": {
       "caveat": null,
       "citation": "BCBS d368",
-      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k},\\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0),\\quad \\Delta EVE_{worst}=\\min_s \\Delta EVE_s",
+      "formula_latex": "EVE(r)=\\sum_k CF_k e^{-r_k t_k}, \\quad \\Delta EVE_s = EVE(r_0+\\Delta r_s)-EVE(r_0), \\\\ \\Delta EVE_{worst}=\\min_s \\Delta EVE_s",
       "symbol_map": {
         "base_rates": "r_{0,k}",
         "net_cashflows": "CF_k",
@@ -1982,7 +1982,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "B_{stable} = \\mathrm{Percentile}_{(1-c)\\times100\\%}\\big(\\{B_t\\}\\big) \\quad B_{volatile} = \\max(B_{current}-B_{stable},0) \\quad f_{stable} = \\dfrac{B_{stable}}{B_{current}}",
+      "formula_latex": "B_{stable} = \\mathrm{Percentile}_{(1-c)\\times100\\%}\\big(\\{B_t\\}\\big) \\quad B_{volatile} = \\max(B_{current}-B_{stable},0) \\\\ f_{stable} = \\dfrac{B_{stable}}{B_{current}}",
       "symbol_map": {
         "balance_history": "\\{B_t\\}",
         "confidence_level": "c"
@@ -2183,7 +2183,7 @@
     "formula": {
       "caveat": "Computed via a month-by-month recursive @njit loop (interest, scheduled principal, then prepayment on the remaining balance each month) -- the LaTeX shows the exact recursive relations rather than a single closed-form expression.",
       "citation": null,
-      "formula_latex": "\\begin{aligned}PMT &= \\dfrac{P\\,r_m}{1-(1+r_m)^{-n}},\\ r_m=\\dfrac{r}{12},\\ n=12T,\\quad SMM = 1-(1-CPR)^{1/12}\\\\I_m &= B_{m-1}r_m,\\quad P_m^{sched}=\\min(PMT-I_m,\\,B_{m-1}),\\quad Prepay_m = SMM\\,(B_{m-1}-P_m^{sched})\\\\CF_m &= I_m+P_m^{sched}+Prepay_m,\\quad B_m = B_{m-1}-P_m^{sched}-Prepay_m\\\\WAL &= \\dfrac{\\sum_m (m/12)\\,CF_m}{\\sum_m CF_m}\\end{aligned}",
+      "formula_latex": "\\begin{aligned}PMT &= \\dfrac{P\\,r_m}{1-(1+r_m)^{-n}},\\ r_m=\\dfrac{r}{12},\\ n=12T,\\\\SMM &= 1-(1-CPR)^{1/12}\\\\I_m &= B_{m-1}r_m,\\\\P_m^{sched} &= \\min(PMT-I_m,\\,B_{m-1}),\\\\Prepay_m &= SMM\\,(B_{m-1}-P_m^{sched})\\\\CF_m &= I_m+P_m^{sched}+Prepay_m,\\\\B_m &= B_{m-1}-P_m^{sched}-Prepay_m\\\\WAL &= \\dfrac{\\sum_m (m/12)\\,CF_m}{\\sum_m CF_m}\\end{aligned}",
       "symbol_map": {
         "annual_rate": "r",
         "cpr": "CPR",
@@ -3656,7 +3656,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
+      "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\\\ ES = \\mathbb{E}[L\\mid L\\ge VaR]",
       "symbol_map": {
         "asset_correlation": "\\rho_i",
         "confidence_level": "q",
@@ -3801,7 +3801,7 @@
     "formula": {
       "caveat": "By default (transition_matrix/current_rating/state_loss_pct omitted) this is still a direct pass-through to the same one-factor Gaussian-copula Monte Carlo engine used by credit_var_monte_carlo \u2014 unchanged from before. Pass all three together to switch to a genuine multi-state CreditMetrics model: each obligor's simulated asset return migrates through its own transition-matrix row to a rating state (not just default/survive), verified to reduce bit-for-bit to the two-state pass-through in the degenerate case where every obligor has its own single-rating, single-transition-probability row (see tests/test_credit_var.py).",
       "citation": "Gupton, Finger & Bhatia (1997), CreditMetrics \u2014 Technical Document, J.P. Morgan (asset-return discretisation of a rating-transition matrix).",
-      "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\quad ES = \\mathbb{E}[L\\mid L\\ge VaR]",
+      "formula_latex": "A_i = \\sqrt{\\rho_i}\\,M+\\sqrt{1-\\rho_i}\\,Z_i, \\quad \\text{default}_i \\iff A_i<\\Phi^{-1}(PD_i) \\\\ L = \\sum_i LGD_i\\,EAD_i\\,\\mathbb{1}[\\text{default}_i], \\quad VaR = \\text{quantile}_q(L), \\\\ ES = \\mathbb{E}[L\\mid L\\ge VaR]",
       "symbol_map": {
         "asset_correlation": "\\rho_i",
         "confidence_level": "q",
@@ -4088,7 +4088,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "p_{ij} = \\Phi_2\\big(\\Phi^{-1}(PD_i),\\Phi^{-1}(PD_j);\\ \\rho^A_{ij}\\big), \\quad \\rho^D_{ij} = \\frac{p_{ij}-PD_i PD_j}{\\sqrt{PD_i(1-PD_i)\\,PD_j(1-PD_j)}}",
+      "formula_latex": "p_{ij} = \\Phi_2\\big(\\Phi^{-1}(PD_i),\\Phi^{-1}(PD_j);\\ \\rho^A_{ij}\\big), \\\\ \\rho^D_{ij} = \\frac{p_{ij}-PD_i PD_j}{\\sqrt{PD_i(1-PD_i)\\,PD_j(1-PD_j)}}",
       "symbol_map": {
         "asset_correlation": "\\rho^A_{ij}",
         "pd": "PD_i"
@@ -4920,7 +4920,7 @@
     "formula": {
       "caveat": "R defaults to the Basel corporate correlation function of PD (as in sme_correlation_factor_basel) whenever the optional correlation override is not supplied; the formula shown uses whichever R is actually in force.",
       "citation": "CRE31",
-      "formula_latex": "K = \\max\\!\\left(0,\\ \\left[LGD\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD\\right]\\cdot MA\\right), \\quad RWA = 12.5\\cdot K\\cdot EAD \\\\ MA = \\frac{1+(M-2.5)\\,b(PD)}{1-1.5\\,b(PD)}, \\quad b(PD)=(0.11852-0.05478\\ln PD)^2",
+      "formula_latex": "K = \\max\\!\\left(0,\\ \\left[LGD\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD\\right]\\cdot MA\\right), \\\\ RWA = 12.5\\cdot K\\cdot EAD \\\\ MA = \\frac{1+(M-2.5)\\,b(PD)}{1-1.5\\,b(PD)}, \\quad b(PD)=(0.11852-0.05478\\ln PD)^2",
       "symbol_map": {
         "correlation": "R",
         "ead": "EAD",
@@ -5005,7 +5005,7 @@
     "formula": {
       "caveat": "R is always the Basel corporate correlation function of PD here (F-IRB exposes no correlation override); MA follows the same maturity-adjustment formula as maturity_adjustment_basel_irb.",
       "citation": "CRE31; CRE32",
-      "formula_latex": "LGD_{sup} = 0.45\\ (\\text{senior unsecured})\\ \\text{or}\\ 0.75\\ (\\text{subordinated}) \\\\ K = \\max\\!\\left(0,\\ \\left[LGD_{sup}\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD_{sup}\\right]\\cdot MA\\right), \\quad RWA = 12.5\\cdot K\\cdot EAD",
+      "formula_latex": "LGD_{sup} = 0.45\\ (\\text{senior unsecured})\\ \\text{or}\\ 0.75\\ (\\text{subordinated}) \\\\ K = \\max\\!\\left(0,\\,\\left[LGD_{sup}\\cdot\\Phi\\!\\left(\\frac{\\Phi^{-1}(PD)+\\sqrt{R}\\,\\Phi^{-1}(0.999)}{\\sqrt{1-R}}\\right) - PD\\cdot LGD_{sup}\\right]MA\\right), \\\\ RWA = 12.5\\cdot K\\cdot EAD",
       "symbol_map": {
         "ead": "EAD",
         "lgd": "LGD_{sup}",
@@ -5386,7 +5386,7 @@
     "formula": {
       "caveat": "Bespoke internal overlay formula \u2014 the multiplicative macro-adjustment structure is an implementation choice, confirmed against BIS/EBA sources in the domain's reference-validation audit not to reproduce a specific published or regulatory formula.",
       "citation": null,
-      "formula_latex": "m = \\max\\Big(1+\\sum_j \\beta_j f_j,\\ 0\\Big), \\quad ECL_{model}=ECL_{base}\\cdot m, \\quad ECL_{adj}=\\max(ECL_{model}+O,\\ 0)",
+      "formula_latex": "m = \\max\\Big(1+\\sum_j \\beta_j f_j,\\ 0\\Big), \\quad ECL_{model}=ECL_{base}\\cdot m, \\\\ ECL_{adj}=\\max(ECL_{model}+O,\\ 0)",
       "symbol_map": {
         "base_ecl": "ECL_{base}",
         "macro_factors": "f_j",
@@ -6134,7 +6134,7 @@
     "formula": {
       "caveat": "Bespoke internal composite-indicator model, confirmed against BIS/EBA sources in the domain's reference-validation audit not to match any specific published sovereign-risk formula; treat as a reasonable internal model.",
       "citation": null,
-      "formula_latex": "\\text{score} = \\text{clip}\\big(50-40D+200F+100CA+3FX+40G,\\ 0,\\ 100\\big), \\quad PD = \\frac{1}{1+e^{(\\text{score}-30)/12}}",
+      "formula_latex": "\\text{score} = \\text{clip}\\big(50-40D+200F+100CA+3FX+40G,\\ 0,\\ 100\\big), \\\\ PD = \\frac{1}{1+e^{(\\text{score}-30)/12}}",
       "symbol_map": {
         "current_account_pct": "CA",
         "debt_to_gdp": "D",
@@ -6207,7 +6207,7 @@
     "formula": {
       "caveat": null,
       "citation": "CRE52",
-      "formula_latex": "RC = \\max(MtM-C,\\ 0), \\quad \\text{mult} = \\min\\!\\left(1,\\ 0.05+0.95\\,e^{(MtM-C)/(1.9\\,AddOn)}\\right) \\\\ PFE = \\text{mult}\\cdot AddOn, \\quad EAD = \\alpha\\,(RC+PFE)",
+      "formula_latex": "RC = \\max(MtM-C,\\ 0), \\\\ \\text{mult} = \\min\\!\\left(1,\\ 0.05+0.95\\,e^{(MtM-C)/(1.9\\,AddOn)}\\right) \\\\ PFE = \\text{mult}\\cdot AddOn, \\quad EAD = \\alpha\\,(RC+PFE)",
       "symbol_map": {
         "add_on_aggregate": "AddOn",
         "alpha": "\\alpha",
@@ -6625,7 +6625,7 @@
     "formula": {
       "caveat": "Longstaff-Schwartz Monte Carlo: continuation value is a quadratic OLS regression on in-the-money paths at every step; the formula shown is the algorithm's defining recursion, not a closed form. Greeks (opt-in) use a 30x larger spot bump than smooth-payoff products because the LSM exercise decision is discontinuous in spot.",
       "citation": null,
-      "formula_latex": "S_{t_k}=S_{t_{k-1}}\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\Delta t+\\sigma\\sqrt{\\Delta t}\\,Z_k\\big],\\ \\Delta t=\\tau/n \\\\\\text{Intrinsic}(S)=\\max(\\phi(S-K),0) \\\\\\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1 S_{t_k}+\\hat\\beta_2 S_{t_k}^2\\ \\text{(OLS on in-the-money paths)}\\\\\\text{Exercise at } t_k \\text{ if Intrinsic}(S_{t_k})>\\hat C(S_{t_k});\\qquad \\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
+      "formula_latex": "S_{t_k}=S_{t_{k-1}}\\exp\\!\\big[(r-q-\\tfrac12\\sigma^2)\\Delta t+\\sigma\\sqrt{\\Delta t}\\,Z_k\\big],\\ \\Delta t=\\tau/n \\\\ \\text{Intrinsic}(S)=\\max(\\phi(S-K),0) \\\\ \\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1 S_{t_k}+\\hat\\beta_2 S_{t_k}^2\\ \\text{(OLS on in-the-money paths)} \\\\ \\text{Exercise at } t_k \\text{ if Intrinsic}(S_{t_k})>\\hat C(S_{t_k}); \\\\ \\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
       "symbol_map": {
         "div_yield": "q",
         "n_steps": "n",
@@ -6919,7 +6919,7 @@
     "formula": {
       "caveat": "By default (use_market_price=False), bond_price is accepted but not used in the computation \u2014 PV_bond is recomputed from cashflows/times/swap_rates and compared against face_value (par), matching this function\u2019s original par-referenced behaviour exactly. Set use_market_price=True to compare PV_bond against the actual bond_price (dirty price) instead, matching the standard market asset-swap convention (O\u2019Kane 2000) \u2014 the two only agree when the bond happens to trade at par.",
       "citation": null,
-      "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F},\\qquad R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases},\\qquad PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i},\\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
+      "formula_latex": "ASW = \\frac{PV_{bond} - R}{\\text{Annuity}\\cdot F}, \\\\ R = \\begin{cases} F & \\text{use\\_market\\_price=False (default)} \\\\ P_{bond} & \\text{use\\_market\\_price=True} \\end{cases}, \\\\ PV_{bond}=\\sum_i CF_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}, \\qquad \\text{Annuity}=\\frac{1}{m}\\sum_i\\left(1+\\frac{s_i}{m}\\right)^{-m t_i}",
       "symbol_map": {
         "bond_price": "P_{bond}",
         "cashflows": "CF_i",
@@ -7066,7 +7066,7 @@
     "formula": {
       "caveat": "Only the general Reiner-Rubinstein building blocks (A/B/C/D) are shown here \u2014 the exact combination used to build the knock-in price depends on option_type, barrier_type, and whether strike>barrier, and is not spelled out in full (all eight case branches).",
       "citation": "Reiner & Rubinstein (1991), \"Breaking Down the Barriers\"; Haug, The Complete Guide to Option Pricing Formulas",
-      "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2},\\qquad \\lambda=\\sqrt{\\mu^2+2r/\\sigma^2}\\\\A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau)\\\\B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau)\\\\C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau)\\\\D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\\\E=\\text{rebate}\\cdot e^{-r\\tau}\\big[N(\\eta x_2-\\eta\\sigma\\sqrt\\tau)-(H/S)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at expiry, knock-in)}\\\\F=\\text{rebate}\\big[(H/S)^{\\mu+\\lambda}N(\\eta z)+(H/S)^{\\mu-\\lambda}N(\\eta z-2\\eta\\lambda\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at touch, knock-out)}\\\\\\text{knock-in}=\\{A,B,C,D\\text{ combo}\\}+E,\\qquad \\text{knock-out}=(\\text{vanilla}-\\text{knock-in}_{\\text{no rebate}})+F",
+      "formula_latex": "\\mu=\\frac{r-q-\\sigma^2/2}{\\sigma^2},\\qquad \\lambda=\\sqrt{\\mu^2+2r/\\sigma^2} \\\\ A=\\phi Se^{-q\\tau}N(\\phi x_1)-\\phi Ke^{-r\\tau}N(\\phi x_1-\\phi\\sigma\\sqrt\\tau) \\\\ B=\\phi Se^{-q\\tau}N(\\phi x_2)-\\phi Ke^{-r\\tau}N(\\phi x_2-\\phi\\sigma\\sqrt\\tau) \\\\ C=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_1)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_1-\\eta\\sigma\\sqrt\\tau) \\\\ D=\\phi Se^{-q\\tau}\\Big(\\frac{H}{S}\\Big)^{2(\\mu+1)}N(\\eta y_2)-\\phi Ke^{-r\\tau}\\Big(\\frac{H}{S}\\Big)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau) \\\\ E=\\text{rebate}\\cdot e^{-r\\tau}\\big[N(\\eta x_2-\\eta\\sigma\\sqrt\\tau)-(H/S)^{2\\mu}N(\\eta y_2-\\eta\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at expiry, knock-in)} \\\\ F=\\text{rebate}\\big[(H/S)^{\\mu+\\lambda}N(\\eta z)+(H/S)^{\\mu-\\lambda}N(\\eta z-2\\eta\\lambda\\sigma\\sqrt\\tau)\\big]\\ \\text{(rebate at touch, knock-out)} \\\\ \\text{knock-in}=\\{A,B,C,D\\text{ combo}\\}+E, \\\\ \\text{knock-out}=(\\text{vanilla}-\\text{knock-in}_{\\text{no rebate}})+F",
       "symbol_map": {
         "barrier": "H",
         "div_yield": "q",
@@ -7397,7 +7397,7 @@
     "formula": {
       "caveat": "Same Longstaff-Schwartz algorithm as american_option_lsm but the exercise mask is restricted to an evenly-spaced subset of ~n_steps/exercise_dates grid points; no closed form.",
       "citation": null,
-      "formula_latex": "\\text{Same LSM recursion as american\\_option\\_lsm, restricted to } M \\text{ discrete exercise dates:}\\\\\\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1S_{t_k}+\\hat\\beta_2S_{t_k}^2\\ \\text{(OLS, only at allowed } t_k),\\\\\\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
+      "formula_latex": "\\text{Same LSM recursion as american\\_option\\_lsm,} \\\\ \\text{restricted to } M \\text{ discrete exercise dates:} \\\\ \\hat C(S_{t_k})=\\hat\\beta_0+\\hat\\beta_1S_{t_k}+\\hat\\beta_2S_{t_k}^2\\ \\text{(OLS, only at allowed } t_k), \\\\ \\text{Price}=\\mathbb E\\big[e^{-r t}\\,\\text{Cashflow}\\big]\\ \\text{(backward induction)}",
       "symbol_map": {
         "div_yield": "q",
         "exercise_dates": "M",
@@ -7533,7 +7533,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "u=e^{\\sigma\\sqrt{\\Delta t}},\\quad d=\\frac1u,\\quad p=\\frac{e^{(r-q)\\Delta t}-d}{u-d}\\\\V_i^{(N)}=\\max(\\phi(S_0u^{N-i}d^{i}-K),0)\\\\V_i^{(k)}=\\max\\Big(e^{-r\\Delta t}\\big[pV_i^{(k+1)}+(1-p)V_{i+1}^{(k+1)}\\big],\\ \\text{[American] intrinsic}(S_0u^{k-i}d^{i})\\Big)",
+      "formula_latex": "u=e^{\\sigma\\sqrt{\\Delta t}},\\quad d=\\frac1u,\\quad p=\\frac{e^{(r-q)\\Delta t}-d}{u-d} \\\\ V_i^{(N)}=\\max(\\phi(S_0u^{N-i}d^{i}-K),0) \\\\ V_i^{(k)}=\\max\\Big(e^{-r\\Delta t}\\big[pV_i^{(k+1)}+(1-p)V_{i+1}^{(k+1)}\\big],\\ \\text{[American] intrinsic}(S_0u^{k-i}d^{i})\\Big)",
       "symbol_map": {
         "div_yield": "q",
         "n_steps": "N",
@@ -7754,7 +7754,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "\\Delta_{call}=e^{-q\\tau}N(d_1),\\quad \\Delta_{put}=-e^{-q\\tau}N(-d_1)\\\\\\Gamma=\\frac{e^{-q\\tau}N'(d_1)}{S\\sigma\\sqrt\\tau},\\qquad \\text{Vega}=S e^{-q\\tau}N'(d_1)\\sqrt\\tau\\quad(\\text{same for call and put})\\\\\\Theta_{call}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}-rKe^{-r\\tau}N(d_2)+qSe^{-q\\tau}N(d_1),\\quad \\Theta_{put}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}+rKe^{-r\\tau}N(-d_2)-qSe^{-q\\tau}N(-d_1)\\\\\\rho_{call}=K\\tau e^{-r\\tau}N(d_2),\\qquad \\rho_{put}=-K\\tau e^{-r\\tau}N(-d_2)",
+      "formula_latex": "\\Delta_{call}=e^{-q\\tau}N(d_1),\\quad \\Delta_{put}=-e^{-q\\tau}N(-d_1) \\\\ \\Gamma=\\frac{e^{-q\\tau}N'(d_1)}{S\\sigma\\sqrt\\tau},\\qquad \\text{Vega}=S e^{-q\\tau}N'(d_1)\\sqrt\\tau\\quad(\\text{same for call and put}) \\\\ \\Theta_{call}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}-rKe^{-r\\tau}N(d_2)+qSe^{-q\\tau}N(d_1), \\\\ \\Theta_{put}=-\\frac{S e^{-q\\tau}N'(d_1)\\sigma}{2\\sqrt\\tau}+rKe^{-r\\tau}N(-d_2)-qSe^{-q\\tau}N(-d_1) \\\\ \\rho_{call}=K\\tau e^{-r\\tau}N(d_2),\\qquad \\rho_{put}=-K\\tau e^{-r\\tau}N(-d_2)",
       "symbol_map": {
         "div_yield": "q",
         "rate": "r",
@@ -8118,7 +8118,7 @@
     "formula": {
       "caveat": "This is a simplified multiplicative short-rate lattice with fixed 0.5/0.5 branch probabilities (r_{k,j}=r_0 e^{sigma_r*sqrt(dt)*(2j-k)}), not a Black-Derman-Toy tree calibrated to an initial term structure; coupon c=F*coupon_rate/frequency is added at every node on every step.",
       "citation": null,
-      "formula_latex": "V_j^{(N)}=F+c;\\qquad V_j^{(k)}=\\min\\!\\left(K_{call},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right),\\qquad r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)},\\qquad \\text{Price}=V_0^{(0)}",
+      "formula_latex": "V_j^{(N)}=F+c; \\qquad V_j^{(k)}=\\min\\!\\left(K_{call},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right), \\\\ r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)}, \\qquad \\text{Price}=V_0^{(0)}",
       "symbol_map": {
         "call_price": "K_{call}",
         "coupon_rate": "c_r",
@@ -8364,7 +8364,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "\\text{Caplet}=N\\,\\tau\\,DF\\big[fN(d_1)-KN(d_2)\\big],\\qquad \\text{Floorlet}=N\\,\\tau\\,DF\\big[KN(-d_2)-fN(-d_1)\\big]\\\\d_1=\\frac{\\ln(f/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\qquad d_2=d_1-\\sigma\\sqrt T",
+      "formula_latex": "\\text{Caplet}=N\\,\\tau\\,DF\\big[fN(d_1)-KN(d_2)\\big], \\\\ \\text{Floorlet}=N\\,\\tau\\,DF\\big[KN(-d_2)-fN(-d_1)\\big] \\\\ d_1=\\frac{\\ln(f/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\qquad d_2=d_1-\\sigma\\sqrt T",
       "symbol_map": {
         "accrual": "\\tau",
         "discount_factor": "DF",
@@ -8758,7 +8758,7 @@
     "formula": {
       "caveat": "Simplified lower-bound decomposition (max of straight-bond floor and conversion value) \u2014 does not model conversion optionality, equity volatility, or embedded call/put features of a real convertible.",
       "citation": null,
-      "formula_latex": "P=\\max\\big(P_{floor},\\ \\text{ratio}\\cdot S\\big),\\qquad P_{floor}=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y/m)^{i}}+\\frac{F}{(1+y/m)^{n}},\\quad n=\\text{round}(T\\cdot m)",
+      "formula_latex": "P=\\max\\big(P_{floor},\\ \\text{ratio}\\cdot S\\big), \\qquad P_{floor}=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y/m)^{i}}+\\frac{F}{(1+y/m)^{n}}, \\\\ n=\\text{round}(T\\cdot m)",
       "symbol_map": {
         "conversion_ratio": "\\text{ratio}",
         "coupon_rate": "c_r",
@@ -8833,7 +8833,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "C=\\frac{1}{P}\\sum_k CF_k\\, t_k\\left(t_k+\\frac{1}{m}\\right)\\left(1+\\frac{y}{m}\\right)^{-(m t_k+2)},\\qquad P=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
+      "formula_latex": "C=\\frac{1}{P}\\sum_k CF_k\\, t_k\\left(t_k+\\frac{1}{m}\\right)\\left(1+\\frac{y}{m}\\right)^{-(m t_k+2)}, \\\\ P=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
       "symbol_map": {
         "cashflows": "CF_k",
         "frequency": "m",
@@ -9197,7 +9197,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "PV_{dom}=N_d\\Big(r_d\\sum_i\\tau_iDF_i^d+DF_n^d\\Big),\\qquad PV_{for}=N_f\\Big(r_f\\sum_i\\tau_iDF_i^f+DF_n^f\\Big)\\\\ V=\\big(PV_{for}\\cdot X-PV_{dom}\\big)\\ \\text{[pay\\_domestic]},\\quad \\text{or}\\ \\big(PV_{dom}-PV_{for}\\cdot X\\big)\\ \\text{otherwise}",
+      "formula_latex": "PV_{dom}=N_d\\Big(r_d\\sum_i\\tau_iDF_i^d+DF_n^d\\Big), \\\\ PV_{for}=N_f\\Big(r_f\\sum_i\\tau_iDF_i^f+DF_n^f\\Big) \\\\ V=\\big(PV_{for}\\cdot X-PV_{dom}\\big)\\ \\text{[pay\\_domestic]}, \\\\ \\text{or}\\ \\big(PV_{dom}-PV_{for}\\cdot X\\big)\\ \\text{otherwise}",
       "symbol_map": {
         "accruals": "\\tau_i",
         "df_dom": "DF_i^d",
@@ -9321,7 +9321,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "\\text{Call}=Q\\,e^{-r\\tau}N(d_2),\\qquad \\text{Put}=Q\\,e^{-r\\tau}N(-d_2),\\qquad d_2=\\frac{\\ln(S/K)+(r-q-\\sigma^2/2)\\tau}{\\sigma\\sqrt\\tau}",
+      "formula_latex": "\\text{Call}=Q\\,e^{-r\\tau}N(d_2), \\qquad \\text{Put}=Q\\,e^{-r\\tau}N(-d_2), \\\\ d_2=\\frac{\\ln(S/K)+(r-q-\\sigma^2/2)\\tau}{\\sigma\\sqrt\\tau}",
       "symbol_map": {
         "div_yield": "q",
         "payout": "Q",
@@ -9444,7 +9444,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "\\text{Price}=\\text{BS}(S+a,\\ K+a,\\ r,\\ \\sigma,\\ \\tau,\\ q)\\quad\\text{(Black-Scholes on shifted spot/strike)}",
+      "formula_latex": "\\text{Price}=\\text{BS}(S+a,\\ K+a,\\ r,\\ \\sigma,\\ \\tau,\\ q) \\\\ \\text{(Black-Scholes on shifted spot/strike)}",
       "symbol_map": {
         "displacement": "a",
         "div_yield": "q",
@@ -9591,7 +9591,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "DV01=P(y-0.5\\,\\text{bp})-P(y+0.5\\,\\text{bp}),\\quad \\text{bp}=10^{-4},\\qquad P(y)=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
+      "formula_latex": "DV01=P(y-0.5\\,\\text{bp})-P(y+0.5\\,\\text{bp}), \\quad \\text{bp}=10^{-4}, \\\\ P(y)=\\sum_k CF_k\\left(1+\\frac{y}{m}\\right)^{-m t_k}",
       "symbol_map": {
         "cashflows": "CF_k",
         "frequency": "m",
@@ -10222,7 +10222,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "C=S P_1-Ke^{-r\\tau}P_2,\\qquad P=C-S+Ke^{-r\\tau}\\ \\text{(put-call parity)}\\\\P_1=\\tfrac12+\\frac{1}{\\pi\\,\\phi(-i)}\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u-i)}{iu}\\Big]du,\\qquad P_2=\\tfrac12+\\frac1\\pi\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u)}{iu}\\Big]du\\\\\\xi=\\kappa-\\sigma\\rho i u,\\ d=\\sqrt{\\xi^2+\\sigma^2(iu+u^2)},\\ g=\\frac{\\xi-d}{\\xi+d}\\\\\\phi(u)=\\exp\\!\\Big[riu\\tau+\\frac{\\kappa\\theta}{\\sigma^2}\\big((\\xi-d)\\tau-2\\ln\\tfrac{1-ge^{-d\\tau}}{1-g}\\big)+\\frac{\\xi-d}{\\sigma^2}\\cdot\\frac{1-e^{-d\\tau}}{1-ge^{-d\\tau}}\\,v_0+iu\\ln S\\Big]",
+      "formula_latex": "C=S P_1-Ke^{-r\\tau}P_2,\\qquad P=C-S+Ke^{-r\\tau}\\ \\text{(put-call parity)} \\\\ P_1=\\tfrac12+\\frac{1}{\\pi\\,\\phi(-i)}\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u-i)}{iu}\\Big]du, \\\\ P_2=\\tfrac12+\\frac1\\pi\\int_0^\\infty\\text{Re}\\Big[\\frac{e^{-iu\\ln K}\\phi(u)}{iu}\\Big]du \\\\ \\xi=\\kappa-\\sigma\\rho i u,\\ d=\\sqrt{\\xi^2+\\sigma^2(iu+u^2)},\\ g=\\frac{\\xi-d}{\\xi+d} \\\\ \\phi(u)=\\exp\\!\\Big[riu\\tau+\\frac{\\kappa\\theta}{\\sigma^2}\\big((\\xi-d)\\tau-2\\ln\\tfrac{1-ge^{-d\\tau}}{1-g}\\big)+\\frac{\\xi-d}{\\sigma^2}\\cdot\\frac{1-e^{-d\\tau}}{1-ge^{-d\\tau}}\\,v_0+iu\\ln S\\Big]",
       "symbol_map": {
         "kappa": "\\kappa",
         "rate": "r",
@@ -10347,7 +10347,7 @@
     "formula": {
       "caveat": "With a constant theta_const this is exactly the Vasicek closed-form model (the code literally calls vasicek_interest_rate_model) \u2014 not a genuine time-dependent Hull-White fit to a market forward curve.",
       "citation": null,
-      "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW,\\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa},\\qquad A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big]\\\\P(0,T)=A\\,e^{-Br_0}",
+      "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW, \\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa}, \\\\ A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big] \\\\ P(0,T)=A\\,e^{-Br_0}",
       "symbol_map": {
         "kappa": "\\kappa",
         "maturity": "T",
@@ -10444,7 +10444,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "P=\\sum_{i=1}^{n}\\left[\\frac{F c_r}{m}(1+\\pi)^{t_i}\\right]\\left(1+\\frac{y_r}{m}\\right)^{-i}+F(1+\\pi)^{t_n}\\left(1+\\frac{y_r}{m}\\right)^{-n},\\qquad t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)",
+      "formula_latex": "P=\\sum_{i=1}^{n}\\left[\\frac{F c_r}{m}(1+\\pi)^{t_i}\\right]\\left(1+\\frac{y_r}{m}\\right)^{-i}+F(1+\\pi)^{t_n}\\left(1+\\frac{y_r}{m}\\right)^{-n}, \\\\ t_i=\\frac{i}{m},\\ n=\\text{round}(T\\cdot m)",
       "symbol_map": {
         "face_value": "F",
         "frequency": "m",
@@ -10735,7 +10735,7 @@
     "formula": {
       "caveat": null,
       "citation": "Dupire (1994), \"Pricing with a Smile\"; standard non-uniform-grid (Fornberg) one-sided finite differences at boundaries",
-      "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2}\\\\\\text{interior}:\\ \\text{central differences};\\quad \\text{boundary}:\\ \\text{2nd-order one-sided 3-point stencils (exact for quadratics)}",
+      "formula_latex": "\\sigma_{loc}^2(K,T)=\\frac{\\partial C/\\partial T+rK\\,\\partial C/\\partial K}{\\tfrac12 K^2\\,\\partial^2C/\\partial K^2} \\\\ \\text{interior}:\\ \\text{central differences}; \\\\ \\text{boundary}:\\ \\text{2nd-order one-sided 3-point stencils (exact for quadratics)}",
       "symbol_map": {
         "call_surface": "C(K,T)",
         "maturities": "T",
@@ -11254,7 +11254,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "y(t)=\\beta_0+\\beta_1 f_1(t)+\\beta_2\\big(f_1(t)-e^{-t/\\tau_1}\\big)+\\beta_3\\big(f_2(t)-e^{-t/\\tau_2}\\big),\\qquad f_i(t)=\\frac{1-e^{-t/\\tau_i}}{t/\\tau_i}",
+      "formula_latex": "y(t)=\\beta_0+\\beta_1 f_1(t)+\\beta_2\\big(f_1(t)-e^{-t/\\tau_1}\\big)+\\beta_3\\big(f_2(t)-e^{-t/\\tau_2}\\big), \\\\ f_i(t)=\\frac{1-e^{-t/\\tau_i}}{t/\\tau_i}",
       "symbol_map": {
         "maturities": "t",
         "yields": "y(t)"
@@ -11799,7 +11799,7 @@
     "formula": {
       "caveat": "Same simplified multiplicative short-rate lattice as callable_bond_pricer (fixed 0.5/0.5 branch probabilities, not calibrated to a market curve) \u2014 see that entry's caveat.",
       "citation": null,
-      "formula_latex": "V_j^{(N)}=F+c;\\qquad V_j^{(k)}=\\max\\!\\left(K_{put},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right),\\qquad r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)},\\qquad \\text{Price}=V_0^{(0)}",
+      "formula_latex": "V_j^{(N)}=F+c; \\qquad V_j^{(k)}=\\max\\!\\left(K_{put},\\ c+e^{-r_{k,j}\\,dt}\\cdot\\tfrac12\\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\\big)\\right), \\\\ r_{k,j}=r_0\\,e^{\\sigma_r\\sqrt{dt}\\,(2j-k)}, \\qquad \\text{Price}=V_0^{(0)}",
       "symbol_map": {
         "coupon_rate": "c_r",
         "face_value": "F",
@@ -12265,7 +12265,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "z=\\frac{\\nu}{\\alpha}(FK)^{(1-\\beta)/2}\\ln\\frac{F}{K},\\qquad \\chi(z)=\\ln\\!\\left(\\frac{\\sqrt{1-2\\rho z+z^2}+z-\\rho}{1-\\rho}\\right)\\\\\\sigma_B(K)=\\frac{\\alpha}{(FK)^{(1-\\beta)/2}\\Big[1+\\frac{(1-\\beta)^2}{24}\\ln^2\\frac{F}{K}+\\frac{(1-\\beta)^4}{1920}\\ln^4\\frac{F}{K}\\Big]}\\cdot\\frac{z}{\\chi(z)}\\cdot\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24(FK)^{1-\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4(FK)^{(1-\\beta)/2}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right]\\\\\\text{ATM }(F=K):\\quad \\sigma_B(F)=\\frac{\\alpha}{F^{1-\\beta}}\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24F^{2-2\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4F^{1-\\beta}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right]",
+      "formula_latex": "z=\\frac{\\nu}{\\alpha}(FK)^{(1-\\beta)/2}\\ln\\frac{F}{K},\\qquad \\chi(z)=\\ln\\!\\left(\\frac{\\sqrt{1-2\\rho z+z^2}+z-\\rho}{1-\\rho}\\right) \\\\ \\sigma_B(K)=\\frac{\\alpha}{(FK)^{(1-\\beta)/2}\\Big[1+\\frac{(1-\\beta)^2}{24}\\ln^2\\frac{F}{K}+\\frac{(1-\\beta)^4}{1920}\\ln^4\\frac{F}{K}\\Big]}\\cdot\\frac{z}{\\chi(z)}\\cdot\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24(FK)^{1-\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4(FK)^{(1-\\beta)/2}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right] \\\\ \\text{ATM }(F=K): \\\\ \\sigma_B(F)=\\frac{\\alpha}{F^{1-\\beta}}\\left[1+\\left(\\frac{(1-\\beta)^2\\alpha^2}{24F^{2-2\\beta}}+\\frac{\\rho\\beta\\nu\\alpha}{4F^{1-\\beta}}+\\frac{2-3\\rho^2}{24}\\nu^2\\right)\\tau\\right]",
       "symbol_map": {
         "alpha": "\\alpha",
         "beta": "\\beta",
@@ -12571,7 +12571,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "\\text{Price}_{payer}=N\\cdot A\\cdot\\big[FN(d_1)-KN(d_2)\\big],\\qquad \\text{Price}_{receiver}=N\\cdot A\\cdot\\big[KN(-d_2)-FN(-d_1)\\big]\\\\d_1=\\frac{\\ln(F/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\quad d_2=d_1-\\sigma\\sqrt T",
+      "formula_latex": "\\text{Price}_{payer}=N\\cdot A\\cdot\\big[FN(d_1)-KN(d_2)\\big], \\\\ \\text{Price}_{receiver}=N\\cdot A\\cdot\\big[KN(-d_2)-FN(-d_1)\\big] \\\\ d_1=\\frac{\\ln(F/K)+\\tfrac12\\sigma^2 T}{\\sigma\\sqrt T},\\quad d_2=d_1-\\sigma\\sqrt T",
       "symbol_map": {
         "annuity": "A",
         "expiry": "T",
@@ -12951,7 +12951,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "dx=\\sigma\\sqrt{3\\Delta t},\\quad u=e^{dx},\\quad \\nu=r-q-\\tfrac12\\sigma^2\\\\p_u=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}+\\frac{\\nu\\Delta t}{dx}\\Big),\\quad p_d=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}-\\frac{\\nu\\Delta t}{dx}\\Big),\\quad p_m=1-p_u-p_d\\\\V_j^{(k)}=e^{-r\\Delta t}\\big(p_dV_j^{(k+1)}+p_mV_{j+1}^{(k+1)}+p_uV_{j+2}^{(k+1)}\\big)\\ \\text{(+ American early-exercise check)}",
+      "formula_latex": "dx=\\sigma\\sqrt{3\\Delta t},\\quad u=e^{dx},\\quad \\nu=r-q-\\tfrac12\\sigma^2 \\\\ p_u=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}+\\frac{\\nu\\Delta t}{dx}\\Big), \\quad p_d=\\tfrac12\\Big(\\frac{\\sigma^2\\Delta t+\\nu^2\\Delta t^2}{dx^2}-\\frac{\\nu\\Delta t}{dx}\\Big), \\\\ p_m=1-p_u-p_d \\\\ V_j^{(k)}=e^{-r\\Delta t}\\big(p_dV_j^{(k+1)}+p_mV_{j+1}^{(k+1)}+p_uV_{j+2}^{(k+1)}\\big)\\ \\text{(+ American early-exercise check)}",
       "symbol_map": {
         "div_yield": "q",
         "n_steps": "N",
@@ -13233,7 +13233,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW,\\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa},\\qquad A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big]\\\\P(0,T)=A\\,e^{-Br_0}",
+      "formula_latex": "dr=\\kappa(\\theta-r)\\,dt+\\sigma\\,dW, \\qquad B=\\frac{1-e^{-\\kappa T}}{\\kappa}, \\\\ A=\\exp\\!\\Big[\\big(\\theta-\\tfrac{\\sigma^2}{2\\kappa^2}\\big)(B-T)-\\tfrac{\\sigma^2B^2}{4\\kappa}\\Big] \\\\ P(0,T)=A\\,e^{-Br_0}",
       "symbol_map": {
         "kappa": "\\kappa",
         "maturity": "T",
@@ -13330,7 +13330,7 @@
     "formula": {
       "caveat": null,
       "citation": null,
-      "formula_latex": "P=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\\frac{K_{call}}{(1+y_{tc}/m)^{n}},\\qquad n=\\text{round}(T_{call}\\cdot m),\\ \\text{solved for } y_{tc}",
+      "formula_latex": "P=\\sum_{i=1}^{n}\\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\\frac{K_{call}}{(1+y_{tc}/m)^{n}}, \\\\ n=\\text{round}(T_{call}\\cdot m),\\ \\text{solved for } y_{tc}",
       "symbol_map": {
         "call_date": "T_{call}",
         "call_price": "K_{call}",
@@ -15234,7 +15234,7 @@
     "formula": {
       "caveat": "Piecewise categorical rule; the comparison direction flips (green <= amber <= metric) when higher_is_better is False. Shown here for the higher-is-better case.",
       "citation": null,
-      "formula_latex": "\\text{Zone} = \\begin{cases} \\text{green} & m \\ge \\tau_g \\\\ \\text{amber} & \\tau_a \\le m < \\tau_g \\\\ \\text{red} & m < \\tau_a \\end{cases} \\quad (\\text{higher\\_is\\_better case; comparisons invert when lower is better})",
+      "formula_latex": "\\text{Zone} = \\begin{cases} \\text{green} & m \\ge \\tau_g \\\\ \\text{amber} & \\tau_a \\le m < \\tau_g \\\\ \\text{red} & m < \\tau_a \\end{cases} \\\\ (\\text{higher\\_is\\_better case; comparisons invert when lower is better})",
       "symbol_map": {
         "amber_threshold": "\\tau_a",
         "green_threshold": "\\tau_g",
@@ -15869,7 +15869,7 @@
     "formula": {
       "caveat": "survival_days is the 0-indexed day on which cumulative outflow first drives the buffer negative (so it equals the count of full days survived before breach); it equals len(daily_net_outflows) if the buffer never goes negative.",
       "citation": null,
-      "formula_latex": "B_0 = HQLA \\\\ B_t = B_{t-1} - O_t \\\\ \\text{SurvivalDays} = \\min\\{t : B_t < 0\\} \\quad \\text{(or the full array length if the buffer never goes negative)}",
+      "formula_latex": "B_0 = HQLA \\\\ B_t = B_{t-1} - O_t \\\\ \\text{SurvivalDays} = \\min\\{t : B_t < 0\\} \\\\ \\text{(or the full array length if the buffer never goes negative)}",
       "symbol_map": {
         "daily_net_outflows": "O_t",
         "hqla": "HQLA"
@@ -18501,7 +18501,7 @@
     "formula": {
       "caveat": "Boundary cases x=0 or x=n use a simplified one-sided form of this likelihood ratio (avoiding ln(0)); the general expression above applies for 0<x<n.",
       "citation": null,
-      "formula_latex": "LR_{POF} = -2\\Big[(n-x)\\ln(1-p) + x\\ln p - (n-x)\\ln(1-\\hat\\pi) - x\\ln\\hat\\pi\\Big],\\quad p = 1-\\alpha,\\ \\hat\\pi = x/n",
+      "formula_latex": "LR_{POF} = -2\\Big[(n-x)\\ln(1-p) + x\\ln p - (n-x)\\ln(1-\\hat\\pi) - x\\ln\\hat\\pi\\Big], \\\\ p = 1-\\alpha,\\ \\hat\\pi = x/n",
       "symbol_map": {
         "confidence_level": "\\alpha",
         "n_breaches": "x",
@@ -19984,7 +19984,7 @@
     "formula": {
       "caveat": "This is an algorithmic run-length computation on the breach sequence rather than a closed-form statistic.",
       "citation": null,
-      "formula_latex": "\\text{clusters} = \\{\\text{maximal runs of consecutive } b_t=1\\}\\\\ n_{clusters}=|\\text{clusters}|,\\quad \\max\\_len=\\max_i \\text{len}(run_i),\\quad \\overline{len}=\\frac{1}{n_{clusters}}\\sum_i \\text{len}(run_i)",
+      "formula_latex": "\\text{clusters} = \\{\\text{maximal runs of consecutive } b_t=1\\} \\\\ n_{clusters}=|\\text{clusters}|, \\quad \\max\\_len=\\max_i \\text{len}(run_i), \\\\ \\overline{len}=\\frac{1}{n_{clusters}}\\sum_i \\text{len}(run_i)",
       "symbol_map": {
         "breaches": "b_t"
       }
@@ -23335,7 +23335,7 @@
     "formula": {
       "caveat": "The WACI leg matches TCFD's weighted-average-carbon-intensity definition in both modes. By default (company_total_emissions/company_value omitted) total_financed_emissions uses revenue-intensity times invested-value, which does NOT match the ownership-share method used by TCFD/PCAF financed-emissions standards. Pass both company_total_emissions and company_value to switch to PCAF's genuine ownership-share method.",
       "citation": "Partnership for Carbon Accounting Financials (PCAF), \"The Global GHG Accounting and Reporting Standard for the Financial Industry\", Part A, 2020 (ownership-share / EVIC method)",
-      "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ \\text{(default)}\\;\\; E_i = w_i \\cdot V_{port} \\cdot CI_i \\\\ \\text{(PCAF, opt-in)}\\;\\; \\text{share}_i = \\frac{w_i V_{port}}{V^{company}_i}, \\quad E_i = \\text{share}_i \\cdot E^{company}_i, \\quad E_{total} = \\sum_i E_i",
+      "formula_latex": "WACI = \\sum_i w_i \\cdot CI_i \\\\ \\text{(default)}\\;\\; E_i = w_i \\cdot V_{port} \\cdot CI_i \\\\ \\text{(PCAF, opt-in)}\\;\\; \\text{share}_i = \\frac{w_i V_{port}}{V^{company}_i}, \\quad E_i = \\text{share}_i \\cdot E^{company}_i, \\\\ E_{total} = \\sum_i E_i",
       "symbol_map": {
         "carbon_intensities": "CI_i",
         "company_total_emissions": "E^{company}_i",
@@ -23647,7 +23647,7 @@
     "formula": {
       "caveat": "Default (local_risk_free/base_risk_free omitted) is the naive geometric local/FX split (base=(1+local)(1+fx)-1, currency as residual) -- NOT Karnosky-Singer. Pass both local_risk_free and base_risk_free to switch to Karnosky & Singer's (1994) genuine decomposition: local returns netted against the local risk-free rate into a return premium, and the currency side split into a base cash return plus a currency surprise (net of the covered-interest-parity forward premium), rather than absorbing the rate differential as an unexplained residual.",
       "citation": "Karnosky, D. & Singer, B. (1994), \"The Currency Dimension of Global Asset Management and Performance Attribution\", CFA Institute Research Foundation; Bacon, C. (2008), \"Practical Portfolio Performance Measurement and Attribution\", 2nd ed., Ch. 6",
-      "formula_latex": "\\text{(default)}\\;\\; R^{local}_i = w_i r^{L}_i, \\quad R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ \\text{(Karnosky-Singer, opt-in)}\\;\\; p_i = \\frac{1+r^L_i}{1+r^{L,f}_i}-1, \\quad f_i = \\frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\quad s_i = \\frac{1+r^{FX}_i}{1+f_i}-1 \\\\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)",
+      "formula_latex": "\\text{(default)}\\;\\; R^{local}_i = w_i r^{L}_i, \\quad R^{fx}_i = w_i\\left[(1+r^{L}_i)(1+r^{FX}_i) - 1 - r^{L}_i\\right] \\\\ \\text{(Karnosky-Singer, opt-in)}\\;\\; p_i = \\frac{1+r^L_i}{1+r^{L,f}_i}-1, \\quad f_i = \\frac{1+r^{B,f}}{1+r^{L,f}_i}-1, \\\\ s_i = \\frac{1+r^{FX}_i}{1+f_i}-1 \\\\ (1+r^{B,f})(1+p_i)(1+s_i) = (1+r^L_i)(1+r^{FX}_i)",
       "symbol_map": {
         "base_risk_free": "r^{B,f}",
         "fx_returns": "r^{FX}_i",
@@ -26174,7 +26174,7 @@
     "formula": {
       "caveat": "By default (decision_price omitted) this is narrower than Perold's full implementation-shortfall decomposition -- execution slippage only, no delay-cost or unexecuted-share opportunity-cost leg. Passing decision_price adds the delay-cost leg (decision-to-arrival). Additionally passing unexecuted_quantity and cancellation_price together adds the opportunity-cost leg for shares never executed, so delay + execution + opportunity cost then cover the full original order (executed and unexecuted alike) against the decision price -- this function still does not model any explicit commission/fee leg, which some treatments of Perold's decomposition include as a further, separate component.",
       "citation": "Perold, A.F. (1988), \"The Implementation Shortfall: Paper Versus Reality\", Journal of Portfolio Management 14(3)",
-      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\quad IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Opportunity_{bps} = \\frac{s\\cdot(c - d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4, \\quad TotalIS_{bps} = \\frac{\\sum_i s\\cdot(p_i - d_i)\\cdot q_i + s\\cdot(c-d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4",
+      "formula_latex": "Slippage_{bps} = \\frac{\\sum_i s \\cdot (p_i - b_i) \\cdot q_i}{\\sum_i b_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Delay_{bps} = \\frac{\\sum_i s \\cdot (b_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4, \\\\ IS_{bps} = \\frac{\\sum_i s \\cdot (p_i - d_i) \\cdot q_i}{\\sum_i d_i q_i} \\times 10^4 \\\\ \\text{(opt-in)}\\;\\; Opportunity_{bps} = \\frac{s\\cdot(c - d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4, \\\\ TotalIS_{bps} = \\frac{\\sum_i s\\cdot(p_i - d_i)\\cdot q_i + s\\cdot(c-d)\\cdot u}{\\sum_i d_i q_i + d\\cdot u} \\times 10^4",
       "symbol_map": {
         "benchmark_prices": "b_i",
         "cancellation_price": "c",
@@ -26917,7 +26917,7 @@
     "formula": {
       "caveat": null,
       "citation": "EMIR REFIT (Regulation (EU) 2019/834) Art. 4a(1) / Art. 10(1)",
-      "formula_latex": "any\\_breached = \\bigvee_{ac} \\big(notional_{ac} > threshold_{ac}\\big) \\\\ FC:\\ clearing_{ac} = any\\_breached\\ \\ \\forall ac \\qquad NFC{+}:\\ clearing_{ac} = notional_{ac} > threshold_{ac}",
+      "formula_latex": "any\\_breached = \\bigvee_{ac} \\big(notional_{ac} > threshold_{ac}\\big) \\\\ FC:\\ clearing_{ac} = any\\_breached\\ \\ \\forall ac \\\\ NFC{+}:\\ clearing_{ac} = notional_{ac} > threshold_{ac}",
       "symbol_map": {
         "clearing_thresholds": "threshold_{ac}",
         "notionals": "notional_{ac}"

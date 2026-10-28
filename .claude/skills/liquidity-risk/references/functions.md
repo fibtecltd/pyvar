@@ -390,7 +390,7 @@ remaining buffer is still non-negative.
 drives the buffer negative, so it equals the count of full days survived
 before breach (0 if the very first day breaches).
 
-Formula (LaTeX): `B_0 = HQLA \\ B_t = B_{t-1} - O_t \\ \text{SurvivalDays} = \min\{t : B_t < 0\} \quad \text{(or the full array length if the buffer never goes negative)}`
+Formula (LaTeX): `B_0 = HQLA \\ B_t = B_{t-1} - O_t \\ \text{SurvivalDays} = \min\{t : B_t < 0\} \\ \text{(or the full array length if the buffer never goes negative)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -603,7 +603,7 @@ the Try-it panel's rendered formula shows only the higher-is-better
 direction; the comparison flips (green <= amber <= metric) when
 ``higher_is_better`` is False.
 
-Formula (LaTeX): `\text{Zone} = \begin{cases} \text{green} & m \ge \tau_g \\ \text{amber} & \tau_a \le m < \tau_g \\ \text{red} & m < \tau_a \end{cases} \quad (\text{higher\_is\_better case; comparisons invert when lower is better})`
+Formula (LaTeX): `\text{Zone} = \begin{cases} \text{green} & m \ge \tau_g \\ \text{amber} & \tau_a \le m < \tau_g \\ \text{red} & m < \tau_a \end{cases} \\ (\text{higher\_is\_better case; comparisons invert when lower is better})`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

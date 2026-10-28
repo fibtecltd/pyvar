@@ -31,7 +31,7 @@ Formula (LaTeX): `C=S e^{-q\tau}N(d_1)-K e^{-r\tau}N(d_2),\qquad P=K e^{-r\tau}N
 Returns delta, gamma, vega, theta (per year) and rho. Gamma and vega are
 identical for calls and puts.
 
-Formula (LaTeX): `\Delta_{call}=e^{-q\tau}N(d_1),\quad \Delta_{put}=-e^{-q\tau}N(-d_1)\\\Gamma=\frac{e^{-q\tau}N'(d_1)}{S\sigma\sqrt\tau},\qquad \text{Vega}=S e^{-q\tau}N'(d_1)\sqrt\tau\quad(\text{same for call and put})\\\Theta_{call}=-\frac{S e^{-q\tau}N'(d_1)\sigma}{2\sqrt\tau}-rKe^{-r\tau}N(d_2)+qSe^{-q\tau}N(d_1),\quad \Theta_{put}=-\frac{S e^{-q\tau}N'(d_1)\sigma}{2\sqrt\tau}+rKe^{-r\tau}N(-d_2)-qSe^{-q\tau}N(-d_1)\\\rho_{call}=K\tau e^{-r\tau}N(d_2),\qquad \rho_{put}=-K\tau e^{-r\tau}N(-d_2)`
+Formula (LaTeX): `\Delta_{call}=e^{-q\tau}N(d_1),\quad \Delta_{put}=-e^{-q\tau}N(-d_1) \\ \Gamma=\frac{e^{-q\tau}N'(d_1)}{S\sigma\sqrt\tau},\qquad \text{Vega}=S e^{-q\tau}N'(d_1)\sqrt\tau\quad(\text{same for call and put}) \\ \Theta_{call}=-\frac{S e^{-q\tau}N'(d_1)\sigma}{2\sqrt\tau}-rKe^{-r\tau}N(d_2)+qSe^{-q\tau}N(d_1), \\ \Theta_{put}=-\frac{S e^{-q\tau}N'(d_1)\sigma}{2\sqrt\tau}+rKe^{-r\tau}N(-d_2)-qSe^{-q\tau}N(-d_1) \\ \rho_{call}=K\tau e^{-r\tau}N(d_2),\qquad \rho_{put}=-K\tau e^{-r\tau}N(-d_2)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -50,7 +50,7 @@ Formula (LaTeX): `\Delta_{call}=e^{-q\tau}N(d_1),\quad \Delta_{put}=-e^{-q\tau}N
 Handles European and American exercise. European prices converge to
 Black-Scholes as ``n_steps`` grows.
 
-Formula (LaTeX): `u=e^{\sigma\sqrt{\Delta t}},\quad d=\frac1u,\quad p=\frac{e^{(r-q)\Delta t}-d}{u-d}\\V_i^{(N)}=\max(\phi(S_0u^{N-i}d^{i}-K),0)\\V_i^{(k)}=\max\Big(e^{-r\Delta t}\big[pV_i^{(k+1)}+(1-p)V_{i+1}^{(k+1)}\big],\ \text{[American] intrinsic}(S_0u^{k-i}d^{i})\Big)`
+Formula (LaTeX): `u=e^{\sigma\sqrt{\Delta t}},\quad d=\frac1u,\quad p=\frac{e^{(r-q)\Delta t}-d}{u-d} \\ V_i^{(N)}=\max(\phi(S_0u^{N-i}d^{i}-K),0) \\ V_i^{(k)}=\max\Big(e^{-r\Delta t}\big[pV_i^{(k+1)}+(1-p)V_{i+1}^{(k+1)}\big],\ \text{[American] intrinsic}(S_0u^{k-i}d^{i})\Big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -71,7 +71,7 @@ Formula (LaTeX): `u=e^{\sigma\sqrt{\Delta t}},\quad d=\frac1u,\quad p=\frac{e^{(
 Up/middle/down branching converges to Black-Scholes for European options.
 Handles American exercise.
 
-Formula (LaTeX): `dx=\sigma\sqrt{3\Delta t},\quad u=e^{dx},\quad \nu=r-q-\tfrac12\sigma^2\\p_u=\tfrac12\Big(\frac{\sigma^2\Delta t+\nu^2\Delta t^2}{dx^2}+\frac{\nu\Delta t}{dx}\Big),\quad p_d=\tfrac12\Big(\frac{\sigma^2\Delta t+\nu^2\Delta t^2}{dx^2}-\frac{\nu\Delta t}{dx}\Big),\quad p_m=1-p_u-p_d\\V_j^{(k)}=e^{-r\Delta t}\big(p_dV_j^{(k+1)}+p_mV_{j+1}^{(k+1)}+p_uV_{j+2}^{(k+1)}\big)\ \text{(+ American early-exercise check)}`
+Formula (LaTeX): `dx=\sigma\sqrt{3\Delta t},\quad u=e^{dx},\quad \nu=r-q-\tfrac12\sigma^2 \\ p_u=\tfrac12\Big(\frac{\sigma^2\Delta t+\nu^2\Delta t^2}{dx^2}+\frac{\nu\Delta t}{dx}\Big), \quad p_d=\tfrac12\Big(\frac{\sigma^2\Delta t+\nu^2\Delta t^2}{dx^2}-\frac{\nu\Delta t}{dx}\Big), \\ p_m=1-p_u-p_d \\ V_j^{(k)}=e^{-r\Delta t}\big(p_dV_j^{(k+1)}+p_mV_{j+1}^{(k+1)}+p_uV_{j+2}^{(k+1)}\big)\ \text{(+ American early-exercise check)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -116,7 +116,7 @@ Prices via the single-integral representation using the characteristic
 function. As ``sigma`` (vol-of-vol) → 0 with ``v0 = theta`` the price tends
 to Black-Scholes with constant vol ``sqrt(theta)``.
 
-Formula (LaTeX): `C=S P_1-Ke^{-r\tau}P_2,\qquad P=C-S+Ke^{-r\tau}\ \text{(put-call parity)}\\P_1=\tfrac12+\frac{1}{\pi\,\phi(-i)}\int_0^\infty\text{Re}\Big[\frac{e^{-iu\ln K}\phi(u-i)}{iu}\Big]du,\qquad P_2=\tfrac12+\frac1\pi\int_0^\infty\text{Re}\Big[\frac{e^{-iu\ln K}\phi(u)}{iu}\Big]du\\\xi=\kappa-\sigma\rho i u,\ d=\sqrt{\xi^2+\sigma^2(iu+u^2)},\ g=\frac{\xi-d}{\xi+d}\\\phi(u)=\exp\!\Big[riu\tau+\frac{\kappa\theta}{\sigma^2}\big((\xi-d)\tau-2\ln\tfrac{1-ge^{-d\tau}}{1-g}\big)+\frac{\xi-d}{\sigma^2}\cdot\frac{1-e^{-d\tau}}{1-ge^{-d\tau}}\,v_0+iu\ln S\Big]`
+Formula (LaTeX): `C=S P_1-Ke^{-r\tau}P_2,\qquad P=C-S+Ke^{-r\tau}\ \text{(put-call parity)} \\ P_1=\tfrac12+\frac{1}{\pi\,\phi(-i)}\int_0^\infty\text{Re}\Big[\frac{e^{-iu\ln K}\phi(u-i)}{iu}\Big]du, \\ P_2=\tfrac12+\frac1\pi\int_0^\infty\text{Re}\Big[\frac{e^{-iu\ln K}\phi(u)}{iu}\Big]du \\ \xi=\kappa-\sigma\rho i u,\ d=\sqrt{\xi^2+\sigma^2(iu+u^2)},\ g=\frac{\xi-d}{\xi+d} \\ \phi(u)=\exp\!\Big[riu\tau+\frac{\kappa\theta}{\sigma^2}\big((\xi-d)\tau-2\ln\tfrac{1-ge^{-d\tau}}{1-g}\big)+\frac{\xi-d}{\sigma^2}\cdot\frac{1-e^{-d\tau}}{1-ge^{-d\tau}}\,v_0+iu\ln S\Big]`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -138,7 +138,7 @@ Formula (LaTeX): `C=S P_1-Ke^{-r\tau}P_2,\qquad P=C-S+Ke^{-r\tau}\ \text{(put-ca
 Returns the Black implied volatility for the given strike under the SABR
 dynamics. At-the-money it reduces to the well-known ATM SABR vol.
 
-Formula (LaTeX): `z=\frac{\nu}{\alpha}(FK)^{(1-\beta)/2}\ln\frac{F}{K},\qquad \chi(z)=\ln\!\left(\frac{\sqrt{1-2\rho z+z^2}+z-\rho}{1-\rho}\right)\\\sigma_B(K)=\frac{\alpha}{(FK)^{(1-\beta)/2}\Big[1+\frac{(1-\beta)^2}{24}\ln^2\frac{F}{K}+\frac{(1-\beta)^4}{1920}\ln^4\frac{F}{K}\Big]}\cdot\frac{z}{\chi(z)}\cdot\left[1+\left(\frac{(1-\beta)^2\alpha^2}{24(FK)^{1-\beta}}+\frac{\rho\beta\nu\alpha}{4(FK)^{(1-\beta)/2}}+\frac{2-3\rho^2}{24}\nu^2\right)\tau\right]\\\text{ATM }(F=K):\quad \sigma_B(F)=\frac{\alpha}{F^{1-\beta}}\left[1+\left(\frac{(1-\beta)^2\alpha^2}{24F^{2-2\beta}}+\frac{\rho\beta\nu\alpha}{4F^{1-\beta}}+\frac{2-3\rho^2}{24}\nu^2\right)\tau\right]`
+Formula (LaTeX): `z=\frac{\nu}{\alpha}(FK)^{(1-\beta)/2}\ln\frac{F}{K},\qquad \chi(z)=\ln\!\left(\frac{\sqrt{1-2\rho z+z^2}+z-\rho}{1-\rho}\right) \\ \sigma_B(K)=\frac{\alpha}{(FK)^{(1-\beta)/2}\Big[1+\frac{(1-\beta)^2}{24}\ln^2\frac{F}{K}+\frac{(1-\beta)^4}{1920}\ln^4\frac{F}{K}\Big]}\cdot\frac{z}{\chi(z)}\cdot\left[1+\left(\frac{(1-\beta)^2\alpha^2}{24(FK)^{1-\beta}}+\frac{\rho\beta\nu\alpha}{4(FK)^{(1-\beta)/2}}+\frac{2-3\rho^2}{24}\nu^2\right)\tau\right] \\ \text{ATM }(F=K): \\ \sigma_B(F)=\frac{\alpha}{F^{1-\beta}}\left[1+\left(\frac{(1-\beta)^2\alpha^2}{24F^{2-2\beta}}+\frac{\rho\beta\nu\alpha}{4F^{1-\beta}}+\frac{2-3\rho^2}{24}\nu^2\right)\tau\right]`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -164,7 +164,7 @@ polynomials), and a forward/backward difference in maturity at the
 first/last maturity respectively (interior maturities also use the
 forward difference toward the next maturity).
 
-Formula (LaTeX): `\sigma_{loc}^2(K,T)=\frac{\partial C/\partial T+rK\,\partial C/\partial K}{\tfrac12 K^2\,\partial^2C/\partial K^2}\\\text{interior}:\ \text{central differences};\quad \text{boundary}:\ \text{2nd-order one-sided 3-point stencils (exact for quadratics)}`
+Formula (LaTeX): `\sigma_{loc}^2(K,T)=\frac{\partial C/\partial T+rK\,\partial C/\partial K}{\tfrac12 K^2\,\partial^2C/\partial K^2} \\ \text{interior}:\ \text{central differences}; \\ \text{boundary}:\ \text{2nd-order one-sided 3-point stencils (exact for quadratics)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -287,7 +287,7 @@ Prices ``(S + a)`` as a lognormal with vol scaled by ``S/(S+a)`` — a simple
 way to interpolate between lognormal (a=0) and normal-like dynamics. Reduces
 exactly to Black-Scholes when ``displacement == 0``.
 
-Formula (LaTeX): `\text{Price}=\text{BS}(S+a,\ K+a,\ r,\ \sigma,\ \tau,\ q)\quad\text{(Black-Scholes on shifted spot/strike)}`
+Formula (LaTeX): `\text{Price}=\text{BS}(S+a,\ K+a,\ r,\ \sigma,\ \tau,\ q) \\ \text{(Black-Scholes on shifted spot/strike)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -308,7 +308,7 @@ Formula (LaTeX): `\text{Price}=\text{BS}(S+a,\ K+a,\ r,\ \sigma,\ \tau,\ q)\quad
 
 ``Call = payout · e^{-rτ} N(d2)``, ``Put = payout · e^{-rτ} N(-d2)``.
 
-Formula (LaTeX): `\text{Call}=Q\,e^{-r\tau}N(d_2),\qquad \text{Put}=Q\,e^{-r\tau}N(-d_2),\qquad d_2=\frac{\ln(S/K)+(r-q-\sigma^2/2)\tau}{\sigma\sqrt\tau}`
+Formula (LaTeX): `\text{Call}=Q\,e^{-r\tau}N(d_2), \qquad \text{Put}=Q\,e^{-r\tau}N(-d_2), \\ d_2=\frac{\ln(S/K)+(r-q-\sigma^2/2)\tau}{\sigma\sqrt\tau}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -340,7 +340,7 @@ Note: only the general Reiner-Rubinstein building blocks (A/B/C/D) are
 shown here — which combination prices the knock-in leg depends on
 ``option_type``, ``barrier_type``, and whether strike exceeds barrier.
 
-Formula (LaTeX): `\mu=\frac{r-q-\sigma^2/2}{\sigma^2},\qquad \lambda=\sqrt{\mu^2+2r/\sigma^2}\\A=\phi Se^{-q\tau}N(\phi x_1)-\phi Ke^{-r\tau}N(\phi x_1-\phi\sigma\sqrt\tau)\\B=\phi Se^{-q\tau}N(\phi x_2)-\phi Ke^{-r\tau}N(\phi x_2-\phi\sigma\sqrt\tau)\\C=\phi Se^{-q\tau}\Big(\frac{H}{S}\Big)^{2(\mu+1)}N(\eta y_1)-\phi Ke^{-r\tau}\Big(\frac{H}{S}\Big)^{2\mu}N(\eta y_1-\eta\sigma\sqrt\tau)\\D=\phi Se^{-q\tau}\Big(\frac{H}{S}\Big)^{2(\mu+1)}N(\eta y_2)-\phi Ke^{-r\tau}\Big(\frac{H}{S}\Big)^{2\mu}N(\eta y_2-\eta\sigma\sqrt\tau)\\E=\text{rebate}\cdot e^{-r\tau}\big[N(\eta x_2-\eta\sigma\sqrt\tau)-(H/S)^{2\mu}N(\eta y_2-\eta\sigma\sqrt\tau)\big]\ \text{(rebate at expiry, knock-in)}\\F=\text{rebate}\big[(H/S)^{\mu+\lambda}N(\eta z)+(H/S)^{\mu-\lambda}N(\eta z-2\eta\lambda\sigma\sqrt\tau)\big]\ \text{(rebate at touch, knock-out)}\\\text{knock-in}=\{A,B,C,D\text{ combo}\}+E,\qquad \text{knock-out}=(\text{vanilla}-\text{knock-in}_{\text{no rebate}})+F`
+Formula (LaTeX): `\mu=\frac{r-q-\sigma^2/2}{\sigma^2},\qquad \lambda=\sqrt{\mu^2+2r/\sigma^2} \\ A=\phi Se^{-q\tau}N(\phi x_1)-\phi Ke^{-r\tau}N(\phi x_1-\phi\sigma\sqrt\tau) \\ B=\phi Se^{-q\tau}N(\phi x_2)-\phi Ke^{-r\tau}N(\phi x_2-\phi\sigma\sqrt\tau) \\ C=\phi Se^{-q\tau}\Big(\frac{H}{S}\Big)^{2(\mu+1)}N(\eta y_1)-\phi Ke^{-r\tau}\Big(\frac{H}{S}\Big)^{2\mu}N(\eta y_1-\eta\sigma\sqrt\tau) \\ D=\phi Se^{-q\tau}\Big(\frac{H}{S}\Big)^{2(\mu+1)}N(\eta y_2)-\phi Ke^{-r\tau}\Big(\frac{H}{S}\Big)^{2\mu}N(\eta y_2-\eta\sigma\sqrt\tau) \\ E=\text{rebate}\cdot e^{-r\tau}\big[N(\eta x_2-\eta\sigma\sqrt\tau)-(H/S)^{2\mu}N(\eta y_2-\eta\sigma\sqrt\tau)\big]\ \text{(rebate at expiry, knock-in)} \\ F=\text{rebate}\big[(H/S)^{\mu+\lambda}N(\eta z)+(H/S)^{\mu-\lambda}N(\eta z-2\eta\lambda\sigma\sqrt\tau)\big]\ \text{(rebate at touch, knock-out)} \\ \text{knock-in}=\{A,B,C,D\text{ combo}\}+E, \\ \text{knock-out}=(\text{vanilla}-\text{knock-in}_{\text{no rebate}})+F`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -440,7 +440,7 @@ the way it does for Asian/lookback. Revisit only with a fix for the
 underlying regression-bias interaction (e.g. an in-sample/out-of-sample
 split for the regression fit), not by retuning replicate count alone.
 
-Formula (LaTeX): `S_{t_k}=S_{t_{k-1}}\exp\!\big[(r-q-\tfrac12\sigma^2)\Delta t+\sigma\sqrt{\Delta t}\,Z_k\big],\ \Delta t=\tau/n \\\text{Intrinsic}(S)=\max(\phi(S-K),0) \\\hat C(S_{t_k})=\hat\beta_0+\hat\beta_1 S_{t_k}+\hat\beta_2 S_{t_k}^2\ \text{(OLS on in-the-money paths)}\\\text{Exercise at } t_k \text{ if Intrinsic}(S_{t_k})>\hat C(S_{t_k});\qquad \text{Price}=\mathbb E\big[e^{-r t}\,\text{Cashflow}\big]\ \text{(backward induction)}`
+Formula (LaTeX): `S_{t_k}=S_{t_{k-1}}\exp\!\big[(r-q-\tfrac12\sigma^2)\Delta t+\sigma\sqrt{\Delta t}\,Z_k\big],\ \Delta t=\tau/n \\ \text{Intrinsic}(S)=\max(\phi(S-K),0) \\ \hat C(S_{t_k})=\hat\beta_0+\hat\beta_1 S_{t_k}+\hat\beta_2 S_{t_k}^2\ \text{(OLS on in-the-money paths)} \\ \text{Exercise at } t_k \text{ if Intrinsic}(S_{t_k})>\hat C(S_{t_k}); \\ \text{Price}=\mathbb E\big[e^{-r t}\,\text{Cashflow}\big]\ \text{(backward induction)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -467,7 +467,7 @@ Note: uses the same Longstaff-Schwartz regression-based exercise decision
 as ``american_option_lsm`` (no closed form), restricted to an
 evenly-spaced subset of roughly ``n_steps / exercise_dates`` grid points.
 
-Formula (LaTeX): `\text{Same LSM recursion as american\_option\_lsm, restricted to } M \text{ discrete exercise dates:}\\\hat C(S_{t_k})=\hat\beta_0+\hat\beta_1S_{t_k}+\hat\beta_2S_{t_k}^2\ \text{(OLS, only at allowed } t_k),\\\text{Price}=\mathbb E\big[e^{-r t}\,\text{Cashflow}\big]\ \text{(backward induction)}`
+Formula (LaTeX): `\text{Same LSM recursion as american\_option\_lsm,} \\ \text{restricted to } M \text{ discrete exercise dates:} \\ \hat C(S_{t_k})=\hat\beta_0+\hat\beta_1S_{t_k}+\hat\beta_2S_{t_k}^2\ \text{(OLS, only at allowed } t_k), \\ \text{Price}=\mathbb E\big[e^{-r t}\,\text{Cashflow}\big]\ \text{(backward induction)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -662,7 +662,7 @@ Coupons and principal accrete with cumulative inflation; the resulting
 nominal cashflows are discounted at the real yield (the standard
 real-cashflow / real-yield convention).
 
-Formula (LaTeX): `P=\sum_{i=1}^{n}\left[\frac{F c_r}{m}(1+\pi)^{t_i}\right]\left(1+\frac{y_r}{m}\right)^{-i}+F(1+\pi)^{t_n}\left(1+\frac{y_r}{m}\right)^{-n},\qquad t_i=\frac{i}{m},\ n=\text{round}(T\cdot m)`
+Formula (LaTeX): `P=\sum_{i=1}^{n}\left[\frac{F c_r}{m}(1+\pi)^{t_i}\right]\left(1+\frac{y_r}{m}\right)^{-i}+F(1+\pi)^{t_n}\left(1+\frac{y_r}{m}\right)^{-n}, \\ t_i=\frac{i}{m},\ n=\text{round}(T\cdot m)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -685,7 +685,7 @@ fixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree calibrated
 to an initial term structure, and the coupon is added at every node on
 every step.
 
-Formula (LaTeX): `V_j^{(N)}=F+c;\qquad V_j^{(k)}=\min\!\left(K_{call},\ c+e^{-r_{k,j}\,dt}\cdot\tfrac12\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\big)\right),\qquad r_{k,j}=r_0\,e^{\sigma_r\sqrt{dt}\,(2j-k)},\qquad \text{Price}=V_0^{(0)}`
+Formula (LaTeX): `V_j^{(N)}=F+c; \qquad V_j^{(k)}=\min\!\left(K_{call},\ c+e^{-r_{k,j}\,dt}\cdot\tfrac12\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\big)\right), \\ r_{k,j}=r_0\,e^{\sigma_r\sqrt{dt}\,(2j-k)}, \qquad \text{Price}=V_0^{(0)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -708,7 +708,7 @@ Note: uses the same simplified multiplicative short-rate lattice as
 ``callable_bond_pricer`` — fixed 0.5/0.5 branch probabilities, not
 calibrated to a market curve.
 
-Formula (LaTeX): `V_j^{(N)}=F+c;\qquad V_j^{(k)}=\max\!\left(K_{put},\ c+e^{-r_{k,j}\,dt}\cdot\tfrac12\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\big)\right),\qquad r_{k,j}=r_0\,e^{\sigma_r\sqrt{dt}\,(2j-k)},\qquad \text{Price}=V_0^{(0)}`
+Formula (LaTeX): `V_j^{(N)}=F+c; \qquad V_j^{(k)}=\max\!\left(K_{put},\ c+e^{-r_{k,j}\,dt}\cdot\tfrac12\big(V_j^{(k+1)}+V_{j+1}^{(k+1)}\big)\right), \\ r_{k,j}=r_0\,e^{\sigma_r\sqrt{dt}\,(2j-k)}, \qquad \text{Price}=V_0^{(0)}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -732,7 +732,7 @@ Note: this lower-bound decomposition does not model conversion
 optionality, equity volatility, or embedded call/put features of a real
 convertible bond.
 
-Formula (LaTeX): `P=\max\big(P_{floor},\ \text{ratio}\cdot S\big),\qquad P_{floor}=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y/m)^{i}}+\frac{F}{(1+y/m)^{n}},\quad n=\text{round}(T\cdot m)`
+Formula (LaTeX): `P=\max\big(P_{floor},\ \text{ratio}\cdot S\big), \qquad P_{floor}=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y/m)^{i}}+\frac{F}{(1+y/m)^{n}}, \\ n=\text{round}(T\cdot m)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -786,7 +786,7 @@ option-free bonds).
 
 ``C = Σ cf_k · t_k(t_k + 1/m) · (1+y/m)^{-(m t_k + 2)} / P``.
 
-Formula (LaTeX): `C=\frac{1}{P}\sum_k CF_k\, t_k\left(t_k+\frac{1}{m}\right)\left(1+\frac{y}{m}\right)^{-(m t_k+2)},\qquad P=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k}`
+Formula (LaTeX): `C=\frac{1}{P}\sum_k CF_k\, t_k\left(t_k+\frac{1}{m}\right)\left(1+\frac{y}{m}\right)^{-(m t_k+2)}, \\ P=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -801,7 +801,7 @@ Formula (LaTeX): `C=\frac{1}{P}\sum_k CF_k\, t_k\left(t_k+\frac{1}{m}\right)\lef
 
 Computed by central difference of the price function at ±0.5bp.
 
-Formula (LaTeX): `DV01=P(y-0.5\,\text{bp})-P(y+0.5\,\text{bp}),\quad \text{bp}=10^{-4},\qquad P(y)=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k}`
+Formula (LaTeX): `DV01=P(y-0.5\,\text{bp})-P(y+0.5\,\text{bp}), \quad \text{bp}=10^{-4}, \\ P(y)=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -833,7 +833,7 @@ Formula (LaTeX): `P=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k},\quad \text{s
 Builds the cashflow stream truncated at ``call_date`` with redemption at
 ``call_price`` and solves for the yield.
 
-Formula (LaTeX): `P=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\frac{K_{call}}{(1+y_{tc}/m)^{n}},\qquad n=\text{round}(T_{call}\cdot m),\ \text{solved for } y_{tc}`
+Formula (LaTeX): `P=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\frac{K_{call}}{(1+y_{tc}/m)^{n}}, \\ n=\text{round}(T_{call}\cdot m),\ \text{solved for } y_{tc}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -862,7 +862,7 @@ equal to the par-referenced figure when the bond happens to trade at
 par, so for any bond away from par the market-convention spread and
 the par-referenced spread differ.
 
-Formula (LaTeX): `ASW = \frac{PV_{bond} - R}{\text{Annuity}\cdot F},\qquad R = \begin{cases} F & \text{use\_market\_price=False (default)} \\ P_{bond} & \text{use\_market\_price=True} \end{cases},\qquad PV_{bond}=\sum_i CF_i\left(1+\frac{s_i}{m}\right)^{-m t_i},\qquad \text{Annuity}=\frac{1}{m}\sum_i\left(1+\frac{s_i}{m}\right)^{-m t_i}`
+Formula (LaTeX): `ASW = \frac{PV_{bond} - R}{\text{Annuity}\cdot F}, \\ R = \begin{cases} F & \text{use\_market\_price=False (default)} \\ P_{bond} & \text{use\_market\_price=True} \end{cases}, \\ PV_{bond}=\sum_i CF_i\left(1+\frac{s_i}{m}\right)^{-m t_i}, \qquad \text{Annuity}=\frac{1}{m}\sum_i\left(1+\frac{s_i}{m}\right)^{-m t_i}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -954,7 +954,7 @@ Formula (LaTeX): `y(t)=\beta_0+\beta_1\frac{1-e^{-t/\tau}}{t/\tau}+\beta_2\left(
 Adds a second curvature hump (``beta3``, ``tau2``) to Nelson-Siegel, giving
 a closer fit to longer/more complex term structures.
 
-Formula (LaTeX): `y(t)=\beta_0+\beta_1 f_1(t)+\beta_2\big(f_1(t)-e^{-t/\tau_1}\big)+\beta_3\big(f_2(t)-e^{-t/\tau_2}\big),\qquad f_i(t)=\frac{1-e^{-t/\tau_i}}{t/\tau_i}`
+Formula (LaTeX): `y(t)=\beta_0+\beta_1 f_1(t)+\beta_2\big(f_1(t)-e^{-t/\tau_1}\big)+\beta_3\big(f_2(t)-e^{-t/\tau_2}\big), \\ f_i(t)=\frac{1-e^{-t/\tau_i}}{t/\tau_i}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1019,7 +1019,7 @@ Values each leg in its own currency (coupons + final notional), converts the
 foreign leg at the FX spot, and nets. Pay-domestic = pay the domestic leg,
 receive the foreign leg.
 
-Formula (LaTeX): `PV_{dom}=N_d\Big(r_d\sum_i\tau_iDF_i^d+DF_n^d\Big),\qquad PV_{for}=N_f\Big(r_f\sum_i\tau_iDF_i^f+DF_n^f\Big)\\ V=\big(PV_{for}\cdot X-PV_{dom}\big)\ \text{[pay\_domestic]},\quad \text{or}\ \big(PV_{dom}-PV_{for}\cdot X\big)\ \text{otherwise}`
+Formula (LaTeX): `PV_{dom}=N_d\Big(r_d\sum_i\tau_iDF_i^d+DF_n^d\Big), \\ PV_{for}=N_f\Big(r_f\sum_i\tau_iDF_i^f+DF_n^f\Big) \\ V=\big(PV_{for}\cdot X-PV_{dom}\big)\ \text{[pay\_domestic]}, \\ \text{or}\ \big(PV_{dom}-PV_{for}\cdot X\big)\ \text{otherwise}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1129,7 +1129,7 @@ Formula (LaTeX): `V=N\,(R_{eq}-r_f\tau)\,DF`
 A caplet is a call on the forward rate; a floorlet is a put. Caplet +
 floorlet (same strike) replicate a payer FRA (put-call parity).
 
-Formula (LaTeX): `\text{Caplet}=N\,\tau\,DF\big[fN(d_1)-KN(d_2)\big],\qquad \text{Floorlet}=N\,\tau\,DF\big[KN(-d_2)-fN(-d_1)\big]\\d_1=\frac{\ln(f/K)+\tfrac12\sigma^2 T}{\sigma\sqrt T},\qquad d_2=d_1-\sigma\sqrt T`
+Formula (LaTeX): `\text{Caplet}=N\,\tau\,DF\big[fN(d_1)-KN(d_2)\big], \\ \text{Floorlet}=N\,\tau\,DF\big[KN(-d_2)-fN(-d_1)\big] \\ d_1=\frac{\ln(f/K)+\tfrac12\sigma^2 T}{\sigma\sqrt T},\qquad d_2=d_1-\sigma\sqrt T`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1166,7 +1166,7 @@ Formula (LaTeX): `\text{Price}=\sum_i N\,\tau_i\,DF_i\big[f_iN(d_{1,i})-KN(d_{2,
 ``Price = annuity · Black(forward_swap_rate, strike, vol, expiry)``. A payer
 swaption is a call on the swap rate; a receiver swaption is a put.
 
-Formula (LaTeX): `\text{Price}_{payer}=N\cdot A\cdot\big[FN(d_1)-KN(d_2)\big],\qquad \text{Price}_{receiver}=N\cdot A\cdot\big[KN(-d_2)-FN(-d_1)\big]\\d_1=\frac{\ln(F/K)+\tfrac12\sigma^2 T}{\sigma\sqrt T},\quad d_2=d_1-\sigma\sqrt T`
+Formula (LaTeX): `\text{Price}_{payer}=N\cdot A\cdot\big[FN(d_1)-KN(d_2)\big], \\ \text{Price}_{receiver}=N\cdot A\cdot\big[KN(-d_2)-FN(-d_1)\big] \\ d_1=\frac{\ln(F/K)+\tfrac12\sigma^2 T}{\sigma\sqrt T},\quad d_2=d_1-\sigma\sqrt T`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1279,7 +1279,7 @@ Note: with ``theta_const`` held constant this function literally delegates
 to ``vasicek_interest_rate_model`` — it is not a genuine time-dependent
 Hull-White model calibrated to fit an observed market forward curve.
 
-Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW,\qquad B=\frac{1-e^{-\kappa T}}{\kappa},\qquad A=\exp\!\Big[\big(\theta-\tfrac{\sigma^2}{2\kappa^2}\big)(B-T)-\tfrac{\sigma^2B^2}{4\kappa}\Big]\\P(0,T)=A\,e^{-Br_0}`
+Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW, \qquad B=\frac{1-e^{-\kappa T}}{\kappa}, \\ A=\exp\!\Big[\big(\theta-\tfrac{\sigma^2}{2\kappa^2}\big)(B-T)-\tfrac{\sigma^2B^2}{4\kappa}\Big] \\ P(0,T)=A\,e^{-Br_0}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
@@ -1325,7 +1325,7 @@ Formula (LaTeX): `\gamma=\sqrt{\kappa^2+2\sigma^2},\qquad B=\frac{2(e^{\gamma T}
 ``dr = κ(θ−r)dt + σ dW``. The affine ZCB price is ``P = A·e^{−B·r0}``. The
 short rate is Gaussian (can go negative).
 
-Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW,\qquad B=\frac{1-e^{-\kappa T}}{\kappa},\qquad A=\exp\!\Big[\big(\theta-\tfrac{\sigma^2}{2\kappa^2}\big)(B-T)-\tfrac{\sigma^2B^2}{4\kappa}\Big]\\P(0,T)=A\,e^{-Br_0}`
+Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW, \qquad B=\frac{1-e^{-\kappa T}}{\kappa}, \\ A=\exp\!\Big[\big(\theta-\tfrac{\sigma^2}{2\kappa^2}\big)(B-T)-\tfrac{\sigma^2B^2}{4\kappa}\Big] \\ P(0,T)=A\,e^{-Br_0}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

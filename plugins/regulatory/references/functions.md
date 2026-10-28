@@ -342,7 +342,7 @@ understated an FC's clearing scope whenever the breaching class differed
 from the queried class -- masked in the original test, which happened to
 query the same class that breached. Found during the Tier 3 #2 audit.
 
-Formula (LaTeX): `any\_breached = \bigvee_{ac} \big(notional_{ac} > threshold_{ac}\big) \\ FC:\ clearing_{ac} = any\_breached\ \ \forall ac \qquad NFC{+}:\ clearing_{ac} = notional_{ac} > threshold_{ac}`
+Formula (LaTeX): `any\_breached = \bigvee_{ac} \big(notional_{ac} > threshold_{ac}\big) \\ FC:\ clearing_{ac} = any\_breached\ \ \forall ac \\ NFC{+}:\ clearing_{ac} = notional_{ac} > threshold_{ac}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|

@@ -121,6 +121,25 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Formulas in the "Try it" panel ran off the right edge with nothing to say more followed** —
+  the formula box of every function page scrolled sideways but showed no scrollbar on a touch
+  screen or with overlay scrollbars, so a long formula looked complete when its second half was
+  hidden (`asset_swap_spread` lost the definitions of PV_bond and Annuity). A check of all 385
+  functions on the live site found 45 that overflowed at desktop width (the panel is 640 px) and
+  253 on a phone; none failed to render. Now: KaTeX display formulas wrap at relations and
+  operators (`portal/pyvar.css`); 47 formulas with several clauses are split into lines of
+  whole clauses in `scripts/data/function_formulas.json` (only `\\` line breaks added, checked so
+  the formula text is otherwise unchanged), and four were reworked by hand: the two `aligned`
+  blocks that cannot wrap (`irrbb_six_standard_rate_shocks`, `prepayment_model_mortgages`), a
+  `\text` run (`bermudan_option_pricer`), and `irb_foundation_approach_capital`, where a
+  `\cdot` before MA was dropped so the bracket fits; only the formula line scrolls, never the
+  legend or the note under it, and a shaded edge shows when there is more to scroll to; a long
+  unbroken word in a description no longer widens the panel on a phone. Desktop: 0 of 385
+  overflow; phone: 50 still scroll, behind the shaded edge. `portal/functions.json` regenerated
+  (formula lines only). New check: `scripts/audit_formula_overflow.py` opens every panel in
+  headless Chromium and exits 1 if a formula needs sideways scrolling at desktop width, fails to
+  render or widens its panel.
+
 - **The shared subscriber rebuilt its Redis client every time it idled out, which cost about 1 MiB
   per socket cycle on dev** — found by Phase 0j on dev (50 cycles of 10 or 30 sockets: 672 to 715
   MiB, about 1 MiB a cycle, following the number of cycles and not of sockets) and reproduced
@@ -132,9 +151,11 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   connection object, with the TLS context it already holds. A failed or stopped reader still closes
   the client, and a client of another event loop is not reused. Locally, with the close forced every
   cycle (30 sockets, 60 cycles, two workers, TLS Redis): +60.8 MiB with the old code, +32.2 with
-  the close off, +26.6 with this change; most cache connections 14, 10 and 8. Not yet measured on
-  AWS: repeat Phase 0j once it is deployed. Tests in `tests/test_job_done_bus.py`; details in
-  `docs/plan-streaming-quotes-in-results-out.md` section 9.14.
+  the close off, +26.6 with this change; most cache connections 14, 10 and 8. Measured on AWS by
+  Phase 0k after the deploy: 24 cycles of 10 sockets took the API task from 630 to 637 MiB, flat
+  from cycle 16 and through 5 idle minutes (0j, before this change: 672 to 715 MiB over 50
+  cycles). Tests in `tests/test_job_done_bus.py`; details in
+  `docs/plan-streaming-quotes-in-results-out.md` sections 9.14 and 9.15.
 
 - **Result reads built a Celery backend per pool thread, which showed as memory growing with
   socket churn** — found by profiling the 30-sockets-per-cycle soak locally (two uvicorn workers,
