@@ -106,7 +106,9 @@ def test_domain_skill_tells_claude_how_to_run_a_function(skill: str) -> None:
     # that does (rule "Update adds credential forward"). The key reaches the API through the
     # pyvar-mcp plugin's own sensitive userConfig option, or the user runs the request themselves.
     for forbidden in ("PYVAR_API_KEY", "os.environ", "$PYVAR", "in the environment"):
-        assert forbidden not in text, f"{skill}: reads a credential from the machine ({forbidden!r})"
+        assert (
+            forbidden not in text
+        ), f"{skill}: reads a credential from the machine ({forbidden!r})"
     # the old stub style gave no parameters and a Python namespace that does not exist
     assert "**params" not in text
     # keys used to be 60-minute session JWTs; the skill must not tell Claude that any more
