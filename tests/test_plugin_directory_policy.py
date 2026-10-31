@@ -11,7 +11,8 @@ repeated daily on the same commit until the plugin changed):
   the environment, or to run code that reads it there, is held ("Update adds credential forward").
   The key has to come from a `userConfig` option with `sensitive: true`, which only an MCP server
   can receive (a sensitive value is not substituted into skill text), so the skills point to the
-  pyvar-mcp plugin and carry no credential handling of their own.
+  pyvar-mcp plugin and carry no credential handling of their own. The one architecture skill that
+  was held, pyvar-arch-observability, showed code that reads a secret from the AWS secret store.
 
 `claude plugin validate ./plugins/<name> --strict` runs the first two against a real plugin
 folder; run it too before submitting.
@@ -116,6 +117,17 @@ def test_domain_skill_reads_no_credential_from_the_machine(plugin: Path) -> None
     for path in _skill_files(plugin):
         text = path.read_text(encoding="utf-8")
         for forbidden in ("PYVAR_API_KEY", "os.environ", "getenv(", "$PYVAR", "in the environment"):
+            assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
+
+
+@pytest.mark.parametrize("plugin", SKILL_PLUGINS, ids=SKILL_IDS)
+def test_no_skill_carries_code_that_fetches_a_secret(plugin: Path) -> None:
+    # pyvar-arch-observability was held for the Sentry section that showed a Secrets Manager call
+    # and the matching AWS CLI command (two findings of "uses a credential from the user's
+    # machine"); the section now describes the order of resolution in prose.
+    for path in _skill_files(plugin):
+        text = path.read_text(encoding="utf-8")
+        for forbidden in ("get_secret_value", "get-secret-value", "secretsmanager"):
             assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
 
 

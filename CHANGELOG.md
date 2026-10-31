@@ -137,7 +137,10 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   skills one patch up. `claude plugin validate --strict` passes on all 14 plugins and had
   reproduced the icon and README findings on the old commit; `tests/test_plugin_directory_policy.py`
   (new, 58 of its checks failed on the old tree) keeps these rules from regressing. Details in
-  `docs/plan-plugin-marketplace-status-and-submission.md` section 5.
+  `docs/plan-plugin-marketplace-status-and-submission.md` section 5. The directory showed nine
+  plugins held ("Update in review, Flagged"): the eight domain skills and `pyvar-arch-observability`,
+  whose Sentry section showed a Secrets Manager call and the matching AWS CLI command (its two
+  credential findings); it now describes the order of resolution in prose.
 
 - **Formulas in the "Try it" panel ran off the right edge with nothing to say more followed** —
   the formula box of every function page scrolled sideways but showed no scrollbar on a touch

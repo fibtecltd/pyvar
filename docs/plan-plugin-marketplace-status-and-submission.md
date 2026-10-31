@@ -132,7 +132,14 @@ Three findings, and the rule they trip ("Update adds credential forward"):
 |---|---|---|
 | No icon (`ICON_MISSING`) | none of the 13 skill plugins had one; `pyvar-mcp`'s was 180 px | `docs/brand/favicon-light-512.png` (1024 px, 26 KB) copied to `icon.png` in every plugin and named by `icon` in `plugin.json` |
 | Listing link not accepted (`LISTING_URL_SCHEME`, "README.md") | a skill plugin has no README, so the check takes the **repository's root README**, whose `# API docs: http://localhost:8000/docs` comment was read as the plugin's `documentationUrl` | the comment is reworded; every plugin has its own README (generated) with https links only; the four listing links are set in every `plugin.json` |
-| Uses a credential from the user's machine (2 findings) | the setup section of each domain skill told Claude to look for `PYVAR_API_KEY` in the environment, and gave `os.environ["PYVAR_API_KEY"]` and `$PYVAR_API_KEY` snippets | removed. A sensitive `userConfig` value is not substituted into skill text, so the key reaches the API only through `pyvar-mcp`'s own `userConfig` option (`sensitive: true`, passed to the server as `PYVAR_API_KEY`); the skills point to that plugin and show the user a request to run themselves with a placeholder |
+| Uses a credential from the user's machine (2 findings) | in the eight domain skills, the setup section told Claude to look for `PYVAR_API_KEY` in the environment, and gave `os.environ["PYVAR_API_KEY"]` and `$PYVAR_API_KEY` snippets | removed. A sensitive `userConfig` value is not substituted into skill text, so the key reaches the API only through `pyvar-mcp`'s own `userConfig` option (`sensitive: true`, passed to the server as `PYVAR_API_KEY`); the skills point to that plugin and show the user a request to run themselves with a placeholder |
+
+Nine plugins were held in all (the directory's list, 2026-10-31): the eight domain skills and
+`pyvar-arch-observability`. The architecture skill had no `PYVAR_API_KEY`; its two credential
+findings match its Sentry section, which showed a `boto3` Secrets Manager call and the
+`aws secretsmanager get-secret-value` command (no other skill has either). That section now
+describes the order of resolution in prose. The other four architecture plugins (`compute`,
+`data-ingestion`, `storage`, `api-gateway`) were published or "Update ready" and were not held.
 
 Also changed: a relative link `[references/functions.md](references/functions.md)` in each domain
 skill is now a plain file name, and every plugin has a new version (domain skills one minor up,
