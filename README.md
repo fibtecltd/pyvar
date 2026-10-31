@@ -143,7 +143,7 @@ python -c "from ingestion.fixtures import generate_fixture_parquet; \
 
 ```bash
 uvicorn main:app --reload --port 8000
-# API docs: http://localhost:8000/docs
+# the interactive API reference is served at /docs on that port
 ```
 
 ### 6. Start the worker (separate terminal)

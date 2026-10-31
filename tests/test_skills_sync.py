@@ -100,8 +100,13 @@ def test_frontmatter_is_valid_and_matches_the_plugin(skill: str) -> None:
 def test_domain_skill_tells_claude_how_to_run_a_function(skill: str) -> None:
     text = (REPO / ".claude" / "skills" / skill / "SKILL.md").read_text()
     assert "API key" in _frontmatter(skill)["description"]
-    for needle in ("PYVAR_API_KEY", f"{sync_skills.SIGNUP_URL}", "pyvar-client", "429", "pyvar_"):
+    for needle in ("pyvar-mcp", f"{sync_skills.SIGNUP_URL}", "pyvar-client", "429", "pyvar_"):
         assert needle in text, f"{skill}: setup section lost {needle!r}"
+    # The skill never reads the key from the user's machine: Anthropic's directory holds a plugin
+    # that does (rule "Update adds credential forward"). The key reaches the API through the
+    # pyvar-mcp plugin's own sensitive userConfig option, or the user runs the request themselves.
+    for forbidden in ("PYVAR_API_KEY", "os.environ", "$PYVAR", "in the environment"):
+        assert forbidden not in text, f"{skill}: reads a credential from the machine ({forbidden!r})"
     # the old stub style gave no parameters and a Python namespace that does not exist
     assert "**params" not in text
     # keys used to be 60-minute session JWTs; the skill must not tell Claude that any more

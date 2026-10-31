@@ -3,7 +3,7 @@
   "domain": "operational",
   "client_ns": "operational_risk",
   "title": "Operational Risk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 44 operational-risk functions on the live pyvar.com API: Basel SMA capital, loss distribution approach (LDA/AMA) and OpVaR, RCSA scoring, KRI breach detection, scenario analysis, BEICF and cyber, model, IT and vendor risk. Use when the user wants operational-risk capital or indicator results computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Operational-risk calculations: SMA and LDA capital, loss data, RCSA, key risk indicators, scenario analysis and governance reporting. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

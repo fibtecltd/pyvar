@@ -3,7 +3,7 @@
   "domain": "derivatives",
   "client_ns": "derivatives",
   "title": "Derivatives Pricing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 62 derivatives-pricing functions on the live pyvar.com API: Black-Scholes and tree options, Heston/SABR/Dupire/rough-vol models, exotic Monte Carlo options, bonds and duration, yield curves, swaps, swaptions, CDS and FX derivatives. Use when the user wants an instrument priced or its Greeks computed with real numbers. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Pricing calculations: vanilla and exotic options, stochastic-volatility models, bonds and yield curves, interest-rate and FX derivatives. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

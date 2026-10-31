@@ -6,7 +6,7 @@ description: >
   input-validation bounds enforced at the edge. Use only when working inside a pyvar checkout
   or changing pyvar itself; not for general FastAPI, Redis, Numba or similar questions, and
   not needed to call the pyvar API (use a domain skill such as pyvar-market-risk for that).
-version: "1.1.0"
+version: "1.1.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [prometheus, grafana, sentry, bandit, observability, monitoring,
        security, metrics, tracing, alerting, input-validation]
