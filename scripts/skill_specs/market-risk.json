@@ -3,7 +3,7 @@
   "domain": "market-risk",
   "client_ns": "market_risk",
   "title": "Market Risk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 71 market-risk functions on the live pyvar.com API: historical, parametric and filtered VaR, Expected Shortfall, stress tests, Greeks, P&L attribution, Basel backtesting (traffic light, Kupiec, Christoffersen), GARCH volatility and FRTB capital. Use when the user wants an actual VaR, ES, backtest or sensitivity number computed, not just the method explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Market-risk calculations: VaR, Expected Shortfall, stress testing, Greeks, P&L attribution, backtesting, volatility and FRTB capital. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

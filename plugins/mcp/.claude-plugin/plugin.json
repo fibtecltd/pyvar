@@ -10,6 +10,8 @@
   "repository": "https://github.com/fibtecltd/pyvar",
   "license": "Apache-2.0",
   "icon": "./icon.png",
+  "documentationUrl": "https://github.com/fibtecltd/pyvar/blob/master/plugins/mcp/README.md",
+  "supportUrl": "https://github.com/fibtecltd/pyvar/issues",
   "privacyPolicyUrl": "https://www.pyvar.com/privacy.html",
   "termsOfServiceUrl": "https://www.pyvar.com/terms.html",
   "userConfig": {

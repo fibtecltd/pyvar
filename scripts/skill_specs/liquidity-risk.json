@@ -3,7 +3,7 @@
   "domain": "liquidity",
   "client_ns": "liquidity_risk",
   "title": "Liquidity Risk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 40 liquidity-risk functions on the live pyvar.com API: LCR and NSFR, HQLA classification, cash-flow ladders, stress scenarios, survival horizon, intraday liquidity, funding concentration and liquidity VaR. Use when the user wants liquidity ratios or stress results computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Liquidity-risk calculations: regulatory ratios (LCR/NSFR), HQLA, cash-flow ladders, stress scenarios, survival horizon, intraday and funding metrics. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

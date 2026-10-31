@@ -6,7 +6,7 @@ description: >
   subscriber-data validation. Use only when working inside a pyvar checkout or changing pyvar
   itself; not for general FastAPI, Redis, Numba or similar questions, and not needed to call
   the pyvar API (use a domain skill such as pyvar-market-risk for that).
-version: "1.1.0"
+version: "1.1.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [polars, pyarrow, parquet, arrow-ipc, data-ingestion,
        lazy-scan, filter-pushdown, schema, etl]

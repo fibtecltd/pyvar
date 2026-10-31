@@ -6,7 +6,7 @@ description: >
   input-validation bounds enforced at the edge. Use only when working inside a pyvar checkout
   or changing pyvar itself; not for general FastAPI, Redis, Numba or similar questions, and
   not needed to call the pyvar API (use a domain skill such as pyvar-market-risk for that).
-version: "1.1.0"
+version: "1.1.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [prometheus, grafana, sentry, bandit, observability, monitoring,
        security, metrics, tracing, alerting, input-validation]
@@ -71,35 +71,24 @@ injection has no "optional" mode: if a listed secret ever becomes unreadable
 fails outright at secret resolution — with `deployment_circuit_breaker`
 (rollback=True) + `min_healthy_percent=100` for HA, that would block every
 future prod deploy over what is purely an observability nice-to-have.
-Instead, Sentry is fetched at application startup, where a failure degrades
-gracefully instead of failing ECS task launch:
-```python
-def _resolve_sentry_dsn() -> str:
-    # Workers get SENTRY_DSN pre-populated into secrets.env by
-    # scripts/fetch-config.sh before the process starts, so cfg.sentry_dsn
-    # is already set there and this returns immediately.
-    if cfg.sentry_dsn:
-        return cfg.sentry_dsn
-    # Only attempt the Secrets Manager fetch when actually running in a real
-    # ECS task — gated on cfg.ecs_container_metadata_uri_v4 (AWS injects this
-    # automatically into every real Fargate/EC2 task), NOT on an app_env
-    # string. CI's test job runs with APP_ENV=test (not "development"), so a
-    # name-based check would let a real AWS call slip into test runs,
-    # violating CLAUDE.md's "never use real AWS services in tests" rule.
-    if not cfg.ecs_container_metadata_uri_v4:
-        return ""
-    try:
-        import boto3
-        client = boto3.client("secretsmanager")
-        response = client.get_secret_value(SecretId=f"pyvar/{cfg.app_env}/sentry-dsn")
-        return str(response.get("SecretString") or "")
-    except Exception:
-        return ""  # Sentry must never become a hard startup dependency
-```
-`setup_sentry()` treats the literal string `"None"` the same as "not
-configured" — a known quirk of `aws secretsmanager get-secret-value --query
-SecretString --output text` when a secret was created as `SecretBinary`
-instead of `SecretString` (an easy mistake for a secret made outside CDK).
+Instead, the DSN is resolved at application startup, where a failure degrades gracefully
+instead of failing ECS task launch. The order of resolution:
+
+1. If `cfg.sentry_dsn` is already set, use it. Workers get `SENTRY_DSN` pre-populated into
+   their `secrets.env` by `scripts/fetch-config.sh` before the process starts, so for them the
+   function returns immediately.
+2. If the process is not a real ECS task, return an empty DSN (Sentry off). "Real task" is
+   decided by `cfg.ecs_container_metadata_uri_v4`, which AWS injects into every Fargate/EC2
+   task, and **not** by an `app_env` string: CI's test job runs with `APP_ENV=test` (not
+   "development"), so a name-based check would let a real AWS call slip into test runs,
+   violating CLAUDE.md's "never use real AWS services in tests" rule.
+3. In a real task, read the DSN from the AWS secret store under the name
+   `pyvar/<app_env>/sentry-dsn`, using the task role's own credentials (see `api_stack.py`).
+   Any failure returns an empty DSN: Sentry must never become a hard startup dependency.
+
+`setup_sentry()` treats the literal string `"None"` the same as "not configured": a known quirk
+of the AWS CLI's plain-text output for a secret that was created as a binary secret instead of
+a string one (an easy mistake for a secret made outside CDK).
 
 ```python
 import sentry_sdk

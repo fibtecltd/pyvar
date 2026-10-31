@@ -121,6 +121,27 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The plugin directory held `pyvar-portfolio-analytics` v1.1.0 and re-ran the same review
+  every day** — three findings and one rule ("Update adds credential forward"): no icon; a
+  documentation link that was not https (the plugin has no README, so the check read the
+  repository's root README, whose `# API docs: http://localhost:8000/docs` comment counted); and a
+  skill that tells Claude to look for `PYVAR_API_KEY` in the environment. Now: all 13 skill plugins
+  have `icon.png` (1024 px, from `docs/brand/`), a generated `README.md` with https links only, and
+  the four directory listing links in `plugin.json` (`scripts/generate_plugins.py`); `pyvar-mcp`'s
+  180 px icon is replaced and it gains the same two links; the root README comment is reworded.
+  The eight domain skills no longer read, mention or build code around a key from the user's
+  machine: calls go through the `pyvar-mcp` plugin, whose sensitive `userConfig` option is the one
+  place the key is asked for, and the fallback shows the user a request to run themselves with a
+  placeholder. A relative link in each domain skill is now a plain file name. Plugin versions: the
+  eight domain skills one minor up (regulatory 1.3.0, the rest 1.2.0), the five architecture
+  skills one patch up. `claude plugin validate --strict` passes on all 14 plugins and had
+  reproduced the icon and README findings on the old commit; `tests/test_plugin_directory_policy.py`
+  (new, 58 of its checks failed on the old tree) keeps these rules from regressing. Details in
+  `docs/plan-plugin-marketplace-status-and-submission.md` section 5. The directory showed nine
+  plugins held ("Update in review, Flagged"): the eight domain skills and `pyvar-arch-observability`,
+  whose Sentry section showed a Secrets Manager call and the matching AWS CLI command (its two
+  credential findings); it now describes the order of resolution in prose.
+
 - **Formulas in the "Try it" panel ran off the right edge with nothing to say more followed** —
   the formula box of every function page scrolled sideways but showed no scrollbar on a touch
   screen or with overlay scrollbars, so a long formula looked complete when its second half was

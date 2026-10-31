@@ -7,7 +7,7 @@ description: >
   pyvar checkout or changing pyvar itself; not for general FastAPI, Redis, Numba or similar
   questions, and not needed to call the pyvar API (use a domain skill such as
   pyvar-market-risk for that).
-version: "1.1.0"
+version: "1.1.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [redis, postgresql, sqlalchemy, s3, minio, parquet, arrow-ipc,
        storage, cache, orm, object-storage, result-store]

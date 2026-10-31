@@ -3,7 +3,7 @@
   "domain": "alm",
   "client_ns": "alm",
   "title": "ALM and Balance Sheet",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 33 ALM and balance-sheet functions on the live pyvar.com API: duration gap, NII and EVE simulation, the six BCBS IRRBB shocks, repricing gap, non-maturity deposit and prepayment models, funds transfer pricing. Use when the user wants interest-rate-risk-in-the-banking-book numbers computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "ALM calculations: duration and repricing gaps, NII and EVE sensitivity, the IRRBB standardised framework, behavioural models and funds transfer pricing. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

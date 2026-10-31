@@ -3,7 +3,7 @@
   "domain": "portfolio",
   "client_ns": "portfolio",
   "title": "Portfolio Analytics",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 50 portfolio-analytics functions on the live pyvar.com API: Markowitz, Black-Litterman and risk-parity optimisation, Sharpe/Sortino/drawdown, Brinson attribution, Fama-French factor models, PCA and regime detection, ESG tilts. Use when the user wants a portfolio optimised, attributed or measured with real numbers, not just the method explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Portfolio calculations: optimisation, risk-adjusted performance, attribution, factor models, active-risk analytics, ESG and drawdown. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

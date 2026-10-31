@@ -6,7 +6,7 @@ description: >
   duration, yield curves, swaps, swaptions, CDS and FX derivatives. Use when the user wants an
   instrument priced or its Greeks computed with real numbers. Needs a free pyvar API key; the
   skill explains how to get one.
-version: "1.1.0"
+version: "1.2.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [derivatives, options, Black-Scholes, Heston, SABR, Dupire, LSM, bonds, yield-curve, IRS, CDS, swaption, FX, monte-carlo]
 ---
@@ -18,27 +18,35 @@ Pricing calculations: vanilla and exotic options, stochastic-volatility models, 
 ## Before you call anything
 
 This skill is a guide to the **live pyvar.com API**. It computes nothing by itself, and every
-function needs a pyvar API key. Don't substitute your own numpy/scipy code and present the result
-as pyvar output: these are regulatory-grade functions and the user wants pyvar's own numbers.
+function needs the user's pyvar API key. Don't substitute your own numpy/scipy code and present
+the result as pyvar output: these are regulatory-grade functions and the user wants pyvar's own
+numbers.
 
-1. **Find the key.** Look for `PYVAR_API_KEY` in the environment. If the pyvar MCP server is
-   connected, its tools (`call_pyvar_function`, `list_pyvar_functions`) already carry the key.
-2. **No key? Say so, and walk the user through getting one** (free, about a minute): open
-   https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when it is shown) or enter an email and
-   click the link we send (single use; the same form signs returning users in). The dashboard
-   opens with a first API key already created: a string starting `pyvar_`, shown once. Ask the
-   user to copy it and set `PYVAR_API_KEY`. A key lasts a year and can be revoked or replaced on
-   the dashboard at any time. On a `401 Invalid, revoked or expired API key`, send the user back
-   to the dashboard to create a new one.
-3. **Call the function** with the request body below (every example in this skill is a real,
-   tested request). Use whichever of these is available:
+The key is the user's to hold. Never look for it on their machine (environment variables, files,
+shell history, other tools' settings), and don't ask them to paste it into the chat.
+
+1. **Call through the pyvar MCP server.** The `pyvar-mcp` plugin asks the user for the key once,
+   when they enable it, and keeps it in the system's secure credential store; its tools attach it
+   to every call, so you never handle it. Use
+   `call_pyvar_function(domain="derivatives", function_name="<function>", params=body)` with the
+   request body below (every example in this skill is a real, tested request), and
+   `list_pyvar_functions` to browse.
+2. **No pyvar tools available? Say so, and walk the user through setting them up** (free, about
+   a minute). First, get a key: open https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when
+   it is shown) or enter an email and click the link we send (single use; the same form signs
+   returning users in). The dashboard opens with a first API key already created: a string
+   starting `pyvar_`, shown once. A key lasts a year and can be revoked or replaced on the
+   dashboard at any time. Then install the `pyvar-mcp` plugin (the `/plugin` Discover tab, or
+   `/plugin install pyvar-mcp@pyvar-marketplace`); Claude Code asks for the key when it is
+   enabled. On a `401 Invalid, revoked or expired API key`, send the user back to the dashboard to
+   create a new one.
+3. **Cannot use MCP, or cannot run code or reach the network** (for example a sandbox with no
+   internet)? Give the user the exact request to run themselves, with their own key where the
+   placeholder is, instead of guessing a result:
    - Python: `pip install pyvar-client`, then
-     `Client(api_key=os.environ["PYVAR_API_KEY"]).derivatives.<function>(**body)`.
+     `Client(api_key="<your pyvar key>").derivatives.<function>(**body)`.
    - REST: `POST https://www.pyvar.com/api/v1/derivatives/<function>` with header
-     `Authorization: Bearer $PYVAR_API_KEY` and the body as JSON.
-   - MCP: `call_pyvar_function(domain="derivatives", function_name="<function>", params=body)`.
-   If you cannot run code or reach the network (for example a sandbox with no internet), give the
-   user the exact `curl` command or Python snippet to run themselves instead of guessing a result.
+     `Authorization: Bearer <your pyvar key>` and the body as JSON.
 4. **Read the response.** Every function returns one JSON object. Quote the key numbers together
    with the inputs you used (and units: rates and returns are decimals, so 0.02 means 2%).
 
@@ -118,7 +126,7 @@ Returns: `modified_duration`, `macaulay_duration`, `price`.
 
 ## Functions (62)
 
-Every function is `POST /api/v1/derivatives/<name>`. Required parameters are listed bare, optional ones with their defaults (`name=default`). Types, bounds and formulas are in [references/functions.md](references/functions.md): read the entry before calling a function you have not used yet.
+Every function is `POST /api/v1/derivatives/<name>`. Required parameters are listed bare, optional ones with their defaults (`name=default`). Types, bounds and formulas are in `references/functions.md`, in this plugin's folder: read the entry before calling a function you have not used yet.
 
 ### Vanilla Options (BS & Trees)
 

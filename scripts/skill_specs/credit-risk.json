@@ -3,7 +3,7 @@
   "domain": "credit-risk",
   "client_ns": "credit_risk",
   "title": "Credit Risk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Run pyvar's 55 credit-risk functions on the live pyvar.com API: expected loss, PD/LGD/EAD, Vasicek and Monte Carlo credit VaR, IRB and standardised capital, SA-CCR and XVA (CVA/DVA/FVA), CDS pricing, IFRS 9 ECL, Altman Z and other scoring models. Use when the user wants credit-risk numbers computed rather than only explained. Needs a free pyvar API key; the skill explains how to get one.",
   "tagline": "Credit-risk calculations: expected and unexpected loss, regulatory capital, portfolio credit models, counterparty risk and XVA, CDS, IFRS 9 ECL and scoring. Pick the function in **Functions** below; the **Worked examples** show the request shape.",
   "tags": [

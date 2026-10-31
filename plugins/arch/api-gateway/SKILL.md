@@ -7,7 +7,7 @@ description: >
   working inside a pyvar checkout or changing pyvar itself; not for general FastAPI, Redis,
   Numba or similar questions, and not needed to call the pyvar API (use a domain skill such as
   pyvar-market-risk for that).
-version: "1.1.2"
+version: "1.1.3"
 author: "Fibtec Limited — pyvar.com"
 tags: [fastapi, pydantic, JWT, orjson, rate-limiting, OpenAPI, CORS,
        middleware, authentication, api-gateway]
