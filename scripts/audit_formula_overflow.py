@@ -10,6 +10,9 @@ Reasoning:
 - "Overflows" means the box has to scroll sideways (scrollWidth > clientWidth), the only way text
   can be hidden. Formulas that render as a KaTeX error are reported too, and so is a whole panel
   that is wider than its card (a long unbroken word in a description, for instance).
+- Headroom: at desktop width the panel is narrowed by --margin px (default 8) before measuring, so a
+  formula passes only if it fits with that much to spare. Text can run a few px wider in another
+  browser (an agent's arm64 Chromium measured one formula 3 px over a box that fits it by 5 px here).
 - Two viewports: desktop (1280 px, where the panel is 640 px wide) and phone (390 px). The exit
   status follows the desktop result only: on a phone most long formulas scroll by design, behind
   the shaded edge portal/pyvar.css draws; the phone count is for information.
@@ -43,11 +46,17 @@ VIEWPORTS = {
 
 # Runs in the page: open each function of one domain in the Try it panel, wait for KaTeX, measure.
 MEASURE_JS = """
-async (slug) => {
+async ([slug, shrink]) => {
   const all = await fetch('functions.json').then(r => r.json());
   const out = [];
   for (const fn of all.filter(f => f.domain === slug)) {
     openTryItPanel(fn, null);
+    // Narrow the panel by `shrink` px: a formula that still fits has that much headroom, so a
+    // browser whose text runs a few px wider (one did, by 3 px) does not cut it off.
+    if (shrink) {
+      const card = document.querySelector('.tryit-card');
+      card.style.maxWidth = (card.getBoundingClientRect().width - shrink) + 'px';
+    }
     for (let i = 0; i < 150; i++) {
       const el = document.getElementById('tryitFormula');
       if (el && (el.querySelector('.katex') || el.querySelector('.katex-error'))) break;
@@ -69,7 +78,7 @@ async (slug) => {
 """
 
 
-def audit(site: str, chromium: str | None) -> list[dict[str, Any]]:
+def audit(site: str, chromium: str | None, margin: int) -> list[dict[str, Any]]:
     catalogue = json.loads((ROOT / "portal" / "functions.json").read_text(encoding="utf-8"))
     pages: dict[str, str] = {}
     for entry in catalogue:
@@ -87,7 +96,8 @@ def audit(site: str, chromium: str | None) -> list[dict[str, Any]]:
                 page = context.new_page()
                 page.goto(f"{site.rstrip('/')}/{page_name}", wait_until="networkidle")
                 page.wait_for_selector("#fnGrid .fn-card")
-                for row in page.evaluate(MEASURE_JS, slug):
+                shrink = margin if label == "desktop" else 0
+                for row in page.evaluate(MEASURE_JS, [slug, shrink]):
                     rows.append({**row, "viewport": label, "domain": slug})
                 page.close()
             context.close()
@@ -104,9 +114,15 @@ def main() -> int:
     parser.add_argument("--site", default=DEFAULT_SITE, help="where the portal pages are served")
     parser.add_argument("--chromium", default=None, help="path to a Chromium executable")
     parser.add_argument("--csv", default="", help="write every overflowing function to this file")
+    parser.add_argument(
+        "--margin",
+        type=int,
+        default=8,
+        help="px of headroom a formula must have at desktop width (the panel is narrowed by this)",
+    )
     args = parser.parse_args()
 
-    rows = audit(args.site, args.chromium)
+    rows = audit(args.site, args.chromium, args.margin)
     failed = False
     for label in VIEWPORTS:
         subset = [r for r in rows if r["viewport"] == label]

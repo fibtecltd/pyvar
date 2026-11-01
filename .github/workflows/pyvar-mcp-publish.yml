@@ -42,14 +42,25 @@ jobs:
 
       - name: Tag must match the package version
         # A mismatched tag would publish a version nobody asked for (PyPI never
-        # allows re-uploading a version), so fail before building anything.
+        # allows re-uploading a version), so fail before building anything. The
+        # plugin manifest must agree too: its launcher pins the exact version
+        # (`uvx pyvar-mcp==X`, which the plugin directory requires), so a release
+        # that bumps pyproject.toml but not plugin.json would ship a plugin that
+        # starts the previous version.
         run: |
           python3 - <<'PY'
-          import os, tomllib
+          import json, os, tomllib
           with open("plugins/mcp/pyproject.toml", "rb") as fh:
               version = tomllib.load(fh)["project"]["version"]
           tag = os.environ["GITHUB_REF_NAME"].removeprefix("pyvar-mcp-v")
           assert tag == version, f"tag {tag!r} != pyproject version {version!r}"
+          with open("plugins/mcp/.claude-plugin/plugin.json") as fh:
+              manifest = json.load(fh)
+          assert manifest["version"] == version, (
+              f"plugin.json version {manifest['version']!r} != {version!r}"
+          )
+          args = manifest["mcpServers"]["pyvar"]["args"]
+          assert args == [f"pyvar-mcp=={version}"], f"plugin.json launcher args {args!r}"
           PY
 
       - name: Build

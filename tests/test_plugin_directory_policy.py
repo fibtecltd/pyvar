@@ -137,6 +137,21 @@ def test_the_repository_readme_has_no_localhost_documentation_link() -> None:
     assert not re.search(r"(?i)docs?:\s*https?://(localhost|127\.)", text)
 
 
+def test_pyvar_mcp_launcher_pins_the_exact_version_it_ships() -> None:
+    # The plugin directory's new portal blocks an unpinned launcher ("Unpinned uvx launcher":
+    # name==1.2.3 after uvx; @latest and ranges do not count). The pin must also be the version
+    # of the package in this tree, or the plugin would start a different build than the repo's.
+    import tomllib
+
+    manifest = _manifest(PLUGINS / "mcp")
+    with open(PLUGINS / "mcp" / "pyproject.toml", "rb") as handle:
+        version = tomllib.load(handle)["project"]["version"]
+    server = manifest["mcpServers"]["pyvar"]  # type: ignore[index]
+    assert server["command"] == "uvx"
+    assert server["args"] == [f"pyvar-mcp=={version}"]
+    assert manifest["version"] == version
+
+
 def test_pyvar_mcp_takes_its_key_from_a_sensitive_user_config_option() -> None:
     manifest = _manifest(PLUGINS / "mcp")
     option = manifest["userConfig"]["pyvar_api_key"]  # type: ignore[index]

@@ -27,7 +27,7 @@
     "pyvar": {
       "command": "uvx",
       "args": [
-        "pyvar-mcp"
+        "pyvar-mcp==0.2.2"
       ],
       "env": {
         "PYVAR_API_KEY": "${user_config.pyvar_api_key}"

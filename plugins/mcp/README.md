@@ -28,8 +28,13 @@ certainly why. No uv? Run `pip install pyvar-mcp` and change the plugin's
 this repo instead: `pip install -e plugins/mcp`.
 
 `pyvar-mcp` is published to PyPI by `.github/workflows/pyvar-mcp-publish.yml`
-when a `pyvar-mcp-v*` tag is pushed (trusted publishing; the tag must equal the
-version in `pyproject.toml`).
+when a `pyvar-mcp-v*` tag is pushed (trusted publishing). The plugin starts the
+server with an exact pin, `uvx pyvar-mcp==X.Y.Z` (the plugin directory refuses an
+unpinned launcher), so a release changes three things together: `version` in
+`pyproject.toml`, `version` in `.claude-plugin/plugin.json`, and the pin in its
+`mcpServers.pyvar.args`. The workflow fails before building if the tag, those two
+versions and the pin disagree. Tag the merge commit as soon as it lands: until the
+tag's workflow has run, the pin names a version PyPI does not have yet.
 
 ## Tools
 

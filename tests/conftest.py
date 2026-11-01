@@ -35,15 +35,39 @@ Reasoning:
   the cached instance is sensitive to module-import/collection ordering
   across the whole suite, whereas sentry_sdk.init is the one true boundary
   to the outside world regardless of how cfg.sentry_dsn was resolved.
+- #170 follow-up: that fixture only covers the time a test is *running*.
+  main.py builds the app at import (`app = create_app()` ->
+  setup_observability() -> setup_sentry()) and many test modules import main
+  at collection, before any fixture exists. With SENTRY_DSN set in the shell
+  the real SDK was initialised right there, and every error the suite
+  provokes on purpose (logged failures, deliberate 503s) then reached the
+  real project as a new issue and alert. pytest_configure below closes the
+  gap in two layers: it blanks SENTRY_DSN (an empty environment value also
+  wins over one in a local .env), so the suite's default config really has
+  no DSN, and it patches sentry_sdk.init for the whole session, so a DSN
+  that gets resolved some other way still cannot reach the real SDK.
 """
 
 from __future__ import annotations
 
+import os
 from unittest.mock import patch
 
 import pytest
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+_SESSION_SENTRY_INIT = patch("sentry_sdk.init")
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Runs before collection, so before any test module imports main (see docstring)."""
+    os.environ["SENTRY_DSN"] = ""
+    _SESSION_SENTRY_INIT.start()
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    _SESSION_SENTRY_INIT.stop()
 
 
 @pytest.fixture(autouse=True)

@@ -121,6 +121,50 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The F-IRB formula in the "Try it" panel had only 2 px to spare, and one browser cut it off by 3
+  px** — an agent's arm64 Chromium measured `irb_foundation_approach_capital` at 591 px in a 588 px
+  box, while this build's own check had passed it (the earlier fix had dropped a `·` and narrowed a
+  space just to make it fit). The unbreakable `\max(0, [...]·MA)` group held the whole fraction
+  inside `Φ( )`. The fraction is now named `z` on its own line, so the line is about 330 px and the
+  `·` before MA is back; the maths is unchanged. `scripts/audit_formula_overflow.py` gains
+  `--margin` (default 8): at desktop width it narrows the panel by that many px before measuring, so
+  a formula passes only with that much headroom. At 24 px, 0 of 385 fail; at 8 px only this one
+  failed before the change. Phone: 50 formulas still scroll, behind the shaded edge, as before.
+  `pyvar-credit-risk` is 1.2.1 (its `references/functions.md` carries the formula), and the
+  catalogue, skills and plugin copies are regenerated (the formula lines only).
+  Also in this change: the `pyvar-mcp` plugin's launcher is pinned, `uvx pyvar-mcp==0.2.2` (was
+  `uvx pyvar-mcp`). The directory's new portal reports an unpinned launcher as the one blocking
+  error on a `pyvar-mcp` submission (`Unpinned uvx launcher`; its other findings are policy holds
+  and notes). Run against PyPI, `uvx pyvar-mcp==0.2.2` starts the server and lists all 387 tools.
+  From now on a release bumps `pyproject.toml`, `plugin.json` and the pin together; the publish
+  workflow fails before building if the tag and those three disagree, and
+  `tests/test_plugin_directory_policy.py` checks them in CI. Also: `black` 26.5.1 to 26.10.1 in `plugins/mcp`'s dev extras (Dependabot #411,
+  folded in so one merge makes one pipeline run); `black --check` is clean with it on `plugins/mcp`
+  and on the whole repo, and `generate_mcp_tools.py` reproduces the committed files byte for byte.
+
+- **A task that had missed only the Stripe price id kept answering "Billing is not configured on
+  this deployment." until it was replaced** — `_resolve_stripe_secrets()` returned as soon as
+  `stripe_secret_key` was set. The three secrets are fetched one by one, so a startup fetch can get
+  the key and the webhook secret and miss the price id; the lazy retry in
+  `_require_billing_configured()` was then a no-op and `GET /billing/checkout/complete` (the call
+  the browser makes after Stripe redirects back) and `POST /billing/checkout` returned 503 on that
+  task. The resolver now fetches exactly the secrets still missing, and a secret that comes back
+  without a `SecretString` (created as SecretBinary, which is not an exception) is logged as
+  `stripe_secret_empty` instead of being stored as `None` with nothing saying why. Found from a
+  Sentry event whose traceback was `checkout_complete` -> `_require_billing_configured`; that this
+  defect is what caused that event is not verified (the task's `stripe_secret_resolution_failed`
+  log lines would show it). 4 new tests, including the route-level case.
+
+- **The test suite could report its own deliberate errors to the real Sentry project** — #170's
+  autouse fixture patches `sentry_sdk.init` only while a test runs, but `main.py` builds the app at
+  import and test modules import `main` at collection, so with `SENTRY_DSN` set in the shell the
+  real SDK was initialised first. Every error the suite provokes on purpose (logged failures,
+  deliberate 503s) then became a new issue and alert; four alerts on 2026-11-01 coincided with
+  such a local run. `tests/conftest.py` now blanks `SENTRY_DSN` and patches `sentry_sdk.init` for
+  the whole session in `pytest_configure`, and a test asserts no client is ever active. The full
+  suite passes with a DSN set in the environment. CI has no DSN, so this only ever affected local
+  runs; it also fixes `test_setup_sentry_noop_with_no_dsn`, which failed whenever one was set.
+
 - **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
   file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
   of `pyvar_mcp/_generated/functions.py` was only heuristically scanned

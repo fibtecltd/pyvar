@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 from unittest.mock import MagicMock, patch
 
+import sentry_sdk
 import structlog
 
 from observability.setup import _resolve_sentry_dsn, cfg, setup_logging, setup_sentry
@@ -46,6 +47,16 @@ def test_setup_sentry_intercepted_when_dsn_present(_no_sentry_in_tests):
     assert _no_sentry_in_tests.call_args.kwargs["dsn"] == (
         "https://fake-dsn@example.ingest.sentry.io/1"
     )
+
+
+def test_sentry_client_is_inactive_for_the_whole_session():
+    """#170 follow-up: the autouse fixture only patches sentry_sdk.init while a test runs, but
+    main.py builds the app at import (`app = create_app()` -> setup_sentry()) and test modules
+    import main at collection, before any fixture exists. With SENTRY_DSN set in the shell that
+    initialised the real SDK, and every error the suite provokes on purpose (logged failures,
+    deliberate 503s) was then reported to the real project as a new issue and alert. No test
+    should ever find a live client."""
+    assert not sentry_sdk.get_client().is_active()
 
 
 def test_setup_sentry_noop_with_literal_none_string(_no_sentry_in_tests):
