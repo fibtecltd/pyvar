@@ -155,6 +155,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   defect is what caused that event is not verified (the task's `stripe_secret_resolution_failed`
   log lines would show it). 4 new tests, including the route-level case.
 
+- **The test suite could report its own deliberate errors to the real Sentry project** — #170's
+  autouse fixture patches `sentry_sdk.init` only while a test runs, but `main.py` builds the app at
+  import and test modules import `main` at collection, so with `SENTRY_DSN` set in the shell the
+  real SDK was initialised first. Every error the suite provokes on purpose (logged failures,
+  deliberate 503s) then became a new issue and alert; four alerts on 2026-11-01 coincided with
+  such a local run. `tests/conftest.py` now blanks `SENTRY_DSN` and patches `sentry_sdk.init` for
+  the whole session in `pytest_configure`, and a test asserts no client is ever active. The full
+  suite passes with a DSN set in the environment. CI has no DSN, so this only ever affected local
+  runs; it also fixes `test_setup_sentry_noop_with_no_dsn`, which failed whenever one was set.
+
 - **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
   file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
   of `pyvar_mcp/_generated/functions.py` was only heuristically scanned
