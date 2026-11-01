@@ -6,7 +6,7 @@ description: >
   (CVA/DVA/FVA), CDS pricing, IFRS 9 ECL, Altman Z and other scoring models. Use when the user
   wants credit-risk numbers computed rather than only explained. Needs a free pyvar API key;
   the skill explains how to get one.
-version: "1.2.0"
+version: "1.2.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [credit-risk, PD, LGD, EAD, IRB, XVA, CVA, IFRS9, ECL, CDS, CCR, SA-CCR, KMV, Merton, scoring]
 ---

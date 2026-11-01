@@ -121,6 +121,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The F-IRB formula in the "Try it" panel had only 2 px to spare, and one browser cut it off by 3
+  px** — an agent's arm64 Chromium measured `irb_foundation_approach_capital` at 591 px in a 588 px
+  box, while this build's own check had passed it (the earlier fix had dropped a `·` and narrowed a
+  space just to make it fit). The unbreakable `\max(0, [...]·MA)` group held the whole fraction
+  inside `Φ( )`. The fraction is now named `z` on its own line, so the line is about 330 px and the
+  `·` before MA is back; the maths is unchanged. `scripts/audit_formula_overflow.py` gains
+  `--margin` (default 8): at desktop width it narrows the panel by that many px before measuring, so
+  a formula passes only with that much headroom. At 24 px, 0 of 385 fail; at 8 px only this one
+  failed before the change. Phone: 50 formulas still scroll, behind the shaded edge, as before.
+  `pyvar-credit-risk` is 1.2.1 (its `references/functions.md` carries the formula), and the
+  catalogue, skills and plugin copies are regenerated (the formula lines only).
+
 - **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
   file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
   of `pyvar_mcp/_generated/functions.py` was only heuristically scanned

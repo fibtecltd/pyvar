@@ -140,7 +140,7 @@ Under F-IRB the bank supplies its own PD but uses *supervisory* LGD: 45% for
 senior unsecured and 75% for subordinated claims (CRE32). EAD and maturity
 are also supervisory (M defaults to 2.5 years).
 
-Formula (LaTeX): `LGD_{sup} = 0.45\ (\text{senior unsecured})\ \text{or}\ 0.75\ (\text{subordinated}) \\ K = \max\!\left(0,\,\left[LGD_{sup}\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}\right) - PD\cdot LGD_{sup}\right]MA\right), \\ RWA = 12.5\cdot K\cdot EAD`
+Formula (LaTeX): `LGD_{sup} = 0.45\ (\text{senior unsecured})\ \text{or}\ 0.75\ (\text{subordinated}) \\ K = \max\!\left(0,\ \left[LGD_{sup}\cdot\Phi(z) - PD\cdot LGD_{sup}\right]\cdot MA\right), \\ z = \frac{\Phi^{-1}(PD)+\sqrt{R}\,\Phi^{-1}(0.999)}{\sqrt{1-R}}, \\ RWA = 12.5\cdot K\cdot EAD`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
