@@ -143,15 +143,23 @@ def _require_billing_configured() -> None:
         # some healthy task served POST /checkout successfully) but hit
         # this route on a task that never got its secrets, with no retry
         # ever attempted for the rest of that task's lifetime. Cheap when
-        # already configured (_resolve_stripe_secrets short-circuits on
-        # cfg.stripe_secret_key being set) and bounded when genuinely
-        # unconfigured (only fires while a billing route is actually hit).
+        # already configured (this block is skipped, and _resolve_stripe_secrets
+        # fetches nothing when none of the three is missing) and bounded when
+        # genuinely unconfigured (only fires while a billing route is actually hit).
         _resolve_stripe_secrets()
     if not cfg.stripe_secret_key or not cfg.stripe_price_id_pro:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Billing is not configured on this deployment.",
         )
+
+
+# (cfg attribute, name suffix): each is read from Secrets Manager at pyvar/{app_env}/<suffix>.
+_STRIPE_SECRETS: tuple[tuple[str, str], ...] = (
+    ("stripe_secret_key", "stripe-secret-key"),
+    ("stripe_webhook_secret", "stripe-webhook-secret"),
+    ("stripe_price_id_pro", "stripe-price-id-pro"),
+)
 
 
 def _resolve_stripe_secrets() -> None:
@@ -164,8 +172,8 @@ def _resolve_stripe_secrets() -> None:
     _require_billing_configured() if still unconfigured on a later request.
 
     Only attempts the fetch when actually running in a real ECS task
-    (cfg.ecs_container_metadata_uri_v4 set) and only when not already
-    configured (local dev / anything injecting these via .env keeps that
+    (cfg.ecs_container_metadata_uri_v4 set) and only for the secrets still
+    missing (local dev / anything injecting these via .env keeps that
     value, and never touches boto3 -- same "no real AWS in tests" rule
     _resolve_sentry_dsn() follows). Each secret is fetched independently:
     a Secrets Manager failure on one (propagation delay, deleted secret,
@@ -173,25 +181,33 @@ def _resolve_stripe_secrets() -> None:
     and must degrade to "billing unconfigured" rather than raise and block
     task launch -- every billing route already 503s via
     _require_billing_configured() when either required value is unset.
+
+    "Still missing" is decided per secret, not once for the lot: the lazy
+    retry has to be able to pick up the one secret a startup fetch missed
+    even though the other two arrived. (It used to return as soon as
+    stripe_secret_key was set, which left a task that had lost only the
+    price id answering "Billing is not configured" until it was replaced.)
     """
-    if cfg.stripe_secret_key:
-        return
     if not cfg.ecs_container_metadata_uri_v4:
+        return
+    missing = [(attr, suffix) for attr, suffix in _STRIPE_SECRETS if not getattr(cfg, attr)]
+    if not missing:
         return
 
     import boto3
 
     client = boto3.client("secretsmanager")
-    for attr, secret_suffix in (
-        ("stripe_secret_key", "stripe-secret-key"),
-        ("stripe_webhook_secret", "stripe-webhook-secret"),
-        ("stripe_price_id_pro", "stripe-price-id-pro"),
-    ):
+    for attr, secret_suffix in missing:
         try:
             value = client.get_secret_value(SecretId=f"pyvar/{cfg.app_env}/{secret_suffix}").get(
                 "SecretString"
             )
-            setattr(cfg, attr, value)
+            if value:
+                setattr(cfg, attr, value)
+            else:
+                # A secret created as SecretBinary has no SecretString: that is not an exception,
+                # so without this line nothing would say why the secret stayed unset.
+                logger.warning("stripe_secret_empty", secret=secret_suffix)
         except Exception:
             logger.warning("stripe_secret_resolution_failed", secret=secret_suffix, exc_info=True)
 

@@ -772,6 +772,70 @@ def test_resolve_stripe_secrets_partial_failure_keeps_the_others(monkeypatch):
     assert billing_module.cfg.stripe_price_id_pro is None
 
 
+def test_resolve_stripe_secrets_retry_fetches_only_what_is_still_missing(monkeypatch):
+    """The state the previous test leaves behind (key and webhook secret set, price id missing)
+    must be recoverable. The resolver used to return as soon as stripe_secret_key was set, so a
+    task that lost only the last of its three fetches kept answering "Billing is not configured"
+    for the rest of its life, and the lazy retry in _require_billing_configured() was a no-op.
+    It now fetches exactly the secrets that are still missing."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_live_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_client = MagicMock()
+    mock_client.get_secret_value.return_value = {"SecretString": "price_abc"}
+    with patch("boto3.client", return_value=mock_client):
+        billing_module._resolve_stripe_secrets()
+
+    assert billing_module.cfg.stripe_price_id_pro == "price_abc"
+    assert billing_module.cfg.stripe_secret_key == "sk_live_abc"
+    assert billing_module.cfg.stripe_webhook_secret == "whsec_abc"
+    mock_client.get_secret_value.assert_called_once_with(SecretId="pyvar/prod/stripe-price-id-pro")
+
+
+def test_resolve_stripe_secrets_noop_in_ecs_when_all_three_are_configured(monkeypatch):
+    """Inside a real ECS task with all three secrets already in cfg there is nothing to fetch,
+    so Secrets Manager is not called (the no-op test above only covers the non-ECS case)."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_live_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", "price_abc")
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    with patch("boto3.client") as mock_boto_client:
+        billing_module._resolve_stripe_secrets()
+
+    mock_boto_client.assert_not_called()
+
+
+def test_resolve_stripe_secrets_empty_secret_is_logged_and_not_stored(monkeypatch):
+    """A secret created as SecretBinary comes back with no SecretString, which is not an
+    exception: it used to be stored as None with no log line, leaving the secret "not
+    configured" and nothing anywhere saying why. It is now left unset and a warning names it."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_live_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_client = MagicMock()
+    mock_client.get_secret_value.return_value = {"Name": "pyvar/prod/stripe-price-id-pro"}
+    with (
+        patch("boto3.client", return_value=mock_client),
+        patch.object(billing_module, "logger") as mock_logger,
+    ):
+        billing_module._resolve_stripe_secrets()
+
+    assert billing_module.cfg.stripe_price_id_pro is None
+    mock_logger.warning.assert_called_once_with("stripe_secret_empty", secret="stripe-price-id-pro")
+
+
 # ── _require_billing_configured lazy retry ───────────────────────────────────
 
 
@@ -816,6 +880,44 @@ async def test_checkout_complete_retries_secret_resolution_and_succeeds(app, mon
 
     assert resp.status_code == 200
     assert billing_module.cfg.stripe_secret_key == "sk_live_abc"
+    assert billing_module.cfg.stripe_price_id_pro == "price_abc"
+
+
+async def test_checkout_complete_recovers_when_only_the_price_id_was_missing(app, monkeypatch):
+    """GET /checkout/complete is the call the browser makes right after Stripe redirects back. A
+    task that fetched the key and the webhook secret at startup but missed the price id used to
+    503 it ("Billing is not configured on this deployment.") on every later request, because the
+    inline retry returned early once the key was set. The retry now fetches the missing one."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_live_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_abc")
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+    monkeypatch.setattr(
+        billing_module.cfg, "ecs_container_metadata_uri_v4", "http://169.254.170.2/v4/abc"
+    )
+    monkeypatch.setattr(billing_module.cfg, "app_env", "prod")
+
+    mock_secrets_client = MagicMock()
+    mock_secrets_client.get_secret_value.side_effect = [{"SecretString": "price_abc"}]
+
+    user_row = User(
+        external_id="ext-21", email="partial@example.com", tier="pro", stripe_customer_id="cus_2"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.retrieve.return_value = MagicMock(
+        payment_status="paid", customer="cus_2"
+    )
+
+    with (
+        patch("boto3.client", return_value=mock_secrets_client),
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/v1/billing/checkout/complete?session_id=cs_test_2")
+
+    assert resp.status_code == 200
     assert billing_module.cfg.stripe_price_id_pro == "price_abc"
 
 

@@ -142,6 +142,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   folded in so one merge makes one pipeline run); `black --check` is clean with it on `plugins/mcp`
   and on the whole repo, and `generate_mcp_tools.py` reproduces the committed files byte for byte.
 
+- **A task that had missed only the Stripe price id kept answering "Billing is not configured on
+  this deployment." until it was replaced** — `_resolve_stripe_secrets()` returned as soon as
+  `stripe_secret_key` was set. The three secrets are fetched one by one, so a startup fetch can get
+  the key and the webhook secret and miss the price id; the lazy retry in
+  `_require_billing_configured()` was then a no-op and `GET /billing/checkout/complete` (the call
+  the browser makes after Stripe redirects back) and `POST /billing/checkout` returned 503 on that
+  task. The resolver now fetches exactly the secrets still missing, and a secret that comes back
+  without a `SecretString` (created as SecretBinary, which is not an exception) is logged as
+  `stripe_secret_empty` instead of being stored as `None` with nothing saying why. Found from a
+  Sentry event whose traceback was `checkout_complete` -> `_require_billing_configured`; that this
+  defect is what caused that event is not verified (the task's `stripe_secret_resolution_failed`
+  log lines would show it). 4 new tests, including the route-level case.
+
 - **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
   file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
   of `pyvar_mcp/_generated/functions.py` was only heuristically scanned
