@@ -132,7 +132,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   failed before the change. Phone: 50 formulas still scroll, behind the shaded edge, as before.
   `pyvar-credit-risk` is 1.2.1 (its `references/functions.md` carries the formula), and the
   catalogue, skills and plugin copies are regenerated (the formula lines only).
-  Also in this change: `black` 26.5.1 to 26.10.1 in `plugins/mcp`'s dev extras (Dependabot #411,
+  Also in this change: the `pyvar-mcp` plugin's launcher is pinned, `uvx pyvar-mcp==0.2.2` (was
+  `uvx pyvar-mcp`). The directory's new portal reports an unpinned launcher as the one blocking
+  error on a `pyvar-mcp` submission (`Unpinned uvx launcher`; its other findings are policy holds
+  and notes). Run against PyPI, `uvx pyvar-mcp==0.2.2` starts the server and lists all 387 tools.
+  From now on a release bumps `pyproject.toml`, `plugin.json` and the pin together; the publish
+  workflow fails before building if the tag and those three disagree, and
+  `tests/test_plugin_directory_policy.py` checks them in CI. Also: `black` 26.5.1 to 26.10.1 in `plugins/mcp`'s dev extras (Dependabot #411,
   folded in so one merge makes one pipeline run); `black --check` is clean with it on `plugins/mcp`
   and on the whole repo, and `generate_mcp_tools.py` reproduces the committed files byte for byte.
 

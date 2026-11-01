@@ -106,3 +106,16 @@ Documented only, per explicit instruction — **no code changes made yet**.
 Revisit items 4-6 (the `functions.py` split and the `command` path fix) if
 the submission doesn't clear review as currently drafted; items 1-3 need
 no repo change regardless of outcome.
+
+## 2026-11-01: the new portal's draft submission (Source step, `master @ b867c7d`)
+
+1 blocking, 5 warnings, 4 policy holds. Triage:
+
+| Finding | What it is | Action |
+|---|---|---|
+| **Unpinned uvx launcher** (blocking, `mcpServers.pyvar`) | `uvx pyvar-mcp` fetches whatever is newest | **Fixed**: `uvx pyvar-mcp==0.2.2`. Checked against PyPI: the server starts and lists 387 tools. Once the pin can be checked the package is held for review instead of blocked. |
+| Image or font file that the plugin's code could run (hold) | `icon.png` | Nothing runs it; leave it (item 1 above). |
+| Uses a credential from the user's machine (hold, 2 findings) | `client.py` reads `PYVAR_API_KEY` from its environment and sends it as a Bearer token. The key reaches that environment from the sensitive `userConfig` option through `mcpServers.pyvar.env`. | Not cleared by code: the documented same-vendor pass-through (item 2 above). The two findings' text is collapsed in the screenshot; if one is `PYVAR_API_BASE_URL` (the base URL is also read from the environment and not validated), restricting it to https pyvar hosts and loopback is the code change to make. |
+| Name may be confused with an existing listing (hold) | `pyvar-mcp` matches `fibtecltd/pyvar/plugins-mcp`, the old platform's published listing of this same plugin ("not yours") | Not a code fix (item 3 above). Renaming the plugin is possible but touches every skill that tells users to install `pyvar-mcp`. |
+| Unrecognized field in plugin.json (4), Field from another tool's manifest (`icon`) | the directory's own listing fields | "No action needed" per the portal. |
+| Local MCP server: not on claude.ai; Images and fonts passed without a code check | facts / info | None. |
