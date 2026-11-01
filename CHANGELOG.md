@@ -121,6 +121,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
+  file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
+  of `pyvar_mcp/_generated/functions.py` was only heuristically scanned
+  (`BINARIES_NOT_INSPECTED`), and Sphinx cross-references in docstrings there were misread as "a
+  command assembled at run time", a second `MCP_FORWARDS_CREDENTIAL_ENV` hold
+  (`docs/plan-pyvar-mcp-validation-holds.md`, items 4 and 5). `scripts/generate_mcp_tools.py` now
+  writes `alm.py`, `credit_risk.py`, `derivatives.py`, `liquidity.py`, `market_risk.py`,
+  `operational.py`, `portfolio.py` and `regulatory.py` (the largest is 78 KB) plus an
+  `__init__.py` that concatenates them, deletes the old file, and refuses to write any file over
+  200,000 bytes. The 385 entries are identical to before, in the same order (checked by comparing
+  the old and new lists), so the MCP server's 387 tools do not change. Version 0.2.2 in
+  `pyproject.toml` and `plugin.json`; the PyPI release is made by pushing the tag
+  `pyvar-mcp-v0.2.2` once this is merged. Two new tests in `plugins/mcp/tests/test_catalogue.py`
+  (file size limit, order of `functions.json`). Not changed: item 6 (`mcpServers.pyvar.command`
+  is `uvx`, not an interpreter the scanner recognises); pointing it at a script under
+  `${CLAUDE_PLUGIN_ROOT}` would drop the automatic dependency install that `uvx` gives.
+
 - **The plugin directory held `pyvar-portfolio-analytics` v1.1.0 and re-ran the same review
   every day** — three findings and one rule ("Update adds credential forward"): no icon; a
   documentation link that was not https (the plugin has no README, so the check read the

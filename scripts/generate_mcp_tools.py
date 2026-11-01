@@ -9,7 +9,7 @@ Reasoning:
 - Same generate-and-commit-and-CI-diff pattern as scripts/generate_plugins.py
   and pyvar-client/codegen/generate.py: the MCP server reads its tool
   catalogue from a plain committed Python module
-  (plugins/mcp/pyvar_mcp/_generated/functions.py), not from a runtime fetch of
+  (plugins/mcp/pyvar_mcp/_generated/), not from a runtime fetch of
   functions.json -- a stdio MCP server subprocess shouldn't need network
   access just to know its own tool list, and this keeps the same
   never-drifts-from-committed-source property the skills plugins already
@@ -24,6 +24,16 @@ Reasoning:
   of the 385 catalogued entries. See docs/p10-skills-and-plugin-plan.md's
   §B.3 for the full note -- this generator, and the MCP client it feeds,
   only need to handle the synchronous case.
+
+- One module per domain (alm.py, credit_risk.py, ...) plus an __init__.py that
+  concatenates them, not one flat file. The plugin directory's safety scan reads
+  a file in full only up to 256 KiB; the single functions.py was 399 KiB, so its
+  tail was only heuristically scanned (BINARIES_NOT_INSPECTED), and Sphinx
+  cross-references in docstrings there were misread as "a command assembled at
+  run time" (a second MCP_FORWARDS_CREDENTIAL_ENV hold; see
+  docs/plan-pyvar-mcp-validation-holds.md). The largest domain file is about a
+  fifth of that, and this script refuses to write one over MAX_FILE_BYTES so the
+  limit cannot be crossed again unnoticed. FUNCTIONS keeps functions.json's order.
 
 Usage:
   python3 scripts/generate_mcp_tools.py
@@ -40,7 +50,9 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FUNCTIONS_JSON = REPO_ROOT / "portal" / "functions.json"
-OUTPUT_PATH = REPO_ROOT / "plugins" / "mcp" / "pyvar_mcp" / "_generated" / "functions.py"
+OUTPUT_DIR = REPO_ROOT / "plugins" / "mcp" / "pyvar_mcp" / "_generated"
+# The directory's safety scan reads a file fully up to 256 KiB (262,144 bytes); stay well under.
+MAX_FILE_BYTES = 200_000
 
 # functions.json param fields that map directly onto JSON Schema keywords
 # when not null. "type" and "required"/"default" are handled separately
@@ -104,31 +116,79 @@ def main() -> None:
         seen_tool_names.add(entry["tool_name"])
         entries.append(entry)
 
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    header = (
-        '"""plugins/mcp/pyvar_mcp/_generated/functions.py — GENERATED, do not edit by hand.\n\n'
-        "Regenerate with: python3 scripts/generate_mcp_tools.py (from the repo root)\n"
-        "Source: portal/functions.json -- see scripts/generate_mcp_tools.py for the mapping.\n"
+    by_domain: dict[str, list[dict[str, Any]]] = {}
+    for entry in entries:
+        by_domain.setdefault(entry["domain"], []).append(entry)
+    modules = {domain: domain.replace("-", "_") for domain in by_domain}
+    g_order = list(by_domain)  # functions.json's own order
+    g_flat = [e for domain in g_order for e in by_domain[domain]]
+    if g_flat != entries:
+        raise SystemExit("functions.json is not grouped by domain; FUNCTIONS order would change")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    wanted = {f"{module}.py" for module in modules.values()} | {"__init__.py"}
+    for stale in sorted(OUTPUT_DIR.glob("*.py")):
+        if stale.name not in wanted:
+            stale.unlink()  # e.g. the old single functions.py
+
+    for domain, module in modules.items():
+        header = (
+            f'"""plugins/mcp/pyvar_mcp/_generated/{module}.py — GENERATED, do not edit by hand.\n\n'
+            f"The {domain} tools. Regenerate with: python3 scripts/generate_mcp_tools.py (from the\n"
+            "repo root). Source: portal/functions.json -- see that script for the mapping.\n"
+            '"""\n\n'
+            "from __future__ import annotations\n\n"
+            "from typing import Any\n\n"
+            "# Each entry: domain, function_name (== the API's function name), tool_name (the\n"
+            "# MCP tool name -- currently identical to function_name; kept as a separate field\n"
+            "# in case a future disambiguation strategy needs to diverge the two), path (the\n"
+            "# real POST endpoint, relative to the API base URL), summary, description, and\n"
+            "# input_schema (JSON Schema, mapped directly from functions.json's params list).\n"
+            f"FUNCTIONS: list[dict[str, Any]] = "
+            f"{pprint.pformat(by_domain[domain], indent=4, width=100)}\n"
+        )
+        (OUTPUT_DIR / f"{module}.py").write_text(header)
+
+    names = list(modules.values())
+    one_line = "from . import " + ", ".join(names)
+    imports = (
+        one_line
+        if len(one_line) <= 100
+        else "from . import (\n" + "".join(f"    {n},\n" for n in names) + ")"
+    )
+    init = (
+        '"""plugins/mcp/pyvar_mcp/_generated/__init__.py — GENERATED, do not edit by hand.\n\n'
+        "All the tools, one module per domain (the same order as portal/functions.json).\n"
+        "Regenerate with: python3 scripts/generate_mcp_tools.py (from the repo root).\n"
         '"""\n\n'
         "from __future__ import annotations\n\n"
         "from typing import Any\n\n"
-        "# Each entry: domain, function_name (== the API's function name), tool_name (the\n"
-        "# MCP tool name -- currently identical to function_name; kept as a separate field\n"
-        "# in case a future disambiguation strategy needs to diverge the two), path (the\n"
-        "# real POST endpoint, relative to the API base URL), summary, description, and\n"
-        "# input_schema (JSON Schema, mapped directly from functions.json's params list).\n"
-        f"FUNCTIONS: list[dict[str, Any]] = {pprint.pformat(entries, indent=4, width=100)}\n"
+        f"{imports}\n\n"
+        "FUNCTIONS: list[dict[str, Any]] = [\n"
+        + "".join(f"    *{n}.FUNCTIONS,\n" for n in names)
+        + "]\n"
     )
-    OUTPUT_PATH.write_text(header)
+    (OUTPUT_DIR / "__init__.py").write_text(init)
 
     # black-format the output in place, same as pyvar-client/codegen/generate.py's
-    # own last step -- keeps the committed generated file already-formatted
+    # own last step -- keeps the committed generated files already-formatted
     # rather than relying on a manual `black .` follow-up someone forgets.
+    written = sorted(OUTPUT_DIR.glob("*.py"))
     subprocess.run(
-        [sys.executable, "-m", "black", "--line-length", "100", str(OUTPUT_PATH)],
+        [sys.executable, "-m", "black", "--line-length", "100", *map(str, written)],
         check=True,
     )
-    print(f"wrote {OUTPUT_PATH.relative_to(REPO_ROOT)} ({len(entries)} tools)")
+    for path in written:
+        size = path.stat().st_size
+        if size > MAX_FILE_BYTES:
+            raise SystemExit(
+                f"{path.name} is {size:,} bytes, over {MAX_FILE_BYTES:,}: the directory's safety "
+                "scan reads only the first 256 KiB of a file in full -- split it further"
+            )
+    print(
+        f"wrote {OUTPUT_DIR.relative_to(REPO_ROOT)}/ ({len(entries)} tools in "
+        f"{len(modules)} modules; largest {max(p.stat().st_size for p in written):,} bytes)"
+    )
 
 
 if __name__ == "__main__":

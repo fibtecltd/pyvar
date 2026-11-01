@@ -5,7 +5,7 @@ Reasoning:
   see docs/p10-skills-and-plugin-plan.md §B.1 for why (compute logic must
   not be able to drift from what's actually deployed at pyvar.com).
 - Every one of the 385 catalogued functions gets its own named tool
-  (generated from functions.json, see pyvar_mcp/_generated/functions.py) PLUS
+  (generated from functions.json, see pyvar_mcp/_generated/) PLUS
   two generic tools -- list_pyvar_functions and call_pyvar_function --
   positioned as the model's first choice ahead of hunting through 385 names
   (docs/p10-skills-and-plugin-plan.md §B.2). All three paths (a named tool,

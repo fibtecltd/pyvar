@@ -11,7 +11,7 @@ name: pyvar plugins CI
 #   Source of truth stays .claude/skills/; scripts/generate_plugins.py
 #   regenerates plugins/*.
 # - plugins/mcp/, a real installable Python package (pyvar_mcp) -- an MCP
-#   server whose tool catalogue (pyvar_mcp/_generated/functions.py) is
+#   server whose tool catalogue (pyvar_mcp/_generated/) is
 #   generated from portal/functions.json by scripts/generate_mcp_tools.py.
 #
 # plugins-drift-check is the same generate-then-diff pattern as
