@@ -1,9 +1,9 @@
 """plugins/mcp/pyvar_mcp/catalogue.py — lookup helpers over the generated tool list.
 
 Reasoning:
-- pyvar_mcp/_generated/functions.py is a flat list (matching functions.json's
-  own shape); this module builds the indexes both main.py's list_tools/
-  call_tool handlers and the generic call_pyvar_function/list_pyvar_functions
+- pyvar_mcp/_generated/ (one module per domain, concatenated in __init__.py) gives a flat
+  list (matching functions.json's own shape); this module builds the indexes both main.py's
+  list_tools/call_tool handlers and the generic call_pyvar_function/list_pyvar_functions
   tools need, in one place, so there's exactly one "how do I find a function
   by name" implementation rather than several ad hoc ones.
 """
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ._generated.functions import FUNCTIONS
+from ._generated import FUNCTIONS
 
 _BY_TOOL_NAME: dict[str, dict[str, Any]] = {entry["tool_name"]: entry for entry in FUNCTIONS}
 _BY_DOMAIN_AND_FUNCTION: dict[tuple[str, str], dict[str, Any]] = {

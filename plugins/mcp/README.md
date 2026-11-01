@@ -60,6 +60,8 @@ Regenerating the tool catalogue after `portal/functions.json` changes:
 python3 scripts/generate_mcp_tools.py   # from the repo root
 ```
 
-`.github/workflows/plugins-ci.yml` fails CI if the committed
-`pyvar_mcp/_generated/functions.py` doesn't match what regenerating produces
-— same drift-check pattern the skills plugins and `pyvar-client` use.
+`.github/workflows/plugins-ci.yml` fails CI if the committed `pyvar_mcp/_generated/`
+doesn't match what regenerating produces — same drift-check pattern the skills plugins
+and `pyvar-client` use. The catalogue is one module per domain, not one file: the plugin
+directory's safety scan reads a file in full only up to 256 KiB, and the generator refuses to
+write a file over 200,000 bytes (the largest today is about 78,000).

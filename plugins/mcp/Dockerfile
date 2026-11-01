@@ -5,9 +5,9 @@
 # but far lighter: pyvar-mcp is a thin REST client over the live pyvar API
 # (README.md's own words) -- its only real runtime dependencies are `mcp`
 # and `anyio` (pyproject.toml), not the numpy/numba/scipy compute stack
-# pyvar-local bundles. Self-contained: pyvar_mcp/_generated/functions.py is
-# a flat, committed file (generated from portal/functions.json at repo-build
-# time, see scripts/generate_mcp_tools.py) -- nothing outside this directory
+# pyvar-local bundles. Self-contained: pyvar_mcp/_generated/ is a set of
+# committed files, one per domain (generated from portal/functions.json at
+# repo-build time, see scripts/generate_mcp_tools.py) -- nothing outside this directory
 # is needed at runtime, so this directory alone is the build context.
 #
 # Build (from this directory):

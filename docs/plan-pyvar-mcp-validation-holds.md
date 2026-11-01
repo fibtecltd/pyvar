@@ -94,6 +94,14 @@ this pattern as acceptable.
 
 ## Status
 
+**Update, 2026-11-01:** items 4 and 5 are done in `pyvar-mcp` 0.2.2 (the catalogue is split by
+domain; the largest file is 78 KB, and the generator refuses any file over 200,000 bytes). Item 6
+is deliberately not changed: `mcpServers.pyvar.command` is now `uvx pyvar-mcp`, not the bare
+console script of the original draft, and a `python3 ${CLAUDE_PLUGIN_ROOT}/...` command would drop
+the automatic dependency install that `uvx` provides. Items 1 to 3 need no repo change. What the
+directory reports for 0.2.2 decides whether item 6 is worth that cost.
+
+Original status, 2026-09:
 Documented only, per explicit instruction — **no code changes made yet**.
 Revisit items 4-6 (the `functions.py` split and the `command` path fix) if
 the submission doesn't clear review as currently drafted; items 1-3 need
