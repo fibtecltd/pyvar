@@ -3,6 +3,10 @@
 **Item 1 of 6** in `docs/roadmap-six-open-initiatives.md`. Ranked easiest:
 investigation + submission actions, no new engineering.
 
+> **Status 2026-11-01:** §3 and §4 are historical. All 13 skill plugins have since been submitted
+> and are published in the developer portal; `pyvar-mcp` and `tengrade` are still listings from
+> the retired Claude Console form. The current state, what it shows and what not to do are in §6.
+
 ## 1. What's already true, verified against the repo
 
 - pyvar ships **14 plugins** total: 13 skills (8 domain + 5 architecture) and
@@ -161,4 +165,103 @@ so the test in `tests/test_plugin_directory_policy.py` stands in for it (no `PYV
 The directory's notes say a plugin's icon becomes its listing icon only the first time the plugin
 is saved or submitted in the developer portal, and that adding or changing it later does not
 change it. A plugin already saved there needs its icon set in the portal itself.
+
+## 6. Portal state after the holds (found 2026-11-01)
+
+Read from the developer portal (claude.ai/directory/manage), the Claude Console and Anthropic's
+publishing pages on 2026-11-01, against `origin/master` at `bb2f243`. Anything marked "reading" is
+an inference, and "not verified" means it was not seen.
+
+### 6.1 Where each plugin stands
+
+The portal's "Newest version not live" panel groups plugins by who has to act. Every one of the 12
+listed there is with Anthropic; none is waiting on us.
+
+| Plugin | Live | Master | Portal group |
+|---|---|---|---|
+| alm | 1.0.0 | 1.2.0 | Held for review |
+| credit-risk | 1.0.0 | 1.2.1 | Held for review (newest scanned commit `bb2f243`) |
+| derivatives, market-risk, operational-risk, portfolio-analytics | 1.0.0 | 1.2.0 | Held for review |
+| regulatory | 1.1.0 | 1.3.0 | Held for review |
+| arch-observability | 1.0.0 | 1.1.1 | Held for review |
+| liquidity-risk | 1.0.0 | 1.2.0 | **Held by directory policy, with Anthropic** |
+| arch-storage | 1.0.0 | 1.1.1 | Publish requested, waiting for an Anthropic reviewer |
+| arch-api-gateway | 1.1.2 | 1.1.3 | Publish requested, waiting for an Anthropic reviewer |
+| arch-compute, arch-data-ingestion | 1.1.1 | 1.1.1 | Current |
+| pyvar-mcp, tengrade | old Console listings | 0.2.2 (pyvar-mcp) | Not in the portal (see 6.3) |
+
+The panel names only 5 of the 8 "Held for review" plugins ("and 3 more not shown"); `alm`,
+`portfolio-analytics` and `regulatory` are placed there by elimination, from the plugins list
+showing them as "Update ready · Flagged". The nine held plugins are live at `fd74de5` (2026-10-15), the commit before the key-lookup wording
+existed. The panel also lists a plugin called ETL Integrator ("With a reviewer", seen 2 weeks ago);
+it is not one of the pyvar plugins.
+
+### 6.2 What the evidence shows
+
+1. **The repo-to-listing path works when nothing is held.** `arch-compute` and
+   `arch-data-ingestion` went live at 1.1.1 and `arch-api-gateway` at 1.1.2, while none of the
+   held plugins moved. Whether a publish request was needed for each is not verified.
+2. **The eight "Held for review" plugins are held at plugin level, not by their version.**
+   `pyvar-market-risk` v1.2.0 (`b867c7d`) shows Approved, Directory policy "Meets directory policy,
+   with warnings" and no credential row (confirmed by Filippo on the full page). Its **Publish
+   update** returns: "Needs the directory team. This listing is held for the directory team (a
+   flagged version, or a delist they applied). Contact the directory team to publish or relist it."
+   Reading: v1.1.0 (`c7e1c58`, 2026-10-16) added the key-lookup wording and tripped "Update adds
+   credential forward"; the hold stayed on the plugin after #409 removed the wording in 1.2.0. The
+   status page does not define "Held for review" or "Held by directory policy".
+3. **`liquidity-risk` is the outlier, and it is reproducible.** Its v1.2.0 was held by directory
+   policy at `b867c7d` and again at `bb2f243` after a manual **Check for new commits**: the same
+   5 files, 75.4 kB, the same finding "Uses a credential from the user's machine" (2 findings,
+   `SKILL.md` and `plugin.json`), rule "Update adds credential forward", review "With a reviewer:
+   Content policy review". The same bytes give the same result.
+4. **Our files do not explain the difference.** Counting lines in `SKILL.md` and `README.md` that
+   match `bearer|authorization|api key|environ|getenv|token|credential|secret|header`:
+   `liquidity-risk` and `market-risk` both have 0 at the live commit and 7 (`SKILL.md`) plus 2
+   (README) on master. The sentence "Never look for it on their machine (environment variables,
+   files, shell history, other tools' settings)" is identical in both, and `market-risk` passes with
+   it. `plugin.json` has no `mcpServers`, `env` or hooks. So there is nothing in `liquidity-risk` to
+   reword, and rewording would be a guess.
+5. The other findings on every plugin ("Unrecognized field" for `documentationUrl`, `supportUrl`,
+   `privacyPolicyUrl`, `termsOfServiceUrl`; "Field from another tool's manifest" for `icon`) are
+   marked "No action needed" and are not holds.
+
+### 6.3 `pyvar-mcp` and `tengrade` (retired Console form)
+
+- Anthropic's [publishing page](https://claude.com/docs/directory/publish.md#move-an-earlier-submission-to-the-developer-portal)
+  says the Console form is no longer supported and existing listings stay as they are. To move
+  one: a row with a **Withdraw** button is withdrawn and then resubmitted in the portal; a row
+  without one is moved by email to `directory@anthropic.com`, after any portal draft for the same
+  repository and folder is deleted.
+- On 2026-11-01 both Console rows (`tengrade`, `pyvar-mcp`) are Published with nothing to click, so
+  no Withdraw. The email route has had no reply as of this date.
+- Do not use **New submission** in the Console: it is unsupported, and a Console submission left in
+  place can make the portal refuse **Submit for review** for the same repository and folder
+  ("Already submitted by another organization").
+- Not tried: **Submit for review** on the `pyvar-mcp` portal draft, which validates. The docs say
+  the portal "can" refuse it, not that it will. If it is accepted there may be a duplicate or a
+  "Name is taken" block; a submission can be withdrawn, and it counts toward the limit of 10
+  submissions per 24 hours.
+- Cost of leaving them: both stay live. `pyvar-mcp` releases after that listing (0.2.x) do not
+  reach directory users. The skills send Claude Code users to `pyvar-mcp@pyvar-marketplace`, our own
+  marketplace, so they do not depend on the directory listing.
+- Not verified: whether `tengrade`'s plugin meets the pre-submission checklist.
+
+### 6.4 Rules until a decision lands
+
+- Do not change `plugins/` for the nine held plugins. Each changed version adds a row for the
+  reviewer (`credit-risk` 1.2.1 did), the tracked branch or tag cannot be changed while a plugin is
+  with a reviewer, and `plugins/` is not in the pipeline's excluded directories, so it starts a
+  CodePipeline run.
+- Do not repeat **Check for new commits** on a held plugin. A manual re-check scans identical content
+  again and adds a version row (`liquidity-risk` now has `b867c7d` and `bb2f243`). §5's remark that a
+  held plugin is only reviewed again when it changes describes the scheduled check.
+- **Publish update** on a held plugin only returns the directory-team message. On an unheld plugin
+  (`arch-storage`, `arch-api-gateway`) it files a publish request.
+- Nothing is left to do in the repo. What remains is on Anthropic's side: the nine plugin-level
+  holds (plus `liquidity-risk`'s policy hold), the two migrations and the two publish requests.
+
+Sources (read 2026-11-01): [Publish to the directory](https://claude.com/docs/directory/publish.md),
+[Submit your plugin](https://claude.com/docs/plugins/submit.md),
+[Track your submission](https://claude.com/docs/directory/submission-status.md),
+[Plugin pre-submission checklist](https://claude.com/docs/plugins/pre-submission-checklist.md).
 
