@@ -674,7 +674,14 @@ async def test_webhook_payment_succeeded_does_not_restore_non_monthly_downgrades
 
 
 def test_resolve_stripe_secrets_noop_when_already_configured(monkeypatch):
-    """Local dev / anything injecting these via .env must never touch boto3."""
+    """Local dev / anything injecting these via .env must never touch boto3.
+
+    Outside ECS the gate is closed whatever is configured. The gate is pinned here rather than
+    inherited: CodeBuild exports ECS_CONTAINER_METADATA_URI_V4, and with the gate open one
+    configured key leaves the other two missing, so boto3 is (rightly) called. The in-ECS case
+    where all three are configured has its own test, below.
+    """
+    monkeypatch.setattr(billing_module.cfg, "ecs_container_metadata_uri_v4", None)
     monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", "sk_test_from_env")
     with patch("boto3.client") as mock_boto_client:
         billing_module._resolve_stripe_secrets()
