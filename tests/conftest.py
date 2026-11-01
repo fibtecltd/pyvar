@@ -46,6 +46,19 @@ Reasoning:
   wins over one in a local .env), so the suite's default config really has
   no DSN, and it patches sentry_sdk.init for the whole session, so a DSN
   that gets resolved some other way still cannot reach the real SDK.
+- ECS gate: cfg.ecs_container_metadata_uri_v4 (env ECS_CONTAINER_METADATA_URI_V4, which
+  AWS injects into every ECS task) decides whether the app makes real AWS calls
+  at runtime: Sentry DSN and Stripe secret lookups in Secrets Manager
+  (observability/setup.py, api/routes/billing.py) and the scale-from-zero
+  kickstart metric (api/routes/var.py). Tests that exercise those paths set the
+  gate themselves, but every other test inherits whatever the shell has. The
+  pipeline's Synth step runs pytest inside CodeBuild, where that variable is
+  evidently set: test_resolve_stripe_secrets_noop_when_already_configured
+  reached boto3.client there and failed the dev pipeline on the merge of #412
+  (green locally, green in CI). pytest_configure now blanks it too, before
+  collection, so the suite's default config is "not in ECS" wherever it runs
+  and cannot make real AWS calls while main is imported either. An empty value
+  closes every gate (all three test `not ...`) and wins over a local .env.
 """
 
 from __future__ import annotations
@@ -63,6 +76,7 @@ _SESSION_SENTRY_INIT = patch("sentry_sdk.init")
 def pytest_configure(config: pytest.Config) -> None:
     """Runs before collection, so before any test module imports main (see docstring)."""
     os.environ["SENTRY_DSN"] = ""
+    os.environ["ECS_CONTAINER_METADATA_URI_V4"] = ""
     _SESSION_SENTRY_INIT.start()
 
 

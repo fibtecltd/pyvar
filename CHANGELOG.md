@@ -121,6 +121,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The dev pipeline failed its Synth step on the merge of #412, and the test suite no longer
+  depends on whether it runs inside ECS** — `test_resolve_stripe_secrets_noop_when_already_configured`
+  set one Stripe key and expected `boto3` never to be touched, which holds only while
+  `ECS_CONTAINER_METADATA_URI_V4` is unset. CodeBuild sets it, so the gate was open there, the other
+  two secrets counted as missing and `boto3.client` was (correctly) called: 1 failed, 2036 passed,
+  while the same suite passes on a laptop and in GitHub CI, which is why it only showed on the
+  first run of merged code. Dev kept the previous build. `tests/conftest.py::pytest_configure` now
+  blanks that variable before collection, next to `SENTRY_DSN`, so every test starts outside ECS
+  and no AWS lookup can run while `main` is imported either; the failing test also pins the gate
+  itself, and `tests/test_observability.py` has a test that fails if the suite ever starts with it
+  open. No application code changed: `_resolve_stripe_secrets` behaves as intended.
+
 - **The F-IRB formula in the "Try it" panel had only 2 px to spare, and one browser cut it off by 3
   px** — an agent's arm64 Chromium measured `irb_foundation_approach_capital` at 591 px in a 588 px
   box, while this build's own check had passed it (the earlier fix had dropped a `·` and narrowed a

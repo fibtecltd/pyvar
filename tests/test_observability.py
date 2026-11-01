@@ -20,6 +20,7 @@ Reasoning:
 from __future__ import annotations
 
 import logging
+import os
 from unittest.mock import MagicMock, patch
 
 import sentry_sdk
@@ -57,6 +58,17 @@ def test_sentry_client_is_inactive_for_the_whole_session():
     deliberate 503s) was then reported to the real project as a new issue and alert. No test
     should ever find a live client."""
     assert not sentry_sdk.get_client().is_active()
+
+
+def test_suite_default_config_is_not_inside_ecs():
+    """The pipeline's Synth step runs pytest in CodeBuild, where ECS_CONTAINER_METADATA_URI_V4 is
+    set. That variable opens the gate for real AWS calls (Secrets Manager lookups of the Sentry
+    DSN and the Stripe keys, the scale-from-zero metric), so a test that did not pin the gate
+    itself behaved differently there than on a laptop or in GitHub CI and failed the dev pipeline
+    on the merge of #412. tests/conftest.py::pytest_configure blanks it before collection; no
+    test should find it open unless it opened it on purpose."""
+    assert not cfg.ecs_container_metadata_uri_v4
+    assert not os.environ.get("ECS_CONTAINER_METADATA_URI_V4")
 
 
 def test_setup_sentry_noop_with_literal_none_string(_no_sentry_in_tests):
