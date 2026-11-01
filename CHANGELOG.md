@@ -132,6 +132,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   failed before the change. Phone: 50 formulas still scroll, behind the shaded edge, as before.
   `pyvar-credit-risk` is 1.2.1 (its `references/functions.md` carries the formula), and the
   catalogue, skills and plugin copies are regenerated (the formula lines only).
+  Also in this change: `black` 26.5.1 to 26.10.1 in `plugins/mcp`'s dev extras (Dependabot #411,
+  folded in so one merge makes one pipeline run); `black --check` is clean with it on `plugins/mcp`
+  and on the whole repo, and `generate_mcp_tools.py` reproduces the committed files byte for byte.
 
 - **`pyvar-mcp` 0.2.2: the generated tool catalogue is one module per domain, not one 399 KiB
   file** — the plugin directory's safety scan reads a file in full only up to 256 KiB, so the tail
