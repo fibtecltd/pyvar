@@ -6,7 +6,7 @@ description: >
   Fama-French factor models, PCA and regime detection, ESG tilts. Use when the user wants a
   portfolio optimised, attributed or measured with real numbers, not just the method
   explained. Needs a free pyvar API key; the skill explains how to get one.
-version: "1.2.0"
+version: "1.2.1"
 author: "Fibtec Limited — pyvar.com"
 tags: [portfolio, optimisation, markowitz, black-litterman, risk-parity, sharpe, attribution, brinson, factor-model, FF5, PCA, HMM, ESG]
 ---

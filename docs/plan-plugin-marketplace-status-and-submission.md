@@ -252,13 +252,41 @@ it is not one of the pyvar plugins.
   reviewer (`credit-risk` 1.2.1 did), the tracked branch or tag cannot be changed while a plugin is
   with a reviewer, and `plugins/` is not in the pipeline's excluded directories, so it starts a
   CodePipeline run.
-- Do not repeat **Check for new commits** on a held plugin. A manual re-check scans identical content
-  again and adds a version row (`liquidity-risk` now has `b867c7d` and `bb2f243`). §5's remark that a
+- ~~Do not repeat **Check for new commits** on a held plugin.~~ Superseded by §6.5: on 2026-11-06 the
+  portal itself asked for a new check, and the re-check is what produced the real finding. A manual
+  re-check still adds a version row (`liquidity-risk` has `b867c7d` and `bb2f243`). §5's remark that a
   held plugin is only reviewed again when it changes describes the scheduled check.
 - **Publish update** on a held plugin only returns the directory-team message. On an unheld plugin
   (`arch-storage`, `arch-api-gateway`) it files a publish request.
 - Nothing is left to do in the repo. What remains is on Anthropic's side: the nine plugin-level
   holds (plus `liquidity-risk`'s policy hold), the two migrations and the two publish requests.
+
+### 6.5 2026-11-06: every pending update failed, then the real reason appeared
+
+Read from "Copy as text" of each plugin's newest version (all at `67d6c37`, the docs-only #414
+merge) and one screenshot.
+
+- All 11 plugins with a pending update showed "Update failed", and ETL Integrator "Needs changes".
+  Every version said "Directory policy: Blocked by directory policy" with one new item, **"Plugin
+  not fully checked"** ("A new check may be all it needs… 'Check for new commits', even if nothing
+  has changed. If the next check says the same, try again later"). Anthropic's pages do not define
+  that label, "Update failed" or "Blocked by directory policy".
+- Not our files: each fetch matched its plugin folder in file count and bytes, and `market-risk`
+  v1.2.0, Approved on 2026-11-01, was Blocked on 2026-11-06 with identical bytes. ETL Integrator's
+  commit (2026-10-20) went from "Meets directory policy" to Blocked too, and its Review row says "No
+  reviewer action recorded", so "Needs changes" there was not a reviewer's decision.
+- After a manual **Check for new commits** the button stayed grey for a while; a re-check reported
+  "Directory policy failed" with **`LOCAL_CODE_FRONTMATTER_KEY`**: "Frontmatter keys outside the
+  allowed list accepted only from Verified organizations… Remove each frontmatter key outside the
+  allowed list, then push a new commit." No way to become Verified exists yet. The plugin was not
+  recorded; every pyvar `SKILL.md` had `version`, `author` and `tags`, which Claude Code does not
+  read from a skill, and ETL Integrator's skill (`name`, `description` only) drew no such finding.
+- Fix (PR from `fix/plugin-skill-frontmatter`): each plugin's `SKILL.md` keeps `name` and
+  `description` only (`scripts/generate_plugins.py`), all 13 plugins up one patch version,
+  `tests/test_plugin_directory_policy.py` pins the keys. The directory's allowed list is not
+  published; if the next scan names another key, add it to the test's comment and remove it.
+- Not verified: which key(s) the portal named (the finding was collapsed in the screenshot), and
+  whether `liquidity-risk` and ETL Integrator still carry their credential findings next to this one.
 
 Sources (read 2026-11-01): [Publish to the directory](https://claude.com/docs/directory/publish.md),
 [Submit your plugin](https://claude.com/docs/plugins/submit.md),

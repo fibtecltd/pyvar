@@ -6,9 +6,6 @@ description: >
   duration, yield curves, swaps, swaptions, CDS and FX derivatives. Use when the user wants an
   instrument priced or its Greeks computed with real numbers. Needs a free pyvar API key; the
   skill explains how to get one.
-version: "1.2.0"
-author: "Fibtec Limited — pyvar.com"
-tags: [derivatives, options, Black-Scholes, Heston, SABR, Dupire, LSM, bonds, yield-curve, IRS, CDS, swaption, FX, monte-carlo]
 ---
 
 # pyvar — Derivatives Pricing  (62 functions)

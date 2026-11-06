@@ -27,6 +27,14 @@ Reasoning:
   "http://localhost:8000/docs" comment was read as the plugin's documentation
   link and refused (LISTING_URL_SCHEME). A README of its own, with https links
   only, keeps the listing independent of the root README.
+- The plugin's SKILL.md carries only `name` and `description` in its frontmatter. The skill
+  source under .claude/skills/ also has `version` (the one place the plugin version is set),
+  `author` and `tags`, none of which Claude Code reads from a skill. Anthropic's directory
+  refuses a version whose skill, command, agent or output style has a frontmatter key outside
+  its allowed list unless the organization is Verified (LOCAL_CODE_FRONTMATTER_KEY, seen on
+  every pyvar plugin on 2026-11-06). Its list is not published; `name` and `description` are
+  accepted (ETL Integrator's skill has exactly those two and drew no such finding). The version
+  stays in plugin.json, so nothing is lost.
 
 Usage:
   python3 scripts/generate_plugins.py
@@ -88,6 +96,40 @@ def parse_frontmatter(skill_md_text: str) -> dict[str, str]:
     if not name_match or not version_match:
         raise ValueError("SKILL.md frontmatter missing name/version")
     return {"name": name_match.group(1), "version": version_match.group(1)}
+
+
+# The only frontmatter keys a plugin's SKILL.md keeps (see the docstring).
+DIRECTORY_FRONTMATTER_KEYS = ("name", "description")
+_TOP_LEVEL_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):")
+
+
+def directory_skill_md(skill_md_text: str) -> str:
+    """The plugin's copy of a skill: frontmatter cut to DIRECTORY_FRONTMATTER_KEYS, body unchanged.
+
+    A key's value is its own line plus the indented lines after it (the folded `description: >`
+    block), so those go or stay together.
+
+    Args:
+        skill_md_text: the full text of .claude/skills/<skill>/SKILL.md.
+
+    Returns:
+        The same document with only the allowed frontmatter keys.
+
+    Raises:
+        ValueError: if the text has no frontmatter block.
+    """
+    match = FRONTMATTER_RE.match(skill_md_text)
+    if not match:
+        raise ValueError("SKILL.md missing YAML frontmatter block")
+    kept: list[str] = []
+    keep = False
+    for line in match.group(1).split("\n"):
+        key = _TOP_LEVEL_KEY_RE.match(line)
+        if key:
+            keep = key.group(1) in DIRECTORY_FRONTMATTER_KEYS
+        if keep:
+            kept.append(line)
+    return "---\n" + "\n".join(kept) + "\n---\n" + skill_md_text[match.end() :]
 
 
 README_TEMPLATE = """\
@@ -174,7 +216,7 @@ def main() -> None:
         plugin_dir.mkdir(parents=True, exist_ok=True)
         (plugin_dir / ".claude-plugin").mkdir(parents=True, exist_ok=True)
 
-        shutil.copyfile(skill_md_path, plugin_dir / "SKILL.md")
+        (plugin_dir / "SKILL.md").write_text(directory_skill_md(skill_md_text))
         shutil.copyfile(ICON_SOURCE, plugin_dir / "icon.png")
         (plugin_dir / "README.md").write_text(
             readme_for(plugin_name, description, skill_dir_name.startswith("arch-"))
