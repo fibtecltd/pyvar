@@ -121,6 +121,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Anthropic's plugin directory refused all 13 pyvar skill plugins for frontmatter keys it does
+  not accept, and the plugins no longer carry them** — after a re-check on 2026-11-06 the portal
+  reported "Frontmatter keys outside the allowed list accepted only from Verified organizations"
+  (`LOCAL_CODE_FRONTMATTER_KEY`), "Directory policy failed", on versions that had passed on
+  2026-11-01 with the same bytes. Every `SKILL.md` carried `version`, `author` and `tags` next to
+  `name` and `description`; Claude Code reads none of the three from a skill, and there is no way to
+  ask to become a Verified organization. `scripts/generate_plugins.py` now writes each plugin's
+  `SKILL.md` with `name` and `description` only (`name` and `description` are accepted: ETL
+  Integrator's skill has exactly those two and drew no such finding). The skill sources under
+  `.claude/skills/` keep their keys, because the plugin version is read from there, and the version
+  still ships in `plugin.json`. All 13 plugins go up one patch version so the corrected skill
+  reaches installed copies: domain skills 1.2.1 (credit-risk 1.2.2, regulatory 1.3.1), architecture
+  skills 1.1.2 (api-gateway 1.1.4). `tests/test_plugin_directory_policy.py` fails if a plugin's
+  skill gains a key beyond those two; `tests/test_skills_sync.py` covers the generator. The
+  directory's own list is not published, so if a re-scan names `name` or `description`, or another
+  file, this is not finished.
+
 - **The dev pipeline failed its Synth step on the merge of #412, and the test suite no longer
   depends on whether it runs inside ECS** — `test_resolve_stripe_secrets_noop_when_already_configured`
   set one Stripe key and expected `boto3` never to be touched, which holds only while

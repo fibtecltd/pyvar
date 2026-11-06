@@ -25,6 +25,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
 sync_skills = importlib.import_module("sync_skills")
+generate_plugins = importlib.import_module("generate_plugins")
 
 DOMAIN_SKILLS = sync_skills.DOMAIN_SKILLS
 ARCH_SKILLS = (
@@ -126,11 +127,41 @@ def test_arch_skills_say_they_are_for_contributors(skill: str) -> None:
     assert "Who this is for" in text
 
 
+def test_directory_skill_md_cuts_the_frontmatter_and_keeps_the_body() -> None:
+    source = (
+        "---\n"
+        "name: pyvar-x\n"
+        "description: >\n"
+        "  First line of the description\n"
+        "  and a second line.\n"
+        'version: "1.2.3"\n'
+        'author: "Someone"\n'
+        "tags: [a, b]\n"
+        "---\n"
+        "\n# Body\n\nversion: 9 stays in the body\n"
+    )
+    assert generate_plugins.directory_skill_md(source) == (
+        "---\n"
+        "name: pyvar-x\n"
+        "description: >\n"
+        "  First line of the description\n"
+        "  and a second line.\n"
+        "---\n"
+        "\n# Body\n\nversion: 9 stays in the body\n"
+    )
+    with pytest.raises(ValueError):
+        generate_plugins.directory_skill_md("no frontmatter here\n")
+
+
 @pytest.mark.parametrize("skill", DOMAIN_SKILLS + ARCH_SKILLS)
 def test_plugin_copy_matches_the_skill_source(skill: str) -> None:
     src = REPO / ".claude" / "skills" / skill
     dst = REPO / "plugins" / PLUGIN_PATH[skill]
-    assert (dst / "SKILL.md").read_text() == (src / "SKILL.md").read_text()
+    # The plugin's copy has the same body; only the frontmatter is cut to the keys the directory
+    # accepts (see scripts/generate_plugins.py). The source keeps version, author and tags.
+    assert (dst / "SKILL.md").read_text() == generate_plugins.directory_skill_md(
+        (src / "SKILL.md").read_text()
+    )
     src_refs = (
         sorted(p.name for p in (src / "references").glob("*"))
         if (src / "references").is_dir()

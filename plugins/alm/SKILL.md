@@ -6,9 +6,6 @@ description: >
   prepayment models, funds transfer pricing. Use when the user wants
   interest-rate-risk-in-the-banking-book numbers computed rather than only explained. Needs a
   free pyvar API key; the skill explains how to get one.
-version: "1.2.0"
-author: "Fibtec Limited — pyvar.com"
-tags: [ALM, NII, EVE, IRRBB, duration, repricing-gap, NMD, prepayment, FTP, convexity, basis-risk, pipeline-risk, balance-sheet, ICAAP]
 ---
 
 # pyvar — ALM and Balance Sheet  (33 functions)

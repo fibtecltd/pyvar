@@ -6,9 +6,6 @@ description: >
   analysis, BEICF and cyber, model, IT and vendor risk. Use when the user wants
   operational-risk capital or indicator results computed rather than only explained. Needs a
   free pyvar API key; the skill explains how to get one.
-version: "1.2.0"
-author: "Fibtec Limited — pyvar.com"
-tags: [operational-risk, LDA, AMA, SMA, OpVaR, RCSA, KRI, BEICF, scenario-analysis, cyber-risk, model-risk, EVT]
 ---
 
 # pyvar — Operational Risk  (44 functions)

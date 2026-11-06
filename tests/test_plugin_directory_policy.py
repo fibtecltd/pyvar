@@ -120,6 +120,33 @@ def test_domain_skill_reads_no_credential_from_the_machine(plugin: Path) -> None
             assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
 
 
+# The directory refuses a version whose skill, command, agent or output style has a frontmatter key
+# outside its allowed list, unless the organization is Verified (finding
+# LOCAL_CODE_FRONTMATTER_KEY, seen on every pyvar plugin on 2026-11-06; nobody can ask to become
+# Verified). The list is not published. `name` and `description` are known to be accepted: ETL
+# Integrator's skill has exactly those two and drew no such finding. The skill source under
+# .claude/skills/ also has version, author and tags; the plugin copy must not.
+ACCEPTED_FRONTMATTER_KEYS = {"name", "description"}
+_FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
+_TOP_LEVEL_KEY = re.compile(r"^([A-Za-z0-9_-]+):", re.MULTILINE)
+
+
+@pytest.mark.parametrize("plugin", SKILL_PLUGINS, ids=SKILL_IDS)
+def test_skill_frontmatter_has_only_keys_the_directory_accepts(plugin: Path) -> None:
+    checked = 0
+    for path in sorted(plugin.rglob("*.md")):
+        match = _FRONTMATTER.match(path.read_text(encoding="utf-8"))
+        if not match:
+            continue
+        checked += 1
+        keys = set(_TOP_LEVEL_KEY.findall(match.group(1)))
+        assert keys <= ACCEPTED_FRONTMATTER_KEYS, (
+            f"{path.relative_to(REPO)} has frontmatter key(s) the directory refuses from a "
+            f"community plugin: {sorted(keys - ACCEPTED_FRONTMATTER_KEYS)}"
+        )
+    assert checked >= 1, f"{plugin.name}: no SKILL.md frontmatter found, the check read nothing"
+
+
 @pytest.mark.parametrize("plugin", SKILL_PLUGINS, ids=SKILL_IDS)
 def test_no_skill_carries_code_that_fetches_a_secret(plugin: Path) -> None:
     # pyvar-arch-observability was held for the Sentry section that showed a Secrets Manager call

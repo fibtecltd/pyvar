@@ -6,9 +6,6 @@ description: >
   and CRR2 buffers. Use when the user wants a capital ratio, buffer or regulatory test
   computed rather than only explained. Needs a free pyvar API key; the skill explains how to
   get one.
-version: "1.3.0"
-author: "Fibtec Limited — pyvar.com"
-tags: [regulatory, Basel-III, Basel-IV, FRTB, MiFID-II, EMIR, SFTR, ICAAP, SREP, CET1, Solvency-II, CRR2]
 ---
 
 # pyvar — Regulatory Capital  (30 functions)
