@@ -46,9 +46,10 @@ Reasoning:
   pattern as the formula field -- merged in from
   scripts/data/percentage_params.json, a separate, hand-reviewed, committed
   file ({function_name: [param_name, ...]}), NOT derived automatically,
-  because the OpenAPI schema carries no unit/semantic metadata (every Field
-  description in schemas/*.py is null -- these are auto-generated request
-  models, see schemas/market_risk.py's own module docstring) and the
+  because the OpenAPI schema carries no unit/semantic metadata beyond the
+  description text (params[].description IS now filled, from the engine docstring's
+  Args: section -- scripts/param_docs.py, scripts/add_param_descriptions.py; before
+  2026-11-07 every Field description in schemas/*.py was null) and the
   underlying convention across this codebase is that every percentage-like
   quantity is entered as a decimal fraction (confidence_level=0.99,
   buffer_ratio=0.025, recovery_rate=0.4, ...), documented that way in each

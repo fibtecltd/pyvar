@@ -252,6 +252,14 @@ it is not one of the pyvar plugins.
   reviewer (`credit-risk` 1.2.1 did), the tracked branch or tag cannot be changed while a plugin is
   with a reviewer, and `plugins/` is not in the pipeline's excluded directories, so it starts a
   CodePipeline run.
+  - 2026-11-07: the per-parameter descriptions (taken from the engine docstrings into the OpenAPI
+    schema and `portal/functions.json`) flow into the skills' parameter tables, the eight plugins'
+    `references/functions.md` and `pyvar-mcp`'s tool schemas through the same generators, and CI
+    requires `plugins/` to match them. They are therefore switched off for those three outputs
+    (`PLUGIN_PARAM_DESCRIPTIONS = False` in `scripts/param_docs.py`), so `plugins/`, `.claude/` and
+    the plugin versions did not change. Switching them on is a plugin release: do it when no plugin
+    is with a reviewer, after re-wording the two descriptions that contain `:func:` (see
+    `docs/plan-pyvar-mcp-validation-holds.md`), and bump the versions.
 - ~~Do not repeat **Check for new commits** on a held plugin.~~ Superseded by §6.5: on 2026-11-06 the
   portal itself asked for a new check, and the re-check is what produced the real finding. A manual
   re-check still adds a version row (`liquidity-risk` has `b867c7d` and `bb2f243`). §5's remark that a

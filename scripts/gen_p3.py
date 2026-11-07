@@ -27,9 +27,12 @@ from __future__ import annotations
 import ast
 import importlib
 import inspect
+import json
 import keyword
 from pathlib import Path
 from typing import Any
+
+from param_docs import parse_args_section
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -264,6 +267,7 @@ def collect_module(module: str) -> list[dict[str, Any]]:
         sig = inspect.signature(fn)
         ann = {a.arg: ast.unparse(a.annotation) for a in node.args.args if a.annotation}
 
+        arg_docs = parse_args_section(inspect.getdoc(fn))
         params: list[dict[str, Any]] = []
         for pname, p in sig.parameters.items():
             if pname == "self":
@@ -275,6 +279,9 @@ def collect_module(module: str) -> list[dict[str, Any]]:
                     "type": pytype,
                     "conv": conv,
                     "default": _default_repr(p.default),
+                    # The engine docstring's Args: text; becomes Field(description=...) so the OpenAPI
+                    # schema, portal/functions.json, the Try-it panel and the skills all carry it.
+                    "doc": arg_docs.get(pname),
                 }
             )
 
@@ -289,6 +296,17 @@ def collect_module(module: str) -> list[dict[str, Any]]:
             }
         )
     return funcs
+
+
+def _field_line(p: dict[str, Any]) -> str:
+    """One request-model field: `name: type`, `name: type = default`, or with a description, a Field()."""
+    if not p.get("doc"):
+        if p["default"] is None:
+            return f"    {p['name']}: {p['type']}"
+        return f"    {p['name']}: {p['type']} = {p['default']}"
+    args = [] if p["default"] is None else [f"default={p['default']}"]
+    args.append(f"description={json.dumps(p['doc'], ensure_ascii=False)}")
+    return f"    {p['name']}: {p['type']} = Field({', '.join(args)})"
 
 
 def render_schemas(domain: str, funcs: list[dict[str, Any]]) -> str:
@@ -329,10 +347,8 @@ def render_schemas(domain: str, funcs: list[dict[str, Any]]) -> str:
         opt = [p for p in f["params"] if p["default"] is not None]
         if not req and not opt:
             L.append("    pass")
-        for p in req:
-            L.append(f"    {p['name']}: {p['type']}")
-        for p in opt:
-            L.append(f"    {p['name']}: {p['type']} = {p['default']}")
+        for p in req + opt:
+            L.append(_field_line(p))
         # Regulatory validator: confidence level(s) in [0.90, 0.9999] (CLAUDE.md s4.1)
         names = {p["name"] for p in f["params"]}
         if "confidence_level" in names:

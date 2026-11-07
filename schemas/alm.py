@@ -18,9 +18,9 @@ class MacaulayDurationBalanceSheetRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    discount_rate: float
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    discount_rate: float = Field(description="Continuous discount rate (decimal).")
 
 
 class MacaulayDurationBalanceSheetResponse(BaseModel):
@@ -37,10 +37,10 @@ class ModifiedDurationBalanceSheetRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    discount_rate: float
-    frequency: int = 1
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    discount_rate: float = Field(description="Discount rate (decimal).")
+    frequency: int = Field(default=1, description="Compounding frequency per year.")
 
 
 class ModifiedDurationBalanceSheetResponse(BaseModel):
@@ -58,10 +58,10 @@ class EffectiveDurationAlmRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pv_base: float
-    pv_up: float
-    pv_down: float
-    rate_shock: float
+    pv_base: float = Field(description="Present value at base rates.")
+    pv_up: float = Field(description="Present value after +``rate_shock``.")
+    pv_down: float = Field(description="Present value after −``rate_shock``.")
+    rate_shock: float = Field(description="Parallel rate shock (decimal).")
 
 
 class EffectiveDurationAlmResponse(BaseModel):
@@ -77,11 +77,11 @@ class DurationGapAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_duration: float
-    liability_duration: float
-    total_assets: float
-    total_liabilities: float
-    rate_shock: float = 0.01
+    asset_duration: float = Field(description="Weighted asset duration (years).")
+    liability_duration: float = Field(description="Weighted liability duration (years).")
+    total_assets: float = Field(description="Total assets (currency).")
+    total_liabilities: float = Field(description="Total liabilities (currency).")
+    rate_shock: float = Field(default=0.01, description="Parallel rate shock (decimal).")
 
 
 class DurationGapAnalysisResponse(BaseModel):
@@ -100,10 +100,10 @@ class ConvexityGapRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_convexity: float
-    liability_convexity: float
-    total_assets: float
-    total_liabilities: float
+    asset_convexity: float = Field(description="Weighted asset convexity.")
+    liability_convexity: float = Field(description="Weighted liability convexity.")
+    total_assets: float = Field(description="Total assets (currency).")
+    total_liabilities: float = Field(description="Total liabilities (currency).")
 
 
 class ConvexityGapResponse(BaseModel):
@@ -119,9 +119,13 @@ class NiiSensitivityRateShockRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    rate_sensitive_assets: float
-    rate_sensitive_liabilities: float
-    rate_shock: float
+    rate_sensitive_assets: float = Field(
+        description="Assets repricing within the horizon (currency)."
+    )
+    rate_sensitive_liabilities: float = Field(
+        description="Liabilities repricing within the horizon."
+    )
+    rate_shock: float = Field(description="Parallel rate shock (decimal).")
 
 
 class NiiSensitivityRateShockResponse(BaseModel):
@@ -138,10 +142,18 @@ class NiiSimulationBaselineRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_balances: list[float] | list[list[float]]
-    asset_rates: list[float] | list[list[float]]
-    liability_balances: list[float] | list[list[float]]
-    liability_rates: list[float] | list[list[float]]
+    asset_balances: list[float] | list[list[float]] = Field(
+        description="Balance per interest-earning asset bucket."
+    )
+    asset_rates: list[float] | list[list[float]] = Field(
+        description="Yield per asset bucket (decimal)."
+    )
+    liability_balances: list[float] | list[list[float]] = Field(
+        description="Balance per interest-bearing liability bucket."
+    )
+    liability_rates: list[float] | list[list[float]] = Field(
+        description="Cost per liability bucket (decimal)."
+    )
 
 
 class NiiSimulationBaselineResponse(BaseModel):
@@ -159,13 +171,23 @@ class NiiSimulationStressRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_balances: list[float] | list[list[float]]
-    asset_rates: list[float] | list[list[float]]
-    liability_balances: list[float] | list[list[float]]
-    liability_rates: list[float] | list[list[float]]
-    rate_shock: float
-    asset_beta: float = 1.0
-    liability_beta: float = 0.5
+    asset_balances: list[float] | list[list[float]] = Field(
+        description="Balance per asset bucket (currency)."
+    )
+    asset_rates: list[float] | list[list[float]] = Field(
+        description="Base yield per asset bucket (decimal)."
+    )
+    liability_balances: list[float] | list[list[float]] = Field(
+        description="Balance per liability bucket."
+    )
+    liability_rates: list[float] | list[list[float]] = Field(
+        description="Base cost per liability bucket (decimal)."
+    )
+    rate_shock: float = Field(description="Parallel rate shock (decimal).")
+    asset_beta: float = Field(default=1.0, description="Asset repricing beta in [0, 1+].")
+    liability_beta: float = Field(
+        default=0.5, description="Liability (deposit) repricing beta in [0, 1+]."
+    )
 
 
 class NiiSimulationStressResponse(BaseModel):
@@ -183,12 +205,24 @@ class EconomicValueOfEquityEveRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_cashflows: list[float] | list[list[float]]
-    asset_times: list[float] | list[list[float]]
-    liability_cashflows: list[float] | list[list[float]]
-    liability_times: list[float] | list[list[float]]
-    asset_rates: list[float] | list[list[float]]
-    liability_rates: list[float] | list[list[float]]
+    asset_cashflows: list[float] | list[list[float]] = Field(
+        description="Asset cashflow per bucket."
+    )
+    asset_times: list[float] | list[list[float]] = Field(
+        description="Asset cashflow time per bucket (years)."
+    )
+    liability_cashflows: list[float] | list[list[float]] = Field(
+        description="Liability cashflow per bucket."
+    )
+    liability_times: list[float] | list[list[float]] = Field(
+        description="Liability cashflow time per bucket (years)."
+    )
+    asset_rates: list[float] | list[list[float]] = Field(
+        description="Discount zero rate per asset bucket (decimal)."
+    )
+    liability_rates: list[float] | list[list[float]] = Field(
+        description="Discount zero rate per liability bucket (decimal)."
+    )
 
 
 class EconomicValueOfEquityEveResponse(BaseModel):
@@ -206,12 +240,16 @@ class EveSensitivityAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    net_cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    base_rates: list[float] | list[list[float]]
-    parallel_bps: float = 200.0
-    short_bps: float = 300.0
-    long_bps: float = 150.0
+    net_cashflows: list[float] | list[list[float]] = Field(
+        description="Net (asset − liability) cashflow per bucket."
+    )
+    times: list[float] | list[list[float]] = Field(description="Bucket times in years.")
+    base_rates: list[float] | list[list[float]] = Field(
+        description="Base zero rate per bucket (decimal)."
+    )
+    parallel_bps: float = Field(default=200.0, description="Parallel shock (bps).")
+    short_bps: float = Field(default=300.0, description="Short shock (bps).")
+    long_bps: float = Field(default=150.0, description="Long shock (bps).")
 
 
 class EveSensitivityAnalysisResponse(BaseModel):
@@ -229,11 +267,11 @@ class LiquidityAdjustedNiiRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_nii: float
-    liquidity_buffer: float
-    buffer_yield: float
-    funding_cost: float
-    liquidity_premium: float
+    base_nii: float = Field(description="Baseline net interest income (currency).")
+    liquidity_buffer: float = Field(description="Size of the liquidity buffer (currency).")
+    buffer_yield: float = Field(description="Yield on the buffer (decimal).")
+    funding_cost: float = Field(description="Funding cost of the buffer (decimal).")
+    liquidity_premium: float = Field(description="Additional liquidity premium charged (decimal).")
 
 
 class LiquidityAdjustedNiiResponse(BaseModel):
@@ -250,10 +288,14 @@ class IrrbbSixStandardRateShocksRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tenors: list[float] | list[list[float]]
-    parallel_bps: float = 200.0
-    short_bps: float = 300.0
-    long_bps: float = 150.0
+    tenors: list[float] | list[list[float]] = Field(description="Tenor points in years (> 0).")
+    parallel_bps: float = Field(
+        default=200.0, description="Parallel shock magnitude (basis points)."
+    )
+    short_bps: float = Field(
+        default=300.0, description="Short-rate shock magnitude (basis points)."
+    )
+    long_bps: float = Field(default=150.0, description="Long-rate shock magnitude (basis points).")
 
 
 class IrrbbSixStandardRateShocksResponse(BaseModel):
@@ -269,12 +311,16 @@ class IrrbbStandardisedFrameworkRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    net_cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    base_rates: list[float] | list[list[float]]
-    parallel_bps: float = 200.0
-    short_bps: float = 300.0
-    long_bps: float = 150.0
+    net_cashflows: list[float] | list[list[float]] = Field(
+        description="Net (asset − liability) cashflow per time bucket."
+    )
+    times: list[float] | list[list[float]] = Field(description="Bucket midpoint times in years.")
+    base_rates: list[float] | list[list[float]] = Field(
+        description="Base zero rate per bucket (decimal)."
+    )
+    parallel_bps: float = Field(default=200.0, description="Parallel shock magnitude (bps).")
+    short_bps: float = Field(default=300.0, description="Short shock magnitude (bps).")
+    long_bps: float = Field(default=150.0, description="Long shock magnitude (bps).")
 
 
 class IrrbbStandardisedFrameworkResponse(BaseModel):
@@ -293,10 +339,14 @@ class IrrbbInternalModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    net_cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    base_rates: list[float] | list[list[float]]
-    rate_scenarios: list[float] | list[list[float]]
+    net_cashflows: list[float] | list[list[float]] = Field(description="Net cashflow per bucket.")
+    times: list[float] | list[list[float]] = Field(description="Bucket times in years.")
+    base_rates: list[float] | list[list[float]] = Field(
+        description="Base zero rate per bucket (decimal)."
+    )
+    rate_scenarios: list[float] | list[list[float]] = Field(
+        description="``(n_scenarios, n_buckets)`` additive rate shocks."
+    )
 
 
 class IrrbbInternalModelResponse(BaseModel):
@@ -314,9 +364,13 @@ class RepricingGapAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bucket_assets: list[float] | list[list[float]]
-    bucket_liabilities: list[float] | list[list[float]]
-    bucket_labels: list[str] | None = None
+    bucket_assets: list[float] | list[list[float]] = Field(
+        description="Rate-sensitive assets repricing in each bucket."
+    )
+    bucket_liabilities: list[float] | list[list[float]] = Field(
+        description="Rate-sensitive liabilities repricing in each bucket."
+    )
+    bucket_labels: list[str] | None = Field(default=None, description="Optional bucket names.")
 
 
 class RepricingGapAnalysisResponse(BaseModel):
@@ -334,10 +388,14 @@ class RepricingMaturityProfileRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    balances: list[float] | list[list[float]]
-    repricing_times: list[float] | list[list[float]]
-    n_buckets: int
-    bucket_edges: list[float] | list[list[float]]
+    balances: list[float] | list[list[float]] = Field(description="Balance per instrument.")
+    repricing_times: list[float] | list[list[float]] = Field(
+        description="Next repricing time per instrument (years)."
+    )
+    n_buckets: int = Field(description="Number of buckets.")
+    bucket_edges: list[float] | list[list[float]] = Field(
+        description="Length ``n_buckets+1`` ascending bucket boundaries."
+    )
 
 
 class RepricingMaturityProfileResponse(BaseModel):
@@ -354,8 +412,12 @@ class StaticGapAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bucket_assets: list[float] | list[list[float]]
-    bucket_liabilities: list[float] | list[list[float]]
+    bucket_assets: list[float] | list[list[float]] = Field(
+        description="Rate-sensitive assets per bucket."
+    )
+    bucket_liabilities: list[float] | list[list[float]] = Field(
+        description="Rate-sensitive liabilities per bucket."
+    )
 
 
 class StaticGapAnalysisResponse(BaseModel):
@@ -373,11 +435,19 @@ class DynamicGapAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bucket_assets: list[float] | list[list[float]]
-    bucket_liabilities: list[float] | list[list[float]]
-    asset_growth: list[float] | list[list[float]]
-    liability_growth: list[float] | list[list[float]]
-    n_periods: int
+    bucket_assets: list[float] | list[list[float]] = Field(
+        description="Initial rate-sensitive assets per bucket."
+    )
+    bucket_liabilities: list[float] | list[list[float]] = Field(
+        description="Initial rate-sensitive liabilities per bucket."
+    )
+    asset_growth: list[float] | list[list[float]] = Field(
+        description="Per-period asset growth rate per bucket (decimal)."
+    )
+    liability_growth: list[float] | list[list[float]] = Field(
+        description="Per-period liability growth rate per bucket."
+    )
+    n_periods: int = Field(description="Number of projection periods.")
 
 
 class DynamicGapAnalysisResponse(BaseModel):
@@ -393,10 +463,18 @@ class BasisRiskIrrbbRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_balances: list[float] | list[list[float]]
-    asset_index_shifts: list[float] | list[list[float]]
-    liability_balances: list[float] | list[list[float]]
-    liability_index_shifts: list[float] | list[list[float]]
+    asset_balances: list[float] | list[list[float]] = Field(
+        description="Balance per asset index bucket."
+    )
+    asset_index_shifts: list[float] | list[list[float]] = Field(
+        description="Index move per asset bucket (decimal)."
+    )
+    liability_balances: list[float] | list[list[float]] = Field(
+        description="Balance per liability index bucket."
+    )
+    liability_index_shifts: list[float] | list[list[float]] = Field(
+        description="Index move per liability bucket (decimal)."
+    )
 
 
 class BasisRiskIrrbbResponse(BaseModel):
@@ -412,9 +490,9 @@ class OptionRiskIrrbbRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    automatic_option_value: float
-    behavioural_option_value: float
-    notional: float
+    automatic_option_value: float = Field(description="PV of automatic interest-rate options.")
+    behavioural_option_value: float = Field(description="PV of behavioural options.")
+    notional: float = Field(description="Reference notional for the option-risk ratio.")
 
 
 class OptionRiskIrrbbResponse(BaseModel):
@@ -431,10 +509,10 @@ class PipelineRiskMeasurementRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pipeline_notional: float
-    pull_through_rate: float
-    rate_lock_period: float
-    rate_volatility: float
+    pipeline_notional: float = Field(description="Committed pipeline notional.")
+    pull_through_rate: float = Field(description="Expected fraction that completes in [0, 1].")
+    rate_lock_period: float = Field(description="Rate-lock horizon in years.")
+    rate_volatility: float = Field(description="Annualised rate volatility (decimal).")
 
 
 class PipelineRiskMeasurementResponse(BaseModel):
@@ -451,9 +529,11 @@ class InterestRateRiskCapitalIrrbbRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    worst_delta_eve: float
-    tier1_capital: float
-    outlier_threshold: float = 0.15
+    worst_delta_eve: float = Field(description="Worst-case ΔEVE (negative for a loss).")
+    tier1_capital: float = Field(description="Tier-1 capital (currency).")
+    outlier_threshold: float = Field(
+        default=0.15, description="Supervisory threshold (default 0.15 = 15%)."
+    )
 
 
 class InterestRateRiskCapitalIrrbbResponse(BaseModel):
@@ -472,10 +552,18 @@ class AssetLiabilityMismatchIndexRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_durations: list[float] | list[list[float]]
-    asset_amounts: list[float] | list[list[float]]
-    liability_durations: list[float] | list[list[float]]
-    liability_amounts: list[float] | list[list[float]]
+    asset_durations: list[float] | list[list[float]] = Field(
+        description="Duration per asset bucket (years)."
+    )
+    asset_amounts: list[float] | list[list[float]] = Field(
+        description="Amount per asset bucket (currency)."
+    )
+    liability_durations: list[float] | list[list[float]] = Field(
+        description="Duration per liability bucket."
+    )
+    liability_amounts: list[float] | list[list[float]] = Field(
+        description="Amount per liability bucket."
+    )
 
 
 class AssetLiabilityMismatchIndexResponse(BaseModel):
@@ -493,8 +581,12 @@ class LoanPrepaymentRateCprRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    smm: float | None = None
-    cpr: float | None = None
+    smm: float | None = Field(
+        default=None, description="Single monthly mortality (decimal), if converting SMM→CPR."
+    )
+    cpr: float | None = Field(
+        default=None, description="Constant prepayment rate (decimal), if converting CPR→SMM."
+    )
 
 
 class LoanPrepaymentRateCprResponse(BaseModel):
@@ -511,10 +603,10 @@ class PrepaymentModelMortgagesRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    principal: float
-    annual_rate: float
-    term_years: int
-    cpr: float
+    principal: float = Field(description="Initial pool balance.")
+    annual_rate: float = Field(description="Annual mortgage coupon (decimal).")
+    term_years: int = Field(description="Original term in years.")
+    cpr: float = Field(description="Constant prepayment rate (decimal).")
 
 
 class PrepaymentModelMortgagesResponse(BaseModel):
@@ -532,11 +624,11 @@ class BehaviouralModellingNmdsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    total_balance: float
-    core_fraction: float
-    core_runoff_rate: float
-    non_core_runoff_rate: float
-    horizon_years: float = 5.0
+    total_balance: float = Field(description="Total NMD balance (currency).")
+    core_fraction: float = Field(description="Fraction deemed core in [0, 1].")
+    core_runoff_rate: float = Field(description="Annual run-off rate of core deposits (decimal).")
+    non_core_runoff_rate: float = Field(description="Annual run-off rate of non-core (decimal).")
+    horizon_years: float = Field(default=5.0, description="Projection horizon (years).")
 
 
 class BehaviouralModellingNmdsResponse(BaseModel):
@@ -555,8 +647,12 @@ class NonMaturityDepositStabilityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    balance_history: list[float] | list[list[float]]
-    confidence_level: float = 0.99
+    balance_history: list[float] | list[list[float]] = Field(
+        description="Historical deposit balances (>= 2 observations)."
+    )
+    confidence_level: float = Field(
+        default=0.99, description="Confidence for the stable floor in [0.5, 1)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -581,10 +677,12 @@ class CoreDepositDurationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    core_balance: float
-    decay_rate: float
-    discount_rate: float
-    max_years: float = 30.0
+    core_balance: float = Field(description="Core deposit balance (currency).")
+    decay_rate: float = Field(description="Annual exponential decay rate (decimal, > 0).")
+    discount_rate: float = Field(description="Discount rate (decimal, >= 0).")
+    max_years: float = Field(
+        default=30.0, description="Truncation horizon for the run-off integral."
+    )
 
 
 class CoreDepositDurationResponse(BaseModel):
@@ -603,11 +701,15 @@ class FundsTransferPricingFtpRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    customer_rate: float
-    ftp_rate: float
-    liquidity_premium: float = 0.0
-    is_asset: bool = True
+    notional: float = Field(description="Deal notional (currency).")
+    customer_rate: float = Field(description="Rate charged to / paid to the customer (decimal).")
+    ftp_rate: float = Field(description="Matched-maturity transfer rate (decimal).")
+    liquidity_premium: float = Field(
+        default=0.0, description="Liquidity charge added to the FTP (decimal)."
+    )
+    is_asset: bool = Field(
+        default=True, description="True for an asset (loan), False for a liability (deposit)."
+    )
 
 
 class FundsTransferPricingFtpResponse(BaseModel):
@@ -625,9 +727,15 @@ class FtpCurveConstructionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tenors: list[float] | list[list[float]]
-    base_curve: list[float] | list[list[float]]
-    liquidity_spreads: list[float] | list[list[float]]
+    tenors: list[float] | list[list[float]] = Field(
+        description="Tenor points in years (ascending)."
+    )
+    base_curve: list[float] | list[list[float]] = Field(
+        description="Base funding rate per tenor (decimal)."
+    )
+    liquidity_spreads: list[float] | list[list[float]] = Field(
+        description="Term-liquidity spread per tenor (decimal)."
+    )
 
 
 class FtpCurveConstructionResponse(BaseModel):
@@ -644,10 +752,14 @@ class StructuralHedgeOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    target_duration: float
-    instrument_durations: list[float] | list[list[float]]
-    instrument_max_notional: list[float] | list[list[float]]
-    equity_notional: float
+    target_duration: float = Field(description="Desired equity duration (years).")
+    instrument_durations: list[float] | list[list[float]] = Field(
+        description="Duration of each hedge instrument (years)."
+    )
+    instrument_max_notional: list[float] | list[list[float]] = Field(
+        description="Max notional per instrument (currency)."
+    )
+    equity_notional: float = Field(description="Equity notional to hedge (currency).")
 
 
 class StructuralHedgeOptimisationResponse(BaseModel):
@@ -665,11 +777,15 @@ class AlmStressTestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    net_cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    base_rates: list[float] | list[list[float]]
-    tier1_capital: float
-    parallel_bps: float = 200.0
+    net_cashflows: list[float] | list[list[float]] = Field(
+        description="Net banking-book cashflow per bucket."
+    )
+    times: list[float] | list[list[float]] = Field(description="Bucket times in years.")
+    base_rates: list[float] | list[list[float]] = Field(
+        description="Base zero rate per bucket (decimal)."
+    )
+    tier1_capital: float = Field(description="Tier-1 capital (currency, > 0).")
+    parallel_bps: float = Field(default=200.0, description="Parallel shock magnitude (bps).")
 
 
 class AlmStressTestResponse(BaseModel):
@@ -688,13 +804,13 @@ class BalanceSheetProjectionModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    initial_assets: float
-    initial_liabilities: float
-    asset_growth_rate: float
-    liability_growth_rate: float
-    asset_yield: float
-    liability_cost: float
-    n_years: int
+    initial_assets: float = Field(description="Opening total assets (currency).")
+    initial_liabilities: float = Field(description="Opening total liabilities (currency).")
+    asset_growth_rate: float = Field(description="Annual asset growth (decimal).")
+    liability_growth_rate: float = Field(description="Annual liability growth (decimal).")
+    asset_yield: float = Field(description="Average asset yield (decimal).")
+    liability_cost: float = Field(description="Average liability cost (decimal).")
+    n_years: int = Field(description="Projection horizon (years, >= 1).")
 
 
 class BalanceSheetProjectionModelResponse(BaseModel):

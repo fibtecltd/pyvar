@@ -9,6 +9,40 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Every request parameter now has a description** — none of the 1,577 parameters of the 385
+  endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
+  parameter tables, although the engine documents each argument in its `Args:` docstring section.
+  `scripts/add_param_descriptions.py` put that text on the request models as
+  `Field(description=...)` (a codemod that rewrites only the field lines, so the hand edits in
+  `schemas/*.py` survive; `scripts/gen_p3.py` now does the same for newly generated models). The
+  change is description-only: the live OpenAPI document was diffed before and after and differs
+  only by the added `description` keys, so the API accepts exactly what it accepted before. The
+  Try-it panel shows the description under each field (escaped, and tied to the input with
+  `aria-describedby`), and `portal/functions.json` carries them. The engine docstring stays the
+  single source of truth; `tests/test_parameter_descriptions.py` fails if a model, the catalogue
+  or a new endpoint drifts from it. `engine/metrics.py` gained the four missing `Args:` sections
+  (docstring only).
+  **Kept out of the plugins for now.** The skills' parameter tables, the eight domain plugins and
+  `pyvar-mcp`'s tool schemas are generated from the same catalogue, but
+  `param_docs.PLUGIN_PARAM_DESCRIPTIONS` (False) keeps the descriptions out of them, so `plugins/`,
+  `.claude/` and the plugin versions are byte-identical to before. The plugins are waiting for the
+  directory's review and a changed plugin adds a version for the reviewer; two descriptions also
+  carry Sphinx `:func:` references that the directory's scanner has misread before. A test pins
+  the output to the flag. Releasing them is a separate, deliberate PR (the steps are in
+  `scripts/param_docs.py`).
+  Not changed: `LiquidityGapAnalysisRequest` still does not expose the engine's
+  `opening_balance` argument (listed in the test as a known gap), and parameters still carry no
+  numeric bounds.
+
+- **Phase 0 eval harness for the portal assistant** — `scripts/assistant_eval/` and
+  `tests/test_assistant_eval.py`. Dev tooling only, nothing the API or the portal runs and no new
+  dependency in `requirements.txt` (the `anthropic` SDK is pinned in the harness's own
+  `requirements.txt` and imported only for a live run). It builds the 1,924 menu selections of
+  `docs/plan-portal-ai-assistant.md` from the catalogue, checks answers mechanically against the
+  function record (invented names, unsupported numbers, advice language, request-schema shape),
+  and has a model judge for a stratified sample, a hard spend cap and an offline `--oracle` and
+  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). No paid run has been made.
+
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
   `Authorization` header and URLs are logged (the API log, CloudFront), so until now the stream

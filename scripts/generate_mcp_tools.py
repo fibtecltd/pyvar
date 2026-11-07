@@ -48,6 +48,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from param_docs import PLUGIN_PARAM_DESCRIPTIONS  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FUNCTIONS_JSON = REPO_ROOT / "portal" / "functions.json"
 OUTPUT_DIR = REPO_ROOT / "plugins" / "mcp" / "pyvar_mcp" / "_generated"
@@ -59,7 +62,7 @@ MAX_FILE_BYTES = 200_000
 # (type is always present; required feeds the schema's top-level "required"
 # list; default becomes JSON Schema's own "default" keyword).
 _SCHEMA_KEYWORD_FIELDS = (
-    "description",
+    *(("description",) if PLUGIN_PARAM_DESCRIPTIONS else ()),  # see scripts/param_docs.py
     "minimum",
     "maximum",
     "exclusiveMinimum",

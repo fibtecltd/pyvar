@@ -1,0 +1,6 @@
+# Needed only to run the paid eval (run_eval.py without --oracle/--null, and judge.py).
+# Deliberately NOT in the repository's requirements*.txt: this is development tooling, and a root-level
+# requirements change would add the SDK to the production image and start a CodePipeline run.
+# The case builder (cases.py) needs the project's own environment instead, because it imports the app.
+# The tests need neither: they use a fake client.
+anthropic==2.6.0

@@ -15,6 +15,13 @@ def compute_cvar(sorted_losses: np.ndarray, confidence_level: float) -> float:
     """
     Conditional VaR (Expected Shortfall) — mean of losses beyond VaR threshold.
     Regulatory standard under Basel III / FRTB for market risk capital.
+
+    Args:
+        sorted_losses: Portfolio losses sorted ascending (a loss is a positive number), so the
+            largest losses are at the end.
+        confidence_level: Confidence level that sets where the tail starts, for example 0.99
+            (0.90 to 0.9999 at the API). The result is the mean of the losses from position
+            floor(confidence_level x n) of the sorted array to its end.
     """
     cutoff = int(np.floor(confidence_level * len(sorted_losses)))
     return float(np.mean(sorted_losses[cutoff:]))
@@ -27,6 +34,11 @@ def compute_loss_percentiles(
     """
     Returns a dict of {percentile_label: loss_value} for fan chart display.
     Default percentiles cover the standard regulatory range.
+
+    Args:
+        sorted_losses: Portfolio losses sorted ascending (a loss is a positive number).
+        percentiles: Quantile levels between 0 and 1 to report. Defaults to 0.50, 0.75, 0.90,
+            0.95, 0.99 and 0.995.
     """
     if percentiles is None:
         percentiles = [0.50, 0.75, 0.90, 0.95, 0.99, 0.995]
@@ -53,6 +65,13 @@ def compute_rolling_var(
     Uses scipy.stats.norm for the quantile function.
 
     Returns array of VaR estimates, same length as returns (NaN for first window obs).
+
+    Args:
+        returns: Periodic returns as decimals (a 1% fall is -0.01), oldest first.
+        window: Number of most recent observations used to estimate the mean and volatility at
+            each point. The first `window` entries of the result are NaN.
+        confidence_level: Confidence level of the Gaussian VaR, for example 0.99 (0.90 to 0.9999
+            at the API).
     """
     from scipy.stats import norm
 
@@ -79,6 +98,12 @@ def compute_breaches(
       Green  < 5 breaches / 250 days
       Yellow 5-9 breaches
       Red    >= 10 breaches
+
+    Args:
+        actual_returns: Realised returns as decimals, aligned one to one with `var_estimates`
+            (a loss is the negative of a return).
+        var_estimates: The VaR estimate for each day, as a positive loss fraction. Days where it
+            is NaN are ignored, as the first `window` days of a rolling VaR are.
     """
     losses = -actual_returns
     breaches = losses > var_estimates

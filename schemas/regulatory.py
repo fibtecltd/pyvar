@@ -18,8 +18,8 @@ class BaselIiiCet1RatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cet1_capital: float
-    risk_weighted_assets: float
+    cet1_capital: float = Field(description="Common Equity Tier 1 capital (currency).")
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets (currency).")
 
 
 class BaselIiiCet1RatioResponse(BaseModel):
@@ -38,8 +38,8 @@ class BaselIiiTier1RatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tier1_capital: float
-    risk_weighted_assets: float
+    tier1_capital: float = Field(description="Tier 1 capital (CET1 + additional Tier 1).")
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
 
 
 class BaselIiiTier1RatioResponse(BaseModel):
@@ -58,8 +58,8 @@ class BaselIiiTotalCapitalRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    total_capital: float
-    risk_weighted_assets: float
+    total_capital: float = Field(description="Total regulatory capital (Tier 1 + Tier 2).")
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
 
 
 class BaselIiiTotalCapitalRatioResponse(BaseModel):
@@ -78,8 +78,8 @@ class BaselIiiLeverageRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tier1_capital: float
-    total_exposure: float
+    tier1_capital: float = Field(description="Tier 1 capital.")
+    total_exposure: float = Field(description="Total leverage exposure measure.")
 
 
 class BaselIiiLeverageRatioResponse(BaseModel):
@@ -98,9 +98,11 @@ class BaselIvOutputFloorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    internal_model_rwa: float
-    standardised_rwa: float
-    floor_factor: float = 0.725
+    internal_model_rwa: float = Field(description="RWA from internal models.")
+    standardised_rwa: float = Field(description="RWA under the standardised approach.")
+    floor_factor: float = Field(
+        default=0.725, description="Output floor factor (default 0.725, regulatory)."
+    )
 
 
 class BaselIvOutputFloorResponse(BaseModel):
@@ -120,9 +122,11 @@ class IcaapCapitalAssessmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pillar1_capital: float
-    risk_capital_components: list[float] | list[list[float]]
-    available_capital: float
+    pillar1_capital: float = Field(description="Pillar 1 minimum capital requirement.")
+    risk_capital_components: list[float] | list[list[float]] = Field(
+        description="Array of additional internal risk capital charges (Pillar 2 risk types)."
+    )
+    available_capital: float = Field(description="Total available own funds.")
 
 
 class IcaapCapitalAssessmentResponse(BaseModel):
@@ -142,9 +146,9 @@ class SrepCapitalAddOnRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pillar1_requirement: float
-    pillar2a_addon_ratio: float
-    risk_weighted_assets: float
+    pillar1_requirement: float = Field(description="Pillar 1 capital requirement (currency).")
+    pillar2a_addon_ratio: float = Field(description="Pillar 2A add-on as a fraction of RWA.")
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
 
 
 class SrepCapitalAddOnResponse(BaseModel):
@@ -162,8 +166,10 @@ class Pillar2aCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    risk_addons: list[float] | list[list[float]]
-    risk_weighted_assets: float
+    risk_addons: list[float] | list[list[float]] = Field(
+        description="Array of per-risk capital add-ons (currency)."
+    )
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets (for the ratio).")
 
 
 class Pillar2aCapitalResponse(BaseModel):
@@ -181,8 +187,10 @@ class Pillar2bStressBufferRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    stressed_capital_depletion: float
-    risk_weighted_assets: float
+    stressed_capital_depletion: float = Field(
+        description="Peak CET1 depletion under stress (currency)."
+    )
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
 
 
 class Pillar2bStressBufferResponse(BaseModel):
@@ -199,10 +207,18 @@ class CombinedBufferRequirementRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    capital_conservation_buffer_ratio: float = 0.025
-    countercyclical_buffer_ratio: float = 0.0
-    systemic_buffer_ratio: float = 0.0
-    risk_weighted_assets: float = 0.0
+    capital_conservation_buffer_ratio: float = Field(
+        default=0.025, description="CCoB ratio (default 2.5%)."
+    )
+    countercyclical_buffer_ratio: float = Field(
+        default=0.0, description="Institution-specific CCyB ratio."
+    )
+    systemic_buffer_ratio: float = Field(
+        default=0.0, description="Higher of systemic buffers (G-SII/O-SII/SyRB)."
+    )
+    risk_weighted_assets: float = Field(
+        default=0.0, description="RWA to convert the buffer ratio to capital."
+    )
 
 
 class CombinedBufferRequirementResponse(BaseModel):
@@ -218,9 +234,9 @@ class CapitalConservationBufferRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cet1_ratio: float
-    risk_weighted_assets: float
-    buffer_ratio: float = 0.025
+    cet1_ratio: float = Field(description="Current CET1 ratio (decimal).")
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
+    buffer_ratio: float = Field(default=0.025, description="CCoB ratio (default 2.5%, regulatory).")
 
 
 class CapitalConservationBufferResponse(BaseModel):
@@ -239,9 +255,13 @@ class CountercyclicalCapitalBufferRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposure_amounts: list[float] | list[list[float]]
-    country_ccyb_rates: list[float] | list[list[float]]
-    risk_weighted_assets: float
+    exposure_amounts: list[float] | list[list[float]] = Field(
+        description="Private-sector credit exposure per jurisdiction."
+    )
+    country_ccyb_rates: list[float] | list[list[float]] = Field(
+        description="National CCyB rate per jurisdiction (decimal)."
+    )
+    risk_weighted_assets: float = Field(description="Total risk-weighted assets.")
 
 
 class CountercyclicalCapitalBufferResponse(BaseModel):
@@ -258,9 +278,12 @@ class Crr2LargeExposureLimitRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposure_value: float
-    tier1_capital: float
-    is_institution: bool = False
+    exposure_value: float = Field(description="Exposure value to a single client/group (post-CRM).")
+    tier1_capital: float = Field(description="Tier 1 capital.")
+    is_institution: bool = Field(
+        default=False,
+        description="Whether the counterparty is an institution (or a connected-client group including one) — applies the EUR 150m absolute alternative when it exceeds the 25% ratio limit.",
+    )
 
 
 class Crr2LargeExposureLimitResponse(BaseModel):
@@ -280,9 +303,11 @@ class FrtbSaMarketRiskCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sensitivities_charge: float
-    default_risk_charge: float
-    residual_risk_addon: float
+    sensitivities_charge: float = Field(
+        description="Aggregate SBM charge (max over correlation scenarios), currency."
+    )
+    default_risk_charge: float = Field(description="Default Risk Charge, currency.")
+    residual_risk_addon: float = Field(description="Residual Risk Add-On, currency.")
 
 
 class FrtbSaMarketRiskCapitalResponse(BaseModel):
@@ -301,11 +326,19 @@ class FrtbImaMarketRiskCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_shortfall: float
-    stressed_es_ratio: float
-    multiplier: float
-    non_modellable_ses: float = 0.0
-    default_risk_charge: float = 0.0
+    expected_shortfall: float = Field(
+        description="Current-period 97.5% Expected Shortfall, currency."
+    )
+    stressed_es_ratio: float = Field(
+        description="Ratio of stressed ES to current ES (>= 1 typically)."
+    )
+    multiplier: float = Field(description="Supervisory multiplier mc (floored at 1.5).")
+    non_modellable_ses: float = Field(
+        default=0.0, description="Aggregate SES capital for NMRFs, currency."
+    )
+    default_risk_charge: float = Field(
+        default=0.0, description="IMA Default Risk Charge, currency."
+    )
 
 
 class FrtbImaMarketRiskCapitalResponse(BaseModel):
@@ -326,8 +359,12 @@ class FrtbPlAttributionTestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    risk_theoretical_pnl: list[float] | list[list[float]]
-    hypothetical_pnl: list[float] | list[list[float]]
+    risk_theoretical_pnl: list[float] | list[list[float]] = Field(
+        description="RTPL series from the risk model."
+    )
+    hypothetical_pnl: list[float] | list[list[float]] = Field(
+        description="HPL series from full revaluation."
+    )
 
 
 class FrtbPlAttributionTestResponse(BaseModel):
@@ -346,9 +383,15 @@ class FrtbTradingDeskAggregationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    desk_sa_charges: list[float] | list[list[float]]
-    desk_ima_charges: list[float] | list[list[float]]
-    desk_ima_eligible: list[float] | list[list[float]]
+    desk_sa_charges: list[float] | list[list[float]] = Field(
+        description="SA charge per desk (currency)."
+    )
+    desk_ima_charges: list[float] | list[list[float]] = Field(
+        description="IMA charge per desk (currency)."
+    )
+    desk_ima_eligible: list[float] | list[list[float]] = Field(
+        description="Boolean/0-1 array — whether each desk may use IMA."
+    )
 
 
 class FrtbTradingDeskAggregationResponse(BaseModel):
@@ -368,7 +411,9 @@ class MifidIiTransactionReportValidatorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    report: dict[str, Any]
+    report: dict[str, Any] = Field(
+        description="Mapping of transaction-report field names to values."
+    )
 
 
 class MifidIiTransactionReportValidatorResponse(BaseModel):
@@ -386,10 +431,10 @@ class MifidIiPreTradeTransparencyRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    instrument_type: str
-    order_size: float
-    large_in_scale_threshold: float
-    is_liquid: bool = True
+    instrument_type: str = Field(description="Instrument class label (informational).")
+    order_size: float = Field(description="Order size in the relevant unit (notional/quantity).")
+    large_in_scale_threshold: float = Field(description="LIS threshold for the instrument.")
+    is_liquid: bool = Field(default=True, description="Whether the instrument has a liquid market.")
 
 
 class MifidIiPreTradeTransparencyResponse(BaseModel):
@@ -407,9 +452,9 @@ class MifidIiPostTradeTransparencyRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    trade_size: float
-    delayed_publication_threshold: float
-    is_liquid: bool = True
+    trade_size: float = Field(description="Executed trade size (notional/quantity).")
+    delayed_publication_threshold: float = Field(description="Size threshold for deferral.")
+    is_liquid: bool = Field(default=True, description="Whether the instrument has a liquid market.")
 
 
 class MifidIiPostTradeTransparencyResponse(BaseModel):
@@ -426,10 +471,12 @@ class MifidIiBestExecutionMetricRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    executed_prices: list[float] | list[list[float]]
-    benchmark_prices: list[float] | list[list[float]]
-    quantities: list[float] | list[list[float]]
-    side: int = 1
+    executed_prices: list[float] | list[list[float]] = Field(description="Executed price per fill.")
+    benchmark_prices: list[float] | list[list[float]] = Field(
+        description="Reference (EBBO/arrival) price per fill."
+    )
+    quantities: list[float] | list[list[float]] = Field(description="Executed quantity per fill.")
+    side: int = Field(default=1, description="+1 for buys, -1 for sells.")
 
 
 class MifidIiBestExecutionMetricResponse(BaseModel):
@@ -448,7 +495,9 @@ class MifidIiAlgorithmDocumentationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    documentation: dict[str, Any]
+    documentation: dict[str, Any] = Field(
+        description="Mapping of documentation item -> provided (bool/value)."
+    )
 
 
 class MifidIiAlgorithmDocumentationResponse(BaseModel):
@@ -466,7 +515,7 @@ class EmirTradeRepositoryReportRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    trade: dict[str, Any]
+    trade: dict[str, Any] = Field(description="Mapping of EMIR trade fields to values.")
 
 
 class EmirTradeRepositoryReportResponse(BaseModel):
@@ -490,9 +539,13 @@ class EmirClearingObligationCheckRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notionals: dict[str, float]
-    counterparty_category: str
-    clearing_thresholds: dict[str, float]
+    notionals: dict[str, float] = Field(
+        description="Mapping asset_class -> gross notional outstanding for this counterparty, across ALL asset classes it holds positions in. Required (not just the one class being asked about) for the FC any-class-breach rule: a single class's notional alone cannot answer whether the FC-wide obligation applies."
+    )
+    counterparty_category: str = Field(description='One of "FC", "NFC+", "NFC-".')
+    clearing_thresholds: dict[str, float] = Field(
+        description="Mapping asset_class -> clearing threshold notional."
+    )
 
 
 class EmirClearingObligationCheckResponse(BaseModel):
@@ -510,10 +563,12 @@ class EmirMarginRequirementRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    portfolio_value: float
-    initial_margin_rate: float
-    variation_margin: float
-    minimum_transfer_amount: float = 0.0
+    portfolio_value: float = Field(description="Gross portfolio value / notional for IM scaling.")
+    initial_margin_rate: float = Field(description="IM as a fraction of portfolio value.")
+    variation_margin: float = Field(description="Net mark-to-market variation margin owed.")
+    minimum_transfer_amount: float = Field(
+        default=0.0, description="MTA below which no transfer is made."
+    )
 
 
 class EmirMarginRequirementResponse(BaseModel):
@@ -531,7 +586,7 @@ class SftrSecuritiesFinanceReportRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    transaction: dict[str, Any]
+    transaction: dict[str, Any] = Field(description="Mapping of SFTR fields to values.")
 
 
 class SftrSecuritiesFinanceReportResponse(BaseModel):
@@ -549,10 +604,14 @@ class AifmdRiskMetricsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    gross_exposure: float
-    commitment_exposure: float
-    net_asset_value: float
-    var_pct: float | None = None
+    gross_exposure: float = Field(description="Gross method exposure (sum of absolute positions).")
+    commitment_exposure: float = Field(
+        description="Commitment method exposure (post-netting/hedging)."
+    )
+    net_asset_value: float = Field(description="Fund NAV.")
+    var_pct: float | None = Field(
+        default=None, description="Optional fund VaR as a fraction of NAV for reporting."
+    )
 
 
 class AifmdRiskMetricsResponse(BaseModel):
@@ -570,8 +629,13 @@ class UcitsKiidRiskIndicatorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    periods_per_year: int = 52
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of periodic fund returns."
+    )
+    periods_per_year: int = Field(
+        default=52,
+        description="Periods per year for annualising volatility (52 for weekly, 12 monthly).",
+    )
 
 
 class UcitsKiidRiskIndicatorResponse(BaseModel):
@@ -588,9 +652,15 @@ class SolvencyIiScrMarketRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sub_module_charges: list[float] | list[list[float]]
-    correlation_matrix: list[float] | list[list[float]]
-    sub_module_names: list[str] | None = None
+    sub_module_charges: list[float] | list[list[float]] = Field(
+        description="Capital charge per market sub-module."
+    )
+    correlation_matrix: list[float] | list[list[float]] = Field(
+        description="Prescribed correlation matrix between sub-modules."
+    )
+    sub_module_names: list[str] | None = Field(
+        default=None, description="Optional labels for the diversification report."
+    )
 
 
 class SolvencyIiScrMarketRiskResponse(BaseModel):
@@ -614,9 +684,15 @@ class SolvencyIiScrCreditRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    loss_given_default: list[float] | list[list[float]]
-    default_probabilities: list[float] | list[list[float]]
+    exposures: list[float] | list[list[float]] = Field(
+        description="Exposure at default per counterparty."
+    )
+    loss_given_default: list[float] | list[list[float]] = Field(
+        description="LGD fraction per counterparty."
+    )
+    default_probabilities: list[float] | list[list[float]] = Field(
+        description="PD per counterparty in [0, 1]."
+    )
 
 
 class SolvencyIiScrCreditRiskResponse(BaseModel):

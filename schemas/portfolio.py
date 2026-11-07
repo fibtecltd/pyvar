@@ -18,12 +18,18 @@ class MeanVarianceOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mean_returns: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    risk_aversion: float = 1.0
-    allow_short: bool = False
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    mean_returns: list[float] | list[list[float]] = Field(
+        description="Per-period expected return per asset."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    risk_aversion: float = Field(
+        default=1.0, description="Risk-aversion coefficient λ (higher = less risk)."
+    )
+    allow_short: bool = Field(default=False, description="If False, weights are bounded to [0, 1].")
+    risk_free: float = Field(
+        default=0.0, description="Annual risk-free rate for the reported Sharpe."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class MeanVarianceOptimisationResponse(BaseModel):
@@ -39,11 +45,15 @@ class MinimumVariancePortfolioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cov_matrix: list[float] | list[list[float]]
-    allow_short: bool = False
-    mean_returns: list[float] | list[list[float]] | None = None
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    allow_short: bool = Field(default=False, description="If False, weights are bounded to [0, 1].")
+    mean_returns: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional per-period returns for reporting Sharpe."
+    )
+    risk_free: float = Field(
+        default=0.0, description="Annual risk-free rate for the reported Sharpe."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class MinimumVariancePortfolioResponse(BaseModel):
@@ -59,11 +69,13 @@ class MaximumSharpeRatioPortfolioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mean_returns: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    risk_free: float = 0.0
-    allow_short: bool = False
-    periods_per_year: int = 252
+    mean_returns: list[float] | list[list[float]] = Field(
+        description="Per-period expected return per asset."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    risk_free: float = Field(default=0.0, description="Annual risk-free rate.")
+    allow_short: bool = Field(default=False, description="If False, weights are bounded to [0, 1].")
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class MaximumSharpeRatioPortfolioResponse(BaseModel):
@@ -79,10 +91,14 @@ class RiskParityPortfolioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cov_matrix: list[float] | list[list[float]]
-    mean_returns: list[float] | list[list[float]] | None = None
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    mean_returns: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional per-period returns for reporting Sharpe."
+    )
+    risk_free: float = Field(
+        default=0.0, description="Annual risk-free rate for the reported Sharpe."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class RiskParityPortfolioResponse(BaseModel):
@@ -98,11 +114,17 @@ class EqualWeightPortfolioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    n_assets: int
-    mean_returns: list[float] | list[list[float]] | None = None
-    cov_matrix: list[float] | list[list[float]] | None = None
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    n_assets: int = Field(description="Number of assets.")
+    mean_returns: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional per-period returns for reporting."
+    )
+    cov_matrix: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional covariance for reporting volatility/Sharpe."
+    )
+    risk_free: float = Field(
+        default=0.0, description="Annual risk-free rate for the reported Sharpe."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class EqualWeightPortfolioResponse(BaseModel):
@@ -119,13 +141,19 @@ class BlackLittermanModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    market_weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    p_matrix: list[float] | list[list[float]]
-    q_views: list[float] | list[list[float]]
-    risk_aversion: float = 2.5
-    tau: float = 0.05
-    omega: list[float] | list[list[float]] | None = None
+    market_weights: list[float] | list[list[float]] = Field(
+        description="Market-cap equilibrium weights."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(description="Asset covariance matrix.")
+    p_matrix: list[float] | list[list[float]] = Field(description="(k, n) view pick matrix.")
+    q_views: list[float] | list[list[float]] = Field(description="(k,) view return vector.")
+    risk_aversion: float = Field(default=2.5, description="Equilibrium risk-aversion λ.")
+    tau: float = Field(
+        default=0.05, description="Scalar on the prior covariance (uncertainty in equilibrium)."
+    )
+    omega: list[float] | list[list[float]] | None = Field(
+        default=None, description="(k, k) view uncertainty; defaults to ``diag(P τΣ Pᵀ)``."
+    )
 
 
 class BlackLittermanModelResponse(BaseModel):
@@ -143,11 +171,13 @@ class ResampledEfficientFrontierRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mean_returns: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    n_resamples: int = 50
-    n_obs: int = 250
-    seed: int = 2024
+    mean_returns: list[float] | list[list[float]] = Field(
+        description="Per-period expected return per asset."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    n_resamples: int = Field(default=50, description="Number of bootstrap resamples.")
+    n_obs: int = Field(default=250, description="Synthetic sample size per resample.")
+    seed: int = Field(default=2024, description="RNG seed for determinism.")
 
 
 class ResampledEfficientFrontierResponse(BaseModel):
@@ -165,11 +195,15 @@ class RobustPortfolioOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mean_returns: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    uncertainty: float = 0.05
-    risk_aversion: float = 1.0
-    periods_per_year: int = 252
+    mean_returns: list[float] | list[list[float]] = Field(
+        description="Per-period expected return per asset."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(description="Per-period covariance matrix.")
+    uncertainty: float = Field(
+        default=0.05, description="Size κ of the uncertainty set on the mean estimates."
+    )
+    risk_aversion: float = Field(default=1.0, description="Risk-aversion coefficient λ.")
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class RobustPortfolioOptimisationResponse(BaseModel):
@@ -185,11 +219,19 @@ class CvarConstrainedOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    scenario_returns: list[float] | list[list[float]]
-    mean_returns: list[float] | list[list[float]] | None = None
-    confidence_level: float = 0.95
-    cvar_limit: float = 0.05
-    periods_per_year: int = 252
+    scenario_returns: list[float] | list[list[float]] = Field(
+        description="(n_scenarios, n_assets) scenario return matrix."
+    )
+    mean_returns: list[float] | list[list[float]] | None = Field(
+        default=None, description="Per-asset expected returns; defaults to scenario means."
+    )
+    confidence_level: float = Field(default=0.95, description="CVaR confidence in [0.90, 0.9999].")
+    cvar_limit: float = Field(
+        default=0.05, description="Maximum acceptable portfolio CVaR (positive fraction)."
+    )
+    periods_per_year: int = Field(
+        default=252, description="Annualisation factor for the reported return."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -216,11 +258,20 @@ class FactorBasedOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_exposures: list[float] | list[list[float]]
-    factor_cov: list[float] | list[list[float]]
-    specific_var: list[float] | list[list[float]]
-    target_exposures: list[float] | list[list[float]] | None = None
-    periods_per_year: int = 252
+    factor_exposures: list[float] | list[list[float]] = Field(
+        description="(n_assets, n_factors) factor loading matrix B."
+    )
+    factor_cov: list[float] | list[list[float]] = Field(
+        description="(n_factors, n_factors) factor covariance F."
+    )
+    specific_var: list[float] | list[list[float]] = Field(
+        description="(n_assets,) idiosyncratic variances."
+    )
+    target_exposures: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional (n_factors,) target portfolio factor exposures to match exactly.",
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class FactorBasedOptimisationResponse(BaseModel):
@@ -239,10 +290,19 @@ class SharpeRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    risk_free: float = 0.0
-    periods_per_year: int = 252
-    ddof: int = 0
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period simple returns."
+    )
+    risk_free: float = Field(
+        default=0.0, description="Per-period risk-free rate (same period as returns)."
+    )
+    periods_per_year: int = Field(
+        default=252, description="Annualisation factor (252 daily, 12 monthly)."
+    )
+    ddof: int = Field(
+        default=0,
+        description="Delta degrees of freedom for the volatility divisor: ``0`` (default, population std, divide by n) or ``1`` (sample std, divide by n-1). Any other value raises ``ValueError``.",
+    )
 
 
 class SharpeRatioResponse(BaseModel):
@@ -263,10 +323,16 @@ class SortinoRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    risk_free: float = 0.0
-    target: float = 0.0
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period simple returns."
+    )
+    risk_free: float = Field(
+        default=0.0, description="Per-period risk-free rate subtracted from returns."
+    )
+    target: float = Field(
+        default=0.0, description="Minimum acceptable per-period return for downside deviation."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class SortinoRatioResponse(BaseModel):
@@ -286,8 +352,12 @@ class CalmarRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period simple returns."
+    )
+    periods_per_year: int = Field(
+        default=252, description="Annualisation factor for the CAGR numerator."
+    )
 
 
 class CalmarRatioResponse(BaseModel):
@@ -306,9 +376,13 @@ class InformationRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of benchmark per-period returns."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class InformationRatioResponse(BaseModel):
@@ -327,10 +401,16 @@ class TreynorRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of market per-period returns."
+    )
+    risk_free: float = Field(default=0.0, description="Per-period risk-free rate.")
+    periods_per_year: int = Field(
+        default=252, description="Annualisation factor for the numerator."
+    )
 
 
 class TreynorRatioResponse(BaseModel):
@@ -349,10 +429,14 @@ class JensensAlphaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    risk_free: float = 0.0
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of market per-period returns."
+    )
+    risk_free: float = Field(default=0.0, description="Per-period risk-free rate.")
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class JensensAlphaResponse(BaseModel):
@@ -371,8 +455,10 @@ class OmegaRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    threshold: float = 0.0
+    returns: list[float] | list[list[float]] = Field(description="1-D array of per-period returns.")
+    threshold: float = Field(
+        default=0.0, description="Per-period return threshold separating gains from losses."
+    )
 
 
 class OmegaRatioResponse(BaseModel):
@@ -391,8 +477,10 @@ class TailRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    tail: float = 0.05
+    returns: list[float] | list[list[float]] = Field(description="1-D array of per-period returns.")
+    tail: float = Field(
+        default=0.05, description="Tail probability in (0, 0.5), e.g. 0.05 for the 5%/95% tails."
+    )
 
 
 class TailRatioResponse(BaseModel):
@@ -411,8 +499,13 @@ class UlcerIndexRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    is_equity_curve: bool = False
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period returns, or an equity curve if ``is_equity_curve`` is True."
+    )
+    is_equity_curve: bool = Field(
+        default=False,
+        description="If True, ``returns`` is treated as a value series directly rather than being compounded.",
+    )
 
 
 class UlcerIndexResponse(BaseModel):
@@ -429,8 +522,12 @@ class MaximumDrawdownRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    is_equity_curve: bool = False
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period returns, or an equity curve."
+    )
+    is_equity_curve: bool = Field(
+        default=False, description="If True, ``returns`` is a value series directly."
+    )
 
 
 class MaximumDrawdownResponse(BaseModel):
@@ -449,8 +546,12 @@ class AverageDrawdownRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    is_equity_curve: bool = False
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period returns, or an equity curve."
+    )
+    is_equity_curve: bool = Field(
+        default=False, description="If True, ``returns`` is a value series directly."
+    )
 
 
 class AverageDrawdownResponse(BaseModel):
@@ -468,8 +569,12 @@ class DrawdownDurationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    is_equity_curve: bool = False
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period returns, or an equity curve."
+    )
+    is_equity_curve: bool = Field(
+        default=False, description="If True, ``returns`` is a value series directly."
+    )
 
 
 class DrawdownDurationResponse(BaseModel):
@@ -487,9 +592,13 @@ class ConditionalDrawdownAtRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    confidence_level: float = 0.95
-    is_equity_curve: bool = False
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of per-period returns, or an equity curve."
+    )
+    confidence_level: float = Field(default=0.95, description="CDaR confidence in [0.90, 0.9999].")
+    is_equity_curve: bool = Field(
+        default=False, description="If True, ``returns`` is a value series directly."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -515,11 +624,21 @@ class ReturnAttributionBrinsonRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    portfolio_weights: list[float] | list[list[float]]
-    benchmark_weights: list[float] | list[list[float]]
-    portfolio_returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    segment_names: list[str] | None = None
+    portfolio_weights: list[float] | list[list[float]] = Field(
+        description="Segment weights in the portfolio (sum to 1)."
+    )
+    benchmark_weights: list[float] | list[list[float]] = Field(
+        description="Segment weights in the benchmark (sum to 1)."
+    )
+    portfolio_returns: list[float] | list[list[float]] = Field(
+        description="Segment returns realised in the portfolio."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="Segment returns realised in the benchmark."
+    )
+    segment_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``segment_0, ...``."
+    )
 
 
 class ReturnAttributionBrinsonResponse(BaseModel):
@@ -541,10 +660,16 @@ class FactorReturnAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_exposures: list[float] | list[list[float]]
-    factor_returns: list[float] | list[list[float]]
-    specific_return: float
-    factor_names: list[str] | None = None
+    factor_exposures: list[float] | list[list[float]] = Field(
+        description="Portfolio exposure (beta) to each factor."
+    )
+    factor_returns: list[float] | list[list[float]] = Field(
+        description="Realised return of each factor over the period."
+    )
+    specific_return: float = Field(description="Idiosyncratic return not explained by factors.")
+    factor_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``factor_0, ...``."
+    )
 
 
 class FactorReturnAttributionResponse(BaseModel):
@@ -563,11 +688,19 @@ class SectorAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    portfolio_weights: list[float] | list[list[float]]
-    benchmark_weights: list[float] | list[list[float]]
-    portfolio_returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    sector_names: list[str] | None = None
+    portfolio_weights: list[float] | list[list[float]] = Field(
+        description="Portfolio sector weights (sum to 1)."
+    )
+    benchmark_weights: list[float] | list[list[float]] = Field(
+        description="Benchmark sector weights (sum to 1)."
+    )
+    portfolio_returns: list[float] | list[list[float]] = Field(
+        description="Portfolio sector returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="Benchmark sector returns."
+    )
+    sector_names: list[str] | None = Field(default=None, description="Optional sector labels.")
 
 
 class SectorAttributionResponse(BaseModel):
@@ -583,12 +716,26 @@ class CurrencyAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    local_returns: list[float] | list[list[float]]
-    fx_returns: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]]
-    currency_names: list[str] | None = None
-    local_risk_free: list[float] | list[list[float]] | None = None
-    base_risk_free: float | None = None
+    local_returns: list[float] | list[list[float]] = Field(
+        description="Local-currency return per holding."
+    )
+    fx_returns: list[float] | list[list[float]] = Field(
+        description="Currency (FX) return per holding (base vs local)."
+    )
+    weights: list[float] | list[list[float]] = Field(
+        description="Portfolio weight per holding (sum to 1)."
+    )
+    currency_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``ccy_0, ...``."
+    )
+    local_risk_free: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-holding local-currency risk-free rate. Supply together with ``base_risk_free`` to switch to the Karnosky-Singer decomposition.",
+    )
+    base_risk_free: float | None = Field(
+        default=None,
+        description="Optional reporting/base-currency risk-free rate (a single rate, common to every holding). Supply together with ``local_risk_free`` to switch to the Karnosky-Singer decomposition.",
+    )
 
 
 class CurrencyAttributionResponse(BaseModel):
@@ -614,8 +761,8 @@ class GicsSectorExposureRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    sector_codes: list[str]
+    weights: list[float] | list[list[float]] = Field(description="Position weights per holding.")
+    sector_codes: list[str] = Field(description="GICS sector label per holding (same ordering).")
 
 
 class GicsSectorExposureResponse(BaseModel):
@@ -633,9 +780,13 @@ class FactorExposureAnalysisBarraRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_exposures: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]]
-    factor_names: list[str] | None = None
+    asset_exposures: list[float] | list[list[float]] = Field(
+        description="(n_assets, n_factors) factor loading matrix."
+    )
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weight per asset.")
+    factor_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``factor_0, ...``."
+    )
 
 
 class FactorExposureAnalysisBarraResponse(BaseModel):
@@ -652,8 +803,12 @@ class FamaFrench3FactorModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    excess_returns: list[float] | list[list[float]]
-    factors: list[float] | list[list[float]]
+    excess_returns: list[float] | list[list[float]] = Field(
+        description="Portfolio excess returns over the risk-free rate."
+    )
+    factors: list[float] | list[list[float]] = Field(
+        description="(n_obs, 3) matrix of MKT, SMB, HML factor returns."
+    )
 
 
 class FamaFrench3FactorModelResponse(BaseModel):
@@ -669,8 +824,12 @@ class Carhart4FactorModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    excess_returns: list[float] | list[list[float]]
-    factors: list[float] | list[list[float]]
+    excess_returns: list[float] | list[list[float]] = Field(
+        description="Portfolio excess returns over the risk-free rate."
+    )
+    factors: list[float] | list[list[float]] = Field(
+        description="(n_obs, 4) matrix of MKT, SMB, HML, MOM factor returns."
+    )
 
 
 class Carhart4FactorModelResponse(BaseModel):
@@ -686,8 +845,12 @@ class FamaFrench5FactorModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    excess_returns: list[float] | list[list[float]]
-    factors: list[float] | list[list[float]]
+    excess_returns: list[float] | list[list[float]] = Field(
+        description="Portfolio excess returns over the risk-free rate."
+    )
+    factors: list[float] | list[list[float]] = Field(
+        description="(n_obs, 5) matrix of MKT, SMB, HML, RMW, CMA factor returns."
+    )
 
 
 class FamaFrench5FactorModelResponse(BaseModel):
@@ -703,8 +866,12 @@ class PrincipalComponentAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
-    n_components: int | None = None
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="(n_obs, n_assets) return matrix."
+    )
+    n_components: int | None = Field(
+        default=None, description="Number of components to return (defaults to all)."
+    )
 
 
 class PrincipalComponentAnalysisResponse(BaseModel):
@@ -724,8 +891,10 @@ class CorrelationClusteringRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
-    n_clusters: int = 2
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="(n_obs, n_assets) return matrix."
+    )
+    n_clusters: int = Field(default=2, description="Target number of clusters.")
 
 
 class CorrelationClusteringResponse(BaseModel):
@@ -743,8 +912,8 @@ class RegimeDetectionHmmRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    n_iter: int = 50
+    returns: list[float] | list[list[float]] = Field(description="1-D array of per-period returns.")
+    n_iter: int = Field(default=50, description="Number of EM iterations.")
 
 
 class RegimeDetectionHmmResponse(BaseModel):
@@ -765,8 +934,12 @@ class PortfolioBetaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of benchmark per-period returns."
+    )
 
 
 class PortfolioBetaResponse(BaseModel):
@@ -784,8 +957,10 @@ class ActiveShareRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    benchmark_weights: list[float] | list[list[float]]
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    benchmark_weights: list[float] | list[list[float]] = Field(
+        description="Benchmark weights per asset (same ordering)."
+    )
 
 
 class ActiveShareResponse(BaseModel):
@@ -802,9 +977,13 @@ class TrackingErrorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of benchmark per-period returns."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class TrackingErrorResponse(BaseModel):
@@ -823,9 +1002,13 @@ class ResidualRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    benchmark_returns: list[float] | list[list[float]]
-    periods_per_year: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio per-period returns."
+    )
+    benchmark_returns: list[float] | list[list[float]] = Field(
+        description="1-D array of benchmark per-period returns."
+    )
+    periods_per_year: int = Field(default=252, description="Annualisation factor.")
 
 
 class ResidualRiskResponse(BaseModel):
@@ -845,8 +1028,10 @@ class PortfolioTurnoverRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights_before: list[float] | list[list[float]]
-    weights_after: list[float] | list[list[float]]
+    weights_before: list[float] | list[list[float]] = Field(description="Pre-rebalance weights.")
+    weights_after: list[float] | list[list[float]] = Field(
+        description="Post-rebalance weights (same ordering)."
+    )
 
 
 class PortfolioTurnoverResponse(BaseModel):
@@ -863,13 +1048,26 @@ class TransactionCostAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    trade_prices: list[float] | list[list[float]]
-    benchmark_prices: list[float] | list[list[float]]
-    trade_quantities: list[float] | list[list[float]]
-    side: int = 1
-    decision_price: float | list[float] | None = None
-    unexecuted_quantity: float | None = None
-    cancellation_price: float | None = None
+    trade_prices: list[float] | list[list[float]] = Field(description="Executed prices per fill.")
+    benchmark_prices: list[float] | list[list[float]] = Field(
+        description="Benchmark (arrival or VWAP) prices per fill."
+    )
+    trade_quantities: list[float] | list[list[float]] = Field(
+        description="Executed quantities per fill (non-negative)."
+    )
+    side: int = Field(default=1, description="+1 for buy orders, -1 for sell orders.")
+    decision_price: float | list[float] | None = Field(
+        default=None,
+        description='Optional price(s) at the investment-decision instant (Perold\'s "paper" price). Pass a scalar (applied to every fill) or a per-fill array matching ``trade_prices`` in length. When supplied, adds ``delay_cost_bps``, ``delay_cost``, ``implementation_shortfall_bps`` and ``implementation_shortfall`` to the result. Omit for unchanged (execution-slippage-only) behaviour.',
+    )
+    unexecuted_quantity: float | None = Field(
+        default=None,
+        description="Optional quantity of the original order that was never executed (>= 0). Must be supplied together with ``cancellation_price``, and requires ``decision_price`` to also be supplied as a single scalar (the opportunity-cost leg has one order-level decision price, not a per-fill one).",
+    )
+    cancellation_price: float | None = Field(
+        default=None,
+        description="Optional price at which the unexecuted portion of the order was marked when cancelled/expired. Must be supplied together with ``unexecuted_quantity``.",
+    )
 
 
 class TransactionCostAnalysisResponse(BaseModel):
@@ -892,8 +1090,10 @@ class MarginalContributionToRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
 
 
 class MarginalContributionToRiskResponse(BaseModel):
@@ -912,8 +1112,10 @@ class DiversificationRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
 
 
 class DiversificationRatioResponse(BaseModel):
@@ -931,7 +1133,9 @@ class CorrelationMatrixPortfolioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="(n_obs, n_assets) array of asset return series."
+    )
 
 
 class CorrelationMatrixPortfolioResponse(BaseModel):
@@ -949,7 +1153,9 @@ class ConcentrationRiskHhiRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
+    weights: list[float] | list[list[float]] = Field(
+        description="Portfolio weights per asset (need not be normalised)."
+    )
 
 
 class ConcentrationRiskHhiResponse(BaseModel):
@@ -968,12 +1174,18 @@ class LiquidityAdjustedPortfolioVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    bid_ask_spreads: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
-    horizon_days: int = 1
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix (per period)."
+    )
+    bid_ask_spreads: list[float] | list[list[float]] = Field(
+        description="Proportional bid-ask spread per asset (fraction)."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
+    horizon_days: int = Field(
+        default=1, description="Risk horizon (sqrt-time scaling on the market term)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1001,14 +1213,22 @@ class MonteCarloPortfolioSimulationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    mean_returns: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    portfolio_value: float = 1000000.0
-    horizon: int = 10
-    n_simulations: int = 10000
-    confidence_level: float = 0.99
-    seed: int = 12345
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    mean_returns: list[float] | list[list[float]] = Field(
+        description="Per-period mean return per asset."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Per-period asset return covariance matrix."
+    )
+    portfolio_value: float = Field(
+        default=1000000.0, description="Starting portfolio value in base currency."
+    )
+    horizon: int = Field(default=10, description="Number of periods to simulate forward.")
+    n_simulations: int = Field(default=10000, description="Number of Monte Carlo paths.")
+    confidence_level: float = Field(
+        default=0.99, description="VaR/ES confidence in [0.90, 0.9999]."
+    )
+    seed: int = Field(default=12345, description="RNG seed for determinism.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -1036,12 +1256,25 @@ class RebalancingOptimiserRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    current_weights: list[float] | list[list[float]]
-    target_weights: list[float] | list[list[float]]
-    cost_bps: list[float] | list[list[float]]
-    no_trade_band: float = 0.0
-    asset_volatility: list[float] | list[list[float]] | None = None
-    risk_aversion: float | None = None
+    current_weights: list[float] | list[list[float]] = Field(
+        description="Current portfolio weights."
+    )
+    target_weights: list[float] | list[list[float]] = Field(description="Desired target weights.")
+    cost_bps: list[float] | list[list[float]] = Field(
+        description="Proportional cost in basis points per asset."
+    )
+    no_trade_band: float = Field(
+        default=0.0,
+        description="Absolute weight threshold below which no trade is made. Ignored when the derived-band mode is active.",
+    )
+    asset_volatility: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-asset return volatility (sigma_i). Supply together with ``risk_aversion`` to derive the no-trade band instead of using the scalar ``no_trade_band``.",
+    )
+    risk_aversion: float | None = Field(
+        default=None,
+        description="Optional CRRA risk-aversion coefficient (gamma > 0). Supply together with ``asset_volatility`` to derive the band.",
+    )
 
 
 class RebalancingOptimiserResponse(BaseModel):
@@ -1061,10 +1294,16 @@ class EsgScoreIntegrationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    esg_scores: list[float] | list[list[float]]
-    min_esg_score: float | None = None
-    cov_matrix: list[float] | list[list[float]] | None = None
+    weights: list[float] | list[list[float]] = Field(description="Current portfolio weights.")
+    esg_scores: list[float] | list[list[float]] = Field(
+        description="ESG score per asset (higher is better)."
+    )
+    min_esg_score: float | None = Field(
+        default=None, description="Optional minimum weighted ESG score to enforce."
+    )
+    cov_matrix: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional covariance for the ESG-constrained re-optimisation."
+    )
 
 
 class EsgScoreIntegrationResponse(BaseModel):
@@ -1080,12 +1319,26 @@ class CarbonFootprintAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    carbon_intensities: list[float] | list[list[float]]
-    portfolio_value: float
-    asset_names: list[str] | None = None
-    company_total_emissions: list[float] | list[list[float]] | None = None
-    company_value: list[float] | list[list[float]] | None = None
+    weights: list[float] | list[list[float]] = Field(
+        description="Portfolio weights per holding (sum to 1)."
+    )
+    carbon_intensities: list[float] | list[list[float]] = Field(
+        description="Carbon intensity per holding (tCO2e per $M, say) -- used for the WACI leg in both modes."
+    )
+    portfolio_value: float = Field(
+        description="Total portfolio value in $M consistent with intensity."
+    )
+    asset_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``asset_0, ...``."
+    )
+    company_total_emissions: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-holding investee company total absolute emissions (tCO2e). Supply together with ``company_value`` to use the PCAF ownership-share method.",
+    )
+    company_value: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-holding investee company total value (PCAF's EVIC or market cap), in the same currency unit as ``portfolio_value``. Supply together with ``company_total_emissions`` to use the PCAF ownership-share method.",
+    )
 
 
 class CarbonFootprintAttributionResponse(BaseModel):
