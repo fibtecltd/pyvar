@@ -1,6 +1,6 @@
 # Plan: an AI chat assistant in the pyvar portal (Claude Haiku 5.5)
 
-**Status 2026-11-07: exploration only. Nothing is built.** Written from a read of this repository
+**Status 2026-11-07: exploration only. Nothing is built.** Filippo's decisions are in section 9. Written from a read of this repository
 (portal, API, CDK stacks, privacy policy) and Anthropic's Claude API reference (model table cached
 2026-10-06). Anything marked "not verified" was not seen or run.
 
@@ -26,8 +26,9 @@ Build it, small, and gate it on an offline quality check before any user sees it
 ## 2. What it is for, and not for
 
 For: "which function answers my question", what a parameter means, how to read a result, getting an API
-key, tier limits, installing the client, plugins and MCP server, and finding the right page or
-Try-it panel. It is a guide to the portal, not a second product.
+key, tier limits, installing the client, plugins and MCP server, finding the right page or Try-it
+panel, and suggesting example values for a function's Try-it form (the visitor applies them; nothing
+is submitted for them). It is a guide to the portal, not a second product.
 
 Not for, in v1:
 - computing or estimating any risk number (pyvar computes; the model does not);
@@ -81,9 +82,14 @@ locally (a dictionary lookup, no network) and continues the loop (at most 3 roun
   (so a drift test fails when it is stale): the function index from `functions.json`, the tier limits from
   `config.py`, and a short FAQ (sign-up, plugins, pyvar Local, MCP). Single source of truth, no numbers typed
   twice.
-- **Tools, read-only, no network:** `search_functions(query)` (keyword scoring over names, summaries and
-  domains; 385 entries need no embeddings) and `get_function(name)` (parameters, formula, caveat, domain
-  page and anchor).
+- **Tools, no network:** `search_functions(query)` (keyword scoring over names, summaries and
+  domains; 385 entries need no embeddings), `get_function(name)` (parameters, formula, caveat, domain
+  page and anchor) and `propose_parameters(function, values)`.
+- **Suggested parameters (decision 4):** `propose_parameters` does not run anything. The server checks the
+  values against the function's `params` in `functions.json` (names, types, required fields, bounds) and
+  returns errors for the model to correct, up to two retries. Only a valid set reaches the browser, as a
+  `suggestion` event that fills the Try-it form after the visitor clicks **Apply**. The values are
+  synthetic examples, labelled as such, and the form is never submitted for the visitor.
 - **Answers cite function cards** by link (`domain-*.html#...`), so a visitor can always check the source.
 
 ### 4.4 Guardrails
@@ -91,6 +97,9 @@ locally (a dictionary lookup, no network) and continues the loop (at most 3 roun
 - **Computation data stays out.** The widget sends the question, the visible page and, on a Try-it panel,
   the function name. It never sends parameter values or results. If a visitor pastes data, the UI warns
   first; the server does not log it.
+- **No page scraping, and none on `dashboard.html`.** The widget reads no page content. On every page
+  (decision 6) it sends only the page name; on `dashboard.html`, where a new API key is shown once, it sends
+  no page context at all, and the key scrub below still applies to anything typed.
 - **Secrets scrub:** before the model call, replace anything shaped like a pyvar key (`pyvar_` plus a
   token), a JWT or an AWS key with `[removed]`, and tell the visitor. Logs hold lengths and hashes, never
   message text.
@@ -105,9 +114,13 @@ locally (a dictionary lookup, no network) and continues the loop (at most 3 roun
 
 Placeholders, to be set from real traffic like the existing rate limits (the repo says the same of its own):
 
-- anonymous: 10 messages per hour per IP; signed-in free: 40 per day; pro: 200 per day; enterprise: 500 per day;
-- a **global daily token budget** held in Redis; at 80% the widget shows a notice, at 100% the route returns
-  "unavailable today" and nothing is sent to Anthropic;
+- anonymous visitors are allowed (decision 1): 10 messages per hour per IP; signed-in free: 40 per day;
+  pro: 200 per day; enterprise: 500 per day;
+- **no monthly budget ceiling** (decision 2), but I recommend a **global daily token cap** held in Redis as a
+  circuit breaker, not a budget: anonymous access with no cap at all leaves cost open to a scripted flood
+  that gets past the per-IP limits. Set it generously from Phase 1 traffic (a config value, no code change);
+  at 80% the widget shows a notice, at 100% the route returns "unavailable today" and nothing is sent to
+  Anthropic;
 - a **feature flag** (`assistant_enabled`, default false) that is also a kill switch, read from `/public/config`
   so the widget hides itself;
 - a CloudWatch alarm on daily tokens and on `refusal` and 5xx rates.
@@ -120,17 +133,23 @@ Placeholders, to be set from real traffic like the existing rate limits (the rep
   API data-retention terms for this model; read them before the wording is final.
 - `terms.html`: a short "AI assistant" clause (informational, may be wrong, no advice).
 - The widget stores the conversation in `sessionStorage` only, and says so.
+- **Decision 3 is open** (section 9). My recommendation is to add the sub-processor row.
 
 ### 4.7 UI
 
-A launcher on every page through `pyvar.js`, and an "Ask about this function" entry in the Try-it panel
-(`openTryItPanel` already has the function object). Streaming text, three suggested questions per page, copyable
-answers, a thumbs up and down that increments a server-side counter (no user id). Escape all model text; allow
+A launcher on every page through `pyvar.js` (decision 6), and an "Ask about this function" entry in the Try-it
+panel (`openTryItPanel` already has the function object). Streaming text, three suggested questions per page,
+copyable answers, an **Apply to Try it** button on a suggested parameter set, a thumbs up and down that
+increments a server-side counter (no user id). Escape all model text; allow
 only links to pyvar.com pages.
 
 ### 4.8 Infrastructure (an `infra/` branch, with `cdk diff` in the PR, per CLAUDE.md section 8)
 
-- Secret `pyvar-{env}-anthropic` in Secrets Manager, injected like the Stripe ones.
+- Secret `pyvar/{env}/anthropic-api-key`: the repo's convention is `pyvar/{env}/<name>` (for example
+  `pyvar/dev/sentry-dsn`), a plain string, **one key per environment**. It is imported with
+  `from_secret_name_v2` and `grant_read(task_role)` in `api_stack.py`, as the Stripe secrets are, and
+  resolved at startup the way `_resolve_stripe_secrets` does it. A single shared `pyvar/anthropic-api-key`
+  would let a dev test spend prod's key and force a prod rotation for a dev leak.
 - CloudFront behaviour for `/api/v1/assistant/*`: caching disabled, `compress=False`, POST allowed.
 - WAF: a stricter per-IP rate rule scoped to that path, and take the path out of the aggregate rule's count so
   assistant abuse cannot block compute users.
@@ -182,35 +201,41 @@ NAT data for text traffic is negligible.
 - Gate to proceed: at least 90% correct function on the routing set; no invented function names on a 50-question
   check; every out-of-scope and injection question declined or redirected; p50 time to first token under 1.5 s.
 - Also measure real token counts with `count_tokens` and settle the index format.
+- 30 "suggest example values" requests; gate: at least 95% of suggestions pass the server-side parameter
+  check within two tries, and none needs a value outside a documented bound.
 
 **Phase 1: backend behind a flag (3 to 5 days).** Schemas, route, knowledge generator and drift test, tools,
 budget and limits, scrub, config and secret, metrics, tests. Off by default. Merging starts a CodePipeline run.
 
-**Phase 2: widget, privacy, edge (3 to 5 days).** Launcher and Try-it entry, `privacy.html` and `terms.html`,
-CloudFront and WAF (`infra/`), dev soak. Merging starts a CodePipeline run.
+**Phase 2: widget, suggested parameters, privacy, edge (5 to 8 days).** Launcher on every page and Try-it entry,
+the `propose_parameters` tool with its server-side check and the **Apply to Try it** button, `privacy.html` and
+`terms.html`, CloudFront and WAF (`infra/`), dev soak. Merging starts a CodePipeline run.
 
 **Phase 3: tiers, feedback, tuning (ongoing).** Signed-in quotas, counters, a weekly look at declined and
-low-rated questions, and the optional "suggest Try-it parameters" action (synthetic values, never auto-submitted).
+low-rated questions.
 
 ## 8. Risks
 
 | Risk | Handling |
 |---|---|
 | Wrong answer on a regulated topic | Thresholds only from `get_function`; visible disclaimer; eval set includes traps. |
-| Cost abuse by anonymous traffic | Per-IP and global budgets, fail closed, WAF path rule, kill switch. |
-| The privacy promise breaks | Computation data never sent; policy changed first; test that the request body has no `params`. |
+| Cost abuse by anonymous traffic, with no budget ceiling (decisions 1 and 2) | Per-IP limits, fail closed, a WAF path rule, a technical daily token cap, a kill switch and a usage alarm. The cap is a safety valve and can be set high. |
+| The privacy promise breaks | Computation data never sent; policy changed first; a test that the widget's request carries no Try-it values or results. |
+| Suggested values mistaken for advice | Labelled "example values"; the server checks types and bounds; never submitted for the visitor. |
 | Chat load affects compute users | Own buckets, own WAF rule, kill switch; split into a service if needed. |
-| Prompt injection | Read-only tools, nothing to act with, scrub, escape output. |
+| Prompt injection | Tools that only look up or validate, nothing to act with, scrub, escape output. |
 | Model or API behaviour changes | Pinned model id, eval re-run before any change, refusal handled. |
 
-## 9. Decisions needed
+## 9. Decisions (2026-11-07, Filippo)
 
-1. **Anonymous access?** I suggest yes, with a small quota, and higher limits when signed in.
-2. **Monthly budget ceiling**, and who owns the Anthropic account and the portal's workspace and key.
-3. **Privacy:** add Anthropic as a sub-processor for chat text and reword section 5?
-4. **v1 scope:** questions and navigation only (suggested), or also suggested Try-it parameters?
-5. **Language:** English only for v1?
-6. **Placement:** every page, or the function and plugin pages only?
+| # | Question | Answer | Effect on this plan |
+|---|---|---|---|
+| 1 | Anonymous access? | Yes | Small per-IP quota; higher limits when signed in (4.5). |
+| 2 | Monthly budget ceiling and key | No ceiling. The key lives in AWS Secrets Manager; Filippo can create it now. | No business budget, but keep a technical daily cap (4.5). Name it `pyvar/{env}/anthropic-api-key`, one per environment, not `pyvar/anthropic-api-key` (4.8). Nothing reads it before Phase 1. |
+| 3 | Add Anthropic as a sub-processor, reword section 5? | **Open** ("just an interactive helper") | My recommendation: yes. The visitor's text goes to Anthropic through pyvar's backend, so a third party processes it however small the helper is, and the policy's table presents itself as the full list. A visitor may type personal data. This is not legal advice: whoever advises on privacy should confirm. It blocks launch, not Phases 0 and 1 (the feature is off by default). |
+| 4 | v1 scope | Questions, navigation and suggested parameters | `propose_parameters` and the Apply button move into Phase 2 (4.3, 4.7, 7). |
+| 5 | Language | English only | |
+| 6 | Placement | Every page | Includes `dashboard.html`, with no page context there (4.4). |
 
 ## 10. Not verified
 
