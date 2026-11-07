@@ -22,9 +22,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   regenerated (plugin versions bumped). The engine docstring stays the single source of truth;
   `tests/test_parameter_descriptions.py` fails if a model, the catalogue or a new endpoint drifts
   from it. `engine/metrics.py` gained the four missing `Args:` sections (docstring only).
+  `plugins/mcp/pyvar_mcp/_generated/` was regenerated, so the MCP tool schemas carry the
+  descriptions too (1,577 of 1,577, identical to the catalogue); the published `pyvar-mcp` 0.2.2
+  does not have them until a release bumps its version.
   Not changed: `LiquidityGapAnalysisRequest` still does not expose the engine's
   `opening_balance` argument (listed in the test as a known gap), and parameters still carry no
   numeric bounds.
+
+- **Phase 0 eval harness for the portal assistant** — `scripts/assistant_eval/` and
+  `tests/test_assistant_eval.py`. Dev tooling only, nothing the API or the portal runs and no new
+  dependency in `requirements.txt` (the `anthropic` SDK is pinned in the harness's own
+  `requirements.txt` and imported only for a live run). It builds the 1,924 menu selections of
+  `docs/plan-portal-ai-assistant.md` from the catalogue, checks answers mechanically against the
+  function record (invented names, unsupported numbers, advice language, request-schema shape),
+  and has a model judge for a stratified sample, a hard spend cap and an offline `--oracle` and
+  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). No paid run has been made.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an

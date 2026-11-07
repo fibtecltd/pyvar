@@ -1,6 +1,8 @@
 # Plan: an AI chat assistant in the pyvar portal (Claude Haiku 5.5)
 
-**Status 2026-11-07: exploration only. Nothing is built.** Filippo's decisions are in section 9. Written from a read of this repository
+**Status 2026-11-07: exploration. No assistant code exists.** Two things that do not ship the assistant are built: the Phase 0
+eval harness (`scripts/assistant_eval/`, dev tooling) and a description for every API parameter (section 1a), both in the PR
+that carries this document. Filippo's decisions are in section 9; the menu-only update is section 1a. Written from a read of this repository
 (portal, API, CDK stacks, privacy policy) and Anthropic's Claude API reference (model table cached
 2026-10-06). Anything marked "not verified" was not seen or run.
 
@@ -22,6 +24,52 @@ Build it, small, and gate it on an offline quality check before any user sees it
   backend "never sends your portfolio data, return series, or computed results to Anthropic or any
   other AI provider". The assistant must be designed so that stays true for computation data, and the
   policy must add Anthropic as a sub-processor for chat messages **before launch** (section 4.6).
+
+## 1a. Update 2026-11-07: menus only, no typing
+
+Filippo's answer to question 3: the visitor types nothing; every action is chosen from a contextual
+drop-down. The assistant becomes a **guided help panel**, not a chat.
+
+What that removes:
+- Visitor text never reaches a model, so there is no prompt injection from visitors, no need for the secrets
+  scrub or the input limits (4.4), and the panel cannot be used as a free model endpoint. Anonymous access
+  (decision 1) becomes much safer to allow.
+- The privacy exposure shrinks to almost nothing: a model call carries pyvar's own function record and the
+  menu choice, with no visitor-written text and no computation data. The call is made from pyvar's server, so
+  Anthropic does not see the visitor's address. Decision 3 is closed by design. I would still add one line
+  to the policy's sub-processor table saying exactly that, because the table presents itself as the full
+  list. That is cheap and not legal advice.
+
+What it does not remove:
+- **Accuracy.** A generated explanation or a set of example values can still be wrong, on a risk product. The
+  disclaimers, the graders and the judge stay, and Phase 0 measures how often it happens. That the code is
+  open source does not change the cost of a wrong answer to the person who relied on it.
+- **The documentation ceiling, partly lifted.** Measured 2026-11-07, before the change below: of 1,577
+  parameters, none had a description or a bound, in the catalogue or in the OpenAPI schema, and 255 of 385
+  functions have an `object` or `array` parameter whose inner shape the catalogue leaves unspecified. A guide
+  could say what a function does and what it takes, but what an input *means* came only from its name and the
+  formula's symbol map. The same PR as this document now gives every parameter the `Args:` text of its engine
+  docstring, so it appears in the OpenAPI schema, the catalogue, the Try-it panel, the skills' parameter
+  tables and the MCP tool schemas (1,577 of 1,577; the engine stays the single source). Those descriptions
+  are unreviewed beyond spot checks, and Phase 0 now shows them to the model, so it measures the catalogue as
+  it is. Still open: numeric bounds, the inner shape of the 255 `object` or `array` parameters, and
+  `liquidity_gap_analysis`, whose `opening_balance` argument the engine takes and the API model does not.
+
+What it changes in the design:
+- The input is a **closed set**: 1,924 selections for the whole catalogue (385 explain, 385 when to use, 770
+  example values, 384 comparisons with a sibling).
+- That opens a fork. **A, runtime generation:** a key in production, a model call on each uncached selection,
+  answers cached by function record, action and scenario. **B, build-time generation:** Haiku writes the 1,924
+  answers once, a person reads them, they are committed as JSON and served statically, and a drift test
+  regenerates an entry when its function record changes. B needs no key in production, no runtime call and no
+  runtime failure mode, answers instantly, and lets every answer be read before a visitor sees it. One-off
+  cost is about $1 at Haiku rates (estimate; Phase 0 measures it). **I recommend B if Phase 0 passes**: the
+  menu-only design removes the reasons to call a model at request time. Haiku still writes the content.
+  Sections 4.1 to 4.5 then apply to option A only.
+- Suggested parameters (decision 4) stay as two presets, "typical" and "stress". Their values are validated
+  against the real request schema before they are stored or shown. Arrays are limited to 10 items in the
+  Phase 0 prompts, so functions that need a long series (37 take `returns`) would use the Try-it panel's
+  synthetic-series placeholder instead of literal values; not checked yet.
 
 ## 2. What it is for, and not for
 
@@ -52,8 +100,12 @@ Not for, in v1:
 | No `Content-Security-Policy` anywhere (portal HTML or CDK) | No CSP conflict. Model output must still be escaped, never injected as raw HTML. |
 | `privacy.html`: no cookies, no analytics; sub-processors are AWS, Stripe, Sentry, Google (sign-in only) | Chat history stays in the browser. Anthropic joins the table. No tracking in the widget. |
 | No `anthropic` package in the requirements; the repo never calls an LLM | New pinned dependency; bandit and CI run on it. |
+| 1,577 parameters in `functions.json` and the OpenAPI schemas: none had a description (measured 2026-11-07; added from the engine docstrings in this PR) and none has a numeric bound; 255 of 385 functions have an `object` or `array` parameter the catalogue leaves unspecified | The assistant can now say what an input means from its description, which is only as good as the docstring behind it. It still cannot state a valid range or the inner shape of an `object` or `array` (section 1a). |
+| The whole catalogue is 1,924 distinct menu selections | Small enough to generate once and review (section 1a, option B). |
 
 ## 4. Design
+
+> Sections 4.1 to 4.9 were written for free-text chat. Read them with section 1a: where it removes a rule, that rule is not needed, and the whole of 4.1 to 4.5 applies to option A (runtime generation) only.
 
 ### 4.1 Flow
 
@@ -194,15 +246,20 @@ NAT data for text traffic is negligible.
 
 ## 7. Phases (effort is my rough estimate)
 
-**Phase 0: quality check, no product code (1 to 2 days).** `scripts/` plus `docs/` only.
-- 100 to 120 questions: function routing (60), parameter and result help (20), sign-up, tiers and install (15),
-  out of scope and injection attempts (25).
-- Run Haiku 5.5 and Sonnet 5.5 with the same prompt and tools. Expected cost about $0.10 and $2 per full run.
-- Gate to proceed: at least 90% correct function on the routing set; no invented function names on a 50-question
-  check; every out-of-scope and injection question declined or redirected; p50 time to first token under 1.5 s.
-- Also measure real token counts with `count_tokens` and settle the index format.
-- 30 "suggest example values" requests; gate: at least 95% of suggestions pass the server-side parameter
-  check within two tries, and none needs a value outside a documented bound.
+**Phase 0: quality check, no product code (revised for menus).** `scripts/`, `tests/` and `docs/` only.
+- **Built** (in the PR that carries this document): `scripts/assistant_eval/` builds the menu selections from
+  `portal/functions.json`, the skill specs and the OpenAPI schemas; mechanical graders; a model judge; a
+  runner with a spend cap, retries, a wall-clock ceiling and a served-model check; 41 tests with a fake client.
+  Harness check, no API: the oracle (an answer built from the record) passes 1,924 of 1,924 selections, and
+  the null (an empty answer) passes none.
+- **Paid steps, after sign-off:** Haiku 5.5 on a 576-selection sample (134 functions: 15 per domain plus every
+  function with a tested worked example); Sonnet 5.5 on the same sample for comparison; Opus 5.5 as judge on 12
+  answers per action. Estimated $1 to $5 in total under a hard cap (estimates, not measured).
+- **Gates:** explain, when and compare: at least 95% pass the mechanical checks and the judge calls at least
+  90% faithful; example values: at least 95% fit the request schema within 3 tries and the judge calls at least
+  80% plausible; refusals counted (none expected); p50 latency under 3 s per generation.
+- **Also measured:** real token counts and cost per generation, projected to all 1,924 selections, to decide
+  between options A and B.
 
 **Phase 1: backend behind a flag (3 to 5 days).** Schemas, route, knowledge generator and drift test, tools,
 budget and limits, scrub, config and secret, metrics, tests. Off by default. Merging starts a CodePipeline run.
@@ -222,6 +279,8 @@ low-rated questions.
 | Cost abuse by anonymous traffic, with no budget ceiling (decisions 1 and 2) | Per-IP limits, fail closed, a WAF path rule, a technical daily token cap, a kill switch and a usage alarm. The cap is a safety valve and can be set high. |
 | The privacy promise breaks | Computation data never sent; policy changed first; a test that the widget's request carries no Try-it values or results. |
 | Suggested values mistaken for advice | Labelled "example values"; the server checks types and bounds; never submitted for the visitor. |
+| The menu is too rigid for what visitors want | A guided panel answers four questions per function and links the rest. Watch which actions are used; free text can be added later behind the safeguards in 4.4. |
+| Input meanings are thin or wrong | Every parameter now carries its engine docstring text, unreviewed beyond spot checks. A wrong description becomes a wrong answer that passes the graders and the judge, because both check an answer against the record and the description is in the record. So a person reads a sample of the descriptions before launch, and a correction is made once, in the engine docstring. |
 | Chat load affects compute users | Own buckets, own WAF rule, kill switch; split into a service if needed. |
 | Prompt injection | Tools that only look up or validate, nothing to act with, scrub, escape output. |
 | Model or API behaviour changes | Pinned model id, eval re-run before any change, refusal handled. |
@@ -231,8 +290,8 @@ low-rated questions.
 | # | Question | Answer | Effect on this plan |
 |---|---|---|---|
 | 1 | Anonymous access? | Yes | Small per-IP quota; higher limits when signed in (4.5). |
-| 2 | Monthly budget ceiling and key | No ceiling. The key lives in AWS Secrets Manager; Filippo can create it now. | No business budget, but keep a technical daily cap (4.5). Name it `pyvar/{env}/anthropic-api-key`, one per environment, not `pyvar/anthropic-api-key` (4.8). Nothing reads it before Phase 1. |
-| 3 | Add Anthropic as a sub-processor, reword section 5? | **Open** ("just an interactive helper") | My recommendation: yes. The visitor's text goes to Anthropic through pyvar's backend, so a third party processes it however small the helper is, and the policy's table presents itself as the full list. A visitor may type personal data. This is not legal advice: whoever advises on privacy should confirm. It blocks launch, not Phases 0 and 1 (the feature is off by default). |
+| 2 | Monthly budget ceiling and key | No ceiling. The key lives in AWS Secrets Manager; Filippo can create it now. Names confirmed: `pyvar/dev/anthropic-api-key` and `pyvar/prod/anthropic-api-key`. | No business budget, but keep a technical daily cap (4.5). One secret per environment, not a shared `pyvar/anthropic-api-key` (4.8). Filippo creates both; nothing reads them before Phase 1 (option A) or at all (option B, which needs no key in production). |
+| 3 | Add Anthropic as a sub-processor, reword section 5? | Closed by design: the visitor types nothing (menus only, section 1a) | A model call carries only pyvar's own function record and the menu choice. I would still add one line to the sub-processor table saying so, because it presents itself as the full list. Not legal advice. |
 | 4 | v1 scope | Questions, navigation and suggested parameters | `propose_parameters` and the Apply button move into Phase 2 (4.3, 4.7, 7). |
 | 5 | Language | English only | |
 | 6 | Placement | Every page | Includes `dashboard.html`, with no page context there (4.4). |
