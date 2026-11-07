@@ -27,11 +27,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "alm_stress_test",
         "input_schema": {
             "properties": {
-                "base_rates": {"type": "object"},
-                "net_cashflows": {"type": "object"},
-                "parallel_bps": {"default": 200.0, "type": "number"},
-                "tier1_capital": {"type": "number"},
-                "times": {"type": "object"},
+                "base_rates": {
+                    "description": "Base zero rate per " "bucket (decimal).",
+                    "type": "object",
+                },
+                "net_cashflows": {
+                    "description": "Net " "banking-book " "cashflow per " "bucket.",
+                    "type": "object",
+                },
+                "parallel_bps": {
+                    "default": 200.0,
+                    "description": "Parallel shock " "magnitude (bps).",
+                    "type": "number",
+                },
+                "tier1_capital": {
+                    "description": "Tier-1 capital " "(currency, > " "0).",
+                    "type": "number",
+                },
+                "times": {"description": "Bucket times in years.", "type": "object"},
             },
             "required": ["net_cashflows", "times", "base_rates", "tier1_capital"],
             "type": "object",
@@ -47,10 +60,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "asset_liability_mismatch_index",
         "input_schema": {
             "properties": {
-                "asset_amounts": {"type": "object"},
-                "asset_durations": {"type": "object"},
-                "liability_amounts": {"type": "object"},
-                "liability_durations": {"type": "object"},
+                "asset_amounts": {
+                    "description": "Amount per " "asset bucket " "(currency).",
+                    "type": "object",
+                },
+                "asset_durations": {
+                    "description": "Duration per " "asset bucket " "(years).",
+                    "type": "object",
+                },
+                "liability_amounts": {
+                    "description": "Amount per " "liability " "bucket.",
+                    "type": "object",
+                },
+                "liability_durations": {
+                    "description": "Duration " "per " "liability " "bucket.",
+                    "type": "object",
+                },
             },
             "required": [
                 "asset_durations",
@@ -72,13 +97,34 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "balance_sheet_projection_model",
         "input_schema": {
             "properties": {
-                "asset_growth_rate": {"type": "number"},
-                "asset_yield": {"type": "number"},
-                "initial_assets": {"type": "number"},
-                "initial_liabilities": {"type": "number"},
-                "liability_cost": {"type": "number"},
-                "liability_growth_rate": {"type": "number"},
-                "n_years": {"type": "integer"},
+                "asset_growth_rate": {
+                    "description": "Annual " "asset " "growth " "(decimal).",
+                    "type": "number",
+                },
+                "asset_yield": {
+                    "description": "Average asset " "yield (decimal).",
+                    "type": "number",
+                },
+                "initial_assets": {
+                    "description": "Opening total " "assets " "(currency).",
+                    "type": "number",
+                },
+                "initial_liabilities": {
+                    "description": "Opening " "total " "liabilities " "(currency).",
+                    "type": "number",
+                },
+                "liability_cost": {
+                    "description": "Average " "liability cost " "(decimal).",
+                    "type": "number",
+                },
+                "liability_growth_rate": {
+                    "description": "Annual " "liability " "growth " "(decimal).",
+                    "type": "number",
+                },
+                "n_years": {
+                    "description": "Projection horizon " "(years, >= 1).",
+                    "type": "integer",
+                },
             },
             "required": [
                 "initial_assets",
@@ -102,10 +148,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basis_risk_irrbb",
         "input_schema": {
             "properties": {
-                "asset_balances": {"type": "object"},
-                "asset_index_shifts": {"type": "object"},
-                "liability_balances": {"type": "object"},
-                "liability_index_shifts": {"type": "object"},
+                "asset_balances": {
+                    "description": "Balance per " "asset index " "bucket.",
+                    "type": "object",
+                },
+                "asset_index_shifts": {
+                    "description": "Index move " "per asset " "bucket " "(decimal).",
+                    "type": "object",
+                },
+                "liability_balances": {
+                    "description": "Balance " "per " "liability " "index " "bucket.",
+                    "type": "object",
+                },
+                "liability_index_shifts": {
+                    "description": "Index " "move " "per " "liability " "bucket " "(decimal).",
+                    "type": "object",
+                },
             },
             "required": [
                 "asset_balances",
@@ -133,11 +191,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "behavioural_modelling_nmds",
         "input_schema": {
             "properties": {
-                "core_fraction": {"type": "number"},
-                "core_runoff_rate": {"type": "number"},
-                "horizon_years": {"default": 5.0, "type": "number"},
-                "non_core_runoff_rate": {"type": "number"},
-                "total_balance": {"type": "number"},
+                "core_fraction": {
+                    "description": "Fraction deemed " "core in [0, 1].",
+                    "type": "number",
+                },
+                "core_runoff_rate": {
+                    "description": "Annual " "run-off rate " "of core " "deposits " "(decimal).",
+                    "type": "number",
+                },
+                "horizon_years": {
+                    "default": 5.0,
+                    "description": "Projection " "horizon " "(years).",
+                    "type": "number",
+                },
+                "non_core_runoff_rate": {
+                    "description": "Annual " "run-off " "rate of " "non-core " "(decimal).",
+                    "type": "number",
+                },
+                "total_balance": {
+                    "description": "Total NMD " "balance " "(currency).",
+                    "type": "number",
+                },
             },
             "required": [
                 "total_balance",
@@ -158,10 +232,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "convexity_gap",
         "input_schema": {
             "properties": {
-                "asset_convexity": {"type": "number"},
-                "liability_convexity": {"type": "number"},
-                "total_assets": {"type": "number"},
-                "total_liabilities": {"type": "number"},
+                "asset_convexity": {
+                    "description": "Weighted " "asset " "convexity.",
+                    "type": "number",
+                },
+                "liability_convexity": {
+                    "description": "Weighted " "liability " "convexity.",
+                    "type": "number",
+                },
+                "total_assets": {"description": "Total assets " "(currency).", "type": "number"},
+                "total_liabilities": {
+                    "description": "Total " "liabilities " "(currency).",
+                    "type": "number",
+                },
             },
             "required": [
                 "asset_convexity",
@@ -224,10 +307,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "core_deposit_duration",
         "input_schema": {
             "properties": {
-                "core_balance": {"type": "number"},
-                "decay_rate": {"type": "number"},
-                "discount_rate": {"type": "number"},
-                "max_years": {"default": 30.0, "type": "number"},
+                "core_balance": {
+                    "description": "Core deposit " "balance " "(currency).",
+                    "type": "number",
+                },
+                "decay_rate": {
+                    "description": "Annual exponential " "decay rate " "(decimal, > 0).",
+                    "type": "number",
+                },
+                "discount_rate": {
+                    "description": "Discount rate " "(decimal, >= " "0).",
+                    "type": "number",
+                },
+                "max_years": {
+                    "default": 30.0,
+                    "description": "Truncation horizon " "for the run-off " "integral.",
+                    "type": "number",
+                },
             },
             "required": ["core_balance", "decay_rate", "discount_rate"],
             "type": "object",
@@ -243,11 +339,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "duration_gap_analysis",
         "input_schema": {
             "properties": {
-                "asset_duration": {"type": "number"},
-                "liability_duration": {"type": "number"},
-                "rate_shock": {"default": 0.01, "type": "number"},
-                "total_assets": {"type": "number"},
-                "total_liabilities": {"type": "number"},
+                "asset_duration": {
+                    "description": "Weighted asset " "duration " "(years).",
+                    "type": "number",
+                },
+                "liability_duration": {
+                    "description": "Weighted " "liability " "duration " "(years).",
+                    "type": "number",
+                },
+                "rate_shock": {
+                    "default": 0.01,
+                    "description": "Parallel rate " "shock (decimal).",
+                    "type": "number",
+                },
+                "total_assets": {"description": "Total assets " "(currency).", "type": "number"},
+                "total_liabilities": {
+                    "description": "Total " "liabilities " "(currency).",
+                    "type": "number",
+                },
             },
             "required": [
                 "asset_duration",
@@ -269,11 +378,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "dynamic_gap_analysis",
         "input_schema": {
             "properties": {
-                "asset_growth": {"type": "object"},
-                "bucket_assets": {"type": "object"},
-                "bucket_liabilities": {"type": "object"},
-                "liability_growth": {"type": "object"},
-                "n_periods": {"type": "integer"},
+                "asset_growth": {
+                    "description": "Per-period asset " "growth rate per " "bucket " "(decimal).",
+                    "type": "object",
+                },
+                "bucket_assets": {
+                    "description": "Initial " "rate-sensitive " "assets per " "bucket.",
+                    "type": "object",
+                },
+                "bucket_liabilities": {
+                    "description": "Initial " "rate-sensitive " "liabilities " "per " "bucket.",
+                    "type": "object",
+                },
+                "liability_growth": {
+                    "description": "Per-period " "liability " "growth rate " "per bucket.",
+                    "type": "object",
+                },
+                "n_periods": {"description": "Number of " "projection periods.", "type": "integer"},
             },
             "required": [
                 "bucket_assets",
@@ -295,12 +416,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "economic_value_of_equity_eve",
         "input_schema": {
             "properties": {
-                "asset_cashflows": {"type": "object"},
-                "asset_rates": {"type": "object"},
-                "asset_times": {"type": "object"},
-                "liability_cashflows": {"type": "object"},
-                "liability_rates": {"type": "object"},
-                "liability_times": {"type": "object"},
+                "asset_cashflows": {
+                    "description": "Asset " "cashflow per " "bucket.",
+                    "type": "object",
+                },
+                "asset_rates": {
+                    "description": "Discount zero " "rate per asset " "bucket (decimal).",
+                    "type": "object",
+                },
+                "asset_times": {
+                    "description": "Asset cashflow " "time per bucket " "(years).",
+                    "type": "object",
+                },
+                "liability_cashflows": {
+                    "description": "Liability " "cashflow " "per " "bucket.",
+                    "type": "object",
+                },
+                "liability_rates": {
+                    "description": "Discount zero " "rate per " "liability " "bucket " "(decimal).",
+                    "type": "object",
+                },
+                "liability_times": {
+                    "description": "Liability " "cashflow time " "per bucket " "(years).",
+                    "type": "object",
+                },
             },
             "required": [
                 "asset_cashflows",
@@ -324,10 +463,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "effective_duration_alm",
         "input_schema": {
             "properties": {
-                "pv_base": {"type": "number"},
-                "pv_down": {"type": "number"},
-                "pv_up": {"type": "number"},
-                "rate_shock": {"type": "number"},
+                "pv_base": {"description": "Present value at base " "rates.", "type": "number"},
+                "pv_down": {
+                    "description": "Present value after " "−``rate_shock``.",
+                    "type": "number",
+                },
+                "pv_up": {
+                    "description": "Present value after " "+``rate_shock``.",
+                    "type": "number",
+                },
+                "rate_shock": {
+                    "description": "Parallel rate " "shock (decimal).",
+                    "type": "number",
+                },
             },
             "required": ["pv_base", "pv_up", "pv_down", "rate_shock"],
             "type": "object",
@@ -344,12 +492,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "eve_sensitivity_analysis",
         "input_schema": {
             "properties": {
-                "base_rates": {"type": "object"},
-                "long_bps": {"default": 150.0, "type": "number"},
-                "net_cashflows": {"type": "object"},
-                "parallel_bps": {"default": 200.0, "type": "number"},
-                "short_bps": {"default": 300.0, "type": "number"},
-                "times": {"type": "object"},
+                "base_rates": {
+                    "description": "Base zero rate per " "bucket (decimal).",
+                    "type": "object",
+                },
+                "long_bps": {
+                    "default": 150.0,
+                    "description": "Long shock (bps).",
+                    "type": "number",
+                },
+                "net_cashflows": {
+                    "description": "Net (asset − " "liability) " "cashflow per " "bucket.",
+                    "type": "object",
+                },
+                "parallel_bps": {
+                    "default": 200.0,
+                    "description": "Parallel shock " "(bps).",
+                    "type": "number",
+                },
+                "short_bps": {
+                    "default": 300.0,
+                    "description": "Short shock (bps).",
+                    "type": "number",
+                },
+                "times": {"description": "Bucket times in years.", "type": "object"},
             },
             "required": ["net_cashflows", "times", "base_rates"],
             "type": "object",
@@ -367,9 +533,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ftp_curve_construction",
         "input_schema": {
             "properties": {
-                "base_curve": {"type": "object"},
-                "liquidity_spreads": {"type": "object"},
-                "tenors": {"type": "object"},
+                "base_curve": {
+                    "description": "Base funding rate " "per tenor " "(decimal).",
+                    "type": "object",
+                },
+                "liquidity_spreads": {
+                    "description": "Term-liquidity " "spread per " "tenor " "(decimal).",
+                    "type": "object",
+                },
+                "tenors": {
+                    "description": "Tenor points in years " "(ascending).",
+                    "type": "object",
+                },
             },
             "required": ["tenors", "base_curve", "liquidity_spreads"],
             "type": "object",
@@ -389,11 +564,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "funds_transfer_pricing_ftp",
         "input_schema": {
             "properties": {
-                "customer_rate": {"type": "number"},
-                "ftp_rate": {"type": "number"},
-                "is_asset": {"default": True, "type": "boolean"},
-                "liquidity_premium": {"default": 0.0, "type": "number"},
-                "notional": {"type": "number"},
+                "customer_rate": {
+                    "description": "Rate charged to " "/ paid to the " "customer " "(decimal).",
+                    "type": "number",
+                },
+                "ftp_rate": {
+                    "description": "Matched-maturity " "transfer rate " "(decimal).",
+                    "type": "number",
+                },
+                "is_asset": {
+                    "default": True,
+                    "description": "True for an asset "
+                    "(loan), False for a "
+                    "liability (deposit).",
+                    "type": "boolean",
+                },
+                "liquidity_premium": {
+                    "default": 0.0,
+                    "description": "Liquidity " "charge " "added to " "the FTP " "(decimal).",
+                    "type": "number",
+                },
+                "notional": {"description": "Deal notional " "(currency).", "type": "number"},
             },
             "required": ["notional", "customer_rate", "ftp_rate"],
             "type": "object",
@@ -413,9 +604,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "interest_rate_risk_capital_irrbb",
         "input_schema": {
             "properties": {
-                "outlier_threshold": {"default": 0.15, "type": "number"},
-                "tier1_capital": {"type": "number"},
-                "worst_delta_eve": {"type": "number"},
+                "outlier_threshold": {
+                    "default": 0.15,
+                    "description": "Supervisory " "threshold " "(default " "0.15 = " "15%).",
+                    "type": "number",
+                },
+                "tier1_capital": {"description": "Tier-1 capital " "(currency).", "type": "number"},
+                "worst_delta_eve": {
+                    "description": "Worst-case " "ΔEVE " "(negative for " "a loss).",
+                    "type": "number",
+                },
             },
             "required": ["worst_delta_eve", "tier1_capital"],
             "type": "object",
@@ -433,10 +631,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "irrbb_internal_model",
         "input_schema": {
             "properties": {
-                "base_rates": {"type": "object"},
-                "net_cashflows": {"type": "object"},
-                "rate_scenarios": {"type": "object"},
-                "times": {"type": "object"},
+                "base_rates": {
+                    "description": "Base zero rate per " "bucket (decimal).",
+                    "type": "object",
+                },
+                "net_cashflows": {"description": "Net cashflow " "per bucket.", "type": "object"},
+                "rate_scenarios": {
+                    "description": "``(n_scenarios, " "n_buckets)`` " "additive rate " "shocks.",
+                    "type": "object",
+                },
+                "times": {"description": "Bucket times in years.", "type": "object"},
             },
             "required": ["net_cashflows", "times", "base_rates", "rate_scenarios"],
             "type": "object",
@@ -459,10 +663,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "irrbb_six_standard_rate_shocks",
         "input_schema": {
             "properties": {
-                "long_bps": {"default": 150.0, "type": "number"},
-                "parallel_bps": {"default": 200.0, "type": "number"},
-                "short_bps": {"default": 300.0, "type": "number"},
-                "tenors": {"type": "object"},
+                "long_bps": {
+                    "default": 150.0,
+                    "description": "Long-rate shock " "magnitude (basis " "points).",
+                    "type": "number",
+                },
+                "parallel_bps": {
+                    "default": 200.0,
+                    "description": "Parallel shock " "magnitude (basis " "points).",
+                    "type": "number",
+                },
+                "short_bps": {
+                    "default": 300.0,
+                    "description": "Short-rate shock " "magnitude (basis " "points).",
+                    "type": "number",
+                },
+                "tenors": {"description": "Tenor points in years " "(> 0).", "type": "object"},
             },
             "required": ["tenors"],
             "type": "object",
@@ -481,12 +697,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "irrbb_standardised_framework",
         "input_schema": {
             "properties": {
-                "base_rates": {"type": "object"},
-                "long_bps": {"default": 150.0, "type": "number"},
-                "net_cashflows": {"type": "object"},
-                "parallel_bps": {"default": 200.0, "type": "number"},
-                "short_bps": {"default": 300.0, "type": "number"},
-                "times": {"type": "object"},
+                "base_rates": {
+                    "description": "Base zero rate per " "bucket (decimal).",
+                    "type": "object",
+                },
+                "long_bps": {
+                    "default": 150.0,
+                    "description": "Long shock magnitude " "(bps).",
+                    "type": "number",
+                },
+                "net_cashflows": {
+                    "description": "Net (asset − " "liability) " "cashflow per " "time bucket.",
+                    "type": "object",
+                },
+                "parallel_bps": {
+                    "default": 200.0,
+                    "description": "Parallel shock " "magnitude (bps).",
+                    "type": "number",
+                },
+                "short_bps": {
+                    "default": 300.0,
+                    "description": "Short shock " "magnitude (bps).",
+                    "type": "number",
+                },
+                "times": {"description": "Bucket midpoint times " "in years.", "type": "object"},
             },
             "required": ["net_cashflows", "times", "base_rates"],
             "type": "object",
@@ -503,11 +737,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_adjusted_nii",
         "input_schema": {
             "properties": {
-                "base_nii": {"type": "number"},
-                "buffer_yield": {"type": "number"},
-                "funding_cost": {"type": "number"},
-                "liquidity_buffer": {"type": "number"},
-                "liquidity_premium": {"type": "number"},
+                "base_nii": {
+                    "description": "Baseline net " "interest income " "(currency).",
+                    "type": "number",
+                },
+                "buffer_yield": {
+                    "description": "Yield on the " "buffer " "(decimal).",
+                    "type": "number",
+                },
+                "funding_cost": {
+                    "description": "Funding cost of " "the buffer " "(decimal).",
+                    "type": "number",
+                },
+                "liquidity_buffer": {
+                    "description": "Size of the " "liquidity " "buffer " "(currency).",
+                    "type": "number",
+                },
+                "liquidity_premium": {
+                    "description": "Additional " "liquidity " "premium " "charged " "(decimal).",
+                    "type": "number",
+                },
             },
             "required": [
                 "base_nii",
@@ -529,7 +778,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "alm",
         "function_name": "loan_prepayment_rate_cpr",
         "input_schema": {
-            "properties": {"cpr": {"type": "object"}, "smm": {"type": "object"}},
+            "properties": {
+                "cpr": {
+                    "description": "Constant prepayment rate "
+                    "(decimal), if converting "
+                    "CPR→SMM.",
+                    "type": "object",
+                },
+                "smm": {
+                    "description": "Single monthly mortality "
+                    "(decimal), if converting "
+                    "SMM→CPR.",
+                    "type": "object",
+                },
+            },
             "type": "object",
         },
         "path": "/api/v1/alm/loan_prepayment_rate_cpr",
@@ -542,9 +804,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "macaulay_duration_balance_sheet",
         "input_schema": {
             "properties": {
-                "cashflows": {"type": "object"},
-                "discount_rate": {"type": "number"},
-                "times": {"type": "object"},
+                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
+                "discount_rate": {
+                    "description": "Continuous " "discount rate " "(decimal).",
+                    "type": "number",
+                },
+                "times": {"description": "Cashflow times in " "years.", "type": "object"},
             },
             "required": ["cashflows", "times", "discount_rate"],
             "type": "object",
@@ -561,10 +826,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "modified_duration_balance_sheet",
         "input_schema": {
             "properties": {
-                "cashflows": {"type": "object"},
-                "discount_rate": {"type": "number"},
-                "frequency": {"default": 1, "type": "integer"},
-                "times": {"type": "object"},
+                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
+                "discount_rate": {"description": "Discount rate " "(decimal).", "type": "number"},
+                "frequency": {
+                    "default": 1,
+                    "description": "Compounding " "frequency per year.",
+                    "type": "integer",
+                },
+                "times": {"description": "Cashflow times in " "years.", "type": "object"},
             },
             "required": ["cashflows", "times", "discount_rate"],
             "type": "object",
@@ -580,9 +849,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "nii_sensitivity_rate_shock",
         "input_schema": {
             "properties": {
-                "rate_sensitive_assets": {"type": "number"},
-                "rate_sensitive_liabilities": {"type": "number"},
-                "rate_shock": {"type": "number"},
+                "rate_sensitive_assets": {
+                    "description": "Assets " "repricing " "within " "the " "horizon " "(currency).",
+                    "type": "number",
+                },
+                "rate_sensitive_liabilities": {
+                    "description": "Liabilities " "repricing " "within " "the " "horizon.",
+                    "type": "number",
+                },
+                "rate_shock": {
+                    "description": "Parallel rate " "shock (decimal).",
+                    "type": "number",
+                },
             },
             "required": ["rate_sensitive_assets", "rate_sensitive_liabilities", "rate_shock"],
             "type": "object",
@@ -597,10 +875,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "nii_simulation_baseline",
         "input_schema": {
             "properties": {
-                "asset_balances": {"type": "object"},
-                "asset_rates": {"type": "object"},
-                "liability_balances": {"type": "object"},
-                "liability_rates": {"type": "object"},
+                "asset_balances": {
+                    "description": "Balance per " "interest-earning " "asset bucket.",
+                    "type": "object",
+                },
+                "asset_rates": {
+                    "description": "Yield per asset " "bucket (decimal).",
+                    "type": "object",
+                },
+                "liability_balances": {
+                    "description": "Balance " "per " "interest-bearing " "liability " "bucket.",
+                    "type": "object",
+                },
+                "liability_rates": {
+                    "description": "Cost per " "liability " "bucket " "(decimal).",
+                    "type": "object",
+                },
             },
             "required": ["asset_balances", "asset_rates", "liability_balances", "liability_rates"],
             "type": "object",
@@ -618,13 +908,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "nii_simulation_stress",
         "input_schema": {
             "properties": {
-                "asset_balances": {"type": "object"},
-                "asset_beta": {"default": 1.0, "type": "number"},
-                "asset_rates": {"type": "object"},
-                "liability_balances": {"type": "object"},
-                "liability_beta": {"default": 0.5, "type": "number"},
-                "liability_rates": {"type": "object"},
-                "rate_shock": {"type": "number"},
+                "asset_balances": {
+                    "description": "Balance per " "asset bucket " "(currency).",
+                    "type": "object",
+                },
+                "asset_beta": {
+                    "default": 1.0,
+                    "description": "Asset repricing " "beta in [0, 1+].",
+                    "type": "number",
+                },
+                "asset_rates": {
+                    "description": "Base yield per " "asset bucket " "(decimal).",
+                    "type": "object",
+                },
+                "liability_balances": {
+                    "description": "Balance " "per " "liability " "bucket.",
+                    "type": "object",
+                },
+                "liability_beta": {
+                    "default": 0.5,
+                    "description": "Liability " "(deposit) " "repricing beta " "in [0, 1+].",
+                    "type": "number",
+                },
+                "liability_rates": {
+                    "description": "Base cost per " "liability " "bucket " "(decimal).",
+                    "type": "object",
+                },
+                "rate_shock": {
+                    "description": "Parallel rate " "shock (decimal).",
+                    "type": "number",
+                },
             },
             "required": [
                 "asset_balances",
@@ -648,8 +961,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "non_maturity_deposit_stability",
         "input_schema": {
             "properties": {
-                "balance_history": {"type": "object"},
-                "confidence_level": {"default": 0.99, "type": "number"},
+                "balance_history": {
+                    "description": "Historical " "deposit " "balances (>= " "2 " "observations).",
+                    "type": "object",
+                },
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "Confidence " "for the " "stable floor " "in [0.5, 1).",
+                    "type": "number",
+                },
             },
             "required": ["balance_history"],
             "type": "object",
@@ -666,9 +986,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "option_risk_irrbb",
         "input_schema": {
             "properties": {
-                "automatic_option_value": {"type": "number"},
-                "behavioural_option_value": {"type": "number"},
-                "notional": {"type": "number"},
+                "automatic_option_value": {
+                    "description": "PV of " "automatic " "interest-rate " "options.",
+                    "type": "number",
+                },
+                "behavioural_option_value": {
+                    "description": "PV " "of " "behavioural " "options.",
+                    "type": "number",
+                },
+                "notional": {
+                    "description": "Reference notional " "for the option-risk " "ratio.",
+                    "type": "number",
+                },
             },
             "required": ["automatic_option_value", "behavioural_option_value", "notional"],
             "type": "object",
@@ -688,10 +1017,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "pipeline_risk_measurement",
         "input_schema": {
             "properties": {
-                "pipeline_notional": {"type": "number"},
-                "pull_through_rate": {"type": "number"},
-                "rate_lock_period": {"type": "number"},
-                "rate_volatility": {"type": "number"},
+                "pipeline_notional": {
+                    "description": "Committed " "pipeline " "notional.",
+                    "type": "number",
+                },
+                "pull_through_rate": {
+                    "description": "Expected " "fraction " "that " "completes " "in [0, 1].",
+                    "type": "number",
+                },
+                "rate_lock_period": {
+                    "description": "Rate-lock " "horizon in " "years.",
+                    "type": "number",
+                },
+                "rate_volatility": {
+                    "description": "Annualised " "rate " "volatility " "(decimal).",
+                    "type": "number",
+                },
             },
             "required": [
                 "pipeline_notional",
@@ -715,10 +1056,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "prepayment_model_mortgages",
         "input_schema": {
             "properties": {
-                "annual_rate": {"type": "number"},
-                "cpr": {"type": "number"},
-                "principal": {"type": "number"},
-                "term_years": {"type": "integer"},
+                "annual_rate": {
+                    "description": "Annual mortgage " "coupon (decimal).",
+                    "type": "number",
+                },
+                "cpr": {"description": "Constant prepayment rate " "(decimal).", "type": "number"},
+                "principal": {"description": "Initial pool " "balance.", "type": "number"},
+                "term_years": {"description": "Original term in " "years.", "type": "integer"},
             },
             "required": ["principal", "annual_rate", "term_years", "cpr"],
             "type": "object",
@@ -733,9 +1077,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "repricing_gap_analysis",
         "input_schema": {
             "properties": {
-                "bucket_assets": {"type": "object"},
-                "bucket_labels": {"type": "object"},
-                "bucket_liabilities": {"type": "object"},
+                "bucket_assets": {
+                    "description": "Rate-sensitive " "assets " "repricing in " "each bucket.",
+                    "type": "object",
+                },
+                "bucket_labels": {"description": "Optional bucket " "names.", "type": "object"},
+                "bucket_liabilities": {
+                    "description": "Rate-sensitive "
+                    "liabilities "
+                    "repricing "
+                    "in each "
+                    "bucket.",
+                    "type": "object",
+                },
             },
             "required": ["bucket_assets", "bucket_liabilities"],
             "type": "object",
@@ -751,10 +1105,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "repricing_maturity_profile",
         "input_schema": {
             "properties": {
-                "balances": {"type": "object"},
-                "bucket_edges": {"type": "object"},
-                "n_buckets": {"type": "integer"},
-                "repricing_times": {"type": "object"},
+                "balances": {"description": "Balance per " "instrument.", "type": "object"},
+                "bucket_edges": {
+                    "description": "Length " "``n_buckets+1`` " "ascending bucket " "boundaries.",
+                    "type": "object",
+                },
+                "n_buckets": {"description": "Number of buckets.", "type": "integer"},
+                "repricing_times": {
+                    "description": "Next " "repricing " "time per " "instrument " "(years).",
+                    "type": "object",
+                },
             },
             "required": ["balances", "repricing_times", "n_buckets", "bucket_edges"],
             "type": "object",
@@ -769,8 +1129,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "static_gap_analysis",
         "input_schema": {
             "properties": {
-                "bucket_assets": {"type": "object"},
-                "bucket_liabilities": {"type": "object"},
+                "bucket_assets": {
+                    "description": "Rate-sensitive " "assets per " "bucket.",
+                    "type": "object",
+                },
+                "bucket_liabilities": {
+                    "description": "Rate-sensitive " "liabilities " "per " "bucket.",
+                    "type": "object",
+                },
             },
             "required": ["bucket_assets", "bucket_liabilities"],
             "type": "object",
@@ -791,10 +1157,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "structural_hedge_optimisation",
         "input_schema": {
             "properties": {
-                "equity_notional": {"type": "number"},
-                "instrument_durations": {"type": "object"},
-                "instrument_max_notional": {"type": "object"},
-                "target_duration": {"type": "number"},
+                "equity_notional": {
+                    "description": "Equity " "notional to " "hedge " "(currency).",
+                    "type": "number",
+                },
+                "instrument_durations": {
+                    "description": "Duration " "of each " "hedge " "instrument " "(years).",
+                    "type": "object",
+                },
+                "instrument_max_notional": {
+                    "description": "Max " "notional " "per " "instrument " "(currency).",
+                    "type": "object",
+                },
+                "target_duration": {
+                    "description": "Desired " "equity " "duration " "(years).",
+                    "type": "number",
+                },
             },
             "required": [
                 "target_duration",

@@ -22,8 +22,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "asset_encumbrance_ratio",
         "input_schema": {
             "properties": {
-                "encumbered_assets": {"type": "number"},
-                "total_assets": {"type": "number"},
+                "encumbered_assets": {
+                    "description": "Carrying " "value of " "encumbered " "assets.",
+                    "type": "number",
+                },
+                "total_assets": {
+                    "description": "Total assets " "(encumbered + " "unencumbered).",
+                    "type": "number",
+                },
             },
             "required": ["encumbered_assets", "total_assets"],
             "type": "object",
@@ -42,8 +48,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "available_stable_funding_asf_calc",
         "input_schema": {
             "properties": {
-                "asf_factors": {"type": "object"},
-                "funding_amounts": {"type": "object"},
+                "asf_factors": {
+                    "description": "ASF factor for " "each source, each " "in [0, 1].",
+                    "type": "object",
+                },
+                "funding_amounts": {
+                    "description": "Carrying " "amounts of " "each funding " "source.",
+                    "type": "object",
+                },
             },
             "required": ["funding_amounts", "asf_factors"],
             "type": "object",
@@ -59,10 +71,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cash_flow_ladder_1_year",
         "input_schema": {
             "properties": {
-                "bucket_inflows": {"type": "object"},
-                "bucket_outflows": {"type": "object"},
-                "buckets": {"type": "object"},
-                "opening_balance": {"default": 0.0, "type": "number"},
+                "bucket_inflows": {
+                    "description": "Inflow per " "maturity " "bucket (one " "entry per " "bucket).",
+                    "type": "object",
+                },
+                "bucket_outflows": {
+                    "description": "Outflow per " "maturity " "bucket.",
+                    "type": "object",
+                },
+                "buckets": {
+                    "description": "Optional bucket "
+                    "labels; defaults to "
+                    "the standard 8-bucket "
+                    "set.",
+                    "type": "object",
+                },
+                "opening_balance": {
+                    "default": 0.0,
+                    "description": "Starting " "balance " "carried into " "the first " "bucket.",
+                    "type": "number",
+                },
             },
             "required": ["bucket_inflows", "bucket_outflows"],
             "type": "object",
@@ -82,9 +110,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cash_flow_ladder_30_day",
         "input_schema": {
             "properties": {
-                "daily_inflows": {"type": "object"},
-                "daily_outflows": {"type": "object"},
-                "opening_balance": {"default": 0.0, "type": "number"},
+                "daily_inflows": {
+                    "description": "Length-30 array " "of daily " "contractual " "inflows.",
+                    "type": "object",
+                },
+                "daily_outflows": {
+                    "description": "Length-30 " "array of daily " "contractual " "outflows.",
+                    "type": "object",
+                },
+                "opening_balance": {
+                    "default": 0.0,
+                    "description": "Starting cash " "/ HQLA " "balance at " "day 0.",
+                    "type": "number",
+                },
             },
             "required": ["daily_inflows", "daily_outflows"],
             "type": "object",
@@ -103,10 +141,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "central_bank_facility_eligibility",
         "input_schema": {
             "properties": {
-                "asset_ratings": {"type": "object"},
-                "asset_values": {"type": "object"},
-                "cb_haircuts": {"type": "object"},
-                "min_rating": {"type": "integer"},
+                "asset_ratings": {
+                    "description": "Ordinal credit " "rating per " "asset (higher = " "better).",
+                    "type": "object",
+                },
+                "asset_values": {"description": "Market value per " "asset.", "type": "object"},
+                "cb_haircuts": {
+                    "description": "Central-bank " "haircut per " "asset, each in " "[0, 1].",
+                    "type": "object",
+                },
+                "min_rating": {
+                    "description": "Minimum ordinal " "rating accepted by " "the facility.",
+                    "type": "integer",
+                },
             },
             "required": ["asset_ratings", "min_rating", "asset_values", "cb_haircuts"],
             "type": "object",
@@ -125,9 +172,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "collateral_availability_analysis",
         "input_schema": {
             "properties": {
-                "already_pledged": {"type": "object"},
-                "collateral_values": {"type": "object"},
-                "haircuts": {"type": "object"},
+                "already_pledged": {
+                    "description": "Optional " "pledged " "amount per " "asset to net " "off.",
+                    "type": "object",
+                },
+                "collateral_values": {
+                    "description": "Market " "value of " "each " "collateral " "asset.",
+                    "type": "object",
+                },
+                "haircuts": {
+                    "description": "Haircut per asset, " "each in [0, 1].",
+                    "type": "object",
+                },
             },
             "required": ["collateral_values", "haircuts"],
             "type": "object",
@@ -170,15 +226,96 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "combined_stress_scenario",
         "input_schema": {
             "properties": {
-                "hqla_by_level": {"type": "object"},
-                "inflows": {"default": 0.0, "type": "number"},
-                "market_haircuts": {"type": "object"},
-                "retail_deposits": {"type": "number"},
-                "retail_deposits_by_category": {"type": "object"},
-                "retail_runoff": {"default": 0.15, "type": "number"},
-                "retail_runoff_rates": {"type": "object"},
-                "wholesale_funding": {"type": "number"},
-                "wholesale_runoff": {"default": 1.0, "type": "number"},
+                "hqla_by_level": {
+                    "description": "HQLA market " "value per " "level.",
+                    "type": "object",
+                },
+                "inflows": {
+                    "default": 0.0,
+                    "description": "Stressed contractual " "inflows.",
+                    "type": "number",
+                },
+                "market_haircuts": {
+                    "description": "Additional "
+                    "stressed "
+                    "haircut per "
+                    "level, each "
+                    "in [0, 1].",
+                    "type": "object",
+                },
+                "retail_deposits": {
+                    "description": "Retail "
+                    "deposit "
+                    "balance. Used "
+                    "directly "
+                    "(times "
+                    "``retail_runoff``) "
+                    "unless the "
+                    "categorised "
+                    "arguments are "
+                    "supplied, in "
+                    "which case it "
+                    "must equal "
+                    "``sum(retail_deposits_by_category)``.",
+                    "type": "number",
+                },
+                "retail_deposits_by_category": {
+                    "description": "Optional "
+                    "per-category "
+                    "retail "
+                    "deposit "
+                    "balances "
+                    "(e.g. "
+                    "stable "
+                    "/ "
+                    "less-stable "
+                    "buckets). "
+                    "Must "
+                    "be "
+                    "supplied "
+                    "together "
+                    "with "
+                    "``retail_runoff_rates`` "
+                    "and "
+                    "must "
+                    "sum "
+                    "to "
+                    "``retail_deposits``.",
+                    "type": "object",
+                },
+                "retail_runoff": {
+                    "default": 0.15,
+                    "description": "Retail run-off "
+                    "rate (default "
+                    "15%). Ignored "
+                    "when the "
+                    "categorised "
+                    "retail "
+                    "arguments are "
+                    "supplied.",
+                    "type": "number",
+                },
+                "retail_runoff_rates": {
+                    "description": "Optional "
+                    "per-category "
+                    "run-off "
+                    "rates in "
+                    "[0, 1], "
+                    "matching "
+                    "``retail_deposits_by_category`` "
+                    "in "
+                    "length.",
+                    "type": "object",
+                },
+                "wholesale_funding": {
+                    "description": "Wholesale " "funding " "balance.",
+                    "type": "number",
+                },
+                "wholesale_runoff": {
+                    "default": 1.0,
+                    "description": "Wholesale " "run-off rate " "(default " "100%).",
+                    "type": "number",
+                },
             },
             "required": [
                 "retail_deposits",
@@ -208,7 +345,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "contingency_funding_plan_trigger",
         "input_schema": {
-            "properties": {"metrics": {"type": "object"}, "thresholds": {"type": "object"}},
+            "properties": {
+                "metrics": {
+                    "description": "Mapping ``name -> " "current value``.",
+                    "type": "object",
+                },
+                "thresholds": {
+                    "description": "Mapping ``name -> " "minimum acceptable " "value``.",
+                    "type": "object",
+                },
+            },
             "required": ["metrics", "thresholds"],
             "type": "object",
         },
@@ -229,9 +375,31 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "contingent_liquidity_risk",
         "input_schema": {
             "properties": {
-                "ccf": {"type": "object"},
-                "commitment_amounts": {"type": "object"},
-                "draw_probabilities": {"type": "object"},
+                "ccf": {
+                    "description": "Optional credit "
+                    "conversion factor per "
+                    "commitment (default all "
+                    "1.0).",
+                    "type": "object",
+                },
+                "commitment_amounts": {
+                    "description": "Notional "
+                    "of each "
+                    "undrawn "
+                    "commitment "
+                    "/ "
+                    "guarantee.",
+                    "type": "object",
+                },
+                "draw_probabilities": {
+                    "description": "Probability "
+                    "of "
+                    "drawdown "
+                    "per "
+                    "commitment, "
+                    "in [0, 1].",
+                    "type": "object",
+                },
             },
             "required": ["commitment_amounts", "draw_probabilities"],
             "type": "object",
@@ -252,12 +420,28 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cross_currency_liquidity_bridge",
         "input_schema": {
             "properties": {
-                "fx_rate": {"type": "number"},
-                "shortfall_amount": {"type": "number"},
-                "shortfall_ccy": {"type": "string"},
-                "surplus_amount": {"type": "number"},
-                "surplus_ccy": {"type": "string"},
-                "swap_haircut": {"default": 0.0, "type": "number"},
+                "fx_rate": {
+                    "description": "Units of " "shortfall_ccy per " "unit of surplus_ccy.",
+                    "type": "number",
+                },
+                "shortfall_amount": {
+                    "description": "Amount of " "the deficit " "(in " "shortfall_ccy).",
+                    "type": "number",
+                },
+                "shortfall_ccy": {"description": "Currency in " "deficit.", "type": "string"},
+                "surplus_amount": {
+                    "description": "Available " "surplus (in " "surplus_ccy).",
+                    "type": "number",
+                },
+                "surplus_ccy": {
+                    "description": "Currency with " "surplus to swap.",
+                    "type": "string",
+                },
+                "swap_haircut": {
+                    "default": 0.0,
+                    "description": "Haircut on " "usable surplus, " "in [0, 1].",
+                    "type": "number",
+                },
             },
             "required": [
                 "shortfall_ccy",
@@ -282,8 +466,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "deposit_stability_classification",
         "input_schema": {
             "properties": {
-                "deposit_features": {"type": "object"},
-                "stable_threshold": {"default": 0.5, "type": "number"},
+                "deposit_features": {
+                    "description": "Stability " "score per " "deposit, " "each in [0, " "1].",
+                    "type": "object",
+                },
+                "stable_threshold": {
+                    "default": 0.5,
+                    "description": "Cut-off for " "the stable " "classification.",
+                    "type": "number",
+                },
             },
             "required": ["deposit_features"],
             "type": "object",
@@ -307,9 +498,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "early_warning_indicator_liquidity",
         "input_schema": {
             "properties": {
-                "directions": {"type": "object"},
-                "indicators": {"type": "object"},
-                "thresholds": {"type": "object"},
+                "directions": {
+                    "description": "Optional mapping "
+                    "``name -> "
+                    '"higher_breach"|"lower_breach"``; '
+                    "defaults to "
+                    '``"lower_breach"`` '
+                    "for all.",
+                    "type": "object",
+                },
+                "indicators": {
+                    "description": "Mapping ``name -> " "current value``.",
+                    "type": "object",
+                },
+                "thresholds": {
+                    "description": "Mapping ``name -> " "threshold``.",
+                    "type": "object",
+                },
             },
             "required": ["indicators", "thresholds"],
             "type": "object",
@@ -326,8 +531,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "funding_cost_analysis",
         "input_schema": {
             "properties": {
-                "funding_amounts": {"type": "object"},
-                "funding_rates": {"type": "object"},
+                "funding_amounts": {
+                    "description": "Outstanding " "amount of " "each funding " "source.",
+                    "type": "object",
+                },
+                "funding_rates": {
+                    "description": "Annual rate "
+                    "(decimal) per "
+                    "source, e.g. "
+                    "0.035 for 3.5%.",
+                    "type": "object",
+                },
             },
             "required": ["funding_amounts", "funding_rates"],
             "type": "object",
@@ -344,8 +558,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "funding_tenor_analysis",
         "input_schema": {
             "properties": {
-                "funding_amounts": {"type": "object"},
-                "tenors_days": {"type": "object"},
+                "funding_amounts": {
+                    "description": "Outstanding " "amount of " "each funding " "tranche.",
+                    "type": "object",
+                },
+                "tenors_days": {
+                    "description": "Residual tenor in " "days for each " "tranche.",
+                    "type": "object",
+                },
             },
             "required": ["funding_amounts", "tenors_days"],
             "type": "object",
@@ -362,8 +582,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "fx_liquidity_risk_by_currency",
         "input_schema": {
             "properties": {
-                "inflows_by_ccy": {"type": "object"},
-                "outflows_by_ccy": {"type": "object"},
+                "inflows_by_ccy": {
+                    "description": "Mapping " "``currency -> " "inflow " "amount``.",
+                    "type": "object",
+                },
+                "outflows_by_ccy": {
+                    "description": "Mapping " "``currency -> " "outflow " "amount``.",
+                    "type": "object",
+                },
             },
             "required": ["inflows_by_ccy", "outflows_by_ccy"],
             "type": "object",
@@ -383,7 +609,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "hqla_level_1_asset_classifier",
         "input_schema": {
-            "properties": {"asset_values": {"type": "object"}, "haircuts": {"type": "object"}},
+            "properties": {
+                "asset_values": {
+                    "description": "Market values of " "candidate Level " "1 assets.",
+                    "type": "object",
+                },
+                "haircuts": {
+                    "description": "Optional per-asset "
+                    "haircuts in [0, 1]; "
+                    "defaults to all "
+                    "zeros.",
+                    "type": "object",
+                },
+            },
             "required": ["asset_values"],
             "type": "object",
         },
@@ -402,8 +640,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "hqla_level_2a_asset_classifier",
         "input_schema": {
             "properties": {
-                "asset_values": {"type": "object"},
-                "haircut": {"default": 0.15, "type": "number"},
+                "asset_values": {
+                    "description": "Market values of " "candidate Level " "2A assets.",
+                    "type": "object",
+                },
+                "haircut": {
+                    "default": 0.15,
+                    "description": "Supervisory haircut " "(minimum 15%).",
+                    "type": "number",
+                },
             },
             "required": ["asset_values"],
             "type": "object",
@@ -424,8 +669,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "hqla_level_2b_asset_classifier",
         "input_schema": {
             "properties": {
-                "asset_values": {"type": "object"},
-                "haircut": {"default": 0.25, "type": "number"},
+                "asset_values": {
+                    "description": "Market values of " "candidate Level " "2B assets.",
+                    "type": "object",
+                },
+                "haircut": {
+                    "default": 0.25,
+                    "description": "Supervisory haircut " "(minimum 25%).",
+                    "type": "number",
+                },
             },
             "required": ["asset_values"],
             "type": "object",
@@ -442,11 +694,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "idiosyncratic_stress_scenario",
         "input_schema": {
             "properties": {
-                "hqla": {"type": "number"},
-                "retail_deposits": {"type": "number"},
-                "retail_runoff": {"default": 0.1, "type": "number"},
-                "wholesale_funding": {"type": "number"},
-                "wholesale_runoff": {"default": 1.0, "type": "number"},
+                "hqla": {"description": "Available HQLA.", "type": "number"},
+                "retail_deposits": {
+                    "description": "Retail " "deposit " "balance.",
+                    "type": "number",
+                },
+                "retail_runoff": {
+                    "default": 0.1,
+                    "description": "Retail run-off " "rate (default " "10%).",
+                    "type": "number",
+                },
+                "wholesale_funding": {
+                    "description": "Wholesale " "funding " "balance.",
+                    "type": "number",
+                },
+                "wholesale_runoff": {
+                    "default": 1.0,
+                    "description": "Wholesale " "run-off rate " "(default " "100%).",
+                    "type": "number",
+                },
             },
             "required": ["retail_deposits", "wholesale_funding", "hqla"],
             "type": "object",
@@ -463,10 +729,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ilaap_internal_liquidity_metric",
         "input_schema": {
             "properties": {
-                "counterbalancing_capacity": {"type": "number"},
-                "minimum_survival_days": {"default": 90.0, "type": "number"},
-                "stressed_net_outflow": {"type": "number"},
-                "survival_days": {"type": "number"},
+                "counterbalancing_capacity": {
+                    "description": "Total " "monetisable " "liquidity " "(CBC).",
+                    "type": "number",
+                },
+                "minimum_survival_days": {
+                    "default": 90.0,
+                    "description": "Internal " "minimum " "survival " "target.",
+                    "type": "number",
+                },
+                "stressed_net_outflow": {
+                    "description": "Stressed " "net " "outflow " "over the " "horizon.",
+                    "type": "number",
+                },
+                "survival_days": {
+                    "description": "Modelled " "survival " "horizon in " "days.",
+                    "type": "number",
+                },
             },
             "required": ["counterbalancing_capacity", "stressed_net_outflow", "survival_days"],
             "type": "object",
@@ -488,7 +767,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "ilaap_stress_testing_framework",
         "input_schema": {
-            "properties": {"scenarios": {"type": "object"}},
+            "properties": {
+                "scenarios": {
+                    "description": "Mapping ``name -> " '{"surplus_deficit": ' "float, ...}``.",
+                    "type": "object",
+                }
+            },
             "required": ["scenarios"],
             "type": "object",
         },
@@ -512,9 +796,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "intraday_liquidity_monitor",
         "input_schema": {
             "properties": {
-                "net_flows": {"type": "object"},
-                "opening_balance": {"type": "number"},
-                "timestamps": {"type": "object"},
+                "net_flows": {
+                    "description": "Net payment flow at "
+                    "each timestamp "
+                    "(credit +, debit "
+                    "-).",
+                    "type": "object",
+                },
+                "opening_balance": {
+                    "description": "Available " "intraday " "liquidity at " "start of day.",
+                    "type": "number",
+                },
+                "timestamps": {
+                    "description": "Monotonic intraday "
+                    "timestamps "
+                    "(seconds/minutes "
+                    "from open).",
+                    "type": "object",
+                },
             },
             "required": ["timestamps", "net_flows", "opening_balance"],
             "type": "object",
@@ -541,10 +840,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "intraday_liquidity_stress_test",
         "input_schema": {
             "properties": {
-                "delay_factor": {"default": 0.5, "type": "number"},
-                "inflow_delay_shock": {"default": 0.0, "type": "number"},
-                "net_flows": {"type": "object"},
-                "opening_balance": {"type": "number"},
+                "delay_factor": {
+                    "default": 0.5,
+                    "description": "Fraction of "
+                    "positive inflows "
+                    "delayed beyond "
+                    "the horizon, in "
+                    "[0, 1].",
+                    "type": "number",
+                },
+                "inflow_delay_shock": {
+                    "default": 0.0,
+                    "description": "Extra "
+                    "absolute "
+                    "liquidity "
+                    "reserved "
+                    "against "
+                    "the shock.",
+                    "type": "number",
+                },
+                "net_flows": {
+                    "description": "Net payment flow at "
+                    "each intraday step "
+                    "(credit +, debit "
+                    "-).",
+                    "type": "object",
+                },
+                "opening_balance": {
+                    "description": "Available " "intraday " "liquidity at " "start of day.",
+                    "type": "number",
+                },
             },
             "required": ["net_flows", "opening_balance"],
             "type": "object",
@@ -560,7 +885,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "intragroup_liquidity_flow",
         "input_schema": {
-            "properties": {"entity_positions": {"type": "object"}},
+            "properties": {
+                "entity_positions": {
+                    "description": "Mapping "
+                    "``entity -> "
+                    "net "
+                    "position`` "
+                    "(provided "
+                    "minus "
+                    "received).",
+                    "type": "object",
+                }
+            },
             "required": ["entity_positions"],
             "type": "object",
         },
@@ -576,8 +912,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_buffer_sizing",
         "input_schema": {
             "properties": {
-                "confidence_buffer": {"default": 0.0, "type": "number"},
-                "stressed_net_outflows": {"type": "object"},
+                "confidence_buffer": {
+                    "default": 0.0,
+                    "description": "Fractional " "management " "uplift " "(e.g. 0.10 " "for +10%).",
+                    "type": "number",
+                },
+                "stressed_net_outflows": {
+                    "description": "Per-period "
+                    "stressed "
+                    "net "
+                    "outflows "
+                    "(positive "
+                    "= "
+                    "drain).",
+                    "type": "object",
+                },
             },
             "required": ["stressed_net_outflows"],
             "type": "object",
@@ -597,10 +946,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_coverage_ratio_lcr",
         "input_schema": {
             "properties": {
-                "gross_inflows": {"type": "number"},
-                "gross_outflows": {"type": "number"},
-                "hqla": {"type": "number"},
-                "inflow_cap": {"default": 0.75, "type": "number"},
+                "gross_inflows": {
+                    "description": "Total expected " "30-day " "contractual " "cash inflows.",
+                    "type": "number",
+                },
+                "gross_outflows": {
+                    "description": "Total expected " "30-day " "stressed cash " "outflows.",
+                    "type": "number",
+                },
+                "hqla": {
+                    "description": "Stock of high-quality " "liquid assets " "(post-haircut).",
+                    "type": "number",
+                },
+                "inflow_cap": {
+                    "default": 0.75,
+                    "description": "Maximum fraction "
+                    "of gross outflows "
+                    "that inflows may "
+                    "offset.",
+                    "type": "number",
+                },
             },
             "required": ["hqla", "gross_outflows", "gross_inflows"],
             "type": "object",
@@ -627,9 +992,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_gap_analysis",
         "input_schema": {
             "properties": {
-                "asset_maturities": {"type": "object"},
-                "buckets": {"type": "object"},
-                "liability_maturities": {"type": "object"},
+                "asset_maturities": {
+                    "description": "Asset cash " "inflows " "maturing in " "each bucket.",
+                    "type": "object",
+                },
+                "buckets": {
+                    "description": "Optional bucket "
+                    "labels; defaults to "
+                    "the standard 8-bucket "
+                    "set.",
+                    "type": "object",
+                },
+                "liability_maturities": {
+                    "description": "Liability "
+                    "cash "
+                    "outflows "
+                    "maturing "
+                    "in each "
+                    "bucket.",
+                    "type": "object",
+                },
             },
             "required": ["asset_maturities", "liability_maturities"],
             "type": "object",
@@ -654,10 +1036,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_risk_appetite_threshold",
         "input_schema": {
             "properties": {
-                "amber_threshold": {"type": "number"},
-                "green_threshold": {"type": "number"},
-                "higher_is_better": {"default": True, "type": "boolean"},
-                "metric_value": {"type": "number"},
+                "amber_threshold": {
+                    "description": "Boundary for " "the amber " "zone.",
+                    "type": "number",
+                },
+                "green_threshold": {
+                    "description": "Boundary for " "the green " "zone.",
+                    "type": "number",
+                },
+                "higher_is_better": {
+                    "default": True,
+                    "description": "Direction of " "the metric.",
+                    "type": "boolean",
+                },
+                "metric_value": {"description": "Current metric " "value.", "type": "number"},
             },
             "required": ["metric_value", "green_threshold", "amber_threshold"],
             "type": "object",
@@ -672,7 +1064,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "liquidity_scorecard_aggregation",
         "input_schema": {
-            "properties": {"scores": {"type": "object"}, "weights": {"type": "object"}},
+            "properties": {
+                "scores": {"description": "Individual component " "scores.", "type": "object"},
+                "weights": {
+                    "description": "Weight per component " "(need not sum to 1; " "normalised).",
+                    "type": "object",
+                },
+            },
             "required": ["scores", "weights"],
             "type": "object",
         },
@@ -688,10 +1086,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_stress_scenario",
         "input_schema": {
             "properties": {
-                "balances": {"type": "object"},
-                "hqla": {"type": "number"},
-                "inflows": {"default": 0.0, "type": "number"},
-                "runoff_rates": {"type": "object"},
+                "balances": {
+                    "description": "Outstanding balance " "of each funding " "category.",
+                    "type": "object",
+                },
+                "hqla": {
+                    "description": "Available high-quality " "liquid assets " "(post-haircut).",
+                    "type": "number",
+                },
+                "inflows": {
+                    "default": 0.0,
+                    "description": "Stressed contractual " "inflows over the " "horizon.",
+                    "type": "number",
+                },
+                "runoff_rates": {
+                    "description": "Stressed run-off " "rate per " "category, each " "in [0, 1].",
+                    "type": "object",
+                },
             },
             "required": ["balances", "runoff_rates", "hqla"],
             "type": "object",
@@ -711,11 +1122,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_transfer_pricing",
         "input_schema": {
             "properties": {
-                "base_rate": {"type": "number"},
-                "contingent_spread": {"default": 0.0, "type": "number"},
-                "liquidity_spread": {"type": "number"},
-                "notional": {"type": "number"},
-                "tenor_years": {"type": "number"},
+                "base_rate": {
+                    "description": "Reference/base " "funding rate " "(decimal).",
+                    "type": "number",
+                },
+                "contingent_spread": {
+                    "default": 0.0,
+                    "description": "Contingent "
+                    "liquidity "
+                    "premium for "
+                    "undrawn/optional "
+                    "commitments "
+                    "(decimal).",
+                    "type": "number",
+                },
+                "liquidity_spread": {
+                    "description": "Term " "liquidity " "premium " "(decimal).",
+                    "type": "number",
+                },
+                "notional": {"description": "Position notional " "being funded.", "type": "number"},
+                "tenor_years": {
+                    "description": "Funding tenor in " "years (>= 0).",
+                    "type": "number",
+                },
             },
             "required": ["notional", "tenor_years", "base_rate", "liquidity_spread"],
             "type": "object",
@@ -745,11 +1174,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_var_liqvar",
         "input_schema": {
             "properties": {
-                "base_outflow": {"type": "number"},
-                "confidence_level": {"default": 0.99, "type": "number"},
-                "n_simulations": {"default": 100000, "type": "integer"},
-                "outflow_vol": {"type": "number"},
-                "seed": {"default": 42, "type": "object"},
+                "base_outflow": {"description": "Expected net " "cash outflow.", "type": "number"},
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "Confidence " "in [0.90, " "0.9999].",
+                    "type": "number",
+                },
+                "n_simulations": {
+                    "default": 100000,
+                    "description": "Number of Monte " "Carlo draws.",
+                    "type": "integer",
+                },
+                "outflow_vol": {
+                    "description": "Relative " "volatility of net " "outflow (>= 0).",
+                    "type": "number",
+                },
+                "seed": {
+                    "default": 42,
+                    "description": "RNG seed for " "reproducibility.",
+                    "type": "object",
+                },
             },
             "required": ["base_outflow", "outflow_vol"],
             "type": "object",
@@ -767,9 +1211,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "market_wide_stress_scenario",
         "input_schema": {
             "properties": {
-                "hqla_by_level": {"type": "object"},
-                "market_haircuts": {"type": "object"},
-                "outflow": {"type": "number"},
+                "hqla_by_level": {
+                    "description": "HQLA market " "value per level " "(e.g. [L1, L2A, " "L2B]).",
+                    "type": "object",
+                },
+                "market_haircuts": {
+                    "description": "Additional "
+                    "stressed "
+                    "haircut per "
+                    "level, each "
+                    "in [0, 1].",
+                    "type": "object",
+                },
+                "outflow": {
+                    "description": "Stressed net cash " "outflow over the " "horizon.",
+                    "type": "number",
+                },
             },
             "required": ["hqla_by_level", "market_haircuts", "outflow"],
             "type": "object",
@@ -787,8 +1244,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "net_stable_funding_ratio_nsfr",
         "input_schema": {
             "properties": {
-                "available_stable_funding": {"type": "number"},
-                "required_stable_funding": {"type": "number"},
+                "available_stable_funding": {
+                    "description": "Total "
+                    "ASF "
+                    "(see "
+                    ":func:`available_stable_funding_asf_calc`).",
+                    "type": "number",
+                },
+                "required_stable_funding": {
+                    "description": "Total "
+                    "RSF "
+                    "(see "
+                    ":func:`required_stable_funding_rsf_calc`).",
+                    "type": "number",
+                },
             },
             "required": ["available_stable_funding", "required_stable_funding"],
             "type": "object",
@@ -806,9 +1275,28 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "repo_market_stress_haircut",
         "input_schema": {
             "properties": {
-                "base_haircuts": {"type": "object"},
-                "collateral_values": {"type": "object"},
-                "stress_multipliers": {"type": "object"},
+                "base_haircuts": {
+                    "description": "Current repo "
+                    "haircut per "
+                    "collateral "
+                    "type, in [0, "
+                    "1].",
+                    "type": "object",
+                },
+                "collateral_values": {
+                    "description": "Market " "value of " "pledged " "collateral " "per type.",
+                    "type": "object",
+                },
+                "stress_multipliers": {
+                    "description": "Multiplier "
+                    "applied to "
+                    "each "
+                    "haircut "
+                    "under "
+                    "stress (>= "
+                    "1.0).",
+                    "type": "object",
+                },
             },
             "required": ["base_haircuts", "stress_multipliers", "collateral_values"],
             "type": "object",
@@ -826,7 +1314,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "required_stable_funding_rsf_calc",
         "input_schema": {
-            "properties": {"asset_amounts": {"type": "object"}, "rsf_factors": {"type": "object"}},
+            "properties": {
+                "asset_amounts": {
+                    "description": "Carrying " "amounts of each " "asset / " "off-balance " "item.",
+                    "type": "object",
+                },
+                "rsf_factors": {
+                    "description": "RSF factor for " "each asset, each " "in [0, 1].",
+                    "type": "object",
+                },
+            },
             "required": ["asset_amounts", "rsf_factors"],
             "type": "object",
         },
@@ -843,8 +1340,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "retail_deposit_runoff_rate",
         "input_schema": {
             "properties": {
-                "deposit_balances": {"type": "object"},
-                "runoff_rates": {"type": "object"},
+                "deposit_balances": {
+                    "description": "Balance per " "retail " "deposit " "category.",
+                    "type": "object",
+                },
+                "runoff_rates": {
+                    "description": "Run-off rate per " "category, each " "in [0, 1].",
+                    "type": "object",
+                },
             },
             "required": ["deposit_balances", "runoff_rates"],
             "type": "object",
@@ -861,8 +1364,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "secured_funding_rollover_risk",
         "input_schema": {
             "properties": {
-                "maturing_amounts": {"type": "object"},
-                "rollover_rates": {"type": "object"},
+                "maturing_amounts": {
+                    "description": "Amount of " "secured " "funding " "maturing per " "tranche.",
+                    "type": "object",
+                },
+                "rollover_rates": {
+                    "description": "Assumed "
+                    "rollover "
+                    "(renewal) rate "
+                    "per tranche, "
+                    "in [0, 1].",
+                    "type": "object",
+                },
             },
             "required": ["maturing_amounts", "rollover_rates"],
             "type": "object",
@@ -884,7 +1397,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "survival_horizon_calculator",
         "input_schema": {
-            "properties": {"daily_net_outflows": {"type": "object"}, "hqla": {"type": "number"}},
+            "properties": {
+                "daily_net_outflows": {
+                    "description": "Array of "
+                    "daily net "
+                    "cash "
+                    "outflows "
+                    "(positive "
+                    "= drain).",
+                    "type": "object",
+                },
+                "hqla": {
+                    "description": "Opening counterbalancing " "capacity (HQLA).",
+                    "type": "number",
+                },
+            },
             "required": ["hqla", "daily_net_outflows"],
             "type": "object",
         },
@@ -900,7 +1427,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "liquidity",
         "function_name": "wholesale_funding_concentration",
         "input_schema": {
-            "properties": {"counterparty_amounts": {"type": "object"}},
+            "properties": {
+                "counterparty_amounts": {
+                    "description": "Funding "
+                    "amount "
+                    "from "
+                    "each "
+                    "wholesale "
+                    "counterparty.",
+                    "type": "object",
+                }
+            },
             "required": ["counterparty_amounts"],
             "type": "object",
         },

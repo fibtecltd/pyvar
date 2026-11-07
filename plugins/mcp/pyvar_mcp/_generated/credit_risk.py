@@ -24,13 +24,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "altman_z_score_credit_scoring",
         "input_schema": {
             "properties": {
-                "ebit": {"type": "number"},
-                "market_value_equity": {"type": "number"},
-                "retained_earnings": {"type": "number"},
-                "sales": {"type": "number"},
-                "total_assets": {"type": "number"},
-                "total_liabilities": {"type": "number"},
-                "working_capital": {"type": "number"},
+                "ebit": {"description": "Earnings before interest " "and tax.", "type": "number"},
+                "market_value_equity": {
+                    "description": "Market " "value of " "equity.",
+                    "type": "number",
+                },
+                "retained_earnings": {"description": "Retained " "earnings.", "type": "number"},
+                "sales": {"description": "Net sales.", "type": "number"},
+                "total_assets": {"description": "Total assets (> " "0).", "type": "number"},
+                "total_liabilities": {
+                    "description": "Total " "liabilities " "(> 0).",
+                    "type": "number",
+                },
+                "working_capital": {"description": "Working " "capital.", "type": "number"},
             },
             "required": [
                 "working_capital",
@@ -56,9 +62,33 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_standardised_approach_rwa",
         "input_schema": {
             "properties": {
-                "credit_risk_mitigation": {"default": 0.0, "type": "number"},
-                "ead": {"type": "number"},
-                "risk_weight": {"type": "number"},
+                "credit_risk_mitigation": {
+                    "default": 0.0,
+                    "description": "Eligible "
+                    "collateral "
+                    "/ "
+                    "guarantee "
+                    "value "
+                    "netted "
+                    "from "
+                    "EAD "
+                    "before "
+                    "weighting "
+                    "(>= "
+                    "0).",
+                    "type": "number",
+                },
+                "ead": {
+                    "description": "Exposure at default " "(currency amount, >= 0).",
+                    "type": "number",
+                },
+                "risk_weight": {
+                    "description": "Supervisory risk "
+                    "weight as a "
+                    "fraction (e.g. "
+                    "1.0 for 100%).",
+                    "type": "number",
+                },
             },
             "required": ["ead", "risk_weight"],
             "type": "object",
@@ -77,10 +107,31 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "capital_valuation_adjustment_kva",
         "input_schema": {
             "properties": {
-                "capital_profile": {"type": "object"},
-                "cost_of_capital": {"default": 0.1, "type": "number"},
-                "discount_factors": {"type": "object"},
-                "time_steps": {"type": "object"},
+                "capital_profile": {
+                    "description": "``(n,)`` "
+                    "regulatory "
+                    "capital held "
+                    "per bucket "
+                    "(>= 0).",
+                    "type": "object",
+                },
+                "cost_of_capital": {
+                    "default": 0.1,
+                    "description": "Hurdle rate / "
+                    "cost of "
+                    "capital "
+                    "(decimal, "
+                    "e.g. 0.10).",
+                    "type": "number",
+                },
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times (years).",
+                    "type": "object",
+                },
             },
             "required": ["capital_profile", "time_steps", "discount_factors"],
             "type": "object",
@@ -99,13 +150,41 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cds_pricing_isda_standard",
         "input_schema": {
             "properties": {
-                "accrual_factors": {"type": "object"},
-                "contract_spread": {"type": "number"},
-                "discount_factors": {"type": "object"},
-                "hazard_rate": {"type": "number"},
-                "notional": {"default": 1.0, "type": "number"},
-                "payment_times": {"type": "object"},
-                "recovery_rate": {"default": 0.4, "type": "number"},
+                "accrual_factors": {
+                    "description": "``(n,)`` "
+                    "day-count "
+                    "accrual "
+                    "fractions per "
+                    "period (>= "
+                    "0).",
+                    "type": "object",
+                },
+                "contract_spread": {
+                    "description": "Contractual " "(running) CDS " "spread " "(decimal).",
+                    "type": "number",
+                },
+                "discount_factors": {
+                    "description": "``(n,)`` " "risk-free " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "hazard_rate": {
+                    "description": "Flat hazard rate " "lambda (>= 0).",
+                    "type": "number",
+                },
+                "notional": {"default": 1.0, "description": "Contract notional.", "type": "number"},
+                "payment_times": {
+                    "description": "``(n,)`` "
+                    "strictly "
+                    "increasing "
+                    "premium-payment "
+                    "times.",
+                    "type": "object",
+                },
+                "recovery_rate": {
+                    "default": 0.4,
+                    "description": "Recovery rate " "in ``[0, 1)``.",
+                    "type": "number",
+                },
             },
             "required": [
                 "payment_times",
@@ -129,9 +208,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cds_spread_to_pd_conversion",
         "input_schema": {
             "properties": {
-                "cds_spread": {"type": "number"},
-                "maturity": {"type": "number"},
-                "recovery_rate": {"default": 0.4, "type": "number"},
+                "cds_spread": {
+                    "description": "CDS par spread " "(decimal, e.g. " "0.015 = 150 bps, " ">= 0).",
+                    "type": "number",
+                },
+                "maturity": {"description": "Horizon T in years " "(> 0).", "type": "number"},
+                "recovery_rate": {
+                    "default": 0.4,
+                    "description": "Recovery rate " "in ``[0, 1)``.",
+                    "type": "number",
+                },
             },
             "required": ["cds_spread", "maturity"],
             "type": "object",
@@ -150,9 +236,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "collateral_haircut_calculation",
         "input_schema": {
             "properties": {
-                "collateral_value": {"type": "number"},
-                "haircut_collateral": {"type": "number"},
-                "haircut_fx": {"default": 0.0, "type": "number"},
+                "collateral_value": {
+                    "description": "Nominal " "collateral " "market value " "(>= 0).",
+                    "type": "number",
+                },
+                "haircut_collateral": {
+                    "description": "Collateral " "volatility " "haircut in " "``[0, " "1]``.",
+                    "type": "number",
+                },
+                "haircut_fx": {
+                    "default": 0.0,
+                    "description": "Currency-mismatch " "haircut in ``[0, " "1]``.",
+                    "type": "number",
+                },
             },
             "required": ["collateral_value", "haircut_collateral"],
             "type": "object",
@@ -177,10 +273,28 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "corporate_credit_scoring_model",
         "input_schema": {
             "properties": {
-                "factor_scores": {"type": "object"},
-                "factor_weights": {"type": "object"},
-                "pd_anchor": {"default": 0.5, "type": "number"},
-                "pd_floor": {"default": 0.0003, "type": "number"},
+                "factor_scores": {
+                    "description": "``(k,)`` factor " "strengths in " "``[0, 1]`` (1 = " "best).",
+                    "type": "object",
+                },
+                "factor_weights": {
+                    "description": "``(k,)`` "
+                    "non-negative "
+                    "weights "
+                    "(normalised "
+                    "internally).",
+                    "type": "object",
+                },
+                "pd_anchor": {
+                    "default": 0.5,
+                    "description": "PD assigned to the " "weakest borrower " "(strength 0).",
+                    "type": "number",
+                },
+                "pd_floor": {
+                    "default": 0.0003,
+                    "description": "Regulatory PD floor.",
+                    "type": "number",
+                },
             },
             "required": ["factor_scores", "factor_weights"],
             "type": "object",
@@ -197,9 +311,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "counterparty_credit_risk_ccr_exposure",
         "input_schema": {
             "properties": {
-                "add_on": {"type": "number"},
-                "collateral": {"default": 0.0, "type": "number"},
-                "mark_to_market": {"type": "number"},
+                "add_on": {
+                    "description": "Potential-future-exposure " "add-on (>= 0).",
+                    "type": "number",
+                },
+                "collateral": {
+                    "default": 0.0,
+                    "description": "Collateral held " "against the " "exposure (>= 0).",
+                    "type": "number",
+                },
+                "mark_to_market": {
+                    "description": "Current MtM of "
+                    "the netting "
+                    "set (positive "
+                    "= in-the-money "
+                    "to the "
+                    "reporting "
+                    "bank).",
+                    "type": "number",
+                },
             },
             "required": ["mark_to_market", "add_on"],
             "type": "object",
@@ -215,7 +345,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "credit-risk",
         "function_name": "credit_concentration_risk_hhi",
         "input_schema": {
-            "properties": {"exposures": {"type": "object"}},
+            "properties": {
+                "exposures": {
+                    "description": "Per-name exposure "
+                    "amounts (>= 0, at "
+                    "least one "
+                    "positive).",
+                    "type": "object",
+                }
+            },
             "required": ["exposures"],
             "type": "object",
         },
@@ -233,12 +371,44 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_default_swap_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {"default": 0.99, "type": "number"},
-                "horizon_days": {"default": 1, "type": "integer"},
-                "notional": {"type": "number"},
-                "position": {"default": "long_protection", "type": "string"},
-                "risky_annuity": {"type": "number"},
-                "spread_volatility": {"type": "number"},
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "VaR " "confidence " "in ``[0.90, " "0.9999]``.",
+                    "type": "number",
+                },
+                "horizon_days": {
+                    "default": 1,
+                    "description": "Risk horizon in " "trading days " "(sqrt-time " "scaling).",
+                    "type": "integer",
+                },
+                "notional": {"description": "CDS notional.", "type": "number"},
+                "position": {
+                    "default": "long_protection",
+                    "description": '``"long_protection"`` '
+                    "or "
+                    '``"short_protection"`` '
+                    "(affects only the "
+                    "sign of "
+                    "``pnl_sensitivity``; "
+                    "VaR magnitude is "
+                    "identical).",
+                    "type": "string",
+                },
+                "risky_annuity": {
+                    "description": "Risky annuity " "(RPV01) of the " "contract (>= " "0).",
+                    "type": "number",
+                },
+                "spread_volatility": {
+                    "description": "Daily "
+                    "absolute "
+                    "spread "
+                    "volatility "
+                    "(decimal, "
+                    "e.g. 0.0005 "
+                    "= 5 "
+                    "bps/day).",
+                    "type": "number",
+                },
             },
             "required": ["notional", "risky_annuity", "spread_volatility"],
             "type": "object",
@@ -261,10 +431,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_portfolio_optimisation",
         "input_schema": {
             "properties": {
-                "expected_losses": {"type": "object"},
-                "expected_returns": {"type": "object"},
-                "max_weight": {"default": 1.0, "type": "number"},
-                "risk_aversion": {"default": 1.0, "type": "number"},
+                "expected_losses": {
+                    "description": "``(n,)`` " "per-asset " "expected loss " "rates (>= 0).",
+                    "type": "object",
+                },
+                "expected_returns": {
+                    "description": "``(n,)`` " "per-asset " "expected " "returns.",
+                    "type": "object",
+                },
+                "max_weight": {
+                    "default": 1.0,
+                    "description": "Per-name " "concentration cap " "in ``(0, 1]``.",
+                    "type": "number",
+                },
+                "risk_aversion": {
+                    "default": 1.0,
+                    "description": "Penalty applied " "to expected " "loss (>= 0).",
+                    "type": "number",
+                },
             },
             "required": ["expected_returns", "expected_losses"],
             "type": "object",
@@ -285,9 +469,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_spread_curve_bootstrap",
         "input_schema": {
             "properties": {
-                "par_spreads": {"type": "object"},
-                "recovery_rate": {"default": 0.4, "type": "number"},
-                "tenors": {"type": "object"},
+                "par_spreads": {
+                    "description": "Par CDS spreads " "per tenor " "(decimal, >= 0).",
+                    "type": "object",
+                },
+                "recovery_rate": {
+                    "default": 0.4,
+                    "description": "Recovery rate " "in ``[0, 1)``.",
+                    "type": "number",
+                },
+                "tenors": {
+                    "description": "Strictly increasing " "CDS tenors in years (> " "0).",
+                    "type": "object",
+                },
             },
             "required": ["tenors", "par_spreads"],
             "type": "object",
@@ -309,11 +503,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_stress_testing",
         "input_schema": {
             "properties": {
-                "ead": {"type": "object"},
-                "lgd": {"type": "object"},
-                "lgd_shock_multiplier": {"default": 1.2, "type": "number"},
-                "pd": {"type": "object"},
-                "pd_shock_multiplier": {"default": 1.5, "type": "number"},
+                "ead": {"description": "``(n,)`` EAD per exposure " "(>= 0).", "type": "object"},
+                "lgd": {
+                    "description": "``(n,)`` baseline LGD per " "exposure in ``[0, 1]``.",
+                    "type": "object",
+                },
+                "lgd_shock_multiplier": {
+                    "default": 1.2,
+                    "description": "Multiplier " "applied " "to LGD " "under " "stress " "(>= 1).",
+                    "type": "number",
+                },
+                "pd": {
+                    "description": "``(n,)`` baseline PD per " "exposure in ``[0, 1]``.",
+                    "type": "object",
+                },
+                "pd_shock_multiplier": {
+                    "default": 1.5,
+                    "description": "Multiplier " "applied " "to PD " "under " "stress " "(>= 1).",
+                    "type": "number",
+                },
             },
             "required": ["pd", "lgd", "ead"],
             "type": "object",
@@ -331,11 +539,31 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_valuation_adjustment_cva",
         "input_schema": {
             "properties": {
-                "credit_spread": {"type": "number"},
-                "discount_factors": {"type": "object"},
-                "expected_exposure": {"type": "object"},
-                "recovery_rate": {"default": 0.4, "type": "number"},
-                "time_steps": {"type": "object"},
+                "credit_spread": {
+                    "description": "Counterparty "
+                    "CDS spread "
+                    "(decimal, e.g. "
+                    "0.01 = 100 "
+                    "bps).",
+                    "type": "number",
+                },
+                "discount_factors": {
+                    "description": "``(n,)`` " "risk-free " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "expected_exposure": {
+                    "description": "``(n,)`` " "discounted-or-not " "EPE per " "bucket (>= " "0).",
+                    "type": "object",
+                },
+                "recovery_rate": {
+                    "default": 0.4,
+                    "description": "Counterparty " "recovery rate " "in ``[0, 1)``.",
+                    "type": "number",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times (years).",
+                    "type": "object",
+                },
             },
             "required": ["expected_exposure", "time_steps", "discount_factors", "credit_spread"],
             "type": "object",
@@ -356,11 +584,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_var_analytical_vasicek",
         "input_schema": {
             "properties": {
-                "asset_correlation": {"default": 0.15, "type": "number"},
-                "confidence_level": {"default": 0.999, "type": "number"},
-                "ead_total": {"type": "number"},
-                "lgd": {"type": "number"},
-                "pd": {"type": "number"},
+                "asset_correlation": {
+                    "default": 0.15,
+                    "description": "Asset " "correlation " "rho in " "``[0, 1)``.",
+                    "type": "number",
+                },
+                "confidence_level": {
+                    "default": 0.999,
+                    "description": "VaR " "confidence " "in ``[0.90, " "0.9999]``.",
+                    "type": "number",
+                },
+                "ead_total": {
+                    "description": "Total portfolio " "exposure at default " "(>= 0).",
+                    "type": "number",
+                },
+                "lgd": {"description": "Loss given default in " "``[0, 1]``.", "type": "number"},
+                "pd": {
+                    "description": "Portfolio probability of " "default in ``(0, 1)``.",
+                    "type": "number",
+                },
             },
             "required": ["pd", "lgd", "ead_total"],
             "type": "object",
@@ -379,13 +621,48 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_var_monte_carlo",
         "input_schema": {
             "properties": {
-                "asset_correlation": {"default": 0.15, "type": "object"},
-                "confidence_level": {"default": 0.999, "type": "number"},
-                "ead": {"type": "object"},
-                "lgd": {"type": "object"},
-                "n_simulations": {"default": 50000, "type": "integer"},
-                "pd": {"type": "object"},
-                "seed": {"default": 12345, "type": "integer"},
+                "asset_correlation": {
+                    "default": 0.15,
+                    "description": "Scalar or "
+                    "per-obligor "
+                    "asset "
+                    "correlation "
+                    "rho in "
+                    "``[0, 1)``.",
+                    "type": "object",
+                },
+                "confidence_level": {
+                    "default": 0.999,
+                    "description": "VaR "
+                    "confidence "
+                    "in ``[0.90, "
+                    "0.9999]`` "
+                    "(Basel "
+                    "99.9%).",
+                    "type": "number",
+                },
+                "ead": {
+                    "description": "Per-obligor exposure at " "default (>= 0).",
+                    "type": "object",
+                },
+                "lgd": {
+                    "description": "Per-obligor loss given " "default in ``[0, 1]``.",
+                    "type": "object",
+                },
+                "n_simulations": {
+                    "default": 50000,
+                    "description": "Number of " "Monte-Carlo " "paths.",
+                    "type": "integer",
+                },
+                "pd": {
+                    "description": "Per-obligor probability of " "default in ``(0, 1)``.",
+                    "type": "object",
+                },
+                "seed": {
+                    "default": 12345,
+                    "description": "RNG seed for " "reproducibility.",
+                    "type": "integer",
+                },
             },
             "required": ["pd", "lgd", "ead"],
             "type": "object",
@@ -433,16 +710,93 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "creditmetrics_portfolio_model",
         "input_schema": {
             "properties": {
-                "asset_correlation": {"default": 0.2, "type": "number"},
-                "confidence_level": {"default": 0.99, "type": "number"},
-                "current_rating": {"type": "object"},
-                "exposures": {"type": "object"},
-                "lgd": {"type": "object"},
-                "n_simulations": {"default": 20000, "type": "integer"},
-                "pd": {"type": "object"},
-                "seed": {"default": 2024, "type": "integer"},
-                "state_loss_pct": {"type": "object"},
-                "transition_matrix": {"type": "object"},
+                "asset_correlation": {
+                    "default": 0.2,
+                    "description": "Common-factor " "asset " "correlation " "in ``[0, " "1)``.",
+                    "type": "number",
+                },
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "VaR " "confidence " "in ``[0.90, " "0.9999]``.",
+                    "type": "number",
+                },
+                "current_rating": {
+                    "description": "Multi-state "
+                    "only. "
+                    "Per-obligor "
+                    "starting "
+                    "rating index "
+                    "in ``[0, "
+                    "n_states - "
+                    "1)`` (an "
+                    "obligor cannot "
+                    "start already "
+                    "in default).",
+                    "type": "object",
+                },
+                "exposures": {"description": "Per-obligor " "exposure (>= 0).", "type": "object"},
+                "lgd": {
+                    "description": "Per-obligor LGD in ``[0, "
+                    "1]`` — always used for "
+                    "the default-state loss, "
+                    "in both modes.",
+                    "type": "object",
+                },
+                "n_simulations": {
+                    "default": 20000,
+                    "description": "Number of " "Monte-Carlo " "paths.",
+                    "type": "integer",
+                },
+                "pd": {
+                    "description": "Per-obligor PD in ``(0, "
+                    "1)`` — always used for the "
+                    "default threshold, in both "
+                    "modes. In multi-state mode "
+                    "this OVERRIDES "
+                    "``transition_matrix``'s "
+                    "own default probability "
+                    "for that obligor (see "
+                    "above), it is not blended "
+                    "or ignored.",
+                    "type": "object",
+                },
+                "seed": {"default": 2024, "description": "RNG seed.", "type": "integer"},
+                "state_loss_pct": {
+                    "description": "Multi-state "
+                    "only. "
+                    "``(n_states - "
+                    "1,)`` loss "
+                    "percentage of "
+                    "exposure if "
+                    "migrated to "
+                    "each "
+                    "non-default "
+                    "state (index 0 "
+                    "= best "
+                    "rating). The "
+                    "default "
+                    "state's loss "
+                    "always comes "
+                    "from that "
+                    "obligor's own "
+                    "``lgd``, not "
+                    "from this "
+                    "array.",
+                    "type": "object",
+                },
+                "transition_matrix": {
+                    "description": "Multi-state "
+                    "only. "
+                    "Row-stochastic "
+                    "``(n_states, "
+                    "n_states)`` "
+                    "rating "
+                    "transition "
+                    "matrix "
+                    "(rows sum "
+                    "to 1).",
+                    "type": "object",
+                },
             },
             "required": ["exposures", "pd", "lgd"],
             "type": "object",
@@ -462,9 +816,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "current_exposure_method_cem",
         "input_schema": {
             "properties": {
-                "add_on_factor": {"type": "number"},
-                "mark_to_market": {"type": "number"},
-                "notional": {"type": "number"},
+                "add_on_factor": {
+                    "description": "Supervisory " "add-on factor " "in ``[0, 1]``.",
+                    "type": "number",
+                },
+                "mark_to_market": {
+                    "description": "Current MtM " "(replacement " "cost " "component).",
+                    "type": "number",
+                },
+                "notional": {
+                    "description": "Trade / netting-set " "notional (>= 0).",
+                    "type": "number",
+                },
             },
             "required": ["mark_to_market", "notional", "add_on_factor"],
             "type": "object",
@@ -484,12 +847,32 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cva_sensitivity_cva_greeks",
         "input_schema": {
             "properties": {
-                "credit_spread": {"type": "number"},
-                "discount_factors": {"type": "object"},
-                "expected_exposure": {"type": "object"},
-                "recovery_rate": {"default": 0.4, "type": "number"},
-                "spread_bump": {"default": 0.0001, "type": "number"},
-                "time_steps": {"type": "object"},
+                "credit_spread": {
+                    "description": "Counterparty " "CDS spread " "(decimal).",
+                    "type": "number",
+                },
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "expected_exposure": {
+                    "description": "``(n,)`` " "EPE per " "bucket (>= " "0).",
+                    "type": "object",
+                },
+                "recovery_rate": {
+                    "default": 0.4,
+                    "description": "Counterparty " "recovery rate " "in ``[0, 1)``.",
+                    "type": "number",
+                },
+                "spread_bump": {
+                    "default": 0.0001,
+                    "description": "Spread shift for " "the CS01 bump " "(default 1 bp).",
+                    "type": "number",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times (years).",
+                    "type": "object",
+                },
             },
             "required": ["expected_exposure", "time_steps", "discount_factors", "credit_spread"],
             "type": "object",
@@ -511,11 +894,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "debt_valuation_adjustment_dva",
         "input_schema": {
             "properties": {
-                "discount_factors": {"type": "object"},
-                "expected_negative_exposure": {"type": "object"},
-                "own_credit_spread": {"type": "number"},
-                "own_recovery_rate": {"default": 0.4, "type": "number"},
-                "time_steps": {"type": "object"},
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "expected_negative_exposure": {
+                    "description": "``(n,)`` " "ENE " "per " "bucket " "(>= " "0, " "magnitude).",
+                    "type": "object",
+                },
+                "own_credit_spread": {
+                    "description": "The bank's " "own CDS " "spread " "(decimal).",
+                    "type": "number",
+                },
+                "own_recovery_rate": {
+                    "default": 0.4,
+                    "description": "The bank's " "own " "recovery " "rate in " "``[0, 1)``.",
+                    "type": "number",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times.",
+                    "type": "object",
+                },
             },
             "required": [
                 "expected_negative_exposure",
@@ -538,7 +937,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "credit-risk",
         "function_name": "default_correlation_matrix",
         "input_schema": {
-            "properties": {"asset_correlation": {"type": "object"}, "pd": {"type": "object"}},
+            "properties": {
+                "asset_correlation": {
+                    "description": "Symmetric "
+                    "``(n, n)`` "
+                    "asset-correlation "
+                    "matrix with "
+                    "unit "
+                    "diagonal, "
+                    "entries in "
+                    "``[-1, "
+                    "1]``.",
+                    "type": "object",
+                },
+                "pd": {"description": "Per-obligor PD in ``(0, " "1)``.", "type": "object"},
+            },
             "required": ["pd", "asset_correlation"],
             "type": "object",
         },
@@ -566,10 +979,28 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "downturn_lgd_adjustment",
         "input_schema": {
             "properties": {
-                "downturn_multiplier": {"default": 1.0, "type": "number"},
-                "floor": {"default": 0.0, "type": "number"},
-                "lgd_long_run": {"type": "number"},
-                "method": {"default": "multiplicative", "type": "string"},
+                "downturn_multiplier": {
+                    "default": 1.0,
+                    "description": "Multiplier " "(>= 1) " "reflecting " "downturn " "severity.",
+                    "type": "number",
+                },
+                "floor": {
+                    "default": 0.0,
+                    "description": "Regulatory LGD floor "
+                    "(e.g. 0.05 for retail "
+                    "mortgages, CRR Art. "
+                    "164).",
+                    "type": "number",
+                },
+                "lgd_long_run": {
+                    "description": "Long-run average " "LGD in ``[0, " "1]``.",
+                    "type": "number",
+                },
+                "method": {
+                    "default": "multiplicative",
+                    "description": '``"multiplicative"`` ' "(default) or " '``"additive"``.',
+                    "type": "string",
+                },
             },
             "required": ["lgd_long_run"],
             "type": "object",
@@ -589,8 +1020,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "effective_epe_regulatory",
         "input_schema": {
             "properties": {
-                "expected_exposure": {"type": "object"},
-                "time_steps": {"type": "object"},
+                "expected_exposure": {
+                    "description": "``(n,)`` " "expected-exposure " "profile (>= " "0).",
+                    "type": "object",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing time " "points (years).",
+                    "type": "object",
+                },
             },
             "required": ["expected_exposure", "time_steps"],
             "type": "object",
@@ -605,9 +1042,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "expected_loss_el_computation",
         "input_schema": {
             "properties": {
-                "ead": {"type": "number"},
-                "lgd": {"type": "number"},
-                "pd": {"type": "number"},
+                "ead": {
+                    "description": "Exposure at default " "(currency amount, >= 0).",
+                    "type": "number",
+                },
+                "lgd": {"description": "Loss given default in " "``[0, 1]``.", "type": "number"},
+                "pd": {"description": "Probability of default in " "``[0, 1]``.", "type": "number"},
             },
             "required": ["pd", "lgd", "ead"],
             "type": "object",
@@ -624,8 +1064,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "expected_positive_exposure_epe",
         "input_schema": {
             "properties": {
-                "expected_exposure": {"type": "object"},
-                "time_steps": {"type": "object"},
+                "expected_exposure": {
+                    "description": "``(n,)`` " "expected-exposure " "profile " "EE(t) (>= " "0).",
+                    "type": "object",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly "
+                    "increasing time "
+                    "points (years), "
+                    "starting at or "
+                    "after 0.",
+                    "type": "object",
+                },
             },
             "required": ["expected_exposure", "time_steps"],
             "type": "object",
@@ -645,9 +1095,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "exposure_at_default_ead_calculator",
         "input_schema": {
             "properties": {
-                "credit_conversion_factor": {"default": 0.75, "type": "number"},
-                "drawn": {"type": "number"},
-                "undrawn": {"type": "number"},
+                "credit_conversion_factor": {
+                    "default": 0.75,
+                    "description": "CCF "
+                    "in "
+                    "``[0, "
+                    "1]`` "
+                    "applied "
+                    "to "
+                    "the "
+                    "undrawn "
+                    "part.",
+                    "type": "number",
+                },
+                "drawn": {
+                    "description": "Currently drawn " "(on-balance-sheet) " "amount.",
+                    "type": "number",
+                },
+                "undrawn": {
+                    "description": "Undrawn committed " "(off-balance-sheet) " "amount.",
+                    "type": "number",
+                },
             },
             "required": ["drawn", "undrawn"],
             "type": "object",
@@ -668,11 +1136,38 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "funding_valuation_adjustment_fva",
         "input_schema": {
             "properties": {
-                "discount_factors": {"type": "object"},
-                "expected_exposure": {"type": "object"},
-                "funding_spread": {"type": "number"},
-                "survival_probability": {"type": "object"},
-                "time_steps": {"type": "object"},
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "expected_exposure": {
+                    "description": "``(n,)`` " "EPE per " "bucket (>= " "0).",
+                    "type": "object",
+                },
+                "funding_spread": {
+                    "description": "Bank funding " "spread over " "risk-free " "(decimal).",
+                    "type": "number",
+                },
+                "survival_probability": {
+                    "description": "Optional "
+                    "``(n,)`` "
+                    "counterparty "
+                    "survival "
+                    "at each "
+                    "bucket "
+                    "end; "
+                    "defaults "
+                    "to "
+                    "all-ones "
+                    "(no "
+                    "default "
+                    "conditioning).",
+                    "type": "object",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times (years).",
+                    "type": "object",
+                },
             },
             "required": ["expected_exposure", "time_steps", "discount_factors", "funding_spread"],
             "type": "object",
@@ -688,10 +1183,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ifrs_9_12_month_ecl_stage_1",
         "input_schema": {
             "properties": {
-                "discount_factor": {"default": 1.0, "type": "number"},
-                "ead": {"type": "number"},
-                "lgd": {"type": "number"},
-                "pd_12m": {"type": "number"},
+                "discount_factor": {
+                    "default": 1.0,
+                    "description": "Discount "
+                    "factor to the "
+                    "reporting "
+                    "date in ``(0, "
+                    "1]``.",
+                    "type": "number",
+                },
+                "ead": {"description": "Exposure at default (>= " "0).", "type": "number"},
+                "lgd": {"description": "Loss given default in " "``[0, 1]``.", "type": "number"},
+                "pd_12m": {
+                    "description": "12-month probability " "of default in ``[0, " "1]``.",
+                    "type": "number",
+                },
             },
             "required": ["pd_12m", "lgd", "ead"],
             "type": "object",
@@ -712,11 +1218,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ifrs_9_lifetime_ecl_stage_2_3",
         "input_schema": {
             "properties": {
-                "discount_factors": {"type": "object"},
-                "ead": {"type": "object"},
-                "lgd": {"type": "object"},
-                "marginal_pd": {"type": "object"},
-                "stage": {"default": 2, "type": "integer"},
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "ead": {"description": "``(n,)`` per-period EAD " "(>= 0).", "type": "object"},
+                "lgd": {
+                    "description": "``(n,)`` per-period LGD " "in ``[0, 1]``.",
+                    "type": "object",
+                },
+                "marginal_pd": {
+                    "description": "``(n,)`` "
+                    "per-period "
+                    "marginal default "
+                    "probabilities in "
+                    "``[0, 1]`` "
+                    "(should sum to <= "
+                    "1).",
+                    "type": "object",
+                },
+                "stage": {
+                    "default": 2,
+                    "description": "Reported stage (2 or 3) " "for metadata.",
+                    "type": "integer",
+                },
             },
             "required": ["marginal_pd", "lgd", "ead", "discount_factors"],
             "type": "object",
@@ -734,8 +1259,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ifrs_9_scenario_weighted_ecl",
         "input_schema": {
             "properties": {
-                "scenario_ecls": {"type": "object"},
-                "scenario_weights": {"type": "object"},
+                "scenario_ecls": {
+                    "description": "``(s,)`` ECL " "per scenario " "(>= 0).",
+                    "type": "object",
+                },
+                "scenario_weights": {
+                    "description": "``(s,)`` " "scenario " "probabilities " "(>= 0, sum " "to ~1).",
+                    "type": "object",
+                },
             },
             "required": ["scenario_ecls", "scenario_weights"],
             "type": "object",
@@ -757,11 +1288,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ifrs_9_stage_classification_pd_threshold",
         "input_schema": {
             "properties": {
-                "days_past_due": {"default": 0, "type": "integer"},
-                "pd_current": {"type": "number"},
-                "pd_origination": {"type": "number"},
-                "sicr_absolute_threshold": {"default": 0.02, "type": "number"},
-                "sicr_relative_threshold": {"default": 2.0, "type": "number"},
+                "days_past_due": {
+                    "default": 0,
+                    "description": "Days the " "exposure is " "past due (>= " "0).",
+                    "type": "integer",
+                },
+                "pd_current": {
+                    "description": "Current " "(reporting-date) " "lifetime PD in " "``[0, 1]``.",
+                    "type": "number",
+                },
+                "pd_origination": {
+                    "description": "Lifetime PD at " "initial " "recognition in " "``[0, 1]``.",
+                    "type": "number",
+                },
+                "sicr_absolute_threshold": {
+                    "default": 0.02,
+                    "description": "Absolute " "PD " "increase " "triggering " "SICR.",
+                    "type": "number",
+                },
+                "sicr_relative_threshold": {
+                    "default": 2.0,
+                    "description": "Relative " "PD " "multiple " "triggering " "SICR " "(>= " "1).",
+                    "type": "number",
+                },
             },
             "required": ["pd_current", "pd_origination"],
             "type": "object",
@@ -786,12 +1335,34 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ifrs_9_staging_criteria_assessment",
         "input_schema": {
             "properties": {
-                "days_past_due": {"default": 0, "type": "integer"},
-                "forbearance": {"default": False, "type": "boolean"},
-                "pd_current": {"type": "number"},
-                "pd_origination": {"type": "number"},
-                "sicr_relative_threshold": {"default": 2.0, "type": "number"},
-                "watchlist": {"default": False, "type": "boolean"},
+                "days_past_due": {
+                    "default": 0,
+                    "description": "Days past due " "(>= 0).",
+                    "type": "integer",
+                },
+                "forbearance": {
+                    "default": False,
+                    "description": "Whether the " "exposure is under " "forbearance " "measures.",
+                    "type": "boolean",
+                },
+                "pd_current": {
+                    "description": "Current lifetime " "PD in ``[0, 1]``.",
+                    "type": "number",
+                },
+                "pd_origination": {
+                    "description": "Origination " "lifetime PD in " "``[0, 1]``.",
+                    "type": "number",
+                },
+                "sicr_relative_threshold": {
+                    "default": 2.0,
+                    "description": "Relative-PD " "SICR " "multiple " "(>= " "1).",
+                    "type": "number",
+                },
+                "watchlist": {
+                    "default": False,
+                    "description": "Whether the " "exposure is on the " "internal watchlist.",
+                    "type": "boolean",
+                },
             },
             "required": ["pd_current", "pd_origination"],
             "type": "object",
@@ -813,11 +1384,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "irb_advanced_approach_capital",
         "input_schema": {
             "properties": {
-                "correlation": {"type": "object"},
-                "ead": {"type": "number"},
-                "lgd": {"type": "number"},
-                "maturity": {"default": 2.5, "type": "number"},
-                "pd": {"type": "number"},
+                "correlation": {
+                    "description": "Optional override "
+                    "of the asset "
+                    "correlation R "
+                    "(e.g. for an SME "
+                    "or "
+                    "specialised-lending "
+                    "adjustment); "
+                    "``None`` uses the "
+                    "Basel corporate "
+                    "formula.",
+                    "type": "object",
+                },
+                "ead": {
+                    "description": "Own-estimate exposure at " "default (>= 0).",
+                    "type": "number",
+                },
+                "lgd": {
+                    "description": "Own-estimate loss given " "default in ``[0, 1]``.",
+                    "type": "number",
+                },
+                "maturity": {
+                    "default": 2.5,
+                    "description": "Own-estimate " "effective maturity M " "in years.",
+                    "type": "number",
+                },
+                "pd": {
+                    "description": "Own-estimate probability " "of default in ``(0, 1]``.",
+                    "type": "number",
+                },
             },
             "required": ["pd", "lgd", "ead"],
             "type": "object",
@@ -840,11 +1436,37 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "irb_foundation_approach_capital",
         "input_schema": {
             "properties": {
-                "ead": {"type": "number"},
-                "lgd": {"default": 0.45, "type": "number"},
-                "maturity": {"default": 2.5, "type": "number"},
-                "pd": {"type": "number"},
-                "seniority": {"default": "senior_unsecured", "type": "string"},
+                "ead": {
+                    "description": "Exposure at default " "(currency amount, >= 0).",
+                    "type": "number",
+                },
+                "lgd": {
+                    "default": 0.45,
+                    "description": "Override supervisory LGD; "
+                    "ignored unless "
+                    "``seniority`` is custom.",
+                    "type": "number",
+                },
+                "maturity": {
+                    "default": 2.5,
+                    "description": "Effective maturity M "
+                    "in years "
+                    "(supervisory default "
+                    "2.5).",
+                    "type": "number",
+                },
+                "pd": {
+                    "description": "Own-estimate probability " "of default in ``(0, 1]``.",
+                    "type": "number",
+                },
+                "seniority": {
+                    "default": "senior_unsecured",
+                    "description": '``"senior_unsecured"`` '
+                    "(45%) or "
+                    '``"subordinated"`` '
+                    "(75%).",
+                    "type": "string",
+                },
             },
             "required": ["pd", "ead"],
             "type": "object",
@@ -869,12 +1491,35 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "kmv_merton_distance_to_default",
         "input_schema": {
             "properties": {
-                "asset_drift": {"type": "object"},
-                "asset_value": {"type": "number"},
-                "asset_volatility": {"type": "number"},
-                "debt_face_value": {"type": "number"},
-                "horizon": {"default": 1.0, "type": "number"},
-                "risk_free_rate": {"default": 0.0, "type": "number"},
+                "asset_drift": {
+                    "description": "Expected asset "
+                    "return mu; "
+                    "defaults to "
+                    "``risk_free_rate``.",
+                    "type": "object",
+                },
+                "asset_value": {
+                    "description": "Current market " "value of firm " "assets V (> 0).",
+                    "type": "number",
+                },
+                "asset_volatility": {
+                    "description": "Annualised " "asset return " "volatility " "sigma (> 0).",
+                    "type": "number",
+                },
+                "debt_face_value": {
+                    "description": "Default " "boundary / " "debt face " "value D (> " "0).",
+                    "type": "number",
+                },
+                "horizon": {
+                    "default": 1.0,
+                    "description": "Horizon T in years (> " "0).",
+                    "type": "number",
+                },
+                "risk_free_rate": {
+                    "default": 0.0,
+                    "description": "Risk-free rate " "(used when " "``asset_drift`` " "is None).",
+                    "type": "number",
+                },
             },
             "required": ["asset_value", "debt_face_value", "asset_volatility"],
             "type": "object",
@@ -896,11 +1541,35 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "logistic_regression_pd_model",
         "input_schema": {
             "properties": {
-                "defaults": {"type": "object"},
-                "features": {"type": "object"},
-                "max_iter": {"default": 100, "type": "integer"},
-                "ridge": {"default": 1e-06, "type": "number"},
-                "tol": {"default": 1e-08, "type": "number"},
+                "defaults": {
+                    "description": "``(n_samples,)`` "
+                    "binary default "
+                    "indicator in ``{0, "
+                    "1}``.",
+                    "type": "object",
+                },
+                "features": {
+                    "description": "``(n_samples, "
+                    "n_features)`` design "
+                    "matrix (no intercept "
+                    "col).",
+                    "type": "object",
+                },
+                "max_iter": {
+                    "default": 100,
+                    "description": "Maximum Newton " "iterations.",
+                    "type": "integer",
+                },
+                "ridge": {
+                    "default": 1e-06,
+                    "description": "L2 ridge added to the " "Hessian diagonal for " "stability.",
+                    "type": "number",
+                },
+                "tol": {
+                    "default": 1e-08,
+                    "description": "Convergence tolerance on " "the coefficient update " "norm.",
+                    "type": "number",
+                },
             },
             "required": ["features", "defaults"],
             "type": "object",
@@ -916,9 +1585,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "loss_given_default_lgd_model",
         "input_schema": {
             "properties": {
-                "exposure_amounts": {"type": "object"},
-                "recovery_amounts": {"type": "object"},
-                "workout_cost_rate": {"default": 0.0, "type": "number"},
+                "exposure_amounts": {
+                    "description": "Exposure at " "default per " "facility (> " "0).",
+                    "type": "object",
+                },
+                "recovery_amounts": {
+                    "description": "Recovered " "amounts per " "defaulted " "facility.",
+                    "type": "object",
+                },
+                "workout_cost_rate": {
+                    "default": 0.0,
+                    "description": "Workout "
+                    "cost as a "
+                    "fraction of "
+                    "EAD "
+                    "(subtracted "
+                    "from "
+                    "recoveries).",
+                    "type": "number",
+                },
             },
             "required": ["recovery_amounts", "exposure_amounts"],
             "type": "object",
@@ -940,10 +1625,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "machine_learning_pd_calibration",
         "input_schema": {
             "properties": {
-                "defaults": {"type": "object"},
-                "max_iter": {"default": 100, "type": "integer"},
-                "raw_scores": {"type": "object"},
-                "tol": {"default": 1e-08, "type": "number"},
+                "defaults": {
+                    "description": "``(n_samples,)`` " "binary default " "indicator.",
+                    "type": "object",
+                },
+                "max_iter": {
+                    "default": 100,
+                    "description": "Maximum Newton " "iterations.",
+                    "type": "integer",
+                },
+                "raw_scores": {
+                    "description": "``(n_samples,)`` " "uncalibrated model " "scores.",
+                    "type": "object",
+                },
+                "tol": {
+                    "default": 1e-08,
+                    "description": "Convergence tolerance.",
+                    "type": "number",
+                },
             },
             "required": ["raw_scores", "defaults"],
             "type": "object",
@@ -966,10 +1665,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "macroeconomic_overlays_ecl",
         "input_schema": {
             "properties": {
-                "base_ecl": {"type": "number"},
-                "macro_factors": {"type": "object"},
-                "management_overlay": {"default": 0.0, "type": "number"},
-                "sensitivities": {"type": "object"},
+                "base_ecl": {"description": "Model base-case ECL " "(>= 0).", "type": "number"},
+                "macro_factors": {
+                    "description": "``(k,)`` "
+                    "standardised "
+                    "macro "
+                    "deviations "
+                    "(e.g. GDP, "
+                    "unemp).",
+                    "type": "object",
+                },
+                "management_overlay": {
+                    "default": 0.0,
+                    "description": "Additive " "post-model " "adjustment " "(can be " "negative).",
+                    "type": "number",
+                },
+                "sensitivities": {
+                    "description": "``(k,)`` ECL " "sensitivity " "(elasticity) to " "each factor.",
+                    "type": "object",
+                },
             },
             "required": ["base_ecl", "macro_factors", "sensitivities"],
             "type": "object",
@@ -988,10 +1702,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "margin_valuation_adjustment_mva",
         "input_schema": {
             "properties": {
-                "discount_factors": {"type": "object"},
-                "initial_margin_profile": {"type": "object"},
-                "margin_funding_spread": {"type": "number"},
-                "time_steps": {"type": "object"},
+                "discount_factors": {
+                    "description": "``(n,)`` " "discount " "factors in " "``(0, 1]``.",
+                    "type": "object",
+                },
+                "initial_margin_profile": {
+                    "description": "``(n,)`` "
+                    "expected "
+                    "initial "
+                    "margin "
+                    "posted "
+                    "per "
+                    "bucket "
+                    "(>= "
+                    "0).",
+                    "type": "object",
+                },
+                "margin_funding_spread": {
+                    "description": "Spread "
+                    "between "
+                    "funding "
+                    "cost "
+                    "and "
+                    "margin "
+                    "remuneration.",
+                    "type": "number",
+                },
+                "time_steps": {
+                    "description": "``(n,)`` strictly " "increasing bucket " "end-times (years).",
+                    "type": "object",
+                },
             },
             "required": [
                 "initial_margin_profile",
@@ -1012,7 +1752,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "credit-risk",
         "function_name": "maturity_adjustment_basel_irb",
         "input_schema": {
-            "properties": {"maturity": {"type": "number"}, "pd": {"type": "number"}},
+            "properties": {
+                "maturity": {
+                    "description": "Effective maturity M "
+                    "in years (Basel caps "
+                    "M at 5, floors at 1 "
+                    "for most exposures; "
+                    "not enforced here so "
+                    "the raw factor is "
+                    "exposed).",
+                    "type": "number",
+                },
+                "pd": {"description": "Probability of default in " "``(0, 1]``.", "type": "number"},
+            },
             "required": ["pd", "maturity"],
             "type": "object",
         },
@@ -1030,9 +1782,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "point_in_time_pd_estimation",
         "input_schema": {
             "properties": {
-                "macro_index": {"type": "number"},
-                "sensitivity": {"default": 1.0, "type": "number"},
-                "ttc_pd": {"type": "number"},
+                "macro_index": {
+                    "description": "Standardised "
+                    "macroeconomic "
+                    "index (z-score; "
+                    "positive = good "
+                    "conditions).",
+                    "type": "number",
+                },
+                "sensitivity": {
+                    "default": 1.0,
+                    "description": "Loading of the " "score on the " "macro factor (>= " "0).",
+                    "type": "number",
+                },
+                "ttc_pd": {
+                    "description": "Through-the-cycle PD " "in ``(0, 1)``.",
+                    "type": "number",
+                },
             },
             "required": ["ttc_pd", "macro_index"],
             "type": "object",
@@ -1054,13 +1820,37 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "potential_future_exposure_pfe",
         "input_schema": {
             "properties": {
-                "drift": {"default": 0.0, "type": "number"},
-                "initial_value": {"type": "number"},
-                "n_paths": {"default": 20000, "type": "integer"},
-                "quantile": {"default": 0.95, "type": "number"},
-                "seed": {"default": 909, "type": "integer"},
-                "time_steps": {"type": "object"},
-                "volatility": {"type": "number"},
+                "drift": {
+                    "default": 0.0,
+                    "description": "Per-unit-time drift of " "the value process.",
+                    "type": "number",
+                },
+                "initial_value": {
+                    "description": "Current " "netting-set " "value V_0.",
+                    "type": "number",
+                },
+                "n_paths": {
+                    "default": 20000,
+                    "description": "Number of Monte-Carlo " "paths.",
+                    "type": "integer",
+                },
+                "quantile": {
+                    "default": 0.95,
+                    "description": "PFE confidence in " "``(0, 1)`` (default " "95%).",
+                    "type": "number",
+                },
+                "seed": {"default": 909, "description": "RNG seed.", "type": "integer"},
+                "time_steps": {
+                    "description": "Strictly positive "
+                    "time points "
+                    "(years) at which "
+                    "to profile.",
+                    "type": "object",
+                },
+                "volatility": {
+                    "description": "Per-sqrt-time " "value volatility " "sigma (>= 0).",
+                    "type": "number",
+                },
             },
             "required": ["initial_value", "volatility", "time_steps"],
             "type": "object",
@@ -1077,9 +1867,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "probability_of_default_pd_estimation",
         "input_schema": {
             "properties": {
-                "floor": {"default": 0.0003, "type": "number"},
-                "n_defaults": {"type": "object"},
-                "n_obligors": {"type": "object"},
+                "floor": {
+                    "default": 0.0003,
+                    "description": "Regulatory PD floor " "applied to the pooled " "estimate.",
+                    "type": "number",
+                },
+                "n_defaults": {
+                    "description": "Defaults observed " "in each rating " "cohort.",
+                    "type": "object",
+                },
+                "n_obligors": {
+                    "description": "Obligors at risk " "at the start of " "each cohort.",
+                    "type": "object",
+                },
             },
             "required": ["n_defaults", "n_obligors"],
             "type": "object",
@@ -1102,9 +1902,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ratings_migration_matrix",
         "input_schema": {
             "properties": {
-                "from_rating": {"type": "object"},
-                "n_states": {"type": "integer"},
-                "to_rating": {"type": "object"},
+                "from_rating": {
+                    "description": "Integer "
+                    "start-of-period "
+                    "rating index per "
+                    "obligor in ``[0, "
+                    "n_states)``.",
+                    "type": "object",
+                },
+                "n_states": {
+                    "description": "Number of rating "
+                    "states (including "
+                    "default as the "
+                    "last).",
+                    "type": "integer",
+                },
+                "to_rating": {
+                    "description": "Integer " "end-of-period " "rating index per " "obligor.",
+                    "type": "object",
+                },
             },
             "required": ["from_rating", "to_rating", "n_states"],
             "type": "object",
@@ -1120,9 +1936,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "recovery_rate_estimation",
         "input_schema": {
             "properties": {
-                "discount_factors": {"type": "object"},
-                "exposure_amounts": {"type": "object"},
-                "recovery_amounts": {"type": "object"},
+                "discount_factors": {
+                    "description": "Optional "
+                    "per-facility "
+                    "discount "
+                    "factors in "
+                    "``(0, 1]`` "
+                    "applied to "
+                    "recoveries; "
+                    "``None`` "
+                    "means no "
+                    "discounting.",
+                    "type": "object",
+                },
+                "exposure_amounts": {
+                    "description": "Exposure at " "default per " "facility (> " "0).",
+                    "type": "object",
+                },
+                "recovery_amounts": {
+                    "description": "Nominal " "recovered " "amounts per " "facility.",
+                    "type": "object",
+                },
             },
             "required": ["recovery_amounts", "exposure_amounts"],
             "type": "object",
@@ -1141,12 +1975,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "retail_scorecard_pd_model",
         "input_schema": {
             "properties": {
-                "base_odds": {"default": 50.0, "type": "number"},
-                "base_points": {"type": "number"},
-                "base_score": {"default": 600.0, "type": "number"},
-                "feature_values": {"type": "object"},
-                "pdo": {"default": 50.0, "type": "number"},
-                "points_per_feature": {"type": "object"},
+                "base_odds": {
+                    "default": 50.0,
+                    "description": "Good:bad odds at " "``base_score`` " "(e.g. 50:1).",
+                    "type": "number",
+                },
+                "base_points": {
+                    "description": "Intercept points " "added to the " "total.",
+                    "type": "number",
+                },
+                "base_score": {
+                    "default": 600.0,
+                    "description": "Reference score at " "which odds equal " "``base_odds``.",
+                    "type": "number",
+                },
+                "feature_values": {
+                    "description": "``(n_features,)`` "
+                    "per-attribute "
+                    "binary/scaled "
+                    "indicator.",
+                    "type": "object",
+                },
+                "pdo": {
+                    "default": 50.0,
+                    "description": "Points to double the odds " "(industry default 50).",
+                    "type": "number",
+                },
+                "points_per_feature": {
+                    "description": "``(n_features,)`` " "points " "assigned " "per " "attribute.",
+                    "type": "object",
+                },
             },
             "required": ["feature_values", "points_per_feature", "base_points"],
             "type": "object",
@@ -1165,9 +2023,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sector_default_rate_analysis",
         "input_schema": {
             "properties": {
-                "sector_defaults": {"type": "object"},
-                "sector_names": {"type": "object"},
-                "sector_obligors": {"type": "object"},
+                "sector_defaults": {
+                    "description": "Defaults " "observed per " "sector.",
+                    "type": "object",
+                },
+                "sector_names": {
+                    "description": "Optional labels; " "defaults to " "``sector_0, " "...``.",
+                    "type": "object",
+                },
+                "sector_obligors": {
+                    "description": "Obligors per " "sector (>= " "defaults).",
+                    "type": "object",
+                },
             },
             "required": ["sector_defaults", "sector_obligors"],
             "type": "object",
@@ -1185,7 +2052,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "credit-risk",
         "function_name": "sme_correlation_factor_basel",
         "input_schema": {
-            "properties": {"annual_sales_millions": {"type": "number"}, "pd": {"type": "number"}},
+            "properties": {
+                "annual_sales_millions": {
+                    "description": "Total " "annual " "sales S " "in € " "millions.",
+                    "type": "number",
+                },
+                "pd": {"description": "Probability of default in " "``(0, 1]``.", "type": "number"},
+            },
             "required": ["pd", "annual_sales_millions"],
             "type": "object",
         },
@@ -1208,11 +2081,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sovereign_credit_risk_assessment",
         "input_schema": {
             "properties": {
-                "current_account_pct": {"type": "number"},
-                "debt_to_gdp": {"type": "number"},
-                "fiscal_balance_pct": {"type": "number"},
-                "fx_reserves_months": {"type": "number"},
-                "governance_score": {"type": "number"},
+                "current_account_pct": {
+                    "description": "Current-account " "balance / " "GDP.",
+                    "type": "number",
+                },
+                "debt_to_gdp": {
+                    "description": "General-government " "debt / GDP (e.g. " "0.6 = 60%).",
+                    "type": "number",
+                },
+                "fiscal_balance_pct": {
+                    "description": "Fiscal " "balance / " "GDP " "(deficit " "negative).",
+                    "type": "number",
+                },
+                "fx_reserves_months": {
+                    "description": "FX " "reserves " "in months " "of imports " "(>= 0).",
+                    "type": "number",
+                },
+                "governance_score": {
+                    "description": "World-Bank-style " "governance " "index in " "``[0, 1]``.",
+                    "type": "number",
+                },
             },
             "required": [
                 "debt_to_gdp",
@@ -1238,10 +2126,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "standardised_approach_ccr_sa_ccr",
         "input_schema": {
             "properties": {
-                "add_on_aggregate": {"type": "number"},
-                "alpha": {"default": 1.4, "type": "number"},
-                "collateral": {"type": "number"},
-                "mark_to_market": {"type": "number"},
+                "add_on_aggregate": {
+                    "description": "Aggregate " "asset-class " "add-on (>= " "0).",
+                    "type": "number",
+                },
+                "alpha": {
+                    "default": 1.4,
+                    "description": "Supervisory scaling " "factor (default 1.4).",
+                    "type": "number",
+                },
+                "collateral": {"description": "Net collateral " "held (>= 0).", "type": "number"},
+                "mark_to_market": {
+                    "description": "Current " "netting-set " "MtM.",
+                    "type": "number",
+                },
             },
             "required": ["mark_to_market", "collateral", "add_on_aggregate"],
             "type": "object",
@@ -1260,9 +2158,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "through_the_cycle_pd_adjustment",
         "input_schema": {
             "properties": {
-                "cyclicality": {"default": 0.5, "type": "number"},
-                "long_run_average_pd": {"type": "number"},
-                "pit_pd": {"type": "number"},
+                "cyclicality": {
+                    "default": 0.5,
+                    "description": "Blend weight in "
+                    "``[0, 1]`` toward "
+                    "the long-run "
+                    "anchor (0 = pure "
+                    "PIT, 1 = pure "
+                    "TTC).",
+                    "type": "number",
+                },
+                "long_run_average_pd": {
+                    "description": "Long-run " "central-tendency " "PD in " "``(0, " "1)``.",
+                    "type": "number",
+                },
+                "pit_pd": {"description": "Point-in-time PD in " "``(0, 1)``.", "type": "number"},
             },
             "required": ["pit_pd", "long_run_average_pd"],
             "type": "object",
@@ -1281,9 +2191,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "unexpected_loss_ul_computation",
         "input_schema": {
             "properties": {
-                "ead": {"type": "object"},
-                "lgd": {"type": "object"},
-                "pd": {"type": "object"},
+                "ead": {"description": "Per-exposure EAD array " "(>= 0).", "type": "object"},
+                "lgd": {
+                    "description": "Per-exposure LGD array in " "``[0, 1]``.",
+                    "type": "object",
+                },
+                "pd": {"description": "Per-exposure PD array in " "``[0, 1]``.", "type": "object"},
             },
             "required": ["pd", "lgd", "ead"],
             "type": "object",
@@ -1307,9 +2220,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "wrong_way_risk_adjustment",
         "input_schema": {
             "properties": {
-                "base_cva": {"type": "number"},
-                "correlation": {"type": "number"},
-                "exposure_volatility": {"default": 0.3, "type": "number"},
+                "base_cva": {
+                    "description": "Independence-assumption " "CVA (>= 0).",
+                    "type": "number",
+                },
+                "correlation": {
+                    "description": "Exposure/credit " "correlation in " "``[-1, 1]``.",
+                    "type": "number",
+                },
+                "exposure_volatility": {
+                    "default": 0.3,
+                    "description": "Relative "
+                    "exposure "
+                    "volatility "
+                    "(>= 0) "
+                    "controlling "
+                    "the "
+                    "adjustment "
+                    "magnitude.",
+                    "type": "number",
+                },
             },
             "required": ["base_cva", "correlation"],
             "type": "object",
@@ -1328,11 +2258,30 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "xva_aggregation",
         "input_schema": {
             "properties": {
-                "cva": {"type": "number"},
-                "dva": {"default": 0.0, "type": "number"},
-                "fva": {"default": 0.0, "type": "number"},
-                "kva": {"default": 0.0, "type": "number"},
-                "mva": {"default": 0.0, "type": "number"},
+                "cva": {
+                    "description": "Credit valuation " "adjustment (cost, >= 0).",
+                    "type": "number",
+                },
+                "dva": {
+                    "default": 0.0,
+                    "description": "Debit valuation " "adjustment (benefit, >= " "0).",
+                    "type": "number",
+                },
+                "fva": {
+                    "default": 0.0,
+                    "description": "Funding valuation " "adjustment (cost).",
+                    "type": "number",
+                },
+                "kva": {
+                    "default": 0.0,
+                    "description": "Capital valuation " "adjustment (cost).",
+                    "type": "number",
+                },
+                "mva": {
+                    "default": 0.0,
+                    "description": "Margin valuation " "adjustment (cost).",
+                    "type": "number",
+                },
             },
             "required": ["cva"],
             "type": "object",

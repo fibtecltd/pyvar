@@ -20,7 +20,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "active_share",
         "input_schema": {
-            "properties": {"benchmark_weights": {"type": "object"}, "weights": {"type": "object"}},
+            "properties": {
+                "benchmark_weights": {
+                    "description": "Benchmark " "weights per " "asset (same " "ordering).",
+                    "type": "object",
+                },
+                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+            },
             "required": ["weights", "benchmark_weights"],
             "type": "object",
         },
@@ -34,8 +40,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "average_drawdown",
         "input_schema": {
             "properties": {
-                "is_equity_curve": {"default": False, "type": "boolean"},
-                "returns": {"type": "object"},
+                "is_equity_curve": {
+                    "default": False,
+                    "description": "If True, " "``returns`` " "is a value " "series " "directly.",
+                    "type": "boolean",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period returns, " "or an equity curve.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -53,13 +66,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "black_litterman_model",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "market_weights": {"type": "object"},
-                "omega": {"type": "object"},
-                "p_matrix": {"type": "object"},
-                "q_views": {"type": "object"},
-                "risk_aversion": {"default": 2.5, "type": "number"},
-                "tau": {"default": 0.05, "type": "number"},
+                "cov_matrix": {"description": "Asset covariance " "matrix.", "type": "object"},
+                "market_weights": {
+                    "description": "Market-cap " "equilibrium " "weights.",
+                    "type": "object",
+                },
+                "omega": {
+                    "description": "(k, k) view " "uncertainty; defaults " "to ``diag(P τΣ Pᵀ)``.",
+                    "type": "object",
+                },
+                "p_matrix": {"description": "(k, n) view pick " "matrix.", "type": "object"},
+                "q_views": {"description": "(k,) view return " "vector.", "type": "object"},
+                "risk_aversion": {
+                    "default": 2.5,
+                    "description": "Equilibrium " "risk-aversion " "λ.",
+                    "type": "number",
+                },
+                "tau": {
+                    "default": 0.05,
+                    "description": "Scalar on the prior "
+                    "covariance (uncertainty "
+                    "in equilibrium).",
+                    "type": "number",
+                },
             },
             "required": ["market_weights", "cov_matrix", "p_matrix", "q_views"],
             "type": "object",
@@ -74,8 +103,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "calmar_ratio",
         "input_schema": {
             "properties": {
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor for " "the CAGR " "numerator.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period simple " "returns.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -118,12 +154,77 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "carbon_footprint_attribution",
         "input_schema": {
             "properties": {
-                "asset_names": {"type": "object"},
-                "carbon_intensities": {"type": "object"},
-                "company_total_emissions": {"type": "object"},
-                "company_value": {"type": "object"},
-                "portfolio_value": {"type": "number"},
-                "weights": {"type": "object"},
+                "asset_names": {
+                    "description": "Optional labels; " "defaults to " "``asset_0, ...``.",
+                    "type": "object",
+                },
+                "carbon_intensities": {
+                    "description": "Carbon "
+                    "intensity "
+                    "per "
+                    "holding "
+                    "(tCO2e per "
+                    "$M, say) "
+                    "-- used "
+                    "for the "
+                    "WACI leg "
+                    "in both "
+                    "modes.",
+                    "type": "object",
+                },
+                "company_total_emissions": {
+                    "description": "Optional "
+                    "per-holding "
+                    "investee "
+                    "company "
+                    "total "
+                    "absolute "
+                    "emissions "
+                    "(tCO2e). "
+                    "Supply "
+                    "together "
+                    "with "
+                    "``company_value`` "
+                    "to "
+                    "use "
+                    "the "
+                    "PCAF "
+                    "ownership-share "
+                    "method.",
+                    "type": "object",
+                },
+                "company_value": {
+                    "description": "Optional "
+                    "per-holding "
+                    "investee "
+                    "company total "
+                    "value (PCAF's "
+                    "EVIC or market "
+                    "cap), in the "
+                    "same currency "
+                    "unit as "
+                    "``portfolio_value``. "
+                    "Supply together "
+                    "with "
+                    "``company_total_emissions`` "
+                    "to use the PCAF "
+                    "ownership-share "
+                    "method.",
+                    "type": "object",
+                },
+                "portfolio_value": {
+                    "description": "Total "
+                    "portfolio "
+                    "value in $M "
+                    "consistent "
+                    "with "
+                    "intensity.",
+                    "type": "number",
+                },
+                "weights": {
+                    "description": "Portfolio weights per " "holding (sum to 1).",
+                    "type": "object",
+                },
             },
             "required": ["weights", "carbon_intensities", "portfolio_value"],
             "type": "object",
@@ -137,7 +238,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "carhart_4_factor_model",
         "input_schema": {
-            "properties": {"excess_returns": {"type": "object"}, "factors": {"type": "object"}},
+            "properties": {
+                "excess_returns": {
+                    "description": "Portfolio " "excess returns " "over the " "risk-free " "rate.",
+                    "type": "object",
+                },
+                "factors": {
+                    "description": "(n_obs, 4) matrix of " "MKT, SMB, HML, MOM " "factor returns.",
+                    "type": "object",
+                },
+            },
             "required": ["excess_returns", "factors"],
             "type": "object",
         },
@@ -153,7 +263,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "concentration_risk_hhi",
         "input_schema": {
-            "properties": {"weights": {"type": "object"}},
+            "properties": {
+                "weights": {
+                    "description": "Portfolio weights per " "asset (need not be " "normalised).",
+                    "type": "object",
+                }
+            },
             "required": ["weights"],
             "type": "object",
         },
@@ -169,9 +284,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "conditional_drawdown_at_risk",
         "input_schema": {
             "properties": {
-                "confidence_level": {"default": 0.95, "type": "number"},
-                "is_equity_curve": {"default": False, "type": "boolean"},
-                "returns": {"type": "object"},
+                "confidence_level": {
+                    "default": 0.95,
+                    "description": "CDaR " "confidence " "in [0.90, " "0.9999].",
+                    "type": "number",
+                },
+                "is_equity_curve": {
+                    "default": False,
+                    "description": "If True, " "``returns`` " "is a value " "series " "directly.",
+                    "type": "boolean",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period returns, " "or an equity curve.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -196,8 +322,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "correlation_clustering",
         "input_schema": {
             "properties": {
-                "n_clusters": {"default": 2, "type": "integer"},
-                "returns_matrix": {"type": "object"},
+                "n_clusters": {
+                    "default": 2,
+                    "description": "Target number of " "clusters.",
+                    "type": "integer",
+                },
+                "returns_matrix": {
+                    "description": "(n_obs, " "n_assets) " "return matrix.",
+                    "type": "object",
+                },
             },
             "required": ["returns_matrix"],
             "type": "object",
@@ -211,7 +344,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "correlation_matrix_portfolio",
         "input_schema": {
-            "properties": {"returns_matrix": {"type": "object"}},
+            "properties": {
+                "returns_matrix": {
+                    "description": "(n_obs, " "n_assets) " "array of asset " "return series.",
+                    "type": "object",
+                }
+            },
             "required": ["returns_matrix"],
             "type": "object",
         },
@@ -264,12 +402,53 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "currency_attribution",
         "input_schema": {
             "properties": {
-                "base_risk_free": {"type": "object"},
-                "currency_names": {"type": "object"},
-                "fx_returns": {"type": "object"},
-                "local_returns": {"type": "object"},
-                "local_risk_free": {"type": "object"},
-                "weights": {"type": "object"},
+                "base_risk_free": {
+                    "description": "Optional "
+                    "reporting/base-currency "
+                    "risk-free rate "
+                    "(a single "
+                    "rate, common "
+                    "to every "
+                    "holding). "
+                    "Supply "
+                    "together with "
+                    "``local_risk_free`` "
+                    "to switch to "
+                    "the "
+                    "Karnosky-Singer "
+                    "decomposition.",
+                    "type": "object",
+                },
+                "currency_names": {
+                    "description": "Optional " "labels; " "defaults to " "``ccy_0, " "...``.",
+                    "type": "object",
+                },
+                "fx_returns": {
+                    "description": "Currency (FX) " "return per holding " "(base vs local).",
+                    "type": "object",
+                },
+                "local_returns": {
+                    "description": "Local-currency " "return per " "holding.",
+                    "type": "object",
+                },
+                "local_risk_free": {
+                    "description": "Optional "
+                    "per-holding "
+                    "local-currency "
+                    "risk-free "
+                    "rate. Supply "
+                    "together with "
+                    "``base_risk_free`` "
+                    "to switch to "
+                    "the "
+                    "Karnosky-Singer "
+                    "decomposition.",
+                    "type": "object",
+                },
+                "weights": {
+                    "description": "Portfolio weight per " "holding (sum to 1).",
+                    "type": "object",
+                },
             },
             "required": ["local_returns", "fx_returns", "weights"],
             "type": "object",
@@ -304,11 +483,36 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cvar_constrained_optimisation",
         "input_schema": {
             "properties": {
-                "confidence_level": {"default": 0.95, "type": "number"},
-                "cvar_limit": {"default": 0.05, "type": "number"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "scenario_returns": {"type": "object"},
+                "confidence_level": {
+                    "default": 0.95,
+                    "description": "CVaR " "confidence " "in [0.90, " "0.9999].",
+                    "type": "number",
+                },
+                "cvar_limit": {
+                    "default": 0.05,
+                    "description": "Maximum acceptable "
+                    "portfolio CVaR "
+                    "(positive "
+                    "fraction).",
+                    "type": "number",
+                },
+                "mean_returns": {
+                    "description": "Per-asset "
+                    "expected "
+                    "returns; "
+                    "defaults to "
+                    "scenario means.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor for " "the reported " "return.",
+                    "type": "integer",
+                },
+                "scenario_returns": {
+                    "description": "(n_scenarios, " "n_assets) " "scenario " "return " "matrix.",
+                    "type": "object",
+                },
             },
             "required": ["scenario_returns"],
             "type": "object",
@@ -324,7 +528,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "diversification_ratio",
         "input_schema": {
-            "properties": {"cov_matrix": {"type": "object"}, "weights": {"type": "object"}},
+            "properties": {
+                "cov_matrix": {
+                    "description": "Asset return " "covariance matrix.",
+                    "type": "object",
+                },
+                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+            },
             "required": ["weights", "cov_matrix"],
             "type": "object",
         },
@@ -338,8 +548,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "drawdown_duration",
         "input_schema": {
             "properties": {
-                "is_equity_curve": {"default": False, "type": "boolean"},
-                "returns": {"type": "object"},
+                "is_equity_curve": {
+                    "default": False,
+                    "description": "If True, " "``returns`` " "is a value " "series " "directly.",
+                    "type": "boolean",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period returns, " "or an equity curve.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -354,11 +571,25 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "equal_weight_portfolio",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "n_assets": {"type": "integer"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "cov_matrix": {
+                    "description": "Optional " "covariance for " "reporting " "volatility/Sharpe.",
+                    "type": "object",
+                },
+                "mean_returns": {
+                    "description": "Optional " "per-period " "returns for " "reporting.",
+                    "type": "object",
+                },
+                "n_assets": {"description": "Number of assets.", "type": "integer"},
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Annual risk-free " "rate for the " "reported Sharpe.",
+                    "type": "number",
+                },
             },
             "required": ["n_assets"],
             "type": "object",
@@ -376,10 +607,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "esg_score_integration",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "esg_scores": {"type": "object"},
-                "min_esg_score": {"type": "object"},
-                "weights": {"type": "object"},
+                "cov_matrix": {
+                    "description": "Optional "
+                    "covariance for the "
+                    "ESG-constrained "
+                    "re-optimisation.",
+                    "type": "object",
+                },
+                "esg_scores": {
+                    "description": "ESG score per " "asset (higher is " "better).",
+                    "type": "object",
+                },
+                "min_esg_score": {
+                    "description": "Optional " "minimum " "weighted ESG " "score to " "enforce.",
+                    "type": "object",
+                },
+                "weights": {"description": "Current portfolio " "weights.", "type": "object"},
             },
             "required": ["weights", "esg_scores"],
             "type": "object",
@@ -399,11 +642,34 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "factor_based_optimisation",
         "input_schema": {
             "properties": {
-                "factor_cov": {"type": "object"},
-                "factor_exposures": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "specific_var": {"type": "object"},
-                "target_exposures": {"type": "object"},
+                "factor_cov": {
+                    "description": "(n_factors, " "n_factors) factor " "covariance F.",
+                    "type": "object",
+                },
+                "factor_exposures": {
+                    "description": "(n_assets, " "n_factors) " "factor " "loading " "matrix B.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "specific_var": {
+                    "description": "(n_assets,) " "idiosyncratic " "variances.",
+                    "type": "object",
+                },
+                "target_exposures": {
+                    "description": "Optional "
+                    "(n_factors,) "
+                    "target "
+                    "portfolio "
+                    "factor "
+                    "exposures to "
+                    "match "
+                    "exactly.",
+                    "type": "object",
+                },
             },
             "required": ["factor_exposures", "factor_cov", "specific_var"],
             "type": "object",
@@ -419,9 +685,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "factor_exposure_analysis_barra",
         "input_schema": {
             "properties": {
-                "asset_exposures": {"type": "object"},
-                "factor_names": {"type": "object"},
-                "weights": {"type": "object"},
+                "asset_exposures": {
+                    "description": "(n_assets, " "n_factors) " "factor " "loading " "matrix.",
+                    "type": "object",
+                },
+                "factor_names": {
+                    "description": "Optional labels; " "defaults to " "``factor_0, " "...``.",
+                    "type": "object",
+                },
+                "weights": {"description": "Portfolio weight per " "asset.", "type": "object"},
             },
             "required": ["asset_exposures", "weights"],
             "type": "object",
@@ -438,10 +710,22 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "factor_return_attribution",
         "input_schema": {
             "properties": {
-                "factor_exposures": {"type": "object"},
-                "factor_names": {"type": "object"},
-                "factor_returns": {"type": "object"},
-                "specific_return": {"type": "number"},
+                "factor_exposures": {
+                    "description": "Portfolio " "exposure " "(beta) to " "each factor.",
+                    "type": "object",
+                },
+                "factor_names": {
+                    "description": "Optional labels; " "defaults to " "``factor_0, " "...``.",
+                    "type": "object",
+                },
+                "factor_returns": {
+                    "description": "Realised " "return of each " "factor over " "the period.",
+                    "type": "object",
+                },
+                "specific_return": {
+                    "description": "Idiosyncratic " "return not " "explained by " "factors.",
+                    "type": "number",
+                },
             },
             "required": ["factor_exposures", "factor_returns", "specific_return"],
             "type": "object",
@@ -456,7 +740,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "fama_french_3_factor_model",
         "input_schema": {
-            "properties": {"excess_returns": {"type": "object"}, "factors": {"type": "object"}},
+            "properties": {
+                "excess_returns": {
+                    "description": "Portfolio " "excess returns " "over the " "risk-free " "rate.",
+                    "type": "object",
+                },
+                "factors": {
+                    "description": "(n_obs, 3) matrix of " "MKT, SMB, HML factor " "returns.",
+                    "type": "object",
+                },
+            },
             "required": ["excess_returns", "factors"],
             "type": "object",
         },
@@ -470,7 +763,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "fama_french_5_factor_model",
         "input_schema": {
-            "properties": {"excess_returns": {"type": "object"}, "factors": {"type": "object"}},
+            "properties": {
+                "excess_returns": {
+                    "description": "Portfolio " "excess returns " "over the " "risk-free " "rate.",
+                    "type": "object",
+                },
+                "factors": {
+                    "description": "(n_obs, 5) matrix of "
+                    "MKT, SMB, HML, RMW, "
+                    "CMA factor returns.",
+                    "type": "object",
+                },
+            },
             "required": ["excess_returns", "factors"],
             "type": "object",
         },
@@ -484,7 +788,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "gics_sector_exposure",
         "input_schema": {
-            "properties": {"sector_codes": {"type": "array"}, "weights": {"type": "object"}},
+            "properties": {
+                "sector_codes": {
+                    "description": "GICS sector " "label per " "holding (same " "ordering).",
+                    "type": "array",
+                },
+                "weights": {"description": "Position weights per " "holding.", "type": "object"},
+            },
             "required": ["weights", "sector_codes"],
             "type": "object",
         },
@@ -498,9 +808,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "information_ratio",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
+                "benchmark_returns": {
+                    "description": "1-D array " "of " "benchmark " "per-period " "returns.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
             },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
@@ -516,10 +836,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "jensens_alpha",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "benchmark_returns": {
+                    "description": "1-D array " "of market " "per-period " "returns.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Per-period " "risk-free rate.",
+                    "type": "number",
+                },
             },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
@@ -538,12 +872,29 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_adjusted_portfolio_var",
         "input_schema": {
             "properties": {
-                "bid_ask_spreads": {"type": "object"},
-                "confidence_level": {"default": 0.99, "type": "number"},
-                "cov_matrix": {"type": "object"},
-                "horizon_days": {"default": 1, "type": "integer"},
-                "portfolio_value": {"type": "number"},
-                "weights": {"type": "object"},
+                "bid_ask_spreads": {
+                    "description": "Proportional " "bid-ask " "spread per " "asset " "(fraction).",
+                    "type": "object",
+                },
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
+                    "type": "number",
+                },
+                "cov_matrix": {
+                    "description": "Asset return " "covariance matrix " "(per period).",
+                    "type": "object",
+                },
+                "horizon_days": {
+                    "default": 1,
+                    "description": "Risk horizon " "(sqrt-time " "scaling on the " "market term).",
+                    "type": "integer",
+                },
+                "portfolio_value": {
+                    "description": "Current " "portfolio " "value in base " "currency.",
+                    "type": "number",
+                },
+                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
             },
             "required": ["weights", "cov_matrix", "bid_ask_spreads", "portfolio_value"],
             "type": "object",
@@ -559,7 +910,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "marginal_contribution_to_risk",
         "input_schema": {
-            "properties": {"cov_matrix": {"type": "object"}, "weights": {"type": "object"}},
+            "properties": {
+                "cov_matrix": {
+                    "description": "Asset return " "covariance matrix.",
+                    "type": "object",
+                },
+                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+            },
             "required": ["weights", "cov_matrix"],
             "type": "object",
         },
@@ -573,8 +930,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "maximum_drawdown",
         "input_schema": {
             "properties": {
-                "is_equity_curve": {"default": False, "type": "boolean"},
-                "returns": {"type": "object"},
+                "is_equity_curve": {
+                    "default": False,
+                    "description": "If True, " "``returns`` " "is a value " "series " "directly.",
+                    "type": "boolean",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period returns, " "or an equity curve.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -589,11 +953,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "maximum_sharpe_ratio_portfolio",
         "input_schema": {
             "properties": {
-                "allow_short": {"default": False, "type": "boolean"},
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "allow_short": {
+                    "default": False,
+                    "description": "If False, weights " "are bounded to " "[0, 1].",
+                    "type": "boolean",
+                },
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Per-period " "expected return " "per asset.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Annual risk-free " "rate.",
+                    "type": "number",
+                },
             },
             "required": ["mean_returns", "cov_matrix"],
             "type": "object",
@@ -610,12 +989,31 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "mean_variance_optimisation",
         "input_schema": {
             "properties": {
-                "allow_short": {"default": False, "type": "boolean"},
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_aversion": {"default": 1.0, "type": "number"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "allow_short": {
+                    "default": False,
+                    "description": "If False, weights " "are bounded to " "[0, 1].",
+                    "type": "boolean",
+                },
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Per-period " "expected return " "per asset.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_aversion": {
+                    "default": 1.0,
+                    "description": "Risk-aversion " "coefficient λ " "(higher = less " "risk).",
+                    "type": "number",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Annual risk-free " "rate for the " "reported Sharpe.",
+                    "type": "number",
+                },
             },
             "required": ["mean_returns", "cov_matrix"],
             "type": "object",
@@ -632,11 +1030,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "minimum_variance_portfolio",
         "input_schema": {
             "properties": {
-                "allow_short": {"default": False, "type": "boolean"},
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "allow_short": {
+                    "default": False,
+                    "description": "If False, weights " "are bounded to " "[0, 1].",
+                    "type": "boolean",
+                },
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Optional " "per-period " "returns for " "reporting " "Sharpe.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Annual risk-free " "rate for the " "reported Sharpe.",
+                    "type": "number",
+                },
             },
             "required": ["cov_matrix"],
             "type": "object",
@@ -654,14 +1067,40 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "monte_carlo_portfolio_simulation",
         "input_schema": {
             "properties": {
-                "confidence_level": {"default": 0.99, "type": "number"},
-                "cov_matrix": {"type": "object"},
-                "horizon": {"default": 10, "type": "integer"},
-                "mean_returns": {"type": "object"},
-                "n_simulations": {"default": 10000, "type": "integer"},
-                "portfolio_value": {"default": 1000000.0, "type": "number"},
-                "seed": {"default": 12345, "type": "integer"},
-                "weights": {"type": "object"},
+                "confidence_level": {
+                    "default": 0.99,
+                    "description": "VaR/ES " "confidence " "in [0.90, " "0.9999].",
+                    "type": "number",
+                },
+                "cov_matrix": {
+                    "description": "Per-period asset " "return covariance " "matrix.",
+                    "type": "object",
+                },
+                "horizon": {
+                    "default": 10,
+                    "description": "Number of periods to " "simulate forward.",
+                    "type": "integer",
+                },
+                "mean_returns": {
+                    "description": "Per-period mean " "return per " "asset.",
+                    "type": "object",
+                },
+                "n_simulations": {
+                    "default": 10000,
+                    "description": "Number of Monte " "Carlo paths.",
+                    "type": "integer",
+                },
+                "portfolio_value": {
+                    "default": 1000000.0,
+                    "description": "Starting " "portfolio " "value in base " "currency.",
+                    "type": "number",
+                },
+                "seed": {
+                    "default": 12345,
+                    "description": "RNG seed for " "determinism.",
+                    "type": "integer",
+                },
+                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
             },
             "required": ["weights", "mean_returns", "cov_matrix"],
             "type": "object",
@@ -676,8 +1115,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "omega_ratio",
         "input_schema": {
             "properties": {
-                "returns": {"type": "object"},
-                "threshold": {"default": 0.0, "type": "number"},
+                "returns": {"description": "1-D array of " "per-period returns.", "type": "object"},
+                "threshold": {
+                    "default": 0.0,
+                    "description": "Per-period return "
+                    "threshold "
+                    "separating gains "
+                    "from losses.",
+                    "type": "number",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -691,7 +1137,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "portfolio",
         "function_name": "portfolio_beta",
         "input_schema": {
-            "properties": {"benchmark_returns": {"type": "object"}, "returns": {"type": "object"}},
+            "properties": {
+                "benchmark_returns": {
+                    "description": "1-D array " "of " "benchmark " "per-period " "returns.",
+                    "type": "object",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
+            },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
         },
@@ -705,8 +1160,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "portfolio_turnover",
         "input_schema": {
             "properties": {
-                "weights_after": {"type": "object"},
-                "weights_before": {"type": "object"},
+                "weights_after": {
+                    "description": "Post-rebalance " "weights (same " "ordering).",
+                    "type": "object",
+                },
+                "weights_before": {"description": "Pre-rebalance " "weights.", "type": "object"},
             },
             "required": ["weights_before", "weights_after"],
             "type": "object",
@@ -722,8 +1180,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "principal_component_analysis",
         "input_schema": {
             "properties": {
-                "n_components": {"type": "object"},
-                "returns_matrix": {"type": "object"},
+                "n_components": {
+                    "description": "Number of " "components to " "return (defaults " "to all).",
+                    "type": "object",
+                },
+                "returns_matrix": {
+                    "description": "(n_obs, " "n_assets) " "return matrix.",
+                    "type": "object",
+                },
             },
             "required": ["returns_matrix"],
             "type": "object",
@@ -768,12 +1232,57 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rebalancing_optimiser",
         "input_schema": {
             "properties": {
-                "asset_volatility": {"type": "object"},
-                "cost_bps": {"type": "object"},
-                "current_weights": {"type": "object"},
-                "no_trade_band": {"default": 0.0, "type": "number"},
-                "risk_aversion": {"type": "object"},
-                "target_weights": {"type": "object"},
+                "asset_volatility": {
+                    "description": "Optional "
+                    "per-asset "
+                    "return "
+                    "volatility "
+                    "(sigma_i). "
+                    "Supply "
+                    "together "
+                    "with "
+                    "``risk_aversion`` "
+                    "to derive "
+                    "the no-trade "
+                    "band instead "
+                    "of using the "
+                    "scalar "
+                    "``no_trade_band``.",
+                    "type": "object",
+                },
+                "cost_bps": {
+                    "description": "Proportional cost in " "basis points per " "asset.",
+                    "type": "object",
+                },
+                "current_weights": {
+                    "description": "Current " "portfolio " "weights.",
+                    "type": "object",
+                },
+                "no_trade_band": {
+                    "default": 0.0,
+                    "description": "Absolute weight "
+                    "threshold below "
+                    "which no trade "
+                    "is made. "
+                    "Ignored when "
+                    "the "
+                    "derived-band "
+                    "mode is active.",
+                    "type": "number",
+                },
+                "risk_aversion": {
+                    "description": "Optional CRRA "
+                    "risk-aversion "
+                    "coefficient "
+                    "(gamma > 0). "
+                    "Supply together "
+                    "with "
+                    "``asset_volatility`` "
+                    "to derive the "
+                    "band.",
+                    "type": "object",
+                },
+                "target_weights": {"description": "Desired target " "weights.", "type": "object"},
             },
             "required": ["current_weights", "target_weights", "cost_bps"],
             "type": "object",
@@ -795,8 +1304,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "regime_detection_hmm",
         "input_schema": {
             "properties": {
-                "n_iter": {"default": 50, "type": "integer"},
-                "returns": {"type": "object"},
+                "n_iter": {
+                    "default": 50,
+                    "description": "Number of EM " "iterations.",
+                    "type": "integer",
+                },
+                "returns": {"description": "1-D array of " "per-period returns.", "type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -816,11 +1329,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "resampled_efficient_frontier",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "n_obs": {"default": 250, "type": "integer"},
-                "n_resamples": {"default": 50, "type": "integer"},
-                "seed": {"default": 2024, "type": "integer"},
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Per-period " "expected return " "per asset.",
+                    "type": "object",
+                },
+                "n_obs": {
+                    "default": 250,
+                    "description": "Synthetic sample size " "per resample.",
+                    "type": "integer",
+                },
+                "n_resamples": {
+                    "default": 50,
+                    "description": "Number of " "bootstrap " "resamples.",
+                    "type": "integer",
+                },
+                "seed": {
+                    "default": 2024,
+                    "description": "RNG seed for " "determinism.",
+                    "type": "integer",
+                },
             },
             "required": ["mean_returns", "cov_matrix"],
             "type": "object",
@@ -836,9 +1364,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "residual_risk",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
+                "benchmark_returns": {
+                    "description": "1-D array " "of " "benchmark " "per-period " "returns.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
             },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
@@ -856,11 +1394,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "return_attribution_brinson",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "benchmark_weights": {"type": "object"},
-                "portfolio_returns": {"type": "object"},
-                "portfolio_weights": {"type": "object"},
-                "segment_names": {"type": "object"},
+                "benchmark_returns": {
+                    "description": "Segment " "returns " "realised in " "the " "benchmark.",
+                    "type": "object",
+                },
+                "benchmark_weights": {
+                    "description": "Segment " "weights in " "the " "benchmark " "(sum to 1).",
+                    "type": "object",
+                },
+                "portfolio_returns": {
+                    "description": "Segment " "returns " "realised in " "the " "portfolio.",
+                    "type": "object",
+                },
+                "portfolio_weights": {
+                    "description": "Segment " "weights in " "the " "portfolio " "(sum to 1).",
+                    "type": "object",
+                },
+                "segment_names": {
+                    "description": "Optional " "labels; " "defaults to " "``segment_0, " "...``.",
+                    "type": "object",
+                },
             },
             "required": [
                 "portfolio_weights",
@@ -886,10 +1439,21 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "risk_parity_portfolio",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Optional " "per-period " "returns for " "reporting " "Sharpe.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Annual risk-free " "rate for the " "reported Sharpe.",
+                    "type": "number",
+                },
             },
             "required": ["cov_matrix"],
             "type": "object",
@@ -906,11 +1470,26 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "robust_portfolio_optimisation",
         "input_schema": {
             "properties": {
-                "cov_matrix": {"type": "object"},
-                "mean_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "risk_aversion": {"default": 1.0, "type": "number"},
-                "uncertainty": {"default": 0.05, "type": "number"},
+                "cov_matrix": {"description": "Per-period " "covariance matrix.", "type": "object"},
+                "mean_returns": {
+                    "description": "Per-period " "expected return " "per asset.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "risk_aversion": {
+                    "default": 1.0,
+                    "description": "Risk-aversion " "coefficient λ.",
+                    "type": "number",
+                },
+                "uncertainty": {
+                    "default": 0.05,
+                    "description": "Size κ of the " "uncertainty set " "on the mean " "estimates.",
+                    "type": "number",
+                },
             },
             "required": ["mean_returns", "cov_matrix"],
             "type": "object",
@@ -929,11 +1508,23 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sector_attribution",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "benchmark_weights": {"type": "object"},
-                "portfolio_returns": {"type": "object"},
-                "portfolio_weights": {"type": "object"},
-                "sector_names": {"type": "object"},
+                "benchmark_returns": {
+                    "description": "Benchmark " "sector " "returns.",
+                    "type": "object",
+                },
+                "benchmark_weights": {
+                    "description": "Benchmark " "sector " "weights " "(sum to 1).",
+                    "type": "object",
+                },
+                "portfolio_returns": {
+                    "description": "Portfolio " "sector " "returns.",
+                    "type": "object",
+                },
+                "portfolio_weights": {
+                    "description": "Portfolio " "sector " "weights " "(sum to 1).",
+                    "type": "object",
+                },
+                "sector_names": {"description": "Optional sector " "labels.", "type": "object"},
             },
             "required": [
                 "portfolio_weights",
@@ -963,10 +1554,32 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sharpe_ratio",
         "input_schema": {
             "properties": {
-                "ddof": {"default": 0, "type": "integer"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "ddof": {
+                    "default": 0,
+                    "description": "Delta degrees of freedom "
+                    "for the volatility "
+                    "divisor: ``0`` (default, "
+                    "population std, divide "
+                    "by n) or ``1`` (sample "
+                    "std, divide by n-1). Any "
+                    "other value raises "
+                    "``ValueError``.",
+                    "type": "integer",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor (252 " "daily, 12 " "monthly).",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period simple " "returns.",
+                    "type": "object",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Per-period " "risk-free rate " "(same period as " "returns).",
+                    "type": "number",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -988,10 +1601,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sortino_ratio",
         "input_schema": {
             "properties": {
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
-                "risk_free": {"default": 0.0, "type": "number"},
-                "target": {"default": 0.0, "type": "number"},
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "per-period simple " "returns.",
+                    "type": "object",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Per-period " "risk-free rate " "subtracted from " "returns.",
+                    "type": "number",
+                },
+                "target": {
+                    "default": 0.0,
+                    "description": "Minimum acceptable "
+                    "per-period return for "
+                    "downside deviation.",
+                    "type": "number",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -1008,8 +1638,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "tail_ratio",
         "input_schema": {
             "properties": {
-                "returns": {"type": "object"},
-                "tail": {"default": 0.05, "type": "number"},
+                "returns": {"description": "1-D array of " "per-period returns.", "type": "object"},
+                "tail": {
+                    "default": 0.05,
+                    "description": "Tail probability in (0, "
+                    "0.5), e.g. 0.05 for the "
+                    "5%/95% tails.",
+                    "type": "number",
+                },
             },
             "required": ["returns"],
             "type": "object",
@@ -1024,9 +1660,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "tracking_error",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
+                "benchmark_returns": {
+                    "description": "1-D array " "of " "benchmark " "per-period " "returns.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
             },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
@@ -1071,13 +1717,103 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "transaction_cost_analysis",
         "input_schema": {
             "properties": {
-                "benchmark_prices": {"type": "object"},
-                "cancellation_price": {"type": "object"},
-                "decision_price": {"type": "object"},
-                "side": {"default": 1, "type": "integer"},
-                "trade_prices": {"type": "object"},
-                "trade_quantities": {"type": "object"},
-                "unexecuted_quantity": {"type": "object"},
+                "benchmark_prices": {
+                    "description": "Benchmark " "(arrival or " "VWAP) prices " "per fill.",
+                    "type": "object",
+                },
+                "cancellation_price": {
+                    "description": "Optional "
+                    "price at "
+                    "which the "
+                    "unexecuted "
+                    "portion of "
+                    "the order "
+                    "was marked "
+                    "when "
+                    "cancelled/expired. "
+                    "Must be "
+                    "supplied "
+                    "together "
+                    "with "
+                    "``unexecuted_quantity``.",
+                    "type": "object",
+                },
+                "decision_price": {
+                    "description": "Optional "
+                    "price(s) at "
+                    "the "
+                    "investment-decision "
+                    "instant "
+                    "(Perold's "
+                    '"paper" '
+                    "price). Pass a "
+                    "scalar "
+                    "(applied to "
+                    "every fill) or "
+                    "a per-fill "
+                    "array matching "
+                    "``trade_prices`` "
+                    "in length. "
+                    "When supplied, "
+                    "adds "
+                    "``delay_cost_bps``, "
+                    "``delay_cost``, "
+                    "``implementation_shortfall_bps`` "
+                    "and "
+                    "``implementation_shortfall`` "
+                    "to the result. "
+                    "Omit for "
+                    "unchanged "
+                    "(execution-slippage-only) "
+                    "behaviour.",
+                    "type": "object",
+                },
+                "side": {
+                    "default": 1,
+                    "description": "+1 for buy orders, -1 " "for sell orders.",
+                    "type": "integer",
+                },
+                "trade_prices": {"description": "Executed prices " "per fill.", "type": "object"},
+                "trade_quantities": {
+                    "description": "Executed " "quantities " "per fill " "(non-negative).",
+                    "type": "object",
+                },
+                "unexecuted_quantity": {
+                    "description": "Optional "
+                    "quantity "
+                    "of the "
+                    "original "
+                    "order "
+                    "that was "
+                    "never "
+                    "executed "
+                    "(>= 0). "
+                    "Must be "
+                    "supplied "
+                    "together "
+                    "with "
+                    "``cancellation_price``, "
+                    "and "
+                    "requires "
+                    "``decision_price`` "
+                    "to also "
+                    "be "
+                    "supplied "
+                    "as a "
+                    "single "
+                    "scalar "
+                    "(the "
+                    "opportunity-cost "
+                    "leg has "
+                    "one "
+                    "order-level "
+                    "decision "
+                    "price, "
+                    "not a "
+                    "per-fill "
+                    "one).",
+                    "type": "object",
+                },
             },
             "required": ["trade_prices", "benchmark_prices", "trade_quantities"],
             "type": "object",
@@ -1092,10 +1828,24 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "treynor_ratio",
         "input_schema": {
             "properties": {
-                "benchmark_returns": {"type": "object"},
-                "periods_per_year": {"default": 252, "type": "integer"},
-                "returns": {"type": "object"},
-                "risk_free": {"default": 0.0, "type": "number"},
+                "benchmark_returns": {
+                    "description": "1-D array " "of market " "per-period " "returns.",
+                    "type": "object",
+                },
+                "periods_per_year": {
+                    "default": 252,
+                    "description": "Annualisation " "factor for " "the " "numerator.",
+                    "type": "integer",
+                },
+                "returns": {
+                    "description": "1-D array of " "portfolio per-period " "returns.",
+                    "type": "object",
+                },
+                "risk_free": {
+                    "default": 0.0,
+                    "description": "Per-period " "risk-free rate.",
+                    "type": "number",
+                },
             },
             "required": ["returns", "benchmark_returns"],
             "type": "object",
@@ -1111,8 +1861,27 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ulcer_index",
         "input_schema": {
             "properties": {
-                "is_equity_curve": {"default": False, "type": "boolean"},
-                "returns": {"type": "object"},
+                "is_equity_curve": {
+                    "default": False,
+                    "description": "If True, "
+                    "``returns`` "
+                    "is treated as "
+                    "a value "
+                    "series "
+                    "directly "
+                    "rather than "
+                    "being "
+                    "compounded.",
+                    "type": "boolean",
+                },
+                "returns": {
+                    "description": "1-D array of "
+                    "per-period returns, "
+                    "or an equity curve if "
+                    "``is_equity_curve`` "
+                    "is True.",
+                    "type": "object",
+                },
             },
             "required": ["returns"],
             "type": "object",
