@@ -1,0 +1,221 @@
+# Plan: an AI chat assistant in the pyvar portal (Claude Haiku 5.5)
+
+**Status 2026-11-07: exploration only. Nothing is built.** Written from a read of this repository
+(portal, API, CDK stacks, privacy policy) and Anthropic's Claude API reference (model table cached
+2026-10-06). Anything marked "not verified" was not seen or run.
+
+## 1. Recommendation
+
+Build it, small, and gate it on an offline quality check before any user sees it.
+
+- **Where it runs:** a new same-origin route in the existing FastAPI app (`POST /api/v1/assistant/chat`,
+  server-sent events). The portal is already served by that app, so the widget needs no CORS, no new
+  service and no key in the browser.
+- **Model:** `claude-haiku-5-5`, effort `low`, streaming. Estimated **about $0.001 per visitor turn**,
+  roughly $10 per 10,000 turns (section 5).
+- **Grounding:** a compact, cached index of the 385 functions (about 10K tokens) plus two lookup tools
+  over `portal/functions.json`. Never the whole catalogue (about 208K tokens, and prompts over 100K
+  tokens move to the dearer rate card).
+- **Stateless:** no chat is stored server-side; the browser keeps the conversation and resends it.
+  No database table, no Alembic migration in v1.
+- **The one real blocker is not technical.** `portal/privacy.html` section 5 promises that pyvar's
+  backend "never sends your portfolio data, return series, or computed results to Anthropic or any
+  other AI provider". The assistant must be designed so that stays true for computation data, and the
+  policy must add Anthropic as a sub-processor for chat messages **before launch** (section 4.6).
+
+## 2. What it is for, and not for
+
+For: "which function answers my question", what a parameter means, how to read a result, getting an API
+key, tier limits, installing the client, plugins and MCP server, and finding the right page or
+Try-it panel. It is a guide to the portal, not a second product.
+
+Not for, in v1:
+- computing or estimating any risk number (pyvar computes; the model does not);
+- stating regulatory thresholds from memory (they live in code and tests, CLAUDE.md section 4);
+- investment, legal or regulatory advice;
+- calling the API for the visitor, spending their quota, or handling their API key;
+- seeing Try-it inputs, results or portfolios (unless the visitor pastes them, section 4.4).
+
+## 3. What in the repository shapes the design (verified)
+
+| Fact | Consequence |
+|---|---|
+| `main.py` mounts `portal/` at `/` in the same app that serves `/api/v1/*`; CloudFront has one origin; `API_BASE = ''` in `pyvar.js` | The assistant is one more router. Same origin, no CORS, nothing per environment. |
+| API tasks run in private subnets with egress (`PRIVATE_WITH_EGRESS`, 1 NAT gateway by default, 2 in prod) and already reach Stripe and SES | `api.anthropic.com` is reachable with no network change. CLAUDE.md's "no direct internet routes" rule covers SQS/ECR/S3/Secrets Manager, not this. |
+| `config.py` treats integrations as optional (`stripe_secret_key`, `sentry_dsn`); secrets come from Secrets Manager, gated on `ecs_container_metadata_uri_v4` | Add `anthropic_api_key` the same way: absent means the feature is off. The tests must pin that gate (what failed the dev pipeline in #412). |
+| `api/middleware/rate_limit.py`: Redis-backed limiter, fixed-scope buckets, IP-keyed `enforce_public_rate_limit` with a trusted two-hop client-IP rule; **fails open** on a Redis error | Reuse the IP logic and the Redis store, but **fail closed** for the assistant: failing open there means unbounded spend. |
+| Tiers today: free 10 and pro 500 compute calls per day, enterprise exempt (`config.py`) | The assistant gets its own, separate buckets. Chat must not eat a user's compute quota. |
+| WAF: `RateLimitPerIp` blocks at 100 requests per 5 minutes per IP; `AggregateRateLimit` blocks at 6,000 per 5 minutes across all clients (`edge_stack.py`) | Assistant traffic counts toward both. A flood of chat requests could trip the aggregate rule and block real API users. It needs its own path-scoped rules (4.8). |
+| CloudFront default behaviour has `compress=True` and one cache policy | Streaming needs a dedicated behaviour with caching and compression off. Not verified that events arrive incrementally; test in dev. |
+| `portal/functions.json`: 385 functions with `summary`, `description`, `params`, `formula`; a compact index of `domain/name: summary` is 36 KB, about 10.4K tokens | The index fits in a cached system prompt. Counts use a 3.5 chars-per-token heuristic, not `count_tokens`; Haiku 5.5's tokenizer counts about 30% more than Haiku 4.5's. Re-measure in Phase 0. |
+| No `Content-Security-Policy` anywhere (portal HTML or CDK) | No CSP conflict. Model output must still be escaped, never injected as raw HTML. |
+| `privacy.html`: no cookies, no analytics; sub-processors are AWS, Stripe, Sentry, Google (sign-in only) | Chat history stays in the browser. Anthropic joins the table. No tracking in the widget. |
+| No `anthropic` package in the requirements; the repo never calls an LLM | New pinned dependency; bandit and CI run on it. |
+
+## 4. Design
+
+### 4.1 Flow
+
+Browser widget (`pyvar.js`) sends `{messages, page_context}` to `POST /api/v1/assistant/chat`. The route
+checks the feature flag, budget and rate limits, scrubs the input, then calls `AsyncAnthropic` with a
+streaming request and relays text deltas as SSE. When the model asks for a tool, the route runs it
+locally (a dictionary lookup, no network) and continues the loop (at most 3 rounds).
+
+### 4.2 Model settings (Claude Haiku 5.5 rules, from the API reference)
+
+- `model="claude-haiku-5-5"`; omit `temperature`, `top_p`, `top_k` (any non-default value is a 400).
+- Adaptive thinking is **on by default** and effort defaults to `medium`. Set
+  `output_config={"effort": "low"}`; thinking counts toward `max_tokens`, so use about 1,500.
+- Read response content blocks **by type**, never `content[0]`. No assistant prefill (400).
+- `tool_choice: auto`. A forced tool call skips thinking and is not wanted here.
+- Safety classifiers can decline a request (`stop_reason == "refusal"`) and Haiku 5.5 has no server-side
+  fallback, so the route must show a plain "I can't help with that" message.
+- Cache: one breakpoint at the end of the static prefix (system prompt, index, tool definitions); keep the
+  tool list ordered and identical so the prefix never changes. The API reference gives 512 tokens as the
+  minimum cacheable prefix for this model and says to confirm it in the caching docs; Phase 0 checks it by
+  watching `cache_creation_input_tokens` and `cache_read_input_tokens`.
+
+### 4.3 Grounding and tools
+
+- **Knowledge file:** generated, not hand-written, by a script in the style of `scripts/sync_skills.py`
+  (so a drift test fails when it is stale): the function index from `functions.json`, the tier limits from
+  `config.py`, and a short FAQ (sign-up, plugins, pyvar Local, MCP). Single source of truth, no numbers typed
+  twice.
+- **Tools, read-only, no network:** `search_functions(query)` (keyword scoring over names, summaries and
+  domains; 385 entries need no embeddings) and `get_function(name)` (parameters, formula, caveat, domain
+  page and anchor).
+- **Answers cite function cards** by link (`domain-*.html#...`), so a visitor can always check the source.
+
+### 4.4 Guardrails
+
+- **Computation data stays out.** The widget sends the question, the visible page and, on a Try-it panel,
+  the function name. It never sends parameter values or results. If a visitor pastes data, the UI warns
+  first; the server does not log it.
+- **Secrets scrub:** before the model call, replace anything shaped like a pyvar key (`pyvar_` plus a
+  token), a JWT or an AWS key with `[removed]`, and tell the visitor. Logs hold lengths and hashes, never
+  message text.
+- **Injection:** the visitor's text and every tool result are data, stated in the system prompt. The tools
+  can read and nothing else, so an injected instruction has nothing to act with.
+- **No numbers, no thresholds from memory:** thresholds and formulas come from `get_function` or the
+  assistant says it does not know and links the page.
+- **Output limits:** max input 2,000 characters, max 10 turns, max 1,500 output tokens.
+- **Disclosure:** the widget says it is an AI, can be wrong, and is not financial or regulatory advice.
+
+### 4.5 Limits and cost control
+
+Placeholders, to be set from real traffic like the existing rate limits (the repo says the same of its own):
+
+- anonymous: 10 messages per hour per IP; signed-in free: 40 per day; pro: 200 per day; enterprise: 500 per day;
+- a **global daily token budget** held in Redis; at 80% the widget shows a notice, at 100% the route returns
+  "unavailable today" and nothing is sent to Anthropic;
+- a **feature flag** (`assistant_enabled`, default false) that is also a kill switch, read from `/public/config`
+  so the widget hides itself;
+- a CloudWatch alarm on daily tokens and on `refusal` and 5xx rates.
+
+### 4.6 Privacy and terms (must ship with the feature)
+
+- `privacy.html`: add Anthropic to the sub-processor table (what it sees: the chat messages the visitor types,
+  and the page or function name; nothing from computations) and reword section 5 so it stays true: computation
+  data is still never sent. State the retention that applies at Anthropic. **Not verified:** Anthropic's current
+  API data-retention terms for this model; read them before the wording is final.
+- `terms.html`: a short "AI assistant" clause (informational, may be wrong, no advice).
+- The widget stores the conversation in `sessionStorage` only, and says so.
+
+### 4.7 UI
+
+A launcher on every page through `pyvar.js`, and an "Ask about this function" entry in the Try-it panel
+(`openTryItPanel` already has the function object). Streaming text, three suggested questions per page, copyable
+answers, a thumbs up and down that increments a server-side counter (no user id). Escape all model text; allow
+only links to pyvar.com pages.
+
+### 4.8 Infrastructure (an `infra/` branch, with `cdk diff` in the PR, per CLAUDE.md section 8)
+
+- Secret `pyvar-{env}-anthropic` in Secrets Manager, injected like the Stripe ones.
+- CloudFront behaviour for `/api/v1/assistant/*`: caching disabled, `compress=False`, POST allowed.
+- WAF: a stricter per-IP rate rule scoped to that path, and take the path out of the aggregate rule's count so
+  assistant abuse cannot block compute users.
+- Prefer a **dedicated Anthropic Console workspace and key** for the portal. The API reference lists spend limits
+  only as an early-access preview for Console organizations, so do not plan on a provider-side cap; the Redis
+  budget is the control.
+
+### 4.9 Observability and tests
+
+- Prometheus: input, output and cache-read tokens, latency to first token, tool calls, refusals, rate-limit hits,
+  daily budget used. Sentry for exceptions, with no message content. A `cache_read_input_tokens` of zero across
+  repeated requests means something is breaking the prefix.
+- Tests use a fake Anthropic client (CLAUDE.md: no real external services in tests), covering budget, scrub,
+  streaming, refusal, tool loop and the ECS gate. Coverage stays above 80%.
+
+## 5. Cost (estimate)
+
+Haiku 5.5 on the Claude API, prompts of 100K tokens or fewer: $0.10 input and $0.50 output per million tokens;
+cache reads 0.1x and 5-minute writes 1.25x input. Prefix of 12K tokens (system prompt, index, tools).
+
+| Turn | Cost |
+|---|---|
+| Answer from the index, cache hit | $0.0005 |
+| One `get_function` lookup, cache hit | $0.0013 |
+| First turn after idle, cache miss | $0.0027 |
+| **Blended (55 / 35 / 10)** | **$0.0010** |
+
+About $10 for 10,000 turns a month, $50 for 50,000, $250 for 250,000. A pessimistic case (30% more input tokens,
+double the output for thinking) is about $0.0016. The same workload on Sonnet 5.5 ($2 and $10) is about 20x dearer.
+NAT data for text traffic is negligible.
+
+## 6. Options considered
+
+| Option | Verdict |
+|---|---|
+| Call Anthropic from the browser | No: the key would be public. |
+| Third-party chat-widget service | Faster to start, but adds a sub-processor that sees visitor text and a recurring fee, and cuts against the privacy stance. |
+| Search box only, no LLM | A good first step and the fallback: the same two tools behind a command palette. It can ship in Phase 0 while the quality check runs. |
+| Claude Managed Agents | Overkill: no sandbox, no long-running work. |
+| Sonnet 5.5 instead of Haiku | Only if the Phase 0 check shows Haiku misses; 20x the cost. Haiku stays the default. |
+| A separate service for the assistant | Better isolation, more to run. Start inside the API behind a kill switch; split later if traffic justifies it. |
+
+## 7. Phases (effort is my rough estimate)
+
+**Phase 0: quality check, no product code (1 to 2 days).** `scripts/` plus `docs/` only.
+- 100 to 120 questions: function routing (60), parameter and result help (20), sign-up, tiers and install (15),
+  out of scope and injection attempts (25).
+- Run Haiku 5.5 and Sonnet 5.5 with the same prompt and tools. Expected cost about $0.10 and $2 per full run.
+- Gate to proceed: at least 90% correct function on the routing set; no invented function names on a 50-question
+  check; every out-of-scope and injection question declined or redirected; p50 time to first token under 1.5 s.
+- Also measure real token counts with `count_tokens` and settle the index format.
+
+**Phase 1: backend behind a flag (3 to 5 days).** Schemas, route, knowledge generator and drift test, tools,
+budget and limits, scrub, config and secret, metrics, tests. Off by default. Merging starts a CodePipeline run.
+
+**Phase 2: widget, privacy, edge (3 to 5 days).** Launcher and Try-it entry, `privacy.html` and `terms.html`,
+CloudFront and WAF (`infra/`), dev soak. Merging starts a CodePipeline run.
+
+**Phase 3: tiers, feedback, tuning (ongoing).** Signed-in quotas, counters, a weekly look at declined and
+low-rated questions, and the optional "suggest Try-it parameters" action (synthetic values, never auto-submitted).
+
+## 8. Risks
+
+| Risk | Handling |
+|---|---|
+| Wrong answer on a regulated topic | Thresholds only from `get_function`; visible disclaimer; eval set includes traps. |
+| Cost abuse by anonymous traffic | Per-IP and global budgets, fail closed, WAF path rule, kill switch. |
+| The privacy promise breaks | Computation data never sent; policy changed first; test that the request body has no `params`. |
+| Chat load affects compute users | Own buckets, own WAF rule, kill switch; split into a service if needed. |
+| Prompt injection | Read-only tools, nothing to act with, scrub, escape output. |
+| Model or API behaviour changes | Pinned model id, eval re-run before any change, refusal handled. |
+
+## 9. Decisions needed
+
+1. **Anonymous access?** I suggest yes, with a small quota, and higher limits when signed in.
+2. **Monthly budget ceiling**, and who owns the Anthropic account and the portal's workspace and key.
+3. **Privacy:** add Anthropic as a sub-processor for chat text and reword section 5?
+4. **v1 scope:** questions and navigation only (suggested), or also suggested Try-it parameters?
+5. **Language:** English only for v1?
+6. **Placement:** every page, or the function and plugin pages only?
+
+## 10. Not verified
+
+- That SSE reaches the browser unbuffered through CloudFront and the ALB (ALB idle timeout is not set in
+  `api_stack.py`, so the default applies).
+- Real token counts (heuristic used) and real latency.
+- Anthropic's data-retention terms and any provider-side spend limits for this account.
+- That Haiku 5.5 meets the Phase 0 gate; that is what Phase 0 is for.
