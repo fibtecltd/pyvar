@@ -14,8 +14,8 @@ Formula (LaTeX): `CET1\ ratio = \frac{CET1_{capital}}{RWA}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cet1_capital`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `cet1_capital`* | `number` | required | Common Equity Tier 1 capital (currency). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets (currency). |
 
 ### basel_iii_tier1_ratio
 
@@ -27,8 +27,8 @@ Formula (LaTeX): `Tier\ 1\ ratio = \frac{Tier1_{capital}}{RWA}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tier1_capital`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `tier1_capital`* | `number` | required | Tier 1 capital (CET1 + additional Tier 1). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
 
 ### basel_iii_total_capital_ratio
 
@@ -40,8 +40,8 @@ Formula (LaTeX): `Total\ capital\ ratio = \frac{Total\ Capital}{RWA}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `total_capital`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `total_capital`* | `number` | required | Total regulatory capital (Tier 1 + Tier 2). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
 
 ### basel_iii_leverage_ratio
 
@@ -54,8 +54,8 @@ Formula (LaTeX): `Leverage\ ratio = \frac{Tier1_{capital}}{Total\ Exposure}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tier1_capital`* | `number` | required |  |
-| `total_exposure`* | `number` | required |  |
+| `tier1_capital`* | `number` | required | Tier 1 capital. |
+| `total_exposure`* | `number` | required | Total leverage exposure measure. |
 
 ### basel_iv_output_floor
 
@@ -68,9 +68,9 @@ Formula (LaTeX): `Floored\ RWA = \max\big(RWA_{IM},\ floor\_factor \times RWA_{S
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `internal_model_rwa`* | `number` | required |  |
-| `standardised_rwa`* | `number` | required |  |
-| `floor_factor` | `number` | `0.725` |  |
+| `internal_model_rwa`* | `number` | required | RWA from internal models. |
+| `standardised_rwa`* | `number` | required | RWA under the standardised approach. |
+| `floor_factor` | `number` | `0.725` | Output floor factor (default 0.725, regulatory). |
 
 ## ICAAP / SREP / Pillar 2
 
@@ -85,9 +85,9 @@ Formula (LaTeX): `Pillar2A_{capital} = pillar2a\_addon\_ratio \times RWA \\ TSCR
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pillar1_requirement`* | `number` | required |  |
-| `pillar2a_addon_ratio`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `pillar1_requirement`* | `number` | required | Pillar 1 capital requirement (currency). |
+| `pillar2a_addon_ratio`* | `number` | required | Pillar 2A add-on as a fraction of RWA. |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
 
 ### pillar_2a_capital
 
@@ -100,8 +100,8 @@ Formula (LaTeX): `Pillar2A_{capital} = \sum_i addon_i \\ Pillar2A_{ratio} = \fra
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `risk_addons`* | `number[] or number[][]` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `risk_addons`* | `number[] or number[][]` | required | Array of per-risk capital add-ons (currency). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets (for the ratio). |
 
 ### pillar_2b_stress_buffer
 
@@ -114,8 +114,8 @@ Formula (LaTeX): `Pillar2B_{buffer} = \max\big(Stressed\ Capital\ Depletion,\ 0\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `stressed_capital_depletion`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `stressed_capital_depletion`* | `number` | required | Peak CET1 depletion under stress (currency). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
 
 ### icaap_capital_assessment
 
@@ -128,9 +128,9 @@ Formula (LaTeX): `Total\ Capital\ Requirement = Pillar1 + \sum_i RiskComponent_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pillar1_capital`* | `number` | required |  |
-| `risk_capital_components`* | `number[] or number[][]` | required |  |
-| `available_capital`* | `number` | required |  |
+| `pillar1_capital`* | `number` | required | Pillar 1 minimum capital requirement. |
+| `risk_capital_components`* | `number[] or number[][]` | required | Array of additional internal risk capital charges (Pillar 2 risk types). |
+| `available_capital`* | `number` | required | Total available own funds. |
 
 ## FRTB Capital (SA & IMA)
 
@@ -147,9 +147,9 @@ Formula (LaTeX): `SA_{capital} = SBM_{charge} + DRC + RRAO`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sensitivities_charge`* | `number` | required |  |
-| `default_risk_charge`* | `number` | required |  |
-| `residual_risk_addon`* | `number` | required |  |
+| `sensitivities_charge`* | `number` | required | Aggregate SBM charge (max over correlation scenarios), currency. |
+| `default_risk_charge`* | `number` | required | Default Risk Charge, currency. |
+| `residual_risk_addon`* | `number` | required | Residual Risk Add-On, currency. |
 
 ### frtb_ima_market_risk_capital
 
@@ -164,11 +164,11 @@ Formula (LaTeX): `m_c = \max(multiplier,\ 1.5) \\ ES_{charge} = m_c \times ES_{9
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_shortfall`* | `number` | required |  |
-| `stressed_es_ratio`* | `number` | required |  |
-| `multiplier`* | `number` | required |  |
-| `non_modellable_ses` | `number` | `0.0` |  |
-| `default_risk_charge` | `number` | `0.0` |  |
+| `expected_shortfall`* | `number` | required | Current-period 97.5% Expected Shortfall, currency. |
+| `stressed_es_ratio`* | `number` | required | Ratio of stressed ES to current ES (>= 1 typically). |
+| `multiplier`* | `number` | required | Supervisory multiplier mc (floored at 1.5). |
+| `non_modellable_ses` | `number` | `0.0` | Aggregate SES capital for NMRFs, currency. |
+| `default_risk_charge` | `number` | `0.0` | IMA Default Risk Charge, currency. |
 
 ### frtb_pl_attribution_test
 
@@ -188,8 +188,8 @@ Formula (LaTeX): `\rho = Spearman(RTPL, HPL) \\ ratio = \frac{\sigma(RTPL)}{\sig
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `risk_theoretical_pnl`* | `number[] or number[][]` | required |  |
-| `hypothetical_pnl`* | `number[] or number[][]` | required |  |
+| `risk_theoretical_pnl`* | `number[] or number[][]` | required | RTPL series from the risk model. |
+| `hypothetical_pnl`* | `number[] or number[][]` | required | HPL series from full revaluation. |
 
 ### frtb_trading_desk_aggregation
 
@@ -204,9 +204,9 @@ Formula (LaTeX): `Total_{capital} = \sum_{d \,\in\, eligible} IMA_d + \sum_{d \,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `desk_sa_charges`* | `number[] or number[][]` | required |  |
-| `desk_ima_charges`* | `number[] or number[][]` | required |  |
-| `desk_ima_eligible`* | `number[] or number[][]` | required |  |
+| `desk_sa_charges`* | `number[] or number[][]` | required | SA charge per desk (currency). |
+| `desk_ima_charges`* | `number[] or number[][]` | required | IMA charge per desk (currency). |
+| `desk_ima_eligible`* | `number[] or number[][]` | required | Boolean/0-1 array — whether each desk may use IMA. |
 
 ## MiFID II
 
@@ -224,7 +224,7 @@ Formula (LaTeX): `valid = (\text{required fields present}) \wedge (|LEI| = 20) \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `report`* | `object` | required |  |
+| `report`* | `object` | required | Mapping of transaction-report field names to values. |
 
 ### mifid_ii_pre_trade_transparency
 
@@ -238,10 +238,10 @@ Formula (LaTeX): `waiver = \begin{cases} \text{large\_in\_scale} & order\_size \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `instrument_type`* | `string` | required |  |
-| `order_size`* | `number` | required |  |
-| `large_in_scale_threshold`* | `number` | required |  |
-| `is_liquid` | `boolean` | `True` |  |
+| `instrument_type`* | `string` | required | Instrument class label (informational). |
+| `order_size`* | `number` | required | Order size in the relevant unit (notional/quantity). |
+| `large_in_scale_threshold`* | `number` | required | LIS threshold for the instrument. |
+| `is_liquid` | `boolean` | `True` | Whether the instrument has a liquid market. |
 
 ### mifid_ii_post_trade_transparency
 
@@ -254,9 +254,9 @@ Formula (LaTeX): `deferral = (trade\_size \ge threshold) \vee \neg is\_liquid`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `trade_size`* | `number` | required |  |
-| `delayed_publication_threshold`* | `number` | required |  |
-| `is_liquid` | `boolean` | `True` |  |
+| `trade_size`* | `number` | required | Executed trade size (notional/quantity). |
+| `delayed_publication_threshold`* | `number` | required | Size threshold for deferral. |
+| `is_liquid` | `boolean` | `True` | Whether the instrument has a liquid market. |
 
 ### mifid_ii_best_execution_metric
 
@@ -284,10 +284,10 @@ Formula (LaTeX): `PriceImprovement_{bps} = \frac{\sum_i side \times (bench_i - p
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `executed_prices`* | `number[] or number[][]` | required |  |
-| `benchmark_prices`* | `number[] or number[][]` | required |  |
-| `quantities`* | `number[] or number[][]` | required |  |
-| `side` | `integer` | `1` |  |
+| `executed_prices`* | `number[] or number[][]` | required | Executed price per fill. |
+| `benchmark_prices`* | `number[] or number[][]` | required | Reference (EBBO/arrival) price per fill. |
+| `quantities`* | `number[] or number[][]` | required | Executed quantity per fill. |
+| `side` | `integer` | `1` | +1 for buys, -1 for sells. |
 
 ### mifid_ii_algorithm_documentation
 
@@ -303,7 +303,7 @@ Formula (LaTeX): `completeness = 1 - \frac{|\text{missing items}|}{6}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `documentation`* | `object` | required |  |
+| `documentation`* | `object` | required | Mapping of documentation item -> provided (bool/value). |
 
 ## EMIR & SFTR
 
@@ -321,7 +321,7 @@ Formula (LaTeX): `valid = (\text{required fields present}) \wedge (|LEI| = 20) \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `trade`* | `object` | required |  |
+| `trade`* | `object` | required | Mapping of EMIR trade fields to values. |
 
 ### emir_clearing_obligation_check
 
@@ -346,9 +346,9 @@ Formula (LaTeX): `any\_breached = \bigvee_{ac} \big(notional_{ac} > threshold_{a
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notionals`* | `{str: number}` | required |  |
-| `counterparty_category`* | `string` | required |  |
-| `clearing_thresholds`* | `{str: number}` | required |  |
+| `notionals`* | `{str: number}` | required | Mapping asset_class -> gross notional outstanding for this counterparty, across ALL asset classes it holds positions in. Required (not just the one class being asked about) for the FC any-class-breach rule: a single class's notional alone cannot answer whether the FC-wide obligation applies. |
+| `counterparty_category`* | `string` | required | One of "FC", "NFC+", "NFC-". |
+| `clearing_thresholds`* | `{str: number}` | required | Mapping asset_class -> clearing threshold notional. |
 
 ### emir_margin_requirement
 
@@ -361,10 +361,10 @@ Formula (LaTeX): `IM = initial\_margin\_rate \times portfolio\_value \\ VM_{call
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `portfolio_value`* | `number` | required |  |
-| `initial_margin_rate`* | `number` | required |  |
-| `variation_margin`* | `number` | required |  |
-| `minimum_transfer_amount` | `number` | `0.0` |  |
+| `portfolio_value`* | `number` | required | Gross portfolio value / notional for IM scaling. |
+| `initial_margin_rate`* | `number` | required | IM as a fraction of portfolio value. |
+| `variation_margin`* | `number` | required | Net mark-to-market variation margin owed. |
+| `minimum_transfer_amount` | `number` | `0.0` | MTA below which no transfer is made. |
 
 ### sftr_securities_finance_report
 
@@ -381,7 +381,7 @@ Formula (LaTeX): `valid = (\text{required fields present}) \wedge \big(sft\_type
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `transaction`* | `object` | required |  |
+| `transaction`* | `object` | required | Mapping of SFTR fields to values. |
 
 ## Fund Regulations (AIFMD/UCITS/Solvency II)
 
@@ -400,10 +400,10 @@ Formula (LaTeX): `Gross\ Leverage = \frac{Gross\ Exposure}{NAV} \\ Commitment\ L
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `gross_exposure`* | `number` | required |  |
-| `commitment_exposure`* | `number` | required |  |
-| `net_asset_value`* | `number` | required |  |
-| `var_pct` | `number or null` | `None` |  |
+| `gross_exposure`* | `number` | required | Gross method exposure (sum of absolute positions). |
+| `commitment_exposure`* | `number` | required | Commitment method exposure (post-netting/hedging). |
+| `net_asset_value`* | `number` | required | Fund NAV. |
+| `var_pct` | `number or null` | `None` | Optional fund VaR as a fraction of NAV for reporting. |
 
 ### ucits_kiid_risk_indicator
 
@@ -419,8 +419,8 @@ Formula (LaTeX): `\sigma_{ann} = std(r,\ ddof=1) \times \sqrt{periods\_per\_year
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `periods_per_year` | `integer` | `52` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of periodic fund returns. |
+| `periods_per_year` | `integer` | `52` | Periods per year for annualising volatility (52 for weekly, 12 monthly). |
 
 ### solvency_ii_scr_market_risk
 
@@ -435,9 +435,9 @@ Formula (LaTeX): `SCR_{market} = \sqrt{\mathbf{s}^\top \mathbf{C}\, \mathbf{s}} 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sub_module_charges`* | `number[] or number[][]` | required |  |
-| `correlation_matrix`* | `number[] or number[][]` | required |  |
-| `sub_module_names` | `string[] or null` | `None` |  |
+| `sub_module_charges`* | `number[] or number[][]` | required | Capital charge per market sub-module. |
+| `correlation_matrix`* | `number[] or number[][]` | required | Prescribed correlation matrix between sub-modules. |
+| `sub_module_names` | `string[] or null` | `None` | Optional labels for the diversification report. |
 
 ### solvency_ii_scr_credit_risk
 
@@ -475,9 +475,9 @@ Formula (LaTeX): `LGD_i = EAD_i \times LGD^{rate}_i \\ TLGD = \sum_i LGD_i \\ \s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required |  |
-| `loss_given_default`* | `number[] or number[][]` | required |  |
-| `default_probabilities`* | `number[] or number[][]` | required |  |
+| `exposures`* | `number[] or number[][]` | required | Exposure at default per counterparty. |
+| `loss_given_default`* | `number[] or number[][]` | required | LGD fraction per counterparty. |
+| `default_probabilities`* | `number[] or number[][]` | required | PD per counterparty in [0, 1]. |
 
 ## CRR2 & Capital Buffers
 
@@ -503,9 +503,9 @@ Formula (LaTeX): `Exposure\ ratio = \frac{exposure\_value}{tier1\_capital} \\ Li
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposure_value`* | `number` | required |  |
-| `tier1_capital`* | `number` | required |  |
-| `is_institution` | `boolean` | `False` |  |
+| `exposure_value`* | `number` | required | Exposure value to a single client/group (post-CRM). |
+| `tier1_capital`* | `number` | required | Tier 1 capital. |
+| `is_institution` | `boolean` | `False` | Whether the counterparty is an institution (or a connected-client group including one) — applies the EUR 150m absolute alternative when it exceeds the 25% ratio limit. |
 
 ### capital_conservation_buffer
 
@@ -518,9 +518,9 @@ Formula (LaTeX): `Required\ CET1 = 0.045 + buffer\_ratio \\ Buffer\ Capital = bu
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cet1_ratio`* | `number` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
-| `buffer_ratio` | `number` | `0.025` |  |
+| `cet1_ratio`* | `number` | required | Current CET1 ratio (decimal). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
+| `buffer_ratio` | `number` | `0.025` | CCoB ratio (default 2.5%, regulatory). |
 
 ### countercyclical_capital_buffer
 
@@ -533,9 +533,9 @@ Formula (LaTeX): `CCyB_{rate} = \frac{\sum_i E_i \cdot r_i}{\sum_i E_i} \\ CCyB_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposure_amounts`* | `number[] or number[][]` | required |  |
-| `country_ccyb_rates`* | `number[] or number[][]` | required |  |
-| `risk_weighted_assets`* | `number` | required |  |
+| `exposure_amounts`* | `number[] or number[][]` | required | Private-sector credit exposure per jurisdiction. |
+| `country_ccyb_rates`* | `number[] or number[][]` | required | National CCyB rate per jurisdiction (decimal). |
+| `risk_weighted_assets`* | `number` | required | Total risk-weighted assets. |
 
 ### combined_buffer_requirement
 
@@ -552,7 +552,7 @@ Formula (LaTeX): `CBR = CCoB + CCyB + SyRB \\ CBR_{capital} = CBR \times RWA`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `capital_conservation_buffer_ratio` | `number` | `0.025` |  |
-| `countercyclical_buffer_ratio` | `number` | `0.0` |  |
-| `systemic_buffer_ratio` | `number` | `0.0` |  |
-| `risk_weighted_assets` | `number` | `0.0` |  |
+| `capital_conservation_buffer_ratio` | `number` | `0.025` | CCoB ratio (default 2.5%). |
+| `countercyclical_buffer_ratio` | `number` | `0.0` | Institution-specific CCyB ratio. |
+| `systemic_buffer_ratio` | `number` | `0.0` | Higher of systemic buffers (G-SII/O-SII/SyRB). |
+| `risk_weighted_assets` | `number` | `0.0` | RWA to convert the buffer ratio to capital. |

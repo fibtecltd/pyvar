@@ -1,6 +1,6 @@
 {
   "name": "pyvar-portfolio-analytics",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "50 functions: Markowitz/BL/risk-parity, Sharpe/Sortino, Brinson, FF5, PCA, HMM, ESG",
   "author": {
     "name": "Fibtec Limited",

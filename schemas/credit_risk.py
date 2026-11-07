@@ -18,9 +18,15 @@ class ProbabilityOfDefaultPdEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    n_defaults: list[float] | list[list[float]]
-    n_obligors: list[float] | list[list[float]]
-    floor: float = 0.0003
+    n_defaults: list[float] | list[list[float]] = Field(
+        description="Defaults observed in each rating cohort."
+    )
+    n_obligors: list[float] | list[list[float]] = Field(
+        description="Obligors at risk at the start of each cohort."
+    )
+    floor: float = Field(
+        default=0.0003, description="Regulatory PD floor applied to the pooled estimate."
+    )
 
 
 class ProbabilityOfDefaultPdEstimationResponse(BaseModel):
@@ -40,9 +46,15 @@ class LossGivenDefaultLgdModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    recovery_amounts: list[float] | list[list[float]]
-    exposure_amounts: list[float] | list[list[float]]
-    workout_cost_rate: float = 0.0
+    recovery_amounts: list[float] | list[list[float]] = Field(
+        description="Recovered amounts per defaulted facility."
+    )
+    exposure_amounts: list[float] | list[list[float]] = Field(
+        description="Exposure at default per facility (> 0)."
+    )
+    workout_cost_rate: float = Field(
+        default=0.0, description="Workout cost as a fraction of EAD (subtracted from recoveries)."
+    )
 
 
 class LossGivenDefaultLgdModelResponse(BaseModel):
@@ -61,9 +73,11 @@ class ExposureAtDefaultEadCalculatorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    drawn: float
-    undrawn: float
-    credit_conversion_factor: float = 0.75
+    drawn: float = Field(description="Currently drawn (on-balance-sheet) amount.")
+    undrawn: float = Field(description="Undrawn committed (off-balance-sheet) amount.")
+    credit_conversion_factor: float = Field(
+        default=0.75, description="CCF in ``[0, 1]`` applied to the undrawn part."
+    )
 
 
 class ExposureAtDefaultEadCalculatorResponse(BaseModel):
@@ -82,9 +96,9 @@ class ExpectedLossElComputationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    lgd: float
-    ead: float
+    pd: float = Field(description="Probability of default in ``[0, 1]``.")
+    lgd: float = Field(description="Loss given default in ``[0, 1]``.")
+    ead: float = Field(description="Exposure at default (currency amount, >= 0).")
 
 
 class ExpectedLossElComputationResponse(BaseModel):
@@ -104,9 +118,11 @@ class UnexpectedLossUlComputationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: list[float] | list[list[float]]
-    lgd: list[float] | list[list[float]]
-    ead: list[float] | list[list[float]]
+    pd: list[float] | list[list[float]] = Field(description="Per-exposure PD array in ``[0, 1]``.")
+    lgd: list[float] | list[list[float]] = Field(
+        description="Per-exposure LGD array in ``[0, 1]``."
+    )
+    ead: list[float] | list[list[float]] = Field(description="Per-exposure EAD array (>= 0).")
 
 
 class UnexpectedLossUlComputationResponse(BaseModel):
@@ -125,9 +141,16 @@ class RecoveryRateEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    recovery_amounts: list[float] | list[list[float]]
-    exposure_amounts: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]] | None = None
+    recovery_amounts: list[float] | list[list[float]] = Field(
+        description="Nominal recovered amounts per facility."
+    )
+    exposure_amounts: list[float] | list[list[float]] = Field(
+        description="Exposure at default per facility (> 0)."
+    )
+    discount_factors: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-facility discount factors in ``(0, 1]`` applied to recoveries; ``None`` means no discounting.",
+    )
 
 
 class RecoveryRateEstimationResponse(BaseModel):
@@ -146,10 +169,17 @@ class DownturnLgdAdjustmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    lgd_long_run: float
-    downturn_multiplier: float = 1.0
-    floor: float = 0.0
-    method: str = "multiplicative"
+    lgd_long_run: float = Field(description="Long-run average LGD in ``[0, 1]``.")
+    downturn_multiplier: float = Field(
+        default=1.0, description="Multiplier (>= 1) reflecting downturn severity."
+    )
+    floor: float = Field(
+        default=0.0,
+        description="Regulatory LGD floor (e.g. 0.05 for retail mortgages, CRR Art. 164).",
+    )
+    method: str = Field(
+        default="multiplicative", description='``"multiplicative"`` (default) or ``"additive"``.'
+    )
 
 
 class DownturnLgdAdjustmentResponse(BaseModel):
@@ -169,11 +199,19 @@ class IrbFoundationApproachCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    ead: float
-    maturity: float = 2.5
-    lgd: float = 0.45
-    seniority: str = "senior_unsecured"
+    pd: float = Field(description="Own-estimate probability of default in ``(0, 1]``.")
+    ead: float = Field(description="Exposure at default (currency amount, >= 0).")
+    maturity: float = Field(
+        default=2.5, description="Effective maturity M in years (supervisory default 2.5)."
+    )
+    lgd: float = Field(
+        default=0.45,
+        description="Override supervisory LGD; ignored unless ``seniority`` is custom.",
+    )
+    seniority: str = Field(
+        default="senior_unsecured",
+        description='``"senior_unsecured"`` (45%) or ``"subordinated"`` (75%).',
+    )
 
 
 class IrbFoundationApproachCapitalResponse(BaseModel):
@@ -189,11 +227,14 @@ class IrbAdvancedApproachCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    lgd: float
-    ead: float
-    maturity: float = 2.5
-    correlation: float | None = None
+    pd: float = Field(description="Own-estimate probability of default in ``(0, 1]``.")
+    lgd: float = Field(description="Own-estimate loss given default in ``[0, 1]``.")
+    ead: float = Field(description="Own-estimate exposure at default (>= 0).")
+    maturity: float = Field(default=2.5, description="Own-estimate effective maturity M in years.")
+    correlation: float | None = Field(
+        default=None,
+        description="Optional override of the asset correlation R (e.g. for an SME or specialised-lending adjustment); ``None`` uses the Basel corporate formula.",
+    )
 
 
 class IrbAdvancedApproachCapitalResponse(BaseModel):
@@ -209,9 +250,14 @@ class BaselStandardisedApproachRwaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    ead: float
-    risk_weight: float
-    credit_risk_mitigation: float = 0.0
+    ead: float = Field(description="Exposure at default (currency amount, >= 0).")
+    risk_weight: float = Field(
+        description="Supervisory risk weight as a fraction (e.g. 1.0 for 100%)."
+    )
+    credit_risk_mitigation: float = Field(
+        default=0.0,
+        description="Eligible collateral / guarantee value netted from EAD before weighting (>= 0).",
+    )
 
 
 class BaselStandardisedApproachRwaResponse(BaseModel):
@@ -230,8 +276,10 @@ class MaturityAdjustmentBaselIrbRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    maturity: float
+    pd: float = Field(description="Probability of default in ``(0, 1]``.")
+    maturity: float = Field(
+        description="Effective maturity M in years (Basel caps M at 5, floors at 1 for most exposures; not enforced here so the raw factor is exposed)."
+    )
 
 
 class MaturityAdjustmentBaselIrbResponse(BaseModel):
@@ -250,8 +298,8 @@ class SmeCorrelationFactorBaselRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    annual_sales_millions: float
+    pd: float = Field(description="Probability of default in ``(0, 1]``.")
+    annual_sales_millions: float = Field(description="Total annual sales S in € millions.")
 
 
 class SmeCorrelationFactorBaselResponse(BaseModel):
@@ -270,13 +318,23 @@ class CreditVarMonteCarloRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: list[float] | list[list[float]]
-    lgd: list[float] | list[list[float]]
-    ead: list[float] | list[list[float]]
-    asset_correlation: float | list[float] = 0.15
-    confidence_level: float = 0.999
-    n_simulations: int = 50000
-    seed: int = 12345
+    pd: list[float] | list[list[float]] = Field(
+        description="Per-obligor probability of default in ``(0, 1)``."
+    )
+    lgd: list[float] | list[list[float]] = Field(
+        description="Per-obligor loss given default in ``[0, 1]``."
+    )
+    ead: list[float] | list[list[float]] = Field(
+        description="Per-obligor exposure at default (>= 0)."
+    )
+    asset_correlation: float | list[float] = Field(
+        default=0.15, description="Scalar or per-obligor asset correlation rho in ``[0, 1)``."
+    )
+    confidence_level: float = Field(
+        default=0.999, description="VaR confidence in ``[0.90, 0.9999]`` (Basel 99.9%)."
+    )
+    n_simulations: int = Field(default=50000, description="Number of Monte-Carlo paths.")
+    seed: int = Field(default=12345, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -305,11 +363,15 @@ class CreditVarAnalyticalVasicekRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: float
-    lgd: float
-    ead_total: float
-    asset_correlation: float = 0.15
-    confidence_level: float = 0.999
+    pd: float = Field(description="Portfolio probability of default in ``(0, 1)``.")
+    lgd: float = Field(description="Loss given default in ``[0, 1]``.")
+    ead_total: float = Field(description="Total portfolio exposure at default (>= 0).")
+    asset_correlation: float = Field(
+        default=0.15, description="Asset correlation rho in ``[0, 1)``."
+    )
+    confidence_level: float = Field(
+        default=0.999, description="VaR confidence in ``[0.90, 0.9999]``."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -336,16 +398,33 @@ class CreditmetricsPortfolioModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    pd: list[float] | list[list[float]]
-    lgd: list[float] | list[list[float]]
-    asset_correlation: float = 0.2
-    confidence_level: float = 0.99
-    n_simulations: int = 20000
-    seed: int = 2024
-    transition_matrix: list[list[float]] | None = None
-    current_rating: list[int] | None = None
-    state_loss_pct: list[float] | None = None
+    exposures: list[float] | list[list[float]] = Field(description="Per-obligor exposure (>= 0).")
+    pd: list[float] | list[list[float]] = Field(
+        description="Per-obligor PD in ``(0, 1)`` — always used for the default threshold, in both modes. In multi-state mode this OVERRIDES ``transition_matrix``'s own default probability for that obligor (see above), it is not blended or ignored."
+    )
+    lgd: list[float] | list[list[float]] = Field(
+        description="Per-obligor LGD in ``[0, 1]`` — always used for the default-state loss, in both modes."
+    )
+    asset_correlation: float = Field(
+        default=0.2, description="Common-factor asset correlation in ``[0, 1)``."
+    )
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence in ``[0.90, 0.9999]``."
+    )
+    n_simulations: int = Field(default=20000, description="Number of Monte-Carlo paths.")
+    seed: int = Field(default=2024, description="RNG seed.")
+    transition_matrix: list[list[float]] | None = Field(
+        default=None,
+        description="Multi-state only. Row-stochastic ``(n_states, n_states)`` rating transition matrix (rows sum to 1).",
+    )
+    current_rating: list[int] | None = Field(
+        default=None,
+        description="Multi-state only. Per-obligor starting rating index in ``[0, n_states - 1)`` (an obligor cannot start already in default).",
+    )
+    state_loss_pct: list[float] | None = Field(
+        default=None,
+        description="Multi-state only. ``(n_states - 1,)`` loss percentage of exposure if migrated to each non-default state (index 0 = best rating). The default state's loss always comes from that obligor's own ``lgd``, not from this array.",
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -368,12 +447,16 @@ class KmvMertonDistanceToDefaultRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_value: float
-    debt_face_value: float
-    asset_volatility: float
-    risk_free_rate: float = 0.0
-    asset_drift: float | None = None
-    horizon: float = 1.0
+    asset_value: float = Field(description="Current market value of firm assets V (> 0).")
+    debt_face_value: float = Field(description="Default boundary / debt face value D (> 0).")
+    asset_volatility: float = Field(description="Annualised asset return volatility sigma (> 0).")
+    risk_free_rate: float = Field(
+        default=0.0, description="Risk-free rate (used when ``asset_drift`` is None)."
+    )
+    asset_drift: float | None = Field(
+        default=None, description="Expected asset return mu; defaults to ``risk_free_rate``."
+    )
+    horizon: float = Field(default=1.0, description="Horizon T in years (> 0).")
 
 
 class KmvMertonDistanceToDefaultResponse(BaseModel):
@@ -392,8 +475,10 @@ class DefaultCorrelationMatrixRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: list[float] | list[list[float]]
-    asset_correlation: list[float] | list[list[float]]
+    pd: list[float] | list[list[float]] = Field(description="Per-obligor PD in ``(0, 1)``.")
+    asset_correlation: list[float] | list[list[float]] = Field(
+        description="Symmetric ``(n, n)`` asset-correlation matrix with unit diagonal, entries in ``[-1, 1]``."
+    )
 
 
 class DefaultCorrelationMatrixResponse(BaseModel):
@@ -410,7 +495,9 @@ class CreditConcentrationRiskHhiRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
+    exposures: list[float] | list[list[float]] = Field(
+        description="Per-name exposure amounts (>= 0, at least one positive)."
+    )
 
 
 class CreditConcentrationRiskHhiResponse(BaseModel):
@@ -429,9 +516,13 @@ class CounterpartyCreditRiskCcrExposureRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mark_to_market: float
-    add_on: float
-    collateral: float = 0.0
+    mark_to_market: float = Field(
+        description="Current MtM of the netting set (positive = in-the-money to the reporting bank)."
+    )
+    add_on: float = Field(description="Potential-future-exposure add-on (>= 0).")
+    collateral: float = Field(
+        default=0.0, description="Collateral held against the exposure (>= 0)."
+    )
 
 
 class CounterpartyCreditRiskCcrExposureResponse(BaseModel):
@@ -449,9 +540,9 @@ class CurrentExposureMethodCemRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mark_to_market: float
-    notional: float
-    add_on_factor: float
+    mark_to_market: float = Field(description="Current MtM (replacement cost component).")
+    notional: float = Field(description="Trade / netting-set notional (>= 0).")
+    add_on_factor: float = Field(description="Supervisory add-on factor in ``[0, 1]``.")
 
 
 class CurrentExposureMethodCemResponse(BaseModel):
@@ -469,10 +560,10 @@ class StandardisedApproachCcrSaCcrRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    mark_to_market: float
-    collateral: float
-    add_on_aggregate: float
-    alpha: float = 1.4
+    mark_to_market: float = Field(description="Current netting-set MtM.")
+    collateral: float = Field(description="Net collateral held (>= 0).")
+    add_on_aggregate: float = Field(description="Aggregate asset-class add-on (>= 0).")
+    alpha: float = Field(default=1.4, description="Supervisory scaling factor (default 1.4).")
 
 
 class StandardisedApproachCcrSaCcrResponse(BaseModel):
@@ -492,13 +583,15 @@ class PotentialFutureExposurePfeRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    initial_value: float
-    volatility: float
-    time_steps: list[float] | list[list[float]]
-    quantile: float = 0.95
-    drift: float = 0.0
-    n_paths: int = 20000
-    seed: int = 909
+    initial_value: float = Field(description="Current netting-set value V_0.")
+    volatility: float = Field(description="Per-sqrt-time value volatility sigma (>= 0).")
+    time_steps: list[float] | list[list[float]] = Field(
+        description="Strictly positive time points (years) at which to profile."
+    )
+    quantile: float = Field(default=0.95, description="PFE confidence in ``(0, 1)`` (default 95%).")
+    drift: float = Field(default=0.0, description="Per-unit-time drift of the value process.")
+    n_paths: int = Field(default=20000, description="Number of Monte-Carlo paths.")
+    seed: int = Field(default=909, description="RNG seed.")
 
 
 class PotentialFutureExposurePfeResponse(BaseModel):
@@ -518,8 +611,12 @@ class ExpectedPositiveExposureEpeRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
+    expected_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` expected-exposure profile EE(t) (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing time points (years), starting at or after 0."
+    )
 
 
 class ExpectedPositiveExposureEpeResponse(BaseModel):
@@ -536,8 +633,12 @@ class EffectiveEpeRegulatoryRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
+    expected_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` expected-exposure profile (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing time points (years)."
+    )
 
 
 class EffectiveEpeRegulatoryResponse(BaseModel):
@@ -555,9 +656,9 @@ class CollateralHaircutCalculationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    collateral_value: float
-    haircut_collateral: float
-    haircut_fx: float = 0.0
+    collateral_value: float = Field(description="Nominal collateral market value (>= 0).")
+    haircut_collateral: float = Field(description="Collateral volatility haircut in ``[0, 1]``.")
+    haircut_fx: float = Field(default=0.0, description="Currency-mismatch haircut in ``[0, 1]``.")
 
 
 class CollateralHaircutCalculationResponse(BaseModel):
@@ -575,11 +676,21 @@ class CreditValuationAdjustmentCvaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    credit_spread: float
-    recovery_rate: float = 0.4
+    expected_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discounted-or-not EPE per bucket (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times (years)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` risk-free discount factors in ``(0, 1]``."
+    )
+    credit_spread: float = Field(
+        description="Counterparty CDS spread (decimal, e.g. 0.01 = 100 bps)."
+    )
+    recovery_rate: float = Field(
+        default=0.4, description="Counterparty recovery rate in ``[0, 1)``."
+    )
 
 
 class CreditValuationAdjustmentCvaResponse(BaseModel):
@@ -598,11 +709,19 @@ class DebtValuationAdjustmentDvaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_negative_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    own_credit_spread: float
-    own_recovery_rate: float = 0.4
+    expected_negative_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` ENE per bucket (>= 0, magnitude)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    own_credit_spread: float = Field(description="The bank's own CDS spread (decimal).")
+    own_recovery_rate: float = Field(
+        default=0.4, description="The bank's own recovery rate in ``[0, 1)``."
+    )
 
 
 class DebtValuationAdjustmentDvaResponse(BaseModel):
@@ -621,11 +740,20 @@ class FundingValuationAdjustmentFvaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    funding_spread: float
-    survival_probability: list[float] | list[list[float]] | None = None
+    expected_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` EPE per bucket (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times (years)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    funding_spread: float = Field(description="Bank funding spread over risk-free (decimal).")
+    survival_probability: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional ``(n,)`` counterparty survival at each bucket end; defaults to all-ones (no default conditioning).",
+    )
 
 
 class FundingValuationAdjustmentFvaResponse(BaseModel):
@@ -642,10 +770,18 @@ class CapitalValuationAdjustmentKvaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    capital_profile: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    cost_of_capital: float = 0.1
+    capital_profile: list[float] | list[list[float]] = Field(
+        description="``(n,)`` regulatory capital held per bucket (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times (years)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    cost_of_capital: float = Field(
+        default=0.1, description="Hurdle rate / cost of capital (decimal, e.g. 0.10)."
+    )
 
 
 class CapitalValuationAdjustmentKvaResponse(BaseModel):
@@ -662,10 +798,18 @@ class MarginValuationAdjustmentMvaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    initial_margin_profile: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    margin_funding_spread: float
+    initial_margin_profile: list[float] | list[list[float]] = Field(
+        description="``(n,)`` expected initial margin posted per bucket (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times (years)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    margin_funding_spread: float = Field(
+        description="Spread between funding cost and margin remuneration."
+    )
 
 
 class MarginValuationAdjustmentMvaResponse(BaseModel):
@@ -682,11 +826,11 @@ class XvaAggregationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cva: float
-    dva: float = 0.0
-    fva: float = 0.0
-    kva: float = 0.0
-    mva: float = 0.0
+    cva: float = Field(description="Credit valuation adjustment (cost, >= 0).")
+    dva: float = Field(default=0.0, description="Debit valuation adjustment (benefit, >= 0).")
+    fva: float = Field(default=0.0, description="Funding valuation adjustment (cost).")
+    kva: float = Field(default=0.0, description="Capital valuation adjustment (cost).")
+    mva: float = Field(default=0.0, description="Margin valuation adjustment (cost).")
 
 
 class XvaAggregationResponse(BaseModel):
@@ -703,12 +847,22 @@ class CvaSensitivityCvaGreeksRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_exposure: list[float] | list[list[float]]
-    time_steps: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    credit_spread: float
-    recovery_rate: float = 0.4
-    spread_bump: float = 0.0001
+    expected_exposure: list[float] | list[list[float]] = Field(
+        description="``(n,)`` EPE per bucket (>= 0)."
+    )
+    time_steps: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing bucket end-times (years)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    credit_spread: float = Field(description="Counterparty CDS spread (decimal).")
+    recovery_rate: float = Field(
+        default=0.4, description="Counterparty recovery rate in ``[0, 1)``."
+    )
+    spread_bump: float = Field(
+        default=0.0001, description="Spread shift for the CS01 bump (default 1 bp)."
+    )
 
 
 class CvaSensitivityCvaGreeksResponse(BaseModel):
@@ -727,9 +881,12 @@ class WrongWayRiskAdjustmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_cva: float
-    correlation: float
-    exposure_volatility: float = 0.3
+    base_cva: float = Field(description="Independence-assumption CVA (>= 0).")
+    correlation: float = Field(description="Exposure/credit correlation in ``[-1, 1]``.")
+    exposure_volatility: float = Field(
+        default=0.3,
+        description="Relative exposure volatility (>= 0) controlling the adjustment magnitude.",
+    )
 
 
 class WrongWayRiskAdjustmentResponse(BaseModel):
@@ -747,9 +904,13 @@ class CreditSpreadCurveBootstrapRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tenors: list[float] | list[list[float]]
-    par_spreads: list[float] | list[list[float]]
-    recovery_rate: float = 0.4
+    tenors: list[float] | list[list[float]] = Field(
+        description="Strictly increasing CDS tenors in years (> 0)."
+    )
+    par_spreads: list[float] | list[list[float]] = Field(
+        description="Par CDS spreads per tenor (decimal, >= 0)."
+    )
+    recovery_rate: float = Field(default=0.4, description="Recovery rate in ``[0, 1)``.")
 
 
 class CreditSpreadCurveBootstrapResponse(BaseModel):
@@ -768,13 +929,19 @@ class CdsPricingIsdaStandardRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    payment_times: list[float] | list[list[float]]
-    accrual_factors: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    hazard_rate: float
-    contract_spread: float
-    notional: float = 1.0
-    recovery_rate: float = 0.4
+    payment_times: list[float] | list[list[float]] = Field(
+        description="``(n,)`` strictly increasing premium-payment times."
+    )
+    accrual_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` day-count accrual fractions per period (>= 0)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` risk-free discount factors in ``(0, 1]``."
+    )
+    hazard_rate: float = Field(description="Flat hazard rate lambda (>= 0).")
+    contract_spread: float = Field(description="Contractual (running) CDS spread (decimal).")
+    notional: float = Field(default=1.0, description="Contract notional.")
+    recovery_rate: float = Field(default=0.4, description="Recovery rate in ``[0, 1)``.")
 
 
 class CdsPricingIsdaStandardResponse(BaseModel):
@@ -794,9 +961,9 @@ class CdsSpreadToPdConversionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cds_spread: float
-    maturity: float
-    recovery_rate: float = 0.4
+    cds_spread: float = Field(description="CDS par spread (decimal, e.g. 0.015 = 150 bps, >= 0).")
+    maturity: float = Field(description="Horizon T in years (> 0).")
+    recovery_rate: float = Field(default=0.4, description="Recovery rate in ``[0, 1)``.")
 
 
 class CdsSpreadToPdConversionResponse(BaseModel):
@@ -815,12 +982,21 @@ class CreditDefaultSwapVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    risky_annuity: float
-    spread_volatility: float
-    confidence_level: float = 0.99
-    horizon_days: int = 1
-    position: str = "long_protection"
+    notional: float = Field(description="CDS notional.")
+    risky_annuity: float = Field(description="Risky annuity (RPV01) of the contract (>= 0).")
+    spread_volatility: float = Field(
+        description="Daily absolute spread volatility (decimal, e.g. 0.0005 = 5 bps/day)."
+    )
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence in ``[0.90, 0.9999]``."
+    )
+    horizon_days: int = Field(
+        default=1, description="Risk horizon in trading days (sqrt-time scaling)."
+    )
+    position: str = Field(
+        default="long_protection",
+        description='``"long_protection"`` or ``"short_protection"`` (affects only the sign of ``pnl_sensitivity``; VaR magnitude is identical).',
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -847,11 +1023,15 @@ class Ifrs9StageClassificationPdThresholdRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd_current: float
-    pd_origination: float
-    days_past_due: int = 0
-    sicr_relative_threshold: float = 2.0
-    sicr_absolute_threshold: float = 0.02
+    pd_current: float = Field(description="Current (reporting-date) lifetime PD in ``[0, 1]``.")
+    pd_origination: float = Field(description="Lifetime PD at initial recognition in ``[0, 1]``.")
+    days_past_due: int = Field(default=0, description="Days the exposure is past due (>= 0).")
+    sicr_relative_threshold: float = Field(
+        default=2.0, description="Relative PD multiple triggering SICR (>= 1)."
+    )
+    sicr_absolute_threshold: float = Field(
+        default=0.02, description="Absolute PD increase triggering SICR."
+    )
 
 
 class Ifrs9StageClassificationPdThresholdResponse(BaseModel):
@@ -869,10 +1049,12 @@ class Ifrs912MonthEclStage1Request(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd_12m: float
-    lgd: float
-    ead: float
-    discount_factor: float = 1.0
+    pd_12m: float = Field(description="12-month probability of default in ``[0, 1]``.")
+    lgd: float = Field(description="Loss given default in ``[0, 1]``.")
+    ead: float = Field(description="Exposure at default (>= 0).")
+    discount_factor: float = Field(
+        default=1.0, description="Discount factor to the reporting date in ``(0, 1]``."
+    )
 
 
 class Ifrs912MonthEclStage1Response(BaseModel):
@@ -890,11 +1072,17 @@ class Ifrs9LifetimeEclStage23Request(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    marginal_pd: list[float] | list[list[float]]
-    lgd: list[float] | list[list[float]]
-    ead: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    stage: int = 2
+    marginal_pd: list[float] | list[list[float]] = Field(
+        description="``(n,)`` per-period marginal default probabilities in ``[0, 1]`` (should sum to <= 1)."
+    )
+    lgd: list[float] | list[list[float]] = Field(
+        description="``(n,)`` per-period LGD in ``[0, 1]``."
+    )
+    ead: list[float] | list[list[float]] = Field(description="``(n,)`` per-period EAD (>= 0).")
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="``(n,)`` discount factors in ``(0, 1]``."
+    )
+    stage: int = Field(default=2, description="Reported stage (2 or 3) for metadata.")
 
 
 class Ifrs9LifetimeEclStage23Response(BaseModel):
@@ -912,8 +1100,12 @@ class Ifrs9ScenarioWeightedEclRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    scenario_ecls: list[float] | list[list[float]]
-    scenario_weights: list[float] | list[list[float]]
+    scenario_ecls: list[float] | list[list[float]] = Field(
+        description="``(s,)`` ECL per scenario (>= 0)."
+    )
+    scenario_weights: list[float] | list[list[float]] = Field(
+        description="``(s,)`` scenario probabilities (>= 0, sum to ~1)."
+    )
 
 
 class Ifrs9ScenarioWeightedEclResponse(BaseModel):
@@ -931,10 +1123,16 @@ class MacroeconomicOverlaysEclRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_ecl: float
-    macro_factors: list[float] | list[list[float]]
-    sensitivities: list[float] | list[list[float]]
-    management_overlay: float = 0.0
+    base_ecl: float = Field(description="Model base-case ECL (>= 0).")
+    macro_factors: list[float] | list[list[float]] = Field(
+        description="``(k,)`` standardised macro deviations (e.g. GDP, unemp)."
+    )
+    sensitivities: list[float] | list[list[float]] = Field(
+        description="``(k,)`` ECL sensitivity (elasticity) to each factor."
+    )
+    management_overlay: float = Field(
+        default=0.0, description="Additive post-model adjustment (can be negative)."
+    )
 
 
 class MacroeconomicOverlaysEclResponse(BaseModel):
@@ -952,12 +1150,18 @@ class Ifrs9StagingCriteriaAssessmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd_current: float
-    pd_origination: float
-    days_past_due: int = 0
-    forbearance: bool = False
-    watchlist: bool = False
-    sicr_relative_threshold: float = 2.0
+    pd_current: float = Field(description="Current lifetime PD in ``[0, 1]``.")
+    pd_origination: float = Field(description="Origination lifetime PD in ``[0, 1]``.")
+    days_past_due: int = Field(default=0, description="Days past due (>= 0).")
+    forbearance: bool = Field(
+        default=False, description="Whether the exposure is under forbearance measures."
+    )
+    watchlist: bool = Field(
+        default=False, description="Whether the exposure is on the internal watchlist."
+    )
+    sicr_relative_threshold: float = Field(
+        default=2.0, description="Relative-PD SICR multiple (>= 1)."
+    )
 
 
 class Ifrs9StagingCriteriaAssessmentResponse(BaseModel):
@@ -975,10 +1179,16 @@ class CreditPortfolioOptimisationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_returns: list[float] | list[list[float]]
-    expected_losses: list[float] | list[list[float]]
-    max_weight: float = 1.0
-    risk_aversion: float = 1.0
+    expected_returns: list[float] | list[list[float]] = Field(
+        description="``(n,)`` per-asset expected returns."
+    )
+    expected_losses: list[float] | list[list[float]] = Field(
+        description="``(n,)`` per-asset expected loss rates (>= 0)."
+    )
+    max_weight: float = Field(default=1.0, description="Per-name concentration cap in ``(0, 1]``.")
+    risk_aversion: float = Field(
+        default=1.0, description="Penalty applied to expected loss (>= 0)."
+    )
 
 
 class CreditPortfolioOptimisationResponse(BaseModel):
@@ -996,11 +1206,19 @@ class CreditStressTestingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pd: list[float] | list[list[float]]
-    lgd: list[float] | list[list[float]]
-    ead: list[float] | list[list[float]]
-    pd_shock_multiplier: float = 1.5
-    lgd_shock_multiplier: float = 1.2
+    pd: list[float] | list[list[float]] = Field(
+        description="``(n,)`` baseline PD per exposure in ``[0, 1]``."
+    )
+    lgd: list[float] | list[list[float]] = Field(
+        description="``(n,)`` baseline LGD per exposure in ``[0, 1]``."
+    )
+    ead: list[float] | list[list[float]] = Field(description="``(n,)`` EAD per exposure (>= 0).")
+    pd_shock_multiplier: float = Field(
+        default=1.5, description="Multiplier applied to PD under stress (>= 1)."
+    )
+    lgd_shock_multiplier: float = Field(
+        default=1.2, description="Multiplier applied to LGD under stress (>= 1)."
+    )
 
 
 class CreditStressTestingResponse(BaseModel):
@@ -1019,13 +1237,13 @@ class AltmanZScoreCreditScoringRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    working_capital: float
-    retained_earnings: float
-    ebit: float
-    market_value_equity: float
-    sales: float
-    total_assets: float
-    total_liabilities: float
+    working_capital: float = Field(description="Working capital.")
+    retained_earnings: float = Field(description="Retained earnings.")
+    ebit: float = Field(description="Earnings before interest and tax.")
+    market_value_equity: float = Field(description="Market value of equity.")
+    sales: float = Field(description="Net sales.")
+    total_assets: float = Field(description="Total assets (> 0).")
+    total_liabilities: float = Field(description="Total liabilities (> 0).")
 
 
 class AltmanZScoreCreditScoringResponse(BaseModel):
@@ -1047,11 +1265,19 @@ class LogisticRegressionPdModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    features: list[float] | list[list[float]]
-    defaults: list[float] | list[list[float]]
-    max_iter: int = 100
-    tol: float = 1e-08
-    ridge: float = 1e-06
+    features: list[float] | list[list[float]] = Field(
+        description="``(n_samples, n_features)`` design matrix (no intercept col)."
+    )
+    defaults: list[float] | list[list[float]] = Field(
+        description="``(n_samples,)`` binary default indicator in ``{0, 1}``."
+    )
+    max_iter: int = Field(default=100, description="Maximum Newton iterations.")
+    tol: float = Field(
+        default=1e-08, description="Convergence tolerance on the coefficient update norm."
+    )
+    ridge: float = Field(
+        default=1e-06, description="L2 ridge added to the Hessian diagonal for stability."
+    )
 
 
 class LogisticRegressionPdModelResponse(BaseModel):
@@ -1071,10 +1297,14 @@ class MachineLearningPdCalibrationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    raw_scores: list[float] | list[list[float]]
-    defaults: list[float] | list[list[float]]
-    max_iter: int = 100
-    tol: float = 1e-08
+    raw_scores: list[float] | list[list[float]] = Field(
+        description="``(n_samples,)`` uncalibrated model scores."
+    )
+    defaults: list[float] | list[list[float]] = Field(
+        description="``(n_samples,)`` binary default indicator."
+    )
+    max_iter: int = Field(default=100, description="Maximum Newton iterations.")
+    tol: float = Field(default=1e-08, description="Convergence tolerance.")
 
 
 class MachineLearningPdCalibrationResponse(BaseModel):
@@ -1094,9 +1324,12 @@ class ThroughTheCyclePdAdjustmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    pit_pd: float
-    long_run_average_pd: float
-    cyclicality: float = 0.5
+    pit_pd: float = Field(description="Point-in-time PD in ``(0, 1)``.")
+    long_run_average_pd: float = Field(description="Long-run central-tendency PD in ``(0, 1)``.")
+    cyclicality: float = Field(
+        default=0.5,
+        description="Blend weight in ``[0, 1]`` toward the long-run anchor (0 = pure PIT, 1 = pure TTC).",
+    )
 
 
 class ThroughTheCyclePdAdjustmentResponse(BaseModel):
@@ -1115,9 +1348,13 @@ class PointInTimePdEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    ttc_pd: float
-    macro_index: float
-    sensitivity: float = 1.0
+    ttc_pd: float = Field(description="Through-the-cycle PD in ``(0, 1)``.")
+    macro_index: float = Field(
+        description="Standardised macroeconomic index (z-score; positive = good conditions)."
+    )
+    sensitivity: float = Field(
+        default=1.0, description="Loading of the score on the macro factor (>= 0)."
+    )
 
 
 class PointInTimePdEstimationResponse(BaseModel):
@@ -1136,9 +1373,13 @@ class RatingsMigrationMatrixRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    from_rating: list[float] | list[list[float]]
-    to_rating: list[float] | list[list[float]]
-    n_states: int
+    from_rating: list[float] | list[list[float]] = Field(
+        description="Integer start-of-period rating index per obligor in ``[0, n_states)``."
+    )
+    to_rating: list[float] | list[list[float]] = Field(
+        description="Integer end-of-period rating index per obligor."
+    )
+    n_states: int = Field(description="Number of rating states (including default as the last).")
 
 
 class RatingsMigrationMatrixResponse(BaseModel):
@@ -1155,12 +1396,20 @@ class RetailScorecardPdModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    feature_values: list[float] | list[list[float]]
-    points_per_feature: list[float] | list[list[float]]
-    base_points: float
-    pdo: float = 50.0
-    base_score: float = 600.0
-    base_odds: float = 50.0
+    feature_values: list[float] | list[list[float]] = Field(
+        description="``(n_features,)`` per-attribute binary/scaled indicator."
+    )
+    points_per_feature: list[float] | list[list[float]] = Field(
+        description="``(n_features,)`` points assigned per attribute."
+    )
+    base_points: float = Field(description="Intercept points added to the total.")
+    pdo: float = Field(default=50.0, description="Points to double the odds (industry default 50).")
+    base_score: float = Field(
+        default=600.0, description="Reference score at which odds equal ``base_odds``."
+    )
+    base_odds: float = Field(
+        default=50.0, description="Good:bad odds at ``base_score`` (e.g. 50:1)."
+    )
 
 
 class RetailScorecardPdModelResponse(BaseModel):
@@ -1178,10 +1427,16 @@ class CorporateCreditScoringModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_scores: list[float] | list[list[float]]
-    factor_weights: list[float] | list[list[float]]
-    pd_floor: float = 0.0003
-    pd_anchor: float = 0.5
+    factor_scores: list[float] | list[list[float]] = Field(
+        description="``(k,)`` factor strengths in ``[0, 1]`` (1 = best)."
+    )
+    factor_weights: list[float] | list[list[float]] = Field(
+        description="``(k,)`` non-negative weights (normalised internally)."
+    )
+    pd_floor: float = Field(default=0.0003, description="Regulatory PD floor.")
+    pd_anchor: float = Field(
+        default=0.5, description="PD assigned to the weakest borrower (strength 0)."
+    )
 
 
 class CorporateCreditScoringModelResponse(BaseModel):
@@ -1199,11 +1454,11 @@ class SovereignCreditRiskAssessmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    debt_to_gdp: float
-    fiscal_balance_pct: float
-    current_account_pct: float
-    fx_reserves_months: float
-    governance_score: float
+    debt_to_gdp: float = Field(description="General-government debt / GDP (e.g. 0.6 = 60%).")
+    fiscal_balance_pct: float = Field(description="Fiscal balance / GDP (deficit negative).")
+    current_account_pct: float = Field(description="Current-account balance / GDP.")
+    fx_reserves_months: float = Field(description="FX reserves in months of imports (>= 0).")
+    governance_score: float = Field(description="World-Bank-style governance index in ``[0, 1]``.")
 
 
 class SovereignCreditRiskAssessmentResponse(BaseModel):
@@ -1221,9 +1476,15 @@ class SectorDefaultRateAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sector_defaults: list[float] | list[list[float]]
-    sector_obligors: list[float] | list[list[float]]
-    sector_names: list[str] | None = None
+    sector_defaults: list[float] | list[list[float]] = Field(
+        description="Defaults observed per sector."
+    )
+    sector_obligors: list[float] | list[list[float]] = Field(
+        description="Obligors per sector (>= defaults)."
+    )
+    sector_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``sector_0, ...``."
+    )
 
 
 class SectorDefaultRateAnalysisResponse(BaseModel):

@@ -17,10 +17,10 @@ Formula (LaTeX): `\text{CappedInflows} = \min(GI,\ c \cdot GO) \\ NO = \max\big(
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `hqla`* | `number` | required |  |
-| `gross_outflows`* | `number` | required |  |
-| `gross_inflows`* | `number` | required |  |
-| `inflow_cap` | `number` | `0.75` |  |
+| `hqla`* | `number` | required | Stock of high-quality liquid assets (post-haircut). |
+| `gross_outflows`* | `number` | required | Total expected 30-day stressed cash outflows. |
+| `gross_inflows`* | `number` | required | Total expected 30-day contractual cash inflows. |
+| `inflow_cap` | `number` | `0.75` | Maximum fraction of gross outflows that inflows may offset. |
 
 ### net_stable_funding_ratio_nsfr
 
@@ -33,8 +33,8 @@ Formula (LaTeX): `NSFR = \frac{ASF}{RSF}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `available_stable_funding`* | `number` | required |  |
-| `required_stable_funding`* | `number` | required |  |
+| `available_stable_funding`* | `number` | required | Total ASF (see :func:`available_stable_funding_asf_calc`). |
+| `required_stable_funding`* | `number` | required | Total RSF (see :func:`required_stable_funding_rsf_calc`). |
 
 ### available_stable_funding_asf_calc
 
@@ -49,8 +49,8 @@ Formula (LaTeX): `ASF = \sum_i F_i \cdot \alpha_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `funding_amounts`* | `number[] or number[][]` | required |  |
-| `asf_factors`* | `number[] or number[][]` | required |  |
+| `funding_amounts`* | `number[] or number[][]` | required | Carrying amounts of each funding source. |
+| `asf_factors`* | `number[] or number[][]` | required | ASF factor for each source, each in [0, 1]. |
 
 ### required_stable_funding_rsf_calc
 
@@ -64,8 +64,8 @@ Formula (LaTeX): `RSF = \sum_i A_i \cdot \beta_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_amounts`* | `number[] or number[][]` | required |  |
-| `rsf_factors`* | `number[] or number[][]` | required |  |
+| `asset_amounts`* | `number[] or number[][]` | required | Carrying amounts of each asset / off-balance item. |
+| `rsf_factors`* | `number[] or number[][]` | required | RSF factor for each asset, each in [0, 1]. |
 
 ## Intraday Liquidity
 
@@ -86,9 +86,9 @@ Formula (LaTeX): `B_t = B_0 + \sum_{s \le t} f_s \\ \text{MaxUsage} = \max(0,\ B
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `timestamps`* | `number[] or number[][]` | required |  |
-| `net_flows`* | `number[] or number[][]` | required |  |
-| `opening_balance`* | `number` | required |  |
+| `timestamps`* | `number[] or number[][]` | required | Monotonic intraday timestamps (seconds/minutes from open). |
+| `net_flows`* | `number[] or number[][]` | required | Net payment flow at each timestamp (credit +, debit -). |
+| `opening_balance`* | `number` | required | Available intraday liquidity at start of day. |
 
 ### intraday_liquidity_stress_test
 
@@ -108,10 +108,10 @@ Formula (LaTeX): `f^{stress}_t = \begin{cases} f_t(1-d) & f_t > 0 \\ f_t & f_t \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `net_flows`* | `number[] or number[][]` | required |  |
-| `opening_balance`* | `number` | required |  |
-| `delay_factor` | `number` | `0.5` |  |
-| `inflow_delay_shock` | `number` | `0.0` |  |
+| `net_flows`* | `number[] or number[][]` | required | Net payment flow at each intraday step (credit +, debit -). |
+| `opening_balance`* | `number` | required | Available intraday liquidity at start of day. |
+| `delay_factor` | `number` | `0.5` | Fraction of positive inflows delayed beyond the horizon, in [0, 1]. |
+| `inflow_delay_shock` | `number` | `0.0` | Extra absolute liquidity reserved against the shock. |
 
 ## HQLA Classification
 
@@ -129,8 +129,8 @@ Formula (LaTeX): `V^{adj}_i = V_i(1-h_i) \\ \text{PostHaircutValue} = \sum_i V_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_values`* | `number[] or number[][]` | required |  |
-| `haircuts` | `number[] or number[][] or null` | `None` |  |
+| `asset_values`* | `number[] or number[][]` | required | Market values of candidate Level 1 assets. |
+| `haircuts` | `number[] or number[][] or null` | `None` | Optional per-asset haircuts in [0, 1]; defaults to all zeros. |
 
 ### hqla_level_2a_asset_classifier
 
@@ -147,8 +147,8 @@ Formula (LaTeX): `\text{PostHaircutValue} = \sum_i V_i(1-h), \quad h \ge 0.15`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_values`* | `number[] or number[][]` | required |  |
-| `haircut` | `number` | `0.15` |  |
+| `asset_values`* | `number[] or number[][]` | required | Market values of candidate Level 2A assets. |
+| `haircut` | `number` | `0.15` | Supervisory haircut (minimum 15%). |
 
 ### hqla_level_2b_asset_classifier
 
@@ -166,8 +166,8 @@ Formula (LaTeX): `\text{PostHaircutValue} = \sum_i V_i(1-h), \quad h \ge 0.25`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_values`* | `number[] or number[][]` | required |  |
-| `haircut` | `number` | `0.25` |  |
+| `asset_values`* | `number[] or number[][]` | required | Market values of candidate Level 2B assets. |
+| `haircut` | `number` | `0.25` | Supervisory haircut (minimum 25%). |
 
 ## Cash Flow Ladder
 
@@ -184,9 +184,9 @@ Formula (LaTeX): `\text{net\_gap}_t = I_t - O_t \\ \text{cumulative\_gap}_t = B_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `daily_inflows`* | `number[] or number[][]` | required |  |
-| `daily_outflows`* | `number[] or number[][]` | required |  |
-| `opening_balance` | `number` | `0.0` |  |
+| `daily_inflows`* | `number[] or number[][]` | required | Length-30 array of daily contractual inflows. |
+| `daily_outflows`* | `number[] or number[][]` | required | Length-30 array of daily contractual outflows. |
+| `opening_balance` | `number` | `0.0` | Starting cash / HQLA balance at day 0. |
 
 ### cash_flow_ladder_1_year
 
@@ -199,10 +199,10 @@ Formula (LaTeX): `\text{net\_gap}_i = I_i - O_i \\ \text{cumulative\_gap}_i = B_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bucket_inflows`* | `number[] or number[][]` | required |  |
-| `bucket_outflows`* | `number[] or number[][]` | required |  |
-| `opening_balance` | `number` | `0.0` |  |
-| `buckets` | `string[] or null` | `None` |  |
+| `bucket_inflows`* | `number[] or number[][]` | required | Inflow per maturity bucket (one entry per bucket). |
+| `bucket_outflows`* | `number[] or number[][]` | required | Outflow per maturity bucket. |
+| `opening_balance` | `number` | `0.0` | Starting balance carried into the first bucket. |
+| `buckets` | `string[] or null` | `None` | Optional bucket labels; defaults to the standard 8-bucket set. |
 
 ### liquidity_gap_analysis
 
@@ -222,9 +222,9 @@ Formula (LaTeX): `\text{Gap}_i = A_i - L_i \\ \text{CumulativeGap}_i = B_0 + \su
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_maturities`* | `number[] or number[][]` | required |  |
-| `liability_maturities`* | `number[] or number[][]` | required |  |
-| `buckets` | `string[] or null` | `None` |  |
+| `asset_maturities`* | `number[] or number[][]` | required | Asset cash inflows maturing in each bucket. |
+| `liability_maturities`* | `number[] or number[][]` | required | Liability cash outflows maturing in each bucket. |
+| `buckets` | `string[] or null` | `None` | Optional bucket labels; defaults to the standard 8-bucket set. |
 
 ## Stress Scenarios
 
@@ -240,10 +240,10 @@ Formula (LaTeX): `O = \sum_i B_i r_i \\ N = O - I \\ \text{Surplus} = HQLA - N`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `balances`* | `number[] or number[][]` | required |  |
-| `runoff_rates`* | `number[] or number[][]` | required |  |
-| `hqla`* | `number` | required |  |
-| `inflows` | `number` | `0.0` |  |
+| `balances`* | `number[] or number[][]` | required | Outstanding balance of each funding category. |
+| `runoff_rates`* | `number[] or number[][]` | required | Stressed run-off rate per category, each in [0, 1]. |
+| `hqla`* | `number` | required | Available high-quality liquid assets (post-haircut). |
+| `inflows` | `number` | `0.0` | Stressed contractual inflows over the horizon. |
 
 ### idiosyncratic_stress_scenario
 
@@ -257,11 +257,11 @@ Formula (LaTeX): `O = R\cdot r_R + W\cdot r_W \\ \text{Surplus} = HQLA - O`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `retail_deposits`* | `number` | required |  |
-| `wholesale_funding`* | `number` | required |  |
-| `hqla`* | `number` | required |  |
-| `retail_runoff` | `number` | `0.1` |  |
-| `wholesale_runoff` | `number` | `1.0` |  |
+| `retail_deposits`* | `number` | required | Retail deposit balance. |
+| `wholesale_funding`* | `number` | required | Wholesale funding balance. |
+| `hqla`* | `number` | required | Available HQLA. |
+| `retail_runoff` | `number` | `0.1` | Retail run-off rate (default 10%). |
+| `wholesale_runoff` | `number` | `1.0` | Wholesale run-off rate (default 100%). |
 
 ### market_wide_stress_scenario
 
@@ -275,9 +275,9 @@ Formula (LaTeX): `HQLA_{stressed} = \sum_i H_i(1-h_i) \\ \text{Surplus} = HQLA_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `hqla_by_level`* | `number[] or number[][]` | required |  |
-| `market_haircuts`* | `number[] or number[][]` | required |  |
-| `outflow`* | `number` | required |  |
+| `hqla_by_level`* | `number[] or number[][]` | required | HQLA market value per level (e.g. [L1, L2A, L2B]). |
+| `market_haircuts`* | `number[] or number[][]` | required | Additional stressed haircut per level, each in [0, 1]. |
+| `outflow`* | `number` | required | Stressed net cash outflow over the horizon. |
 
 ### combined_stress_scenario
 
@@ -317,15 +317,15 @@ Formula (LaTeX): `HQLA_{stressed} = \sum_i H_i(1-h_i) \\ R_{outflow} = \begin{ca
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `retail_deposits`* | `number` | required |  |
-| `wholesale_funding`* | `number` | required |  |
-| `hqla_by_level`* | `number[] or number[][]` | required |  |
-| `market_haircuts`* | `number[] or number[][]` | required |  |
-| `retail_runoff` | `number` | `0.15` |  |
-| `wholesale_runoff` | `number` | `1.0` |  |
-| `inflows` | `number` | `0.0` |  |
-| `retail_deposits_by_category` | `number[] or number[][] or null` | `None` |  |
-| `retail_runoff_rates` | `number[] or number[][] or null` | `None` |  |
+| `retail_deposits`* | `number` | required | Retail deposit balance. Used directly (times ``retail_runoff``) unless the categorised arguments are supplied, in which case it must equal ``sum(retail_deposits_by_category)``. |
+| `wholesale_funding`* | `number` | required | Wholesale funding balance. |
+| `hqla_by_level`* | `number[] or number[][]` | required | HQLA market value per level. |
+| `market_haircuts`* | `number[] or number[][]` | required | Additional stressed haircut per level, each in [0, 1]. |
+| `retail_runoff` | `number` | `0.15` | Retail run-off rate (default 15%). Ignored when the categorised retail arguments are supplied. |
+| `wholesale_runoff` | `number` | `1.0` | Wholesale run-off rate (default 100%). |
+| `inflows` | `number` | `0.0` | Stressed contractual inflows. |
+| `retail_deposits_by_category` | `number[] or number[][] or null` | `None` | Optional per-category retail deposit balances (e.g. stable / less-stable buckets). Must be supplied together with ``retail_runoff_rates`` and must sum to ``retail_deposits``. |
+| `retail_runoff_rates` | `number[] or number[][] or null` | `None` | Optional per-category run-off rates in [0, 1], matching ``retail_deposits_by_category`` in length. |
 
 ## Buffer & Survival
 
@@ -341,8 +341,8 @@ Formula (LaTeX): `\text{Peak} = \max\Big(0,\ \max_i \sum_{j \le i} O_j\Big) \\ \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `stressed_net_outflows`* | `number[] or number[][]` | required |  |
-| `confidence_buffer` | `number` | `0.0` |  |
+| `stressed_net_outflows`* | `number[] or number[][]` | required | Per-period stressed net outflows (positive = drain). |
+| `confidence_buffer` | `number` | `0.0` | Fractional management uplift (e.g. 0.10 for +10%). |
 
 ### contingency_funding_plan_trigger
 
@@ -361,8 +361,8 @@ Formula (LaTeX): `\text{Breach}_k = \mathbb{1}[m_k < \tau_k] \\ \text{CFP\_Activ
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `metrics`* | `object` | required |  |
-| `thresholds`* | `object` | required |  |
+| `metrics`* | `object` | required | Mapping ``name -> current value``. |
+| `thresholds`* | `object` | required | Mapping ``name -> minimum acceptable value``. |
 
 ### wholesale_funding_concentration
 
@@ -376,7 +376,7 @@ Formula (LaTeX): `s_i = \frac{A_i}{\sum_j A_j} \\ HHI = \sum_i s_i^2 \\ \text{To
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `counterparty_amounts`* | `number[] or number[][]` | required |  |
+| `counterparty_amounts`* | `number[] or number[][]` | required | Funding amount from each wholesale counterparty. |
 
 ### survival_horizon_calculator
 
@@ -394,8 +394,8 @@ Formula (LaTeX): `B_0 = HQLA \\ B_t = B_{t-1} - O_t \\ \text{SurvivalDays} = \mi
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `hqla`* | `number` | required |  |
-| `daily_net_outflows`* | `number[] or number[][]` | required |  |
+| `hqla`* | `number` | required | Opening counterbalancing capacity (HQLA). |
+| `daily_net_outflows`* | `number[] or number[][]` | required | Array of daily net cash outflows (positive = drain). |
 
 ## Funding Risk
 
@@ -411,8 +411,8 @@ Formula (LaTeX): `\text{TotalRunoff} = \sum_i B_i r_i \\ \text{BlendedRate} = \f
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `deposit_balances`* | `number[] or number[][]` | required |  |
-| `runoff_rates`* | `number[] or number[][]` | required |  |
+| `deposit_balances`* | `number[] or number[][]` | required | Balance per retail deposit category. |
+| `runoff_rates`* | `number[] or number[][]` | required | Run-off rate per category, each in [0, 1]. |
 
 ### secured_funding_rollover_risk
 
@@ -425,8 +425,8 @@ Formula (LaTeX): `\text{RolledAmount} = \sum_i M_i \rho_i \\ \text{RolloverGap} 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `maturing_amounts`* | `number[] or number[][]` | required |  |
-| `rollover_rates`* | `number[] or number[][]` | required |  |
+| `maturing_amounts`* | `number[] or number[][]` | required | Amount of secured funding maturing per tranche. |
+| `rollover_rates`* | `number[] or number[][]` | required | Assumed rollover (renewal) rate per tranche, in [0, 1]. |
 
 ### asset_encumbrance_ratio
 
@@ -439,8 +439,8 @@ Formula (LaTeX): `\text{Encumbrance} = \frac{E}{T}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `encumbered_assets`* | `number` | required |  |
-| `total_assets`* | `number` | required |  |
+| `encumbered_assets`* | `number` | required | Carrying value of encumbered assets. |
+| `total_assets`* | `number` | required | Total assets (encumbered + unencumbered). |
 
 ### collateral_availability_analysis
 
@@ -454,9 +454,9 @@ Formula (LaTeX): `\text{Available} = \sum_i \max\big(V_i(1-h_i) - P_i,\ 0\big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `collateral_values`* | `number[] or number[][]` | required |  |
-| `haircuts`* | `number[] or number[][]` | required |  |
-| `already_pledged` | `number[] or number[][] or null` | `None` |  |
+| `collateral_values`* | `number[] or number[][]` | required | Market value of each collateral asset. |
+| `haircuts`* | `number[] or number[][]` | required | Haircut per asset, each in [0, 1]. |
+| `already_pledged` | `number[] or number[][] or null` | `None` | Optional pledged amount per asset to net off. |
 
 ### repo_market_stress_haircut
 
@@ -470,9 +470,9 @@ Formula (LaTeX): `h^{stress}_i = \min(h_i \cdot m_i,\ 1) \\ \text{MarginCall}_i 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_haircuts`* | `number[] or number[][]` | required |  |
-| `stress_multipliers`* | `number[] or number[][]` | required |  |
-| `collateral_values`* | `number[] or number[][]` | required |  |
+| `base_haircuts`* | `number[] or number[][]` | required | Current repo haircut per collateral type, in [0, 1]. |
+| `stress_multipliers`* | `number[] or number[][]` | required | Multiplier applied to each haircut under stress (>= 1.0). |
+| `collateral_values`* | `number[] or number[][]` | required | Market value of pledged collateral per type. |
 
 ### fx_liquidity_risk_by_currency
 
@@ -486,8 +486,8 @@ Formula (LaTeX): `\text{Net}_{ccy} = I_{ccy} - O_{ccy}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `inflows_by_ccy`* | `object` | required |  |
-| `outflows_by_ccy`* | `object` | required |  |
+| `inflows_by_ccy`* | `object` | required | Mapping ``currency -> inflow amount``. |
+| `outflows_by_ccy`* | `object` | required | Mapping ``currency -> outflow amount``. |
 
 ### intragroup_liquidity_flow
 
@@ -501,7 +501,7 @@ Formula (LaTeX): `\text{TotalProvided} = \sum_{e:\ v_e > 0} v_e \\ \text{Balance
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `entity_positions`* | `object` | required |  |
+| `entity_positions`* | `object` | required | Mapping ``entity -> net position`` (provided minus received). |
 
 ### funding_cost_analysis
 
@@ -514,8 +514,8 @@ Formula (LaTeX): `\text{WAC} = \frac{\sum_i A_i r_i}{\sum_i A_i} \\ \text{TotalA
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `funding_amounts`* | `number[] or number[][]` | required |  |
-| `funding_rates`* | `number[] or number[][]` | required |  |
+| `funding_amounts`* | `number[] or number[][]` | required | Outstanding amount of each funding source. |
+| `funding_rates`* | `number[] or number[][]` | required | Annual rate (decimal) per source, e.g. 0.035 for 3.5%. |
 
 ### deposit_stability_classification
 
@@ -530,8 +530,8 @@ Formula (LaTeX): `\text{Stable}_i = \mathbb{1}[f_i \ge \tau] \\ \text{StableFrac
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `deposit_features`* | `number[] or number[][]` | required |  |
-| `stable_threshold` | `number` | `0.5` |  |
+| `deposit_features`* | `number[] or number[][]` | required | Stability score per deposit, each in [0, 1]. |
+| `stable_threshold` | `number` | `0.5` | Cut-off for the stable classification. |
 
 ## Internal Liquidity Metrics
 
@@ -548,11 +548,11 @@ Formula (LaTeX): `r_{all\text{-}in} = r_{base} + s_{liq} + s_{cont} \\ \text{Ann
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `tenor_years`* | `number` | required |  |
-| `base_rate`* | `number` | required |  |
-| `liquidity_spread`* | `number` | required |  |
-| `contingent_spread` | `number` | `0.0` |  |
+| `notional`* | `number` | required | Position notional being funded. |
+| `tenor_years`* | `number` | required | Funding tenor in years (>= 0). |
+| `base_rate`* | `number` | required | Reference/base funding rate (decimal). |
+| `liquidity_spread`* | `number` | required | Term liquidity premium (decimal). |
+| `contingent_spread` | `number` | `0.0` | Contingent liquidity premium for undrawn/optional commitments (decimal). |
 
 ### ilaap_internal_liquidity_metric
 
@@ -566,10 +566,10 @@ Formula (LaTeX): `\text{CoverageRatio} = \frac{CBC}{SNO} \\ \text{Adequate} \iff
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `counterbalancing_capacity`* | `number` | required |  |
-| `stressed_net_outflow`* | `number` | required |  |
-| `survival_days`* | `number` | required |  |
-| `minimum_survival_days` | `number` | `90.0` |  |
+| `counterbalancing_capacity`* | `number` | required | Total monetisable liquidity (CBC). |
+| `stressed_net_outflow`* | `number` | required | Stressed net outflow over the horizon. |
+| `survival_days`* | `number` | required | Modelled survival horizon in days. |
+| `minimum_survival_days` | `number` | `90.0` | Internal minimum survival target. |
 
 ### ilaap_stress_testing_framework
 
@@ -588,7 +588,7 @@ Formula (LaTeX): `\text{Binding} = \arg\min_k SD_k \\ \text{WorstSurplusDeficit}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `scenarios`* | `object` | required |  |
+| `scenarios`* | `object` | required | Mapping ``name -> {"surplus_deficit": float, ...}``. |
 
 ### liquidity_risk_appetite_threshold
 
@@ -607,10 +607,10 @@ Formula (LaTeX): `\text{Zone} = \begin{cases} \text{green} & m \ge \tau_g \\ \te
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `metric_value`* | `number` | required |  |
-| `green_threshold`* | `number` | required |  |
-| `amber_threshold`* | `number` | required |  |
-| `higher_is_better` | `boolean` | `True` |  |
+| `metric_value`* | `number` | required | Current metric value. |
+| `green_threshold`* | `number` | required | Boundary for the green zone. |
+| `amber_threshold`* | `number` | required | Boundary for the amber zone. |
+| `higher_is_better` | `boolean` | `True` | Direction of the metric. |
 
 ### early_warning_indicator_liquidity
 
@@ -629,9 +629,9 @@ Formula (LaTeX): `\text{Trigger}_k = \begin{cases} \mathbb{1}[v_k > \tau_k] & \t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `indicators`* | `object` | required |  |
-| `thresholds`* | `object` | required |  |
-| `directions` | `object or null` | `None` |  |
+| `indicators`* | `object` | required | Mapping ``name -> current value``. |
+| `thresholds`* | `object` | required | Mapping ``name -> threshold``. |
+| `directions` | `object or null` | `None` | Optional mapping ``name -> "higher_breach"\|"lower_breach"``; defaults to ``"lower_breach"`` for all. |
 
 ### central_bank_facility_eligibility
 
@@ -645,10 +645,10 @@ Formula (LaTeX): `\text{Eligible}_i = \mathbb{1}[R_i \ge R_{min}] \\ \text{Borro
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_ratings`* | `number[] or number[][]` | required |  |
-| `min_rating`* | `integer` | required |  |
-| `asset_values`* | `number[] or number[][]` | required |  |
-| `cb_haircuts`* | `number[] or number[][]` | required |  |
+| `asset_ratings`* | `number[] or number[][]` | required | Ordinal credit rating per asset (higher = better). |
+| `min_rating`* | `integer` | required | Minimum ordinal rating accepted by the facility. |
+| `asset_values`* | `number[] or number[][]` | required | Market value per asset. |
+| `cb_haircuts`* | `number[] or number[][]` | required | Central-bank haircut per asset, each in [0, 1]. |
 
 ### contingent_liquidity_risk
 
@@ -666,9 +666,9 @@ Formula (LaTeX): `E[\text{Outflow}] = \sum_i C_i\, p_i\, \gamma_i \\ \text{MaxOu
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `commitment_amounts`* | `number[] or number[][]` | required |  |
-| `draw_probabilities`* | `number[] or number[][]` | required |  |
-| `ccf` | `number[] or number[][] or null` | `None` |  |
+| `commitment_amounts`* | `number[] or number[][]` | required | Notional of each undrawn commitment / guarantee. |
+| `draw_probabilities`* | `number[] or number[][]` | required | Probability of drawdown per commitment, in [0, 1]. |
+| `ccf` | `number[] or number[][] or null` | `None` | Optional credit conversion factor per commitment (default all 1.0). |
 
 ## Advanced Liquidity Analytics
 
@@ -695,11 +695,11 @@ Formula (LaTeX): `X_i = \max\big(0,\ \mu(1+\sigma Z_i)\big), \quad Z_i \sim N(0,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_outflow`* | `number` | required |  |
-| `outflow_vol`* | `number` | required |  |
-| `confidence_level` | `number` | `0.99` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `base_outflow`* | `number` | required | Expected net cash outflow. |
+| `outflow_vol`* | `number` | required | Relative volatility of net outflow (>= 0). |
+| `confidence_level` | `number` | `0.99` | Confidence in [0.90, 0.9999]. |
+| `n_simulations` | `integer` | `100000` | Number of Monte Carlo draws. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ### funding_tenor_analysis
 
@@ -713,8 +713,8 @@ Formula (LaTeX): `\text{WAT} = \frac{\sum_i A_i T_i}{\sum_i A_i} \\ \text{ShortT
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `funding_amounts`* | `number[] or number[][]` | required |  |
-| `tenors_days`* | `number[] or number[][]` | required |  |
+| `funding_amounts`* | `number[] or number[][]` | required | Outstanding amount of each funding tranche. |
+| `tenors_days`* | `number[] or number[][]` | required | Residual tenor in days for each tranche. |
 
 ### liquidity_scorecard_aggregation
 
@@ -727,8 +727,8 @@ Formula (LaTeX): `\text{Composite} = \frac{\sum_i s_i w_i}{\sum_i w_i}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `scores`* | `number[] or number[][]` | required |  |
-| `weights`* | `number[] or number[][]` | required |  |
+| `scores`* | `number[] or number[][]` | required | Individual component scores. |
+| `weights`* | `number[] or number[][]` | required | Weight per component (need not sum to 1; normalised). |
 
 ### cross_currency_liquidity_bridge
 
@@ -743,9 +743,9 @@ Formula (LaTeX): `S_{usable} = S\,(1-h) \\ \text{Coverable} = \min(D,\ S_{usable
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `shortfall_ccy`* | `string` | required |  |
-| `shortfall_amount`* | `number` | required |  |
-| `surplus_ccy`* | `string` | required |  |
-| `surplus_amount`* | `number` | required |  |
-| `fx_rate`* | `number` | required |  |
-| `swap_haircut` | `number` | `0.0` |  |
+| `shortfall_ccy`* | `string` | required | Currency in deficit. |
+| `shortfall_amount`* | `number` | required | Amount of the deficit (in shortfall_ccy). |
+| `surplus_ccy`* | `string` | required | Currency with surplus to swap. |
+| `surplus_amount`* | `number` | required | Available surplus (in surplus_ccy). |
+| `fx_rate`* | `number` | required | Units of shortfall_ccy per unit of surplus_ccy. |
+| `swap_haircut` | `number` | `0.0` | Haircut on usable surplus, in [0, 1]. |

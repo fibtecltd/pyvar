@@ -16,7 +16,7 @@ Formula (LaTeX): `\hat\lambda = \frac{1}{n}\sum_i N_i \quad (\text{Poisson MLE})
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `annual_event_counts`* | `number[] or number[][]` | required |  |
+| `annual_event_counts`* | `number[] or number[][]` | required | Observed number of loss events per year. |
 
 ### severity_distribution_fitting
 
@@ -47,8 +47,8 @@ Formula (LaTeX): `\hat\mu = \overline{\ln X}, \quad \hat\sigma = \text{std}(\ln 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `loss_amounts`* | `number[] or number[][]` | required |  |
-| `distribution` | `string` | `'lognormal'` |  |
+| `loss_amounts`* | `number[] or number[][]` | required | Strictly positive individual loss amounts. |
+| `distribution` | `string` | `'lognormal'` | Severity family; one of ``"lognormal"``, ``"gamma"``, ``"weibull"`` or ``"gpd"``. |
 
 ### compound_loss_distribution
 
@@ -63,11 +63,11 @@ Formula (LaTeX): `N_y \sim \text{Poisson}(\lambda), \quad X_{y,i} \sim \text{Log
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `frequency_lambda`* | `number` | required |  |
-| `severity_mu`* | `number` | required |  |
-| `severity_sigma`* | `number` | required |  |
-| `n_years` | `integer` | `50000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `frequency_lambda`* | `number` | required | Poisson annual event rate (> 0). |
+| `severity_mu`* | `number` | required | Lognormal log-mean of severities. |
+| `severity_sigma`* | `number` | required | Lognormal log-std of severities (> 0). |
+| `n_years` | `integer` | `50000` | Number of simulated years. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ### monte_carlo_oprisk_capital
 
@@ -81,12 +81,12 @@ Formula (LaTeX): `L_y \sim \text{Poisson}(\lambda) \otimes \text{LogNormal}(\mu,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `frequency_lambda`* | `number` | required |  |
-| `severity_mu`* | `number` | required |  |
-| `severity_sigma`* | `number` | required |  |
-| `confidence_level` | `number` | `0.999` |  |
-| `n_years` | `integer` | `100000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `frequency_lambda`* | `number` | required | Poisson annual event rate (> 0). |
+| `severity_mu`* | `number` | required | Lognormal log-mean of severities. |
+| `severity_sigma`* | `number` | required | Lognormal log-std of severities (> 0). |
+| `confidence_level` | `number` | `0.999` | Capital confidence (Basel AMA 99.9%); in [0.90, 0.9999]. |
+| `n_years` | `integer` | `100000` | Number of simulated years. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ### operational_var_opvar
 
@@ -99,8 +99,8 @@ Formula (LaTeX): `k = \lfloor \alpha n \rfloor \\ OpVaR_\alpha = L_{(k)}, \quad 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `annual_losses`* | `number[] or number[][]` | required |  |
-| `confidence_level` | `number` | `0.999` |  |
+| `annual_losses`* | `number[] or number[][]` | required | Sample of aggregate annual losses. |
+| `confidence_level` | `number` | `0.999` | Confidence in [0.90, 0.9999]. |
 
 ### loss_distribution_approach_lda
 
@@ -118,11 +118,11 @@ Formula (LaTeX): `\hat\lambda = \overline{N}, \quad \hat\mu = \overline{\ln X}, 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `annual_event_counts`* | `number[] or number[][]` | required |  |
-| `loss_amounts`* | `number[] or number[][]` | required |  |
-| `confidence_level` | `number` | `0.999` |  |
-| `n_years` | `integer` | `100000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `annual_event_counts`* | `number[] or number[][]` | required | Historical annual loss-event counts. |
+| `loss_amounts`* | `number[] or number[][]` | required | Historical individual loss amounts (positive). |
+| `confidence_level` | `number` | `0.999` | Capital confidence (Basel AMA 99.9%). |
+| `n_years` | `integer` | `100000` | Number of simulated years. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ### advanced_measurement_approach_ama
 
@@ -146,12 +146,12 @@ Formula (LaTeX): `AMA = \begin{cases} \max(OpVaR - EL,\,0) & \text{expected\_los
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `annual_event_counts`* | `number[] or number[][]` | required |  |
-| `loss_amounts`* | `number[] or number[][]` | required |  |
-| `expected_loss_covered` | `boolean` | `True` |  |
-| `confidence_level` | `number` | `0.999` |  |
-| `n_years` | `integer` | `100000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `annual_event_counts`* | `number[] or number[][]` | required | Historical annual loss-event counts. |
+| `loss_amounts`* | `number[] or number[][]` | required | Historical individual loss amounts (positive). |
+| `expected_loss_covered` | `boolean` | `True` | Whether EL is demonstrably covered in provisions. |
+| `confidence_level` | `number` | `0.999` | Capital confidence (99.9%). |
+| `n_years` | `integer` | `100000` | Number of simulated years. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ## Capital Models — SMA & Economic Capital (`engine/oprisk_capital.py`)
 
@@ -173,9 +173,9 @@ Formula (LaTeX): `BIC = \begin{cases} 0.12\,BI & BI \le 1\text{bn} \\ 0.12(1\tex
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `business_indicator`* | `number` | required |  |
-| `loss_component` | `number` | `0.0` |  |
-| `use_ilm` | `boolean` | `True` |  |
+| `business_indicator`* | `number` | required | Business Indicator (BI) in base currency. |
+| `loss_component` | `number` | `0.0` | Loss Component (15 × average annual losses). |
+| `use_ilm` | `boolean` | `True` | If False (or BI in bucket 1) the ILM is fixed at 1.0. |
 
 ### oprisk_capital_allocation
 
@@ -189,8 +189,8 @@ Formula (LaTeX): `A_i = \frac{R_i}{\sum_j R_j} \times TC`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `total_capital`* | `number` | required |  |
-| `business_line_risks`* | `number[] or number[][]` | required |  |
+| `total_capital`* | `number` | required | Firm-wide OpRisk capital to allocate. |
+| `business_line_risks`* | `number[] or number[][]` | required | Standalone risk measure per business line. |
 
 ### diversification_benefit_oprisk
 
@@ -205,8 +205,8 @@ Formula (LaTeX): `D_{div} = \sqrt{\sum_i \sum_j \rho_{ij} K_i K_j}, \quad \rho_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `standalone_capitals`* | `number[] or number[][]` | required |  |
-| `correlation` | `number` | `0.0` |  |
+| `standalone_capitals`* | `number[] or number[][]` | required | Standalone capital per OpRisk cell (>= 0). |
+| `correlation` | `number` | `0.0` | Uniform pairwise correlation in [0, 1] (0 = independent). |
 
 ### oprisk_economic_capital
 
@@ -220,10 +220,10 @@ Formula (LaTeX): `EC = \max\Big(\max(OpVaR - EL,\,0) - (IO + DB),\,0\Big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `opvar`* | `number` | required |  |
-| `expected_loss`* | `number` | required |  |
-| `insurance_offset` | `number` | `0.0` |  |
-| `diversification_benefit` | `number` | `0.0` |  |
+| `opvar`* | `number` | required | Operational VaR at the economic-capital confidence. |
+| `expected_loss`* | `number` | required | Expected annual loss. |
+| `insurance_offset` | `number` | `0.0` | Recognised insurance mitigation. |
+| `diversification_benefit` | `number` | `0.0` | Recognised diversification benefit. |
 
 ### insurance_offset_calculation
 
@@ -238,10 +238,10 @@ Formula (LaTeX): `R = \min\big(\max(GL-D,\,0),\,PL\big) \times (1-h) \\ NL = GL 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `gross_loss`* | `number` | required |  |
-| `policy_limit`* | `number` | required |  |
-| `deductible`* | `number` | required |  |
-| `haircut` | `number` | `0.0` |  |
+| `gross_loss`* | `number` | required | Gross operational loss. |
+| `policy_limit`* | `number` | required | Maximum insurance pay-out. |
+| `deductible`* | `number` | required | Loss retained by the firm before insurance responds. |
+| `haircut` | `number` | `0.0` | Supervisory haircut on the recovery, in [0, 1]. |
 
 ### tail_risk_scenario_oprisk
 
@@ -255,9 +255,9 @@ Formula (LaTeX): `k = \lfloor \alpha n \rfloor \\ ES_{base} = \frac{1}{n-k}\sum_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `annual_losses`* | `number[] or number[][]` | required |  |
-| `tail_confidence` | `number` | `0.999` |  |
-| `severity_multiplier` | `number` | `1.0` |  |
+| `annual_losses`* | `number[] or number[][]` | required | Sample of aggregate annual losses. |
+| `tail_confidence` | `number` | `0.999` | Tail quantile defining "extreme" losses. |
+| `severity_multiplier` | `number` | `1.0` | Multiplier applied to tail losses (>= 1.0). |
 
 ### oprisk_stress_testing
 
@@ -272,9 +272,9 @@ Formula (LaTeX): `SC = B \times (1+f) \times (1+s)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_capital`* | `number` | required |  |
-| `frequency_shock`* | `number` | required |  |
-| `severity_shock`* | `number` | required |  |
+| `base_capital`* | `number` | required | Baseline OpRisk capital. |
+| `frequency_shock`* | `number` | required | Fractional increase in event frequency (>= -1). |
+| `severity_shock`* | `number` | required | Fractional increase in event severity (>= -1). |
 
 ## Loss Data (`engine/oprisk_rcsa.py`)
 
@@ -289,8 +289,8 @@ Formula (LaTeX): `\text{Reportable} = \{\,A_i : A_i \ge \tau\,\} \\ \text{total\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `loss_events`* | `object[]` | required |  |
-| `reporting_threshold`* | `number` | required |  |
+| `loss_events`* | `object[]` | required | List of events, each with a ``gross_amount`` key. |
+| `reporting_threshold`* | `number` | required | De-minimis threshold (>= 0). |
 
 ### external_loss_data_integration
 
@@ -304,9 +304,9 @@ Formula (LaTeX): `X'_{ext} = s \cdot X_{ext} \\ \text{combined\_mean} = \frac{\s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `internal_losses`* | `number[] or number[][]` | required |  |
-| `external_losses`* | `number[] or number[][]` | required |  |
-| `scaling_factor`* | `number` | required |  |
+| `internal_losses`* | `number[] or number[][]` | required | Internal loss amounts. |
+| `external_losses`* | `number[] or number[][]` | required | External loss amounts (pre-scaling). |
+| `scaling_factor`* | `number` | required | Multiplicative size adjustment (> 0). |
 
 ### loss_event_classification_basel
 
@@ -322,7 +322,7 @@ Formula (LaTeX): `\text{valid} = \big(ET \in \mathcal{C}_{Basel}\big) \\ idx = \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `event_type`* | `string` | required |  |
+| `event_type`* | `string` | required | Candidate Basel Level-1 event-type key. |
 
 ## RCSA Framework (`engine/oprisk_rcsa.py`)
 
@@ -341,7 +341,7 @@ Formula (LaTeX): `\text{by\_category}[c] = \sum_i \mathbb{1}[\text{category}_i =
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `risk_register`* | `object[]` | required |  |
+| `risk_register`* | `object[]` | required | List of risk dicts, each with ``risk_id`` and ``category``. |
 
 ### rcsa_inherent_risk_scoring
 
@@ -354,8 +354,8 @@ Formula (LaTeX): `S = L \times I`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `likelihood`* | `integer` | required |  |
-| `impact`* | `integer` | required |  |
+| `likelihood`* | `integer` | required | Likelihood rating in 1-5. |
+| `impact`* | `integer` | required | Impact rating in 1-5. |
 
 ### rcsa_residual_risk_scoring
 
@@ -368,8 +368,8 @@ Formula (LaTeX): `R = I \times (1 - CE)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `inherent_score`* | `number` | required |  |
-| `control_effectiveness`* | `number` | required |  |
+| `inherent_score`* | `number` | required | Inherent risk score (1-25). |
+| `control_effectiveness`* | `number` | required | Control effectiveness in [0, 1] (1 = fully effective). |
 
 ### rcsa_control_effectiveness
 
@@ -383,9 +383,9 @@ Formula (LaTeX): `E = w_D \cdot D + (1-w_D) \cdot O`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `design_score`* | `number` | required |  |
-| `operating_score`* | `number` | required |  |
-| `design_weight` | `number` | `0.4` |  |
+| `design_score`* | `number` | required | Design effectiveness in [0, 1]. |
+| `operating_score`* | `number` | required | Operating effectiveness in [0, 1]. |
+| `design_weight` | `number` | `0.4` | Weight on design (operating weight = 1 − this). |
 
 ### control_testing_effectiveness
 
@@ -398,8 +398,8 @@ Formula (LaTeX): `PR = \frac{P}{T}, \quad \text{ExceptionRate} = 1-PR \\ \text{c
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tests_passed`* | `integer` | required |  |
-| `tests_total`* | `integer` | required |  |
+| `tests_passed`* | `integer` | required | Number of control tests passed. |
+| `tests_total`* | `integer` | required | Total control tests performed (> 0). |
 
 ## BEICF Factors (`engine/oprisk_rcsa.py`)
 
@@ -416,9 +416,9 @@ Formula (LaTeX): `\overline{S} = \frac{1}{n}\sum_i S_i \\ BEI = \max\big(1 + k(\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_scores`* | `number[] or number[][]` | required |  |
-| `baseline` | `number` | `3.0` |  |
-| `sensitivity` | `number` | `0.05` |  |
+| `factor_scores`* | `number[] or number[][]` | required | Business-environment factor scores. |
+| `baseline` | `number` | `3.0` | Neutral score that maps to a 1.0 multiplier. |
+| `sensitivity` | `number` | `0.05` | Capital sensitivity per unit of average score deviation. |
 
 ### internal_control_factor_icf
 
@@ -432,9 +432,9 @@ Formula (LaTeX): `\overline{C} = \frac{1}{n}\sum_i C_i \\ ICF = \max\big(1 - k(\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `control_scores`* | `number[] or number[][]` | required |  |
-| `baseline` | `number` | `0.8` |  |
-| `sensitivity` | `number` | `0.25` |  |
+| `control_scores`* | `number[] or number[][]` | required | Control effectiveness scores in [0, 1]. |
+| `baseline` | `number` | `0.8` | Neutral effectiveness that maps to a 1.0 multiplier. |
+| `sensitivity` | `number` | `0.25` | Capital sensitivity per unit of effectiveness deviation. |
 
 ## KRI Library (`engine/oprisk_kri.py`)
 
@@ -453,7 +453,7 @@ Formula (LaTeX): `\text{Registry} = \{\,k.\text{name} \mapsto k \mid k \in \text
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `kri_definitions`* | `object[]` | required |  |
+| `kri_definitions`* | `object[]` | required | List of KRI definition dicts. |
 
 ### kri_threshold_breach_detection
 
@@ -470,10 +470,10 @@ Formula (LaTeX): `\text{status} = \begin{cases} \text{red} & V \ge R \\ \text{am
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `value`* | `number` | required |  |
-| `amber_threshold`* | `number` | required |  |
-| `red_threshold`* | `number` | required |  |
-| `direction` | `string` | `'higher_breach'` |  |
+| `value`* | `number` | required | Current KRI observation. |
+| `amber_threshold`* | `number` | required | Amber boundary. |
+| `red_threshold`* | `number` | required | Red boundary (more extreme than amber). |
+| `direction` | `string` | `'higher_breach'` | ``"higher_breach"`` or ``"lower_breach"``. |
 
 ### kri_trend_analysis
 
@@ -491,8 +491,8 @@ Formula (LaTeX): `\hat\beta_1 = \arg\min_{\beta_0,\beta_1} \sum_t \big(y_t - (\b
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `observations`* | `number[] or number[][]` | required |  |
-| `higher_is_worse` | `boolean` | `True` |  |
+| `observations`* | `number[] or number[][]` | required | Ordered KRI observations (oldest first). |
+| `higher_is_worse` | `boolean` | `True` | Whether an increasing series is adverse. |
 
 ## Scenario Analysis (`engine/oprisk_scenario.py`)
 
@@ -509,12 +509,12 @@ Formula (LaTeX): `N_y \sim \text{Poisson}(\lambda), \quad X \sim \text{LogNormal
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `frequency_lambda`* | `number` | required |  |
-| `severity_mu`* | `number` | required |  |
-| `severity_sigma`* | `number` | required |  |
-| `confidence_level` | `number` | `0.999` |  |
-| `n_years` | `integer` | `50000` |  |
-| `seed` | `integer or null` | `42` |  |
+| `frequency_lambda`* | `number` | required | Poisson annual frequency (> 0). |
+| `severity_mu`* | `number` | required | Lognormal log-mean severity. |
+| `severity_sigma`* | `number` | required | Lognormal log-std severity (> 0). |
+| `confidence_level` | `number` | `0.999` | Capital confidence in [0.90, 0.9999]. |
+| `n_years` | `integer` | `50000` | Number of simulated years. |
+| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
 
 ### scenario_expert_elicitation_model
 
@@ -528,8 +528,8 @@ Formula (LaTeX): `C = \frac{\sum_i w_i E_i}{\sum_i w_i} \\ \sigma_{disp} = \sqrt
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expert_estimates`* | `number[] or number[][]` | required |  |
-| `expert_weights` | `number[] or number[][] or null` | `None` |  |
+| `expert_estimates`* | `number[] or number[][]` | required | Each expert's loss estimate. |
+| `expert_weights` | `number[] or number[][] or null` | `None` | Optional credibility weights (default equal). |
 
 ### scenario_severity_estimation
 
@@ -544,9 +544,9 @@ Formula (LaTeX): `\mu = \ln(TL) \\ z_p = \Phi^{-1}(p), \quad \sigma = \frac{\ln(
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `typical_loss`* | `number` | required |  |
-| `worst_case_loss`* | `number` | required |  |
-| `worst_case_percentile` | `number` | `0.99` |  |
+| `typical_loss`* | `number` | required | Median ("typical") loss (> 0). |
+| `worst_case_loss`* | `number` | required | High-percentile loss (> typical). |
+| `worst_case_percentile` | `number` | `0.99` | Percentile of the worst case, in (0.5, 1). |
 
 ### scenario_frequency_estimation
 
@@ -561,9 +561,9 @@ Formula (LaTeX): `\lambda = \begin{cases} \dfrac{Occ}{Y} & \text{occurrences sup
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_events_per_year`* | `number` | required |  |
-| `occurrences` | `integer or null` | `None` |  |
-| `observation_years` | `number or null` | `None` |  |
+| `expected_events_per_year`* | `number` | required | Expert estimate of the annual event rate. |
+| `occurrences` | `integer or null` | `None` | Optional observed event count. |
+| `observation_years` | `number or null` | `None` | Optional observation window in years (> 0). |
 
 ## Emerging Risk Categories (`engine/oprisk_governance.py`)
 
@@ -579,10 +579,10 @@ Formula (LaTeX): `L_{worst} = N \times C + BI \\ L_{exp} = L_{worst} \times p`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `records_exposed`* | `number` | required |  |
-| `cost_per_record`* | `number` | required |  |
-| `breach_probability`* | `number` | required |  |
-| `business_interruption_cost` | `number` | `0.0` |  |
+| `records_exposed`* | `number` | required | Number of data records at risk. |
+| `cost_per_record`* | `number` | required | Cost per breached record (regulatory + remediation). |
+| `breach_probability`* | `number` | required | Annual breach probability in [0, 1]. |
+| `business_interruption_cost` | `number` | `0.0` | Additional BI cost given a breach. |
 
 ### conduct_risk_metric
 
@@ -596,10 +596,10 @@ Formula (LaTeX): `CPK = \frac{Complaints}{Customers}\times 1000,\quad RR = \frac
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `complaints`* | `number` | required |  |
-| `customers`* | `number` | required |  |
-| `redress_paid`* | `number` | required |  |
-| `revenue`* | `number` | required |  |
+| `complaints`* | `number` | required | Number of upheld complaints in the period. |
+| `customers`* | `number` | required | Active customer count (> 0). |
+| `redress_paid`* | `number` | required | Total customer redress paid. |
+| `revenue`* | `number` | required | Period revenue (> 0). |
 
 ### model_risk_assessment
 
@@ -617,9 +617,9 @@ Formula (LaTeX): `I = M \times C \\ R = I \times (1 - V)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `materiality`* | `integer` | required |  |
-| `complexity`* | `integer` | required |  |
-| `validation_score`* | `number` | required |  |
+| `materiality`* | `integer` | required | Model materiality rating 1-5. |
+| `complexity`* | `integer` | required | Model complexity rating 1-5. |
+| `validation_score`* | `number` | required | Validation effectiveness in [0, 1] (1 = strong). |
 
 ### it_risk_scoring
 
@@ -633,9 +633,9 @@ Formula (LaTeX): `S = \min\Big(40(1-A) + 2\min(N,\,20) + 20(1-P),\,100\Big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `availability`* | `number` | required |  |
-| `incident_count`* | `number` | required |  |
-| `patch_compliance`* | `number` | required |  |
+| `availability`* | `number` | required | System availability in [0, 1] (e.g. 0.999). |
+| `incident_count`* | `number` | required | Number of IT incidents in the period (>= 0). |
+| `patch_compliance`* | `number` | required | Patch compliance in [0, 1]. |
 
 ### third_party_vendor_risk
 
@@ -649,10 +649,10 @@ Formula (LaTeX): `S = 30\,\frac{Cr}{5} + 30(1-FH) + 20\,Conc + 20(1-Sub)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `criticality`* | `integer` | required |  |
-| `financial_health`* | `number` | required |  |
-| `concentration`* | `number` | required |  |
-| `substitutability`* | `number` | required |  |
+| `criticality`* | `integer` | required | Service criticality 1-5. |
+| `financial_health`* | `number` | required | Vendor financial health in [0, 1] (1 = strong). |
+| `concentration`* | `number` | required | Reliance concentration in [0, 1] (1 = sole supplier). |
+| `substitutability`* | `number` | required | Ease of replacement in [0, 1] (1 = easily replaced). |
 
 ### business_continuity_risk_score
 
@@ -677,11 +677,11 @@ Formula (LaTeX): `G = \min\!\left(\frac{RTO}{MTD},\,2\right)\Big/2 \\ Raw = 50\c
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `rto_hours`* | `number` | required |  |
-| `rpo_hours`* | `number` | required |  |
-| `max_tolerable_downtime`* | `number` | required |  |
-| `bcp_maturity`* | `number` | required |  |
-| `rpo_target_hours` | `number or null` | `None` |  |
+| `rto_hours`* | `number` | required | Recovery time objective in hours. |
+| `rpo_hours`* | `number` | required | Recovery point objective in hours (maximum acceptable data loss window). Always range-validated; only scored when ``rpo_target_hours`` is supplied (see above). |
+| `max_tolerable_downtime`* | `number` | required | Maximum tolerable downtime in hours (> 0). |
+| `bcp_maturity`* | `number` | required | BCP programme maturity in [0, 1]. |
+| `rpo_target_hours` | `number or null` | `None` | Maximum tolerable period of data loss in hours (> 0), i.e. the RPO's own tolerance threshold, analogous to ``max_tolerable_downtime`` for RTO. When omitted, RPO risk is not scored (default, backward-compatible) behaviour. |
 
 ## Governance & Reporting (`engine/oprisk_governance.py`)
 
@@ -701,7 +701,7 @@ Formula (LaTeX): `N_{nm} = \sum_i \mathbb{1}[AL_i=0 \wedge PL_i>0] \\ TPL = \sum
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `events`* | `object[]` | required |  |
+| `events`* | `object[]` | required | List of events, each with ``actual_loss`` and ``potential_loss``. |
 
 ### root_cause_analysis_template
 
@@ -715,7 +715,7 @@ Formula (LaTeX): `A_k = \frac{w_k}{\sum_j w_j}, \quad \text{primary} = \arg\max_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `causal_factors`* | `object` | required |  |
+| `causal_factors`* | `object` | required | Mapping ``factor -> contribution weight`` (>= 0). |
 
 ### risk_appetite_statement_oprisk
 
@@ -733,10 +733,10 @@ Formula (LaTeX): `\text{status} = \begin{cases} \text{within\_appetite} & X \le 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `current_metric`* | `number` | required |  |
-| `appetite_limit`* | `number` | required |  |
-| `tolerance_limit`* | `number` | required |  |
-| `higher_is_worse` | `boolean` | `True` |  |
+| `current_metric`* | `number` | required | Current value of the OpRisk metric. |
+| `appetite_limit`* | `number` | required | Risk-appetite limit. |
+| `tolerance_limit`* | `number` | required | Risk-tolerance (harder) limit. |
+| `higher_is_worse` | `boolean` | `True` | Whether higher values are adverse. |
 
 ### escalation_threshold_calculation
 
@@ -754,8 +754,8 @@ Formula (LaTeX): `\text{Triggered} = \{\,lvl : thr_{lvl} \mid L \ge thr_{lvl}\,\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `loss_amount`* | `number` | required |  |
-| `thresholds`* | `object` | required |  |
+| `loss_amount`* | `number` | required | Loss amount to route (>= 0). |
+| `thresholds`* | `object` | required | Mapping ``level -> minimum amount`` for that level. |
 
 ### oprisk_heat_map_generator
 
@@ -769,8 +769,8 @@ Formula (LaTeX): `S_i = L_i \times I_i \\ \text{Matrix}_{a,b} = \#\{\,i : L_i=a,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `likelihoods`* | `number[] or number[][]` | required |  |
-| `impacts`* | `number[] or number[][]` | required |  |
+| `likelihoods`* | `number[] or number[][]` | required | Likelihood rating per risk (1-5). |
+| `impacts`* | `number[] or number[][]` | required | Impact rating per risk (1-5). |
 
 ### regulatory_compliance_score
 
@@ -784,8 +784,8 @@ Formula (LaTeX): `Score = 100 \times \frac{\sum_i w_i m_i}{\sum_i w_i}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `requirements_met`* | `number[] or number[][]` | required |  |
-| `weights` | `number[] or number[][] or null` | `None` |  |
+| `requirements_met`* | `number[] or number[][]` | required | Compliance status per requirement, each in [0, 1]. |
+| `weights` | `number[] or number[][] or null` | `None` | Optional importance weights (default equal). |
 
 ### audit_finding_risk_scorer
 
@@ -798,6 +798,6 @@ Formula (LaTeX): `S_{base} = Sev \times Lik \\ S_{adj} = \min\left(S_{base} + 2\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `severity`* | `integer` | required |  |
-| `likelihood`* | `integer` | required |  |
-| `overdue_days`* | `number` | required |  |
+| `severity`* | `integer` | required | Finding severity 1-5. |
+| `likelihood`* | `integer` | required | Likelihood of materialisation 1-5. |
+| `overdue_days`* | `number` | required | Days the remediation is past due (>= 0). |

@@ -710,9 +710,16 @@ function _tryitFieldHtml(p) {
   // scripts/generate_function_catalog.py's module docstring). Never changes
   // the input's scale or what's sent to the API.
   const label = `${p.name}${p.is_percentage ? ' (decimal, %)' : ''}${p.required ? ' *' : ''}`;
-  const attr = `data-param="${p.name}"`;
+  // The parameter's own description: portal/functions.json, taken from the engine docstring's Args:
+  // section through the API model's Field(description=...) (scripts/param_docs.py). Catalogue text, but
+  // it is placed in HTML, so it is escaped; aria-describedby makes a screen reader read it with the field.
+  const hintId = `tryit-hint-${p.name}`;
+  const hint = p.description
+    ? `<span class="tryit-hint" id="${hintId}">${_escapeHtml(p.description)}</span>`
+    : '';
+  const attr = `data-param="${p.name}"${hint ? ` aria-describedby="${hintId}"` : ''}`;
   if (p.type === 'boolean') {
-    return `<label class="tryit-field"><span>${label}</span><input type="checkbox" ${attr} ${p.default ? 'checked' : ''}/></label>`;
+    return `<label class="tryit-field"><span>${label}</span><input type="checkbox" ${attr} ${p.default ? 'checked' : ''}/>${hint}</label>`;
   }
   if (p.type === 'integer' || p.type === 'number') {
     const bounds = [
@@ -721,14 +728,14 @@ function _tryitFieldHtml(p) {
       p.type === 'integer' ? 'step="1"' : 'step="any"',
     ].join(' ');
     const value = p.default != null ? p.default : '';
-    return `<label class="tryit-field"><span>${label}</span><input type="number" ${bounds} ${attr} value="${value}"/></label>`;
+    return `<label class="tryit-field"><span>${label}</span><input type="number" ${bounds} ${attr} value="${value}"/>${hint}</label>`;
   }
   if (p.type === 'array' || p.type === 'object') {
     const placeholder = p.type === 'array' ? 'e.g. [0.01, -0.02, 0.015]' : 'e.g. {"key": 1.0}';
-    return `<label class="tryit-field tryit-field-wide"><span>${label}</span><textarea ${attr} placeholder="${placeholder}" rows="3"></textarea></label>`;
+    return `<label class="tryit-field tryit-field-wide"><span>${label}</span><textarea ${attr} placeholder="${placeholder}" rows="3"></textarea>${hint}</label>`;
   }
   const value = p.default != null ? p.default : '';
-  return `<label class="tryit-field"><span>${label}</span><input type="text" ${attr} value="${value}"/></label>`;
+  return `<label class="tryit-field"><span>${label}</span><input type="text" ${attr} value="${value}"/>${hint}</label>`;
 }
 
 let _tryitTrigger = null;

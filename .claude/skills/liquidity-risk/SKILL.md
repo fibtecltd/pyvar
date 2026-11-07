@@ -6,7 +6,7 @@ description: >
   funding concentration and liquidity VaR. Use when the user wants liquidity ratios or stress
   results computed rather than only explained. Needs a free pyvar API key; the skill explains
   how to get one.
-version: "1.2.1"
+version: "1.3.0"
 author: "Fibtec Limited — pyvar.com"
 tags: [liquidity-risk, LCR, NSFR, HQLA, cash-flow, ILAAP, survival-horizon, funding-risk, intraday, stress-test]
 ---

@@ -15,12 +15,12 @@ Formula (LaTeX): `\max_w\; w^\top \mu - \frac{1}{2}\lambda\, w^\top \Sigma w \qu
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mean_returns`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `risk_aversion` | `number` | `1.0` |  |
-| `allow_short` | `boolean` | `False` |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `mean_returns`* | `number[] or number[][]` | required | Per-period expected return per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `risk_aversion` | `number` | `1.0` | Risk-aversion coefficient λ (higher = less risk). |
+| `allow_short` | `boolean` | `False` | If False, weights are bounded to [0, 1]. |
+| `risk_free` | `number` | `0.0` | Annual risk-free rate for the reported Sharpe. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### minimum_variance_portfolio
 
@@ -33,11 +33,11 @@ Formula (LaTeX): `\min_w\; w^\top \Sigma w \quad \text{s.t. } \sum_i w_i = 1 \\ 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `allow_short` | `boolean` | `False` |  |
-| `mean_returns` | `number[] or number[][] or null` | `None` |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `allow_short` | `boolean` | `False` | If False, weights are bounded to [0, 1]. |
+| `mean_returns` | `number[] or number[][] or null` | `None` | Optional per-period returns for reporting Sharpe. |
+| `risk_free` | `number` | `0.0` | Annual risk-free rate for the reported Sharpe. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### maximum_sharpe_ratio_portfolio
 
@@ -49,11 +49,11 @@ Formula (LaTeX): `\max_w\; \frac{w^\top \mu - r_f/T}{\sqrt{w^\top \Sigma w}} \qu
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mean_returns`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `risk_free` | `number` | `0.0` |  |
-| `allow_short` | `boolean` | `False` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `mean_returns`* | `number[] or number[][]` | required | Per-period expected return per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `risk_free` | `number` | `0.0` | Annual risk-free rate. |
+| `allow_short` | `boolean` | `False` | If False, weights are bounded to [0, 1]. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### risk_parity_portfolio
 
@@ -71,10 +71,10 @@ Formula (LaTeX): `RC_i = w_i (\Sigma w)_i \\ \min_w\; \sum_{i=1}^{n}\sum_{j=1}^{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `mean_returns` | `number[] or number[][] or null` | `None` |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `mean_returns` | `number[] or number[][] or null` | `None` | Optional per-period returns for reporting Sharpe. |
+| `risk_free` | `number` | `0.0` | Annual risk-free rate for the reported Sharpe. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### equal_weight_portfolio
 
@@ -84,11 +84,11 @@ Formula (LaTeX): `w_i = \frac{1}{N}, \quad i = 1,\dots,N`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `n_assets`* | `integer` | required |  |
-| `mean_returns` | `number[] or number[][] or null` | `None` |  |
-| `cov_matrix` | `number[] or number[][] or null` | `None` |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `n_assets`* | `integer` | required | Number of assets. |
+| `mean_returns` | `number[] or number[][] or null` | `None` | Optional per-period returns for reporting. |
+| `cov_matrix` | `number[] or number[][] or null` | `None` | Optional covariance for reporting volatility/Sharpe. |
+| `risk_free` | `number` | `0.0` | Annual risk-free rate for the reported Sharpe. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### black_litterman_model
 
@@ -102,13 +102,13 @@ Formula (LaTeX): `\Pi = \lambda \Sigma w_{mkt} \\ \Omega = \text{diag}\big(P(\ta
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `market_weights`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `p_matrix`* | `number[] or number[][]` | required |  |
-| `q_views`* | `number[] or number[][]` | required |  |
-| `risk_aversion` | `number` | `2.5` |  |
-| `tau` | `number` | `0.05` |  |
-| `omega` | `number[] or number[][] or null` | `None` |  |
+| `market_weights`* | `number[] or number[][]` | required | Market-cap equilibrium weights. |
+| `cov_matrix`* | `number[] or number[][]` | required | Asset covariance matrix. |
+| `p_matrix`* | `number[] or number[][]` | required | (k, n) view pick matrix. |
+| `q_views`* | `number[] or number[][]` | required | (k,) view return vector. |
+| `risk_aversion` | `number` | `2.5` | Equilibrium risk-aversion λ. |
+| `tau` | `number` | `0.05` | Scalar on the prior covariance (uncertainty in equilibrium). |
+| `omega` | `number[] or number[][] or null` | `None` | (k, k) view uncertainty; defaults to ``diag(P τΣ Pᵀ)``. |
 
 ### resampled_efficient_frontier
 
@@ -123,11 +123,11 @@ Formula (LaTeX): `\hat\Sigma^{(k)} = \text{Cov}\big(\text{sample}^{(k)}\big), \;
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mean_returns`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `n_resamples` | `integer` | `50` |  |
-| `n_obs` | `integer` | `250` |  |
-| `seed` | `integer` | `2024` |  |
+| `mean_returns`* | `number[] or number[][]` | required | Per-period expected return per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `n_resamples` | `integer` | `50` | Number of bootstrap resamples. |
+| `n_obs` | `integer` | `250` | Synthetic sample size per resample. |
+| `seed` | `integer` | `2024` | RNG seed for determinism. |
 
 ### robust_portfolio_optimisation
 
@@ -141,11 +141,11 @@ Formula (LaTeX): `\tilde\mu = \mu - \kappa \sqrt{\text{diag}(\Sigma)} \\ \max_w\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mean_returns`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `uncertainty` | `number` | `0.05` |  |
-| `risk_aversion` | `number` | `1.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `mean_returns`* | `number[] or number[][]` | required | Per-period expected return per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period covariance matrix. |
+| `uncertainty` | `number` | `0.05` | Size κ of the uncertainty set on the mean estimates. |
+| `risk_aversion` | `number` | `1.0` | Risk-aversion coefficient λ. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### cvar_constrained_optimisation
 
@@ -177,11 +177,11 @@ Formula (LaTeX): `\min_{w,\zeta,u}\; -w^\top \mu \quad \text{s.t. } \sum_i w_i =
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `scenario_returns`* | `number[] or number[][]` | required |  |
-| `mean_returns` | `number[] or number[][] or null` | `None` |  |
-| `confidence_level` | `number` | `0.95` |  |
-| `cvar_limit` | `number` | `0.05` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `scenario_returns`* | `number[] or number[][]` | required | (n_scenarios, n_assets) scenario return matrix. |
+| `mean_returns` | `number[] or number[][] or null` | `None` | Per-asset expected returns; defaults to scenario means. |
+| `confidence_level` | `number` | `0.95` | CVaR confidence in [0.90, 0.9999]. |
+| `cvar_limit` | `number` | `0.05` | Maximum acceptable portfolio CVaR (positive fraction). |
+| `periods_per_year` | `integer` | `252` | Annualisation factor for the reported return. |
 
 ### factor_based_optimisation
 
@@ -196,11 +196,11 @@ Formula (LaTeX): `\Sigma = B F B^\top + \text{diag}(\sigma^2_{spec}) \\ \min_w\;
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_exposures`* | `number[] or number[][]` | required |  |
-| `factor_cov`* | `number[] or number[][]` | required |  |
-| `specific_var`* | `number[] or number[][]` | required |  |
-| `target_exposures` | `number[] or number[][] or null` | `None` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `factor_exposures`* | `number[] or number[][]` | required | (n_assets, n_factors) factor loading matrix B. |
+| `factor_cov`* | `number[] or number[][]` | required | (n_factors, n_factors) factor covariance F. |
+| `specific_var`* | `number[] or number[][]` | required | (n_assets,) idiosyncratic variances. |
+| `target_exposures` | `number[] or number[][] or null` | `None` | Optional (n_factors,) target portfolio factor exposures to match exactly. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### rebalancing_optimiser
 
@@ -241,12 +241,12 @@ Formula (LaTeX): `\Delta_i = w_i^{tgt} - w_i^{cur} \;\; (\text{set } 0 \text{ if
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `current_weights`* | `number[] or number[][]` | required |  |
-| `target_weights`* | `number[] or number[][]` | required |  |
-| `cost_bps`* | `number[] or number[][]` | required |  |
-| `no_trade_band` | `number` | `0.0` |  |
-| `asset_volatility` | `number[] or number[][] or null` | `None` |  |
-| `risk_aversion` | `number or null` | `None` |  |
+| `current_weights`* | `number[] or number[][]` | required | Current portfolio weights. |
+| `target_weights`* | `number[] or number[][]` | required | Desired target weights. |
+| `cost_bps`* | `number[] or number[][]` | required | Proportional cost in basis points per asset. |
+| `no_trade_band` | `number` | `0.0` | Absolute weight threshold below which no trade is made. Ignored when the derived-band mode is active. |
+| `asset_volatility` | `number[] or number[][] or null` | `None` | Optional per-asset return volatility (sigma_i). Supply together with ``risk_aversion`` to derive the no-trade band instead of using the scalar ``no_trade_band``. |
+| `risk_aversion` | `number or null` | `None` | Optional CRRA risk-aversion coefficient (gamma > 0). Supply together with ``asset_volatility`` to derive the band. |
 
 ## Risk-Adjusted Performance
 
@@ -270,10 +270,10 @@ Formula (LaTeX): `S = \sqrt{T} \cdot \frac{\overline{r - r_f}}{\sigma_{ddof}(r -
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
-| `ddof` | `integer` | `0` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period simple returns. |
+| `risk_free` | `number` | `0.0` | Per-period risk-free rate (same period as returns). |
+| `periods_per_year` | `integer` | `252` | Annualisation factor (252 daily, 12 monthly). |
+| `ddof` | `integer` | `0` | Delta degrees of freedom for the volatility divisor: ``0`` (default, population std, divide by n) or ``1`` (sample std, divide by n-1). Any other value raises ``ValueError``. |
 
 ### sortino_ratio
 
@@ -292,10 +292,10 @@ Formula (LaTeX): `Sortino = \sqrt{T} \cdot \frac{\overline{r - r_f}}{DD(MAR)} \\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `risk_free` | `number` | `0.0` |  |
-| `target` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period simple returns. |
+| `risk_free` | `number` | `0.0` | Per-period risk-free rate subtracted from returns. |
+| `target` | `number` | `0.0` | Minimum acceptable per-period return for downside deviation. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### calmar_ratio
 
@@ -305,8 +305,8 @@ Formula (LaTeX): `CAGR = \left(\prod_{t=1}^{n}(1+r_t)\right)^{T/n} - 1 \\ Calmar
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period simple returns. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor for the CAGR numerator. |
 
 ### information_ratio
 
@@ -316,9 +316,9 @@ Formula (LaTeX): `IR = \sqrt{T} \cdot \frac{\overline{r_p - r_b}}{\sigma(r_p - r
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of benchmark per-period returns. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### treynor_ratio
 
@@ -328,10 +328,10 @@ Formula (LaTeX): `\beta = \frac{\text{Cov}(r, b)}{\text{Var}(b)} \\ Treynor = \f
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of market per-period returns. |
+| `risk_free` | `number` | `0.0` | Per-period risk-free rate. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor for the numerator. |
 
 ### jensens_alpha
 
@@ -344,10 +344,10 @@ Formula (LaTeX): `\beta = \frac{\text{Cov}(r_p - r_f,\, r_b - r_f)}{\text{Var}(r
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `risk_free` | `number` | `0.0` |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of market per-period returns. |
+| `risk_free` | `number` | `0.0` | Per-period risk-free rate. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### omega_ratio
 
@@ -359,8 +359,8 @@ Formula (LaTeX): `\Omega(\theta) = \frac{\sum_t \max(r_t - \theta, 0)}{\sum_t \m
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `threshold` | `number` | `0.0` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns. |
+| `threshold` | `number` | `0.0` | Per-period return threshold separating gains from losses. |
 
 ### maximum_drawdown
 
@@ -370,8 +370,8 @@ Formula (LaTeX): `MDD = \max_t \frac{P_t - V_t}{P_t}, \quad P_t = \max_{s \le t}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `is_equity_curve` | `boolean` | `False` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns, or an equity curve. |
+| `is_equity_curve` | `boolean` | `False` | If True, ``returns`` is a value series directly. |
 
 ### average_drawdown
 
@@ -381,8 +381,8 @@ Formula (LaTeX): `DD_t = \frac{P_t - V_t}{P_t}, \quad P_t = \max_{s \le t} V_s \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `is_equity_curve` | `boolean` | `False` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns, or an equity curve. |
+| `is_equity_curve` | `boolean` | `False` | If True, ``returns`` is a value series directly. |
 
 ### drawdown_duration
 
@@ -394,8 +394,8 @@ Formula (LaTeX): `d_t = \begin{cases} 0 & V_t \ge P_t \\ d_{t-1} + 1 & V_t < P_t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `is_equity_curve` | `boolean` | `False` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns, or an equity curve. |
+| `is_equity_curve` | `boolean` | `False` | If True, ``returns`` is a value series directly. |
 
 ### conditional_drawdown_at_risk
 
@@ -408,9 +408,9 @@ Formula (LaTeX): `DaR_\alpha = \text{Quantile}_\alpha(DD) \\ CDaR_\alpha = \frac
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `confidence_level` | `number` | `0.95` |  |
-| `is_equity_curve` | `boolean` | `False` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns, or an equity curve. |
+| `confidence_level` | `number` | `0.95` | CDaR confidence in [0.90, 0.9999]. |
+| `is_equity_curve` | `boolean` | `False` | If True, ``returns`` is a value series directly. |
 
 ### tail_ratio
 
@@ -423,8 +423,8 @@ Formula (LaTeX): `TR = \frac{\left|Q_{1-\tau}(r)\right|}{\left|Q_\tau(r)\right|}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `tail` | `number` | `0.05` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns. |
+| `tail` | `number` | `0.05` | Tail probability in (0, 0.5), e.g. 0.05 for the 5%/95% tails. |
 
 ### ulcer_index
 
@@ -437,8 +437,8 @@ Formula (LaTeX): `DD_t = 100 \times \frac{V_t - P_t}{P_t}, \quad P_t = \max_{s \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `is_equity_curve` | `boolean` | `False` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns, or an equity curve if ``is_equity_curve`` is True. |
+| `is_equity_curve` | `boolean` | `False` | If True, ``returns`` is treated as a value series directly rather than being compounded. |
 
 ## Performance Attribution
 
@@ -454,11 +454,11 @@ Formula (LaTeX): `A_i = (w^p_i - w^b_i)(r^b_i - R^b) \\ S_i = w^b_i(r^p_i - r^b_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `portfolio_weights`* | `number[] or number[][]` | required |  |
-| `benchmark_weights`* | `number[] or number[][]` | required |  |
-| `portfolio_returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `segment_names` | `string[] or null` | `None` |  |
+| `portfolio_weights`* | `number[] or number[][]` | required | Segment weights in the portfolio (sum to 1). |
+| `benchmark_weights`* | `number[] or number[][]` | required | Segment weights in the benchmark (sum to 1). |
+| `portfolio_returns`* | `number[] or number[][]` | required | Segment returns realised in the portfolio. |
+| `benchmark_returns`* | `number[] or number[][]` | required | Segment returns realised in the benchmark. |
+| `segment_names` | `string[] or null` | `None` | Optional labels; defaults to ``segment_0, ...``. |
 
 ### factor_return_attribution
 
@@ -471,10 +471,10 @@ Formula (LaTeX): `C_i = b_i f_i \\ R_{factor} = \sum_i C_i \\ R_{total} = R_{fac
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_exposures`* | `number[] or number[][]` | required |  |
-| `factor_returns`* | `number[] or number[][]` | required |  |
-| `specific_return`* | `number` | required |  |
-| `factor_names` | `string[] or null` | `None` |  |
+| `factor_exposures`* | `number[] or number[][]` | required | Portfolio exposure (beta) to each factor. |
+| `factor_returns`* | `number[] or number[][]` | required | Realised return of each factor over the period. |
+| `specific_return`* | `number` | required | Idiosyncratic return not explained by factors. |
+| `factor_names` | `string[] or null` | `None` | Optional labels; defaults to ``factor_0, ...``. |
 
 ### sector_attribution
 
@@ -488,11 +488,11 @@ Formula (LaTeX): `A_i = (w^p_i - w^b_i)(r^b_i - R^b) \\ S_i = w^b_i(r^p_i - r^b_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `portfolio_weights`* | `number[] or number[][]` | required |  |
-| `benchmark_weights`* | `number[] or number[][]` | required |  |
-| `portfolio_returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `sector_names` | `string[] or null` | `None` |  |
+| `portfolio_weights`* | `number[] or number[][]` | required | Portfolio sector weights (sum to 1). |
+| `benchmark_weights`* | `number[] or number[][]` | required | Benchmark sector weights (sum to 1). |
+| `portfolio_returns`* | `number[] or number[][]` | required | Portfolio sector returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | Benchmark sector returns. |
+| `sector_names` | `string[] or null` | `None` | Optional sector labels. |
 
 ### currency_attribution
 
@@ -542,12 +542,12 @@ Formula (LaTeX): `\text{(default)}\;\; R^{local}_i = w_i r^{L}_i, \quad R^{fx}_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `local_returns`* | `number[] or number[][]` | required |  |
-| `fx_returns`* | `number[] or number[][]` | required |  |
-| `weights`* | `number[] or number[][]` | required |  |
-| `currency_names` | `string[] or null` | `None` |  |
-| `local_risk_free` | `number[] or number[][] or null` | `None` |  |
-| `base_risk_free` | `number or null` | `None` |  |
+| `local_returns`* | `number[] or number[][]` | required | Local-currency return per holding. |
+| `fx_returns`* | `number[] or number[][]` | required | Currency (FX) return per holding (base vs local). |
+| `weights`* | `number[] or number[][]` | required | Portfolio weight per holding (sum to 1). |
+| `currency_names` | `string[] or null` | `None` | Optional labels; defaults to ``ccy_0, ...``. |
+| `local_risk_free` | `number[] or number[][] or null` | `None` | Optional per-holding local-currency risk-free rate. Supply together with ``base_risk_free`` to switch to the Karnosky-Singer decomposition. |
+| `base_risk_free` | `number or null` | `None` | Optional reporting/base-currency risk-free rate (a single rate, common to every holding). Supply together with ``local_risk_free`` to switch to the Karnosky-Singer decomposition. |
 
 ### gics_sector_exposure
 
@@ -560,8 +560,8 @@ Formula (LaTeX): `E_s = \sum_{i \,\in\, \text{sector } s} w_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `sector_codes`* | `string[]` | required |  |
+| `weights`* | `number[] or number[][]` | required | Position weights per holding. |
+| `sector_codes`* | `string[]` | required | GICS sector label per holding (same ordering). |
 
 ### factor_exposure_analysis_barra
 
@@ -574,9 +574,9 @@ Formula (LaTeX): `E = B^\top w, \quad E_k = \sum_i B_{ik}\, w_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_exposures`* | `number[] or number[][]` | required |  |
-| `weights`* | `number[] or number[][]` | required |  |
-| `factor_names` | `string[] or null` | `None` |  |
+| `asset_exposures`* | `number[] or number[][]` | required | (n_assets, n_factors) factor loading matrix. |
+| `weights`* | `number[] or number[][]` | required | Portfolio weight per asset. |
+| `factor_names` | `string[] or null` | `None` | Optional labels; defaults to ``factor_0, ...``. |
 
 ## Factor Models
 
@@ -591,8 +591,8 @@ Formula (LaTeX): `y = \alpha + \beta_{MKT}F_{MKT} + \beta_{SMB}F_{SMB} + \beta_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `excess_returns`* | `number[] or number[][]` | required |  |
-| `factors`* | `number[] or number[][]` | required |  |
+| `excess_returns`* | `number[] or number[][]` | required | Portfolio excess returns over the risk-free rate. |
+| `factors`* | `number[] or number[][]` | required | (n_obs, 3) matrix of MKT, SMB, HML factor returns. |
 
 ### carhart_4_factor_model
 
@@ -604,8 +604,8 @@ Formula (LaTeX): `y = \alpha + \beta_{MKT}F_{MKT} + \beta_{SMB}F_{SMB} + \beta_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `excess_returns`* | `number[] or number[][]` | required |  |
-| `factors`* | `number[] or number[][]` | required |  |
+| `excess_returns`* | `number[] or number[][]` | required | Portfolio excess returns over the risk-free rate. |
+| `factors`* | `number[] or number[][]` | required | (n_obs, 4) matrix of MKT, SMB, HML, MOM factor returns. |
 
 ### fama_french_5_factor_model
 
@@ -617,8 +617,8 @@ Formula (LaTeX): `y = \alpha + \beta_{MKT}F_{MKT} + \beta_{SMB}F_{SMB} + \beta_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `excess_returns`* | `number[] or number[][]` | required |  |
-| `factors`* | `number[] or number[][]` | required |  |
+| `excess_returns`* | `number[] or number[][]` | required | Portfolio excess returns over the risk-free rate. |
+| `factors`* | `number[] or number[][]` | required | (n_obs, 5) matrix of MKT, SMB, HML, RMW, CMA factor returns. |
 
 ### principal_component_analysis
 
@@ -631,8 +631,8 @@ Formula (LaTeX): `\Sigma v_k = \lambda_k v_k \\ EVR_k = \frac{\lambda_k}{\sum_j 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required |  |
-| `n_components` | `integer or null` | `None` |  |
+| `returns_matrix`* | `number[] or number[][]` | required | (n_obs, n_assets) return matrix. |
+| `n_components` | `integer or null` | `None` | Number of components to return (defaults to all). |
 
 ### correlation_clustering
 
@@ -654,8 +654,8 @@ Formula (LaTeX): `d_{ij} = \sqrt{2(1 - \rho_{ij})} \\ D(A,B) = \min_{i \in A,\, 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required |  |
-| `n_clusters` | `integer` | `2` |  |
+| `returns_matrix`* | `number[] or number[][]` | required | (n_obs, n_assets) return matrix. |
+| `n_clusters` | `integer` | `2` | Target number of clusters. |
 
 ### regime_detection_hmm
 
@@ -673,8 +673,8 @@ Formula (LaTeX): `p(x_i) = \pi_0 \mathcal{N}(x_i;\mu_0,\sigma_0^2) + \pi_1 \math
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `n_iter` | `integer` | `50` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of per-period returns. |
+| `n_iter` | `integer` | `50` | Number of EM iterations. |
 
 ## Active Risk Analytics
 
@@ -688,8 +688,8 @@ Formula (LaTeX): `\beta = \frac{\text{Cov}(r, b)}{\text{Var}(b)}, \quad \rho = \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of benchmark per-period returns. |
 
 ### active_share
 
@@ -702,8 +702,8 @@ Formula (LaTeX): `AS = \frac{1}{2}\sum_i |w_i - b_i|`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `benchmark_weights`* | `number[] or number[][]` | required |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
+| `benchmark_weights`* | `number[] or number[][]` | required | Benchmark weights per asset (same ordering). |
 
 ### tracking_error
 
@@ -713,9 +713,9 @@ Formula (LaTeX): `TE = \sqrt{T} \cdot \sigma(r_p - r_b)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of benchmark per-period returns. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### residual_risk
 
@@ -728,9 +728,9 @@ Formula (LaTeX): `\beta = \frac{\text{Cov}(r, b)}{\text{Var}(b)}, \quad \alpha =
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required |  |
-| `benchmark_returns`* | `number[] or number[][]` | required |  |
-| `periods_per_year` | `integer` | `252` |  |
+| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio per-period returns. |
+| `benchmark_returns`* | `number[] or number[][]` | required | 1-D array of benchmark per-period returns. |
+| `periods_per_year` | `integer` | `252` | Annualisation factor. |
 
 ### portfolio_turnover
 
@@ -742,8 +742,8 @@ Formula (LaTeX): `Turnover = \frac{1}{2}\sum_i \left| w_i^{after} - w_i^{before}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights_before`* | `number[] or number[][]` | required |  |
-| `weights_after`* | `number[] or number[][]` | required |  |
+| `weights_before`* | `number[] or number[][]` | required | Pre-rebalance weights. |
+| `weights_after`* | `number[] or number[][]` | required | Post-rebalance weights (same ordering). |
 
 ### transaction_cost_analysis
 
@@ -785,13 +785,13 @@ Formula (LaTeX): `Slippage_{bps} = \frac{\sum_i s \cdot (p_i - b_i) \cdot q_i}{\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `trade_prices`* | `number[] or number[][]` | required |  |
-| `benchmark_prices`* | `number[] or number[][]` | required |  |
-| `trade_quantities`* | `number[] or number[][]` | required |  |
-| `side` | `integer` | `1` |  |
-| `decision_price` | `number or number[] or null` | `None` |  |
-| `unexecuted_quantity` | `number or null` | `None` |  |
-| `cancellation_price` | `number or null` | `None` |  |
+| `trade_prices`* | `number[] or number[][]` | required | Executed prices per fill. |
+| `benchmark_prices`* | `number[] or number[][]` | required | Benchmark (arrival or VWAP) prices per fill. |
+| `trade_quantities`* | `number[] or number[][]` | required | Executed quantities per fill (non-negative). |
+| `side` | `integer` | `1` | +1 for buy orders, -1 for sell orders. |
+| `decision_price` | `number or number[] or null` | `None` | Optional price(s) at the investment-decision instant (Perold's "paper" price). Pass a scalar (applied to every fill) or a per-fill array matching ``trade_prices`` in length. When supplied, adds ``delay_cost_bps``, ``delay_cost``, ``implementation_shortfall_bps`` and ``implementation_shortfall`` to the result. Omit for unchanged (execution-slippage-only) behaviour. |
+| `unexecuted_quantity` | `number or null` | `None` | Optional quantity of the original order that was never executed (>= 0). Must be supplied together with ``cancellation_price``, and requires ``decision_price`` to also be supplied as a single scalar (the opportunity-cost leg has one order-level decision price, not a per-fill one). |
+| `cancellation_price` | `number or null` | `None` | Optional price at which the unexecuted portion of the order was marked when cancelled/expired. Must be supplied together with ``unexecuted_quantity``. |
 
 ## ESG & Sustainability
 
@@ -807,10 +807,10 @@ Formula (LaTeX): `S_{ESG} = \frac{\sum_i w_i \cdot ESG_i}{\sum_i w_i} \\ \min_w\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `esg_scores`* | `number[] or number[][]` | required |  |
-| `min_esg_score` | `number or null` | `None` |  |
-| `cov_matrix` | `number[] or number[][] or null` | `None` |  |
+| `weights`* | `number[] or number[][]` | required | Current portfolio weights. |
+| `esg_scores`* | `number[] or number[][]` | required | ESG score per asset (higher is better). |
+| `min_esg_score` | `number or null` | `None` | Optional minimum weighted ESG score to enforce. |
+| `cov_matrix` | `number[] or number[][] or null` | `None` | Optional covariance for the ESG-constrained re-optimisation. |
 
 ### carbon_footprint_attribution
 
@@ -850,12 +850,12 @@ Formula (LaTeX): `WACI = \sum_i w_i \cdot CI_i \\ \text{(default)}\;\; E_i = w_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `carbon_intensities`* | `number[] or number[][]` | required |  |
-| `portfolio_value`* | `number` | required |  |
-| `asset_names` | `string[] or null` | `None` |  |
-| `company_total_emissions` | `number[] or number[][] or null` | `None` |  |
-| `company_value` | `number[] or number[][] or null` | `None` |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per holding (sum to 1). |
+| `carbon_intensities`* | `number[] or number[][]` | required | Carbon intensity per holding (tCO2e per $M, say) -- used for the WACI leg in both modes. |
+| `portfolio_value`* | `number` | required | Total portfolio value in $M consistent with intensity. |
+| `asset_names` | `string[] or null` | `None` | Optional labels; defaults to ``asset_0, ...``. |
+| `company_total_emissions` | `number[] or number[][] or null` | `None` | Optional per-holding investee company total absolute emissions (tCO2e). Supply together with ``company_value`` to use the PCAF ownership-share method. |
+| `company_value` | `number[] or number[][] or null` | `None` | Optional per-holding investee company total value (PCAF's EVIC or market cap), in the same currency unit as ``portfolio_value``. Supply together with ``company_total_emissions`` to use the PCAF ownership-share method. |
 
 ## Portfolio Risk Analytics
 
@@ -871,12 +871,12 @@ Formula (LaTeX): `\sigma_p = \sqrt{w^\top \Sigma w} \\ LVaR = z_\alpha \sigma_p 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `bid_ask_spreads`* | `number[] or number[][]` | required |  |
-| `portfolio_value`* | `number` | required |  |
-| `confidence_level` | `number` | `0.99` |  |
-| `horizon_days` | `integer` | `1` |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix (per period). |
+| `bid_ask_spreads`* | `number[] or number[][]` | required | Proportional bid-ask spread per asset (fraction). |
+| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
+| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
+| `horizon_days` | `integer` | `1` | Risk horizon (sqrt-time scaling on the market term). |
 
 ### marginal_contribution_to_risk
 
@@ -889,8 +889,8 @@ Formula (LaTeX): `\sigma_p = \sqrt{w^\top \Sigma w} \\ MCR_i = \frac{(\Sigma w)_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
 
 ### diversification_ratio
 
@@ -903,8 +903,8 @@ Formula (LaTeX): `DR = \frac{\sum_i |w_i|\, \sigma_i}{\sqrt{w^\top \Sigma w}}, \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
 
 ### correlation_matrix_portfolio
 
@@ -914,7 +914,7 @@ Formula (LaTeX): `\rho_{ij} = \text{Corr}(r_i, r_j) \\ \bar\rho = \frac{1}{n(n-1
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required |  |
+| `returns_matrix`* | `number[] or number[][]` | required | (n_obs, n_assets) array of asset return series. |
 
 ### concentration_risk_hhi
 
@@ -928,7 +928,7 @@ Formula (LaTeX): `\tilde w_i = \frac{|w_i|}{\sum_j |w_j|}, \quad HHI = \sum_i \t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset (need not be normalised). |
 
 ### monte_carlo_portfolio_simulation
 
@@ -942,11 +942,11 @@ Formula (LaTeX): `R_{s,t} = \mu + L z_{s,t}, \quad \Sigma = L L^\top \\ \Pi_s = 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required |  |
-| `mean_returns`* | `number[] or number[][]` | required |  |
-| `cov_matrix`* | `number[] or number[][]` | required |  |
-| `portfolio_value` | `number` | `1000000.0` |  |
-| `horizon` | `integer` | `10` |  |
-| `n_simulations` | `integer` | `10000` |  |
-| `confidence_level` | `number` | `0.99` |  |
-| `seed` | `integer` | `12345` |  |
+| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
+| `mean_returns`* | `number[] or number[][]` | required | Per-period mean return per asset. |
+| `cov_matrix`* | `number[] or number[][]` | required | Per-period asset return covariance matrix. |
+| `portfolio_value` | `number` | `1000000.0` | Starting portfolio value in base currency. |
+| `horizon` | `integer` | `10` | Number of periods to simulate forward. |
+| `n_simulations` | `integer` | `10000` | Number of Monte Carlo paths. |
+| `confidence_level` | `number` | `0.99` | VaR/ES confidence in [0.90, 0.9999]. |
+| `seed` | `integer` | `12345` | RNG seed for determinism. |

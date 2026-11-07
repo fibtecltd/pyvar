@@ -18,9 +18,13 @@ class HistoricalSimulationVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns (fraction, not pct)."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence in [0.90, 0.9999], e.g. 0.99."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -48,10 +52,14 @@ class FilteredHistoricalSimulationVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
-    lambda_decay: float = 0.94
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
+    lambda_decay: float = Field(
+        default=0.94, description="EWMA decay factor (RiskMetrics default 0.94)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -79,11 +87,17 @@ class ParametricDeltaNormalVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
-    horizon_days: int = 1
+    weights: list[float] | list[list[float]] = Field(
+        description="Portfolio weights per asset (need not sum to 1)."
+    )
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix (per-period)."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
+    horizon_days: int = Field(
+        default=1, description="Risk horizon in trading days (sqrt-time scaling)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -111,11 +125,17 @@ class CornishFisherVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
-    skewness: float | None = None
-    excess_kurtosis: float | None = None
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
+    skewness: float | None = Field(
+        default=None, description="Override sample skewness (computed from data if None)."
+    )
+    excess_kurtosis: float | None = Field(
+        default=None, description="Override sample excess kurtosis (computed if None)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -143,9 +163,11 @@ class MarginalVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    confidence_level: float = 0.99
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -171,10 +193,12 @@ class ComponentVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -201,11 +225,13 @@ class IncrementalVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    position_index: int
-    portfolio_value: float
-    confidence_level: float = 0.99
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
+    position_index: int = Field(description="Index of the position whose contribution is measured.")
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -233,11 +259,17 @@ class VarByRiskFactorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_exposures: list[float] | list[list[float]]
-    factor_cov: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.99
-    factor_names: list[str] | None = None
+    factor_exposures: list[float] | list[list[float]] = Field(
+        description="Portfolio sensitivity (beta) to each risk factor."
+    )
+    factor_cov: list[float] | list[list[float]] = Field(
+        description="Risk-factor covariance matrix."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
+    factor_names: list[str] | None = Field(
+        default=None, description="Optional labels; defaults to ``factor_0, factor_1, ...``."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -263,10 +295,15 @@ class VarFanChartRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_levels: list[float] = [0.9, 0.95, 0.99]
-    horizon_days: int = 10
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_levels: list[float] = Field(
+        default=[0.9, 0.95, 0.99],
+        description="Confidence levels for the fan bands (each in [0.90, 0.9999]).",
+    )
+    horizon_days: int = Field(default=10, description="Maximum projection horizon in trading days.")
 
     @field_validator("confidence_levels")
     @classmethod
@@ -292,9 +329,13 @@ class ConditionalVarEsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.975
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(
+        default=0.975, description="ES confidence in [0.90, 0.9999]; FRTB uses 0.975."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -321,9 +362,11 @@ class HistoricalExpectedShortfallRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.975
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.975, description="ES confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -350,12 +393,14 @@ class MonteCarloExpectedShortfallRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.975
-    n_simulations: int = 100000
-    horizon_days: int = 1
-    seed: int | None = 42
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns (fits mu, sigma)."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.975, description="ES confidence in [0.90, 0.9999].")
+    n_simulations: int = Field(default=100000, description="Number of Monte Carlo paths.")
+    horizon_days: int = Field(default=1, description="Risk horizon in trading days.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -383,10 +428,12 @@ class CvarDecompositionEulerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    weights: list[float] | list[list[float]]
-    cov_matrix: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.975
+    weights: list[float] | list[list[float]] = Field(description="Portfolio weights per asset.")
+    cov_matrix: list[float] | list[list[float]] = Field(
+        description="Asset return covariance matrix."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.975, description="ES confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -413,11 +460,15 @@ class StressedExpectedShortfallRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    stress_start: int
-    stress_end: int
-    portfolio_value: float
-    confidence_level: float = 0.975
+    returns: list[float] | list[list[float]] = Field(
+        description="Full 1-D array of historical portfolio returns."
+    )
+    stress_start: int = Field(description="Inclusive start index of the stressed window.")
+    stress_end: int = Field(description="Exclusive end index of the stressed window.")
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(
+        default=0.975, description="ES confidence in [0.90, 0.9999]; FRTB uses 0.975."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -444,10 +495,14 @@ class LiquidityAdjustedEsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    es_base: float
-    partial_es: list[float]
-    liquidity_horizons: list[float]
-    base_horizon: float = 10.0
+    es_base: float = Field(description="Whole-portfolio ES at the base horizon T.")
+    partial_es: list[float] = Field(description="``ES_j`` for buckets j = 2..K (length K-1).")
+    liquidity_horizons: list[float] = Field(
+        description="Liquidity horizons ``LH_1..LH_K`` (length K, with ``LH_1 == base_horizon`` and non-decreasing)."
+    )
+    base_horizon: float = Field(
+        default=10.0, description="Base liquidity horizon T in days (FRTB uses 10)."
+    )
 
 
 class LiquidityAdjustedEsResponse(BaseModel):
@@ -465,9 +520,13 @@ class EsAtMultipleConfidenceLevelsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_levels: list[float] = [0.95, 0.975, 0.99]
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of historical portfolio returns."
+    )
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_levels: list[float] = Field(
+        default=[0.95, 0.975, 0.99], description="Confidence levels (each in [0.90, 0.9999])."
+    )
 
     @field_validator("confidence_levels")
     @classmethod
@@ -492,10 +551,12 @@ class ExpectedShortfallContributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_returns: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]]
-    portfolio_value: float
-    confidence_level: float = 0.975
+    asset_returns: list[float] | list[list[float]] = Field(
+        description="``(T, N)`` matrix of per-asset returns over T scenarios."
+    )
+    weights: list[float] | list[list[float]] = Field(description="Length-N portfolio weights.")
+    portfolio_value: float = Field(description="Current portfolio value in base currency.")
+    confidence_level: float = Field(default=0.975, description="ES confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -522,8 +583,12 @@ class HistoricalScenarioReplayRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    historical_factor_returns: list[float] | list[list[float]]
+    exposures: list[float] | list[list[float]] = Field(
+        description="Length-F currency P&L per unit move of each risk factor."
+    )
+    historical_factor_returns: list[float] | list[list[float]] = Field(
+        description="``(T, F)`` matrix of historical factor moves."
+    )
 
 
 class HistoricalScenarioReplayResponse(BaseModel):
@@ -543,8 +608,12 @@ class HypotheticalMultiFactorScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    shocks: list[float] | list[list[float]]
+    exposures: list[float] | list[list[float]] = Field(
+        description="Length-F currency P&L per unit factor move."
+    )
+    shocks: list[float] | list[list[float]] = Field(
+        description="Length-F factor shocks (same units as the historical moves)."
+    )
 
 
 class HypotheticalMultiFactorScenarioResponse(BaseModel):
@@ -561,9 +630,13 @@ class ReverseStressTestingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    factor_cov: list[float] | list[list[float]]
-    target_loss: float
+    exposures: list[float] | list[list[float]] = Field(
+        description="Length-F currency P&L per unit factor move."
+    )
+    factor_cov: list[float] | list[list[float]] = Field(
+        description="``(F, F)`` factor covariance matrix (SPD)."
+    )
+    target_loss: float = Field(description="Desired loss magnitude (positive number).")
 
 
 class ReverseStressTestingResponse(BaseModel):
@@ -582,9 +655,13 @@ class SensitivityStressProfileRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    exposures: list[float] | list[list[float]]
-    factor_index: int
-    shock_grid: list[float] | list[list[float]]
+    exposures: list[float] | list[list[float]] = Field(
+        description="Length-F currency P&L per unit factor move."
+    )
+    factor_index: int = Field(description="Index of the factor to stress.")
+    shock_grid: list[float] | list[list[float]] = Field(
+        description="1-D grid of shock values to apply to that factor."
+    )
 
 
 class SensitivityStressProfileResponse(BaseModel):
@@ -602,9 +679,15 @@ class SectorStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sector_exposures: list[float] | list[list[float]]
-    sector_shocks: list[float] | list[list[float]]
-    sector_names: list[str] | None = None
+    sector_exposures: list[float] | list[list[float]] = Field(
+        description="Currency P&L per unit move, per sector."
+    )
+    sector_shocks: list[float] | list[list[float]] = Field(
+        description="Shock applied to each sector."
+    )
+    sector_names: list[str] | None = Field(
+        default=None, description="Optional sector labels; default ``sector_0, ...``."
+    )
 
 
 class SectorStressScenarioResponse(BaseModel):
@@ -621,9 +704,13 @@ class MacroScenarioGeneratorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_cov: list[float] | list[list[float]]
-    n_scenarios: int = 10000
-    seed: int | None = 42
+    factor_cov: list[float] | list[list[float]] = Field(
+        description="``(F, F)`` macro-factor covariance matrix (SPD)."
+    )
+    n_scenarios: int = Field(default=10000, description="Number of scenarios to generate.")
+    seed: int | None = Field(
+        default=42, description="RNG seed for reproducibility (None = non-deterministic)."
+    )
 
 
 class MacroScenarioGeneratorResponse(BaseModel):
@@ -641,9 +728,15 @@ class ContagionStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    initial_shock: list[float] | list[list[float]]
-    contagion_matrix: list[float] | list[list[float]]
-    rounds: int = 3
+    initial_shock: list[float] | list[list[float]] = Field(
+        description="Length-N initial shock per node/asset."
+    )
+    contagion_matrix: list[float] | list[list[float]] = Field(
+        description="``(N, N)`` spillover coefficients (C[i, j] = effect of node j on node i)."
+    )
+    rounds: int = Field(
+        default=3, description="Number of propagation rounds (``0`` returns the initial shock)."
+    )
 
 
 class ContagionStressScenarioResponse(BaseModel):
@@ -661,9 +754,15 @@ class PortfolioDeltaAggregatedRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    deltas: list[float] | list[list[float]]
-    quantities: list[float] | list[list[float]]
-    spot_prices: list[float] | list[list[float]] | None = None
+    deltas: list[float] | list[list[float]] = Field(
+        description="Per-position option delta (∂V/∂S)."
+    )
+    quantities: list[float] | list[list[float]] = Field(
+        description="Signed position size per instrument."
+    )
+    spot_prices: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional underlying spot per position for cash delta."
+    )
 
 
 class PortfolioDeltaAggregatedResponse(BaseModel):
@@ -679,8 +778,13 @@ class GammaCrossGammaMatrixRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    own_gammas: list[float] | list[list[float]]
-    cross_gammas: list[float] | list[list[float]] | None = None
+    own_gammas: list[float] | list[list[float]] = Field(
+        description="Length-U net gamma per underlying (matrix diagonal)."
+    )
+    cross_gammas: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional ``(U, U)`` cross-gamma matrix; its off-diagonal entries are symmetrised into the result. Diagonal is ignored.",
+    )
 
 
 class GammaCrossGammaMatrixResponse(BaseModel):
@@ -697,11 +801,15 @@ class VegaSurfaceBucketedRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    vegas: list[float] | list[list[float]]
-    expiry_buckets: list[float] | list[list[float]]
-    strike_buckets: list[float] | list[list[float]]
-    n_expiry: int
-    n_strike: int
+    vegas: list[float] | list[list[float]] = Field(description="Per-option vega (∂V/∂σ).")
+    expiry_buckets: list[float] | list[list[float]] = Field(
+        description="Per-option expiry bucket index in ``[0, n_expiry)``."
+    )
+    strike_buckets: list[float] | list[list[float]] = Field(
+        description="Per-option strike bucket index in ``[0, n_strike)``."
+    )
+    n_expiry: int = Field(description="Number of expiry buckets.")
+    n_strike: int = Field(description="Number of strike buckets.")
 
 
 class VegaSurfaceBucketedResponse(BaseModel):
@@ -718,11 +826,13 @@ class Dv01Pv01BucketedRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    flat_yield: float
-    bucket_indices: list[float] | list[list[float]]
-    n_buckets: int
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    flat_yield: float = Field(description="Flat continuously-compounded discount yield.")
+    bucket_indices: list[float] | list[list[float]] = Field(
+        description="Tenor bucket index per cashflow in ``[0, n_buckets)``."
+    )
+    n_buckets: int = Field(description="Number of tenor buckets.")
 
 
 class Dv01Pv01BucketedResponse(BaseModel):
@@ -741,10 +851,10 @@ class Cs01CreditSpreadRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    risk_free_rate: float
-    credit_spread: float
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    risk_free_rate: float = Field(description="Continuously-compounded risk-free rate.")
+    credit_spread: float = Field(description="Continuously-compounded credit spread.")
 
 
 class Cs01CreditSpreadResponse(BaseModel):
@@ -761,13 +871,13 @@ class RhoInterestRateRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised).")
+    tau: float = Field(description="Time to maturity in years.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class RhoInterestRateResponse(BaseModel):
@@ -784,13 +894,13 @@ class ThetaTimeDecayRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised).")
+    tau: float = Field(description="Time to maturity in years.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class ThetaTimeDecayResponse(BaseModel):
@@ -807,13 +917,13 @@ class CharmDeltaDecayRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised).")
+    tau: float = Field(description="Time to maturity in years.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class CharmDeltaDecayResponse(BaseModel):
@@ -829,12 +939,12 @@ class VolgaVegaConvexityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised).")
+    tau: float = Field(description="Time to maturity in years.")
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class VolgaVegaConvexityResponse(BaseModel):
@@ -851,12 +961,12 @@ class VannaDeltaVegaCrossRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised).")
+    tau: float = Field(description="Time to maturity in years.")
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class VannaDeltaVegaCrossResponse(BaseModel):
@@ -872,16 +982,18 @@ class GreeksBasedPnlExplainRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    delta: float
-    gamma: float
-    vega: float
-    theta: float
-    rho: float
-    spot_move: float
-    vol_move: float
-    time_step: float
-    rate_move: float
-    actual_pnl: float
+    delta: float = Field(description="Portfolio delta (∂V/∂S).")
+    gamma: float = Field(description="Portfolio gamma (∂²V/∂S²).")
+    vega: float = Field(description="Portfolio vega (∂V/∂σ).")
+    theta: float = Field(
+        description="Portfolio theta (∂V/∂t, per the same time unit as ``time_step``)."
+    )
+    rho: float = Field(description="Portfolio rho (∂V/∂r).")
+    spot_move: float = Field(description="Realised underlying move dS.")
+    vol_move: float = Field(description="Realised volatility move dσ.")
+    time_step: float = Field(description="Elapsed time dt.")
+    rate_move: float = Field(description="Realised rate move dr.")
+    actual_pnl: float = Field(description="Observed (hypothetical) P&L for the period.")
 
 
 class GreeksBasedPnlExplainResponse(BaseModel):
@@ -900,8 +1012,12 @@ class PnlAttributionTestFrtbPatRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    risk_theoretical_pnl: list[float] | list[list[float]]
-    hypothetical_pnl: list[float] | list[list[float]]
+    risk_theoretical_pnl: list[float] | list[list[float]] = Field(
+        description="Daily RTPL series (model-based)."
+    )
+    hypothetical_pnl: list[float] | list[list[float]] = Field(
+        description="Daily HPL series (full-revaluation)."
+    )
 
 
 class PnlAttributionTestFrtbPatResponse(BaseModel):
@@ -919,9 +1035,11 @@ class ThetaCarryAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    theta: float
-    time_step: float
-    funding_cost: float = 0.0
+    theta: float = Field(description="Portfolio theta (∂V/∂t, per the same unit as ``time_step``).")
+    time_step: float = Field(description="Elapsed time dt.")
+    funding_cost: float = Field(
+        default=0.0, description="Funding cost accrued over the period (currency)."
+    )
 
 
 class ThetaCarryAttributionResponse(BaseModel):
@@ -939,8 +1057,8 @@ class GammaPnlAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    gamma: float
-    spot_move: float
+    gamma: float = Field(description="Portfolio gamma (∂²V/∂S²).")
+    spot_move: float = Field(description="Realised underlying move dS.")
 
 
 class GammaPnlAttributionResponse(BaseModel):
@@ -956,8 +1074,8 @@ class VegaPnlAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    vega: float
-    vol_move: float
+    vega: float = Field(description="Portfolio vega (∂V/∂σ).")
+    vol_move: float = Field(description="Realised volatility move dσ.")
 
 
 class VegaPnlAttributionResponse(BaseModel):
@@ -973,9 +1091,13 @@ class FxPnlAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    fx_deltas: list[float] | list[list[float]]
-    fx_moves: list[float] | list[list[float]]
-    currency_names: list[str] | None = None
+    fx_deltas: list[float] | list[list[float]] = Field(
+        description="P&L per unit move of each FX rate."
+    )
+    fx_moves: list[float] | list[list[float]] = Field(description="Realised move in each FX rate.")
+    currency_names: list[str] | None = Field(
+        default=None, description="Optional labels; default ``ccy_0, ...``."
+    )
 
 
 class FxPnlAttributionResponse(BaseModel):
@@ -992,9 +1114,15 @@ class RatesPnlAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    key_rate_sensitivities: list[float] | list[list[float]]
-    yield_moves_bp: list[float] | list[list[float]]
-    tenor_names: list[str] | None = None
+    key_rate_sensitivities: list[float] | list[list[float]] = Field(
+        description="P&L per +1bp move at each tenor."
+    )
+    yield_moves_bp: list[float] | list[list[float]] = Field(
+        description="Realised yield move (in basis points) at each tenor."
+    )
+    tenor_names: list[str] | None = Field(
+        default=None, description="Optional labels; default ``tenor_0, ...``."
+    )
 
 
 class RatesPnlAttributionResponse(BaseModel):
@@ -1011,9 +1139,15 @@ class CreditPnlAttributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cs01_sensitivities: list[float] | list[list[float]]
-    spread_moves_bp: list[float] | list[list[float]]
-    name_labels: list[str] | None = None
+    cs01_sensitivities: list[float] | list[list[float]] = Field(
+        description="P&L per +1bp credit-spread move per name."
+    )
+    spread_moves_bp: list[float] | list[list[float]] = Field(
+        description="Realised spread move (basis points) per name."
+    )
+    name_labels: list[str] | None = Field(
+        default=None, description="Optional labels; default ``name_0, ...``."
+    )
 
 
 class CreditPnlAttributionResponse(BaseModel):
@@ -1030,8 +1164,10 @@ class ResidualPnlUnexplainedRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    actual_pnl: float
-    explained_components: list[float] | list[list[float]]
+    actual_pnl: float = Field(description="Observed (hypothetical) P&L for the period.")
+    explained_components: list[float] | list[list[float]] = Field(
+        description="The individual explained P&L components."
+    )
 
 
 class ResidualPnlUnexplainedResponse(BaseModel):
@@ -1049,8 +1185,12 @@ class TrafficLightBacktestingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    actual_returns: list[float] | list[list[float]]
-    var_estimates: list[float] | list[list[float]]
+    actual_returns: list[float] | list[list[float]] = Field(
+        description="Realised returns over the backtest window."
+    )
+    var_estimates: list[float] | list[list[float]] = Field(
+        description="VaR estimate (positive loss) aligned to each return."
+    )
 
 
 class TrafficLightBacktestingResponse(BaseModel):
@@ -1069,9 +1209,11 @@ class KupiecPofTestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    n_breaches: int
-    n_observations: int
-    confidence_level: float = 0.99
+    n_breaches: int = Field(description="Number of VaR breaches observed.")
+    n_observations: int = Field(description="Number of backtest observations.")
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence level the breaches were measured at."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1097,7 +1239,9 @@ class ChristoffersenIndependenceTestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    breaches: list[float] | list[list[float]]
+    breaches: list[float] | list[list[float]] = Field(
+        description="Binary breach sequence (1 = breach, 0 = no breach)."
+    )
 
 
 class ChristoffersenIndependenceTestResponse(BaseModel):
@@ -1116,8 +1260,12 @@ class CombinedBacktestingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    breaches: list[float] | list[list[float]]
-    confidence_level: float = 0.99
+    breaches: list[float] | list[list[float]] = Field(
+        description="Binary breach sequence (1 = breach, 0 = no breach)."
+    )
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence level the breaches were measured at."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1144,7 +1292,7 @@ class BaselCapitalAddonMultiplierRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    n_breaches: int
+    n_breaches: int = Field(description="Number of breaches in the 250-day backtest.")
 
 
 class BaselCapitalAddonMultiplierResponse(BaseModel):
@@ -1162,9 +1310,11 @@ class RollingVarBacktestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    window: int = 250
-    confidence_level: float = 0.99
+    returns: list[float] | list[list[float]] = Field(description="Full return history.")
+    window: int = Field(
+        default=250, description="Rolling estimation window (Basel standard 250 trading days)."
+    )
+    confidence_level: float = Field(default=0.99, description="VaR confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -1191,7 +1341,9 @@ class VarBreachClusterAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    breaches: list[float] | list[list[float]]
+    breaches: list[float] | list[list[float]] = Field(
+        description="Binary breach sequence (1 = breach, 0 = no breach)."
+    )
 
 
 class VarBreachClusterAnalysisResponse(BaseModel):
@@ -1210,12 +1362,14 @@ class VolatilitySurfaceImpliedVolRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    market_prices: list[float] | list[list[float]]
-    strikes: list[float] | list[list[float]]
-    expiries: list[float] | list[list[float]]
-    spot: float
-    rate: float
-    option_type: str = "call"
+    market_prices: list[float] | list[list[float]] = Field(description="Observed option prices.")
+    strikes: list[float] | list[list[float]] = Field(description="Strike of each option.")
+    expiries: list[float] | list[list[float]] = Field(
+        description="Time to expiry (years) of each option."
+    )
+    spot: float = Field(description="Underlying spot price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
 
 
 class VolatilitySurfaceImpliedVolResponse(BaseModel):
@@ -1232,11 +1386,19 @@ class Garch11VolatilityForecastRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    alpha: float = 0.1
-    beta: float = 0.85
-    omega: float | None = None
-    horizon: int = 10
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D return series (demeaned internally to form residuals)."
+    )
+    alpha: float = Field(
+        default=0.1, description="ARCH coefficient (weight on the last squared shock)."
+    )
+    beta: float = Field(
+        default=0.85, description="GARCH coefficient (weight on the last variance)."
+    )
+    omega: float | None = Field(
+        default=None, description="Long-run variance constant; variance-targeted if None."
+    )
+    horizon: int = Field(default=10, description="Forecast horizon in periods.")
 
 
 class Garch11VolatilityForecastResponse(BaseModel):
@@ -1255,11 +1417,18 @@ class EgarchVolatilityModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    omega: float = -0.1
-    alpha: float = 0.1
-    gamma: float = -0.05
-    beta: float = 0.95
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D return series (demeaned internally)."
+    )
+    omega: float = Field(default=-0.1, description="Log-variance intercept.")
+    alpha: float = Field(default=0.1, description="Magnitude (|z|) coefficient.")
+    gamma: float = Field(
+        default=-0.05,
+        description="Leverage coefficient (negative => negative shocks raise vol more).",
+    )
+    beta: float = Field(
+        default=0.95, description="Log-variance persistence (|beta| < 1 for stationarity)."
+    )
 
 
 class EgarchVolatilityModelResponse(BaseModel):
@@ -1276,11 +1445,17 @@ class GjrGarchAsymmetricModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    alpha: float = 0.03
-    gamma: float = 0.08
-    beta: float = 0.88
-    omega: float | None = None
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D return series (demeaned internally)."
+    )
+    alpha: float = Field(default=0.03, description="Symmetric ARCH coefficient.")
+    gamma: float = Field(
+        default=0.08, description="Asymmetry coefficient applied to negative shocks."
+    )
+    beta: float = Field(default=0.88, description="GARCH persistence coefficient.")
+    omega: float | None = Field(
+        default=None, description="Variance intercept; variance-targeted if None."
+    )
 
 
 class GjrGarchAsymmetricModelResponse(BaseModel):
@@ -1299,8 +1474,12 @@ class RealisedVolatilityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    annualisation_factor: int = 252
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of returns over the measurement block."
+    )
+    annualisation_factor: int = Field(
+        default=252, description="Periods per year for annualisation (e.g. 252)."
+    )
 
 
 class RealisedVolatilityResponse(BaseModel):
@@ -1318,7 +1497,9 @@ class CorrelationMatrixHistoricalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="``(T, N)`` matrix of T observations on N assets."
+    )
 
 
 class CorrelationMatrixHistoricalResponse(BaseModel):
@@ -1336,9 +1517,11 @@ class DccGarchDynamicCorrelationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
-    a: float = 0.02
-    b: float = 0.95
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="``(T, N)`` matrix of T observations on N assets."
+    )
+    a: float = Field(default=0.02, description="DCC news coefficient.")
+    b: float = Field(default=0.95, description="DCC persistence coefficient (require a + b < 1).")
 
 
 class DccGarchDynamicCorrelationResponse(BaseModel):
@@ -1356,8 +1539,12 @@ class RiskFactorPcaDecompositionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns_matrix: list[float] | list[list[float]]
-    n_components: int | None = None
+    returns_matrix: list[float] | list[list[float]] = Field(
+        description="``(T, N)`` matrix of T observations on N risk factors."
+    )
+    n_components: int | None = Field(
+        default=None, description="Number of leading components to return (all if None)."
+    )
 
 
 class RiskFactorPcaDecompositionResponse(BaseModel):
@@ -1376,9 +1563,13 @@ class FrtbSaSensitivityBasedMethodRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bucket_weighted_sensitivities: list[list[float]]
-    intra_bucket_corr: float
-    inter_bucket_corr: float
+    bucket_weighted_sensitivities: list[list[float]] = Field(
+        description="Per-bucket lists of weighted sensitivities (risk weight already applied)."
+    )
+    intra_bucket_corr: float = Field(
+        description="Correlation ρ between sensitivities within a bucket."
+    )
+    inter_bucket_corr: float = Field(description="Correlation γ between bucket totals.")
 
 
 class FrtbSaSensitivityBasedMethodResponse(BaseModel):
@@ -1396,9 +1587,15 @@ class FrtbSaDefaultRiskChargeRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    jtd_long: list[float] | list[list[float]]
-    jtd_short: list[float] | list[list[float]]
-    risk_weights: list[float] | list[list[float]]
+    jtd_long: list[float] | list[list[float]] = Field(
+        description="Long jump-to-default exposure per issuer."
+    )
+    jtd_short: list[float] | list[list[float]] = Field(
+        description="Short jump-to-default exposure per issuer (positive numbers)."
+    )
+    risk_weights: list[float] | list[list[float]] = Field(
+        description="Default risk weight per issuer."
+    )
 
 
 class FrtbSaDefaultRiskChargeResponse(BaseModel):
@@ -1417,8 +1614,10 @@ class FrtbSaResidualRiskAddonRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notionals: list[float] | list[list[float]]
-    rrao_weights: list[float] | list[list[float]]
+    notionals: list[float] | list[list[float]] = Field(description="Gross notional per instrument.")
+    rrao_weights: list[float] | list[list[float]] = Field(
+        description="RRAO risk weight per instrument."
+    )
 
 
 class FrtbSaResidualRiskAddonResponse(BaseModel):
@@ -1435,8 +1634,12 @@ class FrtbImaExpectedShortfallRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    confidence_level: float = 0.975
+    returns: list[float] | list[list[float]] = Field(
+        description="1-D array of portfolio returns over the IMA observation set."
+    )
+    confidence_level: float = Field(
+        default=0.975, description="ES confidence; FRTB IMA uses 0.975."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1461,9 +1664,13 @@ class FrtbImaStressedPeriodFinderRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    window: int = 250
-    confidence_level: float = 0.975
+    returns: list[float] | list[list[float]] = Field(description="Full return history.")
+    window: int = Field(
+        default=250, description="Stress window length (FRTB standard 250 trading days)."
+    )
+    confidence_level: float = Field(
+        default=0.975, description="ES confidence used to rank windows (0.975)."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1488,8 +1695,10 @@ class FrtbImaNonModellableRiskFactorsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    individual_ses: list[float] | list[list[float]]
-    rho: float = 0.0
+    individual_ses: list[float] | list[list[float]] = Field(
+        description="Per-factor stressed capital add-ons (ISES)."
+    )
+    rho: float = Field(default=0.0, description="Prescribed correlation across NMRFs in [0, 1].")
 
 
 class FrtbImaNonModellableRiskFactorsResponse(BaseModel):
@@ -1506,9 +1715,9 @@ class FrtbImaAggregateCapitalChargeRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    imcc: float
-    ses: float
-    default_risk_charge: float = 0.0
+    imcc: float = Field(description="Internally-modelled capital charge (ES-based).")
+    ses: float = Field(description="Aggregate non-modellable risk factor capital (SES).")
+    default_risk_charge: float = Field(default=0.0, description="Default risk charge (DRC).")
 
 
 class FrtbImaAggregateCapitalChargeResponse(BaseModel):
@@ -1527,9 +1736,13 @@ class ExtremeValueTheoryVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    threshold_quantile: float = 0.95
-    confidence_level: float = 0.99
+    returns: list[float] | list[list[float]] = Field(description="1-D array of portfolio returns.")
+    threshold_quantile: float = Field(
+        default=0.95, description="Loss quantile defining the POT threshold (e.g. 0.95)."
+    )
+    confidence_level: float = Field(
+        default=0.99, description="VaR confidence in [0.90, 0.9999], above the threshold."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1556,8 +1769,10 @@ class SpectralRiskMeasureRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    risk_aversion: float = 25.0
+    returns: list[float] | list[list[float]] = Field(description="1-D array of portfolio returns.")
+    risk_aversion: float = Field(
+        default=25.0, description="Risk-aversion coefficient k > 0 (higher = more tail-weighted)."
+    )
 
 
 class SpectralRiskMeasureResponse(BaseModel):
@@ -1575,8 +1790,12 @@ class ComputeCvarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sorted_losses: list[float] | list[list[float]]
-    confidence_level: float
+    sorted_losses: list[float] | list[list[float]] = Field(
+        description="Portfolio losses sorted ascending (a loss is a positive number), so the largest losses are at the end."
+    )
+    confidence_level: float = Field(
+        description="Confidence level that sets where the tail starts, for example 0.99 (0.90 to 0.9999 at the API). The result is the mean of the losses from position floor(confidence_level x n) of the sorted array to its end."
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1599,8 +1818,13 @@ class ComputeLossPercentilesRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    sorted_losses: list[float] | list[list[float]]
-    percentiles: list[float] | None = None
+    sorted_losses: list[float] | list[list[float]] = Field(
+        description="Portfolio losses sorted ascending (a loss is a positive number)."
+    )
+    percentiles: list[float] | None = Field(
+        default=None,
+        description="Quantile levels between 0 and 1 to report. Defaults to 0.50, 0.75, 0.90, 0.95, 0.99 and 0.995.",
+    )
 
 
 class ComputeLossPercentilesResponse(BaseModel):
@@ -1616,9 +1840,17 @@ class ComputeRollingVarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    returns: list[float] | list[list[float]]
-    window: int = 250
-    confidence_level: float = 0.99
+    returns: list[float] | list[list[float]] = Field(
+        description="Periodic returns as decimals (a 1% fall is -0.01), oldest first."
+    )
+    window: int = Field(
+        default=250,
+        description="Number of most recent observations used to estimate the mean and volatility at each point. The first `window` entries of the result are NaN.",
+    )
+    confidence_level: float = Field(
+        default=0.99,
+        description="Confidence level of the Gaussian VaR, for example 0.99 (0.90 to 0.9999 at the API).",
+    )
 
     @field_validator("confidence_level")
     @classmethod
@@ -1641,8 +1873,12 @@ class ComputeBreachesRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    actual_returns: list[float] | list[list[float]]
-    var_estimates: list[float] | list[list[float]]
+    actual_returns: list[float] | list[list[float]] = Field(
+        description="Realised returns as decimals, aligned one to one with `var_estimates` (a loss is the negative of a return)."
+    )
+    var_estimates: list[float] | list[list[float]] = Field(
+        description="The VaR estimate for each day, as a positive loss fraction. Days where it is NaN are ignored, as the first `window` days of a rolling VaR are."
+    )
 
 
 class ComputeBreachesResponse(BaseModel):

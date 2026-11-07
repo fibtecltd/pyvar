@@ -18,13 +18,13 @@ class BlackScholesEuropeanOptionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised, >= 0).")
+    tau: float = Field(description="Time to maturity in years (>= 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class BlackScholesEuropeanOptionResponse(BaseModel):
@@ -42,13 +42,13 @@ class BlackScholesGreeksRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised, > 0).")
+    tau: float = Field(description="Time to maturity in years (> 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class BlackScholesGreeksResponse(BaseModel):
@@ -68,15 +68,15 @@ class BinomialTreeOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_steps: int = 500
-    option_type: str = "call"
-    style: str = "european"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised, > 0).")
+    tau: float = Field(description="Time to maturity in years (> 0).")
+    n_steps: int = Field(default=500, description="Number of binomial steps (>= 1).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    style: str = Field(default="european", description='``"european"`` or ``"american"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class BinomialTreeOptionPricerResponse(BaseModel):
@@ -94,15 +94,15 @@ class TrinomialTreeOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_steps: int = 300
-    option_type: str = "call"
-    style: str = "european"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised, > 0).")
+    tau: float = Field(description="Time to maturity in years (> 0).")
+    n_steps: int = Field(default=300, description="Number of tree steps (>= 1).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    style: str = Field(default="european", description='``"european"`` or ``"american"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class TrinomialTreeOptionPricerResponse(BaseModel):
@@ -120,15 +120,15 @@ class MonteCarloOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_simulations: int = 100000
-    option_type: str = "call"
-    div_yield: float = 0.0
-    seed: int = 12345
+    spot: float = Field(description="Underlying spot price.")
+    strike: float = Field(description="Strike price.")
+    rate: float = Field(description="Continuously-compounded risk-free rate.")
+    sigma: float = Field(description="Volatility (annualised, > 0).")
+    tau: float = Field(description="Time to maturity in years (> 0).")
+    n_simulations: int = Field(default=100000, description="Number of Monte Carlo paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(default=12345, description="RNG seed for determinism.")
 
 
 class MonteCarloOptionPricerResponse(BaseModel):
@@ -146,14 +146,14 @@ class DigitalOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    payout: float = 1.0
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    payout: float = Field(default=1.0, description="Cash payout if in the money.")
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class DigitalOptionPricerResponse(BaseModel):
@@ -170,16 +170,22 @@ class BarrierOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    barrier: float
-    rate: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    barrier_type: str = "down-and-out"
-    div_yield: float = 0.0
-    rebate: float = 0.0
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    barrier: float = Field(description="Barrier level.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    barrier_type: str = Field(
+        default="down-and-out",
+        description="One of ``down-and-out``, ``down-and-in``, ``up-and-out``, ``up-and-in``.",
+    )
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    rebate: float = Field(
+        default=0.0,
+        description="Cash amount paid if the option ends up worthless because of the barrier -- at expiry (no touch) for a knock-in, at the touch time for a knock-out. 0 (default) reproduces the no-rebate price.",
+    )
 
 
 class BarrierOptionPricerResponse(BaseModel):
@@ -196,19 +202,25 @@ class AsianOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_steps: int = 100
-    n_simulations: int = 100000
-    option_type: str = "call"
-    average_type: str = "arithmetic"
-    div_yield: float = 0.0
-    seed: int = 21
-    qmc: bool = False
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    n_steps: int = Field(default=100, description="Averaging observation count.")
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    average_type: str = Field(default="arithmetic", description='``"arithmetic"`` (only).')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(default=21, description="RNG seed.")
+    qmc: bool = Field(
+        default=False,
+        description="Use randomized quasi-Monte Carlo (scrambled Sobol replicates, see ``_price_by_qmc_replicates``) instead of plain MC for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected.",
+    )
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_asian_greeks_bump_reprice``) on the same pre-drawn normals used for the base price, so the bump noise cancels against the base run's noise instead of adding to it. Costs 8 extra reprices at the same n_simulations/n_steps. Not supported together with qmc=True. Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class AsianOptionPricerResponse(BaseModel):
@@ -230,19 +242,25 @@ class LookbackOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_steps: int = 100
-    n_simulations: int = 100000
-    option_type: str = "call"
-    strike_type: str = "floating"
-    div_yield: float = 0.0
-    seed: int = 31
-    qmc: bool = False
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike (fixed-strike only).")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    n_steps: int = Field(default=100, description="Monitoring frequency.")
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    strike_type: str = Field(default="floating", description='``"floating"`` or ``"fixed"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(default=31, description="RNG seed.")
+    qmc: bool = Field(
+        default=False,
+        description="Use randomized quasi-Monte Carlo (scrambled Sobol replicates, see ``_price_by_qmc_replicates``) instead of plain MC for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected.",
+    )
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. The path-average/extremum payoff here is smooth in spot (unlike the LSM products below), so this uses the same small bump sizes as asian_option_pricer. Not supported together with qmc=True. Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class LookbackOptionPricerResponse(BaseModel):
@@ -264,17 +282,20 @@ class AmericanOptionLsmRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    n_steps: int = 50
-    n_simulations: int = 100000
-    option_type: str = "put"
-    div_yield: float = 0.0
-    seed: int = 41
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    n_steps: int = Field(default=50, description="Exercise dates.")
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="put", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(default=41, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Uses a materially larger spot bump than the smooth-payoff products (see ``_LSM_GREEKS_BUMP_REL_SPOT`` for why) -- delta/gamma are therefore somewhat coarser here than for Asian/lookback, by construction, not oversight. Costs 8 extra LSM reprices (each as expensive as the base price -- this is the most expensive Greeks call in this module; consider a smaller n_simulations for greeks=True requests if used behind a request-latency budget). Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class AmericanOptionLsmResponse(BaseModel):
@@ -295,18 +316,23 @@ class BermudanOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    exercise_dates: int = 4
-    n_steps: int = 48
-    n_simulations: int = 100000
-    option_type: str = "put"
-    div_yield: float = 0.0
-    seed: int = 51
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    exercise_dates: int = Field(default=4, description="Number of allowed exercise dates (>= 1).")
+    n_steps: int = Field(
+        default=48, description="Total time-grid steps (multiple of exercise_dates ideally)."
+    )
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="put", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(default=51, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``). Same LSM regression-boundary caveat as american_option_lsm applies -- uses the same larger spot bump (``_LSM_GREEKS_BUMP_REL_SPOT``), verified empirically for this function too (see ``_bump_reprice_greeks``'s docstring). Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class BermudanOptionPricerResponse(BaseModel):
@@ -328,17 +354,22 @@ class RainbowOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spots: list[float] | list[list[float]]
-    strike: float
-    rate: float
-    sigmas: list[float] | list[list[float]]
-    tau: float
-    correlation: list[float] | list[list[float]]
-    n_simulations: int = 100000
-    option_type: str = "call"
-    rainbow_type: str = "best-of"
-    seed: int = 61
-    greeks: bool = False
+    spots: list[float] | list[list[float]] = Field(description="Initial prices per asset.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigmas: list[float] | list[list[float]] = Field(description="Volatility per asset.")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    correlation: list[float] | list[list[float]] = Field(
+        description="Asset correlation matrix (SPD)."
+    )
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    rainbow_type: str = Field(default="best-of", description='``"best-of"`` or ``"worst-of"``.')
+    seed: int = Field(default=61, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description="Also compute per-asset delta/gamma/vega and scalar theta/rho via bump-and-reprice (see ``_multi_asset_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Delta/ gamma/vega are diagonal only (each asset bumped independently; no cross-asset terms). Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class RainbowOptionPricerResponse(BaseModel):
@@ -364,17 +395,22 @@ class BasketOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spots: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]]
-    strike: float
-    rate: float
-    sigmas: list[float] | list[list[float]]
-    tau: float
-    correlation: list[float] | list[list[float]]
-    n_simulations: int = 100000
-    option_type: str = "call"
-    seed: int = 71
-    greeks: bool = False
+    spots: list[float] | list[list[float]] = Field(description="Initial prices per asset.")
+    weights: list[float] | list[list[float]] = Field(description="Basket weights per asset.")
+    strike: float = Field(description="Strike on the weighted basket.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigmas: list[float] | list[list[float]] = Field(description="Volatility per asset.")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    correlation: list[float] | list[list[float]] = Field(
+        description="Asset correlation matrix (SPD)."
+    )
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    seed: int = Field(default=71, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description="Also compute per-asset delta/gamma/vega and scalar theta/rho via bump-and-reprice (see ``_multi_asset_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Delta/ gamma/vega are diagonal only (each asset bumped independently; no cross-asset terms). Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class BasketOptionPricerResponse(BaseModel):
@@ -400,15 +436,15 @@ class SpreadOptionKirkApproximationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot1: float
-    spot2: float
-    strike: float
-    rate: float
-    sigma1: float
-    sigma2: float
-    rho: float
-    tau: float
-    option_type: str = "call"
+    spot1: float = Field(description="First-asset forward price.")
+    spot2: float = Field(description="Second-asset forward price.")
+    strike: float = Field(description="Spread strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma1: float = Field(description="Volatility of asset 1.")
+    sigma2: float = Field(description="Volatility of asset 2.")
+    rho: float = Field(description="Correlation in [-1, 1].")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
 
 
 class SpreadOptionKirkApproximationResponse(BaseModel):
@@ -424,18 +460,32 @@ class CompoundOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike_underlying: float
-    strike_compound: float
-    rate: float
-    sigma: float
-    tau_compound: float
-    tau_underlying: float
-    n_simulations: int = 200000
-    compound_type: str = "call-on-call"
-    div_yield: float = 0.0
-    seed: int = 81
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike_underlying: float = Field(description="Strike of the underlying option.")
+    strike_compound: float = Field(description="Strike of the compound option (premium paid).")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau_compound: float = Field(description="Time to the compound option expiry.")
+    tau_underlying: float = Field(
+        description="Time to the underlying option expiry (> tau_compound)."
+    )
+    n_simulations: int = Field(
+        default=200000,
+        description="Unused by the closed-form price; retained for backward-compatible call signatures (was the MC path count before this function switched from Monte Carlo to the exact Geske formula -- see ``_compound_option_pricer_mc`` for that retained reference implementation).",
+    )
+    compound_type: str = Field(
+        default="call-on-call",
+        description="``call-on-call``, ``call-on-put``, ``put-on-call``, ``put-on-put``.",
+    )
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
+    seed: int = Field(
+        default=81,
+        description="Unused by the closed-form price; retained for the same reason as ``n_simulations``.",
+    )
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice on the exact closed-form price (deterministic -- no Monte Carlo noise to correlate away). theta bumps ``tau_compound`` (the compound leg's own time to expiry) while holding ``tau_underlying`` fixed -- i.e. both the compound's remaining life and the underlying option's residual tenor from that later date shrink together, the usual \"time passing today\" interpretation. Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class CompoundOptionPricerResponse(BaseModel):
@@ -457,13 +507,13 @@ class ChooserOptionPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau_choose: float
-    tau_expiry: float
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Common strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Volatility (> 0).")
+    tau_choose: float = Field(description="Time to the choice date.")
+    tau_expiry: float = Field(description="Time to expiry (> tau_choose).")
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class ChooserOptionPricerResponse(BaseModel):
@@ -481,11 +531,13 @@ class BondPricerFixedCouponRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    coupon_rate: float
-    yield_rate: float
-    maturity: float
-    frequency: int = 2
+    face_value: float = Field(description="Redemption (par) value.")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    yield_rate: float = Field(
+        description="Annual yield to maturity (decimal, compounded ``frequency``)."
+    )
+    maturity: float = Field(description="Time to maturity in years.")
+    frequency: int = Field(default=2, description="Coupon payments per year.")
 
 
 class BondPricerFixedCouponResponse(BaseModel):
@@ -503,12 +555,18 @@ class BondPricerFloatingRateRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    reference_rates: list[float] | list[list[float]]
-    spread: float
-    discount_rates: list[float] | list[list[float]]
-    maturity: float
-    frequency: int = 4
+    face_value: float = Field(description="Redemption (par) value.")
+    reference_rates: list[float] | list[list[float]] = Field(
+        description="Projected forward index rate per period (decimal). Its length sets the number of coupon periods priced."
+    )
+    spread: float = Field(description="Quoted margin over the index (decimal).")
+    discount_rates: list[float] | list[list[float]] = Field(
+        description="Per-period zero discount rate (decimal, annualised)."
+    )
+    maturity: float = Field(
+        description="Time to maturity in years. Must equal ``len(reference_rates) / frequency`` (see note above)."
+    )
+    frequency: int = Field(default=4, description="Coupon payments per year.")
 
 
 class BondPricerFloatingRateResponse(BaseModel):
@@ -525,10 +583,10 @@ class ZeroCouponBondPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    yield_rate: float
-    maturity: float
-    frequency: int = 2
+    face_value: float = Field(description="Redemption (par) value.")
+    yield_rate: float = Field(description="Annual yield (decimal).")
+    maturity: float = Field(description="Time to maturity in years.")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class ZeroCouponBondPricerResponse(BaseModel):
@@ -545,12 +603,12 @@ class InflationLinkedBondPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    real_coupon_rate: float
-    real_yield: float
-    maturity: float
-    inflation_rate: float
-    frequency: int = 2
+    face_value: float = Field(description="Base (un-indexed) par value.")
+    real_coupon_rate: float = Field(description="Annual real coupon rate (decimal).")
+    real_yield: float = Field(description="Annual real yield (decimal).")
+    maturity: float = Field(description="Time to maturity in years.")
+    inflation_rate: float = Field(description="Assumed annual inflation (decimal).")
+    frequency: int = Field(default=2, description="Coupon payments per year.")
 
 
 class InflationLinkedBondPricerResponse(BaseModel):
@@ -568,13 +626,13 @@ class CallableBondPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    coupon_rate: float
-    short_rate: float
-    rate_vol: float
-    maturity: float
-    call_price: float
-    frequency: int = 1
+    face_value: float = Field(description="Par value.")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    short_rate: float = Field(description="Current short rate (continuous, annual).")
+    rate_vol: float = Field(description="Short-rate volatility.")
+    maturity: float = Field(description="Time to maturity in years.")
+    call_price: float = Field(description="Price at which the issuer may call (per face).")
+    frequency: int = Field(default=1, description="Coupon payments per year (tree steps per year).")
 
 
 class CallableBondPricerResponse(BaseModel):
@@ -591,13 +649,13 @@ class PuttableBondPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    coupon_rate: float
-    short_rate: float
-    rate_vol: float
-    maturity: float
-    put_price: float
-    frequency: int = 1
+    face_value: float = Field(description="Par value.")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    short_rate: float = Field(description="Current short rate (continuous, annual).")
+    rate_vol: float = Field(description="Short-rate volatility.")
+    maturity: float = Field(description="Time to maturity in years.")
+    put_price: float = Field(description="Price at which the holder may put (per face).")
+    frequency: int = Field(default=1, description="Coupon payments per year (tree steps per year).")
 
 
 class PuttableBondPricerResponse(BaseModel):
@@ -614,13 +672,13 @@ class ConvertibleBondPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    face_value: float
-    coupon_rate: float
-    yield_rate: float
-    maturity: float
-    conversion_ratio: float
-    stock_price: float
-    frequency: int = 2
+    face_value: float = Field(description="Par value.")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    yield_rate: float = Field(description="Straight-bond discount yield (decimal).")
+    maturity: float = Field(description="Time to maturity in years.")
+    conversion_ratio: float = Field(description="Shares received per bond on conversion.")
+    stock_price: float = Field(description="Current share price.")
+    frequency: int = Field(default=2, description="Coupon payments per year.")
 
 
 class ConvertibleBondPricerResponse(BaseModel):
@@ -638,10 +696,10 @@ class DurationMacaulayRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    yield_rate: float
-    frequency: int = 2
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    yield_rate: float = Field(description="Annual yield (decimal).")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class DurationMacaulayResponse(BaseModel):
@@ -658,10 +716,10 @@ class ModifiedDurationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    yield_rate: float
-    frequency: int = 2
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    yield_rate: float = Field(description="Annual yield (decimal).")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class ModifiedDurationResponse(BaseModel):
@@ -679,10 +737,10 @@ class EffectiveDurationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    price_base: float
-    price_up: float
-    price_down: float
-    yield_shock: float
+    price_base: float = Field(description="Price at the base yield.")
+    price_up: float = Field(description="Price after +``yield_shock``.")
+    price_down: float = Field(description="Price after −``yield_shock``.")
+    yield_shock: float = Field(description="Size of the parallel yield shock (decimal).")
 
 
 class EffectiveDurationResponse(BaseModel):
@@ -698,10 +756,10 @@ class ConvexityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    yield_rate: float
-    frequency: int = 2
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    yield_rate: float = Field(description="Annual yield (decimal).")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class ConvexityResponse(BaseModel):
@@ -718,10 +776,10 @@ class Dv01PvbpRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    yield_rate: float
-    frequency: int = 2
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    yield_rate: float = Field(description="Annual yield (decimal).")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class Dv01PvbpResponse(BaseModel):
@@ -738,10 +796,10 @@ class YieldToMaturityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    price: float
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    frequency: int = 2
+    price: float = Field(description="Observed dirty price.")
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class YieldToMaturityResponse(BaseModel):
@@ -757,12 +815,12 @@ class YieldToCallRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    price: float
-    face_value: float
-    coupon_rate: float
-    call_price: float
-    call_date: float
-    frequency: int = 2
+    price: float = Field(description="Observed dirty price.")
+    face_value: float = Field(description="Par value (for coupon sizing).")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    call_price: float = Field(description="Redemption price at the call date.")
+    call_date: float = Field(description="Time to the call date in years.")
+    frequency: int = Field(default=2, description="Coupon payments per year.")
 
 
 class YieldToCallResponse(BaseModel):
@@ -778,11 +836,13 @@ class ZSpreadCalculatorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    price: float
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    zero_rates: list[float] | list[list[float]]
-    frequency: int = 2
+    price: float = Field(description="Observed dirty price.")
+    cashflows: list[float] | list[list[float]] = Field(description="Cashflow amounts.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times in years.")
+    zero_rates: list[float] | list[list[float]] = Field(
+        description="Zero (spot) rate per cashflow (decimal, annualised)."
+    )
+    frequency: int = Field(default=2, description="Compounding frequency per year.")
 
 
 class ZSpreadCalculatorResponse(BaseModel):
@@ -799,13 +859,23 @@ class AssetSwapSpreadRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bond_price: float
-    cashflows: list[float] | list[list[float]]
-    times: list[float] | list[list[float]]
-    swap_rates: list[float] | list[list[float]]
-    face_value: float = 100.0
-    frequency: int = 2
-    use_market_price: bool = False
+    bond_price: float = Field(
+        description="Bond dirty price. Used as the reference price only when ``use_market_price=True``; otherwise accepted but ignored (the default preserves this function's original par-referenced behaviour)."
+    )
+    cashflows: list[float] | list[list[float]] = Field(description="Bond cashflows.")
+    times: list[float] | list[list[float]] = Field(description="Cashflow times (years).")
+    swap_rates: list[float] | list[list[float]] = Field(
+        description="Per-period swap zero rate (decimal)."
+    )
+    face_value: float = Field(
+        default=100.0,
+        description="Par value. Used as the reference price when ``use_market_price=False`` (the default).",
+    )
+    frequency: int = Field(default=2, description="Payment frequency per year.")
+    use_market_price: bool = Field(
+        default=False,
+        description="If True, use ``bond_price`` (the actual dirty price) as the reference price instead of ``face_value``. Default False preserves prior behaviour exactly.",
+    )
 
 
 class AssetSwapSpreadResponse(BaseModel):
@@ -822,14 +892,14 @@ class OasOptionAdjustedSpreadRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    market_price: float
-    face_value: float
-    coupon_rate: float
-    short_rate: float
-    rate_vol: float
-    maturity: float
-    call_price: float
-    frequency: int = 1
+    market_price: float = Field(description="Observed market price of the callable bond.")
+    face_value: float = Field(description="Par value.")
+    coupon_rate: float = Field(description="Annual coupon rate (decimal).")
+    short_rate: float = Field(description="Current short rate (continuous, annual).")
+    rate_vol: float = Field(description="Short-rate volatility.")
+    maturity: float = Field(description="Time to maturity in years.")
+    call_price: float = Field(description="Issuer call strike (per face).")
+    frequency: int = Field(default=1, description="Coupon payments / tree steps per year.")
 
 
 class OasOptionAdjustedSpreadResponse(BaseModel):
@@ -846,9 +916,13 @@ class NelsonSiegelCurveFitRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    maturities: list[float] | list[list[float]]
-    yields: list[float] | list[list[float]]
-    tau_init: float = 1.5
+    maturities: list[float] | list[list[float]] = Field(
+        description="Observed maturities in years (> 0)."
+    )
+    yields: list[float] | list[list[float]] = Field(
+        description="Observed yields (decimal) at those maturities."
+    )
+    tau_init: float = Field(default=1.5, description="Initial guess for the decay parameter.")
 
 
 class NelsonSiegelCurveFitResponse(BaseModel):
@@ -868,10 +942,12 @@ class NelsonSiegelSvenssonCurveRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    maturities: list[float] | list[list[float]]
-    yields: list[float] | list[list[float]]
-    tau1_init: float = 1.5
-    tau2_init: float = 8.0
+    maturities: list[float] | list[list[float]] = Field(
+        description="Observed maturities in years (> 0)."
+    )
+    yields: list[float] | list[list[float]] = Field(description="Observed yields (decimal).")
+    tau1_init: float = Field(default=1.5, description="Initial first decay parameter.")
+    tau2_init: float = Field(default=8.0, description="Initial second decay parameter.")
 
 
 class NelsonSiegelSvenssonCurveResponse(BaseModel):
@@ -893,10 +969,14 @@ class BootstrapYieldCurveRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    par_rates: list[float] | list[list[float]]
-    maturities: list[float] | list[list[float]]
-    frequency: int = 1
-    face_value: float = 1.0
+    par_rates: list[float] | list[list[float]] = Field(
+        description="Par coupon rate per maturity (decimal)."
+    )
+    maturities: list[float] | list[list[float]] = Field(
+        description="Maturities in years, ascending, evenly spaced by 1/freq."
+    )
+    frequency: int = Field(default=1, description="Coupon frequency per year.")
+    face_value: float = Field(default=1.0, description="Par value (defaults to 1).")
 
 
 class BootstrapYieldCurveResponse(BaseModel):
@@ -913,9 +993,13 @@ class SwapRateCurveRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    discount_factors: list[float] | list[list[float]]
-    maturities: list[float] | list[list[float]]
-    frequency: int = 1
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="Discount factor per maturity (descending in (0, 1])."
+    )
+    maturities: list[float] | list[list[float]] = Field(
+        description="Maturities in years, ascending."
+    )
+    frequency: int = Field(default=1, description="Fixed-leg payment frequency per year.")
 
 
 class SwapRateCurveResponse(BaseModel):
@@ -931,9 +1015,13 @@ class OisCurveSoniaSofrRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    ois_rates: list[float] | list[list[float]]
-    maturities: list[float] | list[list[float]]
-    frequency: int = 1
+    ois_rates: list[float] | list[list[float]] = Field(
+        description="Quoted OIS rate per maturity (decimal)."
+    )
+    maturities: list[float] | list[list[float]] = Field(
+        description="Maturities in years, ascending."
+    )
+    frequency: int = Field(default=1, description="Fixed-leg payment frequency per year.")
 
 
 class OisCurveSoniaSofrResponse(BaseModel):
@@ -950,12 +1038,12 @@ class ForwardRateAgreementFraRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    fra_rate: float
-    forward_rate: float
-    start: float
-    end: float
-    discount_factor: float
+    notional: float = Field(description="Contract notional.")
+    fra_rate: float = Field(description="Contracted (fixed) FRA rate (decimal).")
+    forward_rate: float = Field(description="Projected forward rate over [start, end] (decimal).")
+    start: float = Field(description="Accrual start in years.")
+    end: float = Field(description="Accrual end in years (> start).")
+    discount_factor: float = Field(description="Discount factor to the settlement (end) date.")
 
 
 class ForwardRateAgreementFraResponse(BaseModel):
@@ -972,12 +1060,18 @@ class InterestRateSwapIrsPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    fixed_rate: float
-    forward_rates: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    accruals: list[float] | list[list[float]]
-    pay_fixed: bool = True
+    notional: float = Field(description="Swap notional.")
+    fixed_rate: float = Field(description="Fixed-leg rate (decimal).")
+    forward_rates: list[float] | list[list[float]] = Field(
+        description="Projected float index rate per period (decimal)."
+    )
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="Discount factor per payment date."
+    )
+    accruals: list[float] | list[list[float]] = Field(description="Year-fraction per period.")
+    pay_fixed: bool = Field(
+        default=True, description="True for payer swap (long float), False for receiver."
+    )
 
 
 class InterestRateSwapIrsPricerResponse(BaseModel):
@@ -997,15 +1091,21 @@ class CrossCurrencySwapPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional_dom: float
-    notional_for: float
-    fixed_rate_dom: float
-    fixed_rate_for: float
-    df_dom: list[float] | list[list[float]]
-    df_for: list[float] | list[list[float]]
-    accruals: list[float] | list[list[float]]
-    fx_spot: float
-    pay_domestic: bool = True
+    notional_dom: float = Field(description="Domestic notional.")
+    notional_for: float = Field(description="Foreign notional.")
+    fixed_rate_dom: float = Field(description="Domestic fixed rate (decimal).")
+    fixed_rate_for: float = Field(description="Foreign fixed rate (decimal).")
+    df_dom: list[float] | list[list[float]] = Field(
+        description="Domestic discount factors per payment date."
+    )
+    df_for: list[float] | list[list[float]] = Field(
+        description="Foreign discount factors per payment date."
+    )
+    accruals: list[float] | list[list[float]] = Field(
+        description="Year-fraction per period (shared schedule)."
+    )
+    fx_spot: float = Field(description="Spot FX (domestic per 1 unit foreign).")
+    pay_domestic: bool = Field(default=True, description="Direction flag.")
 
 
 class CrossCurrencySwapPricerResponse(BaseModel):
@@ -1023,12 +1123,14 @@ class OvernightIndexSwapOisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    fixed_rate: float
-    compounded_rate: float
-    accrual: float
-    discount_factor: float
-    pay_fixed: bool = True
+    notional: float = Field(description="Swap notional.")
+    fixed_rate: float = Field(description="Fixed OIS rate (decimal).")
+    compounded_rate: float = Field(
+        description="Realised/projected compounded overnight rate (decimal)."
+    )
+    accrual: float = Field(description="Year-fraction of the period.")
+    discount_factor: float = Field(description="Discount factor to payment.")
+    pay_fixed: bool = Field(default=True, description="True if paying fixed (receiving floating).")
 
 
 class OvernightIndexSwapOisResponse(BaseModel):
@@ -1044,12 +1146,12 @@ class TotalReturnSwapTrsRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    asset_return: float
-    financing_rate: float
-    accrual: float
-    discount_factor: float
-    receive_total_return: bool = True
+    notional: float = Field(description="Reference notional.")
+    asset_return: float = Field(description="Period total return of the reference asset (decimal).")
+    financing_rate: float = Field(description="Financing rate (decimal, annual).")
+    accrual: float = Field(description="Year-fraction.")
+    discount_factor: float = Field(description="Discount factor to payment.")
+    receive_total_return: bool = Field(default=True, description="Direction flag.")
 
 
 class TotalReturnSwapTrsResponse(BaseModel):
@@ -1065,13 +1167,13 @@ class CreditDefaultSwapCdsPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    spread: float
-    hazard_rate: float
-    recovery_rate: float
-    maturity: float
-    discount_rate: float
-    frequency: int = 4
+    notional: float = Field(description="CDS notional.")
+    spread: float = Field(description="Contractual spread (decimal, annual).")
+    hazard_rate: float = Field(description="Constant hazard rate λ (decimal).")
+    recovery_rate: float = Field(description="Recovery rate R in [0, 1).")
+    maturity: float = Field(description="CDS maturity in years.")
+    discount_rate: float = Field(description="Flat continuous discount rate.")
+    frequency: int = Field(default=4, description="Premium payment frequency per year.")
 
 
 class CreditDefaultSwapCdsPricerResponse(BaseModel):
@@ -1090,12 +1192,12 @@ class EquitySwapPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    equity_return: float
-    funding_rate: float
-    accrual: float
-    discount_factor: float
-    receive_equity: bool = True
+    notional: float = Field(description="Reference notional.")
+    equity_return: float = Field(description="Period equity total return (decimal).")
+    funding_rate: float = Field(description="Funding rate (decimal, annual).")
+    accrual: float = Field(description="Year-fraction.")
+    discount_factor: float = Field(description="Discount factor to payment.")
+    receive_equity: bool = Field(default=True, description="Direction flag.")
 
 
 class EquitySwapPricerResponse(BaseModel):
@@ -1111,14 +1213,14 @@ class CapletFloorletPricerBlackRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    forward_rate: float
-    strike: float
-    vol: float
-    expiry: float
-    accrual: float
-    discount_factor: float
-    option_type: str = "caplet"
+    notional: float = Field(description="Notional.")
+    forward_rate: float = Field(description="Forward LIBOR/index rate (decimal).")
+    strike: float = Field(description="Cap/floor strike (decimal).")
+    vol: float = Field(description="Black volatility of the forward rate.")
+    expiry: float = Field(description="Time to caplet fixing (years).")
+    accrual: float = Field(description="Year-fraction of the accrual period.")
+    discount_factor: float = Field(description="Discount factor to payment.")
+    option_type: str = Field(default="caplet", description='``"caplet"`` or ``"floorlet"``.')
 
 
 class CapletFloorletPricerBlackResponse(BaseModel):
@@ -1134,14 +1236,18 @@ class CapFloorPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    forward_rates: list[float] | list[list[float]]
-    strike: float
-    vols: list[float] | list[list[float]]
-    expiries: list[float] | list[list[float]]
-    accruals: list[float] | list[list[float]]
-    discount_factors: list[float] | list[list[float]]
-    option_type: str = "cap"
+    notional: float = Field(description="Notional.")
+    forward_rates: list[float] | list[list[float]] = Field(
+        description="Forward rate per caplet period."
+    )
+    strike: float = Field(description="Common strike (decimal).")
+    vols: list[float] | list[list[float]] = Field(description="Black vol per caplet.")
+    expiries: list[float] | list[list[float]] = Field(description="Fixing time per caplet (years).")
+    accruals: list[float] | list[list[float]] = Field(description="Year-fraction per period.")
+    discount_factors: list[float] | list[list[float]] = Field(
+        description="Discount factor per payment date."
+    )
+    option_type: str = Field(default="cap", description='``"cap"`` or ``"floor"``.')
 
 
 class CapFloorPricerResponse(BaseModel):
@@ -1158,13 +1264,13 @@ class SwaptionPricerBlackRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    forward_swap_rate: float
-    strike: float
-    vol: float
-    expiry: float
-    annuity: float
-    option_type: str = "payer"
+    notional: float = Field(description="Swap notional.")
+    forward_swap_rate: float = Field(description="Forward par swap rate (decimal).")
+    strike: float = Field(description="Strike swap rate (decimal).")
+    vol: float = Field(description="Black volatility of the swap rate.")
+    expiry: float = Field(description="Time to swaption expiry (years).")
+    annuity: float = Field(description="PV of a 1-unit fixed annuity (level / PVBP).")
+    option_type: str = Field(default="payer", description='``"payer"`` or ``"receiver"``.')
 
 
 class SwaptionPricerBlackResponse(BaseModel):
@@ -1180,16 +1286,16 @@ class SwaptionPricerSabrRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    forward_swap_rate: float
-    strike: float
-    expiry: float
-    annuity: float
-    alpha: float
-    beta: float
-    rho: float
-    nu: float
-    option_type: str = "payer"
+    notional: float = Field(description="Swap notional.")
+    forward_swap_rate: float = Field(description="Forward par swap rate (decimal).")
+    strike: float = Field(description="Strike swap rate (decimal).")
+    expiry: float = Field(description="Time to expiry (years).")
+    annuity: float = Field(description="PV of a 1-unit fixed annuity.")
+    alpha: float = Field(description="SABR initial vol level.")
+    beta: float = Field(description="SABR CEV exponent in [0, 1].")
+    rho: float = Field(description="SABR correlation.")
+    nu: float = Field(description="SABR vol-of-vol.")
+    option_type: str = Field(default="payer", description='``"payer"`` or ``"receiver"``.')
 
 
 class SwaptionPricerSabrResponse(BaseModel):
@@ -1206,14 +1312,14 @@ class VasicekInterestRateModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    r0: float
-    kappa: float
-    theta: float
-    sigma: float
-    maturity: float
-    n_steps: int = 100
-    n_simulations: int = 50000
-    seed: int = 101
+    r0: float = Field(description="Initial short rate.")
+    kappa: float = Field(description="Mean-reversion speed (> 0).")
+    theta: float = Field(description="Long-run mean.")
+    sigma: float = Field(description="Volatility (> 0).")
+    maturity: float = Field(description="Bond maturity in years (> 0).")
+    n_steps: int = Field(default=100, description="MC time steps.")
+    n_simulations: int = Field(default=50000, description="MC paths.")
+    seed: int = Field(default=101, description="RNG seed.")
 
 
 class VasicekInterestRateModelResponse(BaseModel):
@@ -1232,14 +1338,17 @@ class CoxIngersollRossModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    r0: float
-    kappa: float
-    theta: float
-    sigma: float
-    maturity: float
-    n_steps: int = 100
-    n_simulations: int = 50000
-    seed: int = 102
+    r0: float = Field(description="Initial short rate (>= 0).")
+    kappa: float = Field(description="Mean-reversion speed (> 0).")
+    theta: float = Field(description="Long-run mean (> 0).")
+    sigma: float = Field(description="Volatility (> 0).")
+    maturity: float = Field(description="Bond maturity in years (> 0).")
+    n_steps: int = Field(
+        default=100,
+        description="MC time steps (exact scheme -- affects only path granularity, not terminal-distribution accuracy).",
+    )
+    n_simulations: int = Field(default=50000, description="MC paths.")
+    seed: int = Field(default=102, description="RNG seed.")
 
 
 class CoxIngersollRossModelResponse(BaseModel):
@@ -1257,14 +1366,14 @@ class HullWhiteShortRateModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    r0: float
-    kappa: float
-    sigma: float
-    maturity: float
-    theta_const: float = 0.03
-    n_steps: int = 100
-    n_simulations: int = 50000
-    seed: int = 103
+    r0: float = Field(description="Initial short rate.")
+    kappa: float = Field(description="Mean-reversion speed (> 0).")
+    sigma: float = Field(description="Volatility (> 0).")
+    maturity: float = Field(description="Bond maturity (years, > 0).")
+    theta_const: float = Field(default=0.03, description="Constant mean-reversion level.")
+    n_steps: int = Field(default=100, description="MC time steps.")
+    n_simulations: int = Field(default=50000, description="MC paths.")
+    seed: int = Field(default=103, description="RNG seed.")
 
 
 class HullWhiteShortRateModelResponse(BaseModel):
@@ -1281,13 +1390,15 @@ class LmmBgmRateModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    forward_rates: list[float] | list[list[float]]
-    vols: list[float] | list[list[float]]
-    tenor: float
-    horizon: float
-    n_steps: int = 20
-    n_simulations: int = 20000
-    seed: int = 104
+    forward_rates: list[float] | list[list[float]] = Field(
+        description="Initial forward rates per tenor (decimal, > 0)."
+    )
+    vols: list[float] | list[list[float]] = Field(description="Lognormal vol per forward rate.")
+    tenor: float = Field(description="Accrual length of each forward (years).")
+    horizon: float = Field(description="Simulation horizon (years, > 0).")
+    n_steps: int = Field(default=20, description="Time steps to the horizon.")
+    n_simulations: int = Field(default=20000, description="Number of paths.")
+    seed: int = Field(default=104, description="RNG seed.")
 
 
 class LmmBgmRateModelResponse(BaseModel):
@@ -1304,16 +1415,16 @@ class HestonStochasticVolatilityModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    tau: float
-    v0: float
-    kappa: float
-    theta: float
-    sigma: float
-    rho: float
-    option_type: str = "call"
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    v0: float = Field(description="Initial variance.")
+    kappa: float = Field(description="Mean-reversion speed of variance.")
+    theta: float = Field(description="Long-run variance.")
+    sigma: float = Field(description="Volatility of variance (vol-of-vol).")
+    rho: float = Field(description="Spot/variance correlation in [-1, 1].")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
 
 
 class HestonStochasticVolatilityModelResponse(BaseModel):
@@ -1331,13 +1442,13 @@ class SabrVolatilityModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    forward: float
-    strike: float
-    tau: float
-    alpha: float
-    beta: float
-    rho: float
-    nu: float
+    forward: float = Field(description="Forward price/rate.")
+    strike: float = Field(description="Strike.")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    alpha: float = Field(description="Initial volatility level (> 0).")
+    beta: float = Field(description="CEV exponent in [0, 1].")
+    rho: float = Field(description="Correlation in [-1, 1].")
+    nu: float = Field(description="Vol-of-vol (>= 0).")
 
 
 class SabrVolatilityModelResponse(BaseModel):
@@ -1353,11 +1464,15 @@ class LocalVolatilityDupireModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    strikes: list[float] | list[list[float]]
-    maturities: list[float] | list[list[float]]
-    call_surface: list[float] | list[list[float]]
-    rate: float
-    spot: float
+    strikes: list[float] | list[list[float]] = Field(description="1-D ascending strike grid.")
+    maturities: list[float] | list[list[float]] = Field(
+        description="1-D ascending maturity grid (years)."
+    )
+    call_surface: list[float] | list[list[float]] = Field(
+        description="``(len(maturities), len(strikes))`` call prices."
+    )
+    rate: float = Field(description="Risk-free rate (continuous).")
+    spot: float = Field(description="Underlying spot (validation only; not used in the formula).")
 
 
 class LocalVolatilityDupireModelResponse(BaseModel):
@@ -1375,20 +1490,26 @@ class RoughVolatilityRbergomiModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    tau: float
-    xi: float = 0.04
-    eta: float = 1.5
-    hurst: float = 0.1
-    rho: float = -0.7
-    n_steps: int = 50
-    n_simulations: int = 50000
-    option_type: str = "call"
-    seed: int = 2024
-    control_variate: bool = False
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    xi: float = Field(default=0.04, description="Forward variance level.")
+    eta: float = Field(default=1.5, description="Vol-of-vol parameter.")
+    hurst: float = Field(default=0.1, description="Hurst exponent in (0, 0.5).")
+    rho: float = Field(default=-0.7, description="Spot/vol correlation in [-1, 1].")
+    n_steps: int = Field(default=50, description="Time-discretisation steps.")
+    n_simulations: int = Field(default=50000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    seed: int = Field(default=2024, description="RNG seed.")
+    control_variate: bool = Field(
+        default=False,
+        description="Use a Heston-companion control variate (task #15 Phase 3) for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected. A companion Heston path is simulated on the SAME pre-drawn z_v/z_s normals (that shared randomness is what makes it correlated with the rBergomi payoff -- an independently-drawn Heston path would be a useless control). The companion uses v0=theta=xi, sigma=eta, the same rho, and an internally-fixed kappa (see ``_HESTON_CV_KAPPA``) chosen purely to maximise that correlation -- rBergomi has no mean-reversion-speed parameter of its own, so there's no \"natural\" kappa to inherit. The companion's known EXACT price comes from the existing semi-analytic heston_stochastic_volatility_model; the optimal control-variate coefficient beta is estimated from the sample covariance/variance of the two payoff series (standard practice, not a fixed beta=1 subtraction). Verified empirically across two parameter regimes (this model's defaults, and a second regime with different strike/ tau/xi/eta/hurst/rho) that this gives a real ~2x-6x variance reduction with no measurable bias -- weaker than Phase 2's QMC result on the exotic-option kernels, but genuine, because rBergomi's actual rough-volatility dynamics are structurally quite different from Heston's Markovian CIR process (that structural gap is exactly why the correlation -- and therefore the achievable variance reduction -- isn't larger).",
+    )
+    greeks: bool = Field(
+        default=False,
+        description='Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn z_v/z_s used for the base price. "vega" here is sensitivity to ``xi`` (the forward-variance level, this model\'s primary volatility parameter) -- NOT to ``eta`` (vol-of-vol) or ``hurst``, which are structural parameters outside the standard 5-Greek scope and are held fixed. The Greek "rho" (sensitivity to the risk-free rate) is unrelated to this model\'s own ``rho`` parameter (spot/vol correlation, also held fixed) -- an unfortunate but standard name collision, not a bug. Not supported together with control_variate=True (the control-variate coefficient and the analytic Heston reference price would both need re-deriving at every bumped scenario; deferred rather than done partially). Defaults to False so existing callers/results are unaffected.',
+    )
 
 
 class RoughVolatilityRbergomiModelResponse(BaseModel):
@@ -1414,17 +1535,23 @@ class VarianceGammaModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    tau: float
-    sigma: float = 0.2
-    theta: float = -0.1
-    nu: float = 0.2
-    n_simulations: int = 100000
-    option_type: str = "call"
-    seed: int = 7
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    sigma: float = Field(default=0.2, description="Diffusion volatility.")
+    theta: float = Field(
+        default=-0.1,
+        description="Drift of the subordinated Brownian motion (skew). NOT the Greek theta (time decay) -- an unfortunate name collision with this model's own parameter; see ``greeks`` below.",
+    )
+    nu: float = Field(default=0.2, description="Variance rate of the Gamma subordinator (> 0).")
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    seed: int = Field(default=7, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description="Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_levy_bump_reprice_greeks``). \"vega\" here is sensitivity to ``sigma`` (the diffusion volatility, this model's direct Black-Scholes-like vol parameter). The Greek \"theta\" (time decay, in the output dict) is unrelated to this function's own ``theta`` parameter (skew) above, which stays fixed. delta/vega/rho reuse the base run's Gamma subordinator directly (spot/sigma/rate bumps don't change its shape parameter). theta (the Greek) needs a subordinator at ``tau +/- d_tau``, and the Gamma subordinator's shape parameter IS ``tau/nu`` -- so it can't just reuse the base draw the way GBM-based normals can under a tau bump. Verified empirically that independently redrawing it at each bumped tau gives ~65x more seed-to-seed noise in theta than the alternative shipped here: drawing ONE shared uniform array and mapping it through the Gamma inverse-CDF at ``(tau+d_tau)/nu`` and ``(tau-d_tau)/nu`` respectively, which keeps the two bumped subordinators tightly (positively) correlated with each other the same way common random numbers correlate every other Greek in this codebase. Defaults to False so existing callers/results are unaffected.",
+    )
 
 
 class VarianceGammaModelResponse(BaseModel):
@@ -1451,17 +1578,23 @@ class NormalInverseGaussianModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    tau: float
-    alpha: float = 15.0
-    beta: float = -5.0
-    delta: float = 0.5
-    n_simulations: int = 100000
-    option_type: str = "call"
-    seed: int = 11
-    greeks: bool = False
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    alpha: float = Field(default=15.0, description="Tail heaviness (> |beta|).")
+    beta: float = Field(default=-5.0, description="Skewness parameter.")
+    delta: float = Field(
+        default=0.5,
+        description="Scale (> 0). NOT the Greek delta (spot sensitivity) -- an unfortunate name collision with this model's own parameter; see ``greeks`` below.",
+    )
+    n_simulations: int = Field(default=100000, description="Number of paths.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    seed: int = Field(default=11, description="RNG seed.")
+    greeks: bool = Field(
+        default=False,
+        description='Also compute Greek-delta/gamma/vega/theta/rho via bump-and-reprice (see ``_levy_bump_reprice_greeks``). "vega" here is sensitivity to this function\'s ``delta`` PARAMETER (the IG subordinator\'s scale, this model\'s closest analogue to a volatility level) -- not to ``alpha`` or ``beta``, which are held fixed. The output dict\'s ``"delta"`` key is the Greek (spot sensitivity); it is unrelated to the ``delta`` parameter above despite the shared name. Greek-delta/rho reuse the base run\'s IG subordinator directly (spot/rate bumps don\'t touch it). Both "vega" (bumping the ``delta`` parameter) and the Greek "theta" (bumping tau) DO change the subordinator\'s (mu, lambda), so each draws its own shared ``(normal, uniform)`` pair once and maps it through the IG inverse-transform (``_ig_from_randoms``) at the +/- bumped (mu, lambda) -- the same common-random-numbers technique variance_gamma_model uses for its own tau-dependent Gamma subordinator, verified there to cut seed-to-seed noise by ~65x vs. an independent redraw at each bumped value. Defaults to False so existing callers/results are unaffected.',
+    )
 
 
 class NormalInverseGaussianModelResponse(BaseModel):
@@ -1489,14 +1622,14 @@ class DisplacedDiffusionModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate: float
-    sigma: float
-    tau: float
-    displacement: float
-    option_type: str = "call"
-    div_yield: float = 0.0
+    spot: float = Field(description="Underlying spot.")
+    strike: float = Field(description="Strike.")
+    rate: float = Field(description="Risk-free rate (continuous).")
+    sigma: float = Field(description="Lognormal volatility of the displaced process.")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    displacement: float = Field(description="Shift ``a`` applied to spot and strike.")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    div_yield: float = Field(default=0.0, description="Continuous dividend yield.")
 
 
 class DisplacedDiffusionModelResponse(BaseModel):
@@ -1512,12 +1645,14 @@ class FxForwardPricerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    rate_domestic: float
-    rate_foreign: float
-    tau: float
-    notional: float = 1.0
-    contracted_forward: float | None = None
+    spot: float = Field(description="Spot FX (domestic per 1 foreign).")
+    rate_domestic: float = Field(description="Domestic continuous rate.")
+    rate_foreign: float = Field(description="Foreign continuous rate.")
+    tau: float = Field(description="Time to delivery (years, > 0).")
+    notional: float = Field(default=1.0, description="Foreign-currency notional.")
+    contracted_forward: float | None = Field(
+        default=None, description="Optional contracted forward rate for MtM."
+    )
 
 
 class FxForwardPricerResponse(BaseModel):
@@ -1533,14 +1668,14 @@ class FxOptionPricerGarmanKohlhagenRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    spot: float
-    strike: float
-    rate_domestic: float
-    rate_foreign: float
-    sigma: float
-    tau: float
-    option_type: str = "call"
-    notional: float = 1.0
+    spot: float = Field(description="Spot FX (domestic per 1 foreign).")
+    strike: float = Field(description="Strike FX.")
+    rate_domestic: float = Field(description="Domestic continuous rate.")
+    rate_foreign: float = Field(description="Foreign continuous rate.")
+    sigma: float = Field(description="FX volatility (> 0).")
+    tau: float = Field(description="Time to maturity (years, > 0).")
+    option_type: str = Field(default="call", description='``"call"`` or ``"put"``.')
+    notional: float = Field(default=1.0, description="Foreign-currency notional.")
 
 
 class FxOptionPricerGarmanKohlhagenResponse(BaseModel):

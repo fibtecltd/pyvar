@@ -9,6 +9,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Every request parameter now has a description** — none of the 1,577 parameters of the 385
+  endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
+  parameter tables, although the engine documents each argument in its `Args:` docstring section.
+  `scripts/add_param_descriptions.py` put that text on the request models as
+  `Field(description=...)` (a codemod that rewrites only the field lines, so the hand edits in
+  `schemas/*.py` survive; `scripts/gen_p3.py` now does the same for newly generated models). The
+  change is description-only: the live OpenAPI document was diffed before and after and differs
+  only by the added `description` keys, so the API accepts exactly what it accepted before. The
+  Try-it panel shows the description under each field (escaped, and tied to the input with
+  `aria-describedby`); the catalogue, the eight domain skills and the eight domain plugins were
+  regenerated (plugin versions bumped). The engine docstring stays the single source of truth;
+  `tests/test_parameter_descriptions.py` fails if a model, the catalogue or a new endpoint drifts
+  from it. `engine/metrics.py` gained the four missing `Args:` sections (docstring only).
+  Not changed: `LiquidityGapAnalysisRequest` still does not expose the engine's
+  `opening_balance` argument (listed in the test as a known gap), and parameters still carry no
+  numeric bounds.
+
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
   `Authorization` header and URLs are logged (the API log, CloudFront), so until now the stream

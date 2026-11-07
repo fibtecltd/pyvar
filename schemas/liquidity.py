@@ -18,10 +18,12 @@ class LiquidityCoverageRatioLcrRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    hqla: float
-    gross_outflows: float
-    gross_inflows: float
-    inflow_cap: float = 0.75
+    hqla: float = Field(description="Stock of high-quality liquid assets (post-haircut).")
+    gross_outflows: float = Field(description="Total expected 30-day stressed cash outflows.")
+    gross_inflows: float = Field(description="Total expected 30-day contractual cash inflows.")
+    inflow_cap: float = Field(
+        default=0.75, description="Maximum fraction of gross outflows that inflows may offset."
+    )
 
 
 class LiquidityCoverageRatioLcrResponse(BaseModel):
@@ -41,8 +43,12 @@ class AvailableStableFundingAsfCalcRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    funding_amounts: list[float] | list[list[float]]
-    asf_factors: list[float] | list[list[float]]
+    funding_amounts: list[float] | list[list[float]] = Field(
+        description="Carrying amounts of each funding source."
+    )
+    asf_factors: list[float] | list[list[float]] = Field(
+        description="ASF factor for each source, each in [0, 1]."
+    )
 
 
 class AvailableStableFundingAsfCalcResponse(BaseModel):
@@ -59,8 +65,12 @@ class RequiredStableFundingRsfCalcRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_amounts: list[float] | list[list[float]]
-    rsf_factors: list[float] | list[list[float]]
+    asset_amounts: list[float] | list[list[float]] = Field(
+        description="Carrying amounts of each asset / off-balance item."
+    )
+    rsf_factors: list[float] | list[list[float]] = Field(
+        description="RSF factor for each asset, each in [0, 1]."
+    )
 
 
 class RequiredStableFundingRsfCalcResponse(BaseModel):
@@ -77,8 +87,12 @@ class NetStableFundingRatioNsfrRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    available_stable_funding: float
-    required_stable_funding: float
+    available_stable_funding: float = Field(
+        description="Total ASF (see :func:`available_stable_funding_asf_calc`)."
+    )
+    required_stable_funding: float = Field(
+        description="Total RSF (see :func:`required_stable_funding_rsf_calc`)."
+    )
 
 
 class NetStableFundingRatioNsfrResponse(BaseModel):
@@ -97,8 +111,12 @@ class HqlaLevel1AssetClassifierRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_values: list[float] | list[list[float]]
-    haircuts: list[float] | list[list[float]] | None = None
+    asset_values: list[float] | list[list[float]] = Field(
+        description="Market values of candidate Level 1 assets."
+    )
+    haircuts: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional per-asset haircuts in [0, 1]; defaults to all zeros."
+    )
 
 
 class HqlaLevel1AssetClassifierResponse(BaseModel):
@@ -116,8 +134,10 @@ class HqlaLevel2aAssetClassifierRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_values: list[float] | list[list[float]]
-    haircut: float = 0.15
+    asset_values: list[float] | list[list[float]] = Field(
+        description="Market values of candidate Level 2A assets."
+    )
+    haircut: float = Field(default=0.15, description="Supervisory haircut (minimum 15%).")
 
 
 class HqlaLevel2aAssetClassifierResponse(BaseModel):
@@ -136,8 +156,10 @@ class HqlaLevel2bAssetClassifierRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_values: list[float] | list[list[float]]
-    haircut: float = 0.25
+    asset_values: list[float] | list[list[float]] = Field(
+        description="Market values of candidate Level 2B assets."
+    )
+    haircut: float = Field(default=0.25, description="Supervisory haircut (minimum 25%).")
 
 
 class HqlaLevel2bAssetClassifierResponse(BaseModel):
@@ -156,9 +178,15 @@ class CashFlowLadder30DayRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    daily_inflows: list[float] | list[list[float]]
-    daily_outflows: list[float] | list[list[float]]
-    opening_balance: float = 0.0
+    daily_inflows: list[float] | list[list[float]] = Field(
+        description="Length-30 array of daily contractual inflows."
+    )
+    daily_outflows: list[float] | list[list[float]] = Field(
+        description="Length-30 array of daily contractual outflows."
+    )
+    opening_balance: float = Field(
+        default=0.0, description="Starting cash / HQLA balance at day 0."
+    )
 
 
 class CashFlowLadder30DayResponse(BaseModel):
@@ -178,10 +206,18 @@ class CashFlowLadder1YearRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bucket_inflows: list[float] | list[list[float]]
-    bucket_outflows: list[float] | list[list[float]]
-    opening_balance: float = 0.0
-    buckets: list[str] | None = None
+    bucket_inflows: list[float] | list[list[float]] = Field(
+        description="Inflow per maturity bucket (one entry per bucket)."
+    )
+    bucket_outflows: list[float] | list[list[float]] = Field(
+        description="Outflow per maturity bucket."
+    )
+    opening_balance: float = Field(
+        default=0.0, description="Starting balance carried into the first bucket."
+    )
+    buckets: list[str] | None = Field(
+        default=None, description="Optional bucket labels; defaults to the standard 8-bucket set."
+    )
 
 
 class CashFlowLadder1YearResponse(BaseModel):
@@ -200,9 +236,15 @@ class LiquidityGapAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_maturities: list[float] | list[list[float]]
-    liability_maturities: list[float] | list[list[float]]
-    buckets: list[str] | None = None
+    asset_maturities: list[float] | list[list[float]] = Field(
+        description="Asset cash inflows maturing in each bucket."
+    )
+    liability_maturities: list[float] | list[list[float]] = Field(
+        description="Liability cash outflows maturing in each bucket."
+    )
+    buckets: list[str] | None = Field(
+        default=None, description="Optional bucket labels; defaults to the standard 8-bucket set."
+    )
 
 
 class LiquidityGapAnalysisResponse(BaseModel):
@@ -221,8 +263,12 @@ class FundingTenorAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    funding_amounts: list[float] | list[list[float]]
-    tenors_days: list[float] | list[list[float]]
+    funding_amounts: list[float] | list[list[float]] = Field(
+        description="Outstanding amount of each funding tranche."
+    )
+    tenors_days: list[float] | list[list[float]] = Field(
+        description="Residual tenor in days for each tranche."
+    )
 
 
 class FundingTenorAnalysisResponse(BaseModel):
@@ -240,10 +286,16 @@ class LiquidityStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    balances: list[float] | list[list[float]]
-    runoff_rates: list[float] | list[list[float]]
-    hqla: float
-    inflows: float = 0.0
+    balances: list[float] | list[list[float]] = Field(
+        description="Outstanding balance of each funding category."
+    )
+    runoff_rates: list[float] | list[list[float]] = Field(
+        description="Stressed run-off rate per category, each in [0, 1]."
+    )
+    hqla: float = Field(description="Available high-quality liquid assets (post-haircut).")
+    inflows: float = Field(
+        default=0.0, description="Stressed contractual inflows over the horizon."
+    )
 
 
 class LiquidityStressScenarioResponse(BaseModel):
@@ -262,11 +314,13 @@ class IdiosyncraticStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    retail_deposits: float
-    wholesale_funding: float
-    hqla: float
-    retail_runoff: float = 0.1
-    wholesale_runoff: float = 1.0
+    retail_deposits: float = Field(description="Retail deposit balance.")
+    wholesale_funding: float = Field(description="Wholesale funding balance.")
+    hqla: float = Field(description="Available HQLA.")
+    retail_runoff: float = Field(default=0.1, description="Retail run-off rate (default 10%).")
+    wholesale_runoff: float = Field(
+        default=1.0, description="Wholesale run-off rate (default 100%)."
+    )
 
 
 class IdiosyncraticStressScenarioResponse(BaseModel):
@@ -285,9 +339,13 @@ class MarketWideStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    hqla_by_level: list[float] | list[list[float]]
-    market_haircuts: list[float] | list[list[float]]
-    outflow: float
+    hqla_by_level: list[float] | list[list[float]] = Field(
+        description="HQLA market value per level (e.g. [L1, L2A, L2B])."
+    )
+    market_haircuts: list[float] | list[list[float]] = Field(
+        description="Additional stressed haircut per level, each in [0, 1]."
+    )
+    outflow: float = Field(description="Stressed net cash outflow over the horizon.")
 
 
 class MarketWideStressScenarioResponse(BaseModel):
@@ -306,15 +364,32 @@ class CombinedStressScenarioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    retail_deposits: float
-    wholesale_funding: float
-    hqla_by_level: list[float] | list[list[float]]
-    market_haircuts: list[float] | list[list[float]]
-    retail_runoff: float = 0.15
-    wholesale_runoff: float = 1.0
-    inflows: float = 0.0
-    retail_deposits_by_category: list[float] | list[list[float]] | None = None
-    retail_runoff_rates: list[float] | list[list[float]] | None = None
+    retail_deposits: float = Field(
+        description="Retail deposit balance. Used directly (times ``retail_runoff``) unless the categorised arguments are supplied, in which case it must equal ``sum(retail_deposits_by_category)``."
+    )
+    wholesale_funding: float = Field(description="Wholesale funding balance.")
+    hqla_by_level: list[float] | list[list[float]] = Field(
+        description="HQLA market value per level."
+    )
+    market_haircuts: list[float] | list[list[float]] = Field(
+        description="Additional stressed haircut per level, each in [0, 1]."
+    )
+    retail_runoff: float = Field(
+        default=0.15,
+        description="Retail run-off rate (default 15%). Ignored when the categorised retail arguments are supplied.",
+    )
+    wholesale_runoff: float = Field(
+        default=1.0, description="Wholesale run-off rate (default 100%)."
+    )
+    inflows: float = Field(default=0.0, description="Stressed contractual inflows.")
+    retail_deposits_by_category: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-category retail deposit balances (e.g. stable / less-stable buckets). Must be supplied together with ``retail_runoff_rates`` and must sum to ``retail_deposits``.",
+    )
+    retail_runoff_rates: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional per-category run-off rates in [0, 1], matching ``retail_deposits_by_category`` in length.",
+    )
 
 
 class CombinedStressScenarioResponse(BaseModel):
@@ -335,8 +410,10 @@ class SurvivalHorizonCalculatorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    hqla: float
-    daily_net_outflows: list[float] | list[list[float]]
+    hqla: float = Field(description="Opening counterbalancing capacity (HQLA).")
+    daily_net_outflows: list[float] | list[list[float]] = Field(
+        description="Array of daily net cash outflows (positive = drain)."
+    )
 
 
 class SurvivalHorizonCalculatorResponse(BaseModel):
@@ -354,9 +431,13 @@ class IntradayLiquidityMonitorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    timestamps: list[float] | list[list[float]]
-    net_flows: list[float] | list[list[float]]
-    opening_balance: float
+    timestamps: list[float] | list[list[float]] = Field(
+        description="Monotonic intraday timestamps (seconds/minutes from open)."
+    )
+    net_flows: list[float] | list[list[float]] = Field(
+        description="Net payment flow at each timestamp (credit +, debit -)."
+    )
+    opening_balance: float = Field(description="Available intraday liquidity at start of day.")
 
 
 class IntradayLiquidityMonitorResponse(BaseModel):
@@ -375,10 +456,17 @@ class IntradayLiquidityStressTestRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    net_flows: list[float] | list[list[float]]
-    opening_balance: float
-    delay_factor: float = 0.5
-    inflow_delay_shock: float = 0.0
+    net_flows: list[float] | list[list[float]] = Field(
+        description="Net payment flow at each intraday step (credit +, debit -)."
+    )
+    opening_balance: float = Field(description="Available intraday liquidity at start of day.")
+    delay_factor: float = Field(
+        default=0.5,
+        description="Fraction of positive inflows delayed beyond the horizon, in [0, 1].",
+    )
+    inflow_delay_shock: float = Field(
+        default=0.0, description="Extra absolute liquidity reserved against the shock."
+    )
 
 
 class IntradayLiquidityStressTestResponse(BaseModel):
@@ -396,7 +484,9 @@ class IlaapStressTestingFrameworkRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    scenarios: dict[str, Any]
+    scenarios: dict[str, Any] = Field(
+        description='Mapping ``name -> {"surplus_deficit": float, ...}``.'
+    )
 
 
 class IlaapStressTestingFrameworkResponse(BaseModel):
@@ -415,11 +505,11 @@ class LiquidityVarLiqvarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_outflow: float
-    outflow_vol: float
-    confidence_level: float = 0.99
-    n_simulations: int = 100000
-    seed: int | None = 42
+    base_outflow: float = Field(description="Expected net cash outflow.")
+    outflow_vol: float = Field(description="Relative volatility of net outflow (>= 0).")
+    confidence_level: float = Field(default=0.99, description="Confidence in [0.90, 0.9999].")
+    n_simulations: int = Field(default=100000, description="Number of Monte Carlo draws.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -446,8 +536,12 @@ class LiquidityBufferSizingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    stressed_net_outflows: list[float] | list[list[float]]
-    confidence_buffer: float = 0.0
+    stressed_net_outflows: list[float] | list[list[float]] = Field(
+        description="Per-period stressed net outflows (positive = drain)."
+    )
+    confidence_buffer: float = Field(
+        default=0.0, description="Fractional management uplift (e.g. 0.10 for +10%)."
+    )
 
 
 class LiquidityBufferSizingResponse(BaseModel):
@@ -465,8 +559,8 @@ class ContingencyFundingPlanTriggerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    metrics: dict[str, Any]
-    thresholds: dict[str, Any]
+    metrics: dict[str, Any] = Field(description="Mapping ``name -> current value``.")
+    thresholds: dict[str, Any] = Field(description="Mapping ``name -> minimum acceptable value``.")
 
 
 class ContingencyFundingPlanTriggerResponse(BaseModel):
@@ -484,7 +578,9 @@ class WholesaleFundingConcentrationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    counterparty_amounts: list[float] | list[list[float]]
+    counterparty_amounts: list[float] | list[list[float]] = Field(
+        description="Funding amount from each wholesale counterparty."
+    )
 
 
 class WholesaleFundingConcentrationResponse(BaseModel):
@@ -503,8 +599,12 @@ class RetailDepositRunoffRateRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    deposit_balances: list[float] | list[list[float]]
-    runoff_rates: list[float] | list[list[float]]
+    deposit_balances: list[float] | list[list[float]] = Field(
+        description="Balance per retail deposit category."
+    )
+    runoff_rates: list[float] | list[list[float]] = Field(
+        description="Run-off rate per category, each in [0, 1]."
+    )
 
 
 class RetailDepositRunoffRateResponse(BaseModel):
@@ -522,8 +622,12 @@ class SecuredFundingRolloverRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    maturing_amounts: list[float] | list[list[float]]
-    rollover_rates: list[float] | list[list[float]]
+    maturing_amounts: list[float] | list[list[float]] = Field(
+        description="Amount of secured funding maturing per tranche."
+    )
+    rollover_rates: list[float] | list[list[float]] = Field(
+        description="Assumed rollover (renewal) rate per tranche, in [0, 1]."
+    )
 
 
 class SecuredFundingRolloverRiskResponse(BaseModel):
@@ -541,8 +645,8 @@ class AssetEncumbranceRatioRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    encumbered_assets: float
-    total_assets: float
+    encumbered_assets: float = Field(description="Carrying value of encumbered assets.")
+    total_assets: float = Field(description="Total assets (encumbered + unencumbered).")
 
 
 class AssetEncumbranceRatioResponse(BaseModel):
@@ -560,9 +664,15 @@ class CollateralAvailabilityAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    collateral_values: list[float] | list[list[float]]
-    haircuts: list[float] | list[list[float]]
-    already_pledged: list[float] | list[list[float]] | None = None
+    collateral_values: list[float] | list[list[float]] = Field(
+        description="Market value of each collateral asset."
+    )
+    haircuts: list[float] | list[list[float]] = Field(
+        description="Haircut per asset, each in [0, 1]."
+    )
+    already_pledged: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional pledged amount per asset to net off."
+    )
 
 
 class CollateralAvailabilityAnalysisResponse(BaseModel):
@@ -579,9 +689,15 @@ class RepoMarketStressHaircutRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_haircuts: list[float] | list[list[float]]
-    stress_multipliers: list[float] | list[list[float]]
-    collateral_values: list[float] | list[list[float]]
+    base_haircuts: list[float] | list[list[float]] = Field(
+        description="Current repo haircut per collateral type, in [0, 1]."
+    )
+    stress_multipliers: list[float] | list[list[float]] = Field(
+        description="Multiplier applied to each haircut under stress (>= 1.0)."
+    )
+    collateral_values: list[float] | list[list[float]] = Field(
+        description="Market value of pledged collateral per type."
+    )
 
 
 class RepoMarketStressHaircutResponse(BaseModel):
@@ -599,8 +715,8 @@ class FxLiquidityRiskByCurrencyRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    inflows_by_ccy: dict[str, Any]
-    outflows_by_ccy: dict[str, Any]
+    inflows_by_ccy: dict[str, Any] = Field(description="Mapping ``currency -> inflow amount``.")
+    outflows_by_ccy: dict[str, Any] = Field(description="Mapping ``currency -> outflow amount``.")
 
 
 class FxLiquidityRiskByCurrencyResponse(BaseModel):
@@ -618,7 +734,9 @@ class IntragroupLiquidityFlowRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    entity_positions: dict[str, Any]
+    entity_positions: dict[str, Any] = Field(
+        description="Mapping ``entity -> net position`` (provided minus received)."
+    )
 
 
 class IntragroupLiquidityFlowResponse(BaseModel):
@@ -637,8 +755,12 @@ class FundingCostAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    funding_amounts: list[float] | list[list[float]]
-    funding_rates: list[float] | list[list[float]]
+    funding_amounts: list[float] | list[list[float]] = Field(
+        description="Outstanding amount of each funding source."
+    )
+    funding_rates: list[float] | list[list[float]] = Field(
+        description="Annual rate (decimal) per source, e.g. 0.035 for 3.5%."
+    )
 
 
 class FundingCostAnalysisResponse(BaseModel):
@@ -656,11 +778,14 @@ class LiquidityTransferPricingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    notional: float
-    tenor_years: float
-    base_rate: float
-    liquidity_spread: float
-    contingent_spread: float = 0.0
+    notional: float = Field(description="Position notional being funded.")
+    tenor_years: float = Field(description="Funding tenor in years (>= 0).")
+    base_rate: float = Field(description="Reference/base funding rate (decimal).")
+    liquidity_spread: float = Field(description="Term liquidity premium (decimal).")
+    contingent_spread: float = Field(
+        default=0.0,
+        description="Contingent liquidity premium for undrawn/optional commitments (decimal).",
+    )
 
 
 class LiquidityTransferPricingResponse(BaseModel):
@@ -678,10 +803,12 @@ class IlaapInternalLiquidityMetricRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    counterbalancing_capacity: float
-    stressed_net_outflow: float
-    survival_days: float
-    minimum_survival_days: float = 90.0
+    counterbalancing_capacity: float = Field(description="Total monetisable liquidity (CBC).")
+    stressed_net_outflow: float = Field(description="Stressed net outflow over the horizon.")
+    survival_days: float = Field(description="Modelled survival horizon in days.")
+    minimum_survival_days: float = Field(
+        default=90.0, description="Internal minimum survival target."
+    )
 
 
 class IlaapInternalLiquidityMetricResponse(BaseModel):
@@ -700,10 +827,10 @@ class LiquidityRiskAppetiteThresholdRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    metric_value: float
-    green_threshold: float
-    amber_threshold: float
-    higher_is_better: bool = True
+    metric_value: float = Field(description="Current metric value.")
+    green_threshold: float = Field(description="Boundary for the green zone.")
+    amber_threshold: float = Field(description="Boundary for the amber zone.")
+    higher_is_better: bool = Field(default=True, description="Direction of the metric.")
 
 
 class LiquidityRiskAppetiteThresholdResponse(BaseModel):
@@ -720,9 +847,12 @@ class EarlyWarningIndicatorLiquidityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    indicators: dict[str, Any]
-    thresholds: dict[str, Any]
-    directions: dict[str, Any] | None = None
+    indicators: dict[str, Any] = Field(description="Mapping ``name -> current value``.")
+    thresholds: dict[str, Any] = Field(description="Mapping ``name -> threshold``.")
+    directions: dict[str, Any] | None = Field(
+        default=None,
+        description='Optional mapping ``name -> "higher_breach"|"lower_breach"``; defaults to ``"lower_breach"`` for all.',
+    )
 
 
 class EarlyWarningIndicatorLiquidityResponse(BaseModel):
@@ -740,10 +870,14 @@ class CentralBankFacilityEligibilityRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    asset_ratings: list[float] | list[list[float]]
-    min_rating: int
-    asset_values: list[float] | list[list[float]]
-    cb_haircuts: list[float] | list[list[float]]
+    asset_ratings: list[float] | list[list[float]] = Field(
+        description="Ordinal credit rating per asset (higher = better)."
+    )
+    min_rating: int = Field(description="Minimum ordinal rating accepted by the facility.")
+    asset_values: list[float] | list[list[float]] = Field(description="Market value per asset.")
+    cb_haircuts: list[float] | list[list[float]] = Field(
+        description="Central-bank haircut per asset, each in [0, 1]."
+    )
 
 
 class CentralBankFacilityEligibilityResponse(BaseModel):
@@ -761,9 +895,16 @@ class ContingentLiquidityRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    commitment_amounts: list[float] | list[list[float]]
-    draw_probabilities: list[float] | list[list[float]]
-    ccf: list[float] | list[list[float]] | None = None
+    commitment_amounts: list[float] | list[list[float]] = Field(
+        description="Notional of each undrawn commitment / guarantee."
+    )
+    draw_probabilities: list[float] | list[list[float]] = Field(
+        description="Probability of drawdown per commitment, in [0, 1]."
+    )
+    ccf: list[float] | list[list[float]] | None = Field(
+        default=None,
+        description="Optional credit conversion factor per commitment (default all 1.0).",
+    )
 
 
 class ContingentLiquidityRiskResponse(BaseModel):
@@ -780,8 +921,10 @@ class LiquidityScorecardAggregationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    scores: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]]
+    scores: list[float] | list[list[float]] = Field(description="Individual component scores.")
+    weights: list[float] | list[list[float]] = Field(
+        description="Weight per component (need not sum to 1; normalised)."
+    )
 
 
 class LiquidityScorecardAggregationResponse(BaseModel):
@@ -798,8 +941,12 @@ class DepositStabilityClassificationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    deposit_features: list[float] | list[list[float]]
-    stable_threshold: float = 0.5
+    deposit_features: list[float] | list[list[float]] = Field(
+        description="Stability score per deposit, each in [0, 1]."
+    )
+    stable_threshold: float = Field(
+        default=0.5, description="Cut-off for the stable classification."
+    )
 
 
 class DepositStabilityClassificationResponse(BaseModel):
@@ -817,12 +964,12 @@ class CrossCurrencyLiquidityBridgeRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    shortfall_ccy: str
-    shortfall_amount: float
-    surplus_ccy: str
-    surplus_amount: float
-    fx_rate: float
-    swap_haircut: float = 0.0
+    shortfall_ccy: str = Field(description="Currency in deficit.")
+    shortfall_amount: float = Field(description="Amount of the deficit (in shortfall_ccy).")
+    surplus_ccy: str = Field(description="Currency with surplus to swap.")
+    surplus_amount: float = Field(description="Available surplus (in surplus_ccy).")
+    fx_rate: float = Field(description="Units of shortfall_ccy per unit of surplus_ccy.")
+    swap_haircut: float = Field(default=0.0, description="Haircut on usable surplus, in [0, 1].")
 
 
 class CrossCurrencyLiquidityBridgeResponse(BaseModel):

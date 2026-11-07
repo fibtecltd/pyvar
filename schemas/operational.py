@@ -18,7 +18,9 @@ class FrequencyDistributionFittingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    annual_event_counts: list[float] | list[list[float]]
+    annual_event_counts: list[float] | list[list[float]] = Field(
+        description="Observed number of loss events per year."
+    )
 
 
 class FrequencyDistributionFittingResponse(BaseModel):
@@ -36,8 +38,13 @@ class SeverityDistributionFittingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    loss_amounts: list[float] | list[list[float]]
-    distribution: str = "lognormal"
+    loss_amounts: list[float] | list[list[float]] = Field(
+        description="Strictly positive individual loss amounts."
+    )
+    distribution: str = Field(
+        default="lognormal",
+        description='Severity family; one of ``"lognormal"``, ``"gamma"``, ``"weibull"`` or ``"gpd"``.',
+    )
 
 
 class SeverityDistributionFittingResponse(BaseModel):
@@ -56,11 +63,11 @@ class CompoundLossDistributionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    frequency_lambda: float
-    severity_mu: float
-    severity_sigma: float
-    n_years: int = 50000
-    seed: int | None = 42
+    frequency_lambda: float = Field(description="Poisson annual event rate (> 0).")
+    severity_mu: float = Field(description="Lognormal log-mean of severities.")
+    severity_sigma: float = Field(description="Lognormal log-std of severities (> 0).")
+    n_years: int = Field(default=50000, description="Number of simulated years.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
 
 class CompoundLossDistributionResponse(BaseModel):
@@ -79,12 +86,14 @@ class MonteCarloOpriskCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    frequency_lambda: float
-    severity_mu: float
-    severity_sigma: float
-    confidence_level: float = 0.999
-    n_years: int = 100000
-    seed: int | None = 42
+    frequency_lambda: float = Field(description="Poisson annual event rate (> 0).")
+    severity_mu: float = Field(description="Lognormal log-mean of severities.")
+    severity_sigma: float = Field(description="Lognormal log-std of severities (> 0).")
+    confidence_level: float = Field(
+        default=0.999, description="Capital confidence (Basel AMA 99.9%); in [0.90, 0.9999]."
+    )
+    n_years: int = Field(default=100000, description="Number of simulated years.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -112,8 +121,10 @@ class OperationalVarOpvarRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    annual_losses: list[float] | list[list[float]]
-    confidence_level: float = 0.999
+    annual_losses: list[float] | list[list[float]] = Field(
+        description="Sample of aggregate annual losses."
+    )
+    confidence_level: float = Field(default=0.999, description="Confidence in [0.90, 0.9999].")
 
     @field_validator("confidence_level")
     @classmethod
@@ -139,11 +150,17 @@ class LossDistributionApproachLdaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    annual_event_counts: list[float] | list[list[float]]
-    loss_amounts: list[float] | list[list[float]]
-    confidence_level: float = 0.999
-    n_years: int = 100000
-    seed: int | None = 42
+    annual_event_counts: list[float] | list[list[float]] = Field(
+        description="Historical annual loss-event counts."
+    )
+    loss_amounts: list[float] | list[list[float]] = Field(
+        description="Historical individual loss amounts (positive)."
+    )
+    confidence_level: float = Field(
+        default=0.999, description="Capital confidence (Basel AMA 99.9%)."
+    )
+    n_years: int = Field(default=100000, description="Number of simulated years.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -171,12 +188,18 @@ class AdvancedMeasurementApproachAmaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    annual_event_counts: list[float] | list[list[float]]
-    loss_amounts: list[float] | list[list[float]]
-    expected_loss_covered: bool = True
-    confidence_level: float = 0.999
-    n_years: int = 100000
-    seed: int | None = 42
+    annual_event_counts: list[float] | list[list[float]] = Field(
+        description="Historical annual loss-event counts."
+    )
+    loss_amounts: list[float] | list[list[float]] = Field(
+        description="Historical individual loss amounts (positive)."
+    )
+    expected_loss_covered: bool = Field(
+        default=True, description="Whether EL is demonstrably covered in provisions."
+    )
+    confidence_level: float = Field(default=0.999, description="Capital confidence (99.9%).")
+    n_years: int = Field(default=100000, description="Number of simulated years.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -203,9 +226,13 @@ class BaselStandardisedMeasurementSmaRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    business_indicator: float
-    loss_component: float = 0.0
-    use_ilm: bool = True
+    business_indicator: float = Field(description="Business Indicator (BI) in base currency.")
+    loss_component: float = Field(
+        default=0.0, description="Loss Component (15 × average annual losses)."
+    )
+    use_ilm: bool = Field(
+        default=True, description="If False (or BI in bucket 1) the ILM is fixed at 1.0."
+    )
 
 
 class BaselStandardisedMeasurementSmaResponse(BaseModel):
@@ -223,8 +250,10 @@ class OpriskCapitalAllocationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    total_capital: float
-    business_line_risks: list[float] | list[list[float]]
+    total_capital: float = Field(description="Firm-wide OpRisk capital to allocate.")
+    business_line_risks: list[float] | list[list[float]] = Field(
+        description="Standalone risk measure per business line."
+    )
 
 
 class OpriskCapitalAllocationResponse(BaseModel):
@@ -241,8 +270,12 @@ class DiversificationBenefitOpriskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    standalone_capitals: list[float] | list[list[float]]
-    correlation: float = 0.0
+    standalone_capitals: list[float] | list[list[float]] = Field(
+        description="Standalone capital per OpRisk cell (>= 0)."
+    )
+    correlation: float = Field(
+        default=0.0, description="Uniform pairwise correlation in [0, 1] (0 = independent)."
+    )
 
 
 class DiversificationBenefitOpriskResponse(BaseModel):
@@ -260,10 +293,12 @@ class OpriskEconomicCapitalRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    opvar: float
-    expected_loss: float
-    insurance_offset: float = 0.0
-    diversification_benefit: float = 0.0
+    opvar: float = Field(description="Operational VaR at the economic-capital confidence.")
+    expected_loss: float = Field(description="Expected annual loss.")
+    insurance_offset: float = Field(default=0.0, description="Recognised insurance mitigation.")
+    diversification_benefit: float = Field(
+        default=0.0, description="Recognised diversification benefit."
+    )
 
 
 class OpriskEconomicCapitalResponse(BaseModel):
@@ -281,10 +316,12 @@ class InsuranceOffsetCalculationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    gross_loss: float
-    policy_limit: float
-    deductible: float
-    haircut: float = 0.0
+    gross_loss: float = Field(description="Gross operational loss.")
+    policy_limit: float = Field(description="Maximum insurance pay-out.")
+    deductible: float = Field(description="Loss retained by the firm before insurance responds.")
+    haircut: float = Field(
+        default=0.0, description="Supervisory haircut on the recovery, in [0, 1]."
+    )
 
 
 class InsuranceOffsetCalculationResponse(BaseModel):
@@ -302,9 +339,15 @@ class TailRiskScenarioOpriskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    annual_losses: list[float] | list[list[float]]
-    tail_confidence: float = 0.999
-    severity_multiplier: float = 1.0
+    annual_losses: list[float] | list[list[float]] = Field(
+        description="Sample of aggregate annual losses."
+    )
+    tail_confidence: float = Field(
+        default=0.999, description='Tail quantile defining "extreme" losses.'
+    )
+    severity_multiplier: float = Field(
+        default=1.0, description="Multiplier applied to tail losses (>= 1.0)."
+    )
 
 
 class TailRiskScenarioOpriskResponse(BaseModel):
@@ -322,9 +365,9 @@ class OpriskStressTestingRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    base_capital: float
-    frequency_shock: float
-    severity_shock: float
+    base_capital: float = Field(description="Baseline OpRisk capital.")
+    frequency_shock: float = Field(description="Fractional increase in event frequency (>= -1).")
+    severity_shock: float = Field(description="Fractional increase in event severity (>= -1).")
 
 
 class OpriskStressTestingResponse(BaseModel):
@@ -341,7 +384,9 @@ class RcsaRiskIdentificationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    risk_register: list[dict[str, Any]]
+    risk_register: list[dict[str, Any]] = Field(
+        description="List of risk dicts, each with ``risk_id`` and ``category``."
+    )
 
 
 class RcsaRiskIdentificationResponse(BaseModel):
@@ -358,8 +403,8 @@ class RcsaInherentRiskScoringRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    likelihood: int
-    impact: int
+    likelihood: int = Field(description="Likelihood rating in 1-5.")
+    impact: int = Field(description="Impact rating in 1-5.")
 
 
 class RcsaInherentRiskScoringResponse(BaseModel):
@@ -376,8 +421,10 @@ class RcsaResidualRiskScoringRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    inherent_score: float
-    control_effectiveness: float
+    inherent_score: float = Field(description="Inherent risk score (1-25).")
+    control_effectiveness: float = Field(
+        description="Control effectiveness in [0, 1] (1 = fully effective)."
+    )
 
 
 class RcsaResidualRiskScoringResponse(BaseModel):
@@ -394,9 +441,11 @@ class RcsaControlEffectivenessRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    design_score: float
-    operating_score: float
-    design_weight: float = 0.4
+    design_score: float = Field(description="Design effectiveness in [0, 1].")
+    operating_score: float = Field(description="Operating effectiveness in [0, 1].")
+    design_weight: float = Field(
+        default=0.4, description="Weight on design (operating weight = 1 − this)."
+    )
 
 
 class RcsaControlEffectivenessResponse(BaseModel):
@@ -413,8 +462,8 @@ class ControlTestingEffectivenessRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    tests_passed: int
-    tests_total: int
+    tests_passed: int = Field(description="Number of control tests passed.")
+    tests_total: int = Field(description="Total control tests performed (> 0).")
 
 
 class ControlTestingEffectivenessResponse(BaseModel):
@@ -432,9 +481,13 @@ class BusinessEnvironmentFactorBeiRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    factor_scores: list[float] | list[list[float]]
-    baseline: float = 3.0
-    sensitivity: float = 0.05
+    factor_scores: list[float] | list[list[float]] = Field(
+        description="Business-environment factor scores."
+    )
+    baseline: float = Field(default=3.0, description="Neutral score that maps to a 1.0 multiplier.")
+    sensitivity: float = Field(
+        default=0.05, description="Capital sensitivity per unit of average score deviation."
+    )
 
 
 class BusinessEnvironmentFactorBeiResponse(BaseModel):
@@ -452,9 +505,15 @@ class InternalControlFactorIcfRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    control_scores: list[float] | list[list[float]]
-    baseline: float = 0.8
-    sensitivity: float = 0.25
+    control_scores: list[float] | list[list[float]] = Field(
+        description="Control effectiveness scores in [0, 1]."
+    )
+    baseline: float = Field(
+        default=0.8, description="Neutral effectiveness that maps to a 1.0 multiplier."
+    )
+    sensitivity: float = Field(
+        default=0.25, description="Capital sensitivity per unit of effectiveness deviation."
+    )
 
 
 class InternalControlFactorIcfResponse(BaseModel):
@@ -472,7 +531,7 @@ class LossEventClassificationBaselRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    event_type: str
+    event_type: str = Field(description="Candidate Basel Level-1 event-type key.")
 
 
 class LossEventClassificationBaselResponse(BaseModel):
@@ -490,8 +549,10 @@ class LossDataCollectionFrameworkRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    loss_events: list[dict[str, Any]]
-    reporting_threshold: float
+    loss_events: list[dict[str, Any]] = Field(
+        description="List of events, each with a ``gross_amount`` key."
+    )
+    reporting_threshold: float = Field(description="De-minimis threshold (>= 0).")
 
 
 class LossDataCollectionFrameworkResponse(BaseModel):
@@ -510,9 +571,11 @@ class ExternalLossDataIntegrationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    internal_losses: list[float] | list[list[float]]
-    external_losses: list[float] | list[list[float]]
-    scaling_factor: float
+    internal_losses: list[float] | list[list[float]] = Field(description="Internal loss amounts.")
+    external_losses: list[float] | list[list[float]] = Field(
+        description="External loss amounts (pre-scaling)."
+    )
+    scaling_factor: float = Field(description="Multiplicative size adjustment (> 0).")
 
 
 class ExternalLossDataIntegrationResponse(BaseModel):
@@ -530,7 +593,7 @@ class KeyRiskIndicatorKriLibraryRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    kri_definitions: list[dict[str, Any]]
+    kri_definitions: list[dict[str, Any]] = Field(description="List of KRI definition dicts.")
 
 
 class KeyRiskIndicatorKriLibraryResponse(BaseModel):
@@ -547,10 +610,12 @@ class KriThresholdBreachDetectionRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    value: float
-    amber_threshold: float
-    red_threshold: float
-    direction: str = "higher_breach"
+    value: float = Field(description="Current KRI observation.")
+    amber_threshold: float = Field(description="Amber boundary.")
+    red_threshold: float = Field(description="Red boundary (more extreme than amber).")
+    direction: str = Field(
+        default="higher_breach", description='``"higher_breach"`` or ``"lower_breach"``.'
+    )
 
 
 class KriThresholdBreachDetectionResponse(BaseModel):
@@ -567,8 +632,12 @@ class KriTrendAnalysisRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    observations: list[float] | list[list[float]]
-    higher_is_worse: bool = True
+    observations: list[float] | list[list[float]] = Field(
+        description="Ordered KRI observations (oldest first)."
+    )
+    higher_is_worse: bool = Field(
+        default=True, description="Whether an increasing series is adverse."
+    )
 
 
 class KriTrendAnalysisResponse(BaseModel):
@@ -586,9 +655,11 @@ class ScenarioFrequencyEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expected_events_per_year: float
-    occurrences: int | None = None
-    observation_years: float | None = None
+    expected_events_per_year: float = Field(description="Expert estimate of the annual event rate.")
+    occurrences: int | None = Field(default=None, description="Optional observed event count.")
+    observation_years: float | None = Field(
+        default=None, description="Optional observation window in years (> 0)."
+    )
 
 
 class ScenarioFrequencyEstimationResponse(BaseModel):
@@ -605,9 +676,11 @@ class ScenarioSeverityEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    typical_loss: float
-    worst_case_loss: float
-    worst_case_percentile: float = 0.99
+    typical_loss: float = Field(description='Median ("typical") loss (> 0).')
+    worst_case_loss: float = Field(description="High-percentile loss (> typical).")
+    worst_case_percentile: float = Field(
+        default=0.99, description="Percentile of the worst case, in (0.5, 1)."
+    )
 
 
 class ScenarioSeverityEstimationResponse(BaseModel):
@@ -625,8 +698,12 @@ class ScenarioExpertElicitationModelRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    expert_estimates: list[float] | list[list[float]]
-    expert_weights: list[float] | list[list[float]] | None = None
+    expert_estimates: list[float] | list[list[float]] = Field(
+        description="Each expert's loss estimate."
+    )
+    expert_weights: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional credibility weights (default equal)."
+    )
 
 
 class ScenarioExpertElicitationModelResponse(BaseModel):
@@ -644,12 +721,14 @@ class ScenarioAnalysisOpriskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    frequency_lambda: float
-    severity_mu: float
-    severity_sigma: float
-    confidence_level: float = 0.999
-    n_years: int = 50000
-    seed: int | None = 42
+    frequency_lambda: float = Field(description="Poisson annual frequency (> 0).")
+    severity_mu: float = Field(description="Lognormal log-mean severity.")
+    severity_sigma: float = Field(description="Lognormal log-std severity (> 0).")
+    confidence_level: float = Field(
+        default=0.999, description="Capital confidence in [0.90, 0.9999]."
+    )
+    n_years: int = Field(default=50000, description="Number of simulated years.")
+    seed: int | None = Field(default=42, description="RNG seed for reproducibility.")
 
     @field_validator("confidence_level")
     @classmethod
@@ -675,10 +754,14 @@ class CyberRiskLossEstimationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    records_exposed: float
-    cost_per_record: float
-    breach_probability: float
-    business_interruption_cost: float = 0.0
+    records_exposed: float = Field(description="Number of data records at risk.")
+    cost_per_record: float = Field(
+        description="Cost per breached record (regulatory + remediation)."
+    )
+    breach_probability: float = Field(description="Annual breach probability in [0, 1].")
+    business_interruption_cost: float = Field(
+        default=0.0, description="Additional BI cost given a breach."
+    )
 
 
 class CyberRiskLossEstimationResponse(BaseModel):
@@ -696,10 +779,10 @@ class ConductRiskMetricRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    complaints: float
-    customers: float
-    redress_paid: float
-    revenue: float
+    complaints: float = Field(description="Number of upheld complaints in the period.")
+    customers: float = Field(description="Active customer count (> 0).")
+    redress_paid: float = Field(description="Total customer redress paid.")
+    revenue: float = Field(description="Period revenue (> 0).")
 
 
 class ConductRiskMetricResponse(BaseModel):
@@ -718,9 +801,9 @@ class ModelRiskAssessmentRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    materiality: int
-    complexity: int
-    validation_score: float
+    materiality: int = Field(description="Model materiality rating 1-5.")
+    complexity: int = Field(description="Model complexity rating 1-5.")
+    validation_score: float = Field(description="Validation effectiveness in [0, 1] (1 = strong).")
 
 
 class ModelRiskAssessmentResponse(BaseModel):
@@ -738,9 +821,9 @@ class ItRiskScoringRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    availability: float
-    incident_count: float
-    patch_compliance: float
+    availability: float = Field(description="System availability in [0, 1] (e.g. 0.999).")
+    incident_count: float = Field(description="Number of IT incidents in the period (>= 0).")
+    patch_compliance: float = Field(description="Patch compliance in [0, 1].")
 
 
 class ItRiskScoringResponse(BaseModel):
@@ -757,10 +840,14 @@ class ThirdPartyVendorRiskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    criticality: int
-    financial_health: float
-    concentration: float
-    substitutability: float
+    criticality: int = Field(description="Service criticality 1-5.")
+    financial_health: float = Field(description="Vendor financial health in [0, 1] (1 = strong).")
+    concentration: float = Field(
+        description="Reliance concentration in [0, 1] (1 = sole supplier)."
+    )
+    substitutability: float = Field(
+        description="Ease of replacement in [0, 1] (1 = easily replaced)."
+    )
 
 
 class ThirdPartyVendorRiskResponse(BaseModel):
@@ -777,11 +864,16 @@ class BusinessContinuityRiskScoreRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    rto_hours: float
-    rpo_hours: float
-    max_tolerable_downtime: float
-    bcp_maturity: float
-    rpo_target_hours: float | None = None
+    rto_hours: float = Field(description="Recovery time objective in hours.")
+    rpo_hours: float = Field(
+        description="Recovery point objective in hours (maximum acceptable data loss window). Always range-validated; only scored when ``rpo_target_hours`` is supplied (see above)."
+    )
+    max_tolerable_downtime: float = Field(description="Maximum tolerable downtime in hours (> 0).")
+    bcp_maturity: float = Field(description="BCP programme maturity in [0, 1].")
+    rpo_target_hours: float | None = Field(
+        default=None,
+        description="Maximum tolerable period of data loss in hours (> 0), i.e. the RPO's own tolerance threshold, analogous to ``max_tolerable_downtime`` for RTO. When omitted, RPO risk is not scored (default, backward-compatible) behaviour.",
+    )
 
 
 class BusinessContinuityRiskScoreResponse(BaseModel):
@@ -800,7 +892,9 @@ class NearMissCaptureFrameworkRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    events: list[dict[str, Any]]
+    events: list[dict[str, Any]] = Field(
+        description="List of events, each with ``actual_loss`` and ``potential_loss``."
+    )
 
 
 class NearMissCaptureFrameworkResponse(BaseModel):
@@ -818,7 +912,9 @@ class RootCauseAnalysisTemplateRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    causal_factors: dict[str, Any]
+    causal_factors: dict[str, Any] = Field(
+        description="Mapping ``factor -> contribution weight`` (>= 0)."
+    )
 
 
 class RootCauseAnalysisTemplateResponse(BaseModel):
@@ -836,10 +932,10 @@ class RiskAppetiteStatementOpriskRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    current_metric: float
-    appetite_limit: float
-    tolerance_limit: float
-    higher_is_worse: bool = True
+    current_metric: float = Field(description="Current value of the OpRisk metric.")
+    appetite_limit: float = Field(description="Risk-appetite limit.")
+    tolerance_limit: float = Field(description="Risk-tolerance (harder) limit.")
+    higher_is_worse: bool = Field(default=True, description="Whether higher values are adverse.")
 
 
 class RiskAppetiteStatementOpriskResponse(BaseModel):
@@ -856,8 +952,10 @@ class EscalationThresholdCalculationRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    loss_amount: float
-    thresholds: dict[str, Any]
+    loss_amount: float = Field(description="Loss amount to route (>= 0).")
+    thresholds: dict[str, Any] = Field(
+        description="Mapping ``level -> minimum amount`` for that level."
+    )
 
 
 class EscalationThresholdCalculationResponse(BaseModel):
@@ -874,8 +972,10 @@ class OpriskHeatMapGeneratorRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    likelihoods: list[float] | list[list[float]]
-    impacts: list[float] | list[list[float]]
+    likelihoods: list[float] | list[list[float]] = Field(
+        description="Likelihood rating per risk (1-5)."
+    )
+    impacts: list[float] | list[list[float]] = Field(description="Impact rating per risk (1-5).")
 
 
 class OpriskHeatMapGeneratorResponse(BaseModel):
@@ -893,8 +993,12 @@ class RegulatoryComplianceScoreRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    requirements_met: list[float] | list[list[float]]
-    weights: list[float] | list[list[float]] | None = None
+    requirements_met: list[float] | list[list[float]] = Field(
+        description="Compliance status per requirement, each in [0, 1]."
+    )
+    weights: list[float] | list[list[float]] | None = Field(
+        default=None, description="Optional importance weights (default equal)."
+    )
 
 
 class RegulatoryComplianceScoreResponse(BaseModel):
@@ -912,9 +1016,9 @@ class AuditFindingRiskScorerRequest(BaseModel):
 
     model_config = ConfigDict(allow_inf_nan=False)
 
-    severity: int
-    likelihood: int
-    overdue_days: float
+    severity: int = Field(description="Finding severity 1-5.")
+    likelihood: int = Field(description="Likelihood of materialisation 1-5.")
+    overdue_days: float = Field(description="Days the remediation is past due (>= 0).")
 
 
 class AuditFindingRiskScorerResponse(BaseModel):

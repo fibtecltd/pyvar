@@ -16,13 +16,13 @@ Formula (LaTeX): `C=S e^{-q\tau}N(d_1)-K e^{-r\tau}N(d_2),\qquad P=K e^{-r\tau}N
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot price. |
+| `strike`* | `number` | required | Strike price. |
+| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
+| `sigma`* | `number` | required | Volatility (annualised, >= 0). |
+| `tau`* | `number` | required | Time to maturity in years (>= 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ### black_scholes_greeks
 
@@ -35,13 +35,13 @@ Formula (LaTeX): `\Delta_{call}=e^{-q\tau}N(d_1),\quad \Delta_{put}=-e^{-q\tau}N
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot price. |
+| `strike`* | `number` | required | Strike price. |
+| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
+| `sigma`* | `number` | required | Volatility (annualised, > 0). |
+| `tau`* | `number` | required | Time to maturity in years (> 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ### binomial_tree_option_pricer
 
@@ -54,15 +54,15 @@ Formula (LaTeX): `u=e^{\sigma\sqrt{\Delta t}},\quad d=\frac1u,\quad p=\frac{e^{(
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_steps` | `integer` | `500` |  |
-| `option_type` | `string` | `'call'` |  |
-| `style` | `string` | `'european'` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot price. |
+| `strike`* | `number` | required | Strike price. |
+| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
+| `sigma`* | `number` | required | Volatility (annualised, > 0). |
+| `tau`* | `number` | required | Time to maturity in years (> 0). |
+| `n_steps` | `integer` | `500` | Number of binomial steps (>= 1). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `style` | `string` | `'european'` | ``"european"`` or ``"american"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ### trinomial_tree_option_pricer
 
@@ -75,15 +75,15 @@ Formula (LaTeX): `dx=\sigma\sqrt{3\Delta t},\quad u=e^{dx},\quad \nu=r-q-\tfrac1
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_steps` | `integer` | `300` |  |
-| `option_type` | `string` | `'call'` |  |
-| `style` | `string` | `'european'` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot price. |
+| `strike`* | `number` | required | Strike price. |
+| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
+| `sigma`* | `number` | required | Volatility (annualised, > 0). |
+| `tau`* | `number` | required | Time to maturity in years (> 0). |
+| `n_steps` | `integer` | `300` | Number of tree steps (>= 1). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `style` | `string` | `'european'` | ``"european"`` or ``"american"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ### monte_carlo_option_pricer
 
@@ -96,15 +96,15 @@ Formula (LaTeX): `S_T=S_0\exp\!\big[(r-q-\tfrac12\sigma^2)\tau+\sigma\sqrt\tau\,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `12345` |  |
+| `spot`* | `number` | required | Underlying spot price. |
+| `strike`* | `number` | required | Strike price. |
+| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
+| `sigma`* | `number` | required | Volatility (annualised, > 0). |
+| `tau`* | `number` | required | Time to maturity in years (> 0). |
+| `n_simulations` | `integer` | `100000` | Number of Monte Carlo paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `12345` | RNG seed for determinism. |
 
 ## Stochastic Volatility Models
 
@@ -120,16 +120,16 @@ Formula (LaTeX): `C=S P_1-Ke^{-r\tau}P_2,\qquad P=C-S+Ke^{-r\tau}\ \text{(put-ca
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `v0`* | `number` | required |  |
-| `kappa`* | `number` | required |  |
-| `theta`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `rho`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `v0`* | `number` | required | Initial variance. |
+| `kappa`* | `number` | required | Mean-reversion speed of variance. |
+| `theta`* | `number` | required | Long-run variance. |
+| `sigma`* | `number` | required | Volatility of variance (vol-of-vol). |
+| `rho`* | `number` | required | Spot/variance correlation in [-1, 1]. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
 
 ### sabr_volatility_model
 
@@ -142,13 +142,13 @@ Formula (LaTeX): `z=\frac{\nu}{\alpha}(FK)^{(1-\beta)/2}\ln\frac{F}{K},\qquad \c
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `forward`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `alpha`* | `number` | required |  |
-| `beta`* | `number` | required |  |
-| `rho`* | `number` | required |  |
-| `nu`* | `number` | required |  |
+| `forward`* | `number` | required | Forward price/rate. |
+| `strike`* | `number` | required | Strike. |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `alpha`* | `number` | required | Initial volatility level (> 0). |
+| `beta`* | `number` | required | CEV exponent in [0, 1]. |
+| `rho`* | `number` | required | Correlation in [-1, 1]. |
+| `nu`* | `number` | required | Vol-of-vol (>= 0). |
 
 ### local_volatility_dupire_model
 
@@ -168,11 +168,11 @@ Formula (LaTeX): `\sigma_{loc}^2(K,T)=\frac{\partial C/\partial T+rK\,\partial C
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `strikes`* | `number[] or number[][]` | required |  |
-| `maturities`* | `number[] or number[][]` | required |  |
-| `call_surface`* | `number[] or number[][]` | required |  |
-| `rate`* | `number` | required |  |
-| `spot`* | `number` | required |  |
+| `strikes`* | `number[] or number[][]` | required | 1-D ascending strike grid. |
+| `maturities`* | `number[] or number[][]` | required | 1-D ascending maturity grid (years). |
+| `call_surface`* | `number[] or number[][]` | required | ``(len(maturities), len(strikes))`` call prices. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `spot`* | `number` | required | Underlying spot (validation only; not used in the formula). |
 
 ### rough_volatility_rbergomi_model
 
@@ -213,20 +213,20 @@ Formula (LaTeX): `\widetilde W(t_k)=\sqrt{\Delta t}\sum_{j\le k}(t_k-t_j)^{H-1/2
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `xi` | `number` | `0.04` |  |
-| `eta` | `number` | `1.5` |  |
-| `hurst` | `number` | `0.1` |  |
-| `rho` | `number` | `-0.7` |  |
-| `n_steps` | `integer` | `50` |  |
-| `n_simulations` | `integer` | `50000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `seed` | `integer` | `2024` |  |
-| `control_variate` | `boolean` | `False` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `xi` | `number` | `0.04` | Forward variance level. |
+| `eta` | `number` | `1.5` | Vol-of-vol parameter. |
+| `hurst` | `number` | `0.1` | Hurst exponent in (0, 0.5). |
+| `rho` | `number` | `-0.7` | Spot/vol correlation in [-1, 1]. |
+| `n_steps` | `integer` | `50` | Time-discretisation steps. |
+| `n_simulations` | `integer` | `50000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `seed` | `integer` | `2024` | RNG seed. |
+| `control_variate` | `boolean` | `False` | Use a Heston-companion control variate (task #15 Phase 3) for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected. A companion Heston path is simulated on the SAME pre-drawn z_v/z_s normals (that shared randomness is what makes it correlated with the rBergomi payoff -- an independently-drawn Heston path would be a useless control). The companion uses v0=theta=xi, sigma=eta, the same rho, and an internally-fixed kappa (see ``_HESTON_CV_KAPPA``) chosen purely to maximise that correlation -- rBergomi has no mean-reversion-speed parameter of its own, so there's no "natural" kappa to inherit. The companion's known EXACT price comes from the existing semi-analytic heston_stochastic_volatility_model; the optimal control-variate coefficient beta is estimated from the sample covariance/variance of the two payoff series (standard practice, not a fixed beta=1 subtraction). Verified empirically across two parameter regimes (this model's defaults, and a second regime with different strike/ tau/xi/eta/hurst/rho) that this gives a real ~2x-6x variance reduction with no measurable bias -- weaker than Phase 2's QMC result on the exotic-option kernels, but genuine, because rBergomi's actual rough-volatility dynamics are structurally quite different from Heston's Markovian CIR process (that structural gap is exactly why the correlation -- and therefore the achievable variance reduction -- isn't larger). |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn z_v/z_s used for the base price. "vega" here is sensitivity to ``xi`` (the forward-variance level, this model's primary volatility parameter) -- NOT to ``eta`` (vol-of-vol) or ``hurst``, which are structural parameters outside the standard 5-Greek scope and are held fixed. The Greek "rho" (sensitivity to the risk-free rate) is unrelated to this model's own ``rho`` parameter (spot/vol correlation, also held fixed) -- an unfortunate but standard name collision, not a bug. Not supported together with control_variate=True (the control-variate coefficient and the analytic Heston reference price would both need re-deriving at every bumped scenario; deferred rather than done partially). Defaults to False so existing callers/results are unaffected. |
 
 ### variance_gamma_model
 
@@ -244,17 +244,17 @@ Formula (LaTeX): `\omega=\frac1\nu\ln\big(1-\theta\nu-\tfrac12\sigma^2\nu\big)\\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `sigma` | `number` | `0.2` |  |
-| `theta` | `number` | `-0.1` |  |
-| `nu` | `number` | `0.2` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `seed` | `integer` | `7` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `sigma` | `number` | `0.2` | Diffusion volatility. |
+| `theta` | `number` | `-0.1` | Drift of the subordinated Brownian motion (skew). NOT the Greek theta (time decay) -- an unfortunate name collision with this model's own parameter; see ``greeks`` below. |
+| `nu` | `number` | `0.2` | Variance rate of the Gamma subordinator (> 0). |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `seed` | `integer` | `7` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_levy_bump_reprice_greeks``). "vega" here is sensitivity to ``sigma`` (the diffusion volatility, this model's direct Black-Scholes-like vol parameter). The Greek "theta" (time decay, in the output dict) is unrelated to this function's own ``theta`` parameter (skew) above, which stays fixed. delta/vega/rho reuse the base run's Gamma subordinator directly (spot/sigma/rate bumps don't change its shape parameter). theta (the Greek) needs a subordinator at ``tau +/- d_tau``, and the Gamma subordinator's shape parameter IS ``tau/nu`` -- so it can't just reuse the base draw the way GBM-based normals can under a tau bump. Verified empirically that independently redrawing it at each bumped tau gives ~65x more seed-to-seed noise in theta than the alternative shipped here: drawing ONE shared uniform array and mapping it through the Gamma inverse-CDF at ``(tau+d_tau)/nu`` and ``(tau-d_tau)/nu`` respectively, which keeps the two bumped subordinators tightly (positively) correlated with each other the same way common random numbers correlate every other Greek in this codebase. Defaults to False so existing callers/results are unaffected. |
 
 ### normal_inverse_gaussian_model
 
@@ -267,17 +267,17 @@ Formula (LaTeX): `\gamma=\sqrt{\alpha^2-\beta^2},\qquad \omega=\delta\big(\sqrt{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `alpha` | `number` | `15.0` |  |
-| `beta` | `number` | `-5.0` |  |
-| `delta` | `number` | `0.5` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `seed` | `integer` | `11` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `alpha` | `number` | `15.0` | Tail heaviness (> \|beta\|). |
+| `beta` | `number` | `-5.0` | Skewness parameter. |
+| `delta` | `number` | `0.5` | Scale (> 0). NOT the Greek delta (spot sensitivity) -- an unfortunate name collision with this model's own parameter; see ``greeks`` below. |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `seed` | `integer` | `11` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute Greek-delta/gamma/vega/theta/rho via bump-and-reprice (see ``_levy_bump_reprice_greeks``). "vega" here is sensitivity to this function's ``delta`` PARAMETER (the IG subordinator's scale, this model's closest analogue to a volatility level) -- not to ``alpha`` or ``beta``, which are held fixed. The output dict's ``"delta"`` key is the Greek (spot sensitivity); it is unrelated to the ``delta`` parameter above despite the shared name. Greek-delta/rho reuse the base run's IG subordinator directly (spot/rate bumps don't touch it). Both "vega" (bumping the ``delta`` parameter) and the Greek "theta" (bumping tau) DO change the subordinator's (mu, lambda), so each draws its own shared ``(normal, uniform)`` pair once and maps it through the IG inverse-transform (``_ig_from_randoms``) at the +/- bumped (mu, lambda) -- the same common-random-numbers technique variance_gamma_model uses for its own tau-dependent Gamma subordinator, verified there to cut seed-to-seed noise by ~65x vs. an independent redraw at each bumped value. Defaults to False so existing callers/results are unaffected. |
 
 ### displaced_diffusion_model
 
@@ -291,14 +291,14 @@ Formula (LaTeX): `\text{Price}=\text{BS}(S+a,\ K+a,\ r,\ \sigma,\ \tau,\ q) \\ \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `displacement`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Lognormal volatility of the displaced process. |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `displacement`* | `number` | required | Shift ``a`` applied to spot and strike. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ## Exotic Options
 
@@ -312,14 +312,14 @@ Formula (LaTeX): `\text{Call}=Q\,e^{-r\tau}N(d_2), \qquad \text{Put}=Q\,e^{-r\ta
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `payout` | `number` | `1.0` |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `payout` | `number` | `1.0` | Cash payout if in the money. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ### barrier_option_pricer
 
@@ -344,16 +344,16 @@ Formula (LaTeX): `\mu=\frac{r-q-\sigma^2/2}{\sigma^2},\qquad \lambda=\sqrt{\mu^2
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `barrier`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `barrier_type` | `string` | `'down-and-out'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `rebate` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `barrier`* | `number` | required | Barrier level. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `barrier_type` | `string` | `'down-and-out'` | One of ``down-and-out``, ``down-and-in``, ``up-and-out``, ``up-and-in``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `rebate` | `number` | `0.0` | Cash amount paid if the option ends up worthless because of the barrier -- at expiry (no touch) for a knock-in, at the touch time for a knock-out. 0 (default) reproduces the no-rebate price. |
 
 ### asian_option_pricer
 
@@ -366,19 +366,19 @@ Formula (LaTeX): `\bar S=\frac1n\sum_{k=1}^n S_{t_k},\qquad S_{t_k}=S_0\exp\!\Bi
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_steps` | `integer` | `100` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `average_type` | `string` | `'arithmetic'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `21` |  |
-| `qmc` | `boolean` | `False` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `n_steps` | `integer` | `100` | Averaging observation count. |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `average_type` | `string` | `'arithmetic'` | ``"arithmetic"`` (only). |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `21` | RNG seed. |
+| `qmc` | `boolean` | `False` | Use randomized quasi-Monte Carlo (scrambled Sobol replicates, see ``_price_by_qmc_replicates``) instead of plain MC for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_asian_greeks_bump_reprice``) on the same pre-drawn normals used for the base price, so the bump noise cancels against the base run's noise instead of adding to it. Costs 8 extra reprices at the same n_simulations/n_steps. Not supported together with qmc=True. Defaults to False so existing callers/results are unaffected. |
 
 ### lookback_option_pricer
 
@@ -392,19 +392,19 @@ Formula (LaTeX): `\text{Floating:}\ \text{Call}=e^{-r\tau}\mathbb E[S_T-S_{min}]
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_steps` | `integer` | `100` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `strike_type` | `string` | `'floating'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `31` |  |
-| `qmc` | `boolean` | `False` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike (fixed-strike only). |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `n_steps` | `integer` | `100` | Monitoring frequency. |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `strike_type` | `string` | `'floating'` | ``"floating"`` or ``"fixed"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `31` | RNG seed. |
+| `qmc` | `boolean` | `False` | Use randomized quasi-Monte Carlo (scrambled Sobol replicates, see ``_price_by_qmc_replicates``) instead of plain MC for a lower-variance estimate at the same n_simulations. Defaults to False so existing callers/results are unaffected. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. The path-average/extremum payoff here is smooth in spot (unlike the LSM products below), so this uses the same small bump sizes as asian_option_pricer. Not supported together with qmc=True. Defaults to False so existing callers/results are unaffected. |
 
 ### american_option_lsm
 
@@ -444,17 +444,17 @@ Formula (LaTeX): `S_{t_k}=S_{t_{k-1}}\exp\!\big[(r-q-\tfrac12\sigma^2)\Delta t+\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `n_steps` | `integer` | `50` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'put'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `41` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `n_steps` | `integer` | `50` | Exercise dates. |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'put'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `41` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Uses a materially larger spot bump than the smooth-payoff products (see ``_LSM_GREEKS_BUMP_REL_SPOT`` for why) -- delta/gamma are therefore somewhat coarser here than for Asian/lookback, by construction, not oversight. Costs 8 extra LSM reprices (each as expensive as the base price -- this is the most expensive Greeks call in this module; consider a smaller n_simulations for greeks=True requests if used behind a request-latency budget). Defaults to False so existing callers/results are unaffected. |
 
 ### bermudan_option_pricer
 
@@ -471,18 +471,18 @@ Formula (LaTeX): `\text{Same LSM recursion as american\_option\_lsm,} \\ \text{r
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `exercise_dates` | `integer` | `4` |  |
-| `n_steps` | `integer` | `48` |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'put'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `51` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `exercise_dates` | `integer` | `4` | Number of allowed exercise dates (>= 1). |
+| `n_steps` | `integer` | `48` | Total time-grid steps (multiple of exercise_dates ideally). |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'put'` | ``"call"`` or ``"put"``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `51` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice (see ``_bump_reprice_greeks``). Same LSM regression-boundary caveat as american_option_lsm applies -- uses the same larger spot bump (``_LSM_GREEKS_BUMP_REL_SPOT``), verified empirically for this function too (see ``_bump_reprice_greeks``'s docstring). Defaults to False so existing callers/results are unaffected. |
 
 ### rainbow_option_pricer
 
@@ -495,17 +495,17 @@ Formula (LaTeX): `S_{i,T}=S_{i,0}\exp\!\big[(r-\tfrac12\sigma_i^2)\tau+\sigma_i\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spots`* | `number[] or number[][]` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigmas`* | `number[] or number[][]` | required |  |
-| `tau`* | `number` | required |  |
-| `correlation`* | `number[] or number[][]` | required |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `rainbow_type` | `string` | `'best-of'` |  |
-| `seed` | `integer` | `61` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spots`* | `number[] or number[][]` | required | Initial prices per asset. |
+| `strike`* | `number` | required | Strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigmas`* | `number[] or number[][]` | required | Volatility per asset. |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `correlation`* | `number[] or number[][]` | required | Asset correlation matrix (SPD). |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `rainbow_type` | `string` | `'best-of'` | ``"best-of"`` or ``"worst-of"``. |
+| `seed` | `integer` | `61` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute per-asset delta/gamma/vega and scalar theta/rho via bump-and-reprice (see ``_multi_asset_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Delta/ gamma/vega are diagonal only (each asset bumped independently; no cross-asset terms). Defaults to False so existing callers/results are unaffected. |
 
 ### basket_option_pricer
 
@@ -518,17 +518,17 @@ Formula (LaTeX): `S_{i,T}=S_{i,0}\exp\!\big[(r-\tfrac12\sigma_i^2)\tau+\sigma_i\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spots`* | `number[] or number[][]` | required |  |
-| `weights`* | `number[] or number[][]` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigmas`* | `number[] or number[][]` | required |  |
-| `tau`* | `number` | required |  |
-| `correlation`* | `number[] or number[][]` | required |  |
-| `n_simulations` | `integer` | `100000` |  |
-| `option_type` | `string` | `'call'` |  |
-| `seed` | `integer` | `71` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spots`* | `number[] or number[][]` | required | Initial prices per asset. |
+| `weights`* | `number[] or number[][]` | required | Basket weights per asset. |
+| `strike`* | `number` | required | Strike on the weighted basket. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigmas`* | `number[] or number[][]` | required | Volatility per asset. |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `correlation`* | `number[] or number[][]` | required | Asset correlation matrix (SPD). |
+| `n_simulations` | `integer` | `100000` | Number of paths. |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `seed` | `integer` | `71` | RNG seed. |
+| `greeks` | `boolean` | `False` | Also compute per-asset delta/gamma/vega and scalar theta/rho via bump-and-reprice (see ``_multi_asset_bump_reprice_greeks``) on the same pre-drawn normals used for the base price. Delta/ gamma/vega are diagonal only (each asset bumped independently; no cross-asset terms). Defaults to False so existing callers/results are unaffected. |
 
 ### spread_option_kirk_approximation
 
@@ -542,15 +542,15 @@ Formula (LaTeX): `\sigma_{eff}=\sqrt{\sigma_1^2-2\rho\sigma_1\sigma_2 r_2+(\sigm
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot1`* | `number` | required |  |
-| `spot2`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma1`* | `number` | required |  |
-| `sigma2`* | `number` | required |  |
-| `rho`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
+| `spot1`* | `number` | required | First-asset forward price. |
+| `spot2`* | `number` | required | Second-asset forward price. |
+| `strike`* | `number` | required | Spread strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma1`* | `number` | required | Volatility of asset 1. |
+| `sigma2`* | `number` | required | Volatility of asset 2. |
+| `rho`* | `number` | required | Correlation in [-1, 1]. |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
 
 ### compound_option_pricer
 
@@ -563,18 +563,18 @@ Formula (LaTeX): `I:\ V_{under}(I;K_2,\tau_u-\tau_c)=K_1\ \text{(critical price)
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike_underlying`* | `number` | required |  |
-| `strike_compound`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau_compound`* | `number` | required |  |
-| `tau_underlying`* | `number` | required |  |
-| `n_simulations` | `integer` | `200000` |  |
-| `compound_type` | `string` | `'call-on-call'` |  |
-| `div_yield` | `number` | `0.0` |  |
-| `seed` | `integer` | `81` |  |
-| `greeks` | `boolean` | `False` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike_underlying`* | `number` | required | Strike of the underlying option. |
+| `strike_compound`* | `number` | required | Strike of the compound option (premium paid). |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau_compound`* | `number` | required | Time to the compound option expiry. |
+| `tau_underlying`* | `number` | required | Time to the underlying option expiry (> tau_compound). |
+| `n_simulations` | `integer` | `200000` | Unused by the closed-form price; retained for backward-compatible call signatures (was the MC path count before this function switched from Monte Carlo to the exact Geske formula -- see ``_compound_option_pricer_mc`` for that retained reference implementation). |
+| `compound_type` | `string` | `'call-on-call'` | ``call-on-call``, ``call-on-put``, ``put-on-call``, ``put-on-put``. |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `seed` | `integer` | `81` | Unused by the closed-form price; retained for the same reason as ``n_simulations``. |
+| `greeks` | `boolean` | `False` | Also compute delta/gamma/vega/theta/rho via bump-and-reprice on the exact closed-form price (deterministic -- no Monte Carlo noise to correlate away). theta bumps ``tau_compound`` (the compound leg's own time to expiry) while holding ``tau_underlying`` fixed -- i.e. both the compound's remaining life and the underlying option's residual tenor from that later date shrink together, the usual "time passing today" interpretation. Defaults to False so existing callers/results are unaffected. |
 
 ### chooser_option_pricer
 
@@ -589,13 +589,13 @@ Formula (LaTeX): `\text{Price}=C(S,K,\tau_e)+P\big(S,\;K e^{-(r-q)(\tau_e-\tau_c
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau_choose`* | `number` | required |  |
-| `tau_expiry`* | `number` | required |  |
-| `div_yield` | `number` | `0.0` |  |
+| `spot`* | `number` | required | Underlying spot. |
+| `strike`* | `number` | required | Common strike. |
+| `rate`* | `number` | required | Risk-free rate (continuous). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `tau_choose`* | `number` | required | Time to the choice date. |
+| `tau_expiry`* | `number` | required | Time to expiry (> tau_choose). |
+| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
 
 ## Fixed Income Instruments
 
@@ -610,11 +610,11 @@ Formula (LaTeX): `P=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y/m)^{i}}+\frac{F}{(1+y/m)^{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `face_value`* | `number` | required | Redemption (par) value. |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `yield_rate`* | `number` | required | Annual yield to maturity (decimal, compounded ``frequency``). |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `frequency` | `integer` | `2` | Coupon payments per year. |
 
 ### bond_pricer_floating_rate
 
@@ -634,12 +634,12 @@ Formula (LaTeX): `P=\sum_{i=1}^{n} CF_i\left(1+\frac{d_i}{m}\right)^{-i},\qquad 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `reference_rates`* | `number[] or number[][]` | required |  |
-| `spread`* | `number` | required |  |
-| `discount_rates`* | `number[] or number[][]` | required |  |
-| `maturity`* | `number` | required |  |
-| `frequency` | `integer` | `4` |  |
+| `face_value`* | `number` | required | Redemption (par) value. |
+| `reference_rates`* | `number[] or number[][]` | required | Projected forward index rate per period (decimal). Its length sets the number of coupon periods priced. |
+| `spread`* | `number` | required | Quoted margin over the index (decimal). |
+| `discount_rates`* | `number[] or number[][]` | required | Per-period zero discount rate (decimal, annualised). |
+| `maturity`* | `number` | required | Time to maturity in years. Must equal ``len(reference_rates) / frequency`` (see note above). |
+| `frequency` | `integer` | `4` | Coupon payments per year. |
 
 ### zero_coupon_bond_pricer
 
@@ -649,10 +649,10 @@ Formula (LaTeX): `P=F\left(1+\frac{y}{m}\right)^{-mT}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `face_value`* | `number` | required | Redemption (par) value. |
+| `yield_rate`* | `number` | required | Annual yield (decimal). |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### inflation_linked_bond_pricer
 
@@ -666,12 +666,12 @@ Formula (LaTeX): `P=\sum_{i=1}^{n}\left[\frac{F c_r}{m}(1+\pi)^{t_i}\right]\left
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `real_coupon_rate`* | `number` | required |  |
-| `real_yield`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `inflation_rate`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `face_value`* | `number` | required | Base (un-indexed) par value. |
+| `real_coupon_rate`* | `number` | required | Annual real coupon rate (decimal). |
+| `real_yield`* | `number` | required | Annual real yield (decimal). |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `inflation_rate`* | `number` | required | Assumed annual inflation (decimal). |
+| `frequency` | `integer` | `2` | Coupon payments per year. |
 
 ### callable_bond_pricer
 
@@ -689,13 +689,13 @@ Formula (LaTeX): `V_j^{(N)}=F+c; \qquad V_j^{(k)}=\min\!\left(K_{call},\ c+e^{-r
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `short_rate`* | `number` | required |  |
-| `rate_vol`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `call_price`* | `number` | required |  |
-| `frequency` | `integer` | `1` |  |
+| `face_value`* | `number` | required | Par value. |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `short_rate`* | `number` | required | Current short rate (continuous, annual). |
+| `rate_vol`* | `number` | required | Short-rate volatility. |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `call_price`* | `number` | required | Price at which the issuer may call (per face). |
+| `frequency` | `integer` | `1` | Coupon payments per year (tree steps per year). |
 
 ### puttable_bond_pricer
 
@@ -712,13 +712,13 @@ Formula (LaTeX): `V_j^{(N)}=F+c; \qquad V_j^{(k)}=\max\!\left(K_{put},\ c+e^{-r_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `short_rate`* | `number` | required |  |
-| `rate_vol`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `put_price`* | `number` | required |  |
-| `frequency` | `integer` | `1` |  |
+| `face_value`* | `number` | required | Par value. |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `short_rate`* | `number` | required | Current short rate (continuous, annual). |
+| `rate_vol`* | `number` | required | Short-rate volatility. |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `put_price`* | `number` | required | Price at which the holder may put (per face). |
+| `frequency` | `integer` | `1` | Coupon payments per year (tree steps per year). |
 
 ### convertible_bond_pricer
 
@@ -736,13 +736,13 @@ Formula (LaTeX): `P=\max\big(P_{floor},\ \text{ratio}\cdot S\big), \qquad P_{flo
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `conversion_ratio`* | `number` | required |  |
-| `stock_price`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `face_value`* | `number` | required | Par value. |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `yield_rate`* | `number` | required | Straight-bond discount yield (decimal). |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `conversion_ratio`* | `number` | required | Shares received per bond on conversion. |
+| `stock_price`* | `number` | required | Current share price. |
+| `frequency` | `integer` | `2` | Coupon payments per year. |
 
 ## Bond Analytics
 
@@ -757,10 +757,10 @@ Formula (LaTeX): `D_{mod}=\frac{D_{Mac}}{1+y/m},\qquad D_{Mac}=\frac{\sum_k t_k\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `yield_rate`* | `number` | required | Annual yield (decimal). |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### effective_duration
 
@@ -773,10 +773,10 @@ Formula (LaTeX): `D_{eff}=\frac{P_- - P_+}{2\,P_0\,\Delta y}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `price_base`* | `number` | required |  |
-| `price_up`* | `number` | required |  |
-| `price_down`* | `number` | required |  |
-| `yield_shock`* | `number` | required |  |
+| `price_base`* | `number` | required | Price at the base yield. |
+| `price_up`* | `number` | required | Price after +``yield_shock``. |
+| `price_down`* | `number` | required | Price after −``yield_shock``. |
+| `yield_shock`* | `number` | required | Size of the parallel yield shock (decimal). |
 
 ### convexity
 
@@ -790,10 +790,10 @@ Formula (LaTeX): `C=\frac{1}{P}\sum_k CF_k\, t_k\left(t_k+\frac{1}{m}\right)\lef
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `yield_rate`* | `number` | required | Annual yield (decimal). |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### dv01_pvbp
 
@@ -805,10 +805,10 @@ Formula (LaTeX): `DV01=P(y-0.5\,\text{bp})-P(y+0.5\,\text{bp}), \quad \text{bp}=
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `yield_rate`* | `number` | required | Annual yield (decimal). |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### yield_to_maturity
 
@@ -821,10 +821,10 @@ Formula (LaTeX): `P=\sum_k CF_k\left(1+\frac{y}{m}\right)^{-m t_k},\quad \text{s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `price`* | `number` | required |  |
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `price`* | `number` | required | Observed dirty price. |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### yield_to_call
 
@@ -837,12 +837,12 @@ Formula (LaTeX): `P=\sum_{i=1}^{n}\frac{F c_r/m}{(1+y_{tc}/m)^{i}}+\frac{K_{call
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `price`* | `number` | required |  |
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `call_price`* | `number` | required |  |
-| `call_date`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `price`* | `number` | required | Observed dirty price. |
+| `face_value`* | `number` | required | Par value (for coupon sizing). |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `call_price`* | `number` | required | Redemption price at the call date. |
+| `call_date`* | `number` | required | Time to the call date in years. |
+| `frequency` | `integer` | `2` | Coupon payments per year. |
 
 ### asset_swap_spread
 
@@ -866,13 +866,13 @@ Formula (LaTeX): `ASW = \frac{PV_{bond} - R}{\text{Annuity}\cdot F}, \\ R = \beg
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bond_price`* | `number` | required |  |
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `swap_rates`* | `number[] or number[][]` | required |  |
-| `face_value` | `number` | `100.0` |  |
-| `frequency` | `integer` | `2` |  |
-| `use_market_price` | `boolean` | `False` |  |
+| `bond_price`* | `number` | required | Bond dirty price. Used as the reference price only when ``use_market_price=True``; otherwise accepted but ignored (the default preserves this function's original par-referenced behaviour). |
+| `cashflows`* | `number[] or number[][]` | required | Bond cashflows. |
+| `times`* | `number[] or number[][]` | required | Cashflow times (years). |
+| `swap_rates`* | `number[] or number[][]` | required | Per-period swap zero rate (decimal). |
+| `face_value` | `number` | `100.0` | Par value. Used as the reference price when ``use_market_price=False`` (the default). |
+| `frequency` | `integer` | `2` | Payment frequency per year. |
+| `use_market_price` | `boolean` | `False` | If True, use ``bond_price`` (the actual dirty price) as the reference price instead of ``face_value``. Default False preserves prior behaviour exactly. |
 
 ### z_spread_calculator
 
@@ -884,11 +884,11 @@ Formula (LaTeX): `P=\sum_k CF_k\left(1+\frac{z_{0,k}+z}{m}\right)^{-m t_k},\quad
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `price`* | `number` | required |  |
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `zero_rates`* | `number[] or number[][]` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `price`* | `number` | required | Observed dirty price. |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `zero_rates`* | `number[] or number[][]` | required | Zero (spot) rate per cashflow (decimal, annualised). |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ### oas_option_adjusted_spread
 
@@ -907,14 +907,14 @@ Formula (LaTeX): `\text{Solve } s^{*} \text{ such that } P_{callable}\big(F,c_r,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `market_price`* | `number` | required |  |
-| `face_value`* | `number` | required |  |
-| `coupon_rate`* | `number` | required |  |
-| `short_rate`* | `number` | required |  |
-| `rate_vol`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `call_price`* | `number` | required |  |
-| `frequency` | `integer` | `1` |  |
+| `market_price`* | `number` | required | Observed market price of the callable bond. |
+| `face_value`* | `number` | required | Par value. |
+| `coupon_rate`* | `number` | required | Annual coupon rate (decimal). |
+| `short_rate`* | `number` | required | Current short rate (continuous, annual). |
+| `rate_vol`* | `number` | required | Short-rate volatility. |
+| `maturity`* | `number` | required | Time to maturity in years. |
+| `call_price`* | `number` | required | Issuer call strike (per face). |
+| `frequency` | `integer` | `1` | Coupon payments / tree steps per year. |
 
 ### duration_macaulay
 
@@ -924,10 +924,10 @@ Formula (LaTeX): `D_{Mac}=\frac{\sum_k t_k\, CF_k\left(1+\frac{y}{m}\right)^{-m 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required |  |
-| `times`* | `number[] or number[][]` | required |  |
-| `yield_rate`* | `number` | required |  |
-| `frequency` | `integer` | `2` |  |
+| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
+| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
+| `yield_rate`* | `number` | required | Annual yield (decimal). |
+| `frequency` | `integer` | `2` | Compounding frequency per year. |
 
 ## Yield Curve Construction
 
@@ -943,9 +943,9 @@ Formula (LaTeX): `y(t)=\beta_0+\beta_1\frac{1-e^{-t/\tau}}{t/\tau}+\beta_2\left(
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `maturities`* | `number[] or number[][]` | required |  |
-| `yields`* | `number[] or number[][]` | required |  |
-| `tau_init` | `number` | `1.5` |  |
+| `maturities`* | `number[] or number[][]` | required | Observed maturities in years (> 0). |
+| `yields`* | `number[] or number[][]` | required | Observed yields (decimal) at those maturities. |
+| `tau_init` | `number` | `1.5` | Initial guess for the decay parameter. |
 
 ### nelson_siegel_svensson_curve
 
@@ -958,10 +958,10 @@ Formula (LaTeX): `y(t)=\beta_0+\beta_1 f_1(t)+\beta_2\big(f_1(t)-e^{-t/\tau_1}\b
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `maturities`* | `number[] or number[][]` | required |  |
-| `yields`* | `number[] or number[][]` | required |  |
-| `tau1_init` | `number` | `1.5` |  |
-| `tau2_init` | `number` | `8.0` |  |
+| `maturities`* | `number[] or number[][]` | required | Observed maturities in years (> 0). |
+| `yields`* | `number[] or number[][]` | required | Observed yields (decimal). |
+| `tau1_init` | `number` | `1.5` | Initial first decay parameter. |
+| `tau2_init` | `number` | `8.0` | Initial second decay parameter. |
 
 ### bootstrap_yield_curve
 
@@ -974,10 +974,10 @@ Formula (LaTeX): `DF_i=\frac{F-\sum_{j<i} c_i\,DF_j}{F+c_i},\qquad c_i=\frac{p_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `par_rates`* | `number[] or number[][]` | required |  |
-| `maturities`* | `number[] or number[][]` | required |  |
-| `frequency` | `integer` | `1` |  |
-| `face_value` | `number` | `1.0` |  |
+| `par_rates`* | `number[] or number[][]` | required | Par coupon rate per maturity (decimal). |
+| `maturities`* | `number[] or number[][]` | required | Maturities in years, ascending, evenly spaced by 1/freq. |
+| `frequency` | `integer` | `1` | Coupon frequency per year. |
+| `face_value` | `number` | `1.0` | Par value (defaults to 1). |
 
 ### swap_rate_curve
 
@@ -990,9 +990,9 @@ Formula (LaTeX): `S_i=\frac{1-DF_i}{\sum_{j\le i}\tau\,DF_j},\qquad \tau=\frac1m
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `discount_factors`* | `number[] or number[][]` | required |  |
-| `maturities`* | `number[] or number[][]` | required |  |
-| `frequency` | `integer` | `1` |  |
+| `discount_factors`* | `number[] or number[][]` | required | Discount factor per maturity (descending in (0, 1]). |
+| `maturities`* | `number[] or number[][]` | required | Maturities in years, ascending. |
+| `frequency` | `integer` | `1` | Fixed-leg payment frequency per year. |
 
 ### ois_curve_sonia_sofr
 
@@ -1005,9 +1005,9 @@ Formula (LaTeX): `DF_i=\frac{1-r_i A_{i-1}}{1+r_i\tau},\qquad A_i=A_{i-1}+\tau\,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `ois_rates`* | `number[] or number[][]` | required |  |
-| `maturities`* | `number[] or number[][]` | required |  |
-| `frequency` | `integer` | `1` |  |
+| `ois_rates`* | `number[] or number[][]` | required | Quoted OIS rate per maturity (decimal). |
+| `maturities`* | `number[] or number[][]` | required | Maturities in years, ascending. |
+| `frequency` | `integer` | `1` | Fixed-leg payment frequency per year. |
 
 ## Swaps, Caps, Swaptions & Rate Models
 
@@ -1023,15 +1023,15 @@ Formula (LaTeX): `PV_{dom}=N_d\Big(r_d\sum_i\tau_iDF_i^d+DF_n^d\Big), \\ PV_{for
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional_dom`* | `number` | required |  |
-| `notional_for`* | `number` | required |  |
-| `fixed_rate_dom`* | `number` | required |  |
-| `fixed_rate_for`* | `number` | required |  |
-| `df_dom`* | `number[] or number[][]` | required |  |
-| `df_for`* | `number[] or number[][]` | required |  |
-| `accruals`* | `number[] or number[][]` | required |  |
-| `fx_spot`* | `number` | required |  |
-| `pay_domestic` | `boolean` | `True` |  |
+| `notional_dom`* | `number` | required | Domestic notional. |
+| `notional_for`* | `number` | required | Foreign notional. |
+| `fixed_rate_dom`* | `number` | required | Domestic fixed rate (decimal). |
+| `fixed_rate_for`* | `number` | required | Foreign fixed rate (decimal). |
+| `df_dom`* | `number[] or number[][]` | required | Domestic discount factors per payment date. |
+| `df_for`* | `number[] or number[][]` | required | Foreign discount factors per payment date. |
+| `accruals`* | `number[] or number[][]` | required | Year-fraction per period (shared schedule). |
+| `fx_spot`* | `number` | required | Spot FX (domestic per 1 unit foreign). |
+| `pay_domestic` | `boolean` | `True` | Direction flag. |
 
 ### overnight_index_swap_ois
 
@@ -1044,12 +1044,12 @@ Formula (LaTeX): `V=N\,(r_{comp}-r_{fix})\,\tau\,DF`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `fixed_rate`* | `number` | required |  |
-| `compounded_rate`* | `number` | required |  |
-| `accrual`* | `number` | required |  |
-| `discount_factor`* | `number` | required |  |
-| `pay_fixed` | `boolean` | `True` |  |
+| `notional`* | `number` | required | Swap notional. |
+| `fixed_rate`* | `number` | required | Fixed OIS rate (decimal). |
+| `compounded_rate`* | `number` | required | Realised/projected compounded overnight rate (decimal). |
+| `accrual`* | `number` | required | Year-fraction of the period. |
+| `discount_factor`* | `number` | required | Discount factor to payment. |
+| `pay_fixed` | `boolean` | `True` | True if paying fixed (receiving floating). |
 
 ### total_return_swap_trs
 
@@ -1062,12 +1062,12 @@ Formula (LaTeX): `V=N\,(R_{asset}-r_{fin}\tau)\,DF`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `asset_return`* | `number` | required |  |
-| `financing_rate`* | `number` | required |  |
-| `accrual`* | `number` | required |  |
-| `discount_factor`* | `number` | required |  |
-| `receive_total_return` | `boolean` | `True` |  |
+| `notional`* | `number` | required | Reference notional. |
+| `asset_return`* | `number` | required | Period total return of the reference asset (decimal). |
+| `financing_rate`* | `number` | required | Financing rate (decimal, annual). |
+| `accrual`* | `number` | required | Year-fraction. |
+| `discount_factor`* | `number` | required | Discount factor to payment. |
+| `receive_total_return` | `boolean` | `True` | Direction flag. |
 
 ### credit_default_swap_cds_pricer
 
@@ -1097,13 +1097,13 @@ Formula (LaTeX): `Q_i=e^{-\lambda t_i},\qquad DF_i=e^{-r t_i},\qquad t_i=\frac{i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `spread`* | `number` | required |  |
-| `hazard_rate`* | `number` | required |  |
-| `recovery_rate`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `discount_rate`* | `number` | required |  |
-| `frequency` | `integer` | `4` |  |
+| `notional`* | `number` | required | CDS notional. |
+| `spread`* | `number` | required | Contractual spread (decimal, annual). |
+| `hazard_rate`* | `number` | required | Constant hazard rate λ (decimal). |
+| `recovery_rate`* | `number` | required | Recovery rate R in [0, 1). |
+| `maturity`* | `number` | required | CDS maturity in years. |
+| `discount_rate`* | `number` | required | Flat continuous discount rate. |
+| `frequency` | `integer` | `4` | Premium payment frequency per year. |
 
 ### equity_swap_pricer
 
@@ -1115,12 +1115,12 @@ Formula (LaTeX): `V=N\,(R_{eq}-r_f\tau)\,DF`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `equity_return`* | `number` | required |  |
-| `funding_rate`* | `number` | required |  |
-| `accrual`* | `number` | required |  |
-| `discount_factor`* | `number` | required |  |
-| `receive_equity` | `boolean` | `True` |  |
+| `notional`* | `number` | required | Reference notional. |
+| `equity_return`* | `number` | required | Period equity total return (decimal). |
+| `funding_rate`* | `number` | required | Funding rate (decimal, annual). |
+| `accrual`* | `number` | required | Year-fraction. |
+| `discount_factor`* | `number` | required | Discount factor to payment. |
+| `receive_equity` | `boolean` | `True` | Direction flag. |
 
 ### caplet_floorlet_pricer_black
 
@@ -1133,14 +1133,14 @@ Formula (LaTeX): `\text{Caplet}=N\,\tau\,DF\big[fN(d_1)-KN(d_2)\big], \\ \text{F
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `forward_rate`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `vol`* | `number` | required |  |
-| `expiry`* | `number` | required |  |
-| `accrual`* | `number` | required |  |
-| `discount_factor`* | `number` | required |  |
-| `option_type` | `string` | `'caplet'` |  |
+| `notional`* | `number` | required | Notional. |
+| `forward_rate`* | `number` | required | Forward LIBOR/index rate (decimal). |
+| `strike`* | `number` | required | Cap/floor strike (decimal). |
+| `vol`* | `number` | required | Black volatility of the forward rate. |
+| `expiry`* | `number` | required | Time to caplet fixing (years). |
+| `accrual`* | `number` | required | Year-fraction of the accrual period. |
+| `discount_factor`* | `number` | required | Discount factor to payment. |
+| `option_type` | `string` | `'caplet'` | ``"caplet"`` or ``"floorlet"``. |
 
 ### cap_floor_pricer
 
@@ -1150,14 +1150,14 @@ Formula (LaTeX): `\text{Price}=\sum_i N\,\tau_i\,DF_i\big[f_iN(d_{1,i})-KN(d_{2,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `forward_rates`* | `number[] or number[][]` | required |  |
-| `strike`* | `number` | required |  |
-| `vols`* | `number[] or number[][]` | required |  |
-| `expiries`* | `number[] or number[][]` | required |  |
-| `accruals`* | `number[] or number[][]` | required |  |
-| `discount_factors`* | `number[] or number[][]` | required |  |
-| `option_type` | `string` | `'cap'` |  |
+| `notional`* | `number` | required | Notional. |
+| `forward_rates`* | `number[] or number[][]` | required | Forward rate per caplet period. |
+| `strike`* | `number` | required | Common strike (decimal). |
+| `vols`* | `number[] or number[][]` | required | Black vol per caplet. |
+| `expiries`* | `number[] or number[][]` | required | Fixing time per caplet (years). |
+| `accruals`* | `number[] or number[][]` | required | Year-fraction per period. |
+| `discount_factors`* | `number[] or number[][]` | required | Discount factor per payment date. |
+| `option_type` | `string` | `'cap'` | ``"cap"`` or ``"floor"``. |
 
 ### swaption_pricer_black
 
@@ -1170,13 +1170,13 @@ Formula (LaTeX): `\text{Price}_{payer}=N\cdot A\cdot\big[FN(d_1)-KN(d_2)\big], \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `forward_swap_rate`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `vol`* | `number` | required |  |
-| `expiry`* | `number` | required |  |
-| `annuity`* | `number` | required |  |
-| `option_type` | `string` | `'payer'` |  |
+| `notional`* | `number` | required | Swap notional. |
+| `forward_swap_rate`* | `number` | required | Forward par swap rate (decimal). |
+| `strike`* | `number` | required | Strike swap rate (decimal). |
+| `vol`* | `number` | required | Black volatility of the swap rate. |
+| `expiry`* | `number` | required | Time to swaption expiry (years). |
+| `annuity`* | `number` | required | PV of a 1-unit fixed annuity (level / PVBP). |
+| `option_type` | `string` | `'payer'` | ``"payer"`` or ``"receiver"``. |
 
 ### swaption_pricer_sabr
 
@@ -1189,16 +1189,16 @@ Formula (LaTeX): `\sigma_{SABR}=\text{Hagan}(F,K,T,\alpha,\beta,\rho,\nu)\ \text
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `forward_swap_rate`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `expiry`* | `number` | required |  |
-| `annuity`* | `number` | required |  |
-| `alpha`* | `number` | required |  |
-| `beta`* | `number` | required |  |
-| `rho`* | `number` | required |  |
-| `nu`* | `number` | required |  |
-| `option_type` | `string` | `'payer'` |  |
+| `notional`* | `number` | required | Swap notional. |
+| `forward_swap_rate`* | `number` | required | Forward par swap rate (decimal). |
+| `strike`* | `number` | required | Strike swap rate (decimal). |
+| `expiry`* | `number` | required | Time to expiry (years). |
+| `annuity`* | `number` | required | PV of a 1-unit fixed annuity. |
+| `alpha`* | `number` | required | SABR initial vol level. |
+| `beta`* | `number` | required | SABR CEV exponent in [0, 1]. |
+| `rho`* | `number` | required | SABR correlation. |
+| `nu`* | `number` | required | SABR vol-of-vol. |
+| `option_type` | `string` | `'payer'` | ``"payer"`` or ``"receiver"``. |
 
 ### lmm_bgm_rate_model
 
@@ -1220,13 +1220,13 @@ Formula (LaTeX): `\mu_i(f)=\sum_{j\le i}\frac{\tau f_j\sigma_j\sigma_i}{1+\tau f
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `forward_rates`* | `number[] or number[][]` | required |  |
-| `vols`* | `number[] or number[][]` | required |  |
-| `tenor`* | `number` | required |  |
-| `horizon`* | `number` | required |  |
-| `n_steps` | `integer` | `20` |  |
-| `n_simulations` | `integer` | `20000` |  |
-| `seed` | `integer` | `104` |  |
+| `forward_rates`* | `number[] or number[][]` | required | Initial forward rates per tenor (decimal, > 0). |
+| `vols`* | `number[] or number[][]` | required | Lognormal vol per forward rate. |
+| `tenor`* | `number` | required | Accrual length of each forward (years). |
+| `horizon`* | `number` | required | Simulation horizon (years, > 0). |
+| `n_steps` | `integer` | `20` | Time steps to the horizon. |
+| `n_simulations` | `integer` | `20000` | Number of paths. |
+| `seed` | `integer` | `104` | RNG seed. |
 
 ### forward_rate_agreement_fra
 
@@ -1239,12 +1239,12 @@ Formula (LaTeX): `V=N\,(f-K)\,\tau\,DF,\qquad \tau=T_{end}-T_{start}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `fra_rate`* | `number` | required |  |
-| `forward_rate`* | `number` | required |  |
-| `start`* | `number` | required |  |
-| `end`* | `number` | required |  |
-| `discount_factor`* | `number` | required |  |
+| `notional`* | `number` | required | Contract notional. |
+| `fra_rate`* | `number` | required | Contracted (fixed) FRA rate (decimal). |
+| `forward_rate`* | `number` | required | Projected forward rate over [start, end] (decimal). |
+| `start`* | `number` | required | Accrual start in years. |
+| `end`* | `number` | required | Accrual end in years (> start). |
+| `discount_factor`* | `number` | required | Discount factor to the settlement (end) date. |
 
 ### interest_rate_swap_irs_pricer
 
@@ -1258,12 +1258,12 @@ Formula (LaTeX): `V=N\left(\sum_i f_i\tau_i DF_i-K\sum_i\tau_i DF_i\right),\qqua
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required |  |
-| `fixed_rate`* | `number` | required |  |
-| `forward_rates`* | `number[] or number[][]` | required |  |
-| `discount_factors`* | `number[] or number[][]` | required |  |
-| `accruals`* | `number[] or number[][]` | required |  |
-| `pay_fixed` | `boolean` | `True` |  |
+| `notional`* | `number` | required | Swap notional. |
+| `fixed_rate`* | `number` | required | Fixed-leg rate (decimal). |
+| `forward_rates`* | `number[] or number[][]` | required | Projected float index rate per period (decimal). |
+| `discount_factors`* | `number[] or number[][]` | required | Discount factor per payment date. |
+| `accruals`* | `number[] or number[][]` | required | Year-fraction per period. |
+| `pay_fixed` | `boolean` | `True` | True for payer swap (long float), False for receiver. |
 
 ## Short-Rate Models
 
@@ -1283,14 +1283,14 @@ Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW, \qquad B=\frac{1-e^{-\kapp
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `r0`* | `number` | required |  |
-| `kappa`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `theta_const` | `number` | `0.03` |  |
-| `n_steps` | `integer` | `100` |  |
-| `n_simulations` | `integer` | `50000` |  |
-| `seed` | `integer` | `103` |  |
+| `r0`* | `number` | required | Initial short rate. |
+| `kappa`* | `number` | required | Mean-reversion speed (> 0). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `maturity`* | `number` | required | Bond maturity (years, > 0). |
+| `theta_const` | `number` | `0.03` | Constant mean-reversion level. |
+| `n_steps` | `integer` | `100` | MC time steps. |
+| `n_simulations` | `integer` | `50000` | MC paths. |
+| `seed` | `integer` | `103` | RNG seed. |
 
 ### cox_ingersoll_ross_model
 
@@ -1309,14 +1309,14 @@ Formula (LaTeX): `\gamma=\sqrt{\kappa^2+2\sigma^2},\qquad B=\frac{2(e^{\gamma T}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `r0`* | `number` | required |  |
-| `kappa`* | `number` | required |  |
-| `theta`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `n_steps` | `integer` | `100` |  |
-| `n_simulations` | `integer` | `50000` |  |
-| `seed` | `integer` | `102` |  |
+| `r0`* | `number` | required | Initial short rate (>= 0). |
+| `kappa`* | `number` | required | Mean-reversion speed (> 0). |
+| `theta`* | `number` | required | Long-run mean (> 0). |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `maturity`* | `number` | required | Bond maturity in years (> 0). |
+| `n_steps` | `integer` | `100` | MC time steps (exact scheme -- affects only path granularity, not terminal-distribution accuracy). |
+| `n_simulations` | `integer` | `50000` | MC paths. |
+| `seed` | `integer` | `102` | RNG seed. |
 
 ### vasicek_interest_rate_model
 
@@ -1329,14 +1329,14 @@ Formula (LaTeX): `dr=\kappa(\theta-r)\,dt+\sigma\,dW, \qquad B=\frac{1-e^{-\kapp
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `r0`* | `number` | required |  |
-| `kappa`* | `number` | required |  |
-| `theta`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `maturity`* | `number` | required |  |
-| `n_steps` | `integer` | `100` |  |
-| `n_simulations` | `integer` | `50000` |  |
-| `seed` | `integer` | `101` |  |
+| `r0`* | `number` | required | Initial short rate. |
+| `kappa`* | `number` | required | Mean-reversion speed (> 0). |
+| `theta`* | `number` | required | Long-run mean. |
+| `sigma`* | `number` | required | Volatility (> 0). |
+| `maturity`* | `number` | required | Bond maturity in years (> 0). |
+| `n_steps` | `integer` | `100` | MC time steps. |
+| `n_simulations` | `integer` | `50000` | MC paths. |
+| `seed` | `integer` | `101` | RNG seed. |
 
 ## FX Derivatives
 
@@ -1352,12 +1352,12 @@ Formula (LaTeX): `F=S\,e^{(r_d-r_f)\tau},\qquad V=N\,(F-K_{fwd})\,e^{-r_d\tau}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `rate_domestic`* | `number` | required |  |
-| `rate_foreign`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `notional` | `number` | `1.0` |  |
-| `contracted_forward` | `number or null` | `None` |  |
+| `spot`* | `number` | required | Spot FX (domestic per 1 foreign). |
+| `rate_domestic`* | `number` | required | Domestic continuous rate. |
+| `rate_foreign`* | `number` | required | Foreign continuous rate. |
+| `tau`* | `number` | required | Time to delivery (years, > 0). |
+| `notional` | `number` | `1.0` | Foreign-currency notional. |
+| `contracted_forward` | `number or null` | `None` | Optional contracted forward rate for MtM. |
 
 ### fx_option_pricer_garman_kohlhagen
 
@@ -1371,11 +1371,11 @@ Formula (LaTeX): `C=S e^{-r_f\tau}N(d_1)-K e^{-r_d\tau}N(d_2),\qquad P=Ke^{-r_d\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required |  |
-| `strike`* | `number` | required |  |
-| `rate_domestic`* | `number` | required |  |
-| `rate_foreign`* | `number` | required |  |
-| `sigma`* | `number` | required |  |
-| `tau`* | `number` | required |  |
-| `option_type` | `string` | `'call'` |  |
-| `notional` | `number` | `1.0` |  |
+| `spot`* | `number` | required | Spot FX (domestic per 1 foreign). |
+| `strike`* | `number` | required | Strike FX. |
+| `rate_domestic`* | `number` | required | Domestic continuous rate. |
+| `rate_foreign`* | `number` | required | Foreign continuous rate. |
+| `sigma`* | `number` | required | FX volatility (> 0). |
+| `tau`* | `number` | required | Time to maturity (years, > 0). |
+| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `notional` | `number` | `1.0` | Foreign-currency notional. |
