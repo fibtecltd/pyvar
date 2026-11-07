@@ -30,7 +30,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import param_docs
+import param_docs  # noqa: E402
 
 DOMAIN_FILES = (
     "alm",

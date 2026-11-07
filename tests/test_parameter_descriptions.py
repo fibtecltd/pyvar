@@ -26,7 +26,7 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-import param_docs
+import param_docs  # noqa: E402
 
 # An engine argument the API model does not expose: liquidity_gap_analysis(opening_balance=...) was added to
 # the engine after its model was generated, so a client that sends it is silently ignored. Listed here so
