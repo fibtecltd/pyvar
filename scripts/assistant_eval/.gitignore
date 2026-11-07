@@ -1,0 +1,4 @@
+# Generated: case sets and run output (results, traces, judgments) are large and reproducible.
+# The numbers that matter are written up in docs/assistant-phase0-results.md.
+runs/
+*.jsonl
