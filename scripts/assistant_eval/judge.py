@@ -3,8 +3,8 @@
 Reasoning:
 - graders.py proves an answer names nothing that is not in the record and states no number that is not in
   the record. It cannot tell whether an explanation is *true* beyond the record, or whether example values
-  are *plausible* (the request schemas carry no bounds and no parameter descriptions, so nothing mechanical
-  can). This judge reads the record and the answer and answers four yes/no questions with short reasons.
+  are *plausible* (the request schemas carry no numeric bounds and the parameter descriptions are prose, so
+  nothing mechanical can). This judge reads the record and the answer and answers four yes/no questions with short reasons.
 - The judge is a different, stronger model than the one under test (default claude-opus-5-5, against
   claude-haiku-5-5 or claude-sonnet-5-5), so a model is never grading its own style. Its cost is recorded
   separately from the generator's.

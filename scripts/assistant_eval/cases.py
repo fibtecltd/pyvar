@@ -31,7 +31,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from body_schema import inline_refs
+from body_schema import inline_refs  # noqa: E402
 
 SEED = 20261107
 DESCRIPTION_LIMIT = 1500
@@ -85,6 +85,7 @@ def trim_record(entry: dict[str, Any]) -> dict[str, Any]:
                 "type": p["type"],
                 "required": p["required"],
                 "default": p["default"],
+                "description": p.get("description"),
             }
             for p in entry["params"]
         ],

@@ -6,9 +6,9 @@ Reasoning:
   functions: type, items, anyOf, properties, required, additionalProperties, plus annotations (default,
   title, description). This checker implements those and nothing else, so the eval and, later, the
   assistant's server-side check need no extra dependency (the CI image has no `jsonschema`).
-- It checks shape and types, not meaning. The schemas carry no numeric bounds and no parameter
-  descriptions (measured 2026-11-07: 0 of 1,577 properties have either), so "plausible values" cannot
-  be checked here; the judge (judge.py) and a human read have to do that.
+- It checks shape and types, not meaning. The schemas carry no numeric bounds (measured 2026-11-07: 0 of
+  1,577 properties have one; the parameter descriptions added from the engine docstrings are prose), so
+  "plausible values" cannot be checked here; the judge (judge.py) and a human read have to do that.
 - Unknown top-level keys are errors: the API would ignore them, but in a suggestion they are an invented
   parameter name, which is exactly what a visitor must never be shown.
 """

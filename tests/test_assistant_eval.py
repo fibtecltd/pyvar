@@ -23,13 +23,13 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent
 sys.path.append(str(REPO / "scripts" / "assistant_eval"))
 
-import body_schema
-import cases as case_builder
-import cost
-import graders
-import judge
-import prompts
-import run_eval
+import body_schema  # noqa: E402
+import cases as case_builder  # noqa: E402
+import cost  # noqa: E402
+import graders  # noqa: E402
+import judge  # noqa: E402
+import prompts  # noqa: E402
+import run_eval  # noqa: E402
 
 RECORD: dict[str, Any] = {
     "name": "liquidity_coverage_ratio_lcr",
@@ -566,3 +566,26 @@ def test_judge_summary_keeps_its_own_cost_and_flags_unfaithful_answers() -> None
     assert summary["unparsed"] == 1 and summary["judge_cost_usd"] == pytest.approx(0.04)
     assert summary["faithful"]["n"] == 2 and summary["faithful"]["rate"] == 0.5
     assert [f["case_id"] for f in summary["flagged"]] == ["b"]
+
+
+def test_the_record_shows_each_parameters_description_and_tolerates_its_absence() -> None:
+    entry = {
+        "name": "f",
+        "display_name": "F",
+        "domain_label": "Market risk",
+        "summary": "s",
+        "description": "d",
+        "params": [
+            {
+                "name": "alpha",
+                "type": "number",
+                "required": True,
+                "default": None,
+                "description": "Confidence level, for example 0.99.",
+            },
+            {"name": "beta", "type": "number", "required": False, "default": 1},
+        ],
+    }
+    parameters = case_builder.trim_record(entry)["parameters"]
+    assert parameters[0]["description"] == "Confidence level, for example 0.99."
+    assert parameters[1]["description"] is None

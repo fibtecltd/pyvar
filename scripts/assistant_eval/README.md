@@ -47,8 +47,11 @@ resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `trac
 ## What it cannot tell you
 
 - Whether prose is true beyond the record. The catalogue has a one-line summary, a formula and symbol map, and
-  often a short description. **None of the 1,577 parameters has a description or a bound** (in the catalogue
-  or the OpenAPI schema), so what a parameter means can only come from its name and the formula.
-- Whether example values are plausible or whether the API accepts them: the schemas carry no bounds, and
-  arrays are kept to 10 items, which a function that needs a longer series may reject.
+  often a short description. Each parameter carries the `Args:` text of its engine docstring (added to the
+  API models in the same PR; before it, none of the 1,577 had one), and the record shows that text to the
+  model. The descriptions are unreviewed beyond spot checks, so a wrong or thin one is a source of wrong
+  answers that the mechanical graders cannot see, because they only check against the record.
+- Whether example values are plausible or whether the API accepts them: the schemas carry no numeric bounds
+  (the descriptions sometimes state a range in words), and arrays are kept to 10 items, which a function
+  that needs a longer series may reject.
 - How a real visitor behaves. There is no visitor text in this design; the cases come from the catalogue.
