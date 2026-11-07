@@ -15,9 +15,9 @@ Formula (LaTeX): `VaR_\alpha = L_{(\lfloor \alpha n\rfloor)},\quad CVaR_\alpha =
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns (fraction, not pct). |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999], e.g. 0.99. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### filtered_historical_simulation_var
 
@@ -32,10 +32,10 @@ Formula (LaTeX): `\sigma_t^2=\lambda\sigma_{t-1}^2+(1-\lambda)r_{t-1}^2,\quad z_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
-| `lambda_decay` | `number` | `0.94` | EWMA decay factor (RiskMetrics default 0.94). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `lambda_decay` | `number` | `0.94` |  |
 
 ### parametric_delta_normal_var
 
@@ -48,11 +48,11 @@ Formula (LaTeX): `VaR_\alpha = z_\alpha\sqrt{w^\top\Sigma w}\,\sqrt{h}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset (need not sum to 1). |
-| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix (per-period). |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
-| `horizon_days` | `integer` | `1` | Risk horizon in trading days (sqrt-time scaling). |
+| `weights`* | `number[] or number[][]` | required |  |
+| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `horizon_days` | `integer` | `1` |  |
 
 ### cornish_fisher_var
 
@@ -66,11 +66,11 @@ Formula (LaTeX): `z_{CF} = z_\alpha + \frac{z_\alpha^2-1}{6}S + \frac{z_\alpha^3
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
-| `skewness` | `number or null` | `None` | Override sample skewness (computed from data if None). |
-| `excess_kurtosis` | `number or null` | `None` | Override sample excess kurtosis (computed if None). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `skewness` | `number or null` | `None` |  |
+| `excess_kurtosis` | `number or null` | `None` |  |
 
 ### component_var
 
@@ -85,10 +85,10 @@ Formula (LaTeX): `VaR_i = z_\alpha\,\frac{w_i(\Sigma w)_i}{\sigma_p},\quad \sigm
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
-| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
+| `weights`* | `number[] or number[][]` | required |  |
+| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### marginal_var
 
@@ -101,9 +101,9 @@ Formula (LaTeX): `\frac{\partial VaR}{\partial w_i} = z_\alpha\,\frac{(\Sigma w)
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
-| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
+| `weights`* | `number[] or number[][]` | required |  |
+| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### incremental_var
 
@@ -116,11 +116,11 @@ Formula (LaTeX): `IVaR_i = z_\alpha\sqrt{w^\top\Sigma w} - z_\alpha\sqrt{w_{(-i)
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
-| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
-| `position_index`* | `integer` | required | Index of the position whose contribution is measured. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
+| `weights`* | `number[] or number[][]` | required |  |
+| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `position_index`* | `integer` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### var_by_risk_factor
 
@@ -135,11 +135,11 @@ Formula (LaTeX): `VaR_i = z_\alpha\,\frac{b_i(Fb)_i}{\sigma_p},\quad \sigma_p=\s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_exposures`* | `number[] or number[][]` | required | Portfolio sensitivity (beta) to each risk factor. |
-| `factor_cov`* | `number[] or number[][]` | required | Risk-factor covariance matrix. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
-| `factor_names` | `string[] or null` | `None` | Optional labels; defaults to ``factor_0, factor_1, ...``. |
+| `factor_exposures`* | `number[] or number[][]` | required |  |
+| `factor_cov`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `factor_names` | `string[] or null` | `None` |  |
 
 ### var_fan_chart
 
@@ -153,10 +153,10 @@ Formula (LaTeX): `VaR_\alpha(h) = z_\alpha\sigma\sqrt{h} - \mu h,\quad h = 1,\do
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_levels` | `number[]` | `[0.9, 0.95, 0.99]` | Confidence levels for the fan bands (each in [0.90, 0.9999]). |
-| `horizon_days` | `integer` | `10` | Maximum projection horizon in trading days. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_levels` | `number[]` | `[0.9, 0.95, 0.99]` |  |
+| `horizon_days` | `integer` | `10` |  |
 
 ### compute_loss_percentiles
 
@@ -168,8 +168,8 @@ Formula (LaTeX): `Q_p = L_{\big(\min(\lfloor p\,n\rfloor,\ n-1)\big)} \quad \tex
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sorted_losses`* | `number[] or number[][]` | required | Portfolio losses sorted ascending (a loss is a positive number). |
-| `percentiles` | `number[] or null` | `None` | Quantile levels between 0 and 1 to report. Defaults to 0.50, 0.75, 0.90, 0.95, 0.99 and 0.995. |
+| `sorted_losses`* | `number[] or number[][]` | required |  |
+| `percentiles` | `number[] or null` | `None` |  |
 
 ### extreme_value_theory_var
 
@@ -186,9 +186,9 @@ Formula (LaTeX): `VaR_p = u + \frac{\beta}{\xi}\left[\Big(\tfrac{n}{N_u}(1-p)\Bi
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio returns. |
-| `threshold_quantile` | `number` | `0.95` | Loss quantile defining the POT threshold (e.g. 0.95). |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999], above the threshold. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `threshold_quantile` | `number` | `0.95` |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ## Expected Shortfall
 
@@ -203,9 +203,9 @@ Formula (LaTeX): `VaR_\alpha = L_{(\lfloor \alpha n\rfloor)},\quad ES_\alpha = \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]; FRTB uses 0.975. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### compute_cvar
 
@@ -217,8 +217,8 @@ Formula (LaTeX): `ES_\alpha = \frac{1}{n-\lfloor\alpha n\rfloor}\sum_{i=\lfloor\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sorted_losses`* | `number[] or number[][]` | required | Portfolio losses sorted ascending (a loss is a positive number), so the largest losses are at the end. |
-| `confidence_level`* | `number` | required | Confidence level that sets where the tail starts, for example 0.99 (0.90 to 0.9999 at the API). The result is the mean of the losses from position floor(confidence_level x n) of the sorted array to its end. |
+| `sorted_losses`* | `number[] or number[][]` | required |  |
+| `confidence_level`* | `number` | required |  |
 
 ### historical_expected_shortfall
 
@@ -232,9 +232,9 @@ Formula (LaTeX): `VaR_\alpha = L_{(\lfloor \alpha n\rfloor)},\quad ES_\alpha = \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### monte_carlo_expected_shortfall
 
@@ -252,12 +252,12 @@ Formula (LaTeX): `P\&L_i = \sum_{t=1}^{h}(\mu+\sigma z_{i,t}),\ z_{i,t}\sim N(0,
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns (fits mu, sigma). |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]. |
-| `n_simulations` | `integer` | `100000` | Number of Monte Carlo paths. |
-| `horizon_days` | `integer` | `1` | Risk horizon in trading days. |
-| `seed` | `integer or null` | `42` | RNG seed for reproducibility. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
+| `n_simulations` | `integer` | `100000` |  |
+| `horizon_days` | `integer` | `1` |  |
+| `seed` | `integer or null` | `42` |  |
 
 ### cvar_decomposition_euler
 
@@ -271,10 +271,10 @@ Formula (LaTeX): `ES_\alpha = \sigma_p\cdot\frac{\phi(z_\alpha)}{1-\alpha},\quad
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `weights`* | `number[] or number[][]` | required | Portfolio weights per asset. |
-| `cov_matrix`* | `number[] or number[][]` | required | Asset return covariance matrix. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]. |
+| `weights`* | `number[] or number[][]` | required |  |
+| `cov_matrix`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### stressed_expected_shortfall
 
@@ -288,11 +288,11 @@ Formula (LaTeX): `W = \text{returns}[\text{stress\_start}:\text{stress\_end}] \\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | Full 1-D array of historical portfolio returns. |
-| `stress_start`* | `integer` | required | Inclusive start index of the stressed window. |
-| `stress_end`* | `integer` | required | Exclusive end index of the stressed window. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]; FRTB uses 0.975. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `stress_start`* | `integer` | required |  |
+| `stress_end`* | `integer` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### liquidity_adjusted_es
 
@@ -310,10 +310,10 @@ Formula (LaTeX): `ES_{LA} = \sqrt{ ES_{base}^2 + \sum_{j=2}^{K} \Big( ES_j \sqrt
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `es_base`* | `number` | required | Whole-portfolio ES at the base horizon T. |
-| `partial_es`* | `number[]` | required | ``ES_j`` for buckets j = 2..K (length K-1). |
-| `liquidity_horizons`* | `number[]` | required | Liquidity horizons ``LH_1..LH_K`` (length K, with ``LH_1 == base_horizon`` and non-decreasing). |
-| `base_horizon` | `number` | `10.0` | Base liquidity horizon T in days (FRTB uses 10). |
+| `es_base`* | `number` | required |  |
+| `partial_es`* | `number[]` | required |  |
+| `liquidity_horizons`* | `number[]` | required |  |
+| `base_horizon` | `number` | `10.0` |  |
 
 ### es_at_multiple_confidence_levels
 
@@ -326,9 +326,9 @@ Formula (LaTeX): `ES_{\alpha_k} = \frac{1}{n-\lfloor \alpha_k n\rfloor}\sum_{i=\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of historical portfolio returns. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_levels` | `number[]` | `[0.95, 0.975, 0.99]` | Confidence levels (each in [0.90, 0.9999]). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_levels` | `number[]` | `[0.95, 0.975, 0.99]` |  |
 
 ### expected_shortfall_contribution
 
@@ -342,10 +342,10 @@ Formula (LaTeX): `L_t = -\sum_i a_{t,i}w_i,\quad T_\alpha=\{t : L_t \text{ among
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_returns`* | `number[] or number[][]` | required | ``(T, N)`` matrix of per-asset returns over T scenarios. |
-| `weights`* | `number[] or number[][]` | required | Length-N portfolio weights. |
-| `portfolio_value`* | `number` | required | Current portfolio value in base currency. |
-| `confidence_level` | `number` | `0.975` | ES confidence in [0.90, 0.9999]. |
+| `asset_returns`* | `number[] or number[][]` | required |  |
+| `weights`* | `number[] or number[][]` | required |  |
+| `portfolio_value`* | `number` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### spectral_risk_measure
 
@@ -360,8 +360,8 @@ Formula (LaTeX): `SRM = \sum_{i=1}^{n} w_i\,L_{(i)},\quad w_i=\frac{\phi(p_i)}{\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio returns. |
-| `risk_aversion` | `number` | `25.0` | Risk-aversion coefficient k > 0 (higher = more tail-weighted). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `risk_aversion` | `number` | `25.0` |  |
 
 ## Stress Testing
 
@@ -376,8 +376,8 @@ Formula (LaTeX): `PnL_t = \sum_f h_{t,f}\,e_f,\quad worst = \min_t PnL_t`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Length-F currency P&L per unit move of each risk factor. |
-| `historical_factor_returns`* | `number[] or number[][]` | required | ``(T, F)`` matrix of historical factor moves. |
+| `exposures`* | `number[] or number[][]` | required |  |
+| `historical_factor_returns`* | `number[] or number[][]` | required |  |
 
 ### hypothetical_multi_factor_scenario
 
@@ -390,8 +390,8 @@ Formula (LaTeX): `PnL = \sum_i e_i\,s_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Length-F currency P&L per unit factor move. |
-| `shocks`* | `number[] or number[][]` | required | Length-F factor shocks (same units as the historical moves). |
+| `exposures`* | `number[] or number[][]` | required |  |
+| `shocks`* | `number[] or number[][]` | required |  |
 
 ### reverse_stress_testing
 
@@ -406,9 +406,9 @@ Formula (LaTeX): `s^{*} = -\frac{L}{e^\top\Sigma e}\,\Sigma e,\quad m=\frac{L}{\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Length-F currency P&L per unit factor move. |
-| `factor_cov`* | `number[] or number[][]` | required | ``(F, F)`` factor covariance matrix (SPD). |
-| `target_loss`* | `number` | required | Desired loss magnitude (positive number). |
+| `exposures`* | `number[] or number[][]` | required |  |
+| `factor_cov`* | `number[] or number[][]` | required |  |
+| `target_loss`* | `number` | required |  |
 
 ### sensitivity_stress_profile
 
@@ -421,9 +421,9 @@ Formula (LaTeX): `PnL(s) = e_k\cdot s,\quad s\in\text{shock\_grid}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Length-F currency P&L per unit factor move. |
-| `factor_index`* | `integer` | required | Index of the factor to stress. |
-| `shock_grid`* | `number[] or number[][]` | required | 1-D grid of shock values to apply to that factor. |
+| `exposures`* | `number[] or number[][]` | required |  |
+| `factor_index`* | `integer` | required |  |
+| `shock_grid`* | `number[] or number[][]` | required |  |
 
 ### sector_stress_scenario
 
@@ -436,9 +436,9 @@ Formula (LaTeX): `PnL_{total}=\sum_i e_i\,s_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sector_exposures`* | `number[] or number[][]` | required | Currency P&L per unit move, per sector. |
-| `sector_shocks`* | `number[] or number[][]` | required | Shock applied to each sector. |
-| `sector_names` | `string[] or null` | `None` | Optional sector labels; default ``sector_0, ...``. |
+| `sector_exposures`* | `number[] or number[][]` | required |  |
+| `sector_shocks`* | `number[] or number[][]` | required |  |
+| `sector_names` | `string[] or null` | `None` |  |
 
 ### macro_scenario_generator
 
@@ -452,9 +452,9 @@ Formula (LaTeX): `scenarios = Z\,L^\top,\quad L=\text{chol}(\Sigma),\ Z_{i,\cdot
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_cov`* | `number[] or number[][]` | required | ``(F, F)`` macro-factor covariance matrix (SPD). |
-| `n_scenarios` | `integer` | `10000` | Number of scenarios to generate. |
-| `seed` | `integer or null` | `42` | RNG seed for reproducibility (None = non-deterministic). |
+| `factor_cov`* | `number[] or number[][]` | required |  |
+| `n_scenarios` | `integer` | `10000` |  |
+| `seed` | `integer or null` | `42` |  |
 
 ### contagion_stress_scenario
 
@@ -468,9 +468,9 @@ Formula (LaTeX): `shock_{cum} = \sum_{k=0}^{R} C^k x_0`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `initial_shock`* | `number[] or number[][]` | required | Length-N initial shock per node/asset. |
-| `contagion_matrix`* | `number[] or number[][]` | required | ``(N, N)`` spillover coefficients (C[i, j] = effect of node j on node i). |
-| `rounds` | `integer` | `3` | Number of propagation rounds (``0`` returns the initial shock). |
+| `initial_shock`* | `number[] or number[][]` | required |  |
+| `contagion_matrix`* | `number[] or number[][]` | required |  |
+| `rounds` | `integer` | `3` |  |
 
 ## Greeks & Sensitivities
 
@@ -486,8 +486,8 @@ Formula (LaTeX): `G_{ii}=\gamma_i,\quad G_{ij}=\tfrac12\big(\Gamma^{cross}_{ij}+
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `own_gammas`* | `number[] or number[][]` | required | Length-U net gamma per underlying (matrix diagonal). |
-| `cross_gammas` | `number[] or number[][] or null` | `None` | Optional ``(U, U)`` cross-gamma matrix; its off-diagonal entries are symmetrised into the result. Diagonal is ignored. |
+| `own_gammas`* | `number[] or number[][]` | required |  |
+| `cross_gammas` | `number[] or number[][] or null` | `None` |  |
 
 ### vega_surface_bucketed
 
@@ -500,11 +500,11 @@ Formula (LaTeX): `Surface_{e,s} = \sum_{k:\,expiry_k=e,\ strike_k=s} vega_k,\qua
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `vegas`* | `number[] or number[][]` | required | Per-option vega (∂V/∂σ). |
-| `expiry_buckets`* | `number[] or number[][]` | required | Per-option expiry bucket index in ``[0, n_expiry)``. |
-| `strike_buckets`* | `number[] or number[][]` | required | Per-option strike bucket index in ``[0, n_strike)``. |
-| `n_expiry`* | `integer` | required | Number of expiry buckets. |
-| `n_strike`* | `integer` | required | Number of strike buckets. |
+| `vegas`* | `number[] or number[][]` | required |  |
+| `expiry_buckets`* | `number[] or number[][]` | required |  |
+| `strike_buckets`* | `number[] or number[][]` | required |  |
+| `n_expiry`* | `integer` | required |  |
+| `n_strike`* | `integer` | required |  |
 
 ### dv01_pv01_bucketed
 
@@ -519,11 +519,11 @@ Formula (LaTeX): `PV = \sum_k cf_k e^{-y t_k},\quad DV01 = 10^{-4}\sum_k cf_k\,t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
-| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
-| `flat_yield`* | `number` | required | Flat continuously-compounded discount yield. |
-| `bucket_indices`* | `number[] or number[][]` | required | Tenor bucket index per cashflow in ``[0, n_buckets)``. |
-| `n_buckets`* | `integer` | required | Number of tenor buckets. |
+| `cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `flat_yield`* | `number` | required |  |
+| `bucket_indices`* | `number[] or number[][]` | required |  |
+| `n_buckets`* | `integer` | required |  |
 
 ### cs01_credit_spread
 
@@ -537,10 +537,10 @@ Formula (LaTeX): `CS01 = 10^{-4}\sum_k cf_k\,t_k\,e^{-(r+s)t_k}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
-| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
-| `risk_free_rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `credit_spread`* | `number` | required | Continuously-compounded credit spread. |
+| `cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `risk_free_rate`* | `number` | required |  |
+| `credit_spread`* | `number` | required |  |
 
 ### rho_interest_rate
 
@@ -552,13 +552,13 @@ Formula (LaTeX): `\rho_{call}=K\tau e^{-r\tau}N(d_2),\quad \rho_{put}=-K\tau e^{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required | Underlying spot price. |
-| `strike`* | `number` | required | Strike price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `sigma`* | `number` | required | Volatility (annualised). |
-| `tau`* | `number` | required | Time to maturity in years. |
-| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
-| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `spot`* | `number` | required |  |
+| `strike`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `sigma`* | `number` | required |  |
+| `tau`* | `number` | required |  |
+| `option_type` | `string` | `'call'` |  |
+| `div_yield` | `number` | `0.0` |  |
 
 ### theta_time_decay
 
@@ -568,13 +568,13 @@ Formula (LaTeX): `\Theta_{call} = -\frac{Se^{-q\tau}\phi(d_1)\sigma}{2\sqrt\tau}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required | Underlying spot price. |
-| `strike`* | `number` | required | Strike price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `sigma`* | `number` | required | Volatility (annualised). |
-| `tau`* | `number` | required | Time to maturity in years. |
-| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
-| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `spot`* | `number` | required |  |
+| `strike`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `sigma`* | `number` | required |  |
+| `tau`* | `number` | required |  |
+| `option_type` | `string` | `'call'` |  |
+| `div_yield` | `number` | `0.0` |  |
 
 ### charm_delta_decay
 
@@ -591,13 +591,13 @@ Formula (LaTeX): `\frac{\partial d_1}{\partial\tau} = \frac{b}{\sigma\sqrt\tau} 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required | Underlying spot price. |
-| `strike`* | `number` | required | Strike price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `sigma`* | `number` | required | Volatility (annualised). |
-| `tau`* | `number` | required | Time to maturity in years. |
-| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
-| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `spot`* | `number` | required |  |
+| `strike`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `sigma`* | `number` | required |  |
+| `tau`* | `number` | required |  |
+| `option_type` | `string` | `'call'` |  |
+| `div_yield` | `number` | `0.0` |  |
 
 ### volga_vega_convexity
 
@@ -610,12 +610,12 @@ Formula (LaTeX): `vega = Se^{-q\tau}\phi(d_1)\sqrt\tau,\quad Volga = vega\cdot\f
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required | Underlying spot price. |
-| `strike`* | `number` | required | Strike price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `sigma`* | `number` | required | Volatility (annualised). |
-| `tau`* | `number` | required | Time to maturity in years. |
-| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `spot`* | `number` | required |  |
+| `strike`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `sigma`* | `number` | required |  |
+| `tau`* | `number` | required |  |
+| `div_yield` | `number` | `0.0` |  |
 
 ### vanna_delta_vega_cross
 
@@ -628,12 +628,12 @@ Formula (LaTeX): `Vanna = -e^{-q\tau}\phi(d_1)\frac{d_2}{\sigma}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `spot`* | `number` | required | Underlying spot price. |
-| `strike`* | `number` | required | Strike price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `sigma`* | `number` | required | Volatility (annualised). |
-| `tau`* | `number` | required | Time to maturity in years. |
-| `div_yield` | `number` | `0.0` | Continuous dividend yield. |
+| `spot`* | `number` | required |  |
+| `strike`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `sigma`* | `number` | required |  |
+| `tau`* | `number` | required |  |
+| `div_yield` | `number` | `0.0` |  |
 
 ### portfolio_delta_aggregated
 
@@ -646,9 +646,9 @@ Formula (LaTeX): `\Delta_{net}=\sum_i \delta_i q_i,\quad \Delta_{cash}=\sum_i \d
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `deltas`* | `number[] or number[][]` | required | Per-position option delta (∂V/∂S). |
-| `quantities`* | `number[] or number[][]` | required | Signed position size per instrument. |
-| `spot_prices` | `number[] or number[][] or null` | `None` | Optional underlying spot per position for cash delta. |
+| `deltas`* | `number[] or number[][]` | required |  |
+| `quantities`* | `number[] or number[][]` | required |  |
+| `spot_prices` | `number[] or number[][] or null` | `None` |  |
 
 ## P&L Attribution
 
@@ -665,8 +665,8 @@ Formula (LaTeX): `\rho_s = \text{Spearman}(RTPL, HPL),\quad ratio = \frac{\sigma
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `risk_theoretical_pnl`* | `number[] or number[][]` | required | Daily RTPL series (model-based). |
-| `hypothetical_pnl`* | `number[] or number[][]` | required | Daily HPL series (full-revaluation). |
+| `risk_theoretical_pnl`* | `number[] or number[][]` | required |  |
+| `hypothetical_pnl`* | `number[] or number[][]` | required |  |
 
 ### theta_carry_attribution
 
@@ -679,9 +679,9 @@ Formula (LaTeX): `\text{Carry PnL} = \Theta\,dt - FC`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `theta`* | `number` | required | Portfolio theta (∂V/∂t, per the same unit as ``time_step``). |
-| `time_step`* | `number` | required | Elapsed time dt. |
-| `funding_cost` | `number` | `0.0` | Funding cost accrued over the period (currency). |
+| `theta`* | `number` | required |  |
+| `time_step`* | `number` | required |  |
+| `funding_cost` | `number` | `0.0` |  |
 
 ### gamma_pnl_attribution
 
@@ -691,8 +691,8 @@ Formula (LaTeX): `PnL_\Gamma = \tfrac12\,\Gamma\,(dS)^2`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `gamma`* | `number` | required | Portfolio gamma (∂²V/∂S²). |
-| `spot_move`* | `number` | required | Realised underlying move dS. |
+| `gamma`* | `number` | required |  |
+| `spot_move`* | `number` | required |  |
 
 ### vega_pnl_attribution
 
@@ -702,8 +702,8 @@ Formula (LaTeX): `PnL_\nu = \nu\,d\sigma`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `vega`* | `number` | required | Portfolio vega (∂V/∂σ). |
-| `vol_move`* | `number` | required | Realised volatility move dσ. |
+| `vega`* | `number` | required |  |
+| `vol_move`* | `number` | required |  |
 
 ### fx_pnl_attribution
 
@@ -715,9 +715,9 @@ Formula (LaTeX): `PnL_{FX} = \sum_i \delta_i^{FX}\cdot \Delta FX_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `fx_deltas`* | `number[] or number[][]` | required | P&L per unit move of each FX rate. |
-| `fx_moves`* | `number[] or number[][]` | required | Realised move in each FX rate. |
-| `currency_names` | `string[] or null` | `None` | Optional labels; default ``ccy_0, ...``. |
+| `fx_deltas`* | `number[] or number[][]` | required |  |
+| `fx_moves`* | `number[] or number[][]` | required |  |
+| `currency_names` | `string[] or null` | `None` |  |
 
 ### rates_pnl_attribution
 
@@ -730,9 +730,9 @@ Formula (LaTeX): `PnL_{rates} = \sum_t s_t\cdot \Delta y_t^{bp}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `key_rate_sensitivities`* | `number[] or number[][]` | required | P&L per +1bp move at each tenor. |
-| `yield_moves_bp`* | `number[] or number[][]` | required | Realised yield move (in basis points) at each tenor. |
-| `tenor_names` | `string[] or null` | `None` | Optional labels; default ``tenor_0, ...``. |
+| `key_rate_sensitivities`* | `number[] or number[][]` | required |  |
+| `yield_moves_bp`* | `number[] or number[][]` | required |  |
+| `tenor_names` | `string[] or null` | `None` |  |
 
 ### credit_pnl_attribution
 
@@ -744,9 +744,9 @@ Formula (LaTeX): `PnL_{credit} = \sum_i CS01_i\cdot \Delta s_i^{bp}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cs01_sensitivities`* | `number[] or number[][]` | required | P&L per +1bp credit-spread move per name. |
-| `spread_moves_bp`* | `number[] or number[][]` | required | Realised spread move (basis points) per name. |
-| `name_labels` | `string[] or null` | `None` | Optional labels; default ``name_0, ...``. |
+| `cs01_sensitivities`* | `number[] or number[][]` | required |  |
+| `spread_moves_bp`* | `number[] or number[][]` | required |  |
+| `name_labels` | `string[] or null` | `None` |  |
 
 ### residual_pnl_unexplained
 
@@ -760,8 +760,8 @@ Formula (LaTeX): `Residual = PnL_{actual} - \sum_i C_i,\quad ratio = \frac{\sum_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `actual_pnl`* | `number` | required | Observed (hypothetical) P&L for the period. |
-| `explained_components`* | `number[] or number[][]` | required | The individual explained P&L components. |
+| `actual_pnl`* | `number` | required |  |
+| `explained_components`* | `number[] or number[][]` | required |  |
 
 ### greeks_based_pnl_explain
 
@@ -774,16 +774,16 @@ Formula (LaTeX): `PnL_{pred} = \Delta\,dS + \tfrac12\Gamma\,dS^2 + \nu\,d\sigma 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `delta`* | `number` | required | Portfolio delta (∂V/∂S). |
-| `gamma`* | `number` | required | Portfolio gamma (∂²V/∂S²). |
-| `vega`* | `number` | required | Portfolio vega (∂V/∂σ). |
-| `theta`* | `number` | required | Portfolio theta (∂V/∂t, per the same time unit as ``time_step``). |
-| `rho`* | `number` | required | Portfolio rho (∂V/∂r). |
-| `spot_move`* | `number` | required | Realised underlying move dS. |
-| `vol_move`* | `number` | required | Realised volatility move dσ. |
-| `time_step`* | `number` | required | Elapsed time dt. |
-| `rate_move`* | `number` | required | Realised rate move dr. |
-| `actual_pnl`* | `number` | required | Observed (hypothetical) P&L for the period. |
+| `delta`* | `number` | required |  |
+| `gamma`* | `number` | required |  |
+| `vega`* | `number` | required |  |
+| `theta`* | `number` | required |  |
+| `rho`* | `number` | required |  |
+| `spot_move`* | `number` | required |  |
+| `vol_move`* | `number` | required |  |
+| `time_step`* | `number` | required |  |
+| `rate_move`* | `number` | required |  |
+| `actual_pnl`* | `number` | required |  |
 
 ## Backtesting
 
@@ -798,8 +798,8 @@ Formula (LaTeX): `n_{breaches}=\sum_{t=1}^{N}\mathbb{1}\big[-r_t > VaR_t\big],\q
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `actual_returns`* | `number[] or number[][]` | required | Realised returns over the backtest window. |
-| `var_estimates`* | `number[] or number[][]` | required | VaR estimate (positive loss) aligned to each return. |
+| `actual_returns`* | `number[] or number[][]` | required |  |
+| `var_estimates`* | `number[] or number[][]` | required |  |
 
 ### compute_breaches
 
@@ -814,8 +814,8 @@ Formula (LaTeX): `n_{breaches}=\sum_t \mathbb{1}[-r_t > VaR_t],\quad \text{zone}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `actual_returns`* | `number[] or number[][]` | required | Realised returns as decimals, aligned one to one with `var_estimates` (a loss is the negative of a return). |
-| `var_estimates`* | `number[] or number[][]` | required | The VaR estimate for each day, as a positive loss fraction. Days where it is NaN are ignored, as the first `window` days of a rolling VaR are. |
+| `actual_returns`* | `number[] or number[][]` | required |  |
+| `var_estimates`* | `number[] or number[][]` | required |  |
 
 ### kupiec_pof_test
 
@@ -833,9 +833,9 @@ Formula (LaTeX): `LR_{POF} = -2\Big[(n-x)\ln(1-p) + x\ln p - (n-x)\ln(1-\hat\pi)
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `n_breaches`* | `integer` | required | Number of VaR breaches observed. |
-| `n_observations`* | `integer` | required | Number of backtest observations. |
-| `confidence_level` | `number` | `0.99` | VaR confidence level the breaches were measured at. |
+| `n_breaches`* | `integer` | required |  |
+| `n_observations`* | `integer` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### christoffersen_independence_test
 
@@ -853,7 +853,7 @@ Formula (LaTeX): `LR_{ind} = -2\Big[ n_{00}\ln(1-\pi) + n_{01}\ln\pi + n_{10}\ln
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `breaches`* | `number[] or number[][]` | required | Binary breach sequence (1 = breach, 0 = no breach). |
+| `breaches`* | `number[] or number[][]` | required |  |
 
 ### combined_backtesting
 
@@ -867,8 +867,8 @@ Formula (LaTeX): `LR_{cc} = LR_{POF}(x,n,\alpha) + LR_{ind}(b_t) \ \sim\ \chi^2_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `breaches`* | `number[] or number[][]` | required | Binary breach sequence (1 = breach, 0 = no breach). |
-| `confidence_level` | `number` | `0.99` | VaR confidence level the breaches were measured at. |
+| `breaches`* | `number[] or number[][]` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### basel_capital_addon_multiplier
 
@@ -882,7 +882,7 @@ Formula (LaTeX): `m(n) = \begin{cases} 3.00 & n < 5 \\ 3.40,\,3.50,\,3.65,\,3.75
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `n_breaches`* | `integer` | required | Number of breaches in the 250-day backtest. |
+| `n_breaches`* | `integer` | required |  |
 
 ### rolling_var_backtest
 
@@ -895,9 +895,9 @@ Formula (LaTeX): `VaR_t = -\big(\mu_{t-w:t} - z_\alpha\,\sigma_{t-w:t}\big),\qua
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | Full return history. |
-| `window` | `integer` | `250` | Rolling estimation window (Basel standard 250 trading days). |
-| `confidence_level` | `number` | `0.99` | VaR confidence in [0.90, 0.9999]. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `window` | `integer` | `250` |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### compute_rolling_var
 
@@ -915,9 +915,9 @@ Formula (LaTeX): `VaR_t = -\big(\mu_{t-w:t} - z_\alpha\sigma_{t-w:t}\big),\quad 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | Periodic returns as decimals (a 1% fall is -0.01), oldest first. |
-| `window` | `integer` | `250` | Number of most recent observations used to estimate the mean and volatility at each point. The first `window` entries of the result are NaN. |
-| `confidence_level` | `number` | `0.99` | Confidence level of the Gaussian VaR, for example 0.99 (0.90 to 0.9999 at the API). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `window` | `integer` | `250` |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### var_breach_cluster_analysis
 
@@ -934,7 +934,7 @@ Formula (LaTeX): `\text{clusters} = \{\text{maximal runs of consecutive } b_t=1\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `breaches`* | `number[] or number[][]` | required | Binary breach sequence (1 = breach, 0 = no breach). |
+| `breaches`* | `number[] or number[][]` | required |  |
 
 ## Volatility & Correlation
 
@@ -951,11 +951,11 @@ Formula (LaTeX): `\sigma_t^2=\omega+\alpha\varepsilon_{t-1}^2+\beta\sigma_{t-1}^
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D return series (demeaned internally to form residuals). |
-| `alpha` | `number` | `0.1` | ARCH coefficient (weight on the last squared shock). |
-| `beta` | `number` | `0.85` | GARCH coefficient (weight on the last variance). |
-| `omega` | `number or null` | `None` | Long-run variance constant; variance-targeted if None. |
-| `horizon` | `integer` | `10` | Forecast horizon in periods. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `alpha` | `number` | `0.1` |  |
+| `beta` | `number` | `0.85` |  |
+| `omega` | `number or null` | `None` |  |
+| `horizon` | `integer` | `10` |  |
 
 ### egarch_volatility_model
 
@@ -969,11 +969,11 @@ Formula (LaTeX): `\ln\sigma_t^2 = \omega+\beta\ln\sigma_{t-1}^2+\alpha\big(|z_{t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D return series (demeaned internally). |
-| `omega` | `number` | `-0.1` | Log-variance intercept. |
-| `alpha` | `number` | `0.1` | Magnitude (\|z\|) coefficient. |
-| `gamma` | `number` | `-0.05` | Leverage coefficient (negative => negative shocks raise vol more). |
-| `beta` | `number` | `0.95` | Log-variance persistence (\|beta\| < 1 for stationarity). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `omega` | `number` | `-0.1` |  |
+| `alpha` | `number` | `0.1` |  |
+| `gamma` | `number` | `-0.05` |  |
+| `beta` | `number` | `0.95` |  |
 
 ### gjr_garch_asymmetric_model
 
@@ -987,11 +987,11 @@ Formula (LaTeX): `\sigma_t^2 = \omega + (\alpha+\gamma\,\mathbb{1}[\varepsilon_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D return series (demeaned internally). |
-| `alpha` | `number` | `0.03` | Symmetric ARCH coefficient. |
-| `gamma` | `number` | `0.08` | Asymmetry coefficient applied to negative shocks. |
-| `beta` | `number` | `0.88` | GARCH persistence coefficient. |
-| `omega` | `number or null` | `None` | Variance intercept; variance-targeted if None. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `alpha` | `number` | `0.03` |  |
+| `gamma` | `number` | `0.08` |  |
+| `beta` | `number` | `0.88` |  |
+| `omega` | `number or null` | `None` |  |
 
 ### realised_volatility
 
@@ -1004,8 +1004,8 @@ Formula (LaTeX): `RV=\sum_t r_t^2,\quad \sigma_{RV}=\sqrt{RV},\quad \sigma_{ann}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of returns over the measurement block. |
-| `annualisation_factor` | `integer` | `252` | Periods per year for annualisation (e.g. 252). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `annualisation_factor` | `integer` | `252` |  |
 
 ### correlation_matrix_historical
 
@@ -1015,7 +1015,7 @@ Formula (LaTeX): `\rho_{ij} = \frac{\mathrm{Cov}(r_i,r_j)}{\sigma_i\sigma_j}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required | ``(T, N)`` matrix of T observations on N assets. |
+| `returns_matrix`* | `number[] or number[][]` | required |  |
 
 ### dcc_garch_dynamic_correlation
 
@@ -1030,9 +1030,9 @@ Formula (LaTeX): `Q_t = (1-a-b)\bar Q + a\,z_{t-1}z_{t-1}^\top + b\,Q_{t-1} \\ R
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required | ``(T, N)`` matrix of T observations on N assets. |
-| `a` | `number` | `0.02` | DCC news coefficient. |
-| `b` | `number` | `0.95` | DCC persistence coefficient (require a + b < 1). |
+| `returns_matrix`* | `number[] or number[][]` | required |  |
+| `a` | `number` | `0.02` |  |
+| `b` | `number` | `0.95` |  |
 
 ### risk_factor_pca_decomposition
 
@@ -1046,8 +1046,8 @@ Formula (LaTeX): `\Sigma = V\Lambda V^\top,\quad EVR_k=\frac{\lambda_k}{\sum_j\l
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns_matrix`* | `number[] or number[][]` | required | ``(T, N)`` matrix of T observations on N risk factors. |
-| `n_components` | `integer or null` | `None` | Number of leading components to return (all if None). |
+| `returns_matrix`* | `number[] or number[][]` | required |  |
+| `n_components` | `integer or null` | `None` |  |
 
 ### volatility_surface_implied_vol
 
@@ -1061,12 +1061,12 @@ Formula (LaTeX): `\sigma_{IV} : C_{BS}(S,K,r,\sigma_{IV},\tau) = P_{market}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `market_prices`* | `number[] or number[][]` | required | Observed option prices. |
-| `strikes`* | `number[] or number[][]` | required | Strike of each option. |
-| `expiries`* | `number[] or number[][]` | required | Time to expiry (years) of each option. |
-| `spot`* | `number` | required | Underlying spot price. |
-| `rate`* | `number` | required | Continuously-compounded risk-free rate. |
-| `option_type` | `string` | `'call'` | ``"call"`` or ``"put"``. |
+| `market_prices`* | `number[] or number[][]` | required |  |
+| `strikes`* | `number[] or number[][]` | required |  |
+| `expiries`* | `number[] or number[][]` | required |  |
+| `spot`* | `number` | required |  |
+| `rate`* | `number` | required |  |
+| `option_type` | `string` | `'call'` |  |
 
 ## FRTB Capital
 
@@ -1082,8 +1082,8 @@ Formula (LaTeX): `RRAO = \sum_i notional_i \cdot w_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notionals`* | `number[] or number[][]` | required | Gross notional per instrument. |
-| `rrao_weights`* | `number[] or number[][]` | required | RRAO risk weight per instrument. |
+| `notionals`* | `number[] or number[][]` | required |  |
+| `rrao_weights`* | `number[] or number[][]` | required |  |
 
 ### frtb_ima_expected_shortfall
 
@@ -1096,8 +1096,8 @@ Formula (LaTeX): `VaR_\alpha = L_{(\lfloor \alpha n\rfloor)},\quad ES_\alpha = \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | 1-D array of portfolio returns over the IMA observation set. |
-| `confidence_level` | `number` | `0.975` | ES confidence; FRTB IMA uses 0.975. |
+| `returns`* | `number[] or number[][]` | required |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### frtb_ima_stressed_period_finder
 
@@ -1111,9 +1111,9 @@ Formula (LaTeX): `start^{*} = \arg\max_{s}\ ES_\alpha\big(r_{s:s+w}\big)\quad\te
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `returns`* | `number[] or number[][]` | required | Full return history. |
-| `window` | `integer` | `250` | Stress window length (FRTB standard 250 trading days). |
-| `confidence_level` | `number` | `0.975` | ES confidence used to rank windows (0.975). |
+| `returns`* | `number[] or number[][]` | required |  |
+| `window` | `integer` | `250` |  |
+| `confidence_level` | `number` | `0.975` |  |
 
 ### frtb_ima_non_modellable_risk_factors
 
@@ -1127,8 +1127,8 @@ Formula (LaTeX): `SES = \sqrt{(\rho\textstyle\sum_i ISES_i)^2 + (1-\rho^2)\sum_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `individual_ses`* | `number[] or number[][]` | required | Per-factor stressed capital add-ons (ISES). |
-| `rho` | `number` | `0.0` | Prescribed correlation across NMRFs in [0, 1]. |
+| `individual_ses`* | `number[] or number[][]` | required |  |
+| `rho` | `number` | `0.0` |  |
 
 ### frtb_ima_aggregate_capital_charge
 
@@ -1142,9 +1142,9 @@ Formula (LaTeX): `ACC = IMCC + SES + DRC`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `imcc`* | `number` | required | Internally-modelled capital charge (ES-based). |
-| `ses`* | `number` | required | Aggregate non-modellable risk factor capital (SES). |
-| `default_risk_charge` | `number` | `0.0` | Default risk charge (DRC). |
+| `imcc`* | `number` | required |  |
+| `ses`* | `number` | required |  |
+| `default_risk_charge` | `number` | `0.0` |  |
 
 ### frtb_sa_sensitivity_based_method
 
@@ -1163,9 +1163,9 @@ Formula (LaTeX): `K_b = \sqrt{\sum_i WS_i^2 + \rho\sum_{i\neq j} WS_i WS_j} \\ \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bucket_weighted_sensitivities`* | `number[][]` | required | Per-bucket lists of weighted sensitivities (risk weight already applied). |
-| `intra_bucket_corr`* | `number` | required | Correlation ρ between sensitivities within a bucket. |
-| `inter_bucket_corr`* | `number` | required | Correlation γ between bucket totals. |
+| `bucket_weighted_sensitivities`* | `number[][]` | required |  |
+| `intra_bucket_corr`* | `number` | required |  |
+| `inter_bucket_corr`* | `number` | required |  |
 
 ### frtb_sa_default_risk_charge
 
@@ -1179,6 +1179,6 @@ Formula (LaTeX): `net_i = JTD^{long}_i - JTD^{short}_i \\ WtS = \frac{\sum_{net_
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `jtd_long`* | `number[] or number[][]` | required | Long jump-to-default exposure per issuer. |
-| `jtd_short`* | `number[] or number[][]` | required | Short jump-to-default exposure per issuer (positive numbers). |
-| `risk_weights`* | `number[] or number[][]` | required | Default risk weight per issuer. |
+| `jtd_long`* | `number[] or number[][]` | required |  |
+| `jtd_short`* | `number[] or number[][]` | required |  |
+| `risk_weights`* | `number[] or number[][]` | required |  |

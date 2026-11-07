@@ -16,9 +16,9 @@ Formula (LaTeX): `PD_{pooled} = \min\!\left(\max\!\left(\frac{\sum_i D_i}{\sum_i
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `n_defaults`* | `number[] or number[][]` | required | Defaults observed in each rating cohort. |
-| `n_obligors`* | `number[] or number[][]` | required | Obligors at risk at the start of each cohort. |
-| `floor` | `number` | `0.0003` | Regulatory PD floor applied to the pooled estimate. |
+| `n_defaults`* | `number[] or number[][]` | required |  |
+| `n_obligors`* | `number[] or number[][]` | required |  |
+| `floor` | `number` | `0.0003` |  |
 
 ### loss_given_default_lgd_model
 
@@ -31,9 +31,9 @@ Formula (LaTeX): `LGD_i = \text{clip}\!\left(1-\frac{R_i-c\,EAD_i}{EAD_i},\ 0,\ 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `recovery_amounts`* | `number[] or number[][]` | required | Recovered amounts per defaulted facility. |
-| `exposure_amounts`* | `number[] or number[][]` | required | Exposure at default per facility (> 0). |
-| `workout_cost_rate` | `number` | `0.0` | Workout cost as a fraction of EAD (subtracted from recoveries). |
+| `recovery_amounts`* | `number[] or number[][]` | required |  |
+| `exposure_amounts`* | `number[] or number[][]` | required |  |
+| `workout_cost_rate` | `number` | `0.0` |  |
 
 ### exposure_at_default_ead_calculator
 
@@ -48,9 +48,9 @@ Formula (LaTeX): `EAD = Drawn + CCF\cdot Undrawn`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `drawn`* | `number` | required | Currently drawn (on-balance-sheet) amount. |
-| `undrawn`* | `number` | required | Undrawn committed (off-balance-sheet) amount. |
-| `credit_conversion_factor` | `number` | `0.75` | CCF in ``[0, 1]`` applied to the undrawn part. |
+| `drawn`* | `number` | required |  |
+| `undrawn`* | `number` | required |  |
+| `credit_conversion_factor` | `number` | `0.75` |  |
 
 ### expected_loss_el_computation
 
@@ -60,9 +60,9 @@ Formula (LaTeX): `EL = PD\cdot LGD\cdot EAD`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Probability of default in ``[0, 1]``. |
-| `lgd`* | `number` | required | Loss given default in ``[0, 1]``. |
-| `ead`* | `number` | required | Exposure at default (currency amount, >= 0). |
+| `pd`* | `number` | required |  |
+| `lgd`* | `number` | required |  |
+| `ead`* | `number` | required |  |
 
 ### unexpected_loss_ul_computation
 
@@ -78,9 +78,9 @@ Formula (LaTeX): `UL_i = EAD_i\cdot LGD_i\cdot\sqrt{PD_i(1-PD_i)}, \quad UL_{sum
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number[] or number[][]` | required | Per-exposure PD array in ``[0, 1]``. |
-| `lgd`* | `number[] or number[][]` | required | Per-exposure LGD array in ``[0, 1]``. |
-| `ead`* | `number[] or number[][]` | required | Per-exposure EAD array (>= 0). |
+| `pd`* | `number[] or number[][]` | required |  |
+| `lgd`* | `number[] or number[][]` | required |  |
+| `ead`* | `number[] or number[][]` | required |  |
 
 ### recovery_rate_estimation
 
@@ -93,9 +93,9 @@ Formula (LaTeX): `RR = \frac{\sum_i R_i\,DF_i}{\sum_i EAD_i}, \quad LGD = 1-RR`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `recovery_amounts`* | `number[] or number[][]` | required | Nominal recovered amounts per facility. |
-| `exposure_amounts`* | `number[] or number[][]` | required | Exposure at default per facility (> 0). |
-| `discount_factors` | `number[] or number[][] or null` | `None` | Optional per-facility discount factors in ``(0, 1]`` applied to recoveries; ``None`` means no discounting. |
+| `recovery_amounts`* | `number[] or number[][]` | required |  |
+| `exposure_amounts`* | `number[] or number[][]` | required |  |
+| `discount_factors` | `number[] or number[][] or null` | `None` |  |
 
 ### downturn_lgd_adjustment
 
@@ -121,10 +121,10 @@ Formula (LaTeX): `LGD_{DT} = \max\big(\min(LGD_{LR}\cdot m,\ 1),\ f,\ LGD_{LR}\b
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `lgd_long_run`* | `number` | required | Long-run average LGD in ``[0, 1]``. |
-| `downturn_multiplier` | `number` | `1.0` | Multiplier (>= 1) reflecting downturn severity. |
-| `floor` | `number` | `0.0` | Regulatory LGD floor (e.g. 0.05 for retail mortgages, CRR Art. 164). |
-| `method` | `string` | `'multiplicative'` | ``"multiplicative"`` (default) or ``"additive"``. |
+| `lgd_long_run`* | `number` | required |  |
+| `downturn_multiplier` | `number` | `1.0` |  |
+| `floor` | `number` | `0.0` |  |
+| `method` | `string` | `'multiplicative'` |  |
 
 ## Regulatory Capital (IRB/SA)
 
@@ -144,11 +144,11 @@ Formula (LaTeX): `LGD_{sup} = 0.45\ (\text{senior unsecured})\ \text{or}\ 0.75\ 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Own-estimate probability of default in ``(0, 1]``. |
-| `ead`* | `number` | required | Exposure at default (currency amount, >= 0). |
-| `maturity` | `number` | `2.5` | Effective maturity M in years (supervisory default 2.5). |
-| `lgd` | `number` | `0.45` | Override supervisory LGD; ignored unless ``seniority`` is custom. |
-| `seniority` | `string` | `'senior_unsecured'` | ``"senior_unsecured"`` (45%) or ``"subordinated"`` (75%). |
+| `pd`* | `number` | required |  |
+| `ead`* | `number` | required |  |
+| `maturity` | `number` | `2.5` |  |
+| `lgd` | `number` | `0.45` |  |
+| `seniority` | `string` | `'senior_unsecured'` |  |
 
 ### irb_advanced_approach_capital
 
@@ -165,11 +165,11 @@ Formula (LaTeX): `K = \max\!\left(0,\ \left[LGD\cdot\Phi\!\left(\frac{\Phi^{-1}(
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Own-estimate probability of default in ``(0, 1]``. |
-| `lgd`* | `number` | required | Own-estimate loss given default in ``[0, 1]``. |
-| `ead`* | `number` | required | Own-estimate exposure at default (>= 0). |
-| `maturity` | `number` | `2.5` | Own-estimate effective maturity M in years. |
-| `correlation` | `number or null` | `None` | Optional override of the asset correlation R (e.g. for an SME or specialised-lending adjustment); ``None`` uses the Basel corporate formula. |
+| `pd`* | `number` | required |  |
+| `lgd`* | `number` | required |  |
+| `ead`* | `number` | required |  |
+| `maturity` | `number` | `2.5` |  |
+| `correlation` | `number or null` | `None` |  |
 
 ### basel_standardised_approach_rwa
 
@@ -184,9 +184,9 @@ Formula (LaTeX): `RWA = \max(EAD - CRM,\ 0) \cdot RW, \quad K = 0.08 \cdot RWA`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `ead`* | `number` | required | Exposure at default (currency amount, >= 0). |
-| `risk_weight`* | `number` | required | Supervisory risk weight as a fraction (e.g. 1.0 for 100%). |
-| `credit_risk_mitigation` | `number` | `0.0` | Eligible collateral / guarantee value netted from EAD before weighting (>= 0). |
+| `ead`* | `number` | required |  |
+| `risk_weight`* | `number` | required |  |
+| `credit_risk_mitigation` | `number` | `0.0` |  |
 
 ### maturity_adjustment_basel_irb
 
@@ -200,8 +200,8 @@ Formula (LaTeX): `b(PD) = (0.11852 - 0.05478\ln PD)^2, \quad MA = \frac{1+(M-2.5
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Probability of default in ``(0, 1]``. |
-| `maturity`* | `number` | required | Effective maturity M in years (Basel caps M at 5, floors at 1 for most exposures; not enforced here so the raw factor is exposed). |
+| `pd`* | `number` | required |  |
+| `maturity`* | `number` | required |  |
 
 ### sme_correlation_factor_basel
 
@@ -216,8 +216,8 @@ Formula (LaTeX): `R_{corp} = 0.12\,w + 0.24\,(1-w), \quad w=\frac{1-e^{-50PD}}{1
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Probability of default in ``(0, 1]``. |
-| `annual_sales_millions`* | `number` | required | Total annual sales S in € millions. |
+| `pd`* | `number` | required |  |
+| `annual_sales_millions`* | `number` | required |  |
 
 ## Portfolio Credit Models
 
@@ -234,13 +234,13 @@ Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{defau
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number[] or number[][]` | required | Per-obligor probability of default in ``(0, 1)``. |
-| `lgd`* | `number[] or number[][]` | required | Per-obligor loss given default in ``[0, 1]``. |
-| `ead`* | `number[] or number[][]` | required | Per-obligor exposure at default (>= 0). |
-| `asset_correlation` | `number or number[]` | `0.15` | Scalar or per-obligor asset correlation rho in ``[0, 1)``. |
-| `confidence_level` | `number` | `0.999` | VaR confidence in ``[0.90, 0.9999]`` (Basel 99.9%). |
-| `n_simulations` | `integer` | `50000` | Number of Monte-Carlo paths. |
-| `seed` | `integer` | `12345` | RNG seed for reproducibility. |
+| `pd`* | `number[] or number[][]` | required |  |
+| `lgd`* | `number[] or number[][]` | required |  |
+| `ead`* | `number[] or number[][]` | required |  |
+| `asset_correlation` | `number or number[]` | `0.15` |  |
+| `confidence_level` | `number` | `0.999` |  |
+| `n_simulations` | `integer` | `50000` |  |
+| `seed` | `integer` | `12345` |  |
 
 ### credit_var_analytical_vasicek
 
@@ -255,11 +255,11 @@ Formula (LaTeX): `L(q) = LGD\cdot\Phi\!\left(\frac{\Phi^{-1}(PD)+\sqrt{\rho}\,\P
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number` | required | Portfolio probability of default in ``(0, 1)``. |
-| `lgd`* | `number` | required | Loss given default in ``[0, 1]``. |
-| `ead_total`* | `number` | required | Total portfolio exposure at default (>= 0). |
-| `asset_correlation` | `number` | `0.15` | Asset correlation rho in ``[0, 1)``. |
-| `confidence_level` | `number` | `0.999` | VaR confidence in ``[0.90, 0.9999]``. |
+| `pd`* | `number` | required |  |
+| `lgd`* | `number` | required |  |
+| `ead_total`* | `number` | required |  |
+| `asset_correlation` | `number` | `0.15` |  |
+| `confidence_level` | `number` | `0.999` |  |
 
 ### creditmetrics_portfolio_model
 
@@ -302,16 +302,16 @@ Formula (LaTeX): `A_i = \sqrt{\rho_i}\,M+\sqrt{1-\rho_i}\,Z_i, \quad \text{defau
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Per-obligor exposure (>= 0). |
-| `pd`* | `number[] or number[][]` | required | Per-obligor PD in ``(0, 1)`` — always used for the default threshold, in both modes. In multi-state mode this OVERRIDES ``transition_matrix``'s own default probability for that obligor (see above), it is not blended or ignored. |
-| `lgd`* | `number[] or number[][]` | required | Per-obligor LGD in ``[0, 1]`` — always used for the default-state loss, in both modes. |
-| `asset_correlation` | `number` | `0.2` | Common-factor asset correlation in ``[0, 1)``. |
-| `confidence_level` | `number` | `0.99` | VaR confidence in ``[0.90, 0.9999]``. |
-| `n_simulations` | `integer` | `20000` | Number of Monte-Carlo paths. |
-| `seed` | `integer` | `2024` | RNG seed. |
-| `transition_matrix` | `number[][] or null` | `None` | Multi-state only. Row-stochastic ``(n_states, n_states)`` rating transition matrix (rows sum to 1). |
-| `current_rating` | `integer[] or null` | `None` | Multi-state only. Per-obligor starting rating index in ``[0, n_states - 1)`` (an obligor cannot start already in default). |
-| `state_loss_pct` | `number[] or null` | `None` | Multi-state only. ``(n_states - 1,)`` loss percentage of exposure if migrated to each non-default state (index 0 = best rating). The default state's loss always comes from that obligor's own ``lgd``, not from this array. |
+| `exposures`* | `number[] or number[][]` | required |  |
+| `pd`* | `number[] or number[][]` | required |  |
+| `lgd`* | `number[] or number[][]` | required |  |
+| `asset_correlation` | `number` | `0.2` |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `n_simulations` | `integer` | `20000` |  |
+| `seed` | `integer` | `2024` |  |
+| `transition_matrix` | `number[][] or null` | `None` |  |
+| `current_rating` | `integer[] or null` | `None` |  |
+| `state_loss_pct` | `number[] or null` | `None` |  |
 
 ### kmv_merton_distance_to_default
 
@@ -331,12 +331,12 @@ Formula (LaTeX): `DD = \frac{\ln(V/D)+(\mu-0.5\sigma^2)T}{\sigma\sqrt{T}}, \quad
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_value`* | `number` | required | Current market value of firm assets V (> 0). |
-| `debt_face_value`* | `number` | required | Default boundary / debt face value D (> 0). |
-| `asset_volatility`* | `number` | required | Annualised asset return volatility sigma (> 0). |
-| `risk_free_rate` | `number` | `0.0` | Risk-free rate (used when ``asset_drift`` is None). |
-| `asset_drift` | `number or null` | `None` | Expected asset return mu; defaults to ``risk_free_rate``. |
-| `horizon` | `number` | `1.0` | Horizon T in years (> 0). |
+| `asset_value`* | `number` | required |  |
+| `debt_face_value`* | `number` | required |  |
+| `asset_volatility`* | `number` | required |  |
+| `risk_free_rate` | `number` | `0.0` |  |
+| `asset_drift` | `number or null` | `None` |  |
+| `horizon` | `number` | `1.0` |  |
 
 ## Credit Scoring & PD Models
 
@@ -352,13 +352,13 @@ Formula (LaTeX): `Z = 1.2\frac{WC}{TA}+1.4\frac{RE}{TA}+3.3\frac{EBIT}{TA}+0.6\f
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `working_capital`* | `number` | required | Working capital. |
-| `retained_earnings`* | `number` | required | Retained earnings. |
-| `ebit`* | `number` | required | Earnings before interest and tax. |
-| `market_value_equity`* | `number` | required | Market value of equity. |
-| `sales`* | `number` | required | Net sales. |
-| `total_assets`* | `number` | required | Total assets (> 0). |
-| `total_liabilities`* | `number` | required | Total liabilities (> 0). |
+| `working_capital`* | `number` | required |  |
+| `retained_earnings`* | `number` | required |  |
+| `ebit`* | `number` | required |  |
+| `market_value_equity`* | `number` | required |  |
+| `sales`* | `number` | required |  |
+| `total_assets`* | `number` | required |  |
+| `total_liabilities`* | `number` | required |  |
 
 ### logistic_regression_pd_model
 
@@ -375,11 +375,11 @@ Formula (LaTeX): `PD = \sigma(\beta_0+x\cdot\beta) = \frac{1}{1+e^{-(\beta_0+x\c
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `features`* | `number[] or number[][]` | required | ``(n_samples, n_features)`` design matrix (no intercept col). |
-| `defaults`* | `number[] or number[][]` | required | ``(n_samples,)`` binary default indicator in ``{0, 1}``. |
-| `max_iter` | `integer` | `100` | Maximum Newton iterations. |
-| `tol` | `number` | `1e-08` | Convergence tolerance on the coefficient update norm. |
-| `ridge` | `number` | `1e-06` | L2 ridge added to the Hessian diagonal for stability. |
+| `features`* | `number[] or number[][]` | required |  |
+| `defaults`* | `number[] or number[][]` | required |  |
+| `max_iter` | `integer` | `100` |  |
+| `tol` | `number` | `1e-08` |  |
+| `ridge` | `number` | `1e-06` |  |
 
 ### machine_learning_pd_calibration
 
@@ -397,10 +397,10 @@ Formula (LaTeX): `PD = \sigma(a\cdot\text{score}+b) = \frac{1}{1+e^{-(a\cdot\tex
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `raw_scores`* | `number[] or number[][]` | required | ``(n_samples,)`` uncalibrated model scores. |
-| `defaults`* | `number[] or number[][]` | required | ``(n_samples,)`` binary default indicator. |
-| `max_iter` | `integer` | `100` | Maximum Newton iterations. |
-| `tol` | `number` | `1e-08` | Convergence tolerance. |
+| `raw_scores`* | `number[] or number[][]` | required |  |
+| `defaults`* | `number[] or number[][]` | required |  |
+| `max_iter` | `integer` | `100` |  |
+| `tol` | `number` | `1e-08` |  |
 
 ### through_the_cycle_pd_adjustment
 
@@ -415,9 +415,9 @@ Formula (LaTeX): `z_{TTC} = (1-w)\,\Phi^{-1}(PD_{PIT}) + w\,\Phi^{-1}(PD_{LRA}),
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pit_pd`* | `number` | required | Point-in-time PD in ``(0, 1)``. |
-| `long_run_average_pd`* | `number` | required | Long-run central-tendency PD in ``(0, 1)``. |
-| `cyclicality` | `number` | `0.5` | Blend weight in ``[0, 1]`` toward the long-run anchor (0 = pure PIT, 1 = pure TTC). |
+| `pit_pd`* | `number` | required |  |
+| `long_run_average_pd`* | `number` | required |  |
+| `cyclicality` | `number` | `0.5` |  |
 
 ### point_in_time_pd_estimation
 
@@ -431,9 +431,9 @@ Formula (LaTeX): `z_{TTC} = \Phi^{-1}(PD_{TTC}), \quad z_{PIT} = z_{TTC} - \beta
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `ttc_pd`* | `number` | required | Through-the-cycle PD in ``(0, 1)``. |
-| `macro_index`* | `number` | required | Standardised macroeconomic index (z-score; positive = good conditions). |
-| `sensitivity` | `number` | `1.0` | Loading of the score on the macro factor (>= 0). |
+| `ttc_pd`* | `number` | required |  |
+| `macro_index`* | `number` | required |  |
+| `sensitivity` | `number` | `1.0` |  |
 
 ### retail_scorecard_pd_model
 
@@ -447,12 +447,12 @@ Formula (LaTeX): `\text{score} = b_0+\sum_k v_k p_k, \quad \text{odds} = O_0\cdo
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `feature_values`* | `number[] or number[][]` | required | ``(n_features,)`` per-attribute binary/scaled indicator. |
-| `points_per_feature`* | `number[] or number[][]` | required | ``(n_features,)`` points assigned per attribute. |
-| `base_points`* | `number` | required | Intercept points added to the total. |
-| `pdo` | `number` | `50.0` | Points to double the odds (industry default 50). |
-| `base_score` | `number` | `600.0` | Reference score at which odds equal ``base_odds``. |
-| `base_odds` | `number` | `50.0` | Good:bad odds at ``base_score`` (e.g. 50:1). |
+| `feature_values`* | `number[] or number[][]` | required |  |
+| `points_per_feature`* | `number[] or number[][]` | required |  |
+| `base_points`* | `number` | required |  |
+| `pdo` | `number` | `50.0` |  |
+| `base_score` | `number` | `600.0` |  |
+| `base_odds` | `number` | `50.0` |  |
 
 ## Migration & Correlation
 
@@ -469,8 +469,8 @@ Formula (LaTeX): `p_{ij} = \Phi_2\big(\Phi^{-1}(PD_i),\Phi^{-1}(PD_j);\ \rho^A_{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number[] or number[][]` | required | Per-obligor PD in ``(0, 1)``. |
-| `asset_correlation`* | `number[] or number[][]` | required | Symmetric ``(n, n)`` asset-correlation matrix with unit diagonal, entries in ``[-1, 1]``. |
+| `pd`* | `number[] or number[][]` | required |  |
+| `asset_correlation`* | `number[] or number[][]` | required |  |
 
 ### ratings_migration_matrix
 
@@ -488,9 +488,9 @@ Formula (LaTeX): `P_{ij} = \frac{\#\{k: f_k=i,\ t_k=j\}}{\sum_j \#\{k: f_k=i,\ t
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `from_rating`* | `number[] or number[][]` | required | Integer start-of-period rating index per obligor in ``[0, n_states)``. |
-| `to_rating`* | `number[] or number[][]` | required | Integer end-of-period rating index per obligor. |
-| `n_states`* | `integer` | required | Number of rating states (including default as the last). |
+| `from_rating`* | `number[] or number[][]` | required |  |
+| `to_rating`* | `number[] or number[][]` | required |  |
+| `n_states`* | `integer` | required |  |
 
 ## Concentration Risk
 
@@ -506,7 +506,7 @@ Formula (LaTeX): `HHI = \sum_i w_i^2, \quad w_i = \frac{e_i}{\sum_i e_i}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `exposures`* | `number[] or number[][]` | required | Per-name exposure amounts (>= 0, at least one positive). |
+| `exposures`* | `number[] or number[][]` | required |  |
 
 ## Counterparty Credit Risk (CCR/XVA)
 
@@ -523,9 +523,9 @@ Formula (LaTeX): `EAD = \max(MtM,\ 0) + N\cdot\alpha`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mark_to_market`* | `number` | required | Current MtM (replacement cost component). |
-| `notional`* | `number` | required | Trade / netting-set notional (>= 0). |
-| `add_on_factor`* | `number` | required | Supervisory add-on factor in ``[0, 1]``. |
+| `mark_to_market`* | `number` | required |  |
+| `notional`* | `number` | required |  |
+| `add_on_factor`* | `number` | required |  |
 
 ### standardised_approach_ccr_sa_ccr
 
@@ -541,10 +541,10 @@ Formula (LaTeX): `RC = \max(MtM-C,\ 0), \\ \text{mult} = \min\!\left(1,\ 0.05+0.
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mark_to_market`* | `number` | required | Current netting-set MtM. |
-| `collateral`* | `number` | required | Net collateral held (>= 0). |
-| `add_on_aggregate`* | `number` | required | Aggregate asset-class add-on (>= 0). |
-| `alpha` | `number` | `1.4` | Supervisory scaling factor (default 1.4). |
+| `mark_to_market`* | `number` | required |  |
+| `collateral`* | `number` | required |  |
+| `add_on_aggregate`* | `number` | required |  |
+| `alpha` | `number` | `1.4` |  |
 
 ### potential_future_exposure_pfe
 
@@ -562,13 +562,13 @@ Formula (LaTeX): `V_t = V_0 + \mu t + \sigma\sqrt{t}\,Z,\quad Z\sim N(0,1) \\ PF
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `initial_value`* | `number` | required | Current netting-set value V_0. |
-| `volatility`* | `number` | required | Per-sqrt-time value volatility sigma (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | Strictly positive time points (years) at which to profile. |
-| `quantile` | `number` | `0.95` | PFE confidence in ``(0, 1)`` (default 95%). |
-| `drift` | `number` | `0.0` | Per-unit-time drift of the value process. |
-| `n_paths` | `integer` | `20000` | Number of Monte-Carlo paths. |
-| `seed` | `integer` | `909` | RNG seed. |
+| `initial_value`* | `number` | required |  |
+| `volatility`* | `number` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `quantile` | `number` | `0.95` |  |
+| `drift` | `number` | `0.0` |  |
+| `n_paths` | `integer` | `20000` |  |
+| `seed` | `integer` | `909` |  |
 
 ### expected_positive_exposure_epe
 
@@ -582,8 +582,8 @@ Formula (LaTeX): `EPE = \frac{1}{T}\int_0^T EE(t)\,dt`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_exposure`* | `number[] or number[][]` | required | ``(n,)`` expected-exposure profile EE(t) (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing time points (years), starting at or after 0. |
+| `expected_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
 
 ### effective_epe_regulatory
 
@@ -598,8 +598,8 @@ Formula (LaTeX): `EEE(t_k) = \max\big(EEE(t_{k-1}),\ EE(t_k)\big), \quad EEPE = 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_exposure`* | `number[] or number[][]` | required | ``(n,)`` expected-exposure profile (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing time points (years). |
+| `expected_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
 
 ### credit_valuation_adjustment_cva
 
@@ -613,11 +613,11 @@ Formula (LaTeX): `LGD = 1-R, \quad \lambda = \frac{s}{LGD}, \quad S_k = e^{-\lam
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_exposure`* | `number[] or number[][]` | required | ``(n,)`` discounted-or-not EPE per bucket (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times (years). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` risk-free discount factors in ``(0, 1]``. |
-| `credit_spread`* | `number` | required | Counterparty CDS spread (decimal, e.g. 0.01 = 100 bps). |
-| `recovery_rate` | `number` | `0.4` | Counterparty recovery rate in ``[0, 1)``. |
+| `expected_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `credit_spread`* | `number` | required |  |
+| `recovery_rate` | `number` | `0.4` |  |
 
 ### debt_valuation_adjustment_dva
 
@@ -635,11 +635,11 @@ Formula (LaTeX): `LGD_{own} = 1-R_{own}, \quad \lambda_{own} = \frac{s_{own}}{LG
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_negative_exposure`* | `number[] or number[][]` | required | ``(n,)`` ENE per bucket (>= 0, magnitude). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times. |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `own_credit_spread`* | `number` | required | The bank's own CDS spread (decimal). |
-| `own_recovery_rate` | `number` | `0.4` | The bank's own recovery rate in ``[0, 1)``. |
+| `expected_negative_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `own_credit_spread`* | `number` | required |  |
+| `own_recovery_rate` | `number` | `0.4` |  |
 
 ### funding_valuation_adjustment_fva
 
@@ -657,11 +657,11 @@ Formula (LaTeX): `\Delta t_k = t_k-t_{k-1}, \quad FVA = s_f\sum_k EPE_k\,DF_k\,S
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_exposure`* | `number[] or number[][]` | required | ``(n,)`` EPE per bucket (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times (years). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `funding_spread`* | `number` | required | Bank funding spread over risk-free (decimal). |
-| `survival_probability` | `number[] or number[][] or null` | `None` | Optional ``(n,)`` counterparty survival at each bucket end; defaults to all-ones (no default conditioning). |
+| `expected_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `funding_spread`* | `number` | required |  |
+| `survival_probability` | `number[] or number[][] or null` | `None` |  |
 
 ### capital_valuation_adjustment_kva
 
@@ -675,10 +675,10 @@ Formula (LaTeX): `\Delta t_k = t_k-t_{k-1}, \quad KVA = c\sum_k K_k\,DF_k\,\Delt
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `capital_profile`* | `number[] or number[][]` | required | ``(n,)`` regulatory capital held per bucket (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times (years). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `cost_of_capital` | `number` | `0.1` | Hurdle rate / cost of capital (decimal, e.g. 0.10). |
+| `capital_profile`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `cost_of_capital` | `number` | `0.1` |  |
 
 ### margin_valuation_adjustment_mva
 
@@ -692,10 +692,10 @@ Formula (LaTeX): `\Delta t_k = t_k-t_{k-1}, \quad MVA = s_m\sum_k IM_k\,DF_k\,\D
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `initial_margin_profile`* | `number[] or number[][]` | required | ``(n,)`` expected initial margin posted per bucket (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times (years). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `margin_funding_spread`* | `number` | required | Spread between funding cost and margin remuneration. |
+| `initial_margin_profile`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `margin_funding_spread`* | `number` | required |  |
 
 ### xva_aggregation
 
@@ -709,11 +709,11 @@ Formula (LaTeX): `XVA_{tot} = CVA - DVA + FVA + KVA + MVA`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cva`* | `number` | required | Credit valuation adjustment (cost, >= 0). |
-| `dva` | `number` | `0.0` | Debit valuation adjustment (benefit, >= 0). |
-| `fva` | `number` | `0.0` | Funding valuation adjustment (cost). |
-| `kva` | `number` | `0.0` | Capital valuation adjustment (cost). |
-| `mva` | `number` | `0.0` | Margin valuation adjustment (cost). |
+| `cva`* | `number` | required |  |
+| `dva` | `number` | `0.0` |  |
+| `fva` | `number` | `0.0` |  |
+| `kva` | `number` | `0.0` |  |
+| `mva` | `number` | `0.0` |  |
 
 ### cva_sensitivity_cva_greeks
 
@@ -730,12 +730,12 @@ Formula (LaTeX): `CS01 = CVA(s+\Delta s) - CVA(s), \quad \text{exposure\_delta} 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_exposure`* | `number[] or number[][]` | required | ``(n,)`` EPE per bucket (>= 0). |
-| `time_steps`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing bucket end-times (years). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `credit_spread`* | `number` | required | Counterparty CDS spread (decimal). |
-| `recovery_rate` | `number` | `0.4` | Counterparty recovery rate in ``[0, 1)``. |
-| `spread_bump` | `number` | `0.0001` | Spread shift for the CS01 bump (default 1 bp). |
+| `expected_exposure`* | `number[] or number[][]` | required |  |
+| `time_steps`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `credit_spread`* | `number` | required |  |
+| `recovery_rate` | `number` | `0.4` |  |
+| `spread_bump` | `number` | `0.0001` |  |
 
 ### wrong_way_risk_adjustment
 
@@ -755,9 +755,9 @@ Formula (LaTeX): `\alpha = \max(1+\rho\,\sigma_E,\ 0), \quad CVA_{adj} = \alpha\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_cva`* | `number` | required | Independence-assumption CVA (>= 0). |
-| `correlation`* | `number` | required | Exposure/credit correlation in ``[-1, 1]``. |
-| `exposure_volatility` | `number` | `0.3` | Relative exposure volatility (>= 0) controlling the adjustment magnitude. |
+| `base_cva`* | `number` | required |  |
+| `correlation`* | `number` | required |  |
+| `exposure_volatility` | `number` | `0.3` |  |
 
 ### counterparty_credit_risk_ccr_exposure
 
@@ -770,9 +770,9 @@ Formula (LaTeX): `Exposure = \max(MtM - C,\ 0) + AddOn`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `mark_to_market`* | `number` | required | Current MtM of the netting set (positive = in-the-money to the reporting bank). |
-| `add_on`* | `number` | required | Potential-future-exposure add-on (>= 0). |
-| `collateral` | `number` | `0.0` | Collateral held against the exposure (>= 0). |
+| `mark_to_market`* | `number` | required |  |
+| `add_on`* | `number` | required |  |
+| `collateral` | `number` | `0.0` |  |
 
 ### collateral_haircut_calculation
 
@@ -787,9 +787,9 @@ Formula (LaTeX): `C_{adj} = \max\big(C\cdot(1-H_c-H_{fx}),\ 0\big)`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `collateral_value`* | `number` | required | Nominal collateral market value (>= 0). |
-| `haircut_collateral`* | `number` | required | Collateral volatility haircut in ``[0, 1]``. |
-| `haircut_fx` | `number` | `0.0` | Currency-mismatch haircut in ``[0, 1]``. |
+| `collateral_value`* | `number` | required |  |
+| `haircut_collateral`* | `number` | required |  |
+| `haircut_fx` | `number` | `0.0` |  |
 
 ## CDS & Credit Derivatives
 
@@ -807,9 +807,9 @@ Formula (LaTeX): `LGD = 1-R, \quad \lambda(t) = \frac{s(t)}{LGD}, \quad S(t) = e
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tenors`* | `number[] or number[][]` | required | Strictly increasing CDS tenors in years (> 0). |
-| `par_spreads`* | `number[] or number[][]` | required | Par CDS spreads per tenor (decimal, >= 0). |
-| `recovery_rate` | `number` | `0.4` | Recovery rate in ``[0, 1)``. |
+| `tenors`* | `number[] or number[][]` | required |  |
+| `par_spreads`* | `number[] or number[][]` | required |  |
+| `recovery_rate` | `number` | `0.4` |  |
 
 ### cds_pricing_isda_standard
 
@@ -825,13 +825,13 @@ Formula (LaTeX): `LGD=1-R,\quad S_k=e^{-\lambda t_k} \\ PV_{buyer} = \underbrace
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `payment_times`* | `number[] or number[][]` | required | ``(n,)`` strictly increasing premium-payment times. |
-| `accrual_factors`* | `number[] or number[][]` | required | ``(n,)`` day-count accrual fractions per period (>= 0). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` risk-free discount factors in ``(0, 1]``. |
-| `hazard_rate`* | `number` | required | Flat hazard rate lambda (>= 0). |
-| `contract_spread`* | `number` | required | Contractual (running) CDS spread (decimal). |
-| `notional` | `number` | `1.0` | Contract notional. |
-| `recovery_rate` | `number` | `0.4` | Recovery rate in ``[0, 1)``. |
+| `payment_times`* | `number[] or number[][]` | required |  |
+| `accrual_factors`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `hazard_rate`* | `number` | required |  |
+| `contract_spread`* | `number` | required |  |
+| `notional` | `number` | `1.0` |  |
+| `recovery_rate` | `number` | `0.4` |  |
 
 ### cds_spread_to_pd_conversion
 
@@ -845,9 +845,9 @@ Formula (LaTeX): `\lambda = \frac{s}{1-R}, \quad PD = 1-e^{-\lambda T}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cds_spread`* | `number` | required | CDS par spread (decimal, e.g. 0.015 = 150 bps, >= 0). |
-| `maturity`* | `number` | required | Horizon T in years (> 0). |
-| `recovery_rate` | `number` | `0.4` | Recovery rate in ``[0, 1)``. |
+| `cds_spread`* | `number` | required |  |
+| `maturity`* | `number` | required |  |
+| `recovery_rate` | `number` | `0.4` |  |
 
 ### credit_default_swap_var
 
@@ -862,12 +862,12 @@ Formula (LaTeX): `DV01 = N\cdot RPV01, \quad z=\Phi^{-1}(q), \quad VaR = z\cdot\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required | CDS notional. |
-| `risky_annuity`* | `number` | required | Risky annuity (RPV01) of the contract (>= 0). |
-| `spread_volatility`* | `number` | required | Daily absolute spread volatility (decimal, e.g. 0.0005 = 5 bps/day). |
-| `confidence_level` | `number` | `0.99` | VaR confidence in ``[0.90, 0.9999]``. |
-| `horizon_days` | `integer` | `1` | Risk horizon in trading days (sqrt-time scaling). |
-| `position` | `string` | `'long_protection'` | ``"long_protection"`` or ``"short_protection"`` (affects only the sign of ``pnl_sensitivity``; VaR magnitude is identical). |
+| `notional`* | `number` | required |  |
+| `risky_annuity`* | `number` | required |  |
+| `spread_volatility`* | `number` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
+| `horizon_days` | `integer` | `1` |  |
+| `position` | `string` | `'long_protection'` |  |
 
 ## IFRS 9 & ECL
 
@@ -885,11 +885,11 @@ Formula (LaTeX): `\text{Stage} = \begin{cases} 3 & DPD\ge90 \\ 2 & PD_{cur}\ge k
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd_current`* | `number` | required | Current (reporting-date) lifetime PD in ``[0, 1]``. |
-| `pd_origination`* | `number` | required | Lifetime PD at initial recognition in ``[0, 1]``. |
-| `days_past_due` | `integer` | `0` | Days the exposure is past due (>= 0). |
-| `sicr_relative_threshold` | `number` | `2.0` | Relative PD multiple triggering SICR (>= 1). |
-| `sicr_absolute_threshold` | `number` | `0.02` | Absolute PD increase triggering SICR. |
+| `pd_current`* | `number` | required |  |
+| `pd_origination`* | `number` | required |  |
+| `days_past_due` | `integer` | `0` |  |
+| `sicr_relative_threshold` | `number` | `2.0` |  |
+| `sicr_absolute_threshold` | `number` | `0.02` |  |
 
 ### ifrs_9_lifetime_ecl_stage_2_3
 
@@ -905,11 +905,11 @@ Formula (LaTeX): `ECL = \sum_t PD_t^{marg}\cdot LGD_t\cdot EAD_t\cdot DF_t`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `marginal_pd`* | `number[] or number[][]` | required | ``(n,)`` per-period marginal default probabilities in ``[0, 1]`` (should sum to <= 1). |
-| `lgd`* | `number[] or number[][]` | required | ``(n,)`` per-period LGD in ``[0, 1]``. |
-| `ead`* | `number[] or number[][]` | required | ``(n,)`` per-period EAD (>= 0). |
-| `discount_factors`* | `number[] or number[][]` | required | ``(n,)`` discount factors in ``(0, 1]``. |
-| `stage` | `integer` | `2` | Reported stage (2 or 3) for metadata. |
+| `marginal_pd`* | `number[] or number[][]` | required |  |
+| `lgd`* | `number[] or number[][]` | required |  |
+| `ead`* | `number[] or number[][]` | required |  |
+| `discount_factors`* | `number[] or number[][]` | required |  |
+| `stage` | `integer` | `2` |  |
 
 ### ifrs_9_12_month_ecl_stage_1
 
@@ -922,10 +922,10 @@ Formula (LaTeX): `ECL = PD_{12m}\cdot LGD\cdot EAD\cdot DF`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd_12m`* | `number` | required | 12-month probability of default in ``[0, 1]``. |
-| `lgd`* | `number` | required | Loss given default in ``[0, 1]``. |
-| `ead`* | `number` | required | Exposure at default (>= 0). |
-| `discount_factor` | `number` | `1.0` | Discount factor to the reporting date in ``(0, 1]``. |
+| `pd_12m`* | `number` | required |  |
+| `lgd`* | `number` | required |  |
+| `ead`* | `number` | required |  |
+| `discount_factor` | `number` | `1.0` |  |
 
 ### ifrs_9_scenario_weighted_ecl
 
@@ -939,8 +939,8 @@ Formula (LaTeX): `\hat w_s = \frac{w_s}{\sum_s w_s}, \quad ECL = \sum_s \hat w_s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `scenario_ecls`* | `number[] or number[][]` | required | ``(s,)`` ECL per scenario (>= 0). |
-| `scenario_weights`* | `number[] or number[][]` | required | ``(s,)`` scenario probabilities (>= 0, sum to ~1). |
+| `scenario_ecls`* | `number[] or number[][]` | required |  |
+| `scenario_weights`* | `number[] or number[][]` | required |  |
 
 ### macroeconomic_overlays_ecl
 
@@ -959,10 +959,10 @@ Formula (LaTeX): `m = \max\Big(1+\sum_j \beta_j f_j,\ 0\Big), \quad ECL_{model}=
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_ecl`* | `number` | required | Model base-case ECL (>= 0). |
-| `macro_factors`* | `number[] or number[][]` | required | ``(k,)`` standardised macro deviations (e.g. GDP, unemp). |
-| `sensitivities`* | `number[] or number[][]` | required | ``(k,)`` ECL sensitivity (elasticity) to each factor. |
-| `management_overlay` | `number` | `0.0` | Additive post-model adjustment (can be negative). |
+| `base_ecl`* | `number` | required |  |
+| `macro_factors`* | `number[] or number[][]` | required |  |
+| `sensitivities`* | `number[] or number[][]` | required |  |
+| `management_overlay` | `number` | `0.0` |  |
 
 ### ifrs_9_staging_criteria_assessment
 
@@ -982,12 +982,12 @@ Formula (LaTeX): `\text{Stage} = \max\Big(\text{Stage}_{PD},\ 3\cdot\mathbb{1}[D
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd_current`* | `number` | required | Current lifetime PD in ``[0, 1]``. |
-| `pd_origination`* | `number` | required | Origination lifetime PD in ``[0, 1]``. |
-| `days_past_due` | `integer` | `0` | Days past due (>= 0). |
-| `forbearance` | `boolean` | `False` | Whether the exposure is under forbearance measures. |
-| `watchlist` | `boolean` | `False` | Whether the exposure is on the internal watchlist. |
-| `sicr_relative_threshold` | `number` | `2.0` | Relative-PD SICR multiple (>= 1). |
+| `pd_current`* | `number` | required |  |
+| `pd_origination`* | `number` | required |  |
+| `days_past_due` | `integer` | `0` |  |
+| `forbearance` | `boolean` | `False` |  |
+| `watchlist` | `boolean` | `False` |  |
+| `sicr_relative_threshold` | `number` | `2.0` |  |
 
 ## Specialised Credit Models
 
@@ -1009,10 +1009,10 @@ Formula (LaTeX): `\text{strength} = \frac{\sum_k s_k w_k}{\sum_k w_k}, \quad PD 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `factor_scores`* | `number[] or number[][]` | required | ``(k,)`` factor strengths in ``[0, 1]`` (1 = best). |
-| `factor_weights`* | `number[] or number[][]` | required | ``(k,)`` non-negative weights (normalised internally). |
-| `pd_floor` | `number` | `0.0003` | Regulatory PD floor. |
-| `pd_anchor` | `number` | `0.5` | PD assigned to the weakest borrower (strength 0). |
+| `factor_scores`* | `number[] or number[][]` | required |  |
+| `factor_weights`* | `number[] or number[][]` | required |  |
+| `pd_floor` | `number` | `0.0003` |  |
+| `pd_anchor` | `number` | `0.5` |  |
 
 ### sovereign_credit_risk_assessment
 
@@ -1031,11 +1031,11 @@ Formula (LaTeX): `\text{score} = \text{clip}\big(50-40D+200F+100CA+3FX+40G,\ 0,\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `debt_to_gdp`* | `number` | required | General-government debt / GDP (e.g. 0.6 = 60%). |
-| `fiscal_balance_pct`* | `number` | required | Fiscal balance / GDP (deficit negative). |
-| `current_account_pct`* | `number` | required | Current-account balance / GDP. |
-| `fx_reserves_months`* | `number` | required | FX reserves in months of imports (>= 0). |
-| `governance_score`* | `number` | required | World-Bank-style governance index in ``[0, 1]``. |
+| `debt_to_gdp`* | `number` | required |  |
+| `fiscal_balance_pct`* | `number` | required |  |
+| `current_account_pct`* | `number` | required |  |
+| `fx_reserves_months`* | `number` | required |  |
+| `governance_score`* | `number` | required |  |
 
 ### sector_default_rate_analysis
 
@@ -1049,9 +1049,9 @@ Formula (LaTeX): `\text{rate}_i = \frac{D_i}{O_i}, \quad \overline{\text{rate}} 
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `sector_defaults`* | `number[] or number[][]` | required | Defaults observed per sector. |
-| `sector_obligors`* | `number[] or number[][]` | required | Obligors per sector (>= defaults). |
-| `sector_names` | `string[] or null` | `None` | Optional labels; defaults to ``sector_0, ...``. |
+| `sector_defaults`* | `number[] or number[][]` | required |  |
+| `sector_obligors`* | `number[] or number[][]` | required |  |
+| `sector_names` | `string[] or null` | `None` |  |
 
 ### credit_portfolio_optimisation
 
@@ -1070,10 +1070,10 @@ Formula (LaTeX): `\max_{w}\ \sum_i w_i\,(r_i-\gamma\,EL_i) \quad \text{s.t.}\ \s
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `expected_returns`* | `number[] or number[][]` | required | ``(n,)`` per-asset expected returns. |
-| `expected_losses`* | `number[] or number[][]` | required | ``(n,)`` per-asset expected loss rates (>= 0). |
-| `max_weight` | `number` | `1.0` | Per-name concentration cap in ``(0, 1]``. |
-| `risk_aversion` | `number` | `1.0` | Penalty applied to expected loss (>= 0). |
+| `expected_returns`* | `number[] or number[][]` | required |  |
+| `expected_losses`* | `number[] or number[][]` | required |  |
+| `max_weight` | `number` | `1.0` |  |
+| `risk_aversion` | `number` | `1.0` |  |
 
 ### credit_stress_testing
 
@@ -1092,8 +1092,8 @@ Formula (LaTeX): `EL_{base} = \sum_i PD_i LGD_i EAD_i \\ PD_i^{stress}=\text{cli
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pd`* | `number[] or number[][]` | required | ``(n,)`` baseline PD per exposure in ``[0, 1]``. |
-| `lgd`* | `number[] or number[][]` | required | ``(n,)`` baseline LGD per exposure in ``[0, 1]``. |
-| `ead`* | `number[] or number[][]` | required | ``(n,)`` EAD per exposure (>= 0). |
-| `pd_shock_multiplier` | `number` | `1.5` | Multiplier applied to PD under stress (>= 1). |
-| `lgd_shock_multiplier` | `number` | `1.2` | Multiplier applied to LGD under stress (>= 1). |
+| `pd`* | `number[] or number[][]` | required |  |
+| `lgd`* | `number[] or number[][]` | required |  |
+| `ead`* | `number[] or number[][]` | required |  |
+| `pd_shock_multiplier` | `number` | `1.5` |  |
+| `lgd_shock_multiplier` | `number` | `1.2` |  |

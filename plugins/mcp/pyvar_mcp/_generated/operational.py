@@ -37,39 +37,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "advanced_measurement_approach_ama",
         "input_schema": {
             "properties": {
-                "annual_event_counts": {
-                    "description": "Historical " "annual " "loss-event " "counts.",
-                    "type": "object",
-                },
-                "confidence_level": {
-                    "default": 0.999,
-                    "description": "Capital " "confidence " "(99.9%).",
-                    "type": "number",
-                },
-                "expected_loss_covered": {
-                    "default": True,
-                    "description": "Whether "
-                    "EL is "
-                    "demonstrably "
-                    "covered "
-                    "in "
-                    "provisions.",
-                    "type": "boolean",
-                },
-                "loss_amounts": {
-                    "description": "Historical " "individual loss " "amounts " "(positive).",
-                    "type": "object",
-                },
-                "n_years": {
-                    "default": 100000,
-                    "description": "Number of simulated " "years.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
+                "annual_event_counts": {"type": "object"},
+                "confidence_level": {"default": 0.999, "type": "number"},
+                "expected_loss_covered": {"default": True, "type": "boolean"},
+                "loss_amounts": {"type": "object"},
+                "n_years": {"default": 100000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
             },
             "required": ["annual_event_counts", "loss_amounts"],
             "type": "object",
@@ -86,15 +59,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "audit_finding_risk_scorer",
         "input_schema": {
             "properties": {
-                "likelihood": {
-                    "description": "Likelihood of " "materialisation " "1-5.",
-                    "type": "integer",
-                },
-                "overdue_days": {
-                    "description": "Days the " "remediation is " "past due (>= 0).",
-                    "type": "number",
-                },
-                "severity": {"description": "Finding severity " "1-5.", "type": "integer"},
+                "likelihood": {"type": "integer"},
+                "overdue_days": {"type": "number"},
+                "severity": {"type": "integer"},
             },
             "required": ["severity", "likelihood", "overdue_days"],
             "type": "object",
@@ -119,20 +86,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_standardised_measurement_sma",
         "input_schema": {
             "properties": {
-                "business_indicator": {
-                    "description": "Business " "Indicator " "(BI) in " "base " "currency.",
-                    "type": "number",
-                },
-                "loss_component": {
-                    "default": 0.0,
-                    "description": "Loss Component " "(15 × average " "annual " "losses).",
-                    "type": "number",
-                },
-                "use_ilm": {
-                    "default": True,
-                    "description": "If False (or BI in " "bucket 1) the ILM is " "fixed at 1.0.",
-                    "type": "boolean",
-                },
+                "business_indicator": {"type": "number"},
+                "loss_component": {"default": 0.0, "type": "number"},
+                "use_ilm": {"default": True, "type": "boolean"},
             },
             "required": ["business_indicator"],
             "type": "object",
@@ -161,53 +117,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "business_continuity_risk_score",
         "input_schema": {
             "properties": {
-                "bcp_maturity": {
-                    "description": "BCP programme " "maturity in [0, " "1].",
-                    "type": "number",
-                },
-                "max_tolerable_downtime": {
-                    "description": "Maximum " "tolerable " "downtime " "in " "hours " "(> 0).",
-                    "type": "number",
-                },
-                "rpo_hours": {
-                    "description": "Recovery point "
-                    "objective in hours "
-                    "(maximum acceptable "
-                    "data loss window). "
-                    "Always "
-                    "range-validated; "
-                    "only scored when "
-                    "``rpo_target_hours`` "
-                    "is supplied (see "
-                    "above).",
-                    "type": "number",
-                },
-                "rpo_target_hours": {
-                    "description": "Maximum "
-                    "tolerable "
-                    "period of "
-                    "data loss in "
-                    "hours (> 0), "
-                    "i.e. the "
-                    "RPO's own "
-                    "tolerance "
-                    "threshold, "
-                    "analogous to "
-                    "``max_tolerable_downtime`` "
-                    "for RTO. "
-                    "When "
-                    "omitted, RPO "
-                    "risk is not "
-                    "scored "
-                    "(default, "
-                    "backward-compatible) "
-                    "behaviour.",
-                    "type": "object",
-                },
-                "rto_hours": {
-                    "description": "Recovery time " "objective in hours.",
-                    "type": "number",
-                },
+                "bcp_maturity": {"type": "number"},
+                "max_tolerable_downtime": {"type": "number"},
+                "rpo_hours": {"type": "number"},
+                "rpo_target_hours": {"type": "object"},
+                "rto_hours": {"type": "number"},
             },
             "required": ["rto_hours", "rpo_hours", "max_tolerable_downtime", "bcp_maturity"],
             "type": "object",
@@ -227,23 +141,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "business_environment_factor_bei",
         "input_schema": {
             "properties": {
-                "baseline": {
-                    "default": 3.0,
-                    "description": "Neutral score that " "maps to a 1.0 " "multiplier.",
-                    "type": "number",
-                },
-                "factor_scores": {
-                    "description": "Business-environment " "factor scores.",
-                    "type": "object",
-                },
-                "sensitivity": {
-                    "default": 0.05,
-                    "description": "Capital "
-                    "sensitivity per "
-                    "unit of average "
-                    "score deviation.",
-                    "type": "number",
-                },
+                "baseline": {"default": 3.0, "type": "number"},
+                "factor_scores": {"type": "object"},
+                "sensitivity": {"default": 0.05, "type": "number"},
             },
             "required": ["factor_scores"],
             "type": "object",
@@ -263,28 +163,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "compound_loss_distribution",
         "input_schema": {
             "properties": {
-                "frequency_lambda": {
-                    "description": "Poisson " "annual event " "rate (> 0).",
-                    "type": "number",
-                },
-                "n_years": {
-                    "default": 50000,
-                    "description": "Number of simulated " "years.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
-                "severity_mu": {
-                    "description": "Lognormal " "log-mean of " "severities.",
-                    "type": "number",
-                },
-                "severity_sigma": {
-                    "description": "Lognormal " "log-std of " "severities (> " "0).",
-                    "type": "number",
-                },
+                "frequency_lambda": {"type": "number"},
+                "n_years": {"default": 50000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
+                "severity_mu": {"type": "number"},
+                "severity_sigma": {"type": "number"},
             },
             "required": ["frequency_lambda", "severity_mu", "severity_sigma"],
             "type": "object",
@@ -303,16 +186,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "conduct_risk_metric",
         "input_schema": {
             "properties": {
-                "complaints": {
-                    "description": "Number of upheld " "complaints in the " "period.",
-                    "type": "number",
-                },
-                "customers": {"description": "Active customer " "count (> 0).", "type": "number"},
-                "redress_paid": {
-                    "description": "Total customer " "redress paid.",
-                    "type": "number",
-                },
-                "revenue": {"description": "Period revenue (> 0).", "type": "number"},
+                "complaints": {"type": "number"},
+                "customers": {"type": "number"},
+                "redress_paid": {"type": "number"},
+                "revenue": {"type": "number"},
             },
             "required": ["complaints", "customers", "redress_paid", "revenue"],
             "type": "object",
@@ -328,16 +205,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "control_testing_effectiveness",
         "input_schema": {
-            "properties": {
-                "tests_passed": {
-                    "description": "Number of " "control tests " "passed.",
-                    "type": "integer",
-                },
-                "tests_total": {
-                    "description": "Total control " "tests performed " "(> 0).",
-                    "type": "integer",
-                },
-            },
+            "properties": {"tests_passed": {"type": "integer"}, "tests_total": {"type": "integer"}},
             "required": ["tests_passed", "tests_total"],
             "type": "object",
         },
@@ -354,27 +222,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cyber_risk_loss_estimation",
         "input_schema": {
             "properties": {
-                "breach_probability": {
-                    "description": "Annual " "breach " "probability " "in [0, 1].",
-                    "type": "number",
-                },
-                "business_interruption_cost": {
-                    "default": 0.0,
-                    "description": "Additional " "BI " "cost " "given " "a " "breach.",
-                    "type": "number",
-                },
-                "cost_per_record": {
-                    "description": "Cost per "
-                    "breached "
-                    "record "
-                    "(regulatory + "
-                    "remediation).",
-                    "type": "number",
-                },
-                "records_exposed": {
-                    "description": "Number of " "data records " "at risk.",
-                    "type": "number",
-                },
+                "breach_probability": {"type": "number"},
+                "business_interruption_cost": {"default": 0.0, "type": "number"},
+                "cost_per_record": {"type": "number"},
+                "records_exposed": {"type": "number"},
             },
             "required": ["records_exposed", "cost_per_record", "breach_probability"],
             "type": "object",
@@ -393,18 +244,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "diversification_benefit_oprisk",
         "input_schema": {
             "properties": {
-                "correlation": {
-                    "default": 0.0,
-                    "description": "Uniform pairwise "
-                    "correlation in "
-                    "[0, 1] (0 = "
-                    "independent).",
-                    "type": "number",
-                },
-                "standalone_capitals": {
-                    "description": "Standalone " "capital " "per " "OpRisk " "cell (>= " "0).",
-                    "type": "object",
-                },
+                "correlation": {"default": 0.0, "type": "number"},
+                "standalone_capitals": {"type": "object"},
             },
             "required": ["standalone_capitals"],
             "type": "object",
@@ -425,13 +266,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "escalation_threshold_calculation",
         "input_schema": {
-            "properties": {
-                "loss_amount": {"description": "Loss amount to " "route (>= 0).", "type": "number"},
-                "thresholds": {
-                    "description": "Mapping ``level -> " "minimum amount`` " "for that level.",
-                    "type": "object",
-                },
-            },
+            "properties": {"loss_amount": {"type": "number"}, "thresholds": {"type": "object"}},
             "required": ["loss_amount", "thresholds"],
             "type": "object",
         },
@@ -448,15 +283,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "external_loss_data_integration",
         "input_schema": {
             "properties": {
-                "external_losses": {
-                    "description": "External loss " "amounts " "(pre-scaling).",
-                    "type": "object",
-                },
-                "internal_losses": {"description": "Internal loss " "amounts.", "type": "object"},
-                "scaling_factor": {
-                    "description": "Multiplicative " "size " "adjustment (> " "0).",
-                    "type": "number",
-                },
+                "external_losses": {"type": "object"},
+                "internal_losses": {"type": "object"},
+                "scaling_factor": {"type": "number"},
             },
             "required": ["internal_losses", "external_losses", "scaling_factor"],
             "type": "object",
@@ -473,12 +302,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "frequency_distribution_fitting",
         "input_schema": {
-            "properties": {
-                "annual_event_counts": {
-                    "description": "Observed " "number of " "loss " "events " "per year.",
-                    "type": "object",
-                }
-            },
+            "properties": {"annual_event_counts": {"type": "object"}},
             "required": ["annual_event_counts"],
             "type": "object",
         },
@@ -497,20 +321,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "insurance_offset_calculation",
         "input_schema": {
             "properties": {
-                "deductible": {
-                    "description": "Loss retained by " "the firm before " "insurance " "responds.",
-                    "type": "number",
-                },
-                "gross_loss": {"description": "Gross operational " "loss.", "type": "number"},
-                "haircut": {
-                    "default": 0.0,
-                    "description": "Supervisory haircut " "on the recovery, in " "[0, 1].",
-                    "type": "number",
-                },
-                "policy_limit": {
-                    "description": "Maximum " "insurance " "pay-out.",
-                    "type": "number",
-                },
+                "deductible": {"type": "number"},
+                "gross_loss": {"type": "number"},
+                "haircut": {"default": 0.0, "type": "number"},
+                "policy_limit": {"type": "number"},
             },
             "required": ["gross_loss", "policy_limit", "deductible"],
             "type": "object",
@@ -528,24 +342,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "internal_control_factor_icf",
         "input_schema": {
             "properties": {
-                "baseline": {
-                    "default": 0.8,
-                    "description": "Neutral " "effectiveness that " "maps to a 1.0 " "multiplier.",
-                    "type": "number",
-                },
-                "control_scores": {
-                    "description": "Control " "effectiveness " "scores in [0, " "1].",
-                    "type": "object",
-                },
-                "sensitivity": {
-                    "default": 0.25,
-                    "description": "Capital "
-                    "sensitivity per "
-                    "unit of "
-                    "effectiveness "
-                    "deviation.",
-                    "type": "number",
-                },
+                "baseline": {"default": 0.8, "type": "number"},
+                "control_scores": {"type": "object"},
+                "sensitivity": {"default": 0.25, "type": "number"},
             },
             "required": ["control_scores"],
             "type": "object",
@@ -563,18 +362,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "it_risk_scoring",
         "input_schema": {
             "properties": {
-                "availability": {
-                    "description": "System " "availability in " "[0, 1] (e.g. " "0.999).",
-                    "type": "number",
-                },
-                "incident_count": {
-                    "description": "Number of IT " "incidents in " "the period (>= " "0).",
-                    "type": "number",
-                },
-                "patch_compliance": {
-                    "description": "Patch " "compliance " "in [0, 1].",
-                    "type": "number",
-                },
+                "availability": {"type": "number"},
+                "incident_count": {"type": "number"},
+                "patch_compliance": {"type": "number"},
             },
             "required": ["availability", "incident_count", "patch_compliance"],
             "type": "object",
@@ -595,12 +385,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "key_risk_indicator_kri_library",
         "input_schema": {
-            "properties": {
-                "kri_definitions": {
-                    "description": "List of KRI " "definition " "dicts.",
-                    "type": "array",
-                }
-            },
+            "properties": {"kri_definitions": {"type": "array"}},
             "required": ["kri_definitions"],
             "type": "object",
         },
@@ -621,17 +406,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "kri_threshold_breach_detection",
         "input_schema": {
             "properties": {
-                "amber_threshold": {"description": "Amber " "boundary.", "type": "number"},
-                "direction": {
-                    "default": "higher_breach",
-                    "description": '``"higher_breach"`` ' "or " '``"lower_breach"``.',
-                    "type": "string",
-                },
-                "red_threshold": {
-                    "description": "Red boundary " "(more extreme " "than amber).",
-                    "type": "number",
-                },
-                "value": {"description": "Current KRI " "observation.", "type": "number"},
+                "amber_threshold": {"type": "number"},
+                "direction": {"default": "higher_breach", "type": "string"},
+                "red_threshold": {"type": "number"},
+                "value": {"type": "number"},
             },
             "required": ["value", "amber_threshold", "red_threshold"],
             "type": "object",
@@ -655,15 +433,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "kri_trend_analysis",
         "input_schema": {
             "properties": {
-                "higher_is_worse": {
-                    "default": True,
-                    "description": "Whether an " "increasing " "series is " "adverse.",
-                    "type": "boolean",
-                },
-                "observations": {
-                    "description": "Ordered KRI " "observations " "(oldest first).",
-                    "type": "object",
-                },
+                "higher_is_worse": {"default": True, "type": "boolean"},
+                "observations": {"type": "object"},
             },
             "required": ["observations"],
             "type": "object",
@@ -680,14 +451,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "loss_data_collection_framework",
         "input_schema": {
             "properties": {
-                "loss_events": {
-                    "description": "List of events, " "each with a " "``gross_amount`` " "key.",
-                    "type": "array",
-                },
-                "reporting_threshold": {
-                    "description": "De-minimis " "threshold " "(>= 0).",
-                    "type": "number",
-                },
+                "loss_events": {"type": "array"},
+                "reporting_threshold": {"type": "number"},
             },
             "required": ["loss_events", "reporting_threshold"],
             "type": "object",
@@ -709,29 +474,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "loss_distribution_approach_lda",
         "input_schema": {
             "properties": {
-                "annual_event_counts": {
-                    "description": "Historical " "annual " "loss-event " "counts.",
-                    "type": "object",
-                },
-                "confidence_level": {
-                    "default": 0.999,
-                    "description": "Capital " "confidence " "(Basel AMA " "99.9%).",
-                    "type": "number",
-                },
-                "loss_amounts": {
-                    "description": "Historical " "individual loss " "amounts " "(positive).",
-                    "type": "object",
-                },
-                "n_years": {
-                    "default": 100000,
-                    "description": "Number of simulated " "years.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
+                "annual_event_counts": {"type": "object"},
+                "confidence_level": {"default": 0.999, "type": "number"},
+                "loss_amounts": {"type": "object"},
+                "n_years": {"default": 100000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
             },
             "required": ["annual_event_counts", "loss_amounts"],
             "type": "object",
@@ -751,12 +498,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "loss_event_classification_basel",
         "input_schema": {
-            "properties": {
-                "event_type": {
-                    "description": "Candidate Basel " "Level-1 event-type " "key.",
-                    "type": "string",
-                }
-            },
+            "properties": {"event_type": {"type": "string"}},
             "required": ["event_type"],
             "type": "object",
         },
@@ -779,15 +521,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "model_risk_assessment",
         "input_schema": {
             "properties": {
-                "complexity": {"description": "Model complexity " "rating 1-5.", "type": "integer"},
-                "materiality": {
-                    "description": "Model materiality " "rating 1-5.",
-                    "type": "integer",
-                },
-                "validation_score": {
-                    "description": "Validation " "effectiveness " "in [0, 1] (1 " "= strong).",
-                    "type": "number",
-                },
+                "complexity": {"type": "integer"},
+                "materiality": {"type": "integer"},
+                "validation_score": {"type": "number"},
             },
             "required": ["materiality", "complexity", "validation_score"],
             "type": "object",
@@ -805,38 +541,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "monte_carlo_oprisk_capital",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.999,
-                    "description": "Capital "
-                    "confidence "
-                    "(Basel AMA "
-                    "99.9%); in "
-                    "[0.90, "
-                    "0.9999].",
-                    "type": "number",
-                },
-                "frequency_lambda": {
-                    "description": "Poisson " "annual event " "rate (> 0).",
-                    "type": "number",
-                },
-                "n_years": {
-                    "default": 100000,
-                    "description": "Number of simulated " "years.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
-                "severity_mu": {
-                    "description": "Lognormal " "log-mean of " "severities.",
-                    "type": "number",
-                },
-                "severity_sigma": {
-                    "description": "Lognormal " "log-std of " "severities (> " "0).",
-                    "type": "number",
-                },
+                "confidence_level": {"default": 0.999, "type": "number"},
+                "frequency_lambda": {"type": "number"},
+                "n_years": {"default": 100000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
+                "severity_mu": {"type": "number"},
+                "severity_sigma": {"type": "number"},
             },
             "required": ["frequency_lambda", "severity_mu", "severity_sigma"],
             "type": "object",
@@ -858,15 +568,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "near_miss_capture_framework",
         "input_schema": {
-            "properties": {
-                "events": {
-                    "description": "List of events, each "
-                    "with ``actual_loss`` "
-                    "and "
-                    "``potential_loss``.",
-                    "type": "array",
-                }
-            },
+            "properties": {"events": {"type": "array"}},
             "required": ["events"],
             "type": "object",
         },
@@ -882,15 +584,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "operational_var_opvar",
         "input_schema": {
             "properties": {
-                "annual_losses": {
-                    "description": "Sample of " "aggregate " "annual losses.",
-                    "type": "object",
-                },
-                "confidence_level": {
-                    "default": 0.999,
-                    "description": "Confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
+                "annual_losses": {"type": "object"},
+                "confidence_level": {"default": 0.999, "type": "number"},
             },
             "required": ["annual_losses"],
             "type": "object",
@@ -909,14 +604,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "oprisk_capital_allocation",
         "input_schema": {
             "properties": {
-                "business_line_risks": {
-                    "description": "Standalone " "risk " "measure " "per " "business " "line.",
-                    "type": "object",
-                },
-                "total_capital": {
-                    "description": "Firm-wide " "OpRisk capital " "to allocate.",
-                    "type": "number",
-                },
+                "business_line_risks": {"type": "object"},
+                "total_capital": {"type": "number"},
             },
             "required": ["total_capital", "business_line_risks"],
             "type": "object",
@@ -935,21 +624,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "oprisk_economic_capital",
         "input_schema": {
             "properties": {
-                "diversification_benefit": {
-                    "default": 0.0,
-                    "description": "Recognised " "diversification " "benefit.",
-                    "type": "number",
-                },
-                "expected_loss": {"description": "Expected annual " "loss.", "type": "number"},
-                "insurance_offset": {
-                    "default": 0.0,
-                    "description": "Recognised " "insurance " "mitigation.",
-                    "type": "number",
-                },
-                "opvar": {
-                    "description": "Operational VaR at the " "economic-capital " "confidence.",
-                    "type": "number",
-                },
+                "diversification_benefit": {"default": 0.0, "type": "number"},
+                "expected_loss": {"type": "number"},
+                "insurance_offset": {"default": 0.0, "type": "number"},
+                "opvar": {"type": "number"},
             },
             "required": ["opvar", "expected_loss"],
             "type": "object",
@@ -965,13 +643,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "oprisk_heat_map_generator",
         "input_schema": {
-            "properties": {
-                "impacts": {"description": "Impact rating per " "risk (1-5).", "type": "object"},
-                "likelihoods": {
-                    "description": "Likelihood rating " "per risk (1-5).",
-                    "type": "object",
-                },
-            },
+            "properties": {"impacts": {"type": "object"}, "likelihoods": {"type": "object"}},
             "required": ["likelihoods", "impacts"],
             "type": "object",
         },
@@ -988,15 +660,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "oprisk_stress_testing",
         "input_schema": {
             "properties": {
-                "base_capital": {"description": "Baseline OpRisk " "capital.", "type": "number"},
-                "frequency_shock": {
-                    "description": "Fractional " "increase in " "event " "frequency (>= " "-1).",
-                    "type": "number",
-                },
-                "severity_shock": {
-                    "description": "Fractional " "increase in " "event severity " "(>= -1).",
-                    "type": "number",
-                },
+                "base_capital": {"type": "number"},
+                "frequency_shock": {"type": "number"},
+                "severity_shock": {"type": "number"},
             },
             "required": ["base_capital", "frequency_shock", "severity_shock"],
             "type": "object",
@@ -1015,19 +681,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rcsa_control_effectiveness",
         "input_schema": {
             "properties": {
-                "design_score": {
-                    "description": "Design " "effectiveness in " "[0, 1].",
-                    "type": "number",
-                },
-                "design_weight": {
-                    "default": 0.4,
-                    "description": "Weight on " "design " "(operating " "weight = 1 − " "this).",
-                    "type": "number",
-                },
-                "operating_score": {
-                    "description": "Operating " "effectiveness " "in [0, 1].",
-                    "type": "number",
-                },
+                "design_score": {"type": "number"},
+                "design_weight": {"default": 0.4, "type": "number"},
+                "operating_score": {"type": "number"},
             },
             "required": ["design_score", "operating_score"],
             "type": "object",
@@ -1043,10 +699,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "rcsa_inherent_risk_scoring",
         "input_schema": {
-            "properties": {
-                "impact": {"description": "Impact rating in 1-5.", "type": "integer"},
-                "likelihood": {"description": "Likelihood rating " "in 1-5.", "type": "integer"},
-            },
+            "properties": {"impact": {"type": "integer"}, "likelihood": {"type": "integer"}},
             "required": ["likelihood", "impact"],
             "type": "object",
         },
@@ -1062,19 +715,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rcsa_residual_risk_scoring",
         "input_schema": {
             "properties": {
-                "control_effectiveness": {
-                    "description": "Control "
-                    "effectiveness "
-                    "in [0, "
-                    "1] (1 = "
-                    "fully "
-                    "effective).",
-                    "type": "number",
-                },
-                "inherent_score": {
-                    "description": "Inherent risk " "score (1-25).",
-                    "type": "number",
-                },
+                "control_effectiveness": {"type": "number"},
+                "inherent_score": {"type": "number"},
             },
             "required": ["inherent_score", "control_effectiveness"],
             "type": "object",
@@ -1094,16 +736,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "rcsa_risk_identification",
         "input_schema": {
-            "properties": {
-                "risk_register": {
-                    "description": "List of risk "
-                    "dicts, each "
-                    "with "
-                    "``risk_id`` and "
-                    "``category``.",
-                    "type": "array",
-                }
-            },
+            "properties": {"risk_register": {"type": "array"}},
             "required": ["risk_register"],
             "type": "object",
         },
@@ -1120,16 +753,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "regulatory_compliance_score",
         "input_schema": {
-            "properties": {
-                "requirements_met": {
-                    "description": "Compliance " "status per " "requirement, " "each in [0, " "1].",
-                    "type": "object",
-                },
-                "weights": {
-                    "description": "Optional importance " "weights (default " "equal).",
-                    "type": "object",
-                },
-            },
+            "properties": {"requirements_met": {"type": "object"}, "weights": {"type": "object"}},
             "required": ["requirements_met"],
             "type": "object",
         },
@@ -1150,20 +774,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "risk_appetite_statement_oprisk",
         "input_schema": {
             "properties": {
-                "appetite_limit": {"description": "Risk-appetite " "limit.", "type": "number"},
-                "current_metric": {
-                    "description": "Current value " "of the OpRisk " "metric.",
-                    "type": "number",
-                },
-                "higher_is_worse": {
-                    "default": True,
-                    "description": "Whether " "higher values " "are adverse.",
-                    "type": "boolean",
-                },
-                "tolerance_limit": {
-                    "description": "Risk-tolerance " "(harder) " "limit.",
-                    "type": "number",
-                },
+                "appetite_limit": {"type": "number"},
+                "current_metric": {"type": "number"},
+                "higher_is_worse": {"default": True, "type": "boolean"},
+                "tolerance_limit": {"type": "number"},
             },
             "required": ["current_metric", "appetite_limit", "tolerance_limit"],
             "type": "object",
@@ -1180,12 +794,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "operational",
         "function_name": "root_cause_analysis_template",
         "input_schema": {
-            "properties": {
-                "causal_factors": {
-                    "description": "Mapping " "``factor -> " "contribution " "weight`` (>= " "0).",
-                    "type": "object",
-                }
-            },
+            "properties": {"causal_factors": {"type": "object"}},
             "required": ["causal_factors"],
             "type": "object",
         },
@@ -1203,33 +812,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "scenario_analysis_oprisk",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.999,
-                    "description": "Capital " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "frequency_lambda": {
-                    "description": "Poisson " "annual " "frequency (> " "0).",
-                    "type": "number",
-                },
-                "n_years": {
-                    "default": 50000,
-                    "description": "Number of simulated " "years.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
-                "severity_mu": {
-                    "description": "Lognormal " "log-mean " "severity.",
-                    "type": "number",
-                },
-                "severity_sigma": {
-                    "description": "Lognormal " "log-std " "severity (> " "0).",
-                    "type": "number",
-                },
+                "confidence_level": {"default": 0.999, "type": "number"},
+                "frequency_lambda": {"type": "number"},
+                "n_years": {"default": 50000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
+                "severity_mu": {"type": "number"},
+                "severity_sigma": {"type": "number"},
             },
             "required": ["frequency_lambda", "severity_mu", "severity_sigma"],
             "type": "object",
@@ -1247,14 +835,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "scenario_expert_elicitation_model",
         "input_schema": {
             "properties": {
-                "expert_estimates": {
-                    "description": "Each " "expert's " "loss " "estimate.",
-                    "type": "object",
-                },
-                "expert_weights": {
-                    "description": "Optional " "credibility " "weights " "(default " "equal).",
-                    "type": "object",
-                },
+                "expert_estimates": {"type": "object"},
+                "expert_weights": {"type": "object"},
             },
             "required": ["expert_estimates"],
             "type": "object",
@@ -1273,18 +855,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "scenario_frequency_estimation",
         "input_schema": {
             "properties": {
-                "expected_events_per_year": {
-                    "description": "Expert " "estimate " "of " "the " "annual " "event " "rate.",
-                    "type": "number",
-                },
-                "observation_years": {
-                    "description": "Optional " "observation " "window in " "years (> " "0).",
-                    "type": "object",
-                },
-                "occurrences": {
-                    "description": "Optional observed " "event count.",
-                    "type": "object",
-                },
+                "expected_events_per_year": {"type": "number"},
+                "observation_years": {"type": "object"},
+                "occurrences": {"type": "object"},
             },
             "required": ["expected_events_per_year"],
             "type": "object",
@@ -1303,19 +876,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "scenario_severity_estimation",
         "input_schema": {
             "properties": {
-                "typical_loss": {
-                    "description": "Median " '("typical") loss ' "(> 0).",
-                    "type": "number",
-                },
-                "worst_case_loss": {
-                    "description": "High-percentile " "loss (> " "typical).",
-                    "type": "number",
-                },
-                "worst_case_percentile": {
-                    "default": 0.99,
-                    "description": "Percentile " "of the " "worst " "case, " "in " "(0.5, " "1).",
-                    "type": "number",
-                },
+                "typical_loss": {"type": "number"},
+                "worst_case_loss": {"type": "number"},
+                "worst_case_percentile": {"default": 0.99, "type": "number"},
             },
             "required": ["typical_loss", "worst_case_loss"],
             "type": "object",
@@ -1353,20 +916,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "severity_distribution_fitting",
         "input_schema": {
             "properties": {
-                "distribution": {
-                    "default": "lognormal",
-                    "description": "Severity family; "
-                    "one of "
-                    '``"lognormal"``, '
-                    '``"gamma"``, '
-                    '``"weibull"`` or '
-                    '``"gpd"``.',
-                    "type": "string",
-                },
-                "loss_amounts": {
-                    "description": "Strictly " "positive " "individual loss " "amounts.",
-                    "type": "object",
-                },
+                "distribution": {"default": "lognormal", "type": "string"},
+                "loss_amounts": {"type": "object"},
             },
             "required": ["loss_amounts"],
             "type": "object",
@@ -1385,20 +936,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "tail_risk_scenario_oprisk",
         "input_schema": {
             "properties": {
-                "annual_losses": {
-                    "description": "Sample of " "aggregate " "annual losses.",
-                    "type": "object",
-                },
-                "severity_multiplier": {
-                    "default": 1.0,
-                    "description": "Multiplier " "applied " "to tail " "losses " "(>= 1.0).",
-                    "type": "number",
-                },
-                "tail_confidence": {
-                    "default": 0.999,
-                    "description": "Tail quantile " "defining " '"extreme" ' "losses.",
-                    "type": "number",
-                },
+                "annual_losses": {"type": "object"},
+                "severity_multiplier": {"default": 1.0, "type": "number"},
+                "tail_confidence": {"default": 0.999, "type": "number"},
             },
             "required": ["annual_losses"],
             "type": "object",
@@ -1416,23 +956,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "third_party_vendor_risk",
         "input_schema": {
             "properties": {
-                "concentration": {
-                    "description": "Reliance " "concentration " "in [0, 1] (1 = " "sole supplier).",
-                    "type": "number",
-                },
-                "criticality": {"description": "Service " "criticality 1-5.", "type": "integer"},
-                "financial_health": {
-                    "description": "Vendor " "financial " "health in " "[0, 1] (1 = " "strong).",
-                    "type": "number",
-                },
-                "substitutability": {
-                    "description": "Ease of "
-                    "replacement "
-                    "in [0, 1] (1 "
-                    "= easily "
-                    "replaced).",
-                    "type": "number",
-                },
+                "concentration": {"type": "number"},
+                "criticality": {"type": "integer"},
+                "financial_health": {"type": "number"},
+                "substitutability": {"type": "number"},
             },
             "required": ["criticality", "financial_health", "concentration", "substitutability"],
             "type": "object",

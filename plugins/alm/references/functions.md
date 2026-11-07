@@ -15,11 +15,11 @@ Formula (LaTeX): `DGAP = D_A - \dfrac{L}{A}D_L \quad \Delta EVE \approx -DGAP\cd
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_duration`* | `number` | required | Weighted asset duration (years). |
-| `liability_duration`* | `number` | required | Weighted liability duration (years). |
-| `total_assets`* | `number` | required | Total assets (currency). |
-| `total_liabilities`* | `number` | required | Total liabilities (currency). |
-| `rate_shock` | `number` | `0.01` | Parallel rate shock (decimal). |
+| `asset_duration`* | `number` | required |  |
+| `liability_duration`* | `number` | required |  |
+| `total_assets`* | `number` | required |  |
+| `total_liabilities`* | `number` | required |  |
+| `rate_shock` | `number` | `0.01` |  |
 
 ### macaulay_duration_balance_sheet
 
@@ -29,9 +29,9 @@ Formula (LaTeX): `D_{mac} = \dfrac{\sum_i t_i\,CF_i\,e^{-y t_i}}{\sum_i CF_i\,e^
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
-| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
-| `discount_rate`* | `number` | required | Continuous discount rate (decimal). |
+| `cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `discount_rate`* | `number` | required |  |
 
 ### modified_duration_balance_sheet
 
@@ -44,10 +44,10 @@ Formula (LaTeX): `D_{mac} = \dfrac{\sum_i t_i\,CF_i\,e^{-y t_i}}{\sum_i CF_i\,e^
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `cashflows`* | `number[] or number[][]` | required | Cashflow amounts. |
-| `times`* | `number[] or number[][]` | required | Cashflow times in years. |
-| `discount_rate`* | `number` | required | Discount rate (decimal). |
-| `frequency` | `integer` | `1` | Compounding frequency per year. |
+| `cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `discount_rate`* | `number` | required |  |
+| `frequency` | `integer` | `1` |  |
 
 ### effective_duration_alm
 
@@ -60,10 +60,10 @@ Formula (LaTeX): `D_{eff} = \dfrac{PV_{-} - PV_{+}}{2\,PV_0\,\Delta y}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pv_base`* | `number` | required | Present value at base rates. |
-| `pv_up`* | `number` | required | Present value after +``rate_shock``. |
-| `pv_down`* | `number` | required | Present value after −``rate_shock``. |
-| `rate_shock`* | `number` | required | Parallel rate shock (decimal). |
+| `pv_base`* | `number` | required |  |
+| `pv_up`* | `number` | required |  |
+| `pv_down`* | `number` | required |  |
+| `rate_shock`* | `number` | required |  |
 
 ### convexity_gap
 
@@ -76,10 +76,10 @@ Formula (LaTeX): `CGAP = C_A - \dfrac{L}{A}\,C_L`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_convexity`* | `number` | required | Weighted asset convexity. |
-| `liability_convexity`* | `number` | required | Weighted liability convexity. |
-| `total_assets`* | `number` | required | Total assets (currency). |
-| `total_liabilities`* | `number` | required | Total liabilities (currency). |
+| `asset_convexity`* | `number` | required |  |
+| `liability_convexity`* | `number` | required |  |
+| `total_assets`* | `number` | required |  |
+| `total_liabilities`* | `number` | required |  |
 
 ## NII & EVE Simulation
 
@@ -95,13 +95,13 @@ Formula (LaTeX): `\begin{aligned}NII_{base} &=\sum_i A_i r_i^A - \sum_j L_j r_j^
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_balances`* | `number[] or number[][]` | required | Balance per asset bucket (currency). |
-| `asset_rates`* | `number[] or number[][]` | required | Base yield per asset bucket (decimal). |
-| `liability_balances`* | `number[] or number[][]` | required | Balance per liability bucket. |
-| `liability_rates`* | `number[] or number[][]` | required | Base cost per liability bucket (decimal). |
-| `rate_shock`* | `number` | required | Parallel rate shock (decimal). |
-| `asset_beta` | `number` | `1.0` | Asset repricing beta in [0, 1+]. |
-| `liability_beta` | `number` | `0.5` | Liability (deposit) repricing beta in [0, 1+]. |
+| `asset_balances`* | `number[] or number[][]` | required |  |
+| `asset_rates`* | `number[] or number[][]` | required |  |
+| `liability_balances`* | `number[] or number[][]` | required |  |
+| `liability_rates`* | `number[] or number[][]` | required |  |
+| `rate_shock`* | `number` | required |  |
+| `asset_beta` | `number` | `1.0` |  |
+| `liability_beta` | `number` | `0.5` |  |
 
 ### economic_value_of_equity_eve
 
@@ -114,12 +114,12 @@ Formula (LaTeX): `EVE = \sum_i CF_i^A e^{-r_i^A t_i^A} - \sum_j CF_j^L e^{-r_j^L
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_cashflows`* | `number[] or number[][]` | required | Asset cashflow per bucket. |
-| `asset_times`* | `number[] or number[][]` | required | Asset cashflow time per bucket (years). |
-| `liability_cashflows`* | `number[] or number[][]` | required | Liability cashflow per bucket. |
-| `liability_times`* | `number[] or number[][]` | required | Liability cashflow time per bucket (years). |
-| `asset_rates`* | `number[] or number[][]` | required | Discount zero rate per asset bucket (decimal). |
-| `liability_rates`* | `number[] or number[][]` | required | Discount zero rate per liability bucket (decimal). |
+| `asset_cashflows`* | `number[] or number[][]` | required |  |
+| `asset_times`* | `number[] or number[][]` | required |  |
+| `liability_cashflows`* | `number[] or number[][]` | required |  |
+| `liability_times`* | `number[] or number[][]` | required |  |
+| `asset_rates`* | `number[] or number[][]` | required |  |
+| `liability_rates`* | `number[] or number[][]` | required |  |
 
 ### eve_sensitivity_analysis
 
@@ -132,12 +132,12 @@ Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `net_cashflows`* | `number[] or number[][]` | required | Net (asset − liability) cashflow per bucket. |
-| `times`* | `number[] or number[][]` | required | Bucket times in years. |
-| `base_rates`* | `number[] or number[][]` | required | Base zero rate per bucket (decimal). |
-| `parallel_bps` | `number` | `200.0` | Parallel shock (bps). |
-| `short_bps` | `number` | `300.0` | Short shock (bps). |
-| `long_bps` | `number` | `150.0` | Long shock (bps). |
+| `net_cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `base_rates`* | `number[] or number[][]` | required |  |
+| `parallel_bps` | `number` | `200.0` |  |
+| `short_bps` | `number` | `300.0` |  |
+| `long_bps` | `number` | `150.0` |  |
 
 ### nii_sensitivity_rate_shock
 
@@ -150,9 +150,9 @@ Formula (LaTeX): `\Delta NII = (RSA-RSL)\cdot \Delta y`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `rate_sensitive_assets`* | `number` | required | Assets repricing within the horizon (currency). |
-| `rate_sensitive_liabilities`* | `number` | required | Liabilities repricing within the horizon. |
-| `rate_shock`* | `number` | required | Parallel rate shock (decimal). |
+| `rate_sensitive_assets`* | `number` | required |  |
+| `rate_sensitive_liabilities`* | `number` | required |  |
+| `rate_shock`* | `number` | required |  |
 
 ### nii_simulation_baseline
 
@@ -164,10 +164,10 @@ Formula (LaTeX): `NII = \sum_i A_i r_i^A - \sum_j L_j r_j^L`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_balances`* | `number[] or number[][]` | required | Balance per interest-earning asset bucket. |
-| `asset_rates`* | `number[] or number[][]` | required | Yield per asset bucket (decimal). |
-| `liability_balances`* | `number[] or number[][]` | required | Balance per interest-bearing liability bucket. |
-| `liability_rates`* | `number[] or number[][]` | required | Cost per liability bucket (decimal). |
+| `asset_balances`* | `number[] or number[][]` | required |  |
+| `asset_rates`* | `number[] or number[][]` | required |  |
+| `liability_balances`* | `number[] or number[][]` | required |  |
+| `liability_rates`* | `number[] or number[][]` | required |  |
 
 ### liquidity_adjusted_nii
 
@@ -181,11 +181,11 @@ Formula (LaTeX): `NII_{adj} = NII_{base} + B\,(y_B-c_F-p_{liq})`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `base_nii`* | `number` | required | Baseline net interest income (currency). |
-| `liquidity_buffer`* | `number` | required | Size of the liquidity buffer (currency). |
-| `buffer_yield`* | `number` | required | Yield on the buffer (decimal). |
-| `funding_cost`* | `number` | required | Funding cost of the buffer (decimal). |
-| `liquidity_premium`* | `number` | required | Additional liquidity premium charged (decimal). |
+| `base_nii`* | `number` | required |  |
+| `liquidity_buffer`* | `number` | required |  |
+| `buffer_yield`* | `number` | required |  |
+| `funding_cost`* | `number` | required |  |
+| `liquidity_premium`* | `number` | required |  |
 
 ## IRRBB Framework
 
@@ -201,12 +201,12 @@ Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `net_cashflows`* | `number[] or number[][]` | required | Net (asset − liability) cashflow per time bucket. |
-| `times`* | `number[] or number[][]` | required | Bucket midpoint times in years. |
-| `base_rates`* | `number[] or number[][]` | required | Base zero rate per bucket (decimal). |
-| `parallel_bps` | `number` | `200.0` | Parallel shock magnitude (bps). |
-| `short_bps` | `number` | `300.0` | Short shock magnitude (bps). |
-| `long_bps` | `number` | `150.0` | Long shock magnitude (bps). |
+| `net_cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `base_rates`* | `number[] or number[][]` | required |  |
+| `parallel_bps` | `number` | `200.0` |  |
+| `short_bps` | `number` | `300.0` |  |
+| `long_bps` | `number` | `150.0` |  |
 
 ### irrbb_internal_model
 
@@ -220,10 +220,10 @@ Formula (LaTeX): `EVE(r)=\sum_k CF_k e^{-r_k t_k}, \quad \Delta EVE_s = EVE(r_0+
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `net_cashflows`* | `number[] or number[][]` | required | Net cashflow per bucket. |
-| `times`* | `number[] or number[][]` | required | Bucket times in years. |
-| `base_rates`* | `number[] or number[][]` | required | Base zero rate per bucket (decimal). |
-| `rate_scenarios`* | `number[] or number[][]` | required | ``(n_scenarios, n_buckets)`` additive rate shocks. |
+| `net_cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `base_rates`* | `number[] or number[][]` | required |  |
+| `rate_scenarios`* | `number[] or number[][]` | required |  |
 
 ### irrbb_six_standard_rate_shocks
 
@@ -242,10 +242,10 @@ Formula (LaTeX): `\begin{aligned}s_{short}(t) &= \dfrac{short_{bps}}{10^4}e^{-t/
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tenors`* | `number[] or number[][]` | required | Tenor points in years (> 0). |
-| `parallel_bps` | `number` | `200.0` | Parallel shock magnitude (basis points). |
-| `short_bps` | `number` | `300.0` | Short-rate shock magnitude (basis points). |
-| `long_bps` | `number` | `150.0` | Long-rate shock magnitude (basis points). |
+| `tenors`* | `number[] or number[][]` | required |  |
+| `parallel_bps` | `number` | `200.0` |  |
+| `short_bps` | `number` | `300.0` |  |
+| `long_bps` | `number` | `150.0` |  |
 
 ### basis_risk_irrbb
 
@@ -258,10 +258,10 @@ Formula (LaTeX): `\Delta NII = \sum_i A_i\,\Delta i_i^A - \sum_j L_j\,\Delta i_j
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_balances`* | `number[] or number[][]` | required | Balance per asset index bucket. |
-| `asset_index_shifts`* | `number[] or number[][]` | required | Index move per asset bucket (decimal). |
-| `liability_balances`* | `number[] or number[][]` | required | Balance per liability index bucket. |
-| `liability_index_shifts`* | `number[] or number[][]` | required | Index move per liability bucket (decimal). |
+| `asset_balances`* | `number[] or number[][]` | required |  |
+| `asset_index_shifts`* | `number[] or number[][]` | required |  |
+| `liability_balances`* | `number[] or number[][]` | required |  |
+| `liability_index_shifts`* | `number[] or number[][]` | required |  |
 
 ### option_risk_irrbb
 
@@ -275,9 +275,9 @@ Formula (LaTeX): `OptionRisk_{total}=V_{auto}+V_{behav},\quad Ratio=\dfrac{V_{au
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `automatic_option_value`* | `number` | required | PV of automatic interest-rate options. |
-| `behavioural_option_value`* | `number` | required | PV of behavioural options. |
-| `notional`* | `number` | required | Reference notional for the option-risk ratio. |
+| `automatic_option_value`* | `number` | required |  |
+| `behavioural_option_value`* | `number` | required |  |
+| `notional`* | `number` | required |  |
 
 ### pipeline_risk_measurement
 
@@ -294,10 +294,10 @@ Formula (LaTeX): `E = N\cdot p,\quad RateRisk = E\cdot\sigma\cdot\sqrt{T}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `pipeline_notional`* | `number` | required | Committed pipeline notional. |
-| `pull_through_rate`* | `number` | required | Expected fraction that completes in [0, 1]. |
-| `rate_lock_period`* | `number` | required | Rate-lock horizon in years. |
-| `rate_volatility`* | `number` | required | Annualised rate volatility (decimal). |
+| `pipeline_notional`* | `number` | required |  |
+| `pull_through_rate`* | `number` | required |  |
+| `rate_lock_period`* | `number` | required |  |
+| `rate_volatility`* | `number` | required |  |
 
 ### interest_rate_risk_capital_irrbb
 
@@ -312,9 +312,9 @@ Formula (LaTeX): `Decline = \big|\min(\Delta EVE_{worst},0)\big|, \quad Threshol
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `worst_delta_eve`* | `number` | required | Worst-case ΔEVE (negative for a loss). |
-| `tier1_capital`* | `number` | required | Tier-1 capital (currency). |
-| `outlier_threshold` | `number` | `0.15` | Supervisory threshold (default 0.15 = 15%). |
+| `worst_delta_eve`* | `number` | required |  |
+| `tier1_capital`* | `number` | required |  |
+| `outlier_threshold` | `number` | `0.15` |  |
 
 ## Repricing & Gap
 
@@ -326,8 +326,8 @@ Formula (LaTeX): `gap_i=RSA_i-RSL_i,\quad GapRatio=\dfrac{\sum_i RSA_i}{\sum_i R
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bucket_assets`* | `number[] or number[][]` | required | Rate-sensitive assets per bucket. |
-| `bucket_liabilities`* | `number[] or number[][]` | required | Rate-sensitive liabilities per bucket. |
+| `bucket_assets`* | `number[] or number[][]` | required |  |
+| `bucket_liabilities`* | `number[] or number[][]` | required |  |
 
 ### dynamic_gap_analysis
 
@@ -340,11 +340,11 @@ Formula (LaTeX): `Gap_p = \sum_i A_i(1+g_i^A)^p - \sum_i L_i(1+g_i^L)^p,\quad p=
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bucket_assets`* | `number[] or number[][]` | required | Initial rate-sensitive assets per bucket. |
-| `bucket_liabilities`* | `number[] or number[][]` | required | Initial rate-sensitive liabilities per bucket. |
-| `asset_growth`* | `number[] or number[][]` | required | Per-period asset growth rate per bucket (decimal). |
-| `liability_growth`* | `number[] or number[][]` | required | Per-period liability growth rate per bucket. |
-| `n_periods`* | `integer` | required | Number of projection periods. |
+| `bucket_assets`* | `number[] or number[][]` | required |  |
+| `bucket_liabilities`* | `number[] or number[][]` | required |  |
+| `asset_growth`* | `number[] or number[][]` | required |  |
+| `liability_growth`* | `number[] or number[][]` | required |  |
+| `n_periods`* | `integer` | required |  |
 
 ### repricing_gap_analysis
 
@@ -356,9 +356,9 @@ Formula (LaTeX): `gap_i = RSA_i-RSL_i,\quad CumGap_k=\sum_{i\le k}gap_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `bucket_assets`* | `number[] or number[][]` | required | Rate-sensitive assets repricing in each bucket. |
-| `bucket_liabilities`* | `number[] or number[][]` | required | Rate-sensitive liabilities repricing in each bucket. |
-| `bucket_labels` | `string[] or null` | `None` | Optional bucket names. |
+| `bucket_assets`* | `number[] or number[][]` | required |  |
+| `bucket_liabilities`* | `number[] or number[][]` | required |  |
+| `bucket_labels` | `string[] or null` | `None` |  |
 
 ### repricing_maturity_profile
 
@@ -371,10 +371,10 @@ Formula (LaTeX): `Profile_k = \sum_{i:\,t_i^{repr}\in[e_k,e_{k+1})} B_i \quad WA
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `balances`* | `number[] or number[][]` | required | Balance per instrument. |
-| `repricing_times`* | `number[] or number[][]` | required | Next repricing time per instrument (years). |
-| `n_buckets`* | `integer` | required | Number of buckets. |
-| `bucket_edges`* | `number[] or number[][]` | required | Length ``n_buckets+1`` ascending bucket boundaries. |
+| `balances`* | `number[] or number[][]` | required |  |
+| `repricing_times`* | `number[] or number[][]` | required |  |
+| `n_buckets`* | `integer` | required |  |
+| `bucket_edges`* | `number[] or number[][]` | required |  |
 
 ## Behavioural & Prepayment Models
 
@@ -392,10 +392,10 @@ Formula (LaTeX): `\begin{aligned}PMT &= \dfrac{P\,r_m}{1-(1+r_m)^{-n}},\ r_m=\df
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `principal`* | `number` | required | Initial pool balance. |
-| `annual_rate`* | `number` | required | Annual mortgage coupon (decimal). |
-| `term_years`* | `integer` | required | Original term in years. |
-| `cpr`* | `number` | required | Constant prepayment rate (decimal). |
+| `principal`* | `number` | required |  |
+| `annual_rate`* | `number` | required |  |
+| `term_years`* | `integer` | required |  |
+| `cpr`* | `number` | required |  |
 
 ### behavioural_modelling_nmds
 
@@ -414,11 +414,11 @@ Formula (LaTeX): `B_{surv} = B\,f_{core}\,e^{-r_{core} H} + B\,(1-f_{core})\,e^{
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `total_balance`* | `number` | required | Total NMD balance (currency). |
-| `core_fraction`* | `number` | required | Fraction deemed core in [0, 1]. |
-| `core_runoff_rate`* | `number` | required | Annual run-off rate of core deposits (decimal). |
-| `non_core_runoff_rate`* | `number` | required | Annual run-off rate of non-core (decimal). |
-| `horizon_years` | `number` | `5.0` | Projection horizon (years). |
+| `total_balance`* | `number` | required |  |
+| `core_fraction`* | `number` | required |  |
+| `core_runoff_rate`* | `number` | required |  |
+| `non_core_runoff_rate`* | `number` | required |  |
+| `horizon_years` | `number` | `5.0` |  |
 
 ### non_maturity_deposit_stability
 
@@ -432,8 +432,8 @@ Formula (LaTeX): `B_{stable} = \mathrm{Percentile}_{(1-c)\times100\%}\big(\{B_t\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `balance_history`* | `number[] or number[][]` | required | Historical deposit balances (>= 2 observations). |
-| `confidence_level` | `number` | `0.99` | Confidence for the stable floor in [0.5, 1). |
+| `balance_history`* | `number[] or number[][]` | required |  |
+| `confidence_level` | `number` | `0.99` |  |
 
 ### core_deposit_duration
 
@@ -485,10 +485,10 @@ Formula (LaTeX): `D = \dfrac{\sum_{t=1/12}^{T} t\,B\,\lambda\,e^{-(\lambda+y)t}}
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `core_balance`* | `number` | required | Core deposit balance (currency). |
-| `decay_rate`* | `number` | required | Annual exponential decay rate (decimal, > 0). |
-| `discount_rate`* | `number` | required | Discount rate (decimal, >= 0). |
-| `max_years` | `number` | `30.0` | Truncation horizon for the run-off integral. |
+| `core_balance`* | `number` | required |  |
+| `decay_rate`* | `number` | required |  |
+| `discount_rate`* | `number` | required |  |
+| `max_years` | `number` | `30.0` |  |
 
 ### loan_prepayment_rate_cpr
 
@@ -501,8 +501,8 @@ Formula (LaTeX): `CPR = 1-(1-SMM)^{12} \quad SMM = 1-(1-CPR)^{1/12}`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `smm` | `number or null` | `None` | Single monthly mortality (decimal), if converting SMM→CPR. |
-| `cpr` | `number or null` | `None` | Constant prepayment rate (decimal), if converting CPR→SMM. |
+| `smm` | `number or null` | `None` |  |
+| `cpr` | `number or null` | `None` |  |
 
 ## Funds Transfer Pricing (FTP)
 
@@ -518,11 +518,11 @@ Formula (LaTeX): `\begin{aligned}r_{FTP}^{all} &= r_{FTP}+p_{liq}\\M_{comm} &= \
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `notional`* | `number` | required | Deal notional (currency). |
-| `customer_rate`* | `number` | required | Rate charged to / paid to the customer (decimal). |
-| `ftp_rate`* | `number` | required | Matched-maturity transfer rate (decimal). |
-| `liquidity_premium` | `number` | `0.0` | Liquidity charge added to the FTP (decimal). |
-| `is_asset` | `boolean` | `True` | True for an asset (loan), False for a liability (deposit). |
+| `notional`* | `number` | required |  |
+| `customer_rate`* | `number` | required |  |
+| `ftp_rate`* | `number` | required |  |
+| `liquidity_premium` | `number` | `0.0` |  |
+| `is_asset` | `boolean` | `True` |  |
 
 ### ftp_curve_construction
 
@@ -535,9 +535,9 @@ Formula (LaTeX): `FTP_i = r_i^{base} + s_i`
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `tenors`* | `number[] or number[][]` | required | Tenor points in years (ascending). |
-| `base_curve`* | `number[] or number[][]` | required | Base funding rate per tenor (decimal). |
-| `liquidity_spreads`* | `number[] or number[][]` | required | Term-liquidity spread per tenor (decimal). |
+| `tenors`* | `number[] or number[][]` | required |  |
+| `base_curve`* | `number[] or number[][]` | required |  |
+| `liquidity_spreads`* | `number[] or number[][]` | required |  |
 
 ## ALM Strategic Analytics
 
@@ -552,10 +552,10 @@ Formula (LaTeX): `I = \dfrac{\left|\sum_i D_i^A A_i - \sum_j D_j^L L_j\right|}{\
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `asset_durations`* | `number[] or number[][]` | required | Duration per asset bucket (years). |
-| `asset_amounts`* | `number[] or number[][]` | required | Amount per asset bucket (currency). |
-| `liability_durations`* | `number[] or number[][]` | required | Duration per liability bucket. |
-| `liability_amounts`* | `number[] or number[][]` | required | Amount per liability bucket. |
+| `asset_durations`* | `number[] or number[][]` | required |  |
+| `asset_amounts`* | `number[] or number[][]` | required |  |
+| `liability_durations`* | `number[] or number[][]` | required |  |
+| `liability_amounts`* | `number[] or number[][]` | required |  |
 
 ### structural_hedge_optimisation
 
@@ -573,10 +573,10 @@ Formula (LaTeX): `x^{*} = \arg\min_{0\le x_i\le N_i^{max}}\left(\sum_i D_i x_i -
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `target_duration`* | `number` | required | Desired equity duration (years). |
-| `instrument_durations`* | `number[] or number[][]` | required | Duration of each hedge instrument (years). |
-| `instrument_max_notional`* | `number[] or number[][]` | required | Max notional per instrument (currency). |
-| `equity_notional`* | `number` | required | Equity notional to hedge (currency). |
+| `target_duration`* | `number` | required |  |
+| `instrument_durations`* | `number[] or number[][]` | required |  |
+| `instrument_max_notional`* | `number[] or number[][]` | required |  |
+| `equity_notional`* | `number` | required |  |
 
 ### alm_stress_test
 
@@ -595,11 +595,11 @@ Formula (LaTeX): `\Delta EVE_{worst} = \min_s\big(EVE(r_0+\Delta r_s)-EVE(r_0)\b
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `net_cashflows`* | `number[] or number[][]` | required | Net banking-book cashflow per bucket. |
-| `times`* | `number[] or number[][]` | required | Bucket times in years. |
-| `base_rates`* | `number[] or number[][]` | required | Base zero rate per bucket (decimal). |
-| `tier1_capital`* | `number` | required | Tier-1 capital (currency, > 0). |
-| `parallel_bps` | `number` | `200.0` | Parallel shock magnitude (bps). |
+| `net_cashflows`* | `number[] or number[][]` | required |  |
+| `times`* | `number[] or number[][]` | required |  |
+| `base_rates`* | `number[] or number[][]` | required |  |
+| `tier1_capital`* | `number` | required |  |
+| `parallel_bps` | `number` | `200.0` |  |
 
 ### balance_sheet_projection_model
 
@@ -612,10 +612,10 @@ Formula (LaTeX): `A_t = A_0(1+g_A)^t, \quad L_t = L_0(1+g_L)^t, \quad E_t = A_t-
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `initial_assets`* | `number` | required | Opening total assets (currency). |
-| `initial_liabilities`* | `number` | required | Opening total liabilities (currency). |
-| `asset_growth_rate`* | `number` | required | Annual asset growth (decimal). |
-| `liability_growth_rate`* | `number` | required | Annual liability growth (decimal). |
-| `asset_yield`* | `number` | required | Average asset yield (decimal). |
-| `liability_cost`* | `number` | required | Average liability cost (decimal). |
-| `n_years`* | `integer` | required | Projection horizon (years, >= 1). |
+| `initial_assets`* | `number` | required |  |
+| `initial_liabilities`* | `number` | required |  |
+| `asset_growth_rate`* | `number` | required |  |
+| `liability_growth_rate`* | `number` | required |  |
+| `asset_yield`* | `number` | required |  |
+| `liability_cost`* | `number` | required |  |
+| `n_years`* | `integer` | required |  |

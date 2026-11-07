@@ -51,67 +51,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "american_option_lsm",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_bump_reprice_greeks``) "
-                    "on the same pre-drawn "
-                    "normals used for the "
-                    "base price. Uses a "
-                    "materially larger spot "
-                    "bump than the "
-                    "smooth-payoff products "
-                    "(see "
-                    "``_LSM_GREEKS_BUMP_REL_SPOT`` "
-                    "for why) -- "
-                    "delta/gamma are "
-                    "therefore somewhat "
-                    "coarser here than for "
-                    "Asian/lookback, by "
-                    "construction, not "
-                    "oversight. Costs 8 "
-                    "extra LSM reprices "
-                    "(each as expensive as "
-                    "the base price -- this "
-                    "is the most expensive "
-                    "Greeks call in this "
-                    "module; consider a "
-                    "smaller n_simulations "
-                    "for greeks=True "
-                    "requests if used "
-                    "behind a "
-                    "request-latency "
-                    "budget). Defaults to "
-                    "False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {"default": 50, "description": "Exercise dates.", "type": "integer"},
-                "option_type": {
-                    "default": "put",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 41, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "n_steps": {"default": 50, "type": "integer"},
+                "option_type": {"default": "put", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 41, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -128,78 +78,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "asian_option_pricer",
         "input_schema": {
             "properties": {
-                "average_type": {
-                    "default": "arithmetic",
-                    "description": '``"arithmetic"`` ' "(only).",
-                    "type": "string",
-                },
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_asian_greeks_bump_reprice``) "
-                    "on the same pre-drawn "
-                    "normals used for the "
-                    "base price, so the "
-                    "bump noise cancels "
-                    "against the base run's "
-                    "noise instead of "
-                    "adding to it. Costs 8 "
-                    "extra reprices at the "
-                    "same "
-                    "n_simulations/n_steps. "
-                    "Not supported together "
-                    "with qmc=True. "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {
-                    "default": 100,
-                    "description": "Averaging observation " "count.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "qmc": {
-                    "default": False,
-                    "description": "Use randomized "
-                    "quasi-Monte Carlo "
-                    "(scrambled Sobol "
-                    "replicates, see "
-                    "``_price_by_qmc_replicates``) "
-                    "instead of plain MC for a "
-                    "lower-variance estimate "
-                    "at the same "
-                    "n_simulations. Defaults "
-                    "to False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 21, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "average_type": {"default": "arithmetic", "type": "string"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "n_steps": {"default": 100, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "qmc": {"default": False, "type": "boolean"},
+                "rate": {"type": "number"},
+                "seed": {"default": 21, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -226,60 +117,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "asset_swap_spread",
         "input_schema": {
             "properties": {
-                "bond_price": {
-                    "description": "Bond dirty price. "
-                    "Used as the "
-                    "reference price "
-                    "only when "
-                    "``use_market_price=True``; "
-                    "otherwise accepted "
-                    "but ignored (the "
-                    "default preserves "
-                    "this function's "
-                    "original "
-                    "par-referenced "
-                    "behaviour).",
-                    "type": "number",
-                },
-                "cashflows": {"description": "Bond cashflows.", "type": "object"},
-                "face_value": {
-                    "default": 100.0,
-                    "description": "Par value. Used as "
-                    "the reference "
-                    "price when "
-                    "``use_market_price=False`` "
-                    "(the default).",
-                    "type": "number",
-                },
-                "frequency": {
-                    "default": 2,
-                    "description": "Payment frequency " "per year.",
-                    "type": "integer",
-                },
-                "swap_rates": {
-                    "description": "Per-period swap " "zero rate " "(decimal).",
-                    "type": "object",
-                },
-                "times": {"description": "Cashflow times (years).", "type": "object"},
-                "use_market_price": {
-                    "default": False,
-                    "description": "If True, use "
-                    "``bond_price`` "
-                    "(the actual "
-                    "dirty price) "
-                    "as the "
-                    "reference "
-                    "price "
-                    "instead of "
-                    "``face_value``. "
-                    "Default "
-                    "False "
-                    "preserves "
-                    "prior "
-                    "behaviour "
-                    "exactly.",
-                    "type": "boolean",
-                },
+                "bond_price": {"type": "number"},
+                "cashflows": {"type": "object"},
+                "face_value": {"default": 100.0, "type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "swap_rates": {"type": "object"},
+                "times": {"type": "object"},
+                "use_market_price": {"default": False, "type": "boolean"},
             },
             "required": ["bond_price", "cashflows", "times", "swap_rates"],
             "type": "object",
@@ -307,45 +151,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "barrier_option_pricer",
         "input_schema": {
             "properties": {
-                "barrier": {"description": "Barrier level.", "type": "number"},
-                "barrier_type": {
-                    "default": "down-and-out",
-                    "description": "One of "
-                    "``down-and-out``, "
-                    "``down-and-in``, "
-                    "``up-and-out``, "
-                    "``up-and-in``.",
-                    "type": "string",
-                },
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "rebate": {
-                    "default": 0.0,
-                    "description": "Cash amount paid if "
-                    "the option ends up "
-                    "worthless because of "
-                    "the barrier -- at "
-                    "expiry (no touch) for "
-                    "a knock-in, at the "
-                    "touch time for a "
-                    "knock-out. 0 (default) "
-                    "reproduces the "
-                    "no-rebate price.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "barrier": {"type": "number"},
+                "barrier_type": {"default": "down-and-out", "type": "string"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "rebate": {"default": 0.0, "type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "barrier", "rate", "sigma", "tau"],
             "type": "object",
@@ -362,48 +177,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basket_option_pricer",
         "input_schema": {
             "properties": {
-                "correlation": {
-                    "description": "Asset correlation " "matrix (SPD).",
-                    "type": "object",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute per-asset "
-                    "delta/gamma/vega and "
-                    "scalar theta/rho via "
-                    "bump-and-reprice (see "
-                    "``_multi_asset_bump_reprice_greeks``) "
-                    "on the same pre-drawn "
-                    "normals used for the "
-                    "base price. Delta/ "
-                    "gamma/vega are "
-                    "diagonal only (each "
-                    "asset bumped "
-                    "independently; no "
-                    "cross-asset terms). "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 71, "description": "RNG seed.", "type": "integer"},
-                "sigmas": {"description": "Volatility per asset.", "type": "object"},
-                "spots": {"description": "Initial prices per " "asset.", "type": "object"},
-                "strike": {"description": "Strike on the weighted " "basket.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
-                "weights": {"description": "Basket weights per " "asset.", "type": "object"},
+                "correlation": {"type": "object"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 71, "type": "integer"},
+                "sigmas": {"type": "object"},
+                "spots": {"type": "object"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
+                "weights": {"type": "object"},
             },
             "required": ["spots", "weights", "strike", "rate", "sigmas", "tau", "correlation"],
             "type": "object",
@@ -424,64 +208,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "bermudan_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "exercise_dates": {
-                    "default": 4,
-                    "description": "Number of " "allowed " "exercise dates " "(>= 1).",
-                    "type": "integer",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_bump_reprice_greeks``). "
-                    "Same LSM "
-                    "regression-boundary "
-                    "caveat as "
-                    "american_option_lsm "
-                    "applies -- uses the "
-                    "same larger spot bump "
-                    "(``_LSM_GREEKS_BUMP_REL_SPOT``), "
-                    "verified empirically "
-                    "for this function too "
-                    "(see "
-                    "``_bump_reprice_greeks``'s "
-                    "docstring). Defaults "
-                    "to False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {
-                    "default": 48,
-                    "description": "Total time-grid steps "
-                    "(multiple of "
-                    "exercise_dates "
-                    "ideally).",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "put",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 51, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "exercise_dates": {"default": 4, "type": "integer"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "n_steps": {"default": 48, "type": "integer"},
+                "option_type": {"default": "put", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 51, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -497,34 +235,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "binomial_tree_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "n_steps": {
-                    "default": 500,
-                    "description": "Number of binomial " "steps (>= 1).",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility (annualised, " "> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "style": {
-                    "default": "european",
-                    "description": '``"european"`` or ' '``"american"``.',
-                    "type": "string",
-                },
-                "tau": {"description": "Time to maturity in years " "(> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "n_steps": {"default": 500, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "style": {"default": "european", "type": "string"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -542,24 +261,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "black_scholes_european_option",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility (annualised, " ">= 0).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in years " "(>= 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -575,24 +283,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "black_scholes_greeks",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility (annualised, " "> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in years " "(> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -609,24 +306,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "bond_pricer_fixed_coupon",
         "input_schema": {
             "properties": {
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {"description": "Redemption (par) " "value.", "type": "number"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Coupon payments per " "year.",
-                    "type": "integer",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "yield_rate": {
-                    "description": "Annual yield to "
-                    "maturity (decimal, "
-                    "compounded "
-                    "``frequency``).",
-                    "type": "number",
-                },
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "maturity": {"type": "number"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["face_value", "coupon_rate", "yield_rate", "maturity"],
             "type": "object",
@@ -650,42 +334,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "bond_pricer_floating_rate",
         "input_schema": {
             "properties": {
-                "discount_rates": {
-                    "description": "Per-period " "zero discount " "rate (decimal, " "annualised).",
-                    "type": "object",
-                },
-                "face_value": {"description": "Redemption (par) " "value.", "type": "number"},
-                "frequency": {
-                    "default": 4,
-                    "description": "Coupon payments per " "year.",
-                    "type": "integer",
-                },
-                "maturity": {
-                    "description": "Time to maturity in "
-                    "years. Must equal "
-                    "``len(reference_rates) "
-                    "/ frequency`` (see "
-                    "note above).",
-                    "type": "number",
-                },
-                "reference_rates": {
-                    "description": "Projected "
-                    "forward index "
-                    "rate per "
-                    "period "
-                    "(decimal). "
-                    "Its length "
-                    "sets the "
-                    "number of "
-                    "coupon "
-                    "periods "
-                    "priced.",
-                    "type": "object",
-                },
-                "spread": {
-                    "description": "Quoted margin over the " "index (decimal).",
-                    "type": "number",
-                },
+                "discount_rates": {"type": "object"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 4, "type": "integer"},
+                "maturity": {"type": "number"},
+                "reference_rates": {"type": "object"},
+                "spread": {"type": "number"},
             },
             "required": ["face_value", "reference_rates", "spread", "discount_rates", "maturity"],
             "type": "object",
@@ -702,27 +356,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "bootstrap_yield_curve",
         "input_schema": {
             "properties": {
-                "face_value": {
-                    "default": 1.0,
-                    "description": "Par value " "(defaults to 1).",
-                    "type": "number",
-                },
-                "frequency": {
-                    "default": 1,
-                    "description": "Coupon frequency " "per year.",
-                    "type": "integer",
-                },
-                "maturities": {
-                    "description": "Maturities in "
-                    "years, ascending, "
-                    "evenly spaced by "
-                    "1/freq.",
-                    "type": "object",
-                },
-                "par_rates": {
-                    "description": "Par coupon rate per " "maturity (decimal).",
-                    "type": "object",
-                },
+                "face_value": {"default": 1.0, "type": "number"},
+                "frequency": {"default": 1, "type": "integer"},
+                "maturities": {"type": "object"},
+                "par_rates": {"type": "object"},
             },
             "required": ["par_rates", "maturities"],
             "type": "object",
@@ -744,26 +381,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "callable_bond_pricer",
         "input_schema": {
             "properties": {
-                "call_price": {
-                    "description": "Price at which the " "issuer may call " "(per face).",
-                    "type": "number",
-                },
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {"description": "Par value.", "type": "number"},
-                "frequency": {
-                    "default": 1,
-                    "description": "Coupon payments per " "year (tree steps " "per year).",
-                    "type": "integer",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "rate_vol": {"description": "Short-rate " "volatility.", "type": "number"},
-                "short_rate": {
-                    "description": "Current short rate " "(continuous, " "annual).",
-                    "type": "number",
-                },
+                "call_price": {"type": "number"},
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 1, "type": "integer"},
+                "maturity": {"type": "number"},
+                "rate_vol": {"type": "number"},
+                "short_rate": {"type": "number"},
             },
             "required": [
                 "face_value",
@@ -785,24 +409,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cap_floor_pricer",
         "input_schema": {
             "properties": {
-                "accruals": {"description": "Year-fraction per " "period.", "type": "object"},
-                "discount_factors": {
-                    "description": "Discount " "factor per " "payment " "date.",
-                    "type": "object",
-                },
-                "expiries": {"description": "Fixing time per " "caplet (years).", "type": "object"},
-                "forward_rates": {
-                    "description": "Forward rate " "per caplet " "period.",
-                    "type": "object",
-                },
-                "notional": {"description": "Notional.", "type": "number"},
-                "option_type": {
-                    "default": "cap",
-                    "description": '``"cap"`` or ' '``"floor"``.',
-                    "type": "string",
-                },
-                "strike": {"description": "Common strike " "(decimal).", "type": "number"},
-                "vols": {"description": "Black vol per caplet.", "type": "object"},
+                "accruals": {"type": "object"},
+                "discount_factors": {"type": "object"},
+                "expiries": {"type": "object"},
+                "forward_rates": {"type": "object"},
+                "notional": {"type": "number"},
+                "option_type": {"default": "cap", "type": "string"},
+                "strike": {"type": "number"},
+                "vols": {"type": "object"},
             },
             "required": [
                 "notional",
@@ -826,30 +440,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "caplet_floorlet_pricer_black",
         "input_schema": {
             "properties": {
-                "accrual": {
-                    "description": "Year-fraction of the " "accrual period.",
-                    "type": "number",
-                },
-                "discount_factor": {
-                    "description": "Discount " "factor to " "payment.",
-                    "type": "number",
-                },
-                "expiry": {"description": "Time to caplet fixing " "(years).", "type": "number"},
-                "forward_rate": {
-                    "description": "Forward " "LIBOR/index rate " "(decimal).",
-                    "type": "number",
-                },
-                "notional": {"description": "Notional.", "type": "number"},
-                "option_type": {
-                    "default": "caplet",
-                    "description": '``"caplet"`` or ' '``"floorlet"``.',
-                    "type": "string",
-                },
-                "strike": {"description": "Cap/floor strike " "(decimal).", "type": "number"},
-                "vol": {
-                    "description": "Black volatility of the " "forward rate.",
-                    "type": "number",
-                },
+                "accrual": {"type": "number"},
+                "discount_factor": {"type": "number"},
+                "expiry": {"type": "number"},
+                "forward_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "option_type": {"default": "caplet", "type": "string"},
+                "strike": {"type": "number"},
+                "vol": {"type": "number"},
             },
             "required": [
                 "notional",
@@ -875,20 +473,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "chooser_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Common strike.", "type": "number"},
-                "tau_choose": {"description": "Time to the choice " "date.", "type": "number"},
-                "tau_expiry": {
-                    "description": "Time to expiry (> " "tau_choose).",
-                    "type": "number",
-                },
+                "div_yield": {"default": 0.0, "type": "number"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau_choose": {"type": "number"},
+                "tau_expiry": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau_choose", "tau_expiry"],
             "type": "object",
@@ -904,104 +495,18 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "compound_option_pricer",
         "input_schema": {
             "properties": {
-                "compound_type": {
-                    "default": "call-on-call",
-                    "description": "``call-on-call``, "
-                    "``call-on-put``, "
-                    "``put-on-call``, "
-                    "``put-on-put``.",
-                    "type": "string",
-                },
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "on the exact "
-                    "closed-form price "
-                    "(deterministic -- no "
-                    "Monte Carlo noise to "
-                    "correlate away). theta "
-                    "bumps ``tau_compound`` "
-                    "(the compound leg's "
-                    "own time to expiry) "
-                    "while holding "
-                    "``tau_underlying`` "
-                    "fixed -- i.e. both the "
-                    "compound's remaining "
-                    "life and the "
-                    "underlying option's "
-                    "residual tenor from "
-                    "that later date shrink "
-                    "together, the usual "
-                    '"time passing today" '
-                    "interpretation. "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 200000,
-                    "description": "Unused by the "
-                    "closed-form "
-                    "price; retained "
-                    "for "
-                    "backward-compatible "
-                    "call signatures "
-                    "(was the MC "
-                    "path count "
-                    "before this "
-                    "function "
-                    "switched from "
-                    "Monte Carlo to "
-                    "the exact Geske "
-                    "formula -- see "
-                    "``_compound_option_pricer_mc`` "
-                    "for that "
-                    "retained "
-                    "reference "
-                    "implementation).",
-                    "type": "integer",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {
-                    "default": 81,
-                    "description": "Unused by the "
-                    "closed-form price; "
-                    "retained for the same "
-                    "reason as "
-                    "``n_simulations``.",
-                    "type": "integer",
-                },
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike_compound": {
-                    "description": "Strike of the " "compound " "option " "(premium " "paid).",
-                    "type": "number",
-                },
-                "strike_underlying": {
-                    "description": "Strike of " "the " "underlying " "option.",
-                    "type": "number",
-                },
-                "tau_compound": {
-                    "description": "Time to the " "compound option " "expiry.",
-                    "type": "number",
-                },
-                "tau_underlying": {
-                    "description": "Time to the "
-                    "underlying "
-                    "option expiry "
-                    "(> "
-                    "tau_compound).",
-                    "type": "number",
-                },
+                "compound_type": {"default": "call-on-call", "type": "string"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 200000, "type": "integer"},
+                "rate": {"type": "number"},
+                "seed": {"default": 81, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike_compound": {"type": "number"},
+                "strike_underlying": {"type": "number"},
+                "tau_compound": {"type": "number"},
+                "tau_underlying": {"type": "number"},
             },
             "required": [
                 "spot",
@@ -1030,26 +535,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "convertible_bond_pricer",
         "input_schema": {
             "properties": {
-                "conversion_ratio": {
-                    "description": "Shares " "received per " "bond on " "conversion.",
-                    "type": "number",
-                },
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {"description": "Par value.", "type": "number"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Coupon payments per " "year.",
-                    "type": "integer",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "stock_price": {"description": "Current share " "price.", "type": "number"},
-                "yield_rate": {
-                    "description": "Straight-bond " "discount yield " "(decimal).",
-                    "type": "number",
-                },
+                "conversion_ratio": {"type": "number"},
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "maturity": {"type": "number"},
+                "stock_price": {"type": "number"},
+                "yield_rate": {"type": "number"},
             },
             "required": [
                 "face_value",
@@ -1073,14 +565,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "convexity",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
-                "yield_rate": {"description": "Annual yield " "(decimal).", "type": "number"},
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "times": {"type": "object"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["cashflows", "times", "yield_rate"],
             "type": "object",
@@ -1103,23 +591,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cox_ingersoll_ross_model",
         "input_schema": {
             "properties": {
-                "kappa": {"description": "Mean-reversion speed (> " "0).", "type": "number"},
-                "maturity": {"description": "Bond maturity in " "years (> 0).", "type": "number"},
-                "n_simulations": {"default": 50000, "description": "MC paths.", "type": "integer"},
-                "n_steps": {
-                    "default": 100,
-                    "description": "MC time steps (exact "
-                    "scheme -- affects "
-                    "only path "
-                    "granularity, not "
-                    "terminal-distribution "
-                    "accuracy).",
-                    "type": "integer",
-                },
-                "r0": {"description": "Initial short rate (>= 0).", "type": "number"},
-                "seed": {"default": 102, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "theta": {"description": "Long-run mean (> 0).", "type": "number"},
+                "kappa": {"type": "number"},
+                "maturity": {"type": "number"},
+                "n_simulations": {"default": 50000, "type": "integer"},
+                "n_steps": {"default": 100, "type": "integer"},
+                "r0": {"type": "number"},
+                "seed": {"default": 102, "type": "integer"},
+                "sigma": {"type": "number"},
+                "theta": {"type": "number"},
             },
             "required": ["r0", "kappa", "theta", "sigma", "maturity"],
             "type": "object",
@@ -1152,26 +631,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_default_swap_cds_pricer",
         "input_schema": {
             "properties": {
-                "discount_rate": {
-                    "description": "Flat continuous " "discount rate.",
-                    "type": "number",
-                },
-                "frequency": {
-                    "default": 4,
-                    "description": "Premium payment " "frequency per year.",
-                    "type": "integer",
-                },
-                "hazard_rate": {
-                    "description": "Constant hazard " "rate λ (decimal).",
-                    "type": "number",
-                },
-                "maturity": {"description": "CDS maturity in " "years.", "type": "number"},
-                "notional": {"description": "CDS notional.", "type": "number"},
-                "recovery_rate": {"description": "Recovery rate R " "in [0, 1).", "type": "number"},
-                "spread": {
-                    "description": "Contractual spread " "(decimal, annual).",
-                    "type": "number",
-                },
+                "discount_rate": {"type": "number"},
+                "frequency": {"default": 4, "type": "integer"},
+                "hazard_rate": {"type": "number"},
+                "maturity": {"type": "number"},
+                "notional": {"type": "number"},
+                "recovery_rate": {"type": "number"},
+                "spread": {"type": "number"},
             },
             "required": [
                 "notional",
@@ -1197,37 +663,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cross_currency_swap_pricer",
         "input_schema": {
             "properties": {
-                "accruals": {
-                    "description": "Year-fraction per " "period (shared " "schedule).",
-                    "type": "object",
-                },
-                "df_dom": {
-                    "description": "Domestic discount " "factors per payment " "date.",
-                    "type": "object",
-                },
-                "df_for": {
-                    "description": "Foreign discount " "factors per payment " "date.",
-                    "type": "object",
-                },
-                "fixed_rate_dom": {
-                    "description": "Domestic fixed " "rate " "(decimal).",
-                    "type": "number",
-                },
-                "fixed_rate_for": {
-                    "description": "Foreign fixed " "rate " "(decimal).",
-                    "type": "number",
-                },
-                "fx_spot": {
-                    "description": "Spot FX (domestic per " "1 unit foreign).",
-                    "type": "number",
-                },
-                "notional_dom": {"description": "Domestic " "notional.", "type": "number"},
-                "notional_for": {"description": "Foreign " "notional.", "type": "number"},
-                "pay_domestic": {
-                    "default": True,
-                    "description": "Direction flag.",
-                    "type": "boolean",
-                },
+                "accruals": {"type": "object"},
+                "df_dom": {"type": "object"},
+                "df_for": {"type": "object"},
+                "fixed_rate_dom": {"type": "number"},
+                "fixed_rate_for": {"type": "number"},
+                "fx_spot": {"type": "number"},
+                "notional_dom": {"type": "number"},
+                "notional_for": {"type": "number"},
+                "pay_domestic": {"default": True, "type": "boolean"},
             },
             "required": [
                 "notional_dom",
@@ -1251,26 +695,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "digital_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "payout": {
-                    "default": 1.0,
-                    "description": "Cash payout if in the " "money.",
-                    "type": "number",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "payout": {"default": 1.0, "type": "number"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -1289,28 +721,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "displaced_diffusion_model",
         "input_schema": {
             "properties": {
-                "displacement": {
-                    "description": "Shift ``a`` " "applied to spot " "and strike.",
-                    "type": "number",
-                },
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "sigma": {
-                    "description": "Lognormal volatility of " "the displaced process.",
-                    "type": "number",
-                },
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "displacement": {"type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau", "displacement"],
             "type": "object",
@@ -1325,14 +743,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "duration_macaulay",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
-                "yield_rate": {"description": "Annual yield " "(decimal).", "type": "number"},
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "times": {"type": "object"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["cashflows", "times", "yield_rate"],
             "type": "object",
@@ -1347,14 +761,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "dv01_pvbp",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
-                "yield_rate": {"description": "Annual yield " "(decimal).", "type": "number"},
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "times": {"type": "object"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["cashflows", "times", "yield_rate"],
             "type": "object",
@@ -1370,13 +780,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "effective_duration",
         "input_schema": {
             "properties": {
-                "price_base": {"description": "Price at the base " "yield.", "type": "number"},
-                "price_down": {"description": "Price after " "−``yield_shock``.", "type": "number"},
-                "price_up": {"description": "Price after " "+``yield_shock``.", "type": "number"},
-                "yield_shock": {
-                    "description": "Size of the " "parallel yield " "shock (decimal).",
-                    "type": "number",
-                },
+                "price_base": {"type": "number"},
+                "price_down": {"type": "number"},
+                "price_up": {"type": "number"},
+                "yield_shock": {"type": "number"},
             },
             "required": ["price_base", "price_up", "price_down", "yield_shock"],
             "type": "object",
@@ -1391,25 +798,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "equity_swap_pricer",
         "input_schema": {
             "properties": {
-                "accrual": {"description": "Year-fraction.", "type": "number"},
-                "discount_factor": {
-                    "description": "Discount " "factor to " "payment.",
-                    "type": "number",
-                },
-                "equity_return": {
-                    "description": "Period equity " "total return " "(decimal).",
-                    "type": "number",
-                },
-                "funding_rate": {
-                    "description": "Funding rate " "(decimal, " "annual).",
-                    "type": "number",
-                },
-                "notional": {"description": "Reference notional.", "type": "number"},
-                "receive_equity": {
-                    "default": True,
-                    "description": "Direction " "flag.",
-                    "type": "boolean",
-                },
+                "accrual": {"type": "number"},
+                "discount_factor": {"type": "number"},
+                "equity_return": {"type": "number"},
+                "funding_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "receive_equity": {"default": True, "type": "boolean"},
             },
             "required": ["notional", "equity_return", "funding_rate", "accrual", "discount_factor"],
             "type": "object",
@@ -1426,21 +820,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "forward_rate_agreement_fra",
         "input_schema": {
             "properties": {
-                "discount_factor": {
-                    "description": "Discount " "factor to the " "settlement " "(end) date.",
-                    "type": "number",
-                },
-                "end": {"description": "Accrual end in years (> " "start).", "type": "number"},
-                "forward_rate": {
-                    "description": "Projected " "forward rate " "over [start, " "end] (decimal).",
-                    "type": "number",
-                },
-                "fra_rate": {
-                    "description": "Contracted (fixed) " "FRA rate (decimal).",
-                    "type": "number",
-                },
-                "notional": {"description": "Contract notional.", "type": "number"},
-                "start": {"description": "Accrual start in years.", "type": "number"},
+                "discount_factor": {"type": "number"},
+                "end": {"type": "number"},
+                "forward_rate": {"type": "number"},
+                "fra_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "start": {"type": "number"},
             },
             "required": ["notional", "fra_rate", "forward_rate", "start", "end", "discount_factor"],
             "type": "object",
@@ -1458,22 +843,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "fx_forward_pricer",
         "input_schema": {
             "properties": {
-                "contracted_forward": {
-                    "description": "Optional " "contracted " "forward " "rate for " "MtM.",
-                    "type": "object",
-                },
-                "notional": {
-                    "default": 1.0,
-                    "description": "Foreign-currency " "notional.",
-                    "type": "number",
-                },
-                "rate_domestic": {
-                    "description": "Domestic " "continuous " "rate.",
-                    "type": "number",
-                },
-                "rate_foreign": {"description": "Foreign " "continuous rate.", "type": "number"},
-                "spot": {"description": "Spot FX (domestic per 1 " "foreign).", "type": "number"},
-                "tau": {"description": "Time to delivery (years, " "> 0).", "type": "number"},
+                "contracted_forward": {"type": "object"},
+                "notional": {"default": 1.0, "type": "number"},
+                "rate_domestic": {"type": "number"},
+                "rate_foreign": {"type": "number"},
+                "spot": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "rate_domestic", "rate_foreign", "tau"],
             "type": "object",
@@ -1491,25 +866,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "fx_option_pricer_garman_kohlhagen",
         "input_schema": {
             "properties": {
-                "notional": {
-                    "default": 1.0,
-                    "description": "Foreign-currency " "notional.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate_domestic": {
-                    "description": "Domestic " "continuous " "rate.",
-                    "type": "number",
-                },
-                "rate_foreign": {"description": "Foreign " "continuous rate.", "type": "number"},
-                "sigma": {"description": "FX volatility (> 0).", "type": "number"},
-                "spot": {"description": "Spot FX (domestic per 1 " "foreign).", "type": "number"},
-                "strike": {"description": "Strike FX.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "notional": {"default": 1.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate_domestic": {"type": "number"},
+                "rate_foreign": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate_domestic", "rate_foreign", "sigma", "tau"],
             "type": "object",
@@ -1527,26 +891,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "heston_stochastic_volatility_model",
         "input_schema": {
             "properties": {
-                "kappa": {"description": "Mean-reversion speed of " "variance.", "type": "number"},
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "rho": {
-                    "description": "Spot/variance correlation " "in [-1, 1].",
-                    "type": "number",
-                },
-                "sigma": {
-                    "description": "Volatility of variance " "(vol-of-vol).",
-                    "type": "number",
-                },
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
-                "theta": {"description": "Long-run variance.", "type": "number"},
-                "v0": {"description": "Initial variance.", "type": "number"},
+                "kappa": {"type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "rho": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
+                "theta": {"type": "number"},
+                "v0": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "tau", "v0", "kappa", "theta", "sigma", "rho"],
             "type": "object",
@@ -1569,18 +923,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "hull_white_short_rate_model",
         "input_schema": {
             "properties": {
-                "kappa": {"description": "Mean-reversion speed (> " "0).", "type": "number"},
-                "maturity": {"description": "Bond maturity " "(years, > 0).", "type": "number"},
-                "n_simulations": {"default": 50000, "description": "MC paths.", "type": "integer"},
-                "n_steps": {"default": 100, "description": "MC time steps.", "type": "integer"},
-                "r0": {"description": "Initial short rate.", "type": "number"},
-                "seed": {"default": 103, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "theta_const": {
-                    "default": 0.03,
-                    "description": "Constant " "mean-reversion " "level.",
-                    "type": "number",
-                },
+                "kappa": {"type": "number"},
+                "maturity": {"type": "number"},
+                "n_simulations": {"default": 50000, "type": "integer"},
+                "n_steps": {"default": 100, "type": "integer"},
+                "r0": {"type": "number"},
+                "seed": {"default": 103, "type": "integer"},
+                "sigma": {"type": "number"},
+                "theta_const": {"default": 0.03, "type": "number"},
             },
             "required": ["r0", "kappa", "sigma", "maturity"],
             "type": "object",
@@ -1597,22 +947,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "inflation_linked_bond_pricer",
         "input_schema": {
             "properties": {
-                "face_value": {"description": "Base (un-indexed) " "par value.", "type": "number"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Coupon payments per " "year.",
-                    "type": "integer",
-                },
-                "inflation_rate": {
-                    "description": "Assumed annual " "inflation " "(decimal).",
-                    "type": "number",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "real_coupon_rate": {
-                    "description": "Annual real " "coupon rate " "(decimal).",
-                    "type": "number",
-                },
-                "real_yield": {"description": "Annual real yield " "(decimal).", "type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "inflation_rate": {"type": "number"},
+                "maturity": {"type": "number"},
+                "real_coupon_rate": {"type": "number"},
+                "real_yield": {"type": "number"},
             },
             "required": [
                 "face_value",
@@ -1635,22 +975,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "interest_rate_swap_irs_pricer",
         "input_schema": {
             "properties": {
-                "accruals": {"description": "Year-fraction per " "period.", "type": "object"},
-                "discount_factors": {
-                    "description": "Discount " "factor per " "payment " "date.",
-                    "type": "object",
-                },
-                "fixed_rate": {"description": "Fixed-leg rate " "(decimal).", "type": "number"},
-                "forward_rates": {
-                    "description": "Projected float " "index rate per " "period " "(decimal).",
-                    "type": "object",
-                },
-                "notional": {"description": "Swap notional.", "type": "number"},
-                "pay_fixed": {
-                    "default": True,
-                    "description": "True for payer swap " "(long float), False " "for receiver.",
-                    "type": "boolean",
-                },
+                "accruals": {"type": "object"},
+                "discount_factors": {"type": "object"},
+                "fixed_rate": {"type": "number"},
+                "forward_rates": {"type": "object"},
+                "notional": {"type": "number"},
+                "pay_fixed": {"default": True, "type": "boolean"},
             },
             "required": ["notional", "fixed_rate", "forward_rates", "discount_factors", "accruals"],
             "type": "object",
@@ -1675,27 +1005,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "lmm_bgm_rate_model",
         "input_schema": {
             "properties": {
-                "forward_rates": {
-                    "description": "Initial forward " "rates per tenor " "(decimal, > 0).",
-                    "type": "object",
-                },
-                "horizon": {"description": "Simulation horizon " "(years, > 0).", "type": "number"},
-                "n_simulations": {
-                    "default": 20000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {
-                    "default": 20,
-                    "description": "Time steps to the " "horizon.",
-                    "type": "integer",
-                },
-                "seed": {"default": 104, "description": "RNG seed.", "type": "integer"},
-                "tenor": {
-                    "description": "Accrual length of each " "forward (years).",
-                    "type": "number",
-                },
-                "vols": {"description": "Lognormal vol per " "forward rate.", "type": "object"},
+                "forward_rates": {"type": "object"},
+                "horizon": {"type": "number"},
+                "n_simulations": {"default": 20000, "type": "integer"},
+                "n_steps": {"default": 20, "type": "integer"},
+                "seed": {"default": 104, "type": "integer"},
+                "tenor": {"type": "number"},
+                "vols": {"type": "object"},
             },
             "required": ["forward_rates", "vols", "tenor", "horizon"],
             "type": "object",
@@ -1718,22 +1034,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "local_volatility_dupire_model",
         "input_schema": {
             "properties": {
-                "call_surface": {
-                    "description": "``(len(maturities), " "len(strikes))`` " "call prices.",
-                    "type": "object",
-                },
-                "maturities": {
-                    "description": "1-D ascending " "maturity grid " "(years).",
-                    "type": "object",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "spot": {
-                    "description": "Underlying spot "
-                    "(validation only; not "
-                    "used in the formula).",
-                    "type": "number",
-                },
-                "strikes": {"description": "1-D ascending strike " "grid.", "type": "object"},
+                "call_surface": {"type": "object"},
+                "maturities": {"type": "object"},
+                "rate": {"type": "number"},
+                "spot": {"type": "number"},
+                "strikes": {"type": "object"},
             },
             "required": ["strikes", "maturities", "call_surface", "rate", "spot"],
             "type": "object",
@@ -1750,78 +1055,19 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "lookback_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_bump_reprice_greeks``) "
-                    "on the same pre-drawn "
-                    "normals used for the "
-                    "base price. The "
-                    "path-average/extremum "
-                    "payoff here is smooth "
-                    "in spot (unlike the "
-                    "LSM products below), "
-                    "so this uses the same "
-                    "small bump sizes as "
-                    "asian_option_pricer. "
-                    "Not supported together "
-                    "with qmc=True. "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {
-                    "default": 100,
-                    "description": "Monitoring frequency.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "qmc": {
-                    "default": False,
-                    "description": "Use randomized "
-                    "quasi-Monte Carlo "
-                    "(scrambled Sobol "
-                    "replicates, see "
-                    "``_price_by_qmc_replicates``) "
-                    "instead of plain MC for a "
-                    "lower-variance estimate "
-                    "at the same "
-                    "n_simulations. Defaults "
-                    "to False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 31, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike (fixed-strike " "only).", "type": "number"},
-                "strike_type": {
-                    "default": "floating",
-                    "description": '``"floating"`` or ' '``"fixed"``.',
-                    "type": "string",
-                },
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "n_steps": {"default": 100, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "qmc": {"default": False, "type": "boolean"},
+                "rate": {"type": "number"},
+                "seed": {"default": 31, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "strike_type": {"default": "floating", "type": "string"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -1837,14 +1083,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "modified_duration",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
-                "yield_rate": {"description": "Annual yield " "(decimal).", "type": "number"},
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "times": {"type": "object"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["cashflows", "times", "yield_rate"],
             "type": "object",
@@ -1861,34 +1103,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "monte_carlo_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of Monte " "Carlo paths.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "seed": {
-                    "default": 12345,
-                    "description": "RNG seed for " "determinism.",
-                    "type": "integer",
-                },
-                "sigma": {"description": "Volatility (annualised, " "> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in years " "(> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 12345, "type": "integer"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -1905,19 +1128,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "nelson_siegel_curve_fit",
         "input_schema": {
             "properties": {
-                "maturities": {
-                    "description": "Observed " "maturities in " "years (> 0).",
-                    "type": "object",
-                },
-                "tau_init": {
-                    "default": 1.5,
-                    "description": "Initial guess for " "the decay parameter.",
-                    "type": "number",
-                },
-                "yields": {
-                    "description": "Observed yields " "(decimal) at those " "maturities.",
-                    "type": "object",
-                },
+                "maturities": {"type": "object"},
+                "tau_init": {"default": 1.5, "type": "number"},
+                "yields": {"type": "object"},
             },
             "required": ["maturities", "yields"],
             "type": "object",
@@ -1934,21 +1147,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "nelson_siegel_svensson_curve",
         "input_schema": {
             "properties": {
-                "maturities": {
-                    "description": "Observed " "maturities in " "years (> 0).",
-                    "type": "object",
-                },
-                "tau1_init": {
-                    "default": 1.5,
-                    "description": "Initial first decay " "parameter.",
-                    "type": "number",
-                },
-                "tau2_init": {
-                    "default": 8.0,
-                    "description": "Initial second " "decay parameter.",
-                    "type": "number",
-                },
-                "yields": {"description": "Observed yields " "(decimal).", "type": "object"},
+                "maturities": {"type": "object"},
+                "tau1_init": {"default": 1.5, "type": "number"},
+                "tau2_init": {"default": 8.0, "type": "number"},
+                "yields": {"type": "object"},
             },
             "required": ["maturities", "yields"],
             "type": "object",
@@ -1964,99 +1166,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "normal_inverse_gaussian_model",
         "input_schema": {
             "properties": {
-                "alpha": {
-                    "default": 15.0,
-                    "description": "Tail heaviness (> " "|beta|).",
-                    "type": "number",
-                },
-                "beta": {"default": -5.0, "description": "Skewness parameter.", "type": "number"},
-                "delta": {
-                    "default": 0.5,
-                    "description": "Scale (> 0). NOT the "
-                    "Greek delta (spot "
-                    "sensitivity) -- an "
-                    "unfortunate name "
-                    "collision with this "
-                    "model's own parameter; "
-                    "see ``greeks`` below.",
-                    "type": "number",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "Greek-delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_levy_bump_reprice_greeks``). "
-                    '"vega" here is '
-                    "sensitivity to this "
-                    "function's ``delta`` "
-                    "PARAMETER (the IG "
-                    "subordinator's scale, "
-                    "this model's closest "
-                    "analogue to a "
-                    "volatility level) -- "
-                    "not to ``alpha`` or "
-                    "``beta``, which are "
-                    "held fixed. The output "
-                    'dict\'s ``"delta"`` '
-                    "key is the Greek (spot "
-                    "sensitivity); it is "
-                    "unrelated to the "
-                    "``delta`` parameter "
-                    "above despite the "
-                    "shared name. "
-                    "Greek-delta/rho reuse "
-                    "the base run's IG "
-                    "subordinator directly "
-                    "(spot/rate bumps don't "
-                    'touch it). Both "vega" '
-                    "(bumping the ``delta`` "
-                    "parameter) and the "
-                    'Greek "theta" (bumping '
-                    "tau) DO change the "
-                    "subordinator's (mu, "
-                    "lambda), so each draws "
-                    "its own shared "
-                    "``(normal, uniform)`` "
-                    "pair once and maps it "
-                    "through the IG "
-                    "inverse-transform "
-                    "(``_ig_from_randoms``) "
-                    "at the +/- bumped (mu, "
-                    "lambda) -- the same "
-                    "common-random-numbers "
-                    "technique "
-                    "variance_gamma_model "
-                    "uses for its own "
-                    "tau-dependent Gamma "
-                    "subordinator, verified "
-                    "there to cut "
-                    "seed-to-seed noise by "
-                    "~65x vs. an "
-                    "independent redraw at "
-                    "each bumped value. "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 11, "description": "RNG seed.", "type": "integer"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "alpha": {"default": 15.0, "type": "number"},
+                "beta": {"default": -5.0, "type": "number"},
+                "delta": {"default": 0.5, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 11, "type": "integer"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "tau"],
             "type": "object",
@@ -2080,30 +1200,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "oas_option_adjusted_spread",
         "input_schema": {
             "properties": {
-                "call_price": {
-                    "description": "Issuer call strike " "(per face).",
-                    "type": "number",
-                },
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {"description": "Par value.", "type": "number"},
-                "frequency": {
-                    "default": 1,
-                    "description": "Coupon payments / " "tree steps per " "year.",
-                    "type": "integer",
-                },
-                "market_price": {
-                    "description": "Observed market " "price of the " "callable bond.",
-                    "type": "number",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "rate_vol": {"description": "Short-rate " "volatility.", "type": "number"},
-                "short_rate": {
-                    "description": "Current short rate " "(continuous, " "annual).",
-                    "type": "number",
-                },
+                "call_price": {"type": "number"},
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 1, "type": "integer"},
+                "market_price": {"type": "number"},
+                "maturity": {"type": "number"},
+                "rate_vol": {"type": "number"},
+                "short_rate": {"type": "number"},
             },
             "required": [
                 "market_price",
@@ -2128,19 +1232,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ois_curve_sonia_sofr",
         "input_schema": {
             "properties": {
-                "frequency": {
-                    "default": 1,
-                    "description": "Fixed-leg payment " "frequency per year.",
-                    "type": "integer",
-                },
-                "maturities": {
-                    "description": "Maturities in " "years, ascending.",
-                    "type": "object",
-                },
-                "ois_rates": {
-                    "description": "Quoted OIS rate per " "maturity (decimal).",
-                    "type": "object",
-                },
+                "frequency": {"default": 1, "type": "integer"},
+                "maturities": {"type": "object"},
+                "ois_rates": {"type": "object"},
             },
             "required": ["ois_rates", "maturities"],
             "type": "object",
@@ -2156,26 +1250,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "overnight_index_swap_ois",
         "input_schema": {
             "properties": {
-                "accrual": {"description": "Year-fraction of the " "period.", "type": "number"},
-                "compounded_rate": {
-                    "description": "Realised/projected "
-                    "compounded "
-                    "overnight "
-                    "rate "
-                    "(decimal).",
-                    "type": "number",
-                },
-                "discount_factor": {
-                    "description": "Discount " "factor to " "payment.",
-                    "type": "number",
-                },
-                "fixed_rate": {"description": "Fixed OIS rate " "(decimal).", "type": "number"},
-                "notional": {"description": "Swap notional.", "type": "number"},
-                "pay_fixed": {
-                    "default": True,
-                    "description": "True if paying " "fixed (receiving " "floating).",
-                    "type": "boolean",
-                },
+                "accrual": {"type": "number"},
+                "compounded_rate": {"type": "number"},
+                "discount_factor": {"type": "number"},
+                "fixed_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "pay_fixed": {"default": True, "type": "boolean"},
             },
             "required": ["notional", "fixed_rate", "compounded_rate", "accrual", "discount_factor"],
             "type": "object",
@@ -2195,26 +1275,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "puttable_bond_pricer",
         "input_schema": {
             "properties": {
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {"description": "Par value.", "type": "number"},
-                "frequency": {
-                    "default": 1,
-                    "description": "Coupon payments per " "year (tree steps " "per year).",
-                    "type": "integer",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "put_price": {
-                    "description": "Price at which the " "holder may put (per " "face).",
-                    "type": "number",
-                },
-                "rate_vol": {"description": "Short-rate " "volatility.", "type": "number"},
-                "short_rate": {
-                    "description": "Current short rate " "(continuous, " "annual).",
-                    "type": "number",
-                },
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 1, "type": "integer"},
+                "maturity": {"type": "number"},
+                "put_price": {"type": "number"},
+                "rate_vol": {"type": "number"},
+                "short_rate": {"type": "number"},
             },
             "required": [
                 "face_value",
@@ -2238,52 +1305,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rainbow_option_pricer",
         "input_schema": {
             "properties": {
-                "correlation": {
-                    "description": "Asset correlation " "matrix (SPD).",
-                    "type": "object",
-                },
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute per-asset "
-                    "delta/gamma/vega and "
-                    "scalar theta/rho via "
-                    "bump-and-reprice (see "
-                    "``_multi_asset_bump_reprice_greeks``) "
-                    "on the same pre-drawn "
-                    "normals used for the "
-                    "base price. Delta/ "
-                    "gamma/vega are "
-                    "diagonal only (each "
-                    "asset bumped "
-                    "independently; no "
-                    "cross-asset terms). "
-                    "Defaults to False so "
-                    "existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rainbow_type": {
-                    "default": "best-of",
-                    "description": '``"best-of"`` or ' '``"worst-of"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 61, "description": "RNG seed.", "type": "integer"},
-                "sigmas": {"description": "Volatility per asset.", "type": "object"},
-                "spots": {"description": "Initial prices per " "asset.", "type": "object"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "correlation": {"type": "object"},
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rainbow_type": {"default": "best-of", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 61, "type": "integer"},
+                "sigmas": {"type": "object"},
+                "spots": {"type": "object"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spots", "strike", "rate", "sigmas", "tau", "correlation"],
             "type": "object",
@@ -2328,220 +1360,20 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rough_volatility_rbergomi_model",
         "input_schema": {
             "properties": {
-                "control_variate": {
-                    "default": False,
-                    "description": "Use a "
-                    "Heston-companion "
-                    "control "
-                    "variate (task "
-                    "#15 Phase 3) "
-                    "for a "
-                    "lower-variance "
-                    "estimate at "
-                    "the same "
-                    "n_simulations. "
-                    "Defaults to "
-                    "False so "
-                    "existing "
-                    "callers/results "
-                    "are "
-                    "unaffected. A "
-                    "companion "
-                    "Heston path "
-                    "is simulated "
-                    "on the SAME "
-                    "pre-drawn "
-                    "z_v/z_s "
-                    "normals (that "
-                    "shared "
-                    "randomness is "
-                    "what makes it "
-                    "correlated "
-                    "with the "
-                    "rBergomi "
-                    "payoff -- an "
-                    "independently-drawn "
-                    "Heston path "
-                    "would be a "
-                    "useless "
-                    "control). The "
-                    "companion "
-                    "uses "
-                    "v0=theta=xi, "
-                    "sigma=eta, "
-                    "the same rho, "
-                    "and an "
-                    "internally-fixed "
-                    "kappa (see "
-                    "``_HESTON_CV_KAPPA``) "
-                    "chosen purely "
-                    "to maximise "
-                    "that "
-                    "correlation "
-                    "-- rBergomi "
-                    "has no "
-                    "mean-reversion-speed "
-                    "parameter of "
-                    "its own, so "
-                    "there's no "
-                    '"natural" '
-                    "kappa to "
-                    "inherit. The "
-                    "companion's "
-                    "known EXACT "
-                    "price comes "
-                    "from the "
-                    "existing "
-                    "semi-analytic "
-                    "heston_stochastic_volatility_model; "
-                    "the optimal "
-                    "control-variate "
-                    "coefficient "
-                    "beta is "
-                    "estimated "
-                    "from the "
-                    "sample "
-                    "covariance/variance "
-                    "of the two "
-                    "payoff series "
-                    "(standard "
-                    "practice, not "
-                    "a fixed "
-                    "beta=1 "
-                    "subtraction). "
-                    "Verified "
-                    "empirically "
-                    "across two "
-                    "parameter "
-                    "regimes (this "
-                    "model's "
-                    "defaults, and "
-                    "a second "
-                    "regime with "
-                    "different "
-                    "strike/ "
-                    "tau/xi/eta/hurst/rho) "
-                    "that this "
-                    "gives a real "
-                    "~2x-6x "
-                    "variance "
-                    "reduction "
-                    "with no "
-                    "measurable "
-                    "bias -- "
-                    "weaker than "
-                    "Phase 2's QMC "
-                    "result on the "
-                    "exotic-option "
-                    "kernels, but "
-                    "genuine, "
-                    "because "
-                    "rBergomi's "
-                    "actual "
-                    "rough-volatility "
-                    "dynamics are "
-                    "structurally "
-                    "quite "
-                    "different "
-                    "from Heston's "
-                    "Markovian CIR "
-                    "process (that "
-                    "structural "
-                    "gap is "
-                    "exactly why "
-                    "the "
-                    "correlation "
-                    "-- and "
-                    "therefore the "
-                    "achievable "
-                    "variance "
-                    "reduction -- "
-                    "isn't "
-                    "larger).",
-                    "type": "boolean",
-                },
-                "eta": {"default": 1.5, "description": "Vol-of-vol parameter.", "type": "number"},
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_bump_reprice_greeks``) "
-                    "on the same pre-drawn "
-                    "z_v/z_s used for the "
-                    'base price. "vega" '
-                    "here is sensitivity to "
-                    "``xi`` (the "
-                    "forward-variance "
-                    "level, this model's "
-                    "primary volatility "
-                    "parameter) -- NOT to "
-                    "``eta`` (vol-of-vol) "
-                    "or ``hurst``, which "
-                    "are structural "
-                    "parameters outside the "
-                    "standard 5-Greek scope "
-                    "and are held fixed. "
-                    'The Greek "rho" '
-                    "(sensitivity to the "
-                    "risk-free rate) is "
-                    "unrelated to this "
-                    "model's own ``rho`` "
-                    "parameter (spot/vol "
-                    "correlation, also held "
-                    "fixed) -- an "
-                    "unfortunate but "
-                    "standard name "
-                    "collision, not a bug. "
-                    "Not supported together "
-                    "with "
-                    "control_variate=True "
-                    "(the control-variate "
-                    "coefficient and the "
-                    "analytic Heston "
-                    "reference price would "
-                    "both need re-deriving "
-                    "at every bumped "
-                    "scenario; deferred "
-                    "rather than done "
-                    "partially). Defaults "
-                    "to False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "hurst": {
-                    "default": 0.1,
-                    "description": "Hurst exponent in (0, " "0.5).",
-                    "type": "number",
-                },
-                "n_simulations": {
-                    "default": 50000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "n_steps": {
-                    "default": 50,
-                    "description": "Time-discretisation " "steps.",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "rho": {
-                    "default": -0.7,
-                    "description": "Spot/vol correlation in " "[-1, 1].",
-                    "type": "number",
-                },
-                "seed": {"default": 2024, "description": "RNG seed.", "type": "integer"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
-                "xi": {"default": 0.04, "description": "Forward variance level.", "type": "number"},
+                "control_variate": {"default": False, "type": "boolean"},
+                "eta": {"default": 1.5, "type": "number"},
+                "greeks": {"default": False, "type": "boolean"},
+                "hurst": {"default": 0.1, "type": "number"},
+                "n_simulations": {"default": 50000, "type": "integer"},
+                "n_steps": {"default": 50, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "rho": {"default": -0.7, "type": "number"},
+                "seed": {"default": 2024, "type": "integer"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
+                "xi": {"default": 0.04, "type": "number"},
             },
             "required": ["spot", "strike", "rate", "tau"],
             "type": "object",
@@ -2557,13 +1389,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sabr_volatility_model",
         "input_schema": {
             "properties": {
-                "alpha": {"description": "Initial volatility " "level (> 0).", "type": "number"},
-                "beta": {"description": "CEV exponent in [0, 1].", "type": "number"},
-                "forward": {"description": "Forward price/rate.", "type": "number"},
-                "nu": {"description": "Vol-of-vol (>= 0).", "type": "number"},
-                "rho": {"description": "Correlation in [-1, 1].", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "alpha": {"type": "number"},
+                "beta": {"type": "number"},
+                "forward": {"type": "number"},
+                "nu": {"type": "number"},
+                "rho": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["forward", "strike", "tau", "alpha", "beta", "rho", "nu"],
             "type": "object",
@@ -2582,19 +1414,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "spread_option_kirk_approximation",
         "input_schema": {
             "properties": {
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "rho": {"description": "Correlation in [-1, 1].", "type": "number"},
-                "sigma1": {"description": "Volatility of asset 1.", "type": "number"},
-                "sigma2": {"description": "Volatility of asset 2.", "type": "number"},
-                "spot1": {"description": "First-asset forward " "price.", "type": "number"},
-                "spot2": {"description": "Second-asset forward " "price.", "type": "number"},
-                "strike": {"description": "Spread strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "rho": {"type": "number"},
+                "sigma1": {"type": "number"},
+                "sigma2": {"type": "number"},
+                "spot1": {"type": "number"},
+                "spot2": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot1", "spot2", "strike", "rate", "sigma1", "sigma2", "rho", "tau"],
             "type": "object",
@@ -2610,23 +1438,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "swap_rate_curve",
         "input_schema": {
             "properties": {
-                "discount_factors": {
-                    "description": "Discount "
-                    "factor per "
-                    "maturity "
-                    "(descending "
-                    "in (0, 1]).",
-                    "type": "object",
-                },
-                "frequency": {
-                    "default": 1,
-                    "description": "Fixed-leg payment " "frequency per year.",
-                    "type": "integer",
-                },
-                "maturities": {
-                    "description": "Maturities in " "years, ascending.",
-                    "type": "object",
-                },
+                "discount_factors": {"type": "object"},
+                "frequency": {"default": 1, "type": "integer"},
+                "maturities": {"type": "object"},
             },
             "required": ["discount_factors", "maturities"],
             "type": "object",
@@ -2643,23 +1457,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "swaption_pricer_black",
         "input_schema": {
             "properties": {
-                "annuity": {
-                    "description": "PV of a 1-unit fixed " "annuity (level / " "PVBP).",
-                    "type": "number",
-                },
-                "expiry": {"description": "Time to swaption " "expiry (years).", "type": "number"},
-                "forward_swap_rate": {
-                    "description": "Forward par " "swap rate " "(decimal).",
-                    "type": "number",
-                },
-                "notional": {"description": "Swap notional.", "type": "number"},
-                "option_type": {
-                    "default": "payer",
-                    "description": '``"payer"`` or ' '``"receiver"``.',
-                    "type": "string",
-                },
-                "strike": {"description": "Strike swap rate " "(decimal).", "type": "number"},
-                "vol": {"description": "Black volatility of the " "swap rate.", "type": "number"},
+                "annuity": {"type": "number"},
+                "expiry": {"type": "number"},
+                "forward_swap_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "option_type": {"default": "payer", "type": "string"},
+                "strike": {"type": "number"},
+                "vol": {"type": "number"},
             },
             "required": ["notional", "forward_swap_rate", "strike", "vol", "expiry", "annuity"],
             "type": "object",
@@ -2676,23 +1480,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "swaption_pricer_sabr",
         "input_schema": {
             "properties": {
-                "alpha": {"description": "SABR initial vol level.", "type": "number"},
-                "annuity": {"description": "PV of a 1-unit fixed " "annuity.", "type": "number"},
-                "beta": {"description": "SABR CEV exponent in [0, " "1].", "type": "number"},
-                "expiry": {"description": "Time to expiry " "(years).", "type": "number"},
-                "forward_swap_rate": {
-                    "description": "Forward par " "swap rate " "(decimal).",
-                    "type": "number",
-                },
-                "notional": {"description": "Swap notional.", "type": "number"},
-                "nu": {"description": "SABR vol-of-vol.", "type": "number"},
-                "option_type": {
-                    "default": "payer",
-                    "description": '``"payer"`` or ' '``"receiver"``.',
-                    "type": "string",
-                },
-                "rho": {"description": "SABR correlation.", "type": "number"},
-                "strike": {"description": "Strike swap rate " "(decimal).", "type": "number"},
+                "alpha": {"type": "number"},
+                "annuity": {"type": "number"},
+                "beta": {"type": "number"},
+                "expiry": {"type": "number"},
+                "forward_swap_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "nu": {"type": "number"},
+                "option_type": {"default": "payer", "type": "string"},
+                "rho": {"type": "number"},
+                "strike": {"type": "number"},
             },
             "required": [
                 "notional",
@@ -2720,25 +1517,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "total_return_swap_trs",
         "input_schema": {
             "properties": {
-                "accrual": {"description": "Year-fraction.", "type": "number"},
-                "asset_return": {
-                    "description": "Period total " "return of the " "reference asset " "(decimal).",
-                    "type": "number",
-                },
-                "discount_factor": {
-                    "description": "Discount " "factor to " "payment.",
-                    "type": "number",
-                },
-                "financing_rate": {
-                    "description": "Financing rate " "(decimal, " "annual).",
-                    "type": "number",
-                },
-                "notional": {"description": "Reference notional.", "type": "number"},
-                "receive_total_return": {
-                    "default": True,
-                    "description": "Direction " "flag.",
-                    "type": "boolean",
-                },
+                "accrual": {"type": "number"},
+                "asset_return": {"type": "number"},
+                "discount_factor": {"type": "number"},
+                "financing_rate": {"type": "number"},
+                "notional": {"type": "number"},
+                "receive_total_return": {"default": True, "type": "boolean"},
             },
             "required": [
                 "notional",
@@ -2760,34 +1544,15 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "trinomial_tree_option_pricer",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "n_steps": {
-                    "default": 300,
-                    "description": "Number of tree steps " "(>= 1).",
-                    "type": "integer",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility (annualised, " "> 0).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "style": {
-                    "default": "european",
-                    "description": '``"european"`` or ' '``"american"``.',
-                    "type": "string",
-                },
-                "tau": {"description": "Time to maturity in years " "(> 0).", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "n_steps": {"default": 300, "type": "integer"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "style": {"default": "european", "type": "string"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -2808,106 +1573,17 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "variance_gamma_model",
         "input_schema": {
             "properties": {
-                "greeks": {
-                    "default": False,
-                    "description": "Also compute "
-                    "delta/gamma/vega/theta/rho "
-                    "via bump-and-reprice "
-                    "(see "
-                    "``_levy_bump_reprice_greeks``). "
-                    '"vega" here is '
-                    "sensitivity to "
-                    "``sigma`` (the "
-                    "diffusion volatility, "
-                    "this model's direct "
-                    "Black-Scholes-like vol "
-                    "parameter). The Greek "
-                    '"theta" (time decay, '
-                    "in the output dict) is "
-                    "unrelated to this "
-                    "function's own "
-                    "``theta`` parameter "
-                    "(skew) above, which "
-                    "stays fixed. "
-                    "delta/vega/rho reuse "
-                    "the base run's Gamma "
-                    "subordinator directly "
-                    "(spot/sigma/rate bumps "
-                    "don't change its shape "
-                    "parameter). theta (the "
-                    "Greek) needs a "
-                    "subordinator at ``tau "
-                    "+/- d_tau``, and the "
-                    "Gamma subordinator's "
-                    "shape parameter IS "
-                    "``tau/nu`` -- so it "
-                    "can't just reuse the "
-                    "base draw the way "
-                    "GBM-based normals can "
-                    "under a tau bump. "
-                    "Verified empirically "
-                    "that independently "
-                    "redrawing it at each "
-                    "bumped tau gives ~65x "
-                    "more seed-to-seed "
-                    "noise in theta than "
-                    "the alternative "
-                    "shipped here: drawing "
-                    "ONE shared uniform "
-                    "array and mapping it "
-                    "through the Gamma "
-                    "inverse-CDF at "
-                    "``(tau+d_tau)/nu`` and "
-                    "``(tau-d_tau)/nu`` "
-                    "respectively, which "
-                    "keeps the two bumped "
-                    "subordinators tightly "
-                    "(positively) "
-                    "correlated with each "
-                    "other the same way "
-                    "common random numbers "
-                    "correlate every other "
-                    "Greek in this "
-                    "codebase. Defaults to "
-                    "False so existing "
-                    "callers/results are "
-                    "unaffected.",
-                    "type": "boolean",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of " "paths.",
-                    "type": "integer",
-                },
-                "nu": {
-                    "default": 0.2,
-                    "description": "Variance rate of the Gamma " "subordinator (> 0).",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {"description": "Risk-free rate " "(continuous).", "type": "number"},
-                "seed": {"default": 7, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"default": 0.2, "description": "Diffusion volatility.", "type": "number"},
-                "spot": {"description": "Underlying spot.", "type": "number"},
-                "strike": {"description": "Strike.", "type": "number"},
-                "tau": {"description": "Time to maturity (years, " "> 0).", "type": "number"},
-                "theta": {
-                    "default": -0.1,
-                    "description": "Drift of the "
-                    "subordinated Brownian "
-                    "motion (skew). NOT the "
-                    "Greek theta (time "
-                    "decay) -- an "
-                    "unfortunate name "
-                    "collision with this "
-                    "model's own parameter; "
-                    "see ``greeks`` below.",
-                    "type": "number",
-                },
+                "greeks": {"default": False, "type": "boolean"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "nu": {"default": 0.2, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "seed": {"default": 7, "type": "integer"},
+                "sigma": {"default": 0.2, "type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
+                "theta": {"default": -0.1, "type": "number"},
             },
             "required": ["spot", "strike", "rate", "tau"],
             "type": "object",
@@ -2924,14 +1600,14 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "vasicek_interest_rate_model",
         "input_schema": {
             "properties": {
-                "kappa": {"description": "Mean-reversion speed (> " "0).", "type": "number"},
-                "maturity": {"description": "Bond maturity in " "years (> 0).", "type": "number"},
-                "n_simulations": {"default": 50000, "description": "MC paths.", "type": "integer"},
-                "n_steps": {"default": 100, "description": "MC time steps.", "type": "integer"},
-                "r0": {"description": "Initial short rate.", "type": "number"},
-                "seed": {"default": 101, "description": "RNG seed.", "type": "integer"},
-                "sigma": {"description": "Volatility (> 0).", "type": "number"},
-                "theta": {"description": "Long-run mean.", "type": "number"},
+                "kappa": {"type": "number"},
+                "maturity": {"type": "number"},
+                "n_simulations": {"default": 50000, "type": "integer"},
+                "n_steps": {"default": 100, "type": "integer"},
+                "r0": {"type": "number"},
+                "seed": {"default": 101, "type": "integer"},
+                "sigma": {"type": "number"},
+                "theta": {"type": "number"},
             },
             "required": ["r0", "kappa", "theta", "sigma", "maturity"],
             "type": "object",
@@ -2947,28 +1623,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "yield_to_call",
         "input_schema": {
             "properties": {
-                "call_date": {
-                    "description": "Time to the call " "date in years.",
-                    "type": "number",
-                },
-                "call_price": {
-                    "description": "Redemption price " "at the call date.",
-                    "type": "number",
-                },
-                "coupon_rate": {
-                    "description": "Annual coupon " "rate (decimal).",
-                    "type": "number",
-                },
-                "face_value": {
-                    "description": "Par value (for " "coupon sizing).",
-                    "type": "number",
-                },
-                "frequency": {
-                    "default": 2,
-                    "description": "Coupon payments per " "year.",
-                    "type": "integer",
-                },
-                "price": {"description": "Observed dirty price.", "type": "number"},
+                "call_date": {"type": "number"},
+                "call_price": {"type": "number"},
+                "coupon_rate": {"type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "price": {"type": "number"},
             },
             "required": ["price", "face_value", "coupon_rate", "call_price", "call_date"],
             "type": "object",
@@ -2985,14 +1645,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "yield_to_maturity",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "price": {"description": "Observed dirty price.", "type": "number"},
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "price": {"type": "number"},
+                "times": {"type": "object"},
             },
             "required": ["price", "cashflows", "times"],
             "type": "object",
@@ -3008,18 +1664,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "z_spread_calculator",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "price": {"description": "Observed dirty price.", "type": "number"},
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
-                "zero_rates": {
-                    "description": "Zero (spot) rate " "per cashflow " "(decimal, " "annualised).",
-                    "type": "object",
-                },
+                "cashflows": {"type": "object"},
+                "frequency": {"default": 2, "type": "integer"},
+                "price": {"type": "number"},
+                "times": {"type": "object"},
+                "zero_rates": {"type": "object"},
             },
             "required": ["price", "cashflows", "times", "zero_rates"],
             "type": "object",
@@ -3034,14 +1683,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "zero_coupon_bond_pricer",
         "input_schema": {
             "properties": {
-                "face_value": {"description": "Redemption (par) " "value.", "type": "number"},
-                "frequency": {
-                    "default": 2,
-                    "description": "Compounding " "frequency per year.",
-                    "type": "integer",
-                },
-                "maturity": {"description": "Time to maturity in " "years.", "type": "number"},
-                "yield_rate": {"description": "Annual yield " "(decimal).", "type": "number"},
+                "face_value": {"type": "number"},
+                "frequency": {"default": 2, "type": "integer"},
+                "maturity": {"type": "number"},
+                "yield_rate": {"type": "number"},
             },
             "required": ["face_value", "yield_rate", "maturity"],
             "type": "object",

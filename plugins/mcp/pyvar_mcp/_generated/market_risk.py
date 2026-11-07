@@ -22,12 +22,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "basel_capital_addon_multiplier",
         "input_schema": {
-            "properties": {
-                "n_breaches": {
-                    "description": "Number of breaches " "in the 250-day " "backtest.",
-                    "type": "integer",
-                }
-            },
+            "properties": {"n_breaches": {"type": "integer"}},
             "required": ["n_breaches"],
             "type": "object",
         },
@@ -48,24 +43,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "charm_delta_decay",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility " "(annualised).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in " "years.", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -85,12 +69,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "christoffersen_independence_test",
         "input_schema": {
-            "properties": {
-                "breaches": {
-                    "description": "Binary breach " "sequence (1 = " "breach, 0 = no " "breach).",
-                    "type": "object",
-                }
-            },
+            "properties": {"breaches": {"type": "object"}},
             "required": ["breaches"],
             "type": "object",
         },
@@ -107,20 +86,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "combined_backtesting",
         "input_schema": {
             "properties": {
-                "breaches": {
-                    "description": "Binary breach " "sequence (1 = " "breach, 0 = no " "breach).",
-                    "type": "object",
-                },
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR "
-                    "confidence "
-                    "level the "
-                    "breaches "
-                    "were "
-                    "measured at.",
-                    "type": "number",
-                },
+                "breaches": {"type": "object"},
+                "confidence_level": {"default": 0.99, "type": "number"},
             },
             "required": ["breaches"],
             "type": "object",
@@ -139,20 +106,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "component_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "cov_matrix": {
-                    "description": "Asset return " "covariance matrix.",
-                    "type": "object",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "cov_matrix": {"type": "object"},
+                "portfolio_value": {"type": "number"},
+                "weights": {"type": "object"},
             },
             "required": ["weights", "cov_matrix", "portfolio_value"],
             "type": "object",
@@ -170,32 +127,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "compute_breaches",
         "input_schema": {
             "properties": {
-                "actual_returns": {
-                    "description": "Realised "
-                    "returns as "
-                    "decimals, "
-                    "aligned one to "
-                    "one with "
-                    "`var_estimates` "
-                    "(a loss is the "
-                    "negative of a "
-                    "return).",
-                    "type": "object",
-                },
-                "var_estimates": {
-                    "description": "The VaR "
-                    "estimate for "
-                    "each day, as a "
-                    "positive loss "
-                    "fraction. Days "
-                    "where it is NaN "
-                    "are ignored, as "
-                    "the first "
-                    "`window` days "
-                    "of a rolling "
-                    "VaR are.",
-                    "type": "object",
-                },
+                "actual_returns": {"type": "object"},
+                "var_estimates": {"type": "object"},
             },
             "required": ["actual_returns", "var_estimates"],
             "type": "object",
@@ -210,38 +143,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "compute_cvar",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "description": "Confidence "
-                    "level that "
-                    "sets where "
-                    "the tail "
-                    "starts, for "
-                    "example 0.99 "
-                    "(0.90 to "
-                    "0.9999 at "
-                    "the API). "
-                    "The result "
-                    "is the mean "
-                    "of the "
-                    "losses from "
-                    "position "
-                    "floor(confidence_level "
-                    "x n) of the "
-                    "sorted array "
-                    "to its end.",
-                    "type": "number",
-                },
-                "sorted_losses": {
-                    "description": "Portfolio "
-                    "losses sorted "
-                    "ascending (a "
-                    "loss is a "
-                    "positive "
-                    "number), so the "
-                    "largest losses "
-                    "are at the end.",
-                    "type": "object",
-                },
+                "confidence_level": {"type": "number"},
+                "sorted_losses": {"type": "object"},
             },
             "required": ["sorted_losses", "confidence_level"],
             "type": "object",
@@ -255,26 +158,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "compute_loss_percentiles",
         "input_schema": {
-            "properties": {
-                "percentiles": {
-                    "description": "Quantile levels "
-                    "between 0 and 1 "
-                    "to report. "
-                    "Defaults to 0.50, "
-                    "0.75, 0.90, 0.95, "
-                    "0.99 and 0.995.",
-                    "type": "object",
-                },
-                "sorted_losses": {
-                    "description": "Portfolio "
-                    "losses sorted "
-                    "ascending (a "
-                    "loss is a "
-                    "positive "
-                    "number).",
-                    "type": "object",
-                },
-            },
+            "properties": {"percentiles": {"type": "object"}, "sorted_losses": {"type": "object"}},
             "required": ["sorted_losses"],
             "type": "object",
         },
@@ -296,36 +180,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "compute_rolling_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "Confidence "
-                    "level of the "
-                    "Gaussian "
-                    "VaR, for "
-                    "example 0.99 "
-                    "(0.90 to "
-                    "0.9999 at "
-                    "the API).",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "Periodic returns as "
-                    "decimals (a 1% fall "
-                    "is -0.01), oldest "
-                    "first.",
-                    "type": "object",
-                },
-                "window": {
-                    "default": 250,
-                    "description": "Number of most recent "
-                    "observations used to "
-                    "estimate the mean and "
-                    "volatility at each "
-                    "point. The first "
-                    "`window` entries of "
-                    "the result are NaN.",
-                    "type": "integer",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "returns": {"type": "object"},
+                "window": {"default": 250, "type": "integer"},
             },
             "required": ["returns"],
             "type": "object",
@@ -341,24 +198,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "conditional_var_es",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES "
-                    "confidence "
-                    "in [0.90, "
-                    "0.9999]; "
-                    "FRTB uses "
-                    "0.975.",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -377,27 +219,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "contagion_stress_scenario",
         "input_schema": {
             "properties": {
-                "contagion_matrix": {
-                    "description": "``(N, N)`` "
-                    "spillover "
-                    "coefficients "
-                    "(C[i, j] = "
-                    "effect of "
-                    "node j on "
-                    "node i).",
-                    "type": "object",
-                },
-                "initial_shock": {
-                    "description": "Length-N " "initial shock " "per node/asset.",
-                    "type": "object",
-                },
-                "rounds": {
-                    "default": 3,
-                    "description": "Number of propagation "
-                    "rounds (``0`` returns "
-                    "the initial shock).",
-                    "type": "integer",
-                },
+                "contagion_matrix": {"type": "object"},
+                "initial_shock": {"type": "object"},
+                "rounds": {"default": 3, "type": "integer"},
             },
             "required": ["initial_shock", "contagion_matrix"],
             "type": "object",
@@ -416,31 +240,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cornish_fisher_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "excess_kurtosis": {
-                    "description": "Override "
-                    "sample excess "
-                    "kurtosis "
-                    "(computed if "
-                    "None).",
-                    "type": "object",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
-                "skewness": {
-                    "description": "Override sample " "skewness (computed " "from data if None).",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "excess_kurtosis": {"type": "object"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
+                "skewness": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -454,12 +258,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "correlation_matrix_historical",
         "input_schema": {
-            "properties": {
-                "returns_matrix": {
-                    "description": "``(T, N)`` " "matrix of T " "observations " "on N assets.",
-                    "type": "object",
-                }
-            },
+            "properties": {"returns_matrix": {"type": "object"}},
             "required": ["returns_matrix"],
             "type": "object",
         },
@@ -473,18 +272,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "credit_pnl_attribution",
         "input_schema": {
             "properties": {
-                "cs01_sensitivities": {
-                    "description": "P&L per " "+1bp " "credit-spread " "move per " "name.",
-                    "type": "object",
-                },
-                "name_labels": {
-                    "description": "Optional labels; " "default ``name_0, " "...``.",
-                    "type": "object",
-                },
-                "spread_moves_bp": {
-                    "description": "Realised " "spread move " "(basis " "points) per " "name.",
-                    "type": "object",
-                },
+                "cs01_sensitivities": {"type": "object"},
+                "name_labels": {"type": "object"},
+                "spread_moves_bp": {"type": "object"},
             },
             "required": ["cs01_sensitivities", "spread_moves_bp"],
             "type": "object",
@@ -502,16 +292,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cs01_credit_spread",
         "input_schema": {
             "properties": {
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "credit_spread": {
-                    "description": "Continuously-compounded " "credit spread.",
-                    "type": "number",
-                },
-                "risk_free_rate": {
-                    "description": "Continuously-compounded " "risk-free " "rate.",
-                    "type": "number",
-                },
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
+                "cashflows": {"type": "object"},
+                "credit_spread": {"type": "number"},
+                "risk_free_rate": {"type": "number"},
+                "times": {"type": "object"},
             },
             "required": ["cashflows", "times", "risk_free_rate", "credit_spread"],
             "type": "object",
@@ -529,20 +313,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "cvar_decomposition_euler",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "cov_matrix": {
-                    "description": "Asset return " "covariance matrix.",
-                    "type": "object",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "cov_matrix": {"type": "object"},
+                "portfolio_value": {"type": "number"},
+                "weights": {"type": "object"},
             },
             "required": ["weights", "cov_matrix", "portfolio_value"],
             "type": "object",
@@ -560,16 +334,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "dcc_garch_dynamic_correlation",
         "input_schema": {
             "properties": {
-                "a": {"default": 0.02, "description": "DCC news coefficient.", "type": "number"},
-                "b": {
-                    "default": 0.95,
-                    "description": "DCC persistence coefficient " "(require a + b < 1).",
-                    "type": "number",
-                },
-                "returns_matrix": {
-                    "description": "``(T, N)`` " "matrix of T " "observations " "on N assets.",
-                    "type": "object",
-                },
+                "a": {"default": 0.02, "type": "number"},
+                "b": {"default": 0.95, "type": "number"},
+                "returns_matrix": {"type": "object"},
             },
             "required": ["returns_matrix"],
             "type": "object",
@@ -589,21 +356,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "dv01_pv01_bucketed",
         "input_schema": {
             "properties": {
-                "bucket_indices": {
-                    "description": "Tenor bucket "
-                    "index per "
-                    "cashflow in "
-                    "``[0, "
-                    "n_buckets)``.",
-                    "type": "object",
-                },
-                "cashflows": {"description": "Cashflow amounts.", "type": "object"},
-                "flat_yield": {
-                    "description": "Flat " "continuously-compounded " "discount yield.",
-                    "type": "number",
-                },
-                "n_buckets": {"description": "Number of tenor " "buckets.", "type": "integer"},
-                "times": {"description": "Cashflow times in " "years.", "type": "object"},
+                "bucket_indices": {"type": "object"},
+                "cashflows": {"type": "object"},
+                "flat_yield": {"type": "number"},
+                "n_buckets": {"type": "integer"},
+                "times": {"type": "object"},
             },
             "required": ["cashflows", "times", "flat_yield", "bucket_indices", "n_buckets"],
             "type": "object",
@@ -622,32 +379,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "egarch_volatility_model",
         "input_schema": {
             "properties": {
-                "alpha": {
-                    "default": 0.1,
-                    "description": "Magnitude (|z|) " "coefficient.",
-                    "type": "number",
-                },
-                "beta": {
-                    "default": 0.95,
-                    "description": "Log-variance persistence " "(|beta| < 1 for " "stationarity).",
-                    "type": "number",
-                },
-                "gamma": {
-                    "default": -0.05,
-                    "description": "Leverage coefficient "
-                    "(negative => negative "
-                    "shocks raise vol more).",
-                    "type": "number",
-                },
-                "omega": {
-                    "default": -0.1,
-                    "description": "Log-variance intercept.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D return series " "(demeaned " "internally).",
-                    "type": "object",
-                },
+                "alpha": {"default": 0.1, "type": "number"},
+                "beta": {"default": 0.95, "type": "number"},
+                "gamma": {"default": -0.05, "type": "number"},
+                "omega": {"default": -0.1, "type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -663,19 +399,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "es_at_multiple_confidence_levels",
         "input_schema": {
             "properties": {
-                "confidence_levels": {
-                    "default": [0.95, 0.975, 0.99],
-                    "description": "Confidence " "levels " "(each in " "[0.90, " "0.9999]).",
-                    "type": "array",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
+                "confidence_levels": {"default": [0.95, 0.975, 0.99], "type": "array"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -692,24 +418,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "expected_shortfall_contribution",
         "input_schema": {
             "properties": {
-                "asset_returns": {
-                    "description": "``(T, N)`` "
-                    "matrix of "
-                    "per-asset "
-                    "returns over T "
-                    "scenarios.",
-                    "type": "object",
-                },
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "weights": {"description": "Length-N portfolio " "weights.", "type": "object"},
+                "asset_returns": {"type": "object"},
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "weights": {"type": "object"},
             },
             "required": ["asset_returns", "weights", "portfolio_value"],
             "type": "object",
@@ -730,28 +442,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "extreme_value_theory_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR "
-                    "confidence "
-                    "in [0.90, "
-                    "0.9999], "
-                    "above the "
-                    "threshold.",
-                    "type": "number",
-                },
-                "returns": {"description": "1-D array of " "portfolio returns.", "type": "object"},
-                "threshold_quantile": {
-                    "default": 0.95,
-                    "description": "Loss "
-                    "quantile "
-                    "defining "
-                    "the POT "
-                    "threshold "
-                    "(e.g. "
-                    "0.95).",
-                    "type": "number",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "returns": {"type": "object"},
+                "threshold_quantile": {"default": 0.95, "type": "number"},
             },
             "required": ["returns"],
             "type": "object",
@@ -769,24 +462,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "filtered_historical_simulation_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "lambda_decay": {
-                    "default": 0.94,
-                    "description": "EWMA decay " "factor " "(RiskMetrics " "default 0.94).",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "lambda_decay": {"default": 0.94, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -803,19 +482,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_ima_aggregate_capital_charge",
         "input_schema": {
             "properties": {
-                "default_risk_charge": {
-                    "default": 0.0,
-                    "description": "Default " "risk " "charge " "(DRC).",
-                    "type": "number",
-                },
-                "imcc": {
-                    "description": "Internally-modelled " "capital charge " "(ES-based).",
-                    "type": "number",
-                },
-                "ses": {
-                    "description": "Aggregate non-modellable " "risk factor capital " "(SES).",
-                    "type": "number",
-                },
+                "default_risk_charge": {"default": 0.0, "type": "number"},
+                "imcc": {"type": "number"},
+                "ses": {"type": "number"},
             },
             "required": ["imcc", "ses"],
             "type": "object",
@@ -831,18 +500,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_ima_expected_shortfall",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence; " "FRTB IMA " "uses 0.975.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of "
-                    "portfolio returns "
-                    "over the IMA "
-                    "observation set.",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -860,15 +519,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_ima_non_modellable_risk_factors",
         "input_schema": {
             "properties": {
-                "individual_ses": {
-                    "description": "Per-factor " "stressed " "capital " "add-ons " "(ISES).",
-                    "type": "object",
-                },
-                "rho": {
-                    "default": 0.0,
-                    "description": "Prescribed correlation " "across NMRFs in [0, 1].",
-                    "type": "number",
-                },
+                "individual_ses": {"type": "object"},
+                "rho": {"default": 0.0, "type": "number"},
             },
             "required": ["individual_ses"],
             "type": "object",
@@ -886,17 +538,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_ima_stressed_period_finder",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence " "used to rank " "windows " "(0.975).",
-                    "type": "number",
-                },
-                "returns": {"description": "Full return history.", "type": "object"},
-                "window": {
-                    "default": 250,
-                    "description": "Stress window length " "(FRTB standard 250 " "trading days).",
-                    "type": "integer",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "returns": {"type": "object"},
+                "window": {"default": 250, "type": "integer"},
             },
             "required": ["returns"],
             "type": "object",
@@ -915,21 +559,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_sa_default_risk_charge",
         "input_schema": {
             "properties": {
-                "jtd_long": {
-                    "description": "Long jump-to-default " "exposure per issuer.",
-                    "type": "object",
-                },
-                "jtd_short": {
-                    "description": "Short "
-                    "jump-to-default "
-                    "exposure per issuer "
-                    "(positive numbers).",
-                    "type": "object",
-                },
-                "risk_weights": {
-                    "description": "Default risk " "weight per " "issuer.",
-                    "type": "object",
-                },
+                "jtd_long": {"type": "object"},
+                "jtd_short": {"type": "object"},
+                "risk_weights": {"type": "object"},
             },
             "required": ["jtd_long", "jtd_short", "risk_weights"],
             "type": "object",
@@ -946,13 +578,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "frtb_sa_residual_risk_addon",
         "input_schema": {
-            "properties": {
-                "notionals": {"description": "Gross notional per " "instrument.", "type": "object"},
-                "rrao_weights": {
-                    "description": "RRAO risk weight " "per instrument.",
-                    "type": "object",
-                },
-            },
+            "properties": {"notionals": {"type": "object"}, "rrao_weights": {"type": "object"}},
             "required": ["notionals", "rrao_weights"],
             "type": "object",
         },
@@ -974,30 +600,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_sa_sensitivity_based_method",
         "input_schema": {
             "properties": {
-                "bucket_weighted_sensitivities": {
-                    "description": "Per-bucket "
-                    "lists "
-                    "of "
-                    "weighted "
-                    "sensitivities "
-                    "(risk "
-                    "weight "
-                    "already "
-                    "applied).",
-                    "type": "array",
-                },
-                "inter_bucket_corr": {
-                    "description": "Correlation " "γ between " "bucket " "totals.",
-                    "type": "number",
-                },
-                "intra_bucket_corr": {
-                    "description": "Correlation "
-                    "ρ between "
-                    "sensitivities "
-                    "within a "
-                    "bucket.",
-                    "type": "number",
-                },
+                "bucket_weighted_sensitivities": {"type": "array"},
+                "inter_bucket_corr": {"type": "number"},
+                "intra_bucket_corr": {"type": "number"},
             },
             "required": ["bucket_weighted_sensitivities", "intra_bucket_corr", "inter_bucket_corr"],
             "type": "object",
@@ -1012,15 +617,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "fx_pnl_attribution",
         "input_schema": {
             "properties": {
-                "currency_names": {
-                    "description": "Optional " "labels; " "default " "``ccy_0, " "...``.",
-                    "type": "object",
-                },
-                "fx_deltas": {
-                    "description": "P&L per unit move " "of each FX rate.",
-                    "type": "object",
-                },
-                "fx_moves": {"description": "Realised move in " "each FX rate.", "type": "object"},
+                "currency_names": {"type": "object"},
+                "fx_deltas": {"type": "object"},
+                "fx_moves": {"type": "object"},
             },
             "required": ["fx_deltas", "fx_moves"],
             "type": "object",
@@ -1036,24 +635,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "gamma_cross_gamma_matrix",
         "input_schema": {
-            "properties": {
-                "cross_gammas": {
-                    "description": "Optional ``(U, "
-                    "U)`` cross-gamma "
-                    "matrix; its "
-                    "off-diagonal "
-                    "entries are "
-                    "symmetrised into "
-                    "the result. "
-                    "Diagonal is "
-                    "ignored.",
-                    "type": "object",
-                },
-                "own_gammas": {
-                    "description": "Length-U net gamma " "per underlying " "(matrix diagonal).",
-                    "type": "object",
-                },
-            },
+            "properties": {"cross_gammas": {"type": "object"}, "own_gammas": {"type": "object"}},
             "required": ["own_gammas"],
             "type": "object",
         },
@@ -1066,10 +648,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "gamma_pnl_attribution",
         "input_schema": {
-            "properties": {
-                "gamma": {"description": "Portfolio gamma " "(∂²V/∂S²).", "type": "number"},
-                "spot_move": {"description": "Realised underlying " "move dS.", "type": "number"},
-            },
+            "properties": {"gamma": {"type": "number"}, "spot_move": {"type": "number"}},
             "required": ["gamma", "spot_move"],
             "type": "object",
         },
@@ -1088,34 +667,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "garch_11_volatility_forecast",
         "input_schema": {
             "properties": {
-                "alpha": {
-                    "default": 0.1,
-                    "description": "ARCH coefficient " "(weight on the last " "squared shock).",
-                    "type": "number",
-                },
-                "beta": {
-                    "default": 0.85,
-                    "description": "GARCH coefficient " "(weight on the last " "variance).",
-                    "type": "number",
-                },
-                "horizon": {
-                    "default": 10,
-                    "description": "Forecast horizon in " "periods.",
-                    "type": "integer",
-                },
-                "omega": {
-                    "description": "Long-run variance "
-                    "constant; "
-                    "variance-targeted if "
-                    "None.",
-                    "type": "object",
-                },
-                "returns": {
-                    "description": "1-D return series "
-                    "(demeaned internally "
-                    "to form residuals).",
-                    "type": "object",
-                },
+                "alpha": {"default": 0.1, "type": "number"},
+                "beta": {"default": 0.85, "type": "number"},
+                "horizon": {"default": 10, "type": "integer"},
+                "omega": {"type": "object"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -1134,29 +690,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "gjr_garch_asymmetric_model",
         "input_schema": {
             "properties": {
-                "alpha": {
-                    "default": 0.03,
-                    "description": "Symmetric ARCH " "coefficient.",
-                    "type": "number",
-                },
-                "beta": {
-                    "default": 0.88,
-                    "description": "GARCH persistence " "coefficient.",
-                    "type": "number",
-                },
-                "gamma": {
-                    "default": 0.08,
-                    "description": "Asymmetry coefficient " "applied to negative " "shocks.",
-                    "type": "number",
-                },
-                "omega": {
-                    "description": "Variance intercept; " "variance-targeted if " "None.",
-                    "type": "object",
-                },
-                "returns": {
-                    "description": "1-D return series " "(demeaned " "internally).",
-                    "type": "object",
-                },
+                "alpha": {"default": 0.03, "type": "number"},
+                "beta": {"default": 0.88, "type": "number"},
+                "gamma": {"default": 0.08, "type": "number"},
+                "omega": {"type": "object"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -1173,24 +711,16 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "greeks_based_pnl_explain",
         "input_schema": {
             "properties": {
-                "actual_pnl": {
-                    "description": "Observed " "(hypothetical) P&L " "for the period.",
-                    "type": "number",
-                },
-                "delta": {"description": "Portfolio delta " "(∂V/∂S).", "type": "number"},
-                "gamma": {"description": "Portfolio gamma " "(∂²V/∂S²).", "type": "number"},
-                "rate_move": {"description": "Realised rate move " "dr.", "type": "number"},
-                "rho": {"description": "Portfolio rho (∂V/∂r).", "type": "number"},
-                "spot_move": {"description": "Realised underlying " "move dS.", "type": "number"},
-                "theta": {
-                    "description": "Portfolio theta (∂V/∂t, "
-                    "per the same time unit "
-                    "as ``time_step``).",
-                    "type": "number",
-                },
-                "time_step": {"description": "Elapsed time dt.", "type": "number"},
-                "vega": {"description": "Portfolio vega (∂V/∂σ).", "type": "number"},
-                "vol_move": {"description": "Realised volatility " "move dσ.", "type": "number"},
+                "actual_pnl": {"type": "number"},
+                "delta": {"type": "number"},
+                "gamma": {"type": "number"},
+                "rate_move": {"type": "number"},
+                "rho": {"type": "number"},
+                "spot_move": {"type": "number"},
+                "theta": {"type": "number"},
+                "time_step": {"type": "number"},
+                "vega": {"type": "number"},
+                "vol_move": {"type": "number"},
             },
             "required": [
                 "delta",
@@ -1219,19 +749,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "historical_expected_shortfall",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -1247,23 +767,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "historical_scenario_replay",
         "input_schema": {
             "properties": {
-                "exposures": {
-                    "description": "Length-F currency "
-                    "P&L per unit move "
-                    "of each risk "
-                    "factor.",
-                    "type": "object",
-                },
-                "historical_factor_returns": {
-                    "description": "``(T, "
-                    "F)`` "
-                    "matrix "
-                    "of "
-                    "historical "
-                    "factor "
-                    "moves.",
-                    "type": "object",
-                },
+                "exposures": {"type": "object"},
+                "historical_factor_returns": {"type": "object"},
             },
             "required": ["exposures", "historical_factor_returns"],
             "type": "object",
@@ -1280,22 +785,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "historical_simulation_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999], " "e.g. 0.99.",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of "
-                    "historical portfolio "
-                    "returns (fraction, "
-                    "not pct).",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -1311,18 +803,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "hypothetical_multi_factor_scenario",
         "input_schema": {
-            "properties": {
-                "exposures": {
-                    "description": "Length-F currency " "P&L per unit factor " "move.",
-                    "type": "object",
-                },
-                "shocks": {
-                    "description": "Length-F factor shocks "
-                    "(same units as the "
-                    "historical moves).",
-                    "type": "object",
-                },
-            },
+            "properties": {"exposures": {"type": "object"}, "shocks": {"type": "object"}},
             "required": ["exposures", "shocks"],
             "type": "object",
         },
@@ -1337,24 +818,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "incremental_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "cov_matrix": {
-                    "description": "Asset return " "covariance matrix.",
-                    "type": "object",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "position_index": {
-                    "description": "Index of the " "position whose " "contribution " "is measured.",
-                    "type": "integer",
-                },
-                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "cov_matrix": {"type": "object"},
+                "portfolio_value": {"type": "number"},
+                "position_index": {"type": "integer"},
+                "weights": {"type": "object"},
             },
             "required": ["weights", "cov_matrix", "position_index", "portfolio_value"],
             "type": "object",
@@ -1378,24 +846,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "kupiec_pof_test",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR "
-                    "confidence "
-                    "level the "
-                    "breaches "
-                    "were "
-                    "measured at.",
-                    "type": "number",
-                },
-                "n_breaches": {
-                    "description": "Number of VaR " "breaches observed.",
-                    "type": "integer",
-                },
-                "n_observations": {
-                    "description": "Number of " "backtest " "observations.",
-                    "type": "integer",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "n_breaches": {"type": "integer"},
+                "n_observations": {"type": "integer"},
             },
             "required": ["n_breaches", "n_observations"],
             "type": "object",
@@ -1418,31 +871,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "liquidity_adjusted_es",
         "input_schema": {
             "properties": {
-                "base_horizon": {
-                    "default": 10.0,
-                    "description": "Base liquidity " "horizon T in " "days (FRTB uses " "10).",
-                    "type": "number",
-                },
-                "es_base": {
-                    "description": "Whole-portfolio ES at " "the base horizon T.",
-                    "type": "number",
-                },
-                "liquidity_horizons": {
-                    "description": "Liquidity "
-                    "horizons "
-                    "``LH_1..LH_K`` "
-                    "(length K, "
-                    "with "
-                    "``LH_1 == "
-                    "base_horizon`` "
-                    "and "
-                    "non-decreasing).",
-                    "type": "array",
-                },
-                "partial_es": {
-                    "description": "``ES_j`` for " "buckets j = 2..K " "(length K-1).",
-                    "type": "array",
-                },
+                "base_horizon": {"default": 10.0, "type": "number"},
+                "es_base": {"type": "number"},
+                "liquidity_horizons": {"type": "array"},
+                "partial_es": {"type": "array"},
             },
             "required": ["es_base", "partial_es", "liquidity_horizons"],
             "type": "object",
@@ -1460,20 +892,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "macro_scenario_generator",
         "input_schema": {
             "properties": {
-                "factor_cov": {
-                    "description": "``(F, F)`` " "macro-factor " "covariance matrix " "(SPD).",
-                    "type": "object",
-                },
-                "n_scenarios": {
-                    "default": 10000,
-                    "description": "Number of " "scenarios to " "generate.",
-                    "type": "integer",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility (None = " "non-deterministic).",
-                    "type": "object",
-                },
+                "factor_cov": {"type": "object"},
+                "n_scenarios": {"default": 10000, "type": "integer"},
+                "seed": {"default": 42, "type": "object"},
             },
             "required": ["factor_cov"],
             "type": "object",
@@ -1490,16 +911,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "marginal_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "cov_matrix": {
-                    "description": "Asset return " "covariance matrix.",
-                    "type": "object",
-                },
-                "weights": {"description": "Portfolio weights per " "asset.", "type": "object"},
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "cov_matrix": {"type": "object"},
+                "weights": {"type": "object"},
             },
             "required": ["weights", "cov_matrix"],
             "type": "object",
@@ -1522,37 +936,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "monte_carlo_expected_shortfall",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "horizon_days": {
-                    "default": 1,
-                    "description": "Risk horizon in " "trading days.",
-                    "type": "integer",
-                },
-                "n_simulations": {
-                    "default": 100000,
-                    "description": "Number of Monte " "Carlo paths.",
-                    "type": "integer",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of "
-                    "historical portfolio "
-                    "returns (fits mu, "
-                    "sigma).",
-                    "type": "object",
-                },
-                "seed": {
-                    "default": 42,
-                    "description": "RNG seed for " "reproducibility.",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "horizon_days": {"default": 1, "type": "integer"},
+                "n_simulations": {"default": 100000, "type": "integer"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
+                "seed": {"default": 42, "type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -1568,28 +957,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "parametric_delta_normal_var",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "cov_matrix": {
-                    "description": "Asset return " "covariance matrix " "(per-period).",
-                    "type": "object",
-                },
-                "horizon_days": {
-                    "default": 1,
-                    "description": "Risk horizon in " "trading days " "(sqrt-time " "scaling).",
-                    "type": "integer",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "weights": {
-                    "description": "Portfolio weights per " "asset (need not sum " "to 1).",
-                    "type": "object",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "cov_matrix": {"type": "object"},
+                "horizon_days": {"default": 1, "type": "integer"},
+                "portfolio_value": {"type": "number"},
+                "weights": {"type": "object"},
             },
             "required": ["weights", "cov_matrix", "portfolio_value"],
             "type": "object",
@@ -1608,14 +980,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "pnl_attribution_test_frtb_pat",
         "input_schema": {
             "properties": {
-                "hypothetical_pnl": {
-                    "description": "Daily HPL " "series " "(full-revaluation).",
-                    "type": "object",
-                },
-                "risk_theoretical_pnl": {
-                    "description": "Daily " "RTPL " "series " "(model-based).",
-                    "type": "object",
-                },
+                "hypothetical_pnl": {"type": "object"},
+                "risk_theoretical_pnl": {"type": "object"},
             },
             "required": ["risk_theoretical_pnl", "hypothetical_pnl"],
             "type": "object",
@@ -1631,18 +997,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "portfolio_delta_aggregated",
         "input_schema": {
             "properties": {
-                "deltas": {
-                    "description": "Per-position option " "delta (∂V/∂S).",
-                    "type": "object",
-                },
-                "quantities": {
-                    "description": "Signed position " "size per " "instrument.",
-                    "type": "object",
-                },
-                "spot_prices": {
-                    "description": "Optional " "underlying spot " "per position for " "cash delta.",
-                    "type": "object",
-                },
+                "deltas": {"type": "object"},
+                "quantities": {"type": "object"},
+                "spot_prices": {"type": "object"},
             },
             "required": ["deltas", "quantities"],
             "type": "object",
@@ -1659,18 +1016,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rates_pnl_attribution",
         "input_schema": {
             "properties": {
-                "key_rate_sensitivities": {
-                    "description": "P&L " "per " "+1bp " "move " "at " "each " "tenor.",
-                    "type": "object",
-                },
-                "tenor_names": {
-                    "description": "Optional labels; " "default " "``tenor_0, ...``.",
-                    "type": "object",
-                },
-                "yield_moves_bp": {
-                    "description": "Realised yield " "move (in basis " "points) at " "each tenor.",
-                    "type": "object",
-                },
+                "key_rate_sensitivities": {"type": "object"},
+                "tenor_names": {"type": "object"},
+                "yield_moves_bp": {"type": "object"},
             },
             "required": ["key_rate_sensitivities", "yield_moves_bp"],
             "type": "object",
@@ -1688,15 +1036,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "realised_volatility",
         "input_schema": {
             "properties": {
-                "annualisation_factor": {
-                    "default": 252,
-                    "description": "Periods " "per year " "for " "annualisation " "(e.g. " "252).",
-                    "type": "integer",
-                },
-                "returns": {
-                    "description": "1-D array of returns " "over the measurement " "block.",
-                    "type": "object",
-                },
+                "annualisation_factor": {"default": 252, "type": "integer"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",
@@ -1715,14 +1056,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "residual_pnl_unexplained",
         "input_schema": {
             "properties": {
-                "actual_pnl": {
-                    "description": "Observed " "(hypothetical) P&L " "for the period.",
-                    "type": "number",
-                },
-                "explained_components": {
-                    "description": "The " "individual " "explained " "P&L " "components.",
-                    "type": "object",
-                },
+                "actual_pnl": {"type": "number"},
+                "explained_components": {"type": "object"},
             },
             "required": ["actual_pnl", "explained_components"],
             "type": "object",
@@ -1743,18 +1078,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "reverse_stress_testing",
         "input_schema": {
             "properties": {
-                "exposures": {
-                    "description": "Length-F currency " "P&L per unit factor " "move.",
-                    "type": "object",
-                },
-                "factor_cov": {
-                    "description": "``(F, F)`` factor " "covariance matrix " "(SPD).",
-                    "type": "object",
-                },
-                "target_loss": {
-                    "description": "Desired loss " "magnitude " "(positive " "number).",
-                    "type": "number",
-                },
+                "exposures": {"type": "object"},
+                "factor_cov": {"type": "object"},
+                "target_loss": {"type": "number"},
             },
             "required": ["exposures", "factor_cov", "target_loss"],
             "type": "object",
@@ -1769,24 +1095,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rho_interest_rate",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility " "(annualised).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in " "years.", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -1803,22 +1118,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "risk_factor_pca_decomposition",
         "input_schema": {
             "properties": {
-                "n_components": {
-                    "description": "Number of "
-                    "leading "
-                    "components to "
-                    "return (all if "
-                    "None).",
-                    "type": "object",
-                },
-                "returns_matrix": {
-                    "description": "``(T, N)`` "
-                    "matrix of T "
-                    "observations "
-                    "on N risk "
-                    "factors.",
-                    "type": "object",
-                },
+                "n_components": {"type": "object"},
+                "returns_matrix": {"type": "object"},
             },
             "required": ["returns_matrix"],
             "type": "object",
@@ -1835,19 +1136,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "rolling_var_backtest",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "returns": {"description": "Full return history.", "type": "object"},
-                "window": {
-                    "default": 250,
-                    "description": "Rolling estimation "
-                    "window (Basel standard "
-                    "250 trading days).",
-                    "type": "integer",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "returns": {"type": "object"},
+                "window": {"default": 250, "type": "integer"},
             },
             "required": ["returns"],
             "type": "object",
@@ -1864,18 +1155,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sector_stress_scenario",
         "input_schema": {
             "properties": {
-                "sector_exposures": {
-                    "description": "Currency P&L " "per unit " "move, per " "sector.",
-                    "type": "object",
-                },
-                "sector_names": {
-                    "description": "Optional sector " "labels; default " "``sector_0, " "...``.",
-                    "type": "object",
-                },
-                "sector_shocks": {
-                    "description": "Shock applied " "to each sector.",
-                    "type": "object",
-                },
+                "sector_exposures": {"type": "object"},
+                "sector_names": {"type": "object"},
+                "sector_shocks": {"type": "object"},
             },
             "required": ["sector_exposures", "sector_shocks"],
             "type": "object",
@@ -1891,18 +1173,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "sensitivity_stress_profile",
         "input_schema": {
             "properties": {
-                "exposures": {
-                    "description": "Length-F currency " "P&L per unit factor " "move.",
-                    "type": "object",
-                },
-                "factor_index": {
-                    "description": "Index of the " "factor to " "stress.",
-                    "type": "integer",
-                },
-                "shock_grid": {
-                    "description": "1-D grid of shock " "values to apply to " "that factor.",
-                    "type": "object",
-                },
+                "exposures": {"type": "object"},
+                "factor_index": {"type": "integer"},
+                "shock_grid": {"type": "object"},
             },
             "required": ["exposures", "factor_index", "shock_grid"],
             "type": "object",
@@ -1922,16 +1195,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "spectral_risk_measure",
         "input_schema": {
             "properties": {
-                "returns": {"description": "1-D array of " "portfolio returns.", "type": "object"},
-                "risk_aversion": {
-                    "default": 25.0,
-                    "description": "Risk-aversion "
-                    "coefficient k > "
-                    "0 (higher = "
-                    "more "
-                    "tail-weighted).",
-                    "type": "number",
-                },
+                "returns": {"type": "object"},
+                "risk_aversion": {"default": 25.0, "type": "number"},
             },
             "required": ["returns"],
             "type": "object",
@@ -1948,32 +1213,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "stressed_expected_shortfall",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.975,
-                    "description": "ES "
-                    "confidence "
-                    "in [0.90, "
-                    "0.9999]; "
-                    "FRTB uses "
-                    "0.975.",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "Full 1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
-                "stress_end": {
-                    "description": "Exclusive end " "index of the " "stressed window.",
-                    "type": "integer",
-                },
-                "stress_start": {
-                    "description": "Inclusive start " "index of the " "stressed window.",
-                    "type": "integer",
-                },
+                "confidence_level": {"default": 0.975, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
+                "stress_end": {"type": "integer"},
+                "stress_start": {"type": "integer"},
             },
             "required": ["returns", "stress_start", "stress_end", "portfolio_value"],
             "type": "object",
@@ -1989,18 +1233,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "theta_carry_attribution",
         "input_schema": {
             "properties": {
-                "funding_cost": {
-                    "default": 0.0,
-                    "description": "Funding cost " "accrued over the " "period " "(currency).",
-                    "type": "number",
-                },
-                "theta": {
-                    "description": "Portfolio theta (∂V/∂t, "
-                    "per the same unit as "
-                    "``time_step``).",
-                    "type": "number",
-                },
-                "time_step": {"description": "Elapsed time dt.", "type": "number"},
+                "funding_cost": {"default": 0.0, "type": "number"},
+                "theta": {"type": "number"},
+                "time_step": {"type": "number"},
             },
             "required": ["theta", "time_step"],
             "type": "object",
@@ -2015,24 +1250,13 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "theta_time_decay",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility " "(annualised).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in " "years.", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -2049,14 +1273,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "traffic_light_backtesting",
         "input_schema": {
             "properties": {
-                "actual_returns": {
-                    "description": "Realised " "returns over " "the backtest " "window.",
-                    "type": "object",
-                },
-                "var_estimates": {
-                    "description": "VaR estimate " "(positive loss) " "aligned to each " "return.",
-                    "type": "object",
-                },
+                "actual_returns": {"type": "object"},
+                "var_estimates": {"type": "object"},
             },
             "required": ["actual_returns", "var_estimates"],
             "type": "object",
@@ -2072,19 +1290,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "vanna_delta_vega_cross",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility " "(annualised).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in " "years.", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",
@@ -2103,12 +1314,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "var_breach_cluster_analysis",
         "input_schema": {
-            "properties": {
-                "breaches": {
-                    "description": "Binary breach " "sequence (1 = " "breach, 0 = no " "breach).",
-                    "type": "object",
-                }
-            },
+            "properties": {"breaches": {"type": "object"}},
             "required": ["breaches"],
             "type": "object",
         },
@@ -2125,30 +1331,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "var_by_risk_factor",
         "input_schema": {
             "properties": {
-                "confidence_level": {
-                    "default": 0.99,
-                    "description": "VaR " "confidence " "in [0.90, " "0.9999].",
-                    "type": "number",
-                },
-                "factor_cov": {
-                    "description": "Risk-factor " "covariance matrix.",
-                    "type": "object",
-                },
-                "factor_exposures": {
-                    "description": "Portfolio " "sensitivity " "(beta) to " "each risk " "factor.",
-                    "type": "object",
-                },
-                "factor_names": {
-                    "description": "Optional labels; "
-                    "defaults to "
-                    "``factor_0, "
-                    "factor_1, ...``.",
-                    "type": "object",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
+                "confidence_level": {"default": 0.99, "type": "number"},
+                "factor_cov": {"type": "object"},
+                "factor_exposures": {"type": "object"},
+                "factor_names": {"type": "object"},
+                "portfolio_value": {"type": "number"},
             },
             "required": ["factor_exposures", "factor_cov", "portfolio_value"],
             "type": "object",
@@ -2167,29 +1354,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "var_fan_chart",
         "input_schema": {
             "properties": {
-                "confidence_levels": {
-                    "default": [0.9, 0.95, 0.99],
-                    "description": "Confidence "
-                    "levels for "
-                    "the fan "
-                    "bands (each "
-                    "in [0.90, "
-                    "0.9999]).",
-                    "type": "array",
-                },
-                "horizon_days": {
-                    "default": 10,
-                    "description": "Maximum " "projection " "horizon in " "trading days.",
-                    "type": "integer",
-                },
-                "portfolio_value": {
-                    "description": "Current " "portfolio " "value in base " "currency.",
-                    "type": "number",
-                },
-                "returns": {
-                    "description": "1-D array of " "historical portfolio " "returns.",
-                    "type": "object",
-                },
+                "confidence_levels": {"default": [0.9, 0.95, 0.99], "type": "array"},
+                "horizon_days": {"default": 10, "type": "integer"},
+                "portfolio_value": {"type": "number"},
+                "returns": {"type": "object"},
             },
             "required": ["returns", "portfolio_value"],
             "type": "object",
@@ -2203,10 +1371,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "market-risk",
         "function_name": "vega_pnl_attribution",
         "input_schema": {
-            "properties": {
-                "vega": {"description": "Portfolio vega (∂V/∂σ).", "type": "number"},
-                "vol_move": {"description": "Realised volatility " "move dσ.", "type": "number"},
-            },
+            "properties": {"vega": {"type": "number"}, "vol_move": {"type": "number"}},
             "required": ["vega", "vol_move"],
             "type": "object",
         },
@@ -2222,17 +1387,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "vega_surface_bucketed",
         "input_schema": {
             "properties": {
-                "expiry_buckets": {
-                    "description": "Per-option " "expiry bucket " "index in ``[0, " "n_expiry)``.",
-                    "type": "object",
-                },
-                "n_expiry": {"description": "Number of expiry " "buckets.", "type": "integer"},
-                "n_strike": {"description": "Number of strike " "buckets.", "type": "integer"},
-                "strike_buckets": {
-                    "description": "Per-option " "strike bucket " "index in ``[0, " "n_strike)``.",
-                    "type": "object",
-                },
-                "vegas": {"description": "Per-option vega " "(∂V/∂σ).", "type": "object"},
+                "expiry_buckets": {"type": "object"},
+                "n_expiry": {"type": "integer"},
+                "n_strike": {"type": "integer"},
+                "strike_buckets": {"type": "object"},
+                "vegas": {"type": "object"},
             },
             "required": ["vegas", "expiry_buckets", "strike_buckets", "n_expiry", "n_strike"],
             "type": "object",
@@ -2249,22 +1408,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "volatility_surface_implied_vol",
         "input_schema": {
             "properties": {
-                "expiries": {
-                    "description": "Time to expiry " "(years) of each " "option.",
-                    "type": "object",
-                },
-                "market_prices": {"description": "Observed option " "prices.", "type": "object"},
-                "option_type": {
-                    "default": "call",
-                    "description": '``"call"`` or ' '``"put"``.',
-                    "type": "string",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strikes": {"description": "Strike of each " "option.", "type": "object"},
+                "expiries": {"type": "object"},
+                "market_prices": {"type": "object"},
+                "option_type": {"default": "call", "type": "string"},
+                "rate": {"type": "number"},
+                "spot": {"type": "number"},
+                "strikes": {"type": "object"},
             },
             "required": ["market_prices", "strikes", "expiries", "spot", "rate"],
             "type": "object",
@@ -2281,19 +1430,12 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "volga_vega_convexity",
         "input_schema": {
             "properties": {
-                "div_yield": {
-                    "default": 0.0,
-                    "description": "Continuous dividend " "yield.",
-                    "type": "number",
-                },
-                "rate": {
-                    "description": "Continuously-compounded " "risk-free rate.",
-                    "type": "number",
-                },
-                "sigma": {"description": "Volatility " "(annualised).", "type": "number"},
-                "spot": {"description": "Underlying spot price.", "type": "number"},
-                "strike": {"description": "Strike price.", "type": "number"},
-                "tau": {"description": "Time to maturity in " "years.", "type": "number"},
+                "div_yield": {"default": 0.0, "type": "number"},
+                "rate": {"type": "number"},
+                "sigma": {"type": "number"},
+                "spot": {"type": "number"},
+                "strike": {"type": "number"},
+                "tau": {"type": "number"},
             },
             "required": ["spot", "strike", "rate", "sigma", "tau"],
             "type": "object",

@@ -18,13 +18,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   change is description-only: the live OpenAPI document was diffed before and after and differs
   only by the added `description` keys, so the API accepts exactly what it accepted before. The
   Try-it panel shows the description under each field (escaped, and tied to the input with
-  `aria-describedby`); the catalogue, the eight domain skills and the eight domain plugins were
-  regenerated (plugin versions bumped). The engine docstring stays the single source of truth;
-  `tests/test_parameter_descriptions.py` fails if a model, the catalogue or a new endpoint drifts
-  from it. `engine/metrics.py` gained the four missing `Args:` sections (docstring only).
-  `plugins/mcp/pyvar_mcp/_generated/` was regenerated, so the MCP tool schemas carry the
-  descriptions too (1,577 of 1,577, identical to the catalogue); the published `pyvar-mcp` 0.2.2
-  does not have them until a release bumps its version.
+  `aria-describedby`), and `portal/functions.json` carries them. The engine docstring stays the
+  single source of truth; `tests/test_parameter_descriptions.py` fails if a model, the catalogue
+  or a new endpoint drifts from it. `engine/metrics.py` gained the four missing `Args:` sections
+  (docstring only).
+  **Kept out of the plugins for now.** The skills' parameter tables, the eight domain plugins and
+  `pyvar-mcp`'s tool schemas are generated from the same catalogue, but
+  `param_docs.PLUGIN_PARAM_DESCRIPTIONS` (False) keeps the descriptions out of them, so `plugins/`,
+  `.claude/` and the plugin versions are byte-identical to before. The plugins are waiting for the
+  directory's review and a changed plugin adds a version for the reviewer; two descriptions also
+  carry Sphinx `:func:` references that the directory's scanner has misread before. A test pins
+  the output to the flag. Releasing them is a separate, deliberate PR (the steps are in
+  `scripts/param_docs.py`).
   Not changed: `LiquidityGapAnalysisRequest` still does not expose the engine's
   `opening_balance` argument (listed in the test as a known gap), and parameters still carry no
   numeric bounds.

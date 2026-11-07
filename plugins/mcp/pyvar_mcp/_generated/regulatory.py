@@ -26,19 +26,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "aifmd_risk_metrics",
         "input_schema": {
             "properties": {
-                "commitment_exposure": {
-                    "description": "Commitment " "method " "exposure " "(post-netting/hedging).",
-                    "type": "number",
-                },
-                "gross_exposure": {
-                    "description": "Gross method " "exposure (sum " "of absolute " "positions).",
-                    "type": "number",
-                },
-                "net_asset_value": {"description": "Fund NAV.", "type": "number"},
-                "var_pct": {
-                    "description": "Optional fund VaR as " "a fraction of NAV for " "reporting.",
-                    "type": "object",
-                },
+                "commitment_exposure": {"type": "number"},
+                "gross_exposure": {"type": "number"},
+                "net_asset_value": {"type": "number"},
+                "var_pct": {"type": "object"},
             },
             "required": ["gross_exposure", "commitment_exposure", "net_asset_value"],
             "type": "object",
@@ -53,14 +44,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_iii_cet1_ratio",
         "input_schema": {
             "properties": {
-                "cet1_capital": {
-                    "description": "Common Equity " "Tier 1 capital " "(currency).",
-                    "type": "number",
-                },
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets " "(currency).",
-                    "type": "number",
-                },
+                "cet1_capital": {"type": "number"},
+                "risk_weighted_assets": {"type": "number"},
             },
             "required": ["cet1_capital", "risk_weighted_assets"],
             "type": "object",
@@ -77,11 +62,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_iii_leverage_ratio",
         "input_schema": {
             "properties": {
-                "tier1_capital": {"description": "Tier 1 capital.", "type": "number"},
-                "total_exposure": {
-                    "description": "Total leverage " "exposure " "measure.",
-                    "type": "number",
-                },
+                "tier1_capital": {"type": "number"},
+                "total_exposure": {"type": "number"},
             },
             "required": ["tier1_capital", "total_exposure"],
             "type": "object",
@@ -96,14 +78,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_iii_tier1_ratio",
         "input_schema": {
             "properties": {
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
-                "tier1_capital": {
-                    "description": "Tier 1 capital " "(CET1 + " "additional Tier " "1).",
-                    "type": "number",
-                },
+                "risk_weighted_assets": {"type": "number"},
+                "tier1_capital": {"type": "number"},
             },
             "required": ["tier1_capital", "risk_weighted_assets"],
             "type": "object",
@@ -118,14 +94,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_iii_total_capital_ratio",
         "input_schema": {
             "properties": {
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
-                "total_capital": {
-                    "description": "Total " "regulatory " "capital (Tier 1 " "+ Tier 2).",
-                    "type": "number",
-                },
+                "risk_weighted_assets": {"type": "number"},
+                "total_capital": {"type": "number"},
             },
             "required": ["total_capital", "risk_weighted_assets"],
             "type": "object",
@@ -142,19 +112,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "basel_iv_output_floor",
         "input_schema": {
             "properties": {
-                "floor_factor": {
-                    "default": 0.725,
-                    "description": "Output floor " "factor (default " "0.725, " "regulatory).",
-                    "type": "number",
-                },
-                "internal_model_rwa": {
-                    "description": "RWA from " "internal " "models.",
-                    "type": "number",
-                },
-                "standardised_rwa": {
-                    "description": "RWA under " "the " "standardised " "approach.",
-                    "type": "number",
-                },
+                "floor_factor": {"default": 0.725, "type": "number"},
+                "internal_model_rwa": {"type": "number"},
+                "standardised_rwa": {"type": "number"},
             },
             "required": ["internal_model_rwa", "standardised_rwa"],
             "type": "object",
@@ -171,16 +131,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "capital_conservation_buffer",
         "input_schema": {
             "properties": {
-                "buffer_ratio": {
-                    "default": 0.025,
-                    "description": "CCoB ratio " "(default 2.5%, " "regulatory).",
-                    "type": "number",
-                },
-                "cet1_ratio": {"description": "Current CET1 ratio " "(decimal).", "type": "number"},
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
+                "buffer_ratio": {"default": 0.025, "type": "number"},
+                "cet1_ratio": {"type": "number"},
+                "risk_weighted_assets": {"type": "number"},
             },
             "required": ["cet1_ratio", "risk_weighted_assets"],
             "type": "object",
@@ -201,26 +154,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "combined_buffer_requirement",
         "input_schema": {
             "properties": {
-                "capital_conservation_buffer_ratio": {
-                    "default": 0.025,
-                    "description": "CCoB " "ratio " "(default " "2.5%).",
-                    "type": "number",
-                },
-                "countercyclical_buffer_ratio": {
-                    "default": 0.0,
-                    "description": "Institution-specific " "CCyB " "ratio.",
-                    "type": "number",
-                },
-                "risk_weighted_assets": {
-                    "default": 0.0,
-                    "description": "RWA to " "convert " "the " "buffer " "ratio to " "capital.",
-                    "type": "number",
-                },
-                "systemic_buffer_ratio": {
-                    "default": 0.0,
-                    "description": "Higher " "of " "systemic " "buffers " "(G-SII/O-SII/SyRB).",
-                    "type": "number",
-                },
+                "capital_conservation_buffer_ratio": {"default": 0.025, "type": "number"},
+                "countercyclical_buffer_ratio": {"default": 0.0, "type": "number"},
+                "risk_weighted_assets": {"default": 0.0, "type": "number"},
+                "systemic_buffer_ratio": {"default": 0.0, "type": "number"},
             },
             "type": "object",
         },
@@ -235,18 +172,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "countercyclical_capital_buffer",
         "input_schema": {
             "properties": {
-                "country_ccyb_rates": {
-                    "description": "National " "CCyB rate " "per " "jurisdiction " "(decimal).",
-                    "type": "object",
-                },
-                "exposure_amounts": {
-                    "description": "Private-sector " "credit " "exposure per " "jurisdiction.",
-                    "type": "object",
-                },
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
+                "country_ccyb_rates": {"type": "object"},
+                "exposure_amounts": {"type": "object"},
+                "risk_weighted_assets": {"type": "number"},
             },
             "required": ["exposure_amounts", "country_ccyb_rates", "risk_weighted_assets"],
             "type": "object",
@@ -273,31 +201,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "crr2_large_exposure_limit",
         "input_schema": {
             "properties": {
-                "exposure_value": {
-                    "description": "Exposure value " "to a single " "client/group " "(post-CRM).",
-                    "type": "number",
-                },
-                "is_institution": {
-                    "default": False,
-                    "description": "Whether the "
-                    "counterparty "
-                    "is an "
-                    "institution "
-                    "(or a "
-                    "connected-client "
-                    "group "
-                    "including one) "
-                    "— applies the "
-                    "EUR 150m "
-                    "absolute "
-                    "alternative "
-                    "when it "
-                    "exceeds the "
-                    "25% ratio "
-                    "limit.",
-                    "type": "boolean",
-                },
-                "tier1_capital": {"description": "Tier 1 capital.", "type": "number"},
+                "exposure_value": {"type": "number"},
+                "is_institution": {"default": False, "type": "boolean"},
+                "tier1_capital": {"type": "number"},
             },
             "required": ["exposure_value", "tier1_capital"],
             "type": "object",
@@ -326,39 +232,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "emir_clearing_obligation_check",
         "input_schema": {
             "properties": {
-                "clearing_thresholds": {
-                    "description": "Mapping "
-                    "asset_class "
-                    "-> "
-                    "clearing "
-                    "threshold "
-                    "notional.",
-                    "type": "object",
-                },
-                "counterparty_category": {
-                    "description": "One of " '"FC", ' '"NFC+", ' '"NFC-".',
-                    "type": "string",
-                },
-                "notionals": {
-                    "description": "Mapping asset_class "
-                    "-> gross notional "
-                    "outstanding for "
-                    "this counterparty, "
-                    "across ALL asset "
-                    "classes it holds "
-                    "positions in. "
-                    "Required (not just "
-                    "the one class being "
-                    "asked about) for "
-                    "the FC "
-                    "any-class-breach "
-                    "rule: a single "
-                    "class's notional "
-                    "alone cannot answer "
-                    "whether the FC-wide "
-                    "obligation applies.",
-                    "type": "object",
-                },
+                "clearing_thresholds": {"type": "object"},
+                "counterparty_category": {"type": "string"},
+                "notionals": {"type": "object"},
             },
             "required": ["notionals", "counterparty_category", "clearing_thresholds"],
             "type": "object",
@@ -376,23 +252,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "emir_margin_requirement",
         "input_schema": {
             "properties": {
-                "initial_margin_rate": {
-                    "description": "IM as a " "fraction " "of " "portfolio " "value.",
-                    "type": "number",
-                },
-                "minimum_transfer_amount": {
-                    "default": 0.0,
-                    "description": "MTA " "below " "which " "no " "transfer " "is " "made.",
-                    "type": "number",
-                },
-                "portfolio_value": {
-                    "description": "Gross " "portfolio " "value / " "notional for " "IM scaling.",
-                    "type": "number",
-                },
-                "variation_margin": {
-                    "description": "Net " "mark-to-market " "variation " "margin owed.",
-                    "type": "number",
-                },
+                "initial_margin_rate": {"type": "number"},
+                "minimum_transfer_amount": {"default": 0.0, "type": "number"},
+                "portfolio_value": {"type": "number"},
+                "variation_margin": {"type": "number"},
             },
             "required": ["portfolio_value", "initial_margin_rate", "variation_margin"],
             "type": "object",
@@ -411,12 +274,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "regulatory",
         "function_name": "emir_trade_repository_report",
         "input_schema": {
-            "properties": {
-                "trade": {
-                    "description": "Mapping of EMIR trade " "fields to values.",
-                    "type": "object",
-                }
-            },
+            "properties": {"trade": {"type": "object"}},
             "required": ["trade"],
             "type": "object",
         },
@@ -433,32 +291,11 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_ima_market_risk_capital",
         "input_schema": {
             "properties": {
-                "default_risk_charge": {
-                    "default": 0.0,
-                    "description": "IMA " "Default " "Risk " "Charge, " "currency.",
-                    "type": "number",
-                },
-                "expected_shortfall": {
-                    "description": "Current-period " "97.5% " "Expected " "Shortfall, " "currency.",
-                    "type": "number",
-                },
-                "multiplier": {
-                    "description": "Supervisory " "multiplier mc " "(floored at 1.5).",
-                    "type": "number",
-                },
-                "non_modellable_ses": {
-                    "default": 0.0,
-                    "description": "Aggregate " "SES " "capital " "for NMRFs, " "currency.",
-                    "type": "number",
-                },
-                "stressed_es_ratio": {
-                    "description": "Ratio of "
-                    "stressed ES "
-                    "to current "
-                    "ES (>= 1 "
-                    "typically).",
-                    "type": "number",
-                },
+                "default_risk_charge": {"default": 0.0, "type": "number"},
+                "expected_shortfall": {"type": "number"},
+                "multiplier": {"type": "number"},
+                "non_modellable_ses": {"default": 0.0, "type": "number"},
+                "stressed_es_ratio": {"type": "number"},
             },
             "required": ["expected_shortfall", "stressed_es_ratio", "multiplier"],
             "type": "object",
@@ -482,14 +319,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_pl_attribution_test",
         "input_schema": {
             "properties": {
-                "hypothetical_pnl": {
-                    "description": "HPL series " "from full " "revaluation.",
-                    "type": "object",
-                },
-                "risk_theoretical_pnl": {
-                    "description": "RTPL " "series " "from the " "risk " "model.",
-                    "type": "object",
-                },
+                "hypothetical_pnl": {"type": "object"},
+                "risk_theoretical_pnl": {"type": "object"},
             },
             "required": ["risk_theoretical_pnl", "hypothetical_pnl"],
             "type": "object",
@@ -507,25 +338,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_sa_market_risk_capital",
         "input_schema": {
             "properties": {
-                "default_risk_charge": {
-                    "description": "Default " "Risk " "Charge, " "currency.",
-                    "type": "number",
-                },
-                "residual_risk_addon": {
-                    "description": "Residual " "Risk " "Add-On, " "currency.",
-                    "type": "number",
-                },
-                "sensitivities_charge": {
-                    "description": "Aggregate "
-                    "SBM "
-                    "charge "
-                    "(max "
-                    "over "
-                    "correlation "
-                    "scenarios), "
-                    "currency.",
-                    "type": "number",
-                },
+                "default_risk_charge": {"type": "number"},
+                "residual_risk_addon": {"type": "number"},
+                "sensitivities_charge": {"type": "number"},
             },
             "required": ["sensitivities_charge", "default_risk_charge", "residual_risk_addon"],
             "type": "object",
@@ -547,23 +362,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "frtb_trading_desk_aggregation",
         "input_schema": {
             "properties": {
-                "desk_ima_charges": {
-                    "description": "IMA charge " "per desk " "(currency).",
-                    "type": "object",
-                },
-                "desk_ima_eligible": {
-                    "description": "Boolean/0-1 "
-                    "array — "
-                    "whether "
-                    "each desk "
-                    "may use "
-                    "IMA.",
-                    "type": "object",
-                },
-                "desk_sa_charges": {
-                    "description": "SA charge per " "desk " "(currency).",
-                    "type": "object",
-                },
+                "desk_ima_charges": {"type": "object"},
+                "desk_ima_eligible": {"type": "object"},
+                "desk_sa_charges": {"type": "object"},
             },
             "required": ["desk_sa_charges", "desk_ima_charges", "desk_ima_eligible"],
             "type": "object",
@@ -579,28 +380,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "icaap_capital_assessment",
         "input_schema": {
             "properties": {
-                "available_capital": {
-                    "description": "Total " "available " "own funds.",
-                    "type": "number",
-                },
-                "pillar1_capital": {
-                    "description": "Pillar 1 " "minimum " "capital " "requirement.",
-                    "type": "number",
-                },
-                "risk_capital_components": {
-                    "description": "Array "
-                    "of "
-                    "additional "
-                    "internal "
-                    "risk "
-                    "capital "
-                    "charges "
-                    "(Pillar "
-                    "2 "
-                    "risk "
-                    "types).",
-                    "type": "object",
-                },
+                "available_capital": {"type": "number"},
+                "pillar1_capital": {"type": "number"},
+                "risk_capital_components": {"type": "object"},
             },
             "required": ["pillar1_capital", "risk_capital_components", "available_capital"],
             "type": "object",
@@ -619,16 +401,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "regulatory",
         "function_name": "mifid_ii_algorithm_documentation",
         "input_schema": {
-            "properties": {
-                "documentation": {
-                    "description": "Mapping of "
-                    "documentation "
-                    "item -> "
-                    "provided "
-                    "(bool/value).",
-                    "type": "object",
-                }
-            },
+            "properties": {"documentation": {"type": "object"}},
             "required": ["documentation"],
             "type": "object",
         },
@@ -660,20 +433,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "mifid_ii_best_execution_metric",
         "input_schema": {
             "properties": {
-                "benchmark_prices": {
-                    "description": "Reference " "(EBBO/arrival) " "price per " "fill.",
-                    "type": "object",
-                },
-                "executed_prices": {
-                    "description": "Executed " "price per " "fill.",
-                    "type": "object",
-                },
-                "quantities": {"description": "Executed quantity " "per fill.", "type": "object"},
-                "side": {
-                    "default": 1,
-                    "description": "+1 for buys, -1 for " "sells.",
-                    "type": "integer",
-                },
+                "benchmark_prices": {"type": "object"},
+                "executed_prices": {"type": "object"},
+                "quantities": {"type": "object"},
+                "side": {"default": 1, "type": "integer"},
             },
             "required": ["executed_prices", "benchmark_prices", "quantities"],
             "type": "object",
@@ -689,19 +452,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "mifid_ii_post_trade_transparency",
         "input_schema": {
             "properties": {
-                "delayed_publication_threshold": {
-                    "description": "Size " "threshold " "for " "deferral.",
-                    "type": "number",
-                },
-                "is_liquid": {
-                    "default": True,
-                    "description": "Whether the " "instrument has a " "liquid market.",
-                    "type": "boolean",
-                },
-                "trade_size": {
-                    "description": "Executed trade " "size " "(notional/quantity).",
-                    "type": "number",
-                },
+                "delayed_publication_threshold": {"type": "number"},
+                "is_liquid": {"default": True, "type": "boolean"},
+                "trade_size": {"type": "number"},
             },
             "required": ["trade_size", "delayed_publication_threshold"],
             "type": "object",
@@ -719,23 +472,10 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "mifid_ii_pre_trade_transparency",
         "input_schema": {
             "properties": {
-                "instrument_type": {
-                    "description": "Instrument " "class label " "(informational).",
-                    "type": "string",
-                },
-                "is_liquid": {
-                    "default": True,
-                    "description": "Whether the " "instrument has a " "liquid market.",
-                    "type": "boolean",
-                },
-                "large_in_scale_threshold": {
-                    "description": "LIS " "threshold " "for " "the " "instrument.",
-                    "type": "number",
-                },
-                "order_size": {
-                    "description": "Order size in the " "relevant unit " "(notional/quantity).",
-                    "type": "number",
-                },
+                "instrument_type": {"type": "string"},
+                "is_liquid": {"default": True, "type": "boolean"},
+                "large_in_scale_threshold": {"type": "number"},
+                "order_size": {"type": "number"},
             },
             "required": ["instrument_type", "order_size", "large_in_scale_threshold"],
             "type": "object",
@@ -754,12 +494,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "regulatory",
         "function_name": "mifid_ii_transaction_report_validator",
         "input_schema": {
-            "properties": {
-                "report": {
-                    "description": "Mapping of " "transaction-report " "field names to values.",
-                    "type": "object",
-                }
-            },
+            "properties": {"report": {"type": "object"}},
             "required": ["report"],
             "type": "object",
         },
@@ -774,14 +509,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "pillar_2a_capital",
         "input_schema": {
             "properties": {
-                "risk_addons": {
-                    "description": "Array of per-risk " "capital add-ons " "(currency).",
-                    "type": "object",
-                },
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets " "(for the " "ratio).",
-                    "type": "number",
-                },
+                "risk_addons": {"type": "object"},
+                "risk_weighted_assets": {"type": "number"},
             },
             "required": ["risk_addons", "risk_weighted_assets"],
             "type": "object",
@@ -797,14 +526,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "pillar_2b_stress_buffer",
         "input_schema": {
             "properties": {
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
-                "stressed_capital_depletion": {
-                    "description": "Peak " "CET1 " "depletion " "under " "stress " "(currency).",
-                    "type": "number",
-                },
+                "risk_weighted_assets": {"type": "number"},
+                "stressed_capital_depletion": {"type": "number"},
             },
             "required": ["stressed_capital_depletion", "risk_weighted_assets"],
             "type": "object",
@@ -823,12 +546,7 @@ FUNCTIONS: list[dict[str, Any]] = [
         "domain": "regulatory",
         "function_name": "sftr_securities_finance_report",
         "input_schema": {
-            "properties": {
-                "transaction": {
-                    "description": "Mapping of SFTR " "fields to values.",
-                    "type": "object",
-                }
-            },
+            "properties": {"transaction": {"type": "object"}},
             "required": ["transaction"],
             "type": "object",
         },
@@ -879,18 +597,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "solvency_ii_scr_credit_risk",
         "input_schema": {
             "properties": {
-                "default_probabilities": {
-                    "description": "PD per " "counterparty " "in [0, " "1].",
-                    "type": "object",
-                },
-                "exposures": {
-                    "description": "Exposure at default " "per counterparty.",
-                    "type": "object",
-                },
-                "loss_given_default": {
-                    "description": "LGD " "fraction " "per " "counterparty.",
-                    "type": "object",
-                },
+                "default_probabilities": {"type": "object"},
+                "exposures": {"type": "object"},
+                "loss_given_default": {"type": "object"},
             },
             "required": ["exposures", "loss_given_default", "default_probabilities"],
             "type": "object",
@@ -909,18 +618,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "solvency_ii_scr_market_risk",
         "input_schema": {
             "properties": {
-                "correlation_matrix": {
-                    "description": "Prescribed " "correlation " "matrix " "between " "sub-modules.",
-                    "type": "object",
-                },
-                "sub_module_charges": {
-                    "description": "Capital " "charge per " "market " "sub-module.",
-                    "type": "object",
-                },
-                "sub_module_names": {
-                    "description": "Optional " "labels for " "the " "diversification " "report.",
-                    "type": "object",
-                },
+                "correlation_matrix": {"type": "object"},
+                "sub_module_charges": {"type": "object"},
+                "sub_module_names": {"type": "object"},
             },
             "required": ["sub_module_charges", "correlation_matrix"],
             "type": "object",
@@ -937,18 +637,9 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "srep_capital_add_on",
         "input_schema": {
             "properties": {
-                "pillar1_requirement": {
-                    "description": "Pillar 1 " "capital " "requirement " "(currency).",
-                    "type": "number",
-                },
-                "pillar2a_addon_ratio": {
-                    "description": "Pillar " "2A " "add-on " "as a " "fraction " "of RWA.",
-                    "type": "number",
-                },
-                "risk_weighted_assets": {
-                    "description": "Total " "risk-weighted " "assets.",
-                    "type": "number",
-                },
+                "pillar1_requirement": {"type": "number"},
+                "pillar2a_addon_ratio": {"type": "number"},
+                "risk_weighted_assets": {"type": "number"},
             },
             "required": ["pillar1_requirement", "pillar2a_addon_ratio", "risk_weighted_assets"],
             "type": "object",
@@ -967,21 +658,8 @@ FUNCTIONS: list[dict[str, Any]] = [
         "function_name": "ucits_kiid_risk_indicator",
         "input_schema": {
             "properties": {
-                "periods_per_year": {
-                    "default": 52,
-                    "description": "Periods per "
-                    "year for "
-                    "annualising "
-                    "volatility "
-                    "(52 for "
-                    "weekly, 12 "
-                    "monthly).",
-                    "type": "integer",
-                },
-                "returns": {
-                    "description": "1-D array of periodic " "fund returns.",
-                    "type": "object",
-                },
+                "periods_per_year": {"default": 52, "type": "integer"},
+                "returns": {"type": "object"},
             },
             "required": ["returns"],
             "type": "object",

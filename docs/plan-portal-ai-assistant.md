@@ -49,10 +49,12 @@ What it does not remove:
   functions have an `object` or `array` parameter whose inner shape the catalogue leaves unspecified. A guide
   could say what a function does and what it takes, but what an input *means* came only from its name and the
   formula's symbol map. The same PR as this document now gives every parameter the `Args:` text of its engine
-  docstring, so it appears in the OpenAPI schema, the catalogue, the Try-it panel, the skills' parameter
-  tables and the MCP tool schemas (1,577 of 1,577; the engine stays the single source). Those descriptions
-  are unreviewed beyond spot checks, and Phase 0 now shows them to the model, so it measures the catalogue as
-  it is. Still open: numeric bounds, the inner shape of the 255 `object` or `array` parameters, and
+  docstring, so it appears in the OpenAPI schema, the catalogue and the Try-it panel (1,577 of 1,577; the
+  engine stays the single source). It is deliberately not in the skills' parameter tables, the plugins or
+  the MCP tool schemas yet, so that `plugins/` does not change while they wait for the directory's review
+  (`param_docs.PLUGIN_PARAM_DESCRIPTIONS`); the assistant reads the catalogue, so it is unaffected. Those
+  descriptions are unreviewed beyond spot checks, and Phase 0 now shows them to the model, so it measures
+  the catalogue as it is. Still open: numeric bounds, the inner shape of the 255 `object` or `array` parameters, and
   `liquidity_gap_analysis`, whose `opening_balance` argument the engine takes and the API model does not.
 
 What it changes in the design:

@@ -26,6 +26,20 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Whether the parameter descriptions reach the published plugins: the Notes column of the skills'
+# parameter tables (and so plugins/*/references/functions.md) and the MCP tool schemas
+# (plugins/mcp/pyvar_mcp/_generated/). They are in the OpenAPI schema, portal/functions.json and the
+# Try-it panel either way. False while the plugins wait for the directory's review, because:
+# - docs/plan-plugin-marketplace-status-and-submission.md section 6.4: a changed plugin adds a row
+#   for the reviewer, so plugins/ must not change while a plugin is with one;
+# - two descriptions carry Sphinx cross-references (":func:"), which the directory's scanner once
+#   misread as "a command assembled at run time" (docs/plan-pyvar-mcp-validation-holds.md).
+# To release them, in one deliberate PR once no plugin is with a reviewer: set this to True, run
+# sync_skills.py, generate_plugins.py and generate_mcp_tools.py, bump the plugin versions
+# (scripts/skill_specs/*.json and plugins/mcp), and re-word the ":func:" descriptions first.
+PLUGIN_PARAM_DESCRIPTIONS = False
+
 _SECTION = re.compile(r"(Args|Arguments|Parameters):")
 _NEXT_SECTION = re.compile(r"[A-Z][A-Za-z ]*:")
 _ENTRY = re.compile(r"^(\*{0,2}\w+)\s*(?:\([^)]*\))?\s*:\s*(.*)$")

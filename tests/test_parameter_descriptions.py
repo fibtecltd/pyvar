@@ -15,6 +15,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import ast
 import importlib
 import json
 import sys
@@ -184,3 +185,44 @@ def test_the_try_it_panel_shows_the_description_escaped() -> None:
     assert "_escapeHtml(p.description)" in source, "a description must be escaped before it is HTML"
     assert 'aria-describedby="${hintId}"' in source, "a screen reader should read it with the field"
     assert ".tryit-hint" in (REPO / "portal" / "pyvar.css").read_text()
+
+
+# ── the published plugins ───────────────────────────────────────────────────────────────────────────
+
+
+def _mcp_parameter_specs() -> list[dict[str, Any]]:
+    specs: list[dict[str, Any]] = []
+    for path in sorted((REPO / "plugins" / "mcp" / "pyvar_mcp" / "_generated").glob("*.py")):
+        if path.name == "__init__.py":  # concatenates the domain modules, no literal of its own
+            continue
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "FUNCTIONS":
+                for tool in ast.literal_eval(node.value):  # type: ignore[arg-type]
+                    specs.extend(tool["input_schema"]["properties"].values())
+    return specs
+
+
+def test_plugins_carry_the_descriptions_only_once_they_are_released() -> None:
+    """While the plugins wait for the directory, plugins/ must not change, so they hold no descriptions.
+
+    The flag is param_docs.PLUGIN_PARAM_DESCRIPTIONS. This passes in either state; it fails if the
+    flag and the committed plugin output disagree (a flip without regenerating, or a hand edit).
+    """
+    released = param_docs.PLUGIN_PARAM_DESCRIPTIONS
+    specs = _mcp_parameter_specs()
+    assert len(specs) == 1577
+    assert all(("description" in spec) is released for spec in specs)
+
+    catalogue = json.loads((REPO / "portal" / "functions.json").read_text())
+    tables = "\n".join(
+        path.read_text()
+        for path in sorted((REPO / ".claude" / "skills").glob("*/references/functions.md"))
+    )
+    checked = 0
+    for fn in catalogue:
+        for p in fn["params"]:
+            desc = p["description"]
+            if len(desc) >= 30 and desc not in (fn["description"] or ""):
+                checked += 1
+                assert (desc in tables) is released, f"{fn['name']}.{p['name']}"
+    assert checked > 500, "the sample is too small to mean anything"

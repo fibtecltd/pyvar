@@ -34,6 +34,9 @@ import textwrap
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from param_docs import PLUGIN_PARAM_DESCRIPTIONS  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FUNCTIONS_JSON = REPO_ROOT / "portal" / "functions.json"
 SPEC_DIR = REPO_ROOT / "scripts" / "skill_specs"
@@ -336,7 +339,7 @@ def render_reference(
             for p in entry["params"]:
                 ptype, bounds = ptypes.get(p["name"], (p["type"], ""))
                 notes = []
-                if p.get("description"):
+                if PLUGIN_PARAM_DESCRIPTIONS and p.get("description"):
                     notes.append(p["description"])
                 for key, label in (
                     ("minimum", ">="),
