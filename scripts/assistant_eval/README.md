@@ -17,7 +17,8 @@ about a sample (faithful, useful, plausible values), and a human should read a h
 ## Run it
 
 ```bash
-# 1. The case set (needs the project environment: it imports the app for the OpenAPI schema)
+# 1. The case set (needs the project environment: it imports the app for the OpenAPI schema, so first
+#    pip install -r requirements.txt -r requirements-ci.txt, which brings numpy, scipy and numba)
 APP_ENV=test python scripts/assistant_eval/cases.py --out $WORK/cases.jsonl          # a sample
 APP_ENV=test python scripts/assistant_eval/cases.py --all --out $WORK/cases_all.jsonl # every function
 

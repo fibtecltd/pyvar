@@ -74,12 +74,20 @@ def _dump(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def siblings_block(case: dict[str, Any]) -> str | None:
+    """The sibling list a `when` or `compare` answer may name from, as the model saw it (else None)."""
+    if case["intent"] in ("when", "compare") and case.get("siblings"):
+        listing = "\n".join(f"{s['name']}: {s['summary']}" for s in case["siblings"])
+        return f"<siblings>\n{listing}\n</siblings>"
+    return None
+
+
 def user_content(case: dict[str, Any]) -> str:
     """The first user turn for a menu selection."""
     parts = [f"<function>{_dump(case['record'])}</function>"]
-    if case["intent"] in ("when", "compare") and case.get("siblings"):
-        listing = "\n".join(f"{s['name']}: {s['summary']}" for s in case["siblings"])
-        parts.append(f"<siblings>\n{listing}\n</siblings>")
+    siblings = siblings_block(case)
+    if siblings:
+        parts.append(siblings)
     if case["intent"] == "compare":
         parts.append(f"<other_function>{_dump(case['other'])}</other_function>")
     if case["intent"] == "example":

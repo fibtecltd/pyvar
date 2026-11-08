@@ -589,3 +589,26 @@ def test_the_record_shows_each_parameters_description_and_tolerates_its_absence(
     parameters = case_builder.trim_record(entry)["parameters"]
     assert parameters[0]["description"] == "Confidence level, for example 0.99."
     assert parameters[1]["description"] is None
+
+
+def test_the_judge_sees_the_sibling_list_the_guide_was_allowed_to_name() -> None:
+    """2026-11-08: the first paid run judged `when` answers without the list, so every correctly named sibling
+    was called "not in the record" and 0 of 12 were faithful. The judge must see what the guide saw.
+    """
+    case = {
+        "id": "f:when",
+        "intent": "when",
+        "record": RECORD,
+        "other": None,
+        "siblings": [{"name": "sibling_one", "summary": "Does the other thing."}],
+    }
+    row = {"intent": "when", "text": "Use it for X; `sibling_one` fits Y better."}
+    assert "sibling_one: Does the other thing." in judge.judge_message(case, row)
+    assert judge.judge_message(case, row) == judge.judge_message({**case, "intent": "when"}, row)
+    # the same block, byte for byte, that the generator was given
+    assert prompts.siblings_block(case) in prompts.user_content(case)
+    assert prompts.siblings_block(case) in judge.judge_message(case, row)
+    for other_intent in ("explain", "example"):
+        quiet = {**case, "intent": other_intent}
+        assert prompts.siblings_block(quiet) is None
+        assert "<siblings>" not in judge.judge_message(quiet, {**row, "intent": other_intent})
