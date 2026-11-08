@@ -45,7 +45,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   (Haiku 5.5 and Sonnet 5.5, Opus 5.5 as judge, $2.74 in all) are written up in
   `docs/assistant-phase0-results.md`. They found and fixed two defects in the harness: the judge had
   not been shown the sibling list the model was given, and the identifier check could not read names
-  written inside LaTeX formulas.
+  written inside LaTeX formulas. Prompt v2 (a character budget and three rules in each text task;
+  the example-values requests are unchanged) is written and not yet run; `--only` limits a run or
+  the judge to some actions and `regrade.py` grades saved answers again offline.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
