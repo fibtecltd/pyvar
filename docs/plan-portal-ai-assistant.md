@@ -262,6 +262,11 @@ NAT data for text traffic is negligible.
   80% plausible; refusals counted (none expected); p50 latency under 3 s per generation.
 - **Also measured:** real token counts and cost per generation, projected to all 1,924 selections, to decide
   between options A and B.
+- **First paid run, 2026-11-08, $1.20:** `docs/assistant-phase0-results.md`. Haiku 5.5 is the model; examples fit
+  the schema 268 of 268, p50 1.6 s, about $0.0002 a case (about $0.43 for all 1,924). Not yet a clean pass:
+  explain 88% and when 94.8% against the 95% mechanical gate (mostly a length limit the prompt never states),
+  and `when` faithfulness was unmeasurable because the judge was not shown the sibling list (fixed, to be
+  re-run). It points to option B.
 
 **Phase 1: backend behind a flag (3 to 5 days).** Schemas, route, knowledge generator and drift test, tools,
 budget and limits, scrub, config and secret, metrics, tests. Off by default. Merging starts a CodePipeline run.
