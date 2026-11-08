@@ -56,11 +56,18 @@ other; false otherwise; null for any other answer.
 
 
 def select_sample(
-    rows: list[dict[str, Any]], per_intent: int, seed: int = 20261107
+    rows: list[dict[str, Any]],
+    per_intent: int,
+    seed: int = 20261107,
+    only: set[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """The same hash-ordered `per_intent` scored rows for every action, whatever model produced them."""
+    """The same hash-ordered `per_intent` scored rows for every action, whatever model produced them.
+
+    `only` limits it to the listed actions. The order inside an action does not depend on `per_intent`,
+    so a larger sample always starts with the answers a smaller one judged.
+    """
     chosen: list[dict[str, Any]] = []
-    for intent in sorted({r["intent"] for r in rows}):
+    for intent in sorted({r["intent"] for r in rows if not only or r["intent"] in only}):
         pool = [r for r in rows if r["intent"] == intent and r["status"] == "ok" and r["rep"] == 0]
         pool.sort(key=lambda r: hashlib.sha256(f"{seed}:{r['case_id']}".encode()).hexdigest())
         chosen += pool[:per_intent]
@@ -165,6 +172,11 @@ def main() -> int:
     )
     parser.add_argument("--judge-model", default="claude-opus-5-5")
     parser.add_argument("--per-intent", type=int, default=12)
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="comma-separated actions to judge (explain, when, compare, example:typical, example:stress)",
+    )
     parser.add_argument("--max-usd", type=float, default=3.0)
     args = parser.parse_args()
 
@@ -175,7 +187,8 @@ def main() -> int:
     rows = [
         json.loads(line) for line in (args.run / "results.jsonl").read_text().splitlines() if line
     ]
-    sample = select_sample(rows, args.per_intent)
+    only = {a.strip() for a in args.only.split(",") if a.strip()} if args.only else None
+    sample = select_sample(rows, args.per_intent, only=only)
     budget = Budget(args.max_usd)
     judgments: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []

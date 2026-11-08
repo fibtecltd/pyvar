@@ -135,15 +135,23 @@ answers were not judged, so this says nothing about its content quality. Nothing
 3. **Review is the real cost.** Reading all 1,924 answers is about 16 hours at 30 seconds each. A workable form:
    judge every answer with Opus 5.5 (about $15 at the observed $0.0077 each), have a person read what the judge or a
    grader flags (roughly 100 answers at the observed rates) plus a random 5% to catch what the judge misses.
-4. **Prompt revision**, one cheap iteration (re-running the 576 costs about $0.13 for Haiku): state a character
-   budget in each task; say that a figure that is not in the record must be left out; ask for the function name in
-   the first sentence. Whether to also widen the 900 and 1,100 limits is a design choice that belongs with the
-   panel's layout, which does not exist yet.
+4. **Prompt v2, written, not yet run** (`prompts.PROMPT_VERSION` = `v2-2026-11-08`, recorded in every run's
+   summary). Each of the three text tasks now ends with: name the function in the first sentence; do not write
+   any number that is not in the record, including percentages, day counts and regulatory factors you are sure
+   of; never say a result is guaranteed; at most 750 (explain), 950 (when) or 1,000 (compare) characters. The
+   hard limits stay 900, 1,100 and 1,200, so the budgets leave about 17% margin. The system prompt and the two
+   example-values tasks are unchanged: all 770 example requests are byte-identical to v1's, so run 1's example
+   results carry over, and the new rules are kept out of those tasks because there the model must write numbers
+   that are not in the record. The text requests grow by about 119 tokens. Whether to also widen the limits is a
+   design choice that belongs with the panel's layout, which does not exist yet.
 5. **Grader fix, done:** names in the record's LaTeX are now recognised (`graders._latex_plain`, with a test).
    The oracle still passes 1,924 of 1,924 and the null 0 of 576. The six unsupported figures and the other
-   failure classes above are untouched by it.
-6. **Open:** `when` faithfulness is 90% on 40 answers (interval 77 to 96). Judging every `when` and `compare`
-   answer (174, about $1.4) would settle it; the full-catalogue judge pass in step 3 would too.
+   failure classes above are untouched by it. `regrade.py` (new, offline) grades a finished run's saved answers
+   again, so the effect on run 1 is measured in the next round instead of estimated.
+6. **Run 3, prepared:** the v2 text actions on Haiku 5.5 (308 cases, about $0.08), judged at 80 answers per
+   action (explain 80, when 80, compare all 40; about $1.8) with the hash order unchanged, so the first 40 of
+   each action are the cases run 2 judged and v1 and v2 can be compared case by case. This also puts `when`
+   faithfulness on 80 answers instead of 40 (the 95% interval around 90% narrows from 19 to about 13 points).
 7. **Harness note:** `cases.py` imports the app, so setup needs `pip install -r requirements.txt -r
    requirements-ci.txt`, not only the harness requirements. The README says so.
 
