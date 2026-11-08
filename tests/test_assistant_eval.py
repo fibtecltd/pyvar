@@ -612,3 +612,24 @@ def test_the_judge_sees_the_sibling_list_the_guide_was_allowed_to_name() -> None
         quiet = {**case, "intent": other_intent}
         assert prompts.siblings_block(quiet) is None
         assert "<siblings>" not in judge.judge_message(quiet, {**row, "intent": other_intent})
+
+
+def test_a_name_quoted_from_the_formula_is_not_called_invented() -> None:
+    """2026-11-08: formulas are LaTeX inside JSON, so `max_len` is stored as \\text{max\\_len}, rho_ij as
+    \\rho_{ij} and D_max as D_{\\max}. 4 of the 5 unknown-identifier failures in the first paid run were a
+    guide quoting such a name."""
+    case = {
+        "id": "f:explain",
+        "intent": "explain",
+        "record": {
+            "name": "f",
+            "formula_latex": r"\rho_{ij} = \frac{\text{max\_len}}{D_{\max}}",
+            "parameters": [],
+        },
+        "siblings": [],
+    }
+    assert graders.check_identifiers(case, "It uses `rho_ij`, `max_len` and `D_max`.") == []
+    assert graders.check_identifiers(case, "It uses `segment_1` and invented_name.") == [
+        "invented_name",
+        "segment_1",
+    ]
