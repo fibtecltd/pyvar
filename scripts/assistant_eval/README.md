@@ -49,6 +49,12 @@ python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/hai
     --only explain,when,compare --per-intent 80 --judge-model claude-haiku-5-5 --tag haiku
 python scripts/assistant_eval/compare_judges.py --actions explain,when,compare \
     --pair $WORK/haiku_v2/judgments.jsonl $WORK/haiku_v2/judgments_haiku.jsonl
+
+# 7. Opus's recall (docs/assistant-phase0-results.md 9.11): a person reads answers Opus passed, no API
+python scripts/assistant_eval/recall_check.py pick   --cases $WORK/cases.jsonl               # the drawn ids
+python scripts/assistant_eval/recall_check.py export --cases $WORK/cases.jsonl --run $WORK/haiku_v4 > answers.json
+python scripts/assistant_eval/recall_check.py build  --cases $WORK/cases.jsonl --answers answers.json \
+    --out check.html --key key.json            # --stage 2 for the second batch; keep key.json from the reader
 ```
 
 `--max-usd` is a hard cap: when reached, new cases are skipped (and counted as skipped, not failed). A run
