@@ -269,6 +269,9 @@ NAT data for text traffic is negligible.
   to 96, compare 97.5%), example values fit the schema 268 of 268 and are 94% plausible, p50 is 2 s, and a case
   costs about $0.0003 (about $0.45 to generate all 1,924). About 4.5% of text answers are still unfaithful and 6%
   of example sets implausible, so a person reads what the checks flag before anything is published.
+  **Phase 0b (prepared 2026-11-09, not run):** a blind side-by-side of model text against static catalogue text and a
+  cheaper judge measured against the Opus verdicts, with the decision rules fixed in advance
+  (`docs/assistant-phase0-results.md` section 9).
 
 > Phases 1 to 3 below were written for a runtime chat route (option A). Phase 0 points to option B, in which
 > nothing calls a model when a visitor clicks; they are to be rewritten once B is confirmed.

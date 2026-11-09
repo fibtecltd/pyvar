@@ -38,6 +38,17 @@ python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/v2 
 
 # 5. After a grader change: grade a finished run's saved answers again, no API and no cost
 python scripts/assistant_eval/regrade.py --cases $WORK/cases.jsonl --run $WORK/haiku
+
+# 6. Phase 0b (docs/assistant-phase0-results.md section 9): does the model beat static text?
+python scripts/assistant_eval/side_by_side.py pick --cases $WORK/cases.jsonl                 # 12 case ids
+python scripts/assistant_eval/side_by_side.py export --run $WORK/haiku_v2 --ids ID ... > answers.json
+python scripts/assistant_eval/side_by_side.py build --cases $WORK/cases.jsonl --answers answers.json \
+    --out blind.html --key key.json            # the page for the reader; keep key.json away from them
+#    and a cheaper judge against the Opus verdicts already there (--tag keeps the Opus files):
+python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/haiku_v2 \
+    --only explain,when,compare --per-intent 80 --judge-model claude-haiku-5-5 --tag haiku
+python scripts/assistant_eval/compare_judges.py --actions explain,when,compare \
+    --pair $WORK/haiku_v2/judgments.jsonl $WORK/haiku_v2/judgments_haiku.jsonl
 ```
 
 `--max-usd` is a hard cap: when reached, new cases are skipped (and counted as skipped, not failed). A run

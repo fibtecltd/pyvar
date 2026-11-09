@@ -162,6 +162,24 @@ def summarize(judgments: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+DEFAULT_JUDGE = "claude-opus-5-5"
+
+
+def output_paths(run: Path, tag: str = "") -> tuple[Path, Path, Path]:
+    """(judgments, errors, summary) files for a run directory; a tag keeps another judge's files apart."""
+    suffix = f"_{tag}" if tag else ""
+    return (
+        run / f"judgments{suffix}.jsonl",
+        run / f"judge_errors{suffix}.jsonl",
+        run / f"judge_summary{suffix}.json",
+    )
+
+
+def refuses_to_overwrite(run: Path, judge_model: str, tag: str) -> bool:
+    """A judge other than the default, with no tag, would replace the default judge's verdicts."""
+    return bool(not tag and judge_model != DEFAULT_JUDGE and output_paths(run)[0].exists())
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
@@ -170,7 +188,12 @@ def main() -> int:
     parser.add_argument(
         "--run", required=True, type=Path, help="a run directory made by run_eval.py"
     )
-    parser.add_argument("--judge-model", default="claude-opus-5-5")
+    parser.add_argument("--judge-model", default=DEFAULT_JUDGE)
+    parser.add_argument(
+        "--tag",
+        default="",
+        help="names the output files (judgments_TAG.jsonl, ...) so a second judge keeps the first's",
+    )
     parser.add_argument("--per-intent", type=int, default=12)
     parser.add_argument(
         "--only",
@@ -179,6 +202,11 @@ def main() -> int:
     )
     parser.add_argument("--max-usd", type=float, default=3.0)
     args = parser.parse_args()
+    if refuses_to_overwrite(args.run, args.judge_model, args.tag):
+        parser.error(
+            f"{output_paths(args.run)[0]} exists and --judge-model is not {DEFAULT_JUDGE}: "
+            "pass --tag NAME so the other judge's verdicts are kept"
+        )
 
     import anthropic
 
@@ -208,11 +236,13 @@ def main() -> int:
             continue
         budget.add(result["judge_cost_usd"])
         judgments.append(result)
-    (args.run / "judgments.jsonl").write_text("".join(json.dumps(j) + "\n" for j in judgments))
-    (args.run / "judge_errors.jsonl").write_text("".join(json.dumps(e) + "\n" for e in errors))
+    judgments_path, errors_path, summary_path = output_paths(args.run, args.tag)
+    judgments_path.write_text("".join(json.dumps(j) + "\n" for j in judgments))
+    errors_path.write_text("".join(json.dumps(e) + "\n" for e in errors))
     summary = summarize(judgments)
     summary["judge_errors"] = len(errors)
-    (args.run / "judge_summary.json").write_text(json.dumps(summary, indent=2))
+    summary["judge_model"] = args.judge_model
+    summary_path.write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     return 0
 

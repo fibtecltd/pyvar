@@ -203,7 +203,8 @@ measurement. Three answers flipped to pass; 20 still fail, and they are the leng
    faithfulness check, what is left for model-written text is a person reading all of it, a scope cut to what
    the graders can fully verify (names, numbers, schema shape), or accepting the unreviewed 4.5%. The parameter
    descriptions in this PR are the static part of the same goal (what an input means) and need no model.
-   Items 1 to 8 below are the position before this was raised; items 3 and 4 assume the Opus judge.
+   Section 9 sets up both checks. Items 1 to 8 below are the position before this was raised; items 3 and 4
+   assume the Opus judge.
 1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
    the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
 2. **Model: Haiku 5.5.** It meets the gates, about $0.0002 to $0.0003 a case. Sonnet 5.5 costs about 20 times
@@ -246,3 +247,67 @@ The dev secret was read with `GetSecretValue` (6 times in run 1, once in run 2, 
 string. No errors file was created for the generation runs; the judge's error file was empty each time. The
 judge overwrites its output files rather than resuming, so run 1's verdicts were kept as
 `judgments_v1_no_siblings.jsonl`.
+
+## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (prepared 2026-11-09, not run)
+
+Filippo chose to test the gain first (2026-11-09). Two checks, neither uses an Opus judge, and **the decision rules
+below were written before either has been run.**
+
+### 9.1 A blind side-by-side, read by a person
+
+- **Pairs:** 12, four each of `explain`, `when` and `compare`, chosen by a hash of the fixed seed `gain-test-1`, a
+  new domain each time where possible (`side_by_side.py pick`), so the choice is repeatable and not made by
+  looking at answers:
+  `repricing_gap_analysis:explain`, `altman_z_score_credit_scoring:explain`, `liquidity_transfer_pricing:explain`, `frequency_distribution_fitting:explain`;
+  `expected_shortfall_contribution:when`, `nii_simulation_stress:when`, `contingency_funding_plan_trigger:when`, `rcsa_risk_identification:when`;
+  `countercyclical_capital_buffer:compare:capital_conservation_buffer`, `black_scholes_greeks:compare:monte_carlo_option_pricer`, `asset_liability_mismatch_index:compare:structural_hedge_optimisation`, `black_litterman_model:compare:maximum_sharpe_ratio_portfolio`.
+- **Model side:** Haiku 5.5 with prompt v2, the answers of run 3.
+- **Static side:** the best the catalogue allows with no model, built from the record by `side_by_side.py`:
+  for `explain` the summary, the description (Sphinx roles removed) and the inputs with their descriptions; for
+  `when` the summary and the sibling list (up to six); for `compare` both summaries and the inputs of each. This
+  is a hard baseline on purpose.
+- **Reader and page:** a person who knows the domain, on a page where each pair shows two answers in random order
+  (a hash of the seed and the case id) without saying which is which, with "A helps more", "B helps more" or "about
+  the same", and a box to tick on an answer that contains an error or states something the other does not support.
+  The two styles differ, so the reader may guess; the instruction is to pick by what helps a visitor. The key stays
+  with whoever built the page.
+- **Example values are not in this test.** Only 23 of 385 functions have a tested worked example, so the static
+  alternative exists for 6% of functions; there the model's case is coverage, not quality, and its risk is the 6%
+  implausible sets.
+- **Decision rule.** The model earns its place for an action if it is picked in at least 3 of that action's 4
+  pairs **and** at most 1 of its 4 answers is ticked as containing an error. "About the same" counts for neither
+  side. Twelve pairs read by one expert is a sanity gate, not a statistic: 2 of 4 is read as no clear gain.
+  - Earns `when` and `compare` only: build those two, `explain` stays static.
+  - Earns all three: build all three.
+  - Earns none: stop spending on model-written text and build the static help panel.
+
+### 9.2 A cheaper judge, measured against the Opus verdicts already paid for
+
+About 400 answers already carry an Opus verdict (run 2: 200, of which 120 text and 80 example values; run 3: 200
+text), among them 15 unfaithful text answers and 5 implausible example sets. A cheaper judge run on the same
+answers (`judge.py --judge-model ... --tag NAME`, which keeps the Opus files) is compared with them by
+`compare_judges.py`.
+
+- **Recall** is the share of what Opus flagged that the cheap judge flagged (what would slip through). **False-alarm
+  rate** is the share of what Opus passed that the cheap judge flagged (the review burden).
+- **Thresholds, fixed now:** recall at least 0.75 and false alarms at most 0.30, counted on the text actions for
+  `faithful` and on the example actions for `plausible_values`; fewer than 8 reference flags is reported as "cannot
+  tell", never as a pass. With 15 flags the interval around a recall is wide, and the 95% interval is printed.
+- **Opus is the reference, not the truth:** it is a model too (one verdict changed between two runs on 120 repeated
+  cases), so what is measured is agreement with it.
+- **Staged to save money:** Haiku 5.5 first (about $0.08). Sonnet 5.5 only if Haiku does not meet the thresholds
+  (about $1.5). The estimates scale the observed $0.0074 an Opus verdict by the price ratios (Haiku 1/40, Sonnet 1/2).
+
+### 9.3 What the two results mean together
+
+| Side-by-side | A cheap judge meets the thresholds | Then |
+|---|---|---|
+| Earns `when` and `compare` (or all three) | Yes | Build option B for those actions: generate, graders, the cheap judge, regenerate or flag, a person reads what is flagged plus a random 5% |
+| Earns them | No | Build only if you accept a person reading every model-written answer (about 770 `when` and `compare` answers, roughly 6 hours at 30 seconds each) |
+| Earns none | Either | Static help panel from what the catalogue has: summary, parameter descriptions, formula, sibling lists, tested examples. No model |
+
+### 9.4 Tools
+
+`side_by_side.py` (`pick`, `export`, `build`), `compare_judges.py` and `judge.py --tag`, with tests in
+`tests/test_assistant_gain_test.py`. The agent run exports the 12 model answers (no cost) and runs the cheap judges;
+the page is built from the catalogue and the exported answers, and the key is not shown to the reader.
