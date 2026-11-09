@@ -421,3 +421,45 @@ documentation really omits something), and the cheaper judges flagged mostly oth
 
 By 9.3 (the model earns all three actions, no cheaper judge meets the thresholds), the outcome is to build only if
 a person reads every model-written answer.
+
+### 9.9 Prompt v4: withdraw the claim of absence, tighten `when` (prepared 2026-11-09, not run)
+
+Filippo chose this over reading everything now or narrowing the scope (2026-11-09). 9.8 grouped Opus's 22 flags
+(by the first 80 characters of its issues, so approximately) into 6 claims that the documentation omits something
+it contains, 8 `when` answers that describe or recommend a related function beyond its listing, and 8 that
+misdescribe the function itself. v4 acts on the first two groups, 14 of the 22; the third is left alone.
+
+**What changed (`prompts.py`, `graders.py`):**
+
+- The v3 rule "if the record does not say something, say that pyvar's documentation does not" is withdrawn. The
+  guide is told to say only what the record supports, to leave out what it does not cover, never to state what
+  the documentation does not say, omits or lacks, and not to end with a caveat about missing details. It also
+  removes the closing caveat the reader noted (9.5), which is why it is one change and not two.
+- The `when` task no longer asks for a related-function bullet every time. It asks for one only if a function in
+  the list clearly fits a different need, saying what its listing says it does, in those terms; never a use its
+  listing does not mention; and no such bullet if none clearly fits.
+- `PROMPT_VERSION` is `v4-2026-11-09`. A new grader check, `no_absence_claims`, fails an answer saying that "the
+  documentation does not / gives no / omits / lacks / says nothing / is silent / has no ..." It catches the one
+  phrasing v3 asked for; another wording of the same claim passes, which is what Opus is for. Oracle 1,924 of
+  1,924 and null 0 of 576 as before.
+
+**The run:** Haiku 5.5 with v4 on the same 308 text cases, judged by Opus 5.5 only (about $2.4: generation $0.08,
+Opus $2.3). The cheaper judges are not run again: 9.8 showed they cannot replace Opus. This time the flagged
+answers' full text is carried in the report, because the last run's was lost and nobody has read what Opus flagged.
+
+**The rule, fixed before the run.** v3 had 22 of 308 flagged by Opus (7.1%). One run each is noisy, so this is read
+against the exact one-sided Fisher test for 22 of 308 against v4's count:
+
+| Opus flags on v4 (of 308) | Read as |
+|---|---|
+| 10 or fewer (3.2%; one-sided p about 0.02) | a clear improvement |
+| 11 to 16 | some improvement, inside the noise of one draw each |
+| 17 or more | no evidence that v4 helps |
+
+Read from Opus's issue text, so approximate: claims that the documentation omits something should fall from 6 to 1
+or none, and `when` related-function flags from 8 to 3 or fewer. Guards: grader pass per action not below v3's
+(`explain` 128, `when` 117, `compare` 40 of their cases), `no_absence_claims` failing on at most 3 of 308, and `when`
+length failures at most 4 (v2's level; v3 had 12).
+
+**What a lower rate buys.** Fewer errors to fix while reading, and a smaller residual if a reader misses some. It
+does not remove the need to read every model-written answer: no cheaper judge exists to say which to read.

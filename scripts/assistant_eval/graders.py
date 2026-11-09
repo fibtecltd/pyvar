@@ -9,6 +9,8 @@ Reasoning:
   * scope: no directive advice, no promised results;
   * wording: none of the guide's own vocabulary ("the record", "sibling"), which a visitor cannot interpret
     (the blind read of 2026-11-09 found it in 8 of 12 answers);
+  * absence: no claim that "pyvar's documentation does not say ..." (a claim of absence is the one the model
+    gets wrong; leaving the point out is always safe);
   * shape: length, mentions the function (and both for a comparison), not clipped.
   For the example-values action: the reply must be one JSON object that fits the function's real request
   schema (body_schema.py).
@@ -39,6 +41,13 @@ _ADVICE = re.compile(
 # given, "sibling" the list it may name from. Neither means anything on the portal. Narrow on purpose:
 # "track record", "a record of losses" and "record-keeping" are ordinary finance and must pass.
 _INTERNAL = re.compile(r"\bthe (?:function )?record\b(?!-)|\bsiblings?\b", re.IGNORECASE)
+# A claim about what the documentation lacks, the form prompt v3 asked for ("pyvar's documentation does not
+# say ..."). 6 of the 22 answers Opus flagged on v3 made one that the record contradicted, so v4 forbids it.
+# Narrow on purpose: it catches the one phrasing the prompt used; another wording of the same claim passes.
+_ABSENCE = re.compile(
+    r"\bdocumentation (?:does not|doesn't|gives no|provides no|omits|lacks|says nothing|is silent|has no)\b",
+    re.IGNORECASE,
+)
 # "guarantees that" and "guaranteed to" are promises. The noun ("rather than a guarantee that the
 # model fits", "no guarantee that") is a disclaimer: one run-3 answer (2026-11-08) was marked as
 # advice for that.
@@ -153,6 +162,7 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
     unsupported = check_numbers(case, text)
     advice = _ADVICE.findall(text)
     internal = _INTERNAL.findall(text)
+    absence = _ABSENCE.findall(text)
     checks = {
         "length_ok": low <= len(text.strip()) <= high,
         "mentions_function": mentions(record) if intent != "when" else True,
@@ -161,8 +171,13 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
         "numbers_supported": not unsupported,
         "no_advice": not advice,
         "visitor_wording": not internal,
+        "no_absence_claims": not absence,
     }
     flags = []
+    if absence:
+        flags.append(
+            f"claims the documentation lacks something: {[str(a).lower() for a in absence[:3]]}"
+        )
     if internal:
         flags.append(f"the guide's own words: {[str(w).lower() for w in internal[:4]]}")
     if unknown:

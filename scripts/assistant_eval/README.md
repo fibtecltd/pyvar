@@ -55,7 +55,8 @@ python scripts/assistant_eval/compare_judges.py --actions explain,when,compare \
 resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `traces/`, `summary.json`, which
 names the `prompt_version` that produced it (`prompts.PROMPT_VERSION`; v1 was the first paid run, v2 states a
 character budget and three rules in each text task, v3 stops the guide using its own words, "the record" and
-"sibling", which a visitor cannot interpret, and a grader checks it). The judge's sample inside an action is in a fixed hash
+"sibling", which a visitor cannot interpret, and a grader checks it, v4 withdraws the claim that the
+documentation lacks something, which Opus found false in 6 of 22 flagged answers, and a grader checks that too). The judge's sample inside an action is in a fixed hash
 order, so `--per-intent 80` starts with the answers `--per-intent 40` judged: runs can be compared case by
 case. The judge overwrites `judgments.jsonl` in the run directory; copy it first if you want the old one.
 

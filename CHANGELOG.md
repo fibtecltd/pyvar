@@ -57,6 +57,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   the recall threshold against Opus (0.18 and 0.41 against 0.75).
   Prompt v3 stops the guide saying "the record" and "sibling" to a visitor (the reader found it in 8 of 12
   answers), and a grader check, `visitor_wording`, enforces it.
+  Prompt v4 withdraws the claim that the documentation lacks something (Opus found it false in 6 of the 22
+  answers it flagged on v3) and tightens how a `when` answer describes a related function; a grader check,
+  `no_absence_claims`, enforces the first. Prepared, not yet measured.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an

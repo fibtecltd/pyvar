@@ -257,7 +257,44 @@ def test_the_prompt_tells_the_guide_to_say_pyvars_documentation() -> None:
     system = prompts.SYSTEM_PROMPT
     assert 'say "pyvar\'s documentation"' in system
     assert 'never write "the record" or "sibling" (say "related function")' in system
-    assert "say that pyvar's documentation does not" in system
+
+
+def test_the_prompt_forbids_claims_about_what_the_documentation_lacks() -> None:
+    """2026-11-09: Opus flagged 6 of 308 v3 answers for saying the documentation omits something the record
+    contains. v3 had told the guide to say so whenever the record was silent; v4 withdraws that."""
+    system = prompts.SYSTEM_PROMPT
+    assert "never state what pyvar's documentation does not say, omits or lacks" in system
+    assert "do not end with a caveat about missing details" in system
+    assert "say that pyvar's documentation does not" not in system
+
+
+def test_a_related_function_is_described_only_in_the_words_of_its_listing() -> None:
+    """8 of the 22 v3 answers Opus flagged described or recommended a related function beyond its listing."""
+    task = prompts.TASKS["when"]
+    assert "only if a function in the sibling list clearly fits a different need" in task
+    assert "never recommend it for a use its listing does not mention" in task
+    assert "add no such bullet" in task
+    assert "{" not in task, "no stray braces from the added rule"
+
+
+def test_a_claim_that_the_documentation_lacks_something_is_caught() -> None:
+    explain = make_case("explain")
+    for phrase in (
+        "pyvar's documentation does not say how it is set.",
+        "The documentation gives no default value.",
+        "Its documentation omits the tenor.",
+    ):
+        grade = graders.grade(explain, GOOD_EXPLAIN + " " + phrase)
+        assert not grade.checks["no_absence_claims"] and not grade.passed, phrase
+        assert "documentation lacks something" in " ".join(grade.flags)
+    for phrase in (
+        "pyvar's documentation defines the zones by cutoffs.",
+        "See the documentation for the full list.",
+        "It does not return a price.",
+    ):
+        assert graders.grade(explain, GOOD_EXPLAIN + " " + phrase).checks[
+            "no_absence_claims"
+        ], phrase
 
 
 def test_a_comparison_must_name_both_functions() -> None:
@@ -693,7 +730,7 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
-    assert prompts.PROMPT_VERSION.startswith("v3")
+    assert prompts.PROMPT_VERSION.startswith("v4")
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:
