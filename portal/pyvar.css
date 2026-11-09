@@ -431,3 +431,17 @@ a { color: inherit; text-decoration: none; }
   .section { padding: 60px 0; }
   .footer-nav { grid-template-columns: 1fr 1fr; }
 }
+
+/* All-pages link block (generated into every page by scripts/sync_portal_seo.py): plain HTML above the
+   JS-written footer, so a crawler that does not run scripts still finds a link to every page. Kept to one
+   short row per group, so it reads as a sitemap strip and not as a second footer. */
+.site-links { background: var(--bg); border-top: 1px solid var(--border); padding: 18px 0 14px; }
+.site-links .container { display: flex; flex-direction: column; gap: 6px; }
+.site-links-col { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px; }
+.site-links-title { flex: 0 0 78px; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
+.site-links a { font-size: 12.5px; color: var(--text2); transition: color .15s; }
+.site-links a:hover { color: var(--text); }
+@media (max-width: 600px) {
+  .site-links .container { gap: 10px; }
+  .site-links-title { flex-basis: 100%; }
+}

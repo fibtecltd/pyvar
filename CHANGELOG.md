@@ -41,7 +41,25 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `docs/plan-portal-ai-assistant.md` from the catalogue, checks answers mechanically against the
   function record (invented names, unsupported numbers, advice language, request-schema shape),
   and has a model judge for a stratified sample, a hard spend cap and an offline `--oracle` and
-  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). No paid run has been made.
+  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). Three paid runs
+  (Haiku 5.5 and Sonnet 5.5, Opus 5.5 as judge, $4.30 in all) are written up in
+  `docs/assistant-phase0-results.md`: the model-quality gates are met on the point estimates for
+  Haiku 5.5, and the assistant work is on hold (gain over static text is unmeasured, an Opus judge is
+  ruled out). They found and fixed three defects in the harness: the judge had not been shown the
+  sibling list the model was given, the identifier check could not read names written inside LaTeX
+  formulas, and the advice check flagged the noun "guarantee". Prompt v2 (a character budget and
+  three rules in each text task; the example-values requests are unchanged) is the one measured;
+  `--only` limits a run or the judge to some actions and `regrade.py` grades saved answers again
+  offline.
+  Phase 0b: `side_by_side.py` (a blind page of static catalogue text against the model's answer),
+  `compare_judges.py` (a cheaper judge against the Opus verdicts) and `judge.py --tag`. The blind read, one
+  reader and 12 pairs, picked the model's answer in 11 and ticked no error; neither Haiku 5.5 nor Sonnet 5.5 as a cheaper judge reached
+  the recall threshold against Opus (0.18 and 0.41 against 0.75).
+  Prompt v3 stops the guide saying "the record" and "sibling" to a visitor (the reader found it in 8 of 12
+  answers), and a grader check, `visitor_wording`, enforces it.
+  Prompt v4 withdraws the claim that the documentation lacks something (Opus found it false in 6 of the 22
+  answers it flagged on v3) and tightens how a `when` answer describes a related function; a grader check,
+  `no_absence_claims`, enforces the first. Prepared, not yet measured.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
@@ -154,6 +172,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   wiring) remain hard-gated behind decisions only Filippo can make.
 
 ### Fixed
+
+- **Portal: every page now links to every page in plain HTML, and the home link is `/`** — Search
+  Console showed 15 of the 19 sitemap pages never crawled ("Discovered - currently not indexed") and
+  one "alternate page" (`/index.html`). The nav and footer are written by `document.write` scripts,
+  so the static HTML linked almost nowhere (each domain page had one inbound link, `local.html` none)
+  and every page linked home as `index.html`, a duplicate of `/`. Home links are now `/`;
+  `scripts/sync_portal_seo.py` generates a plain-HTML "all pages" strip above the footer of every
+  page and adds `<lastmod>` to `portal/sitemap.xml`; `tests/test_portal_links.py` checks the pages,
+  their canonicals, the block and the sitemap. Findings and what was not changed:
+  `docs/seo-crawl-investigation.md`.
 
 - **Anthropic's plugin directory refused all 13 pyvar skill plugins for frontmatter keys it does
   not accept, and the plugins no longer carry them** — after a re-check on 2026-11-06 the portal

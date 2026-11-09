@@ -31,13 +31,21 @@ number that is not in the record, and never a parameter or function name that is
 sibling list.
 - pyvar computes the numbers. You never compute, estimate or predict a result.
 - No investment, legal or regulatory advice: do not tell the visitor what to buy, sell, hold or report.
-- If the record does not say something, say that it does not; do not guess.
+- Say only what the record supports. If it does not cover something, leave that out: never state what \
+pyvar's documentation does not say, omits or lacks, and do not end with a caveat about missing details.
+- The visitor cannot see the record, the sibling list or the schema, and does not know those words. Where an \
+answer rests on them, say "pyvar's documentation"; never write "the record" or "sibling" (say "related \
+function").
 - Plain English, concise, no headings. Write parameter and function names in `backticks`.
 """
 
 # Bumped whenever a model-facing string changes, and written into every run's summary.json, so a result
-# says which prompt produced it. v1 = the first paid run (2026-11-08, 7e146a6); v2 = this revision.
-PROMPT_VERSION = "v2-2026-11-08"
+# says which prompt produced it. v1 = the first paid run (2026-11-08, 7e146a6); v2 = a character budget and
+# three rules in each text task; v3 = visitor-facing wording (the blind read of 2026-11-09 found "the record"
+# in 8 of 12 answers, the prompt's word for its own input); v4 = no claims about what the documentation omits
+# (6 of the 22 answers Opus flagged on v3 said it omits something it contains) and a related function in a
+# `when` answer is described only in the words of its listing (8 more).
+PROMPT_VERSION = "v4-2026-11-09"
 
 # Characters the model is told to stay under for a text answer. The hard limits the graders enforce
 # (graders.LENGTH_BOUNDS: 900, 1,100, 1,200) are higher; the gap is margin, because a model counts
@@ -63,8 +71,10 @@ TASKS: dict[str, str] = {
         "risk management but has not used pyvar." + _text_rules("explain")
     ),
     "when": (
-        "Menu choice: 'When should I use it?' Give 2 to 4 short bullet points on when it fits, and one on "
-        "when a sibling function is the better choice (name it from the sibling list only)."
+        "Menu choice: 'When should I use it?' Give 2 to 4 short bullet points on when it fits. Then, only "
+        "if a function in the sibling list clearly fits a different need, add one bullet that names it and "
+        "says what its listing there says it does, in those terms; never recommend it for a use its "
+        "listing does not mention, and if none clearly fits, add no such bullet."
         + _text_rules("when")
     ),
     "compare": (

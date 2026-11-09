@@ -203,7 +203,9 @@ measurement. Three answers flipped to pass; 20 still fail, and they are the leng
    faithfulness check, what is left for model-written text is a person reading all of it, a scope cut to what
    the graders can fully verify (names, numbers, schema shape), or accepting the unreviewed 4.5%. The parameter
    descriptions in this PR are the static part of the same goal (what an input means) and need no model.
-   Items 1 to 8 below are the position before this was raised; items 3 and 4 assume the Opus judge.
+   Section 9 sets up both checks; its 9.5 has the blind result (the model's answer was picked in 11 of 12 pairs,
+   no error ticked), and neither cheaper judge met the thresholds against Opus (9.8). Items 1 to 8 below are the position before this was raised; items 3 and 4
+   assume the Opus judge.
 1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
    the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
 2. **Model: Haiku 5.5.** It meets the gates, about $0.0002 to $0.0003 a case. Sonnet 5.5 costs about 20 times
@@ -246,3 +248,218 @@ The dev secret was read with `GetSecretValue` (6 times in run 1, once in run 2, 
 string. No errors file was created for the generation runs; the judge's error file was empty each time. The
 judge overwrites its output files rather than resuming, so run 1's verdicts were kept as
 `judgments_v1_no_siblings.jsonl`.
+
+## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (blind read and judge calibration done 2026-11-09)
+
+Filippo chose to test the gain first (2026-11-09). Two checks, neither uses an Opus judge, and **the decision rules
+below were written before either has been run.**
+
+### 9.1 A blind side-by-side, read by a person
+
+- **Pairs:** 12, four each of `explain`, `when` and `compare`, chosen by a hash of the fixed seed `gain-test-1`, a
+  new domain each time where possible (`side_by_side.py pick`), so the choice is repeatable and not made by
+  looking at answers:
+  `repricing_gap_analysis:explain`, `altman_z_score_credit_scoring:explain`, `liquidity_transfer_pricing:explain`, `frequency_distribution_fitting:explain`;
+  `expected_shortfall_contribution:when`, `nii_simulation_stress:when`, `contingency_funding_plan_trigger:when`, `rcsa_risk_identification:when`;
+  `countercyclical_capital_buffer:compare:capital_conservation_buffer`, `black_scholes_greeks:compare:monte_carlo_option_pricer`, `asset_liability_mismatch_index:compare:structural_hedge_optimisation`, `black_litterman_model:compare:maximum_sharpe_ratio_portfolio`.
+- **Model side:** Haiku 5.5 with prompt v2, the answers of run 3. **As run:** run 3's files were lost with the
+  agent machine that made them, so the 12 are a fresh draw of the same model and prompt (one run, $0.0032, all 12
+  complete and passing the graders on the first try). The case file was regenerated from the repository and is
+  byte-identical to the original (sha256 starting `c57a3b30`), and `pick` returned the same 12 ids.
+- **Static side:** the best the catalogue allows with no model, built from the record by `side_by_side.py`:
+  for `explain` the summary, the description (Sphinx roles removed) and the inputs with their descriptions; for
+  `when` the summary and the sibling list (up to six); for `compare` both summaries and the inputs of each. This
+  is a hard baseline on purpose.
+- **Reader and page:** a person who knows the domain, on a page where each pair shows two answers in random order
+  (a hash of the seed and the case id) without saying which is which, with "A helps more", "B helps more" or "about
+  the same", and a box to tick on an answer that contains an error or states something the other does not support.
+  The two styles differ, so the reader may guess; the instruction is to pick by what helps a visitor. The key stays
+  with whoever built the page.
+- **Example values are not in this test.** Only 23 of 385 functions have a tested worked example, so the static
+  alternative exists for 6% of functions; there the model's case is coverage, not quality, and its risk is the 6%
+  implausible sets.
+- **Decision rule.** The model earns its place for an action if it is picked in at least 3 of that action's 4
+  pairs **and** at most 1 of its 4 answers is ticked as containing an error. "About the same" counts for neither
+  side. Twelve pairs read by one expert is a sanity gate, not a statistic: 2 of 4 is read as no clear gain.
+  - Earns `when` and `compare` only: build those two, `explain` stays static.
+  - Earns all three: build all three.
+  - Earns none: stop spending on model-written text and build the static help panel.
+
+### 9.2 A cheaper judge, measured against the Opus verdicts already paid for
+
+About 400 answers already carry an Opus verdict (run 2: 200, of which 120 text and 80 example values; run 3: 200
+text), among them 15 unfaithful text answers and 5 implausible example sets. A cheaper judge run on the same
+answers (`judge.py --judge-model ... --tag NAME`, which keeps the Opus files) is compared with them by
+`compare_judges.py`.
+
+- **Recall** is the share of what Opus flagged that the cheap judge flagged (what would slip through). **False-alarm
+  rate** is the share of what Opus passed that the cheap judge flagged (the review burden).
+- **Thresholds, fixed now:** recall at least 0.75 and false alarms at most 0.30, counted on the text actions for
+  `faithful` and on the example actions for `plausible_values`; fewer than 8 reference flags is reported as "cannot
+  tell", never as a pass. With 15 flags the interval around a recall is wide, and the 95% interval is printed.
+- **Opus is the reference, not the truth:** it is a model too (one verdict changed between two runs on 120 repeated
+  cases), so what is measured is agreement with it.
+- **Staged to save money:** Haiku 5.5 first (about $0.08). Sonnet 5.5 only if Haiku does not meet the thresholds
+  (about $1.5). The estimates scale the observed $0.0074 an Opus verdict by the price ratios (Haiku 1/40, Sonnet 1/2).
+- **Run on 2026-11-09, result in 9.8.** The original Opus verdicts were lost with the machine that made them, so
+  the reference was rebuilt: new Opus verdicts on a freshly generated answer set (prompt v3, 9.7).
+
+### 9.3 What the two results mean together
+
+| Side-by-side | A cheap judge meets the thresholds | Then |
+|---|---|---|
+| Earns `when` and `compare` (or all three) | Yes | Build option B for those actions: generate, graders, the cheap judge, regenerate or flag, a person reads what is flagged plus a random 5% |
+| Earns them | No | Build only if you accept a person reading every model-written answer (about 770 `when` and `compare` answers, roughly 6 hours at 30 seconds each) |
+| Earns none | Either | Static help panel from what the catalogue has: summary, parameter descriptions, formula, sibling lists, tested examples. No model |
+
+### 9.4 Tools
+
+`side_by_side.py` (`pick`, `export`, `build`), `compare_judges.py` and `judge.py --tag`, with tests in
+`tests/test_assistant_gain_test.py`. The agent run exports the 12 model answers (no cost) and runs the cheap judges;
+the page is built from the catalogue and the exported answers, and the key is not shown to the reader.
+
+### 9.5 Result of the blind read (2026-11-09)
+
+One reader (Filippo), on the page `side_by_side.py build` made from the 12 answers above. The key file was kept
+by whoever built the page until the picks were in (its sha256 starts `5e6e80d7661c3ecc`).
+
+| Action | Model picked | Static picked | About the same | Errors ticked | Rule: at least 3 of 4, at most 1 error |
+|---|---|---|---|---|---|
+| explain | 3 | 1 (`liquidity_transfer_pricing`) | 0 | 0 | earned |
+| when | 4 | 0 | 0 | 0 | earned |
+| compare | 4 | 0 | 0 | 0 | earned |
+
+By the rule fixed in 9.1 **the model earns all three actions: build all three.** What that does and does not show:
+
+- **A sanity gate, not a statistic.** One reader and 12 pairs. The two styles differ (prose against a field
+  listing), so the reader could often tell them apart; the instruction was to pick by what helps a visitor, and 11
+  of 12 picks went to the model with no "about the same".
+- **No error was ticked, but that is not a faithfulness rate.** A tick records what the reader noticed, and the
+  earlier judge found 4.5% of text answers unfaithful, about 0.5 expected in 12. The result shows that a visitor
+  prefers the model's answer, not that it is safe to publish unreviewed. That gap is what the cheaper judge was
+  meant to close, and it has not been run (9.2).
+- **The answers are a fresh draw** of the same model and prompt, not run 3's text (9.1).
+
+The reader's one note, on `repricing_gap_analysis` (explain): the closing sentence "The record does not say how
+pyvar sets its bucket boundaries or what output format it returns, so check those details before relying on
+them" signals that something is missing. It was not ticked as an error, and that answer was still picked. Counted
+over the 12 model answers, 8 say "the record" (the prompt's word for the data the model was given; a visitor has
+no idea what it refers to) and 7 say that the record does not say or give something. The v2 rule that stops
+invented figures produced this phrasing. A fix is a prompt change (name the pyvar documentation, or leave the
+caveat out) and is not made here.
+
+### 9.6 What the result leaves open
+
+The first row of 9.3 applies, and which of its two outcomes follows depends on a measurement that does not exist
+yet: whether a cheaper judge flags what Opus flags. Either pay for new Opus reference verdicts (9.2), or accept a
+person reading every model-written answer. Neither is decided here. Filippo chose to pay (2026-11-09), after the
+wording fix in 9.7.
+
+### 9.7 Prompt v3 and the re-planned calibration (2026-11-09)
+
+**The wording fix.** The system prompt now tells the guide that the visitor cannot see the record, the sibling
+list or the schema: where an answer rests on them it says "pyvar's documentation", and it never writes "the
+record" or "sibling" (it says "related function"). The gap sentence became "say that pyvar's documentation does
+not". `PROMPT_VERSION` is `v3-2026-11-09`. A new grader check, `visitor_wording`, fails an answer that contains
+"the record", "the function record" or "sibling" (and not "track record", "a record of losses" or
+"record-keeping"). Without it nothing would show whether the fix worked. Run on the 12 answers of 9.1 it flags 9
+(8 for "the record", one more for "sibling"); the oracle still passes 1,924 of 1,924 cases and the null baseline
+0 of 576.
+
+**Not changed:** the caveat itself. A v3 answer may still end with "pyvar's documentation does not say ...", which
+the reader found signals something missing. Only the vocabulary was fixed; whether the closing caveat should go
+is decided after reading v3 answers.
+
+**The re-planned calibration.** The reference set is new: Haiku 5.5 with prompt v3 on all 308 text cases (134
+`explain`, 134 `when`, 40 `compare`), judged by Opus 5.5 (the reference) and by Haiku 5.5, then Sonnet 5.5 only if
+Haiku does not meet the thresholds of 9.2. It is judged on v3 because v3 is what would be published. Faithfulness
+only: example values are left out (`plausible_values` had 5 Opus flags of 80, under the 8 needed, and reaching 8
+would take about 130 judged example sets). Expected cost about $2.4 (generation $0.08, Opus $2.3, Haiku $0.06);
+up to about $3.5 if Sonnet is needed. If Opus flags fewer than 8 of the 308, the result is "cannot tell" and is
+reported as such; the sample is not widened without a decision.
+
+### 9.8 Result of the judge calibration (2026-11-09)
+
+Run on the dev key as planned in 9.7. Haiku 5.5 wrote the answers with prompt v3 for all 308 text cases (308 ok, no
+truncation or refusal, $0.08); Opus 5.5 judged all 308 as the reference ($2.34); Haiku 5.5 ($0.06) and, because
+Haiku missed, Sonnet 5.5 ($1.10) judged the same. Total $3.58, every verdict parsed. The flagged cases are in
+`docs/assistant-judge-calibration-v3.csv` (47 rows; F flagged, P passed; the other 261 cases passed all three).
+The answer texts were not kept: they were on the temporary machine.
+
+| Judge | Recall of Opus's flags (95% interval) | False alarms | Kappa | Against 9.2 |
+|---|---|---|---|---|
+| Haiku 5.5 | 4 of 22 = 0.18 (0.07 to 0.39) | 15 of 286 = 0.05 | 0.14 | does not meet |
+| Sonnet 5.5 | 9 of 22 = 0.41 (0.23 to 0.61) | 11 of 286 = 0.04 | 0.39 | does not meet |
+
+The thresholds are recall at least 0.75 and false alarms at most 0.30: both judges fail on recall alone, and their
+false alarms are low. Only `when` has the 8 Opus flags needed to read on its own (17): Haiku caught 2, Sonnet 8;
+`explain` (4 flags) and `compare` (1) read "cannot tell". Flagging when either cheap judge flags catches 12 of 22
+(0.55) at 25 false alarms of 286 (0.09), still under 0.75. Ten of the 22 were flagged by neither judge, one by all
+three. The figures were recomputed from the CSV with `compare_judges.py`'s own functions and match the agent's.
+
+**What Opus flagged.** 22 of 308 (7.1%): `explain` 4 of 134 (3.0%), `when` 17 of 134 (12.7%), `compare` 1 of 40
+(2.5%). The earlier runs found about 4.5% overall; one draw per prompt cannot say whether v3 changed that. By the
+first 80 characters of Opus's issues (so approximate): 6 say pyvar's documentation omits something it does
+contain ("says the documentation does not say X, but the record gives it"), 8 are `when` answers that describe or
+recommend a related function beyond what its summary says, and 8 misdescribe the function itself (gamma, a
+risk-aversion parameter, the MiFID output fields, a swap's cash-flow direction and others). The first group comes
+from the rule that tells the model to say when the documentation is silent, the same rule that produced the
+closing caveat the reader noted (9.5).
+
+**Other results of the run.** `visitor_wording` failed 8 of 308 answers (2.6%; 4 for "the record", 4 for
+"sibling"), against 9 of the 12 v2 answers, and a failing answer is caught mechanically. Grader pass: `explain`
+128 of 134 (v2: 129), `compare` 40 of 40 (v2: 40), and **`when` 117 of 134 = 87.3% (v2: 129 of 134 = 96.3%)**,
+with 12 length failures against 4 in v2. At about 3% (4 of 134) a count of 12 is unlikely to be chance, and the
+new phrases are longer ("pyvar's documentation" for "the record", "related function" for "sibling"), a likely
+but untested cause. A failing answer would be regenerated, so it costs calls, not correctness.
+
+**What it does and does not show.** Opus is the reference, not the truth. Nobody has read the 22 flagged answers
+against their records (the texts were lost), so what is measured is agreement with Opus, and how many of its 22
+are real errors is unknown. Within that, neither cheaper judge can replace it here: Opus's flags are mostly
+claims that must be checked against detail in the record (what a related function's summary says, whether the
+documentation really omits something), and the cheaper judges flagged mostly other answers (kappa 0.14 and 0.39).
+
+By 9.3 (the model earns all three actions, no cheaper judge meets the thresholds), the outcome is to build only if
+a person reads every model-written answer.
+
+### 9.9 Prompt v4: withdraw the claim of absence, tighten `when` (prepared 2026-11-09, not run)
+
+Filippo chose this over reading everything now or narrowing the scope (2026-11-09). 9.8 grouped Opus's 22 flags
+(by the first 80 characters of its issues, so approximately) into 6 claims that the documentation omits something
+it contains, 8 `when` answers that describe or recommend a related function beyond its listing, and 8 that
+misdescribe the function itself. v4 acts on the first two groups, 14 of the 22; the third is left alone.
+
+**What changed (`prompts.py`, `graders.py`):**
+
+- The v3 rule "if the record does not say something, say that pyvar's documentation does not" is withdrawn. The
+  guide is told to say only what the record supports, to leave out what it does not cover, never to state what
+  the documentation does not say, omits or lacks, and not to end with a caveat about missing details. It also
+  removes the closing caveat the reader noted (9.5), which is why it is one change and not two.
+- The `when` task no longer asks for a related-function bullet every time. It asks for one only if a function in
+  the list clearly fits a different need, saying what its listing says it does, in those terms; never a use its
+  listing does not mention; and no such bullet if none clearly fits.
+- `PROMPT_VERSION` is `v4-2026-11-09`. A new grader check, `no_absence_claims`, fails an answer saying that "the
+  documentation does not / gives no / omits / lacks / says nothing / is silent / has no ..." It catches the one
+  phrasing v3 asked for; another wording of the same claim passes, which is what Opus is for. Oracle 1,924 of
+  1,924 and null 0 of 576 as before.
+
+**The run:** Haiku 5.5 with v4 on the same 308 text cases, judged by Opus 5.5 only (about $2.4: generation $0.08,
+Opus $2.3). The cheaper judges are not run again: 9.8 showed they cannot replace Opus. This time the flagged
+answers' full text is carried in the report, because the last run's was lost and nobody has read what Opus flagged.
+
+**The rule, fixed before the run.** v3 had 22 of 308 flagged by Opus (7.1%). One run each is noisy, so this is read
+against the exact one-sided Fisher test for 22 of 308 against v4's count:
+
+| Opus flags on v4 (of 308) | Read as |
+|---|---|
+| 10 or fewer (3.2%; one-sided p about 0.02) | a clear improvement |
+| 11 to 16 | some improvement, inside the noise of one draw each |
+| 17 or more | no evidence that v4 helps |
+
+Read from Opus's issue text, so approximate: claims that the documentation omits something should fall from 6 to 1
+or none, and `when` related-function flags from 8 to 3 or fewer. Guards: grader pass per action not below v3's
+(`explain` 128, `when` 117, `compare` 40 of their cases), `no_absence_claims` failing on at most 3 of 308, and `when`
+length failures at most 4 (v2's level; v3 had 12).
+
+**What a lower rate buys.** Fewer errors to fix while reading, and a smaller residual if a reader misses some. It
+does not remove the need to read every model-written answer: no cheaper judge exists to say which to read.
