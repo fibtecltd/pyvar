@@ -204,7 +204,7 @@ measurement. Three answers flipped to pass; 20 still fail, and they are the leng
    the graders can fully verify (names, numbers, schema shape), or accepting the unreviewed 4.5%. The parameter
    descriptions in this PR are the static part of the same goal (what an input means) and need no model.
    Section 9 sets up both checks; its 9.5 has the blind result (the model's answer was picked in 11 of 12 pairs,
-   no error ticked), and the judge comparison is not run. Items 1 to 8 below are the position before this was raised; items 3 and 4
+   no error ticked), and neither cheaper judge met the thresholds against Opus (9.8). Items 1 to 8 below are the position before this was raised; items 3 and 4
    assume the Opus judge.
 1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
    the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
@@ -249,7 +249,7 @@ string. No errors file was created for the generation runs; the judge's error fi
 judge overwrites its output files rather than resuming, so run 1's verdicts were kept as
 `judgments_v1_no_siblings.jsonl`.
 
-## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (blind read done 2026-11-09; judge comparison not run)
+## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (blind read and judge calibration done 2026-11-09)
 
 Filippo chose to test the gain first (2026-11-09). Two checks, neither uses an Opus judge, and **the decision rules
 below were written before either has been run.**
@@ -301,10 +301,8 @@ answers (`judge.py --judge-model ... --tag NAME`, which keeps the Opus files) is
   cases), so what is measured is agreement with it.
 - **Staged to save money:** Haiku 5.5 first (about $0.08). Sonnet 5.5 only if Haiku does not meet the thresholds
   (about $1.5). The estimates scale the observed $0.0074 an Opus verdict by the price ratios (Haiku 1/40, Sonnet 1/2).
-- **Not run (2026-11-09).** The Opus verdicts were on the same lost machine, so there is nothing to compare a
-  cheaper judge against. A calibration now needs new Opus verdicts on a freshly generated answer set: about $2.5
-  with Haiku as the cheap judge, about $3.7 if Sonnet is needed too, and the number of Opus flags may again fall
-  under 8, which reads "cannot tell".
+- **Run on 2026-11-09, result in 9.8.** The original Opus verdicts were lost with the machine that made them, so
+  the reference was rebuilt: new Opus verdicts on a freshly generated answer set (prompt v3, 9.7).
 
 ### 9.3 What the two results mean together
 
@@ -379,3 +377,47 @@ only: example values are left out (`plausible_values` had 5 Opus flags of 80, un
 would take about 130 judged example sets). Expected cost about $2.4 (generation $0.08, Opus $2.3, Haiku $0.06);
 up to about $3.5 if Sonnet is needed. If Opus flags fewer than 8 of the 308, the result is "cannot tell" and is
 reported as such; the sample is not widened without a decision.
+
+### 9.8 Result of the judge calibration (2026-11-09)
+
+Run on the dev key as planned in 9.7. Haiku 5.5 wrote the answers with prompt v3 for all 308 text cases (308 ok, no
+truncation or refusal, $0.08); Opus 5.5 judged all 308 as the reference ($2.34); Haiku 5.5 ($0.06) and, because
+Haiku missed, Sonnet 5.5 ($1.10) judged the same. Total $3.58, every verdict parsed. The flagged cases are in
+`docs/assistant-judge-calibration-v3.csv` (47 rows; F flagged, P passed; the other 261 cases passed all three).
+The answer texts were not kept: they were on the temporary machine.
+
+| Judge | Recall of Opus's flags (95% interval) | False alarms | Kappa | Against 9.2 |
+|---|---|---|---|---|
+| Haiku 5.5 | 4 of 22 = 0.18 (0.07 to 0.39) | 15 of 286 = 0.05 | 0.14 | does not meet |
+| Sonnet 5.5 | 9 of 22 = 0.41 (0.23 to 0.61) | 11 of 286 = 0.04 | 0.39 | does not meet |
+
+The thresholds are recall at least 0.75 and false alarms at most 0.30: both judges fail on recall alone, and their
+false alarms are low. Only `when` has the 8 Opus flags needed to read on its own (17): Haiku caught 2, Sonnet 8;
+`explain` (4 flags) and `compare` (1) read "cannot tell". Flagging when either cheap judge flags catches 12 of 22
+(0.55) at 25 false alarms of 286 (0.09), still under 0.75. Ten of the 22 were flagged by neither judge, one by all
+three. The figures were recomputed from the CSV with `compare_judges.py`'s own functions and match the agent's.
+
+**What Opus flagged.** 22 of 308 (7.1%): `explain` 4 of 134 (3.0%), `when` 17 of 134 (12.7%), `compare` 1 of 40
+(2.5%). The earlier runs found about 4.5% overall; one draw per prompt cannot say whether v3 changed that. By the
+first 80 characters of Opus's issues (so approximate): 6 say pyvar's documentation omits something it does
+contain ("says the documentation does not say X, but the record gives it"), 8 are `when` answers that describe or
+recommend a related function beyond what its summary says, and 8 misdescribe the function itself (gamma, a
+risk-aversion parameter, the MiFID output fields, a swap's cash-flow direction and others). The first group comes
+from the rule that tells the model to say when the documentation is silent, the same rule that produced the
+closing caveat the reader noted (9.5).
+
+**Other results of the run.** `visitor_wording` failed 8 of 308 answers (2.6%; 4 for "the record", 4 for
+"sibling"), against 9 of the 12 v2 answers, and a failing answer is caught mechanically. Grader pass: `explain`
+128 of 134 (v2: 129), `compare` 40 of 40 (v2: 40), and **`when` 117 of 134 = 87.3% (v2: 129 of 134 = 96.3%)**,
+with 12 length failures against 4 in v2. At about 3% (4 of 134) a count of 12 is unlikely to be chance, and the
+new phrases are longer ("pyvar's documentation" for "the record", "related function" for "sibling"), a likely
+but untested cause. A failing answer would be regenerated, so it costs calls, not correctness.
+
+**What it does and does not show.** Opus is the reference, not the truth. Nobody has read the 22 flagged answers
+against their records (the texts were lost), so what is measured is agreement with Opus, and how many of its 22
+are real errors is unknown. Within that, neither cheaper judge can replace it here: Opus's flags are mostly
+claims that must be checked against detail in the record (what a related function's summary says, whether the
+documentation really omits something), and the cheaper judges flagged mostly other answers (kappa 0.14 and 0.39).
+
+By 9.3 (the model earns all three actions, no cheaper judge meets the thresholds), the outcome is to build only if
+a person reads every model-written answer.
