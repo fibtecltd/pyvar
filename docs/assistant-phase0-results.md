@@ -1,35 +1,41 @@
 # Phase 0 results: Claude Haiku 5.5 as the portal guide
 
-**Status 2026-11-08: conditional go, for Haiku 5.5 and option B (build-time generation, a person reads the
-answers).** Two paid runs, $2.74 in all. The first run exposed two defects in my own harness (a judge that was
-not shown the sibling list, and a grader that could not read names written inside LaTeX formulas); both are
-fixed in this PR. With the judge fixed, every judge gate is met or sits at its edge, and the example values
-are clean. What is left is a prompt that never states its length budget and six answers that quote a
-regulatory figure from memory. Section 6 says what comes next.
+**Status 2026-11-09: Phase 0 passed on the point estimates, for Haiku 5.5 with option B (build-time generation,
+automatic checks, a person reads what is flagged).** Three paid runs, $4.30 in all. With prompt v2 the
+mechanical gates are met for all three text actions, the judge finds 95.5% of the text answers faithful, and the
+example values were already clean. One gate rests on a wide interval (`when` faithful 91.2%, 83.0 to 96.0), and
+about 4.5% of text answers are still unfaithful, which is why a person stays in the loop. Along the way the
+runs exposed three defects in my own harness (a judge that was not shown the sibling list, a grader that could
+not read names written inside LaTeX formulas, and an advice pattern that flagged the noun "guarantee"); all are
+fixed in this PR. Section 7 says what comes next.
 
 - Run 1: a delegated agent, branch `docs/portal-ai-assistant-plan` at `7e146a6`, dev key
   (`pyvar/dev/anthropic-api-key`): Haiku 5.5 on 576 cases, Sonnet 5.5 on 144, Opus 5.5 judging 60 answers.
 - Run 2: the same branch at `500cc80`: the Haiku answers re-judged by Opus 5.5 with the fixed judge, 200
   answers, no new generation.
-- Nothing was committed, pushed or changed by either run. Numbers are the agents' reports, not re-computed here,
+- Run 3: the branch at `174b6d7`: run 1's answers re-graded offline with the fixed grader; prompt v2 on the
+  three text actions with Haiku 5.5 (308 cases); Opus 5.5 judging 200 of the v2 answers.
+- Nothing was committed, pushed or changed by any run. Numbers are the agents' reports, not re-computed here,
   except where stated; intervals are 95% Wilson. The 576-case sample covers 134 of the 385 functions (15 per
   domain plus every function with a worked example). The record shown to the model included each parameter's
   description.
 
 ## 1. Gates from the plan, as measured
 
+Text actions: prompt v2, run 3. Example values: prompt unchanged, so run 1 and run 2.
+
 | Gate | Result | Status |
 |---|---|---|
-| explain: at least 95% pass the mechanical checks | 118/134 = 88.1% (81.5 to 92.5) | **Not met.** 9 of 16 failures are length; 120/134 = 89.6% once the grader fix below is counted (arithmetic, not re-graded) |
-| when: at least 95% mechanical | 127/134 = 94.8% (89.6 to 97.4) | **0.2 short**; 128/134 = 95.5% with the grader fix (arithmetic) |
+| explain: at least 95% pass the mechanical checks | 129/134 = 96.3% (91.6 to 98.4) | Met (v1 was 118/134 = 88.1%) |
+| when: at least 95% mechanical | 129/134 = 96.3% (91.6 to 98.4) | Met (v1 127/134 = 94.8%) |
 | compare: at least 95% mechanical | 40/40 = 100% (91.2 to 100) | Met |
-| explain: judge at least 90% faithful | 40/40 = 100% (91.2 to 100) | Met |
-| when: judge at least 90% faithful | 36/40 = 90.0% (76.9 to 96.0) | At the gate on the point estimate; the interval is too wide to claim it |
-| compare: judge at least 90% faithful | 38/40 = 95.0% (83.5 to 98.6) | Met on the point estimate |
+| explain: judge at least 90% faithful | 79/80 = 98.8% (93.3 to 99.8) | Met |
+| when: judge at least 90% faithful | 73/80 = 91.2% (83.0 to 95.7) | Met on the point estimate; the lower bound is 83.0 |
+| compare: judge at least 90% faithful | 39/40 = 97.5% (87.1 to 99.6) | Met |
 | example values: at least 95% fit the request schema within 3 tries | 268/268 on the first try (lower bound about 98.6%) | Met |
 | example values: judge at least 80% plausible | 75/80 = 93.8% (86.2 to 97.3) | Met, lower bound above 80 |
 | refusals counted | 0 refusals, 0 truncated, 0 errors, 0 skipped in every run | Met |
-| p50 latency under 3 s | Haiku 1.57 s (p95 2.46 s); Sonnet 2.39 s (p95 4.09 s) | Met |
+| p50 latency under 3 s | v2 text 1.97 s (p95 3.96 s); v1 Haiku 1.57 s (p95 2.46 s) | Met |
 
 Served model ids matched on every row (`claude-haiku-5-5` for all 576, `claude-sonnet-5-5` for all 144).
 
@@ -124,38 +130,90 @@ On the same 144 cases (36 functions, all 8 domains, 4 actions, no compare):
 Sonnet costs about 20 times more per case and did no better on any action; its whole deficit is length. Its
 answers were not judged, so this says nothing about its content quality. Nothing here argues for paying for it.
 
-## 6. What this means and what comes next
+## 6. Run 3: prompt v2
 
-1. **Model: Haiku 5.5.** Examples fit the schema every time, no refusals or truncation, fast, about $0.0002 a case.
-2. **Option B.** A generated answer is unfaithful about 3% of the time and an example set implausible about 6%.
-   Under runtime generation (A) visitors would see those unreviewed; under B they are caught before publication.
-   **B also changes what the 95% mechanical gate means:** at build time a failing check triggers regeneration (as
-   the example action already retries up to 3 times), so those checks are filters, not a rate a visitor sees. The
-   gates that decide are the judge's faithfulness and a person's read.
-3. **Review is the real cost.** Reading all 1,924 answers is about 16 hours at 30 seconds each. A workable form:
-   judge every answer with Opus 5.5 (about $15 at the observed $0.0077 each), have a person read what the judge or a
-   grader flags (roughly 100 answers at the observed rates) plus a random 5% to catch what the judge misses.
-4. **Prompt v2, written, not yet run** (`prompts.PROMPT_VERSION` = `v2-2026-11-08`, recorded in every run's
-   summary). Each of the three text tasks now ends with: name the function in the first sentence; do not write
-   any number that is not in the record, including percentages, day counts and regulatory factors you are sure
-   of; never say a result is guaranteed; at most 750 (explain), 950 (when) or 1,000 (compare) characters. The
-   hard limits stay 900, 1,100 and 1,200, so the budgets leave about 17% margin. The system prompt and the two
-   example-values tasks are unchanged: all 770 example requests are byte-identical to v1's, so run 1's example
-   results carry over, and the new rules are kept out of those tasks because there the model must write numbers
-   that are not in the record. The text requests grow by about 119 tokens. Whether to also widen the limits is a
-   design choice that belongs with the panel's layout, which does not exist yet.
-5. **Grader fix, done:** names in the record's LaTeX are now recognised (`graders._latex_plain`, with a test).
-   The oracle still passes 1,924 of 1,924 and the null 0 of 576. The six unsupported figures and the other
-   failure classes above are untouched by it. `regrade.py` (new, offline) grades a finished run's saved answers
-   again, so the effect on run 1 is measured in the next round instead of estimated.
-6. **Run 3, prepared:** the v2 text actions on Haiku 5.5 (308 cases, about $0.08), judged at 80 answers per
-   action (explain 80, when 80, compare all 40; about $1.8) with the hash order unchanged, so the first 40 of
-   each action are the cases run 2 judged and v1 and v2 can be compared case by case. This also puts `when`
-   faithfulness on 80 answers instead of 40 (the 95% interval around 90% narrows from 19 to about 13 points).
-7. **Harness note:** `cases.py` imports the app, so setup needs `pip install -r requirements.txt -r
+Prompt v2 (`prompts.PROMPT_VERSION` = `v2-2026-11-08`) ends each text task with: name the function in the first
+sentence; no number that is not in the record, including percentages, day counts and regulatory factors the
+model is sure of; never say a result is guaranteed; at most 750 (explain), 950 (when) or 1,000 (compare)
+characters (the hard limits stay 900, 1,100 and 1,200). The system prompt and the example-values tasks are
+unchanged; all 770 example requests are byte-identical to v1's, so run 1's example results carry over.
+
+**Re-grading run 1 offline** with the fixed grader (`regrade.py`) gave explain 118 to 120 of 134 and when 127 to
+128, the same as the estimate in the previous version of this document, so the identifier fix is now a
+measurement. Three answers flipped to pass; 20 still fail, and they are the length, number, invented-name and
+"names no function" cases listed in section 2.
+
+**v2 on 308 text cases** (`claude-haiku-5-5` on every row; 0 truncated, 0 refusals, 0 errors, 0 skipped):
+
+| Action | v2 | v1 as run | v1 re-graded | Characters, v2 median / p95 / max | Over budget | Over hard limit |
+|---|---|---|---|---|---|---|
+| explain | 129/134 = 96.3% (91.6 to 98.4) | 118/134 | 120/134 | 671 / 827 / 950 | 27 | 3 |
+| when | 129/134 = 96.3% (91.6 to 98.4) | 127/134 | 128/134 | 918 / 1,076 / 1,167 | 52 | 4 |
+| compare | 40/40 = 100% (91.2 to 100) | 40/40 | 40/40 | 830 / 949 / 1,028 | 1 | 0 |
+
+- **What changed it.** Almost all of explain's gain is length (median 727 to 671, over the hard limit 9 to 3).
+  `when` barely moved, and **its answers got longer** (median 836 to 918, over the hard limit 2 to 4) although it
+  has a 950-character budget: the stated budget acted as a target, not a ceiling.
+- **The ten failures:** 7 length (explain 946, 942, 950 against 900; when 1,167, 1,142, 1,125, 1,122 against
+  1,100), 2 numbers, 1 advice. The two numbers are both `retail_deposit_runoff_rate` ("30-day", the LCR horizon,
+  a day count that is not in its record), so the figures-from-memory problem went from six answers to two
+  answers of one function. The advice failure ("rather than a guarantee that the model fits") is a **false
+  positive**: the pattern matched the noun. Fixed, with a test.
+- **The new rules were followed without being parroted.** The first sentence names the function in 308 of 308
+  answers; "prescribed factor", the phrase given as an example, appears in none (0 of 308). One cost: the answers
+  open almost alike ("The X (`name`) computes..."), which reads mechanical.
+- Cost $0.0799 for 308 cases ($0.000259 each), 372,143 tokens in and 85,394 out; latency p50 1.97 s, p95 3.96 s.
+
+**Judge, v2 answers, Opus 5.5, 80 per action (all 40 `compare` cases), 0 unparsed, 0 errors, $1.4813:**
+
+| Action | n | Faithful | Useful |
+|---|---|---|---|
+| explain | 80 | 79 (98.8%; 93.3 to 99.8) | 80 |
+| when | 80 | 73 (91.2%; 83.0 to 95.7) | 80 |
+| compare | 40 | 39 (97.5%; 87.1 to 99.6) | 39 |
+| all | 200 | 191 (95.5%; 91.7 to 97.6) | 199 |
+
+- **Against run 2** (the same 120 cases, each now a different generated answer): faithful went 40 to 40 in
+  explain, 36 to 37 in when, 38 to 39 in compare. Five cases flipped to faithful and three to unfaithful.
+  The unfaithful share is 9/200 = 4.5% (2.4 to 8.3) now and was 6/120 = 5.0% (2.3 to 10.5): **no measurable
+  difference, so v2 did not change faithfulness**, and it did not hurt it.
+- **Most unfaithful answers are one-off, not a property of the case.** Of the six that failed in run 2, five
+  came back faithful in run 3; only `cva_sensitivity_cva_greeks` (when) failed both times. Small numbers, but it
+  suggests a generate, judge, regenerate loop would clear most of them.
+- **What the nine are:** none invents a function or parameter name. Three over-read a sibling's one-line summary
+  (`nii_simulation_stress`, `black_scholes_european_option`, `cva_sensitivity_cva_greeks`: for instance, a tree
+  pricer said to handle American or path-dependent payoffs when the list says only CRR and Boyle prices). The
+  rest add detail the record does not support: each component charge, each factor's contribution, an ES-based
+  estimate, notional exchanged at the start as well as the end, a floor that pyvar can "check".
+
+## 7. What this means and what comes next
+
+1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
+   the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
+2. **Model: Haiku 5.5.** It meets the gates, about $0.0002 to $0.0003 a case. Sonnet 5.5 costs about 20 times
+   more and did no better on the mechanical checks (section 5); its content quality was never judged.
+3. **Option B is the design to build.** About 4.5% of text answers are unfaithful and about 6% of example sets
+   implausible. Under runtime generation (A) visitors would see those unreviewed. Under B the pipeline is:
+   generate; the graders (a failing check regenerates, up to 3 tries, as the example action already does); judge
+   every answer with Opus 5.5 and regenerate the unfaithful ones; a person reads what still fails after the
+   retries, plus a random 5% to catch what the judge misses. The mechanical gates then work as filters, not as
+   a rate a visitor sees.
+4. **What that costs** (projections from the runs): generating all 1,924 selections about $0.45; judging every
+   answer about $14 at the observed $0.0074 each (the 1,154 text answers alone about $8.5), plus roughly 10%
+   for regeneration; a person reading perhaps 100 to 150 answers, against about 16 hours to read all 1,924.
+5. **Keep prompt v2 as it is.** A further iteration is not worth a run: under B a failing answer is regenerated.
+   If `when` length matters, lower its budget (it runs at about 918 against 950); that is a pipeline setting.
+6. **Residual cases go to the person:** `retail_deposit_runoff_rate` fails the figures rule in both runs, so a
+   retry will probably not fix it; `cva_sensitivity_cva_greeks` (when) was judged unfaithful both times.
+7. **Open before building:** (a) the panel's layout, which fixes the real length limits (900, 1,100 and 1,200 are
+   my choices); (b) whether the judge should be Opus for all 1,924 answers or a cheaper model with Opus on the
+   flagged ones; (c) where the generated answers live (a static JSON the portal serves, with a drift test that
+   regenerates an entry when its function record changes). The plan's Phases 1 to 3 were written for a runtime
+   chat route and need rewriting for B.
+8. **Harness note:** `cases.py` imports the app, so setup needs `pip install -r requirements.txt -r
    requirements-ci.txt`, not only the harness requirements. The README says so.
 
-## 7. Spend
+## 8. Spend
 
 | Step | Estimate | Actual |
 |---|---|---|
@@ -164,8 +222,11 @@ answers were not judged, so this says nothing about its content quality. Nothing
 | Run 1: Sonnet, first 144 cases | $1.90 | $0.6053 |
 | Run 1: judge, 60 answers (before the fix) | $0.80 | $0.4646 |
 | Run 2: judge, 200 answers (fixed judge) | $1.70 | $1.5415 |
-| **Total** | about $4.8 | **$2.74** (caps $4.50 and $2.00) |
+| Run 3: Haiku, v2 text actions, 308 cases | $0.08 | $0.0799 |
+| Run 3: judge, 200 v2 answers | $1.80 | $1.4813 |
+| **Total** | | **$4.30** (caps $4.50, $2.00 and $2.45) |
 
-The dev secret was read with `GetSecretValue` (6 times in run 1, once in run 2) and was a plain string. No errors
-file was created for the generation runs; the judge's error file was empty both times. The judge overwrites its
-output files rather than resuming, so run 1's verdicts were kept as `judgments_v1_no_siblings.jsonl`.
+The dev secret was read with `GetSecretValue` (6 times in run 1, once in run 2, twice in run 3) and was a plain
+string. No errors file was created for the generation runs; the judge's error file was empty each time. The
+judge overwrites its output files rather than resuming, so run 1's verdicts were kept as
+`judgments_v1_no_siblings.jsonl`.
