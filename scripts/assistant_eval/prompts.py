@@ -35,18 +35,41 @@ sibling list.
 - Plain English, concise, no headings. Write parameter and function names in `backticks`.
 """
 
+# Bumped whenever a model-facing string changes, and written into every run's summary.json, so a result
+# says which prompt produced it. v1 = the first paid run (2026-11-08, 7e146a6); v2 = this revision.
+PROMPT_VERSION = "v2-2026-11-08"
+
+# Characters the model is told to stay under for a text answer. The hard limits the graders enforce
+# (graders.LENGTH_BOUNDS: 900, 1,100, 1,200) are higher; the gap is margin, because a model counts
+# characters loosely. v1 stated no budget and 11 of 23 failing answers were only over length.
+CHAR_BUDGET = {"explain": 750, "when": 950, "compare": 1000}
+
+
+def _text_rules(action: str) -> str:
+    """Rules appended to the three prose tasks, next to where the answer is written. Not used for the
+    example-values tasks: there the model must produce numbers that are not in the record."""
+    return (
+        " Rules for this answer: name the function (its display name or its `name`) in your first "
+        "sentence; do not write any number that is not in the record, including percentages, day "
+        "counts and regulatory factors you are sure of (say 'the prescribed factor' or leave it out); "
+        "never say a result is guaranteed; use at most "
+        f"{CHAR_BUDGET[action]} characters in total, spaces included."
+    )
+
+
 TASKS: dict[str, str] = {
     "explain": (
         "Menu choice: 'What does this function do?' Answer in 3 to 5 sentences, for someone who knows "
-        "risk management but has not used pyvar."
+        "risk management but has not used pyvar." + _text_rules("explain")
     ),
     "when": (
         "Menu choice: 'When should I use it?' Give 2 to 4 short bullet points on when it fits, and one on "
         "when a sibling function is the better choice (name it from the sibling list only)."
+        + _text_rules("when")
     ),
     "compare": (
         "Menu choice: 'How does it differ from {other}?' Answer in 3 to 5 sentences. Name both functions "
-        "and say which question each one answers."
+        "and say which question each one answers." + _text_rules("compare")
     ),
     "example:typical": (
         "Menu choice: 'Show example values: typical case'. Reply with one JSON object and nothing else: "
@@ -74,12 +97,20 @@ def _dump(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def siblings_block(case: dict[str, Any]) -> str | None:
+    """The sibling list a `when` or `compare` answer may name from, as the model saw it (else None)."""
+    if case["intent"] in ("when", "compare") and case.get("siblings"):
+        listing = "\n".join(f"{s['name']}: {s['summary']}" for s in case["siblings"])
+        return f"<siblings>\n{listing}\n</siblings>"
+    return None
+
+
 def user_content(case: dict[str, Any]) -> str:
     """The first user turn for a menu selection."""
     parts = [f"<function>{_dump(case['record'])}</function>"]
-    if case["intent"] in ("when", "compare") and case.get("siblings"):
-        listing = "\n".join(f"{s['name']}: {s['summary']}" for s in case["siblings"])
-        parts.append(f"<siblings>\n{listing}\n</siblings>")
+    siblings = siblings_block(case)
+    if siblings:
+        parts.append(siblings)
     if case["intent"] == "compare":
         parts.append(f"<other_function>{_dump(case['other'])}</other_function>")
     if case["intent"] == "example":

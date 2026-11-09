@@ -29,10 +29,13 @@ from body_schema import minimal_instance, validate
 LENGTH_BOUNDS = {"explain": (150, 900), "when": (150, 1100), "compare": (200, 1200)}
 _ADVICE = re.compile(
     r"\byou should (?:buy|sell|invest|hold|short|report)\b|\bI (?:recommend|advise)\b|"
-    r"\b(?:we|pyvar|this|it) guarantee[sd]?\b|\bguaranteed? (?:to|that)\b|"
-    r"\bguarantees? (?:that|you)\b|\bthe result (?:will|would) be\b",
+    r"\b(?:we|pyvar|this|it) guarantee[sd]?\b|\bguaranteed (?:to|that)\b|"
+    r"\bguarantees (?:that|you)\b|\bthe result (?:will|would) be\b",
     re.IGNORECASE,
 )
+# "guarantees that" and "guaranteed to" are promises. The noun ("rather than a guarantee that the
+# model fits", "no guarantee that") is a disclaimer: one run-3 answer (2026-11-08) was marked as
+# advice for that.
 _BACKTICK = re.compile(r"`([^`\n]+)`")
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _SNAKE = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
@@ -72,8 +75,25 @@ def _supported(value: float, percent: bool, known: set[float]) -> bool:
     return any(round(c, 6) in known for c in candidates)
 
 
+def _latex_plain(text: str) -> str:
+    r"""The record's LaTeX with its markup removed, so a name written in a formula can be matched.
+
+    The formulas are stored as LaTeX inside JSON, so `max_len` is `\\text{max\\_len}`, `rho_ij` is
+    `\\rho_{ij}` and `D_max` is `D_{\\max}`. A plain regex over the raw text finds none of them, and a
+    guide that quotes a name straight from the formula was marked as having invented it (4 of the 5
+    unknown-identifier failures in the 2026-11-08 run).
+    """
+    text = text.replace("\\\\_", "_").replace(
+        "\\_", "_"
+    )  # an escaped underscore, JSON-doubled or not
+    text = re.sub(r"\\\\?([A-Za-z]+)", r"\1", text)  # \rho, \max, \text (backslash doubled in JSON)
+    text = re.sub(r"_\{([^{}]*)\}", r"_\1", text)  # D_{max} -> D_max
+    return text.replace("{", " ").replace("}", " ")
+
+
 def check_identifiers(case: dict[str, Any], text: str) -> list[str]:
-    allowed = set(_IDENT.findall(source_text(case)))
+    source = source_text(case)
+    allowed = set(_IDENT.findall(source)) | set(_IDENT.findall(_latex_plain(source)))
     unknown: list[str] = []
     for token in _BACKTICK.findall(text):
         if _IDENT.fullmatch(token) and token not in allowed:

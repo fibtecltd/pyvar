@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cost import usage_cost
 from graders import grade, oracle_text
-from prompts import build_request, intent_key
+from prompts import PROMPT_VERSION, build_request, intent_key
 
 RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504, 529}
 RETRYABLE_NAMES = {"APIConnectionError", "APITimeoutError", "ConnectionError", "TimeoutError"}
@@ -303,6 +303,7 @@ def summarize(
     totals = {k: sum(r["usage"][k] for r in rows) for k in USAGE_KEYS}
     return {
         "model": model,
+        "prompt_version": PROMPT_VERSION,
         "cases_run": len(rows),
         "scored": len(scored),
         "truncated": sum(1 for r in rows if r["status"] == "truncated"),
@@ -324,8 +325,11 @@ def summarize(
     }
 
 
-def load_cases(path: Path, limit: int | None) -> list[dict[str, Any]]:
+def load_cases(path: Path, limit: int | None, only: set[str] | None = None) -> list[dict[str, Any]]:
+    """The cases in file order; `only` keeps those whose action is listed, before `limit` is applied."""
     cases = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if only:
+        cases = [c for c in cases if intent_key(c) in only]
     return cases[:limit] if limit else cases
 
 
@@ -338,6 +342,11 @@ def main() -> int:
     parser.add_argument("--model", default="claude-haiku-5-5")
     parser.add_argument("--reps", type=int, default=1)
     parser.add_argument("--limit", type=int, default=None, help="only the first N cases")
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="comma-separated actions to run (explain, when, compare, example:typical, example:stress)",
+    )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--case-timeout", type=float, default=240.0)
     parser.add_argument("--max-usd", type=float, default=5.0, help="hard spend cap for this run")
@@ -347,7 +356,8 @@ def main() -> int:
     parser.add_argument("--null", action="store_true", help="no API: empty answers")
     args = parser.parse_args()
 
-    cases = load_cases(args.cases, args.limit)
+    only = {a.strip() for a in args.only.split(",") if a.strip()} if args.only else None
+    cases = load_cases(args.cases, args.limit, only)
     offline = "oracle" if args.oracle else "null" if args.null else None
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "traces").mkdir(exist_ok=True)
