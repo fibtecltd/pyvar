@@ -7,6 +7,8 @@ Reasoning:
   * numbers: a number in the answer must occur in that same material, with 75% and 0.75 treated as equal
     (a regulatory threshold recalled from memory is the second most damaging);
   * scope: no directive advice, no promised results;
+  * wording: none of the guide's own vocabulary ("the record", "sibling"), which a visitor cannot interpret
+    (the blind read of 2026-11-09 found it in 8 of 12 answers);
   * shape: length, mentions the function (and both for a comparison), not clipped.
   For the example-values action: the reply must be one JSON object that fits the function's real request
   schema (body_schema.py).
@@ -33,6 +35,10 @@ _ADVICE = re.compile(
     r"\bguarantees (?:that|you)\b|\bthe result (?:will|would) be\b",
     re.IGNORECASE,
 )
+# Words that belong to the prompt, not to the visitor: "the record" is the function record the model was
+# given, "sibling" the list it may name from. Neither means anything on the portal. Narrow on purpose:
+# "track record", "a record of losses" and "record-keeping" are ordinary finance and must pass.
+_INTERNAL = re.compile(r"\bthe (?:function )?record\b(?!-)|\bsiblings?\b", re.IGNORECASE)
 # "guarantees that" and "guaranteed to" are promises. The noun ("rather than a guarantee that the
 # model fits", "no guarantee that") is a disclaimer: one run-3 answer (2026-11-08) was marked as
 # advice for that.
@@ -146,6 +152,7 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
     unknown = check_identifiers(case, text)
     unsupported = check_numbers(case, text)
     advice = _ADVICE.findall(text)
+    internal = _INTERNAL.findall(text)
     checks = {
         "length_ok": low <= len(text.strip()) <= high,
         "mentions_function": mentions(record) if intent != "when" else True,
@@ -153,8 +160,11 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
         "identifiers_known": not unknown,
         "numbers_supported": not unsupported,
         "no_advice": not advice,
+        "visitor_wording": not internal,
     }
     flags = []
+    if internal:
+        flags.append(f"the guide's own words: {[str(w).lower() for w in internal[:4]]}")
     if unknown:
         flags.append(f"unknown identifiers: {unknown[:6]}")
     if unsupported:

@@ -54,6 +54,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   Phase 0b: `side_by_side.py` (a blind page of static catalogue text against the model's answer),
   `compare_judges.py` (a cheaper judge against the Opus verdicts) and `judge.py --tag`. The blind read, one
   reader and 12 pairs, picked the model's answer in 11 and ticked no error; the judge comparison was not run.
+  Prompt v3 stops the guide saying "the record" and "sibling" to a visitor (the reader found it in 8 of 12
+  answers), and a grader check, `visitor_wording`, enforces it.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an

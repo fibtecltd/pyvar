@@ -230,6 +230,36 @@ def test_the_noun_guarantee_is_not_a_promise() -> None:
     ]
 
 
+def test_the_guides_own_words_are_caught_and_ordinary_finance_is_not() -> None:
+    """2026-11-09: the reader of the blind test found "the record does not say ..." in 8 of 12 answers. The
+    record is the prompt's word for its input, and "sibling" for its list; a visitor knows neither.
+    """
+    explain = make_case("explain")
+    for phrase in (
+        "The record does not say how it is set.",
+        "The function record gives no default.",
+        "A sibling function fits better.",
+        "It has siblings.",
+    ):
+        grade = graders.grade(explain, GOOD_EXPLAIN + " " + phrase)
+        assert not grade.checks["visitor_wording"] and not grade.passed, phrase
+        assert "the guide's own words" in " ".join(grade.flags)
+    for phrase in (
+        "pyvar's documentation does not say how it is set.",
+        "It has a long track record in practice.",
+        "Keep a record of each breach.",
+        "It supports record-keeping duties.",
+    ):
+        assert graders.grade(explain, GOOD_EXPLAIN + " " + phrase).checks["visitor_wording"], phrase
+
+
+def test_the_prompt_tells_the_guide_to_say_pyvars_documentation() -> None:
+    system = prompts.SYSTEM_PROMPT
+    assert 'say "pyvar\'s documentation"' in system
+    assert 'never write "the record" or "sibling" (say "related function")' in system
+    assert "say that pyvar's documentation does not" in system
+
+
 def test_a_comparison_must_name_both_functions() -> None:
     case = make_case("compare")
     only_first = (
@@ -663,7 +693,7 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
-    assert prompts.PROMPT_VERSION.startswith("v2")
+    assert prompts.PROMPT_VERSION.startswith("v3")
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:

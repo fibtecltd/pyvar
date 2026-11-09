@@ -354,4 +354,28 @@ caveat out) and is not made here.
 
 The first row of 9.3 applies, and which of its two outcomes follows depends on a measurement that does not exist
 yet: whether a cheaper judge flags what Opus flags. Either pay for new Opus reference verdicts (9.2), or accept a
-person reading every model-written answer. Neither is decided here.
+person reading every model-written answer. Neither is decided here. Filippo chose to pay (2026-11-09), after the
+wording fix in 9.7.
+
+### 9.7 Prompt v3 and the re-planned calibration (2026-11-09)
+
+**The wording fix.** The system prompt now tells the guide that the visitor cannot see the record, the sibling
+list or the schema: where an answer rests on them it says "pyvar's documentation", and it never writes "the
+record" or "sibling" (it says "related function"). The gap sentence became "say that pyvar's documentation does
+not". `PROMPT_VERSION` is `v3-2026-11-09`. A new grader check, `visitor_wording`, fails an answer that contains
+"the record", "the function record" or "sibling" (and not "track record", "a record of losses" or
+"record-keeping"). Without it nothing would show whether the fix worked. Run on the 12 answers of 9.1 it flags 9
+(8 for "the record", one more for "sibling"); the oracle still passes 1,924 of 1,924 cases and the null baseline
+0 of 576.
+
+**Not changed:** the caveat itself. A v3 answer may still end with "pyvar's documentation does not say ...", which
+the reader found signals something missing. Only the vocabulary was fixed; whether the closing caveat should go
+is decided after reading v3 answers.
+
+**The re-planned calibration.** The reference set is new: Haiku 5.5 with prompt v3 on all 308 text cases (134
+`explain`, 134 `when`, 40 `compare`), judged by Opus 5.5 (the reference) and by Haiku 5.5, then Sonnet 5.5 only if
+Haiku does not meet the thresholds of 9.2. It is judged on v3 because v3 is what would be published. Faithfulness
+only: example values are left out (`plausible_values` had 5 Opus flags of 80, under the 8 needed, and reaching 8
+would take about 130 judged example sets). Expected cost about $2.4 (generation $0.08, Opus $2.3, Haiku $0.06);
+up to about $3.5 if Sonnet is needed. If Opus flags fewer than 8 of the 308, the result is "cannot tell" and is
+reported as such; the sample is not widened without a decision.
