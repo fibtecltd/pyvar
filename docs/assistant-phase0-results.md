@@ -422,7 +422,7 @@ documentation really omits something), and the cheaper judges flagged mostly oth
 By 9.3 (the model earns all three actions, no cheaper judge meets the thresholds), the outcome is to build only if
 a person reads every model-written answer.
 
-### 9.9 Prompt v4: withdraw the claim of absence, tighten `when` (prepared 2026-11-09, not run)
+### 9.9 Prompt v4: withdraw the claim of absence, tighten `when` (run 2026-11-09, result in 9.10)
 
 Filippo chose this over reading everything now or narrowing the scope (2026-11-09). 9.8 grouped Opus's 22 flags
 (by the first 80 characters of its issues, so approximately) into 6 claims that the documentation omits something
@@ -463,3 +463,77 @@ length failures at most 4 (v2's level; v3 had 12).
 
 **What a lower rate buys.** Fewer errors to fix while reading, and a smaller residual if a reader misses some. It
 does not remove the need to read every model-written answer: no cheaper judge exists to say which to read.
+
+### 9.10 Result of prompt v4 (2026-11-09)
+
+Run on the dev key against the tree now on master (commit `c4875e7`, merged as `21d7b8d`). Haiku 5.5 wrote the 308
+text answers with v4 (308 ok, $0.08); Opus 5.5 judged all 308 ($2.20, 0 unparsed). No cheaper judge was run (9.8).
+`docs/assistant-prompt-v4-opus-flags.csv` lists the 24 cases that Opus flagged or a grader failed (the other 284
+passed both).
+
+| Action | v3 flagged by Opus | v4 flagged by Opus | One-sided p |
+|---|---|---|---|
+| explain | 4 of 134 | 2 of 134 | 0.34 |
+| when | 17 of 134 | 5 of 134 | 0.006 |
+| compare | 1 of 40 | 3 of 40 (higher) | 0.31 |
+| **all** | **22 of 308 (7.1%)** | **10 of 308 (3.2%)** | **0.022** |
+
+**Against the rule of 9.9.** 10 flagged is in the "10 or fewer: a clear improvement" band, on its edge: one more flag
+would have read "inside the noise". The gain is in `when`; `explain` and `compare` did not move beyond what one
+draw each can do (`compare` went from 1 to 3 of 40). The two read-from-the-issues targets are met (approximate,
+from Opus's issue text): claims that the documentation omits something it contains fell from 6 to 1
+(`retail_deposit_runoff_rate:explain`), and `when` answers flagged for a related function fell from 8 to 2. The
+guards are not all met:
+
+| Guard | Rule | v4 | |
+|---|---|---|---|
+| `when` grader pass | at least 117 of 134 | 127 | met |
+| `when` length failures | at most 4 | 1 (v3: 12) | met |
+| `explain` grader pass | at least 128 of 134 | 127 | missed by 1 |
+| `compare` grader pass | at least 40 of 40 | 38 | missed by 2 |
+| `no_absence_claims` failures | at most 3 of 308 | 8 | missed |
+
+The two grader misses are one and two answers (`compare`: a leaked `other_function` and one absence claim). The
+third is the prompt not being obeyed: the guide still wrote "the documentation does not ..." in 8 of 308 answers
+(explain 4, when 3, compare 1), against a rule that forbids it. The grader catches all 8. Opus judged all 8
+faithful (two with issues noted), so they are not the false claims v3 made, but a pipeline would have to
+regenerate them. Opus's one absence-claim flag (`retail_deposit_runoff_rate:explain`) used a wording the check
+does not match, as 9.9 said it would. `visitor_wording` failed 3 (v3: 8).
+
+**Reading the flagged answers.** The run returned the full text of 6 of the 10 flagged answers (the other 4: Opus's
+issue text only). The 6 were read against their records by the assistant, not by a domain expert: 5 are real errors
+and 1 is arguable.
+
+- `fx_forward_pricer:when`: says setting `notional` gives a value, when it only scales a mark-to-market that exists
+  only if `contracted_forward` is supplied; the answer's own last bullet says so. Real.
+- `counterparty_credit_risk_ccr_exposure:compare`: says the zero floor means "an amount owed to you adds nothing".
+  The record floors `MtM - collateral` at zero, positive meaning in the money to the bank, so it is the amount you
+  owe that adds nothing; the answer has it backwards. Real.
+- `effective_duration_alm:when`: says the three present values are "re-valued by pyvar", but they are inputs; the
+  answer then tells the reader to re-value before calling. Real.
+- `basel_iii_cet1_ratio:when`: attributes "a broader capital measure than CET1" to pyvar's documentation; the
+  related-function listing says only "Basel III Tier 1 capital ratio". True as textbook, wrongly attributed. Real.
+- `black_scholes_greeks:compare:monte_carlo_option_pricer`: "the pricer's `other_function` description": the name of
+  the prompt's tag leaked into the answer, and the attribution is muddled. Real.
+- `combined_buffer_requirement:compare:capital_conservation_buffer`: "whether the CET1 ratio meets that buffer",
+  where the record tests CET1 against 4.5% plus the conservation buffer only. Loosely worded rather than wrong.
+
+Two classes are new in this run. **Attribution to "pyvar's documentation"** of what is textbook or only in a
+related-function listing (2 of the 10 flagged; the v3 rule "say pyvar's documentation" invites it). **A leaked tag
+name** (`other_function`, 1 of 40 `compare` answers; the grader's identifier check caught it too). The other flags
+are the model misreading what a function does, which no wording rule addresses; v3 had 8 of those and v4 about 6.
+
+**What this says about Opus as reference.** Its precision holds where checked (5 of 6, 1 arguable). Its recall is
+unknown: 33 answers passed with a non-empty issues list that nobody has read, and one verdict changed between two
+runs on 120 repeated cases.
+
+**The two checks find different things.** 16 answers failed a grader and 10 were flagged by Opus; only 2 are in both.
+Together 24 of 308 (7.8%) would be regenerated or flagged.
+
+**What it leaves open (not decided).** The rule of 9.3 had two exits, a cheaper judge or a person reading every
+answer, and 9.8 closed the first. Not priced there: Opus itself as a build-time gate, since under option B the text
+is generated once per catalogue version. The 1,154 text answers (385 `explain`, 385 `when`, 384 `compare`) would cost
+about $8.3 to judge once at this run's $0.0071 a verdict, with regeneration of what fails, and a person reading what
+Opus still flags plus a random sample. What would make that acceptable is a measured recall for Opus, which needs a
+person reading a random sample of the answers it passed. Prompt v5 (attribution, the leaked tag) is the other open
+item; both are decisions for Filippo.
