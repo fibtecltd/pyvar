@@ -1,13 +1,17 @@
 # Phase 0 results: Claude Haiku 5.5 as the portal guide
 
-**Status 2026-11-09: Phase 0 passed on the point estimates, for Haiku 5.5 with option B (build-time generation,
-automatic checks, a person reads what is flagged).** Three paid runs, $4.30 in all. With prompt v2 the
-mechanical gates are met for all three text actions, the judge finds 95.5% of the text answers faithful, and the
-example values were already clean. One gate rests on a wide interval (`when` faithful 91.2%, 83.0 to 96.0), and
-about 4.5% of text answers are still unfaithful, which is why a person stays in the loop. Along the way the
-runs exposed three defects in my own harness (a judge that was not shown the sibling list, a grader that could
-not read names written inside LaTeX formulas, and an advice pattern that flagged the noun "guarantee"); all are
-fixed in this PR. Section 7 says what comes next.
+**Status 2026-11-09: the model-quality gates are met on the point estimates for Haiku 5.5, and the assistant
+work is ON HOLD.** Filippo raised two points that Phase 0 does not settle. (1) Whether a generated answer is
+better than static catalogue text was never measured: a template built from the record passes every
+mechanical check (the oracle, 1,924 of 1,924), and the judge's "useful" is an absolute yes or no, not a
+comparison. (2) An Opus judge is ruled out as overkill, and it was the only automatic check for the answers
+that are unfaithful without breaking a mechanical rule (about 4.5% of text answers). Section 7 has the
+consequences; the numbers below stand as measurements. Three paid runs, $4.30 in all. With prompt v2 the
+mechanical gates are met for all three text actions, the judge found 95.5% of the text answers faithful, and
+the example values were already clean. One gate rests on a wide interval (`when` faithful 91.2%, 83.0 to
+96.0). Along the way the runs exposed three defects in my own harness (a judge that was not shown the sibling
+list, a grader that could not read names written inside LaTeX formulas, and an advice pattern that flagged
+the noun "guarantee"); all are fixed in this PR.
 
 - Run 1: a delegated agent, branch `docs/portal-ai-assistant-plan` at `7e146a6`, dev key
   (`pyvar/dev/anthropic-api-key`): Haiku 5.5 on 576 cases, Sonnet 5.5 on 144, Opus 5.5 judging 60 answers.
@@ -188,6 +192,18 @@ measurement. Three answers flipped to pass; 20 still fail, and they are the leng
 
 ## 7. What this means and what comes next
 
+0. **On hold (2026-11-09), and why.** In this design nothing is typed and, under option B, nothing calls a model
+   when a visitor clicks, so the model is a one-off drafting tool whose gain is authoring hours, not a runtime
+   capability. Whether its text beats what the catalogue already shows is unmeasured. Where a gain is plausible:
+   `when` and `compare` (no static equivalent exists; they are also where unfaithful answers concentrate) and
+   example values for the functions that have no tested worked example. For `explain` it is probably small: the
+   record already has a summary, a description, the formula and symbol map, and, since this PR, a description for
+   every parameter. The cheapest honest test needs no judge: a blind side-by-side, about 20 pairs, the template
+   or catalogue text against Haiku's answer, read by someone who knows the domain. Without an automatic
+   faithfulness check, what is left for model-written text is a person reading all of it, a scope cut to what
+   the graders can fully verify (names, numbers, schema shape), or accepting the unreviewed 4.5%. The parameter
+   descriptions in this PR are the static part of the same goal (what an input means) and need no model.
+   Items 1 to 8 below are the position before this was raised; items 3 and 4 assume the Opus judge.
 1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
    the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
 2. **Model: Haiku 5.5.** It meets the gates, about $0.0002 to $0.0003 a case. Sonnet 5.5 costs about 20 times
