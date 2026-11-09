@@ -203,7 +203,8 @@ measurement. Three answers flipped to pass; 20 still fail, and they are the leng
    faithfulness check, what is left for model-written text is a person reading all of it, a scope cut to what
    the graders can fully verify (names, numbers, schema shape), or accepting the unreviewed 4.5%. The parameter
    descriptions in this PR are the static part of the same goal (what an input means) and need no model.
-   Section 9 sets up both checks. Items 1 to 8 below are the position before this was raised; items 3 and 4
+   Section 9 sets up both checks; its 9.5 has the blind result (the model's answer was picked in 11 of 12 pairs,
+   no error ticked), and the judge comparison is not run. Items 1 to 8 below are the position before this was raised; items 3 and 4
    assume the Opus judge.
 1. **Phase 0 is passed on the point estimates.** Every gate in section 1 is met; `when` faithfulness (91.2%) and
    the schema and plausibility gates rest on intervals whose lower bounds are 83.0, 98.6 and 86.2.
@@ -248,7 +249,7 @@ string. No errors file was created for the generation runs; the judge's error fi
 judge overwrites its output files rather than resuming, so run 1's verdicts were kept as
 `judgments_v1_no_siblings.jsonl`.
 
-## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (prepared 2026-11-09, not run)
+## 9. Phase 0b: does the model beat static text, and what replaces the Opus judge? (blind read done 2026-11-09; judge comparison not run)
 
 Filippo chose to test the gain first (2026-11-09). Two checks, neither uses an Opus judge, and **the decision rules
 below were written before either has been run.**
@@ -261,7 +262,10 @@ below were written before either has been run.**
   `repricing_gap_analysis:explain`, `altman_z_score_credit_scoring:explain`, `liquidity_transfer_pricing:explain`, `frequency_distribution_fitting:explain`;
   `expected_shortfall_contribution:when`, `nii_simulation_stress:when`, `contingency_funding_plan_trigger:when`, `rcsa_risk_identification:when`;
   `countercyclical_capital_buffer:compare:capital_conservation_buffer`, `black_scholes_greeks:compare:monte_carlo_option_pricer`, `asset_liability_mismatch_index:compare:structural_hedge_optimisation`, `black_litterman_model:compare:maximum_sharpe_ratio_portfolio`.
-- **Model side:** Haiku 5.5 with prompt v2, the answers of run 3.
+- **Model side:** Haiku 5.5 with prompt v2, the answers of run 3. **As run:** run 3's files were lost with the
+  agent machine that made them, so the 12 are a fresh draw of the same model and prompt (one run, $0.0032, all 12
+  complete and passing the graders on the first try). The case file was regenerated from the repository and is
+  byte-identical to the original (sha256 starting `c57a3b30`), and `pick` returned the same 12 ids.
 - **Static side:** the best the catalogue allows with no model, built from the record by `side_by_side.py`:
   for `explain` the summary, the description (Sphinx roles removed) and the inputs with their descriptions; for
   `when` the summary and the sibling list (up to six); for `compare` both summaries and the inputs of each. This
@@ -297,6 +301,10 @@ answers (`judge.py --judge-model ... --tag NAME`, which keeps the Opus files) is
   cases), so what is measured is agreement with it.
 - **Staged to save money:** Haiku 5.5 first (about $0.08). Sonnet 5.5 only if Haiku does not meet the thresholds
   (about $1.5). The estimates scale the observed $0.0074 an Opus verdict by the price ratios (Haiku 1/40, Sonnet 1/2).
+- **Not run (2026-11-09).** The Opus verdicts were on the same lost machine, so there is nothing to compare a
+  cheaper judge against. A calibration now needs new Opus verdicts on a freshly generated answer set: about $2.5
+  with Haiku as the cheap judge, about $3.7 if Sonnet is needed too, and the number of Opus flags may again fall
+  under 8, which reads "cannot tell".
 
 ### 9.3 What the two results mean together
 
@@ -311,3 +319,39 @@ answers (`judge.py --judge-model ... --tag NAME`, which keeps the Opus files) is
 `side_by_side.py` (`pick`, `export`, `build`), `compare_judges.py` and `judge.py --tag`, with tests in
 `tests/test_assistant_gain_test.py`. The agent run exports the 12 model answers (no cost) and runs the cheap judges;
 the page is built from the catalogue and the exported answers, and the key is not shown to the reader.
+
+### 9.5 Result of the blind read (2026-11-09)
+
+One reader (Filippo), on the page `side_by_side.py build` made from the 12 answers above. The key file was kept
+by whoever built the page until the picks were in (its sha256 starts `5e6e80d7661c3ecc`).
+
+| Action | Model picked | Static picked | About the same | Errors ticked | Rule: at least 3 of 4, at most 1 error |
+|---|---|---|---|---|---|
+| explain | 3 | 1 (`liquidity_transfer_pricing`) | 0 | 0 | earned |
+| when | 4 | 0 | 0 | 0 | earned |
+| compare | 4 | 0 | 0 | 0 | earned |
+
+By the rule fixed in 9.1 **the model earns all three actions: build all three.** What that does and does not show:
+
+- **A sanity gate, not a statistic.** One reader and 12 pairs. The two styles differ (prose against a field
+  listing), so the reader could often tell them apart; the instruction was to pick by what helps a visitor, and 11
+  of 12 picks went to the model with no "about the same".
+- **No error was ticked, but that is not a faithfulness rate.** A tick records what the reader noticed, and the
+  earlier judge found 4.5% of text answers unfaithful, about 0.5 expected in 12. The result shows that a visitor
+  prefers the model's answer, not that it is safe to publish unreviewed. That gap is what the cheaper judge was
+  meant to close, and it has not been run (9.2).
+- **The answers are a fresh draw** of the same model and prompt, not run 3's text (9.1).
+
+The reader's one note, on `repricing_gap_analysis` (explain): the closing sentence "The record does not say how
+pyvar sets its bucket boundaries or what output format it returns, so check those details before relying on
+them" signals that something is missing. It was not ticked as an error, and that answer was still picked. Counted
+over the 12 model answers, 8 say "the record" (the prompt's word for the data the model was given; a visitor has
+no idea what it refers to) and 7 say that the record does not say or give something. The v2 rule that stops
+invented figures produced this phrasing. A fix is a prompt change (name the pyvar documentation, or leave the
+caveat out) and is not made here.
+
+### 9.6 What the result leaves open
+
+The first row of 9.3 applies, and which of its two outcomes follows depends on a measurement that does not exist
+yet: whether a cheaper judge flags what Opus flags. Either pay for new Opus reference verdicts (9.2), or accept a
+person reading every model-written answer. Neither is decided here.
