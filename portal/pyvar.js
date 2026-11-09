@@ -24,16 +24,16 @@ const LOGO_SVG = `<svg width="28" height="22" viewBox="0 0 28 22" fill="none" xm
 
 function buildNav(active = 'home') {
   const links = [
-    {id:'home',      label:'home',        href:'index.html'},
-    {id:'domains',   label:'domains',     href:'index.html#domains'},
-    {id:'api',       label:'api docs',    href:'index.html#api'},
+    {id:'home',      label:'home',        href:'/'},
+    {id:'domains',   label:'domains',     href:'/#domains'},
+    {id:'api',       label:'api docs',    href:'/#api'},
     {id:'plugins',   label:'plugins',     href:'plugins.html'},
     {id:'guides',    label:'guides',      href:'guides.html'},
     {id:'local',     label:'local',       href:'local.html'},
     {id:'github',    label:'github ↗',    href:'https://github.com/fibtecltd/pyvar', ext:true},
   ];
   return `<nav class="nav" id="mainNav">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       ${LOGO_SVG}
       <div class="nav-logo-domain">py<span>var</span>.com</div>
     </a>
@@ -44,7 +44,7 @@ function buildNav(active = 'home') {
       <button type="button" class="nav-search-btn" id="navSearchBtn" aria-haspopup="dialog">Search <kbd>/</kbd></button>
       <span class="nav-version" data-version>v0.1.2</span>
       <a href="https://fibtec.co.uk" target="_blank" class="nav-gh" title="Built by Fibtec Limited">by fibtec.co.uk</a>
-      <a href="index.html#get-api-key" class="nav-cta">Get API key</a>
+      <a href="/#get-api-key" class="nav-cta">Get API key</a>
     </div>
   </nav>`;
 }
@@ -63,7 +63,7 @@ function buildFooter() {
       <div class="footer-inner">
         <div>
           <div class="footer-logo-wrap">
-            <a href="index.html" style="display:flex;align-items:center;gap:10px">
+            <a href="/" style="display:flex;align-items:center;gap:10px">
               ${FOOTER_LOGO}
               <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--text)">py<span style="color:var(--green)">var</span>.com</div>
             </a>
@@ -98,7 +98,7 @@ function buildFooter() {
             <div class="footer-col-title">Developers</div>
             <div class="footer-col-links">
               <a href="guides.html">Guides</a>
-              <a href="index.html#api">API reference</a>
+              <a href="/#api">API reference</a>
               <a href="plugins.html">Claude Code plugins</a>
               <a href="local.html">pyvar Local (offline)</a>
               <a href="guide-pyvar-client.html">Python SDK</a>
@@ -366,7 +366,7 @@ function _signInAgain(card, message) {
     _h('div', { class: 'dash-title' }, 'Sign in to manage your API keys'),
     _h('div', { class: 'dash-body' }, message + ' '),
   );
-  card.lastChild.append(_h('a', { href: 'index.html#get-api-key' }, 'Sign in or get a key'), '.');
+  card.lastChild.append(_h('a', { href:'/#get-api-key' }, 'Sign in or get a key'), '.');
 }
 
 async function renderDashboard() {
@@ -402,7 +402,7 @@ async function renderDashboard() {
     // above _escapeHtml().
     const safeMessage = _escapeHtml((e && e.message) || 'The link may be invalid or expired.');
     card.innerHTML = '<div class="dash-title">Sign-in failed</div>'
-      + `<div class="dash-body dash-error">${safeMessage} <a href="index.html#get-api-key">Request a new link</a>.</div>`;
+      + `<div class="dash-body dash-error">${safeMessage} <a href="/#get-api-key">Request a new link</a>.</div>`;
     return;
   }
   await renderKeyManager(card, session, tier);
@@ -847,7 +847,7 @@ function openTryItPanel(fn, triggerEl) {
       ${_formulaBlockHtml(fn)}
       <div class="tryit-jwt-row">
         <input type="text" id="tryitJwt" class="tryit-jwt-input" placeholder="Paste your API key (JWT)…" value="${storedToken}"/>
-        <a href="index.html#get-api-key" class="tryit-jwt-link">Get a free key →</a>
+        <a href="/#get-api-key" class="tryit-jwt-link">Get a free key →</a>
       </div>
       <form id="tryitForm" class="tryit-form">
         ${fn.params.map(_tryitFieldHtml).join('')}
@@ -868,7 +868,7 @@ async function _submitTryIt(e, fn) {
   const resultEl = document.getElementById('tryitResult');
   const token = document.getElementById('tryitJwt').value.trim();
   if (!token) {
-    resultEl.innerHTML = '<div class="tryit-error">Paste an API key above, or <a href="index.html#get-api-key">get one free</a>.</div>';
+    resultEl.innerHTML = '<div class="tryit-error">Paste an API key above, or <a href="/#get-api-key">get one free</a>.</div>';
     return;
   }
   localStorage.setItem('pyvar_jwt', token);

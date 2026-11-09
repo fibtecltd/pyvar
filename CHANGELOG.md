@@ -155,6 +155,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Portal: every page now links to every page in plain HTML, and the home link is `/`** — Search
+  Console showed 15 of the 19 sitemap pages never crawled ("Discovered - currently not indexed") and
+  one "alternate page" (`/index.html`). The nav and footer are written by `document.write` scripts,
+  so the static HTML linked almost nowhere (each domain page had one inbound link, `local.html` none)
+  and every page linked home as `index.html`, a duplicate of `/`. Home links are now `/`;
+  `scripts/sync_portal_seo.py` generates a plain-HTML "all pages" strip above the footer of every
+  page and adds `<lastmod>` to `portal/sitemap.xml`; `tests/test_portal_links.py` checks the pages,
+  their canonicals, the block and the sitemap. Findings and what was not changed:
+  `docs/seo-crawl-investigation.md`.
+
 - **Anthropic's plugin directory refused all 13 pyvar skill plugins for frontmatter keys it does
   not accept, and the plugins no longer carry them** — after a re-check on 2026-11-06 the portal
   reported "Frontmatter keys outside the allowed list accepted only from Verified organizations"
