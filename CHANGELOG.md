@@ -41,16 +41,7 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `docs/plan-portal-ai-assistant.md` from the catalogue, checks answers mechanically against the
   function record (invented names, unsupported numbers, advice language, request-schema shape),
   and has a model judge for a stratified sample, a hard spend cap and an offline `--oracle` and
-  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). Three paid runs
-  (Haiku 5.5 and Sonnet 5.5, Opus 5.5 as judge, $4.30 in all) are written up in
-  `docs/assistant-phase0-results.md`: the model-quality gates are met on the point estimates for
-  Haiku 5.5, and the assistant work is on hold (gain over static text is unmeasured, an Opus judge is
-  ruled out). They found and fixed three defects in the harness: the judge had not been
-  shown the sibling list the model was given, the identifier check could not read names written
-  inside LaTeX formulas, and the advice check flagged the noun "guarantee". Prompt v2 (a character
-  budget and three rules in each text task; the example-values requests are unchanged) is the one
-  measured; `--only` limits a run or the judge to some actions and `regrade.py` grades saved answers
-  again offline.
+  `--null` baseline (1,924 of 1,924 and 0 of 576 on the current catalogue). No paid run has been made.
 
 - **Stream tokens: `POST /api/v1/var/stream-token/{task_id}`** — a client holding an API key
   can now open `WS /var/stream/{task_id}`. The WebSocket handshake cannot carry an
