@@ -262,6 +262,16 @@ NAT data for text traffic is negligible.
   80% plausible; refusals counted (none expected); p50 latency under 3 s per generation.
 - **Also measured:** real token counts and cost per generation, projected to all 1,924 selections, to decide
   between options A and B.
+- **Three paid runs, 2026-11-08 and 09, $4.30:** `docs/assistant-phase0-results.md`. **Model gates met on the point estimates for Haiku 5.5; the assistant work is on hold
+  (2026-11-09):** gain over static catalogue text is unmeasured and an Opus judge was ruled out as
+  overkill. With prompt v2 the mechanical gates are met (explain 96.3%, when 96.3%,
+  compare 100%), the judge finds 95.5% of text answers faithful (explain 98.8%, when 91.2% with an interval of 83
+  to 96, compare 97.5%), example values fit the schema 268 of 268 and are 94% plausible, p50 is 2 s, and a case
+  costs about $0.0003 (about $0.45 to generate all 1,924). About 4.5% of text answers are still unfaithful and 6%
+  of example sets implausible, so a person reads what the checks flag before anything is published.
+
+> Phases 1 to 3 below were written for a runtime chat route (option A). Phase 0 points to option B, in which
+> nothing calls a model when a visitor clicks; they are to be rewritten once B is confirmed.
 
 **Phase 1: backend behind a flag (3 to 5 days).** Schemas, route, knowledge generator and drift test, tools,
 budget and limits, scrub, config and secret, metrics, tests. Off by default. Merging starts a CodePipeline run.

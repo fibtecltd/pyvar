@@ -12,6 +12,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import json
 import random
 import sys
 from pathlib import Path
@@ -29,6 +30,7 @@ import cost  # noqa: E402
 import graders  # noqa: E402
 import judge  # noqa: E402
 import prompts  # noqa: E402
+import regrade  # noqa: E402
 import run_eval  # noqa: E402
 
 RECORD: dict[str, Any] = {
@@ -589,3 +591,170 @@ def test_the_record_shows_each_parameters_description_and_tolerates_its_absence(
     parameters = case_builder.trim_record(entry)["parameters"]
     assert parameters[0]["description"] == "Confidence level, for example 0.99."
     assert parameters[1]["description"] is None
+
+
+def test_the_judge_sees_the_sibling_list_the_guide_was_allowed_to_name() -> None:
+    """2026-11-08: the first paid run judged `when` answers without the list, so every correctly named sibling
+    was called "not in the record" and 0 of 12 were faithful. The judge must see what the guide saw.
+    """
+    case = {
+        "id": "f:when",
+        "intent": "when",
+        "record": RECORD,
+        "other": None,
+        "siblings": [{"name": "sibling_one", "summary": "Does the other thing."}],
+    }
+    row = {"intent": "when", "text": "Use it for X; `sibling_one` fits Y better."}
+    assert "sibling_one: Does the other thing." in judge.judge_message(case, row)
+    assert judge.judge_message(case, row) == judge.judge_message({**case, "intent": "when"}, row)
+    # the same block, byte for byte, that the generator was given
+    assert prompts.siblings_block(case) in prompts.user_content(case)
+    assert prompts.siblings_block(case) in judge.judge_message(case, row)
+    for other_intent in ("explain", "example"):
+        quiet = {**case, "intent": other_intent}
+        assert prompts.siblings_block(quiet) is None
+        assert "<siblings>" not in judge.judge_message(quiet, {**row, "intent": other_intent})
+
+
+def test_a_name_quoted_from_the_formula_is_not_called_invented() -> None:
+    """2026-11-08: formulas are LaTeX inside JSON, so `max_len` is stored as \\text{max\\_len}, rho_ij as
+    \\rho_{ij} and D_max as D_{\\max}. 4 of the 5 unknown-identifier failures in the first paid run were a
+    guide quoting such a name."""
+    case = {
+        "id": "f:explain",
+        "intent": "explain",
+        "record": {
+            "name": "f",
+            "formula_latex": r"\rho_{ij} = \frac{\text{max\_len}}{D_{\max}}",
+            "parameters": [],
+        },
+        "siblings": [],
+    }
+    assert graders.check_identifiers(case, "It uses `rho_ij`, `max_len` and `D_max`.") == []
+    assert graders.check_identifiers(case, "It uses `segment_1` and invented_name.") == [
+        "invented_name",
+        "segment_1",
+    ]
+
+
+# ── prompt v2 and the --only filter ──────────────────────────────────────────────────────────────────
+
+
+def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_tasks_do_not() -> (
+    None
+):
+    """v1 stated no budget and 11 of its 23 failing answers were only over length."""
+    for action in ("explain", "when", "compare"):
+        low, high = graders.LENGTH_BOUNDS[action]
+        budget = prompts.CHAR_BUDGET[action]
+        assert low < budget < high, "a margin below the hard limit, above the minimum"
+        task = prompts.TASKS[action]
+        assert f"at most {budget} characters" in task
+        assert "do not write any number that is not in the record" in task
+        assert "name the function" in task and "never say a result is guaranteed" in task
+    assert "{other}" in prompts.TASKS["compare"]
+    assert "x" in prompts.TASKS["compare"].format(other="x")  # no stray braces from the added rules
+    for action in ("example:typical", "example:stress"):
+        task = prompts.TASKS[action]  # the model must write numbers that are not in the record here
+        assert "characters" not in task and "any number" not in task
+    assert "any number" not in prompts.SYSTEM_PROMPT
+
+
+def test_the_run_summary_names_the_prompt_version() -> None:
+    summary = run_eval.summarize([], [], 0, "m")
+    assert summary["prompt_version"] == prompts.PROMPT_VERSION
+    assert prompts.PROMPT_VERSION.startswith("v2")
+
+
+def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:
+    rows = [
+        {"id": "a", "intent": "explain"},
+        {"id": "b", "intent": "example", "scenario": "typical"},
+        {"id": "c", "intent": "when"},
+        {"id": "d", "intent": "when"},
+    ]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    assert [c["id"] for c in run_eval.load_cases(path, None, {"when", "explain"})] == [
+        "a",
+        "c",
+        "d",
+    ]
+    assert [c["id"] for c in run_eval.load_cases(path, 2, {"when", "explain"})] == ["a", "c"]
+    assert [c["id"] for c in run_eval.load_cases(path, None, {"example:typical"})] == ["b"]
+    assert len(run_eval.load_cases(path, None, None)) == 4
+
+
+def test_judge_only_limits_the_actions_and_a_larger_sample_starts_with_the_smaller() -> None:
+    rows = [
+        {"case_id": f"f{i}:{intent}", "intent": intent, "status": "ok", "rep": 0}
+        for i in range(30)
+        for intent in ("explain", "when", "compare")
+    ]
+    small = judge.select_sample(rows, 3, only={"when", "compare"})
+    assert {r["intent"] for r in small} == {"when", "compare"}
+    large = judge.select_sample(rows, 8, only={"when", "compare"})
+    for intent in ("when", "compare"):
+        assert [r for r in large if r["intent"] == intent][:3] == [
+            r for r in small if r["intent"] == intent
+        ]
+    assert len(judge.select_sample(rows, 3)) == 9
+
+
+def test_regrade_counts_a_fix_without_calling_the_api(tmp_path: Path) -> None:
+    """The saved answers are graded again by the current graders; the stored verdict is the 'before'."""
+    explain, compare = make_case("explain"), make_case("compare")
+    cases = {explain["id"]: explain, compare["id"]: compare}
+    stored_fail = {"passed": False, "checks": {}, "flags": ["unknown identifier"]}
+    rows = [
+        # a good answer an older grader had failed: the fix flips it
+        {
+            "case_id": explain["id"],
+            "intent": "explain",
+            "status": "ok",
+            "text": GOOD_EXPLAIN,
+            "grade": stored_fail,
+        },
+        # still too short: fails before and after, and is listed with its checks and length
+        {
+            "case_id": compare["id"],
+            "intent": "compare",
+            "status": "ok",
+            "text": "Too short.",
+            "grade": stored_fail,
+        },
+        {
+            "case_id": explain["id"],
+            "intent": "explain",
+            "status": "truncated",
+            "text": "x",
+            "grade": None,
+        },
+    ]
+    result = regrade.regrade(cases, rows)
+    assert result["per_action"]["explain"] == {"n": 1, "passed_before": 0, "passed_after": 1}
+    assert result["per_action"]["compare"] == {"n": 1, "passed_before": 0, "passed_after": 0}
+    assert result["changed"] == [
+        {"case_id": explain["id"], "action": "explain", "now_passes": True}
+    ]
+    assert [(f["case_id"], f["chars"]) for f in result["still_failing"]] == [(compare["id"], 10)]
+    assert "length_ok" in result["still_failing"][0]["failed_checks"]
+    only = regrade.regrade(cases, rows, {"compare"})
+    assert list(only["per_action"]) == ["compare"]
+
+
+def test_a_disclaimer_that_uses_the_noun_guarantee_is_not_advice() -> None:
+    """Run 3: "rather than a guarantee that the model fits" was marked as promising a result."""
+    case = make_case("explain")
+    for fine in (
+        GOOD_EXPLAIN + " It is an estimate, rather than a guarantee that the model fits.",
+        GOOD_EXPLAIN + " There is no guarantee that it fits.",
+    ):
+        assert graders.grade(case, fine).checks["no_advice"] is True
+    for promise in (
+        "pyvar guarantees that the result is exact.",
+        "This is guaranteed to converge.",
+        "It guarantees you a bound.",
+        "We guarantee the fit.",
+    ):
+        assert graders.grade(case, GOOD_EXPLAIN + " " + promise).checks["no_advice"] is False

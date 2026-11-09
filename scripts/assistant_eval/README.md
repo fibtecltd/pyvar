@@ -17,7 +17,8 @@ about a sample (faithful, useful, plausible values), and a human should read a h
 ## Run it
 
 ```bash
-# 1. The case set (needs the project environment: it imports the app for the OpenAPI schema)
+# 1. The case set (needs the project environment: it imports the app for the OpenAPI schema, so first
+#    pip install -r requirements.txt -r requirements-ci.txt, which brings numpy, scipy and numba)
 APP_ENV=test python scripts/assistant_eval/cases.py --out $WORK/cases.jsonl          # a sample
 APP_ENV=test python scripts/assistant_eval/cases.py --all --out $WORK/cases_all.jsonl # every function
 
@@ -29,10 +30,22 @@ python scripts/assistant_eval/run_eval.py --cases $WORK/cases.jsonl --out $WORK/
 python scripts/assistant_eval/run_eval.py --cases $WORK/cases.jsonl --out $WORK/haiku \
     --model claude-haiku-5-5 --max-usd 3
 python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/haiku --per-intent 12 --max-usd 3
+
+# 4. Optional: only some actions (explain, when, compare, example:typical, example:stress), for both tools
+python scripts/assistant_eval/run_eval.py --cases $WORK/cases.jsonl --out $WORK/v2 --only explain,when,compare
+python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/v2 --only explain,when,compare \
+    --per-intent 80 --max-usd 2
+
+# 5. After a grader change: grade a finished run's saved answers again, no API and no cost
+python scripts/assistant_eval/regrade.py --cases $WORK/cases.jsonl --run $WORK/haiku
 ```
 
 `--max-usd` is a hard cap: when reached, new cases are skipped (and counted as skipped, not failed). A run
-resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `traces/`, `summary.json`.
+resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `traces/`, `summary.json`, which
+names the `prompt_version` that produced it (`prompts.PROMPT_VERSION`; v1 was the first paid run, v2 states a
+character budget and three rules in each text task). The judge's sample inside an action is in a fixed hash
+order, so `--per-intent 80` starts with the answers `--per-intent 40` judged: runs can be compared case by
+case. The judge overwrites `judgments.jsonl` in the run directory; copy it first if you want the old one.
 
 ## How to read the output
 
