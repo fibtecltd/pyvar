@@ -741,3 +741,20 @@ def test_regrade_counts_a_fix_without_calling_the_api(tmp_path: Path) -> None:
     assert "length_ok" in result["still_failing"][0]["failed_checks"]
     only = regrade.regrade(cases, rows, {"compare"})
     assert list(only["per_action"]) == ["compare"]
+
+
+def test_a_disclaimer_that_uses_the_noun_guarantee_is_not_advice() -> None:
+    """Run 3: "rather than a guarantee that the model fits" was marked as promising a result."""
+    case = make_case("explain")
+    for fine in (
+        GOOD_EXPLAIN + " It is an estimate, rather than a guarantee that the model fits.",
+        GOOD_EXPLAIN + " There is no guarantee that it fits.",
+    ):
+        assert graders.grade(case, fine).checks["no_advice"] is True
+    for promise in (
+        "pyvar guarantees that the result is exact.",
+        "This is guaranteed to converge.",
+        "It guarantees you a bound.",
+        "We guarantee the fit.",
+    ):
+        assert graders.grade(case, GOOD_EXPLAIN + " " + promise).checks["no_advice"] is False

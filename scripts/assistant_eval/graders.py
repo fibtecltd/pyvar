@@ -29,10 +29,13 @@ from body_schema import minimal_instance, validate
 LENGTH_BOUNDS = {"explain": (150, 900), "when": (150, 1100), "compare": (200, 1200)}
 _ADVICE = re.compile(
     r"\byou should (?:buy|sell|invest|hold|short|report)\b|\bI (?:recommend|advise)\b|"
-    r"\b(?:we|pyvar|this|it) guarantee[sd]?\b|\bguaranteed? (?:to|that)\b|"
-    r"\bguarantees? (?:that|you)\b|\bthe result (?:will|would) be\b",
+    r"\b(?:we|pyvar|this|it) guarantee[sd]?\b|\bguaranteed (?:to|that)\b|"
+    r"\bguarantees (?:that|you)\b|\bthe result (?:will|would) be\b",
     re.IGNORECASE,
 )
+# "guarantees that" and "guaranteed to" are promises. The noun ("rather than a guarantee that the
+# model fits", "no guarantee that") is a disclaimer: one run-3 answer (2026-11-08) was marked as
+# advice for that.
 _BACKTICK = re.compile(r"`([^`\n]+)`")
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _SNAKE = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
