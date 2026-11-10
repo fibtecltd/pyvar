@@ -640,7 +640,7 @@ and it did not retry. The files existed on its machine at the time (`stage1.json
 those two files to be transferred, and if they are lost, a third paid run (about $2.3) is the only way to get
 answers to read.
 
-### 9.13 Prompt v5, and the recall check on its answers (prepared 2026-11-10, not run)
+### 9.13 Prompt v5, and the recall check on its answers (run 2026-11-10; result in 9.14)
 
 Filippo chose to pay for one more run (2026-11-10) and set a tolerance: **published answers may contain a wrong claim
 in at most 4% of cases.** The rest of this section fixes what the run will be and how it will be read, before it is
@@ -686,3 +686,41 @@ for it before the reading starts; it is not applied here.
 tool draws 40 clean, 12 noted and 4 flagged answers plus 40 spare, about $2.3 with caps of $2.85. The answers reach
 the reader as files, not as text pasted into a chat: two earlier transfers failed, one because the machine holding
 the files was replaced, one because the agent's own output was stopped.
+
+### 9.14 Result of prompt v5 (2026-11-10)
+
+Run as planned in 9.13 on the dev key: Haiku 5.5 with v5 wrote the 308 text answers ($0.08) and Opus 5.5 judged all
+308 ($2.15), $2.24 in all, every verdict parsed. Opus flagged 11 (3.6%): `explain` 2 of 134, `when` 6 of 134, `compare`
+3 of 40; 28 more passed with issues listed, 269 passed clean. `docs/assistant-prompt-v5-opus-flags.csv` lists the 30
+cases that Opus flagged or a grader failed.
+
+| Measure (9.13) | Required for v5 to replace v4 | v5 | |
+|---|---|---|---|
+| `no_source_claims` failures | at most 3 | 0 | met |
+| Opus flags crediting the documentation | at most 1 | 0 (v4: 7 of 21) | met |
+| Opus flags in all | at most 14 | 11 | met |
+| Grader pass: `explain` / `when` / `compare` | at least 127 / 127 / 38 | 126 / 122 / 39 | **missed** (`explain` by 1, `when` by 5) |
+
+**By the rule fixed beforehand, v4 stays the candidate.**
+
+**What happened.** The mechanism worked: no v5 answer contains "pyvar's documentation", and no flag credits it. But
+the total did not fall: 11 of 308 against v4's 21 of 616 is p 0.52, so other misreadings took the place of the ones
+removed. And the fix cost something. With "say pyvar's documentation" gone, `visitor_wording` failures rose from 3 and
+2 on the v4 draws to 12: "the record" in 8 answers (v4: 1 and 0) and "sibling" in 4 (v4: 2 and 2). The grader catches
+every one, but grader failures plus Opus flags together reach 30 of 308 (9.7%), against 24 and 23 on the v4 draws:
+v5 is not better, and a pipeline running on it would regenerate more answers.
+
+**Four draws.** Pooling v4 and v5 gives 32 flags of 924 (3.5%) against v3's 22 of 308 (7.1%), p 0.007: after v3 the
+prompts settle at about 3.5%. Eight cases were flagged on at least two of the four draws (v3, v4 twice, v5) and three
+on three of them: `pillar_2a_capital:when`, `esg_score_integration:when` and `effective_duration_alm:when`; the
+others are `cva_sensitivity_cva_greeks:when`, `conduct_risk_metric:compare:model_risk_assessment`,
+`black_scholes_european_option:when`, `retail_deposit_runoff_rate:explain` and `fx_forward_pricer:when`. Opus flags
+the same functions on independent generations, and the three it flags most are plain misreadings of the record
+(`pillar_2a_capital` calls a required input optional, `effective_duration_alm` says pyvar re-values inputs the
+caller supplies, `fx_forward_pricer` lets `notional` affect the forward). No prompt change reached these: they need a
+person, or a fix to the records, and a pipeline would send an answer that fails twice to one.
+
+**The recall check.** The answers did reach the repository this time, as files, on the scratch branch
+`data/assistant-recall-answers` (commit `de6afc2`, parent master `21d7b8d`, three files under `docs/scratch/`),
+pushed by Filippo after the agent's own push failed for lack of credentials. Their sha256 values match the agent's
+report byte for byte. The reading is pending; the branch is deleted once it is recorded.
