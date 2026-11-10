@@ -538,26 +538,36 @@ Opus still flags plus a random sample. What would make that acceptable is a meas
 person reading a random sample of the answers it passed. Prompt v5 (attribution, the leaked tag) is the other open
 item; both are decisions for Filippo.
 
-### 9.11 The recall check: can Opus gate the text? (prepared 2026-11-09, not run)
+### 9.11 The recall check: can Opus gate the text? (re-planned 2026-11-10, not run)
 
 Filippo asked for it (2026-11-09). 9.10 left one question open: whether Opus, judging every answer once per
-catalogue version, can be trusted to gate the model's text, with a person reading only a sample and what it
-flags. Its precision held where checked; its recall is unknown, so a person has to read answers Opus **passed**.
+catalogue version, can be trusted to gate the model's text, with a person reading only a sample and what it flags.
+Its precision held where checked; its recall is unknown, so a person has to read answers Opus **passed**.
 
-**Design (`recall_check.py`, `docs/assistant-prompt-v4-recall-check.json`).** Three strata of the 308 v4 answers,
-drawn by a hash of the fixed seed `recall-check-1`, so the choice is repeatable and not made by looking at answers:
+**The first plan was lost.** It drew 56 answers from the v4 run's files on the agent's machine, at no cost. By the
+time the export was asked for, that machine had been replaced and neither the answers nor the Opus verdicts existed,
+so nothing was read. Filippo chose a new paid run (2026-11-10). The lesson is built into the design below: a run's
+files cannot be assumed to outlive its session.
+
+**The run (one session).** Haiku 5.5 writes the 308 text answers with prompt v4 and Opus 5.5 judges all 308, as in
+9.10 (generation $0.08, Opus about $2.2: about $2.3, caps $2.85, dev key). The answers to read are then exported
+by `recall_check.py` and the report carries all of them, in two stages split into parts, together with what Opus
+said, so nothing depends on the machine afterwards.
+
+**Design (`recall_check.py`, `docs/assistant-prompt-v4-recall-check.json`).** The strata come from the new Opus
+verdicts, never from a list of ids, each drawn by a hash of the fixed seed `recall-check-1`, so the draw is
+repeatable from the run and not made by looking at answers:
 
 | Stratum | Pool | Read | Why |
 |---|---|---|---|
-| clean | 265 passed with no issues noted | 40 (a second 40 held back) | the residual error rate of the gate |
-| noted | 33 passed, but Opus listed issues | 12 | whether "issues noted" is free signal |
-| flagged | the 4 of Opus's 10 flags nobody has read | 4 | with the 6 already read, Opus's precision on all 10 |
+| clean | passed with no issues listed | 40 (a second 40 held back) | the residual error rate of the gate |
+| noted | passed, but Opus listed issues | 12 | whether "issues noted" is free signal |
+| flagged | Opus said unfaithful | 4 of them, by hash | Opus's precision (all of them are unread: the answers are new) |
 
 The reader sees the catalogue entry the guide was given, then the answer, and marks "no error found" or "contains
 an error, or a claim the entry does not support" (that includes crediting pyvar's documentation with something the
 entry does not say). The page never says which stratum an item is from or that Opus is involved; the key stays with
-whoever built it. The export refuses any answer whose Opus verdict does not match the stratum it was drawn for.
-56 items at about 1.5 minutes each is about 85 minutes; the optional second batch of 40 is about 60 more.
+whoever built it. 56 items at about 1.5 minutes each is about 85 minutes; the second batch of 40 is about 60 more.
 
 **The rule, fixed before the run.** On the clean stratum, k errors in 40:
 
@@ -567,17 +577,19 @@ whoever built it. The export refuses any answer whose Opus verdict does not matc
 | 2 or 3 | inconclusive: read the second 40; on all 80, 3 or fewer is usable and 4 or more is not |
 | 4 or more | not a gate: a person reads every model-written answer |
 
-On the noted stratum, m errors in 12: 3 or more means treating "Opus listed issues" as a flag too (33 more answers
-to read per release); fewer means not. The flagged stratum is reported as a count.
+On the noted stratum, m errors in 12: 3 or more means treating "Opus listed issues" as a flag too (about 33 more
+answers to read per release); fewer means not. The flagged stratum is reported as a count.
+
+**A replication comes with it.** The run is a second draw of v4, so its Opus flag count is read against the bands of
+9.9: 10 or fewer is consistent with the first draw; 11 to 16 is still better than v3's 22 but inside the noise; 17 or
+more means the first draw's 10 was luck and v4 is not shown better than v3. The count does not change the rule above.
 
 **What 40 can and cannot show.** "Usable" is "no sign of trouble", not "recall at least 0.75". The 95% upper bound
 on the residual error rate among passed answers is 8.8% at k = 0 and 12.9% at k = 1; k = 4 puts the lower bound at
 4.0%, above Opus's own flag rate (3.2%). Assuming Opus flags 3.2% and misses some, the chance of k of 0 or 1 is
 0.93 if its recall is 0.75, 0.62 if 0.50 and 0.24 if 0.33: the check is better at rejecting a poor gate than at
-confirming a good one. The release-time sample the rule asks for is the same reading as this check, so passing
-it is also the rehearsal for it.
+confirming a good one. The release-time sample the rule asks for is the same reading as this check, so passing it is
+also the rehearsal for it.
 
-**Cost.** No API call and no money: the 56 answers already exist on the agent's machine from the v4 run and are
-only exported. The cost is the reader's time. If those files are gone, the check cannot run on these answers;
-regenerating would give a different set of answers and cost about $2.3 again for new Opus verdicts, and is not
-done without a decision. For comparison, Opus judging all 1,154 text answers once is about $8.3 (9.10).
+**Cost.** About $2.3 of API (generation $0.08, Opus $2.2; the caps total $2.85), then no further call: the export
+is local. The rest is the reader's time. For comparison, Opus judging all 1,154 text answers once is about $8.3 (9.10).

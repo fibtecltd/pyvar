@@ -2,30 +2,32 @@
 
 Reasoning:
 - Opus judged 308 prompt-v4 answers and flagged 10 (docs/assistant-phase0-results.md 9.10). Its precision held
-  where checked (5 of 6, one arguable), but its recall is unknown: nothing says how many errors sit in the 298 it
-  passed. A cheaper judge cannot replace it (9.8), so the open question is whether Opus itself can gate the text
+  where checked (5 of 6, one arguable), but its recall is unknown: nothing says how many errors sit in the answers
+  it passed. A cheaper judge cannot replace it (9.8), so the open question is whether Opus itself can gate the text
   at build time, with a person reading only a sample and what it flags. Only a person reading Opus-passed answers
   against their records can answer that.
-- Three strata, drawn by a hash of a fixed seed so the choice is repeatable and not made by looking at answers:
-  `clean` (passed, no issues noted: the residual error rate of the gate), `noted` (passed, but Opus listed
-  issues: is that free signal worth treating as a flag?), `flagged` (the Opus flags nobody has read yet).
-  `clean_more` is a second batch from the same pool for when the first is inconclusive.
+- The strata come from the Opus verdicts of the run being checked, never from a list of ids: `clean` (passed, no
+  issues listed: the residual error rate of the gate), `noted` (passed, but Opus listed issues: is that free
+  signal?), `flagged` (Opus said unfaithful: is it right?). Each is drawn by a hash of a fixed seed, so the draw is
+  repeatable from the run and not made by looking at answers. `clean_more` is a second batch from the clean pool for
+  when the first is inconclusive. (The first draw of this check named its ids in a file; that run's files were
+  lost with the machine that made them, and the check was re-planned around a run that carries its own export.)
+- `export` is built to survive the machine it runs on: one JSON file per stage with the answers, each id's
+  stratum, and (for noted and flagged answers) what Opus said, plus the pool sizes and every flagged and noted id.
+  It goes to whoever builds the page, never to the reader.
 - The reader sees the catalogue record the guide was given, then the answer, and marks "no error found" or "an
   error, or a claim the record does not support". The page never says which stratum an item is from, and never
   mentions Opus; the key stays with whoever built it.
-- `export` refuses answers whose Opus verdict does not match their stratum (a mistyped id, or a run other than
-  the one the ids were drawn for), so the sample cannot silently drift.
 
 Usage:
-    python scripts/assistant_eval/recall_check.py pick   --cases CASES
-    python scripts/assistant_eval/recall_check.py export --cases CASES --run RUN [--stage 2] > answers.json
-    python scripts/assistant_eval/recall_check.py build  --cases CASES --answers answers.json --out PAGE --key KEY
+    python scripts/assistant_eval/recall_check.py pick   --cases CASES --run RUN
+    python scripts/assistant_eval/recall_check.py export --cases CASES --run RUN [--stage 2] > stage1.json
+    python scripts/assistant_eval/recall_check.py build  --cases CASES --answers stage1.json --out PAGE --key KEY
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import html
 import json
@@ -38,92 +40,101 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from side_by_side import _plain, question  # noqa: E402
 
 TEXT_ACTIONS = ("explain", "when", "compare")
-DOCS = Path(__file__).resolve().parents[2] / "docs"
-DEFAULT_CONFIG = DOCS / "assistant-prompt-v4-recall-check.json"
-DEFAULT_FLAGS = DOCS / "assistant-prompt-v4-opus-flags.csv"
+DEFAULT_CONFIG = (
+    Path(__file__).resolve().parents[2] / "docs" / "assistant-prompt-v4-recall-check.json"
+)
+ISSUE_CHARS = 300
 
 
 def _rank(seed: str, key: str) -> str:
     return hashlib.sha256(f"{seed}:{key}".encode()).hexdigest()
 
 
-def load_flagged(path: Path) -> list[str]:
-    """Case ids Opus flagged (`opus` = F) in the flags CSV."""
-    with path.open(newline="") as handle:
-        return [r["case_id"] for r in csv.DictReader(handle) if r["opus"] == "F"]
-
-
-def strata(
-    cases: dict[str, dict[str, Any]], config: dict[str, Any], flagged: list[str]
-) -> dict[str, list[str]]:
-    """The four id lists. Raises SystemExit if a listed id is not a text case."""
-    text = {i for i, c in cases.items() if c["intent"] in TEXT_ACTIONS}
-    noted_all = list(config["noted_passes"])
-    unknown = [i for i in noted_all + flagged if i not in text]
-    if unknown:
-        raise SystemExit(f"not text cases in the case file: {unknown}")
-    if set(noted_all) & set(flagged):
-        raise SystemExit("an id is both flagged and passed-with-issues")
-    seed = config["seed"]
-    pool = sorted(text - set(flagged) - set(noted_all), key=lambda i: _rank(seed, "clean:" + i))
-    first, more = config["clean"], config["clean_more"]
-    skip = set(config["flagged_already_read"])
-    return {
-        "clean": pool[:first],
-        "clean_more": pool[first : first + more],
-        "noted": sorted(noted_all, key=lambda i: _rank(seed, "noted:" + i))[: config["noted"]],
-        "flagged": [i for i in sorted(flagged) if i not in skip],
-    }
-
-
-def stage_ids(groups: dict[str, list[str]], stage: int) -> list[str]:
-    """Stage 1 is the main reading; stage 2 is only the second batch of clean answers."""
-    if stage == 2:
-        return list(groups["clean_more"])
-    return groups["clean"] + groups["noted"] + groups["flagged"]
-
-
-def check_verdicts(groups: dict[str, list[str]], verdicts: dict[str, dict[str, Any]]) -> list[str]:
-    """What is wrong with the Opus verdicts for the drawn ids (empty when every stratum is as drawn)."""
-    problems = []
-    for stratum, ids in groups.items():
-        for case_id in ids:
-            verdict = verdicts.get(case_id)
-            if not verdict:
-                problems.append(f"{case_id}: no Opus verdict")
-                continue
-            faithful, noted = verdict.get("faithful"), bool(verdict.get("issues"))
-            if stratum == "flagged" and faithful is not False:
-                problems.append(f"{case_id}: drawn as flagged but Opus passed it")
-            if stratum != "flagged" and faithful is not True:
-                problems.append(f"{case_id}: drawn as passed but Opus flagged it")
-            if stratum.startswith("clean") and faithful and noted:
-                problems.append(f"{case_id}: drawn as clean but Opus noted issues")
-            if stratum == "noted" and faithful and not noted:
-                problems.append(f"{case_id}: drawn as noted but Opus noted none")
-    return problems
-
-
 def _jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def export(run: Path, groups: dict[str, list[str]], stage: int = 1) -> dict[str, Any]:
-    """The answers for a stage from a finished run, after checking each against Opus's verdict."""
-    ids = stage_ids(groups, stage)
-    verdicts = {r["case_id"]: r["verdict"] for r in _jsonl(run / "judgments.jsonl")}
-    problems = check_verdicts({k: v for k, v in groups.items() if set(v) <= set(ids)}, verdicts)
+def pools(
+    cases: dict[str, dict[str, Any]], judgments: list[dict[str, Any]]
+) -> dict[str, list[str]]:
+    """Every judged text case by what Opus said: flagged, noted (passed with issues), clean, or unparsed."""
+    out: dict[str, list[str]] = {"flagged": [], "noted": [], "clean": [], "unparsed": []}
+    for row in judgments:
+        case_id = row["case_id"]
+        if case_id not in cases or cases[case_id]["intent"] not in TEXT_ACTIONS:
+            continue
+        verdict = row.get("verdict")
+        if not verdict or not isinstance(verdict.get("faithful"), bool):
+            out["unparsed"].append(case_id)
+        elif not verdict["faithful"]:
+            out["flagged"].append(case_id)
+        elif verdict.get("issues"):
+            out["noted"].append(case_id)
+        else:
+            out["clean"].append(case_id)
+    return {k: sorted(v) for k, v in out.items()}
+
+
+def draw(groups: dict[str, list[str]], config: dict[str, Any]) -> dict[str, list[str]]:
+    """The ids to read: a hash-ordered head of each pool, the clean pool split into a first and a second batch."""
+    seed = config["seed"]
+
+    def ranked(kind: str) -> list[str]:
+        return sorted(groups[kind], key=lambda i: _rank(seed, f"{kind}:{i}"))
+
+    clean, first = ranked("clean"), config["clean"]
+    return {
+        "clean": clean[:first],
+        "clean_more": clean[first : first + config["clean_more"]],
+        "noted": ranked("noted")[: config["noted"]],
+        "flagged": ranked("flagged")[: config["flagged"]],
+    }
+
+
+def stage_ids(drawn: dict[str, list[str]], stage: int) -> list[str]:
+    """Stage 1 is the main reading; stage 2 is only the second batch of clean answers."""
+    if stage == 2:
+        return list(drawn["clean_more"])
+    return drawn["clean"] + drawn["noted"] + drawn["flagged"]
+
+
+def export(
+    cases: dict[str, dict[str, Any]], run: Path, config: dict[str, Any], stage: int = 1
+) -> dict[str, Any]:
+    """One stage of the check as a file: answers, strata, what Opus said about the non-clean ones, the pools."""
+    judgments = _jsonl(run / "judgments.jsonl")
+    groups = pools(cases, judgments)
+    drawn = draw(groups, config)
+    ids = stage_ids(drawn, stage)
     text = {r["case_id"]: r["text"] for r in _jsonl(run / "results.jsonl") if r["status"] == "ok"}
-    problems += [f"{i}: no scored answer" for i in ids if i not in text]
-    if problems:
-        raise SystemExit("not exporting:\n" + "\n".join(problems[:20]))
+    missing = [i for i in ids if i not in text]
+    if missing:
+        raise SystemExit(f"no scored answer for: {missing[:10]}")
+    stratum_of = {i: s for s, members in drawn.items() for i in members}
+    verdicts = {r["case_id"]: r["verdict"] for r in judgments if r.get("verdict")}
     summary_path = run / "summary.json"
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
-    return {
+    out: dict[str, Any] = {
+        "stage": stage,
+        "seed": config["seed"],
         "model": summary.get("model"),
         "prompt_version": summary.get("prompt_version"),
+        "strata": {i: stratum_of[i] for i in ids},
+        "opus": {
+            i: {
+                "faithful": verdicts[i]["faithful"],
+                "issues": [str(x)[:ISSUE_CHARS] for x in verdicts[i].get("issues") or []],
+            }
+            for i in ids
+            if stratum_of[i] in ("noted", "flagged")
+        },
         "answers": {i: text[i] for i in ids},
     }
+    if stage == 1:
+        out["pools"] = {k: len(v) for k, v in groups.items()}
+        out["all_flagged"] = groups["flagged"]
+        out["all_noted"] = groups["noted"]
+    return out
 
 
 def _esc(text: str) -> str:
@@ -169,33 +180,25 @@ def _entry_html(case: dict[str, Any]) -> str:
 
 
 def build(
-    cases: dict[str, dict[str, Any]],
-    answers: dict[str, str],
-    groups: dict[str, list[str]],
-    seed: str,
+    cases: dict[str, dict[str, Any]], answers: dict[str, str], strata: dict[str, str], seed: str
 ) -> tuple[str, list[dict[str, Any]]]:
     """The reading page and its key (item number, case id, stratum). Order is a hash of the seed."""
-    stratum_of = {i: s for s, ids in groups.items() for i in ids}
-    unknown = [i for i in answers if i not in stratum_of]
-    if unknown:
-        raise SystemExit(f"answers for ids that are in no stratum: {unknown}")
+    if set(answers) != set(strata):
+        raise SystemExit("the answers and the strata are not for the same ids")
     ids = sorted(answers, key=lambda i: _rank(seed, "order:" + i))
     key, cards = [], []
     for n, case_id in enumerate(ids, start=1):
         case = cases[case_id]
         key.append(
-            {
-                "n": n,
-                "case_id": case_id,
-                "stratum": stratum_of[case_id],
-                "action": case["intent"],
-            }
+            {"n": n, "case_id": case_id, "stratum": strata[case_id], "action": case["intent"]}
         )
         cards.append(
             f'<section class="item" data-n="{n}"><h2>Item {n} of {len(ids)}: '
             f"<span>{html.escape(question(case))}</span></h2>"
-            f"<details open><summary>The catalogue entry the guide was given</summary>{_entry_html(case)}</details>"
-            f'<div class="ans"><div class="side">THE ANSWER</div><div class="txt">{html.escape(answers[case_id])}</div></div>'
+            f"<details open><summary>The catalogue entry the guide was given</summary>"
+            f"{_entry_html(case)}</details>"
+            f'<div class="ans"><div class="side">THE ANSWER</div>'
+            f'<div class="txt">{html.escape(answers[case_id])}</div></div>'
             f'<div class="pick"><label><input type="radio" name="v{n}" value="OK"> No error found</label>'
             f'<label><input type="radio" name="v{n}" value="ERR"> Contains an error, or a claim the entry does not support</label>'
             f'<input class="note" type="text" name="note{n}" placeholder="what is wrong (optional)" maxlength="240"></div></section>'
@@ -257,11 +260,10 @@ def main() -> int:
         p = sub.add_parser(name)
         p.add_argument("--cases", required=True, type=Path)
         p.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-        p.add_argument("--flags", type=Path, default=DEFAULT_FLAGS)
-        if name != "pick":
-            p.add_argument("--stage", type=int, choices=(1, 2), default=1)
-        if name == "export":
+        if name in ("pick", "export"):
             p.add_argument("--run", required=True, type=Path)
+        if name == "export":
+            p.add_argument("--stage", type=int, choices=(1, 2), default=1)
         if name == "build":
             p.add_argument("--answers", required=True, type=Path)
             p.add_argument("--out", required=True, type=Path)
@@ -269,24 +271,19 @@ def main() -> int:
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     cases = _load_cases(args.cases)
-    groups = strata(cases, config, load_flagged(args.flags))
-    if args.command == "pick":
-        print(json.dumps({"seed": config["seed"], **groups}, indent=1))
-    elif args.command == "export":
-        print(json.dumps(export(args.run, groups, args.stage), ensure_ascii=False, indent=1))
-    else:
+    if args.command == "build":
         data = json.loads(args.answers.read_text())
-        answers = data["answers"] if "answers" in data else data
-        wanted = set(stage_ids(groups, args.stage))
-        if set(answers) != wanted:
-            raise SystemExit(
-                f"the answers are not exactly stage {args.stage}: "
-                f"missing {sorted(wanted - set(answers))[:5]}, extra {sorted(set(answers) - wanted)[:5]}"
-            )
-        page, key = build(cases, answers, groups, config["seed"])
+        page, key = build(cases, data["answers"], data["strata"], data["seed"])
         args.out.write_text(page, encoding="utf-8")
         args.key.write_text(json.dumps(key, indent=1))
         print(f"wrote {args.out} ({len(key)} items) and the key {args.key}", file=sys.stderr)
+    elif args.command == "pick":
+        groups = pools(cases, _jsonl(args.run / "judgments.jsonl"))
+        counts = {k: len(v) for k, v in groups.items()}
+        drawn = draw(groups, config)
+        print(json.dumps({"seed": config["seed"], "pools": counts, **drawn}, indent=1))
+    else:
+        print(json.dumps(export(cases, args.run, config, args.stage), ensure_ascii=False, indent=1))
     return 0
 
 

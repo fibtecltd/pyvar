@@ -3,15 +3,17 @@
 Reasoning:
 - docs/assistant-phase0-results.md 9.10 leaves one question open: whether Opus can gate model-written text at
   build time. Its precision held where checked; its recall is unknown. These tests pin what the check relies on:
-  the sample is repeatable and drawn by a hash, the strata never overlap, the export refuses answers whose Opus
-  verdict does not match the stratum they were drawn for, and the page never says which stratum an item is from
-  (or that Opus is involved), so the reader cannot be steered.
+  the strata come from the Opus verdicts of the run itself (never from a list of ids, which is what was lost
+  with the first draw), the sample is repeatable and drawn by a hash, the export carries everything a lost machine
+  would otherwise take with it, and the page never says which stratum an item is from (or that Opus is
+  involved), so the reader cannot be steered.
 """
 
 from __future__ import annotations
 
 import json
 import random
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -53,188 +55,203 @@ def _cases(per_action: int = 30) -> dict[str, dict[str, Any]]:
     return out
 
 
-FLAGGED = ["fn_when_0:when", "fn_when_1:when", "fn_explain_0:explain", "fn_compare_0:compare"]
 CONFIG: dict[str, Any] = {
     "seed": "test-seed",
     "clean": 6,
     "clean_more": 5,
     "noted": 3,
-    "flagged_already_read": ["fn_when_0:when"],
-    "noted_passes": [f"fn_explain_{i}:explain" for i in range(10, 16)],
+    "flagged": 2,
 }
+FLAGGED = [f"fn_when_{i}:when" for i in range(4)]
+NOTED = [f"fn_explain_{i}:explain" for i in range(10)]
+UNPARSED = ["fn_compare_0:compare", "fn_compare_1:compare"]
 
 
-def _groups(cases: dict[str, dict[str, Any]] | None = None) -> dict[str, list[str]]:
-    return rc.strata(cases or _cases(), CONFIG, FLAGGED)
+def _judgments(cases: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for case_id, case in cases.items():
+        if case["intent"] == "example":
+            verdict: dict[str, Any] | None = {"faithful": False, "issues": ["not a text case"]}
+        elif case_id in FLAGGED:
+            verdict = {"faithful": False, "issues": [f"wrong claim in {case_id}", "x" * 500]}
+        elif case_id in NOTED:
+            verdict = {"faithful": True, "issues": [f"a doubt about {case_id}"]}
+        elif case_id == UNPARSED[0]:
+            verdict = None
+        elif case_id == UNPARSED[1]:
+            verdict = {"useful": True}
+        else:
+            verdict = {"faithful": True, "issues": []}
+        rows.append({"case_id": case_id, "verdict": verdict})
+    return rows
 
 
-# ── strata ──────────────────────────────────────────────────────────────────────────────────────────
-
-
-def test_the_strata_have_the_sizes_asked_for_and_never_overlap() -> None:
-    groups = _groups()
-    assert {k: len(v) for k, v in groups.items()} == {
-        "clean": 6,
-        "clean_more": 5,
-        "noted": 3,
-        "flagged": 3,
-    }
-    everything = [i for ids in groups.values() for i in ids]
-    assert len(set(everything)) == len(everything)
-    assert not set(groups["clean"] + groups["clean_more"]) & (
-        set(FLAGGED) | set(CONFIG["noted_passes"])
-    )
-    assert set(groups["noted"]) <= set(CONFIG["noted_passes"])
-    assert "fn_when_0:when" not in groups["flagged"], "the flagged answer already read is left out"
-    assert all(rc_id.rsplit(":", 1)[-1] != "example" for rc_id in everything), "text answers only"
-
-
-def test_the_draw_is_repeatable_and_does_not_depend_on_the_order_of_the_cases() -> None:
-    cases = _cases()
-    groups = _groups(cases)
-    shuffled = list(cases.items())
-    random.Random(3).shuffle(shuffled)
-    assert _groups(dict(shuffled)) == groups
-    assert rc.strata(cases, {**CONFIG, "seed": "other"}, FLAGGED)["clean"] != groups["clean"]
-
-
-def test_a_bigger_first_batch_starts_with_the_same_answers() -> None:
-    small = _groups()
-    big = rc.strata(_cases(), {**CONFIG, "clean": 9}, FLAGGED)
-    assert big["clean"][:6] == small["clean"]
-
-
-def test_ids_that_are_not_text_cases_or_that_clash_are_refused() -> None:
-    with pytest.raises(SystemExit, match="not text cases"):
-        rc.strata(_cases(), CONFIG, FLAGGED + ["fn_explain_0:example"])
-    with pytest.raises(SystemExit, match="not text cases"):
-        rc.strata(_cases(), CONFIG, FLAGGED + ["no_such_case:when"])
-    with pytest.raises(SystemExit, match="both flagged"):
-        rc.strata(_cases(), CONFIG, FLAGGED + [CONFIG["noted_passes"][0]])
-
-
-def test_stage_two_is_only_the_second_batch_of_clean_answers() -> None:
-    groups = _groups()
-    assert rc.stage_ids(groups, 2) == groups["clean_more"]
-    assert rc.stage_ids(groups, 1) == groups["clean"] + groups["noted"] + groups["flagged"]
-
-
-# ── the check against Opus's verdicts ───────────────────────────────────────────────────────────────
-
-
-def _verdicts(groups: dict[str, list[str]]) -> dict[str, dict[str, Any]]:
-    out: dict[str, dict[str, Any]] = {}
-    for stratum, ids in groups.items():
-        for case_id in ids:
-            out[case_id] = {
-                "faithful": stratum != "flagged",
-                "issues": ["x"] if stratum in ("noted", "flagged") else [],
-            }
-    return out
-
-
-def test_a_stratum_that_matches_the_verdicts_has_no_problems() -> None:
-    groups = _groups()
-    assert rc.check_verdicts(groups, _verdicts(groups)) == []
-
-
-def test_each_way_a_stratum_can_disagree_with_opus_is_named() -> None:
-    groups = _groups()
-    verdicts = _verdicts(groups)
-    clean, noted, flagged = groups["clean"][0], groups["noted"][0], groups["flagged"][0]
-    verdicts[clean]["faithful"] = False
-    verdicts[groups["clean"][1]]["issues"] = ["something"]
-    verdicts[noted]["issues"] = []
-    verdicts[flagged]["faithful"] = True
-    del verdicts[groups["clean_more"][0]]
-    problems = " | ".join(rc.check_verdicts(groups, verdicts))
-    assert f"{clean}: drawn as passed but Opus flagged it" in problems
-    assert f"{groups['clean'][1]}: drawn as clean but Opus noted issues" in problems
-    assert f"{noted}: drawn as noted but Opus noted none" in problems
-    assert f"{flagged}: drawn as flagged but Opus passed it" in problems
-    assert f"{groups['clean_more'][0]}: no Opus verdict" in problems
-
-
-# ── export ──────────────────────────────────────────────────────────────────────────────────────────
-
-
-def _run(tmp_path: Path, groups: dict[str, list[str]], verdicts: dict[str, Any]) -> Path:
+def _run(tmp_path: Path, cases: dict[str, dict[str, Any]], drop: str | None = None) -> Path:
     run = tmp_path / "run"
     run.mkdir()
-    ids = [i for ids in groups.values() for i in ids]
-    rows = [{"case_id": i, "status": "ok", "rep": 0, "text": f"answer for {i}"} for i in ids]
-    (run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
-    judged = [{"case_id": i, "verdict": verdicts[i]} for i in ids if i in verdicts]
-    (run / "judgments.jsonl").write_text("".join(json.dumps(r) + "\n" for r in judged))
+    results = [
+        {"case_id": i, "status": "ok", "rep": 0, "text": f"answer for {i}"}
+        for i in cases
+        if i != drop
+    ]
+    (run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in results))
+    (run / "judgments.jsonl").write_text("".join(json.dumps(r) + "\n" for r in _judgments(cases)))
     (run / "summary.json").write_text(json.dumps({"model": "m1", "prompt_version": "v4-test"}))
     return run
 
 
-def test_export_returns_the_stage_one_answers_and_leaves_the_verdicts_out(tmp_path: Path) -> None:
-    groups = _groups()
-    out = rc.export(_run(tmp_path, groups, _verdicts(groups)), groups)
-    assert set(out["answers"]) == set(rc.stage_ids(groups, 1))
-    assert out["model"] == "m1" and out["prompt_version"] == "v4-test"
-    assert "faithful" not in json.dumps(out) and "issues" not in json.dumps(out)
-    again = tmp_path / "again"
-    again.mkdir()
-    stage_two = rc.export(_run(again, groups, _verdicts(groups)), groups, 2)
-    assert set(stage_two["answers"]) == set(groups["clean_more"])
+# ── the pools come from the verdicts ────────────────────────────────────────────────────────────────
 
 
-def test_export_refuses_a_run_whose_verdicts_do_not_match_the_draw(tmp_path: Path) -> None:
-    groups = _groups()
-    verdicts = _verdicts(groups)
-    verdicts[groups["clean"][0]]["faithful"] = False
-    with pytest.raises(SystemExit, match="drawn as passed but Opus flagged it"):
-        rc.export(_run(tmp_path, groups, verdicts), groups)
+def test_the_pools_are_what_opus_said_about_the_text_answers() -> None:
+    cases = _cases()
+    groups = rc.pools(cases, _judgments(cases))
+    assert groups["flagged"] == sorted(FLAGGED)
+    assert groups["noted"] == sorted(NOTED)
+    assert groups["unparsed"] == sorted(UNPARSED)
+    assert len(groups["clean"]) == 90 - len(FLAGGED) - len(NOTED) - len(UNPARSED)
+    everything = [i for ids in groups.values() for i in ids]
+    assert len(set(everything)) == len(everything) == 90, "each text case is in exactly one pool"
+    assert not any(i.endswith(":example") for i in everything), "text answers only"
+
+
+def test_a_verdict_for_an_unknown_case_is_ignored() -> None:
+    cases = _cases()
+    rows = _judgments(cases) + [{"case_id": "nope:when", "verdict": {"faithful": False}}]
+    assert "nope:when" not in sum(rc.pools(cases, rows).values(), [])
+
+
+# ── the draw ────────────────────────────────────────────────────────────────────────────────────────
+
+
+def _drawn(cases: dict[str, dict[str, Any]] | None = None) -> dict[str, list[str]]:
+    cases = cases or _cases()
+    return rc.draw(rc.pools(cases, _judgments(cases)), CONFIG)
+
+
+def test_the_draw_has_the_sizes_asked_for_comes_from_the_right_pool_and_never_overlaps() -> None:
+    drawn = _drawn()
+    assert {k: len(v) for k, v in drawn.items()} == {
+        "clean": 6,
+        "clean_more": 5,
+        "noted": 3,
+        "flagged": 2,
+    }
+    assert set(drawn["noted"]) <= set(NOTED) and set(drawn["flagged"]) <= set(FLAGGED)
+    assert not set(drawn["clean"] + drawn["clean_more"]) & (
+        set(NOTED) | set(FLAGGED) | set(UNPARSED)
+    )
+    everything = [i for ids in drawn.values() for i in ids]
+    assert len(set(everything)) == len(everything)
+
+
+def test_the_draw_is_repeatable_and_independent_of_the_order_of_the_verdicts() -> None:
+    cases = _cases()
+    rows = _judgments(cases)
+    drawn = rc.draw(rc.pools(cases, rows), CONFIG)
+    random.Random(3).shuffle(rows)
+    assert rc.draw(rc.pools(cases, rows), CONFIG) == drawn
+    other = rc.draw(rc.pools(cases, rows), {**CONFIG, "seed": "other"})
+    assert other["clean"] != drawn["clean"]
+
+
+def test_a_bigger_first_batch_starts_with_the_same_answers() -> None:
+    cases = _cases()
+    groups = rc.pools(cases, _judgments(cases))
+    assert rc.draw(groups, {**CONFIG, "clean": 9})["clean"][:6] == rc.draw(groups, CONFIG)["clean"]
+
+
+def test_a_pool_smaller_than_asked_gives_what_it_has() -> None:
+    groups = {"flagged": ["a:when"], "noted": [], "clean": ["b:when", "c:when"], "unparsed": []}
+    drawn = rc.draw(groups, CONFIG)
+    assert drawn["flagged"] == ["a:when"] and drawn["noted"] == []
+    assert len(drawn["clean"]) == 2 and drawn["clean_more"] == []
+
+
+def test_stage_two_is_only_the_second_batch_of_clean_answers() -> None:
+    drawn = _drawn()
+    assert rc.stage_ids(drawn, 2) == drawn["clean_more"]
+    assert rc.stage_ids(drawn, 1) == drawn["clean"] + drawn["noted"] + drawn["flagged"]
+
+
+# ── export: everything a lost machine would take with it ────────────────────────────────────────────
+
+
+def test_export_stage_one_carries_the_answers_strata_pools_and_what_opus_said(
+    tmp_path: Path,
+) -> None:
+    cases = _cases()
+    out = rc.export(cases, _run(tmp_path, cases), CONFIG)
+    drawn = _drawn(cases)
+    assert set(out["answers"]) == set(rc.stage_ids(drawn, 1)) == set(out["strata"])
+    assert out["answers"][drawn["noted"][0]] == f"answer for {drawn['noted'][0]}"
+    assert out["model"] == "m1" and out["prompt_version"] == "v4-test" and out["stage"] == 1
+    assert out["pools"] == {"flagged": 4, "noted": 10, "clean": 74, "unparsed": 2}
+    assert out["all_flagged"] == sorted(FLAGGED), "every flagged id, not only the drawn ones"
+    assert out["all_noted"] == sorted(NOTED)
+    assert set(out["opus"]) == set(drawn["noted"]) | set(drawn["flagged"]), "nothing for clean ones"
+    flagged_id = drawn["flagged"][0]
+    assert out["opus"][flagged_id]["faithful"] is False
+    assert out["opus"][flagged_id]["issues"][0] == f"wrong claim in {flagged_id}"
+    assert all(len(x) <= rc.ISSUE_CHARS for x in out["opus"][flagged_id]["issues"])
+
+
+def test_export_stage_two_is_only_the_second_batch_and_has_no_pools(tmp_path: Path) -> None:
+    cases = _cases()
+    out = rc.export(cases, _run(tmp_path, cases), CONFIG, 2)
+    assert set(out["answers"]) == set(_drawn(cases)["clean_more"])
+    assert set(out["strata"].values()) == {"clean_more"} and out["opus"] == {}
+    assert "pools" not in out and "all_flagged" not in out and out["stage"] == 2
 
 
 def test_export_refuses_a_missing_answer(tmp_path: Path) -> None:
-    groups = _groups()
-    run = _run(tmp_path, groups, _verdicts(groups))
-    kept = [
-        line
-        for line in (run / "results.jsonl").read_text().splitlines()
-        if groups["noted"][0] not in line
-    ]
-    (run / "results.jsonl").write_text("\n".join(kept) + "\n")
+    cases = _cases()
+    victim = _drawn(cases)["noted"][0]
     with pytest.raises(SystemExit, match="no scored answer"):
-        rc.export(run, groups)
+        rc.export(cases, _run(tmp_path, cases, drop=victim), CONFIG)
 
 
 # ── the page ────────────────────────────────────────────────────────────────────────────────────────
 
 
-def _page(stage: int = 1) -> tuple[str, list[dict[str, Any]], dict[str, str]]:
-    cases, groups = _cases(), _groups()
-    answers = {i: f"ANSWER-{i} <b>x</b>" for i in rc.stage_ids(groups, stage)}
-    page, key = rc.build(cases, answers, groups, CONFIG["seed"])
-    return page, key, answers
+def _page(tmp_path: Path, stage: int = 1) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+    cases = _cases()
+    data = rc.export(cases, _run(tmp_path, cases), CONFIG, stage)
+    data["answers"] = {i: f"ANSWER-{i} <b>x</b>" for i in data["answers"]}
+    page, key = rc.build(cases, data["answers"], data["strata"], data["seed"])
+    return page, key, data
 
 
-def test_the_page_shows_the_entry_and_the_answer_for_every_item_and_escapes_both() -> None:
-    page, key, answers = _page()
-    assert len(key) == len(answers) == page.count('class="item"')
-    assert "Item 1 of 12" in page and "Item 12 of 12" in page
-    assert "ANSWER-fn_explain_10:explain &lt;b&gt;x&lt;/b&gt;" in page
-    assert "<b>x</b>" not in page
-    assert "Computes the fn_explain_10 &lt;figure&gt;." in page
+def test_the_page_shows_the_entry_and_the_answer_for_every_item_and_escapes_both(
+    tmp_path: Path,
+) -> None:
+    page, key, data = _page(tmp_path)
+    total = len(data["answers"])
+    assert total == 11 and len(key) == total == page.count('class="item"')
+    assert f"Item 1 of {total}" in page and f"Item {total} of {total}" in page
+    some = next(iter(data["answers"]))
+    assert f"ANSWER-{some} &lt;b&gt;x&lt;/b&gt;" in page and "<b>x</b>" not in page
+    assert "&lt;figure&gt;." in page, "the record text is escaped too"
     assert "Uses other_fn and a `cap`. Second sentence." in page
     assert "<code>alpha</code> (required): Confidence." in page
     assert "<code>beta</code> (optional, default 1)" in page
 
 
-def test_a_when_item_lists_the_related_functions_and_a_compare_item_shows_both_entries() -> None:
-    page, key, _ = _page()
+def test_a_when_item_lists_the_related_functions_and_a_compare_item_shows_both_entries(
+    tmp_path: Path,
+) -> None:
+    cases = _cases()
+    answers = {"fn_when_5:when": "w", "fn_compare_7:compare": "c"}
+    strata = dict.fromkeys(answers, "clean")
+    page, _ = rc.build(cases, answers, strata, "s")
     assert "Related functions the guide could name" in page and "Does the A thing." in page
-    compare = next(k for k in key if k["action"] == "compare")["case_id"]
-    index = compare.split("_")[2].split(":")[0]
-    assert f"<code>other_{index}</code>" in page, "the second function's entry is shown too"
+    assert "<code>fn_compare_7</code>" in page and "<code>other_7</code>" in page
 
 
-def test_the_page_never_says_which_stratum_an_item_is_from_or_that_opus_is_involved() -> None:
-    page, _, _ = _page()
+def test_the_page_never_says_which_stratum_an_item_is_from_or_that_opus_is_involved(
+    tmp_path: Path,
+) -> None:
+    page, _, _ = _page(tmp_path)
     visible = page.lower()
     for word in (
         "opus",
@@ -247,50 +264,79 @@ def test_the_page_never_says_which_stratum_an_item_is_from_or_that_opus_is_invol
         "haiku",
         "model",
     ):
-        assert word not in visible.replace("clean_more", ""), word
+        assert word not in visible, word
 
 
-def test_the_key_matches_the_page_and_the_order_is_a_hash_not_the_strata() -> None:
-    page, key, answers = _page()
-    assert [k["n"] for k in key] == list(range(1, len(answers) + 1))
-    assert {k["case_id"] for k in key} == set(answers)
-    by_id = {k["case_id"]: k["stratum"] for k in key}
-    groups = _groups()
-    assert all(by_id[i] == s for s, ids in groups.items() for i in ids if i in by_id)
+def test_the_key_matches_the_page_and_the_order_is_a_hash_not_the_strata(tmp_path: Path) -> None:
+    page, key, data = _page(tmp_path)
+    assert [k["n"] for k in key] == list(range(1, len(data["answers"]) + 1))
+    assert {k["case_id"] for k in key} == set(data["answers"])
+    assert {k["case_id"]: k["stratum"] for k in key} == data["strata"]
     order = [k["stratum"] for k in key]
     assert order != sorted(order), "the strata are mixed, not listed in blocks"
-    ranked = sorted(answers, key=lambda i: rc._rank(CONFIG["seed"], "order:" + i))
+    ranked = sorted(data["answers"], key=lambda i: rc._rank(data["seed"], "order:" + i))
     assert [k["case_id"] for k in key] == ranked
 
 
-def test_stage_two_builds_a_page_of_only_the_second_batch() -> None:
-    page, key, answers = _page(2)
-    assert len(key) == len(answers) == 5 and {k["stratum"] for k in key} == {"clean_more"}
+def test_stage_two_builds_a_page_of_only_the_second_batch(tmp_path: Path) -> None:
+    page, key, data = _page(tmp_path, 2)
+    assert len(key) == 5 and {k["stratum"] for k in key} == {"clean_more"}
     assert "Item 5 of 5" in page
 
 
-def test_build_refuses_an_answer_that_is_in_no_stratum() -> None:
-    groups = _groups()
-    with pytest.raises(SystemExit, match="in no stratum"):
-        rc.build(_cases(), {"fn_explain_29:explain": "x"}, groups, "s")
+def test_build_refuses_answers_and_strata_for_different_ids() -> None:
+    with pytest.raises(SystemExit, match="not for the same ids"):
+        rc.build(_cases(), {"fn_explain_29:explain": "x"}, {"fn_explain_28:explain": "clean"}, "s")
 
 
-def test_the_results_script_writes_one_line_per_item_in_a_fixed_format() -> None:
-    page, _, _ = _page()
+def test_the_results_script_writes_one_line_per_item_in_a_fixed_format(tmp_path: Path) -> None:
+    page, _, _ = _page(tmp_path)
     assert "'answer-check v1'" in page
     assert 'value="OK"' in page and 'value="ERR"' in page
     assert "(v ? v.value : '-')" in page, "an unmarked item reads '-', never a pass"
 
 
-# ── the files in docs/ ──────────────────────────────────────────────────────────────────────────────
+# ── the command line and the config in docs/ ────────────────────────────────────────────────────────
 
 
-def test_the_real_config_and_flags_file_are_consistent() -> None:
+def test_the_command_line_runs_pick_export_and_build_end_to_end(tmp_path: Path) -> None:
+    cases = _cases()
+    cases_file = tmp_path / "cases.jsonl"
+    cases_file.write_text("".join(json.dumps(c) + "\n" for c in cases.values()))
+    run = _run(tmp_path, cases)
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps(CONFIG))
+    script = str(REPO / "scripts" / "assistant_eval" / "recall_check.py")
+    base = [sys.executable, script]
+
+    def call(*args: str) -> str:
+        done = subprocess.run(
+            [*base, *args], capture_output=True, text=True, check=True, timeout=60
+        )
+        return done.stdout
+
+    picked = json.loads(
+        call("pick", "--cases", str(cases_file), "--run", str(run), "--config", str(config))
+    )
+    assert picked["pools"]["flagged"] == 4 and len(picked["clean"]) == 6
+    exported = tmp_path / "stage1.json"
+    exported.write_text(
+        call("export", "--cases", str(cases_file), "--run", str(run), "--config", str(config))
+    )
+    call(
+        "build", "--cases", str(cases_file), "--answers", str(exported),
+        "--out", str(tmp_path / "page.html"), "--key", str(tmp_path / "key.json"),
+    )  # fmt: skip
+    assert "Item 11 of 11" in (tmp_path / "page.html").read_text()
+    assert len(json.loads((tmp_path / "key.json").read_text())) == 11
+
+
+def test_the_real_config_has_sizes_and_a_seed_and_no_ids() -> None:
     config = json.loads(rc.DEFAULT_CONFIG.read_text())
-    flagged = rc.load_flagged(rc.DEFAULT_FLAGS)
-    assert len(flagged) == 10 and len(set(flagged)) == 10
-    assert len(config["noted_passes"]) == len(set(config["noted_passes"])) == 33
-    assert set(config["flagged_already_read"]) <= set(flagged)
-    assert not set(config["noted_passes"]) & set(flagged)
-    assert (config["clean"], config["clean_more"], config["noted"]) == (40, 40, 12)
-    assert 308 - 10 - 33 >= config["clean"] + config["clean_more"], "the clean pool is big enough"
+    assert config == {
+        "seed": "recall-check-1",
+        "clean": 40,
+        "clean_more": 40,
+        "noted": 12,
+        "flagged": 4,
+    }
