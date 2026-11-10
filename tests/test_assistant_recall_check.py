@@ -23,6 +23,7 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent
 sys.path.append(str(REPO / "scripts" / "assistant_eval"))
 
+import cases as case_builder  # noqa: E402
 import recall_check as rc  # noqa: E402
 
 
@@ -294,6 +295,65 @@ def test_the_results_script_writes_one_line_per_item_in_a_fixed_format(tmp_path:
     assert "'answer-check v1'" in page
     assert 'value="OK"' in page and 'value="ERR"' in page
     assert "(v ? v.value : '-')" in page, "an unmarked item reads '-', never a pass"
+
+
+# ── the whole record is on the page ─────────────────────────────────────────────────────────────────
+
+
+def test_every_field_of_every_real_record_is_on_the_page() -> None:
+    """2026-11-10: the first reading of this check hid the formula, the symbols and the caveat, which the guide
+    had been given. Five of its six errors on clean answers were claims those fields support, so the reading
+    could not be used. Every field `cases.trim_record` hands the guide must be visible to the reader.
+    """
+    entries = json.loads((REPO / "portal" / "functions.json").read_text())
+    assert len(entries) > 300
+    for entry in entries:
+        record = case_builder.trim_record(entry)
+        page = rc._record_html(record)
+        assert set(record) == set(rc.SHOWN_FIELDS), "trim_record gained or lost a field: show it"
+        if record["formula_latex"]:
+            assert rc.html.escape(str(record["formula_latex"])) in page, entry["name"]
+        if record["caveat"]:
+            assert rc.html.escape(rc._plain(str(record["caveat"]))) in page, entry["name"]
+        if record["citation"]:
+            assert rc.html.escape(str(record["citation"])) in page, entry["name"]
+        for symbol, value in (record["symbol_map"] or {}).items():
+            assert (
+                f"<code>{rc.html.escape(str(symbol))}</code> is <code>{rc.html.escape(str(value))}</code>"
+                in page
+            )
+        for p in record["parameters"]:
+            assert (
+                f"<code>{rc.html.escape(p['name'])}</code> ({rc.html.escape(p['type'])}, " in page
+            ), entry["name"]
+        assert (
+            rc.html.escape(record["domain"]) in page
+            and rc.html.escape(rc._plain(record["summary"])) in page
+        )
+
+
+def test_a_field_the_page_does_not_know_is_shown_as_json_never_dropped() -> None:
+    record = {**_record("fn_x"), "caveat": "Sums <three> ratios.", "new_field": {"k": [1, 2]}}
+    page = rc._record_html(record)
+    assert "Sums &lt;three&gt; ratios." in page
+    assert "new_field" in page and "[1, 2]" in page
+
+
+def test_the_second_entry_of_a_compare_item_shows_its_formula_too() -> None:
+    other = {
+        **_record("fn_other"),
+        "formula_latex": r"X=\alpha+\beta",
+        "symbol_map": {"alpha": "a"},
+    }
+    case = {
+        "id": "fn_a:compare",
+        "intent": "compare",
+        "record": _record("fn_a"),
+        "siblings": [],
+        "other": other,
+    }
+    page, _ = rc.build({case["id"]: case}, {case["id"]: "x"}, {case["id"]: "clean"}, "s")
+    assert r"X=\alpha+\beta" in page and "<code>alpha</code> is <code>a</code>" in page
 
 
 # ── the command line and the config in docs/ ────────────────────────────────────────────────────────

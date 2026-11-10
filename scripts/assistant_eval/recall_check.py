@@ -141,25 +141,79 @@ def _esc(text: str) -> str:
     return html.escape(_plain(text))
 
 
+SHOWN_FIELDS = (
+    "name",
+    "display_name",
+    "domain",
+    "summary",
+    "description",
+    "formula_latex",
+    "symbol_map",
+    "caveat",
+    "citation",
+    "parameters",
+)
+
+
+def _block(label: str, body: str) -> str:
+    return f"<p class='lab'>{label}</p>{body}"
+
+
 def _record_html(record: dict[str, Any]) -> str:
+    """Every field of the record, because the guide was given all of them (the first reading of this check
+    hid the formula, the symbols and the caveat, and five of its six errors on clean answers were claims
+    those fields support). A field this function does not know is shown as JSON, never dropped."""
     summary = _plain(record["summary"])
+    domain = f" · {html.escape(str(record['domain']))}" if record.get("domain") else ""
     parts = [
-        f"<h3>{html.escape(record['display_name'])} (<code>{html.escape(record['name'])}</code>)</h3>",
+        f"<h3>{html.escape(record['display_name'])} (<code>{html.escape(record['name'])}</code>){domain}</h3>",
         f"<p>{html.escape(summary)}</p>",
     ]
     description = _plain(record.get("description") or "")
     if description and description != summary:
         parts.append(f"<p>{html.escape(description)}</p>")
+    if record.get("formula_latex"):
+        parts.append(
+            _block(
+                "Formula (LaTeX, as the guide saw it)",
+                f"<pre>{html.escape(str(record['formula_latex']))}</pre>",
+            )
+        )
+    if record.get("symbol_map"):
+        symbols = "".join(
+            f"<li><code>{html.escape(str(k))}</code> is <code>{html.escape(str(v))}</code></li>"
+            for k, v in dict(record["symbol_map"]).items()
+        )
+        parts.append(_block("Symbols", f"<ul>{symbols}</ul>"))
+    if record.get("caveat"):
+        parts.append(_block("Caveat", f"<p>{html.escape(_plain(str(record['caveat'])))}</p>"))
+    if record.get("citation"):
+        parts.append(_block("Source", f"<p>{html.escape(str(record['citation']))}</p>"))
     rows = []
     for p in record["parameters"]:
         kind = "required" if p["required"] else f"optional, default {p['default']}"
+        meta = f"{p.get('type')}, {kind}" if p.get("type") else kind
+        extra = {
+            k: v
+            for k, v in p.items()
+            if k not in ("name", "type", "required", "default", "description")
+        }
         rows.append(
-            f"<li><code>{html.escape(p['name'])}</code> ({html.escape(str(kind))})"
+            f"<li><code>{html.escape(p['name'])}</code> ({html.escape(str(meta))})"
             + (f": {_esc(p['description'])}" if p.get("description") else "")
+            + (f" <code>{html.escape(json.dumps(extra))}</code>" if extra else "")
             + "</li>"
         )
     if rows:
-        parts.append("<p class='lab'>Inputs</p><ul>" + "".join(rows) + "</ul>")
+        parts.append(_block("Inputs", "<ul>" + "".join(rows) + "</ul>"))
+    for key, value in record.items():
+        if key not in SHOWN_FIELDS and value not in (None, "", [], {}):
+            parts.append(
+                _block(
+                    html.escape(key),
+                    f"<pre>{html.escape(json.dumps(value, ensure_ascii=False))}</pre>",
+                )
+            )
     return "".join(parts)
 
 
@@ -220,12 +274,13 @@ details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-siz
 details p{margin:6px 0}details ul{margin:4px 0 4px 18px;padding:0}.lab{color:var(--dim);font-size:12px;margin:8px 0 2px}
 .ans{border:1px solid var(--acc);border-radius:8px;padding:10px 12px;margin-top:10px}.side{font:600 11px ui-monospace,monospace;letter-spacing:.1em;color:var(--acc);margin-bottom:6px}
 .txt{white-space:pre-wrap;font-size:14.5px}
+pre{white-space:pre-wrap;word-break:break-word;margin:4px 0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:12.5px/1.45 ui-monospace,monospace}
 .pick{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:12px}.note{flex:1 1 240px;min-width:160px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg)}
 button{font:inherit;padding:9px 16px;border-radius:8px;border:1px solid var(--acc);background:var(--acc);color:#fff;cursor:pointer}
 textarea{width:100%;min-height:210px;margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font:13px/1.45 ui-monospace,monospace}
 </style></head><body><main>
 <h1>Is each answer right?</h1>
-<p class="lead">%COUNT% answers a guide wrote for a visitor of a risk-function portal who picked a function and a question from a menu. Above each answer is the catalogue entry the guide was given; check the answer against that entry only. Choose "contains an error" if it says something the entry contradicts, or something the entry does not support that is not plain textbook finance, including crediting "pyvar's documentation" with something the entry does not say. Style and length do not matter. Do not skip an item: a blank counts as unread.</p>
+<p class="lead">%COUNT% answers a guide wrote for a visitor of a risk-function portal who picked a function and a question from a menu. Above each answer is the complete catalogue entry the guide was given (summary, description, formula, symbols, caveat, source, inputs and related functions); check the answer against that entry only. Choose "contains an error" if it says something the entry contradicts, or something the entry does not support that is not plain textbook finance, including crediting "pyvar's documentation" with something the entry does not say. Style and length do not matter. Do not skip an item: a blank counts as unread.</p>
 %CARDS%
 <button type="button" id="done">Show my results</button>
 <textarea id="out" readonly placeholder="Your results appear here. Select all, copy, and paste them into the chat."></textarea>

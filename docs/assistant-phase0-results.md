@@ -724,3 +724,26 @@ person, or a fix to the records, and a pipeline would send an answer that fails 
 `data/assistant-recall-answers` (commit `de6afc2`, parent master `21d7b8d`, three files under `docs/scratch/`),
 pushed by Filippo after the agent's own push failed for lack of credentials. Their sha256 values match the agent's
 report byte for byte. The reading is pending; the branch is deleted once it is recorded.
+
+### 9.15 The first reading of the recall check was incomplete (2026-11-10)
+
+Filippo read the 56 answers on a page that showed each catalogue entry's summary, description and inputs but **not its
+formula, symbols, caveat, source or input types, all of which the guide had been given** (the renderer listed five of
+the ten record fields by name and hid the rest). The fault was in the tool, not the reader. 8 of the 13 errors the
+reading marked were claims those hidden fields support (a sum in the formula, an expected-shortfall line, a floor at
+zero, an output the formula lists), so the reading cannot be used for the rule of 9.11. It cannot be used in the other
+direction either: a hidden field can also contradict an answer the reader marked as right. None of its marks is
+counted, and the per-stratum tally of the rule is not reported from it.
+
+**The fix.** `recall_check.py` now shows every field of the record (a field it does not know is rendered as JSON,
+never dropped), says on the page that the entry is complete, and `test_every_field_of_every_real_record_is_on_the_page`
+runs the renderer over all 385 catalogue entries through `cases.trim_record` and requires every field to appear; it
+fails on the old renderer. The 6 Opus flags read in 9.10 were re-checked with the formula and caveat in view and all
+hold (for example `fx_forward_pricer`'s formula `V = N(F - K)e^{-r_d tau}` confirms that `notional` enters only the
+mark-to-market value).
+
+**Next.** The same 56 answers (same draw, same item numbers, same key) are read again on the corrected page; the
+rule, the tolerance and the pools are unchanged. The re-read is not fully blind: before reading again the reader was
+told that several of the first reading's errors were supported by the hidden fields, which may make the second
+reading more lenient, and was shown the six answers whose errors fell in one stratum. The result is reported with
+that caveat.
