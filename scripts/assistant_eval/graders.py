@@ -9,6 +9,7 @@ Reasoning:
   * scope: no directive advice, no promised results;
   * wording: none of the guide's own vocabulary ("the record", "sibling"), which a visitor cannot interpret
     (the blind read of 2026-11-09 found it in 8 of 12 answers);
+  * source: no statement credited to "pyvar's documentation" or the catalogue (state the fact directly);
   * absence: no claim that "pyvar's documentation does not say ..." (a claim of absence is the one the model
     gets wrong; leaving the point out is always safe);
   * shape: length, mentions the function (and both for a comparison), not clipped.
@@ -46,6 +47,14 @@ _INTERNAL = re.compile(r"\bthe (?:function )?record\b(?!-)|\bsiblings?\b", re.IG
 # Narrow on purpose: it catches the one phrasing the prompt used; another wording of the same claim passes.
 _ABSENCE = re.compile(
     r"\bdocumentation (?:does not|doesn't|gives no|provides no|omits|lacks|says nothing|is silent|has no)\b",
+    re.IGNORECASE,
+)
+# A statement credited to a source: "pyvar's documentation cites ...", "the documentation lists ...". Prompt v3
+# asked for the first form and 7 of the 21 answers Opus flagged over two v4 draws got it wrong, so v5 forbids it.
+# Narrow on purpose: "documentation" alone ("loan documentation", "ISDA documentation") is ordinary finance.
+_SOURCE = re.compile(
+    r"\bpyvar['\u2019]?s documentation\b|\b(?:the|its) (?:documentation|catalogue) "
+    r"(?:says|states|lists|gives|describes|notes|cites|defines|provides|mentions|does not|doesn't|omits|lacks)\b",
     re.IGNORECASE,
 )
 # "guarantees that" and "guaranteed to" are promises. The noun ("rather than a guarantee that the
@@ -163,6 +172,7 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
     advice = _ADVICE.findall(text)
     internal = _INTERNAL.findall(text)
     absence = _ABSENCE.findall(text)
+    source = _SOURCE.findall(text)
     checks = {
         "length_ok": low <= len(text.strip()) <= high,
         "mentions_function": mentions(record) if intent != "when" else True,
@@ -172,8 +182,11 @@ def grade_prose(case: dict[str, Any], text: str) -> Grade:
         "no_advice": not advice,
         "visitor_wording": not internal,
         "no_absence_claims": not absence,
+        "no_source_claims": not source,
     }
     flags = []
+    if source:
+        flags.append(f"credits a source: {[str(x).lower() for x in source[:3]]}")
     if absence:
         flags.append(
             f"claims the documentation lacks something: {[str(a).lower() for a in absence[:3]]}"

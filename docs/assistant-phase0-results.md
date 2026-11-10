@@ -639,3 +639,50 @@ and it did not retry. The files existed on its machine at the time (`stage1.json
 `885e53a3`; `stage2.json`, 34,441 bytes, sha256 starting `d6fea27b`). Nothing has been read: the reading waits for
 those two files to be transferred, and if they are lost, a third paid run (about $2.3) is the only way to get
 answers to read.
+
+### 9.13 Prompt v5, and the recall check on its answers (prepared 2026-11-10, not run)
+
+Filippo chose to pay for one more run (2026-11-10) and set a tolerance: **published answers may contain a wrong claim
+in at most 4% of cases.** The rest of this section fixes what the run will be and how it will be read, before it is
+made.
+
+**Why v5 first.** The recall check should read answers from the prompt that would ship, and 9.12 found that 7 of the
+21 v4 flags credit "pyvar's documentation" with something it does not say or lacks, the wording rule v3 itself had
+introduced. v5 is v4 with that one rule changed: the guide is told never to attribute a statement to pyvar's
+documentation, the catalogue or any other source, and to state each fact directly. A new grader check,
+`no_source_claims`, fails an answer containing "pyvar's documentation" or "the documentation / catalogue says,
+lists, cites ...". `PROMPT_VERSION` is `v5-2026-11-10`. Oracle 1,924 of 1,924, null 0 of 576. Nothing else changed,
+so an effect can be put down to this rule; the leaked `other_function` tag (1 in 80 `compare` answers) and the
+related-function overreach (2 of 11) are left as they are.
+
+**One draw cannot show the flag rate moving.** Even if v5 removed every documentation-crediting flag (about 7 of 21,
+so about 7 flags per 308 in place of 10 or 11), 7 of 308 against v4's 21 of 616 is p 0.23. v5 is therefore read by
+its mechanism and by guards, fixed now:
+
+| Measure | v5 replaces v4 if |
+|---|---|
+| `no_source_claims` failures | at most 3 of 308 |
+| Opus flags crediting the documentation (read from the issue text) | at most 1 (v4: about 3.5 per 308) |
+| Opus flags in all | at most 14 of 308 (4.5%; v4's two draws had 10 and 11) |
+| Grader pass | `explain` at least 127, `when` at least 127, `compare` at least 38 (the weaker v4 draw) |
+
+If any fails, v4 stays the candidate and the answers read in the check are evidence about Opus on v4-like text.
+
+**The tolerance and the rule of 9.11.** The rule is unchanged: it was fixed before any reading, and its usable line
+(3 of 80, 3.75%) already sits at the tolerance. What it means for a true residual error rate r among the answers
+Opus passes, exact from the binomial:
+
+| True r | 1% | 2% | 3% | 4% (the tolerance) | 6% | 8% | 10% |
+|---|---|---|---|---|---|---|---|
+| Called usable | 0.99 | 0.94 | 0.83 | 0.69 | 0.40 | 0.20 | 0.09 |
+
+It rejects a clearly failing gate and passes a good one, and it cannot certify a gate that sits at the boundary: at
+exactly 4% it says usable 69% of the time, and at 8% still 20%. The release-time sample the rule asks for carries
+the rest. A stricter reading, always the full 80 answers and usable only at 2 or fewer errors, would give 0.78 at 2%,
+0.37 at 4%, 0.13 at 6% and 0.04 at 8%, at the price of the second 60 minutes of reading every time. Filippo can ask
+for it before the reading starts; it is not applied here.
+
+**The run.** As 9.11 describes: Haiku 5.5 writes the 308 text answers, now with v5, Opus 5.5 judges all 308, and the
+tool draws 40 clean, 12 noted and 4 flagged answers plus 40 spare, about $2.3 with caps of $2.85. The answers reach
+the reader as files, not as text pasted into a chat: two earlier transfers failed, one because the machine holding
+the files was replaced, one because the agent's own output was stopped.
