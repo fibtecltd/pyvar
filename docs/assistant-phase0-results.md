@@ -747,3 +747,47 @@ rule, the tolerance and the pools are unchanged. The re-read is not fully blind:
 told that several of the first reading's errors were supported by the hidden fields, which may make the second
 reading more lenient, and was shown the six answers whose errors fell in one stratum. The result is reported with
 that caveat.
+
+### 9.16 Result of the recall check (2026-11-10)
+
+Filippo read the same 56 answers again on the corrected page (9.15): 40 Opus-passed with no issues noted (clean), 12
+passed with issues noted, 4 flagged. `docs/assistant-recall-check-v5-reading.csv` has every item, its stratum and both
+readings. The first reading is kept for the record and not counted.
+
+| Stratum | Errors found (second reading) | Note |
+|---|---|---|
+| clean | **0 of 40** | the number the rule of 9.11 uses |
+| noted | 1 of 12 | the rule needs 3 to treat "issues noted" as a flag |
+| flagged | 3 of 4 | with 5 of 6 in 9.10, 8 of the 10 flags read are real errors |
+
+**By the rule fixed beforehand: 0 errors in 40 means Opus is usable as a build-time gate, with a person reading a
+random sample of at least 40 at every release, and any error found in it reopening the question.** The noted stratum
+(1 of 12, below 3) is not treated as a flag. The four errors that stand are `effective_duration_alm:when` (says the
+caller-supplied present values are re-valued by pyvar), `basel_iii_cet1_ratio:compare:basel_iii_tier1_ratio` ("the
+only difference" is the numerator, but the entries cite different minimums, 4.5% and 6.0%),
+`black_litterman_model:compare:maximum_sharpe_ratio_portfolio` (tau read as view uncertainty) and
+`fx_forward_pricer:when` (`notional` made to affect the forward); the first and the last two were also flagged by Opus
+on other draws. The one flagged answer the reader found no error in is `gamma_cross_gamma_matrix:when`.
+
+**The two readings.** 9 items changed from error to right between them, and the 4 above did not. The 9 are the 8 whose
+claims the hidden formulas support (9.15) and one more, `displaced_diffusion_model:explain`: the entry's description
+says the volatility is scaled by S/(S+a), but its formula uses the unscaled sigma, and the answer follows the formula.
+That conflict is in the record, not the answer, and is worth a look in the catalogue. The 4 errors kept are the 4 that
+stand on the fields the first page did show, so the second reading was not uniformly lenient, though it was not blind
+either (9.15).
+
+**What 0 of 40 shows, and does not.** It is no sign of trouble, not proof of the 4% tolerance. The 95% upper bound on
+the residual error rate among clean answers is 8.8%, above the tolerance. If the true rate were 4%, a sample of 40
+would show no error one time in five (0.20); at 2% it would do so 45% of the time. Weighting the strata by their sizes
+(269 clean, 28 noted), the point estimate over all 297 Opus-passed answers is 0.8%, with a wide interval. A second
+batch of 40 is held back and is not needed by the rule; 0 of 80 would tighten the upper bound to 4.6% (and would occur
+4 times in 100 at a true 4%). One reader, one generation (v5 answers; v4, the candidate, differs by the wording that
+9.14 measured), and the reader was not blind to the first reading's marks.
+
+**What the evidence supports, for Filippo to decide.** The model earns `explain`, `when` and `compare` (9.5); no
+cheaper judge replaces Opus (9.8); prompt v4 is the candidate (9.14); Opus, run on every answer at build time, passes
+its recall check at the rule's bar (above). That points to option B of the plan, with the checks in this order: the
+mechanical graders, then Opus on every answer (about $8.3 per full generation of 1,154 text answers, plus
+regeneration of what fails), regeneration of failures, an answer that fails twice sent to a person or to a fix of its
+record (eight cases were flagged on two or more of four draws), and a person reading a random sample of at least 40
+Opus-passed answers per release. Not covered here: the example-values action, and the cost of building the pipeline.
