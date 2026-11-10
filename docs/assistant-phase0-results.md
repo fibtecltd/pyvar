@@ -538,7 +538,7 @@ Opus still flags plus a random sample. What would make that acceptable is a meas
 person reading a random sample of the answers it passed. Prompt v5 (attribution, the leaked tag) is the other open
 item; both are decisions for Filippo.
 
-### 9.11 The recall check: can Opus gate the text? (re-planned 2026-11-10, not run)
+### 9.11 The recall check: can Opus gate the text? (re-planned 2026-11-10; the answers were generated, the reading is pending, 9.12)
 
 Filippo asked for it (2026-11-09). 9.10 left one question open: whether Opus, judging every answer once per
 catalogue version, can be trusted to gate the model's text, with a person reading only a sample and what it flags.
@@ -593,3 +593,49 @@ also the rehearsal for it.
 
 **Cost.** About $2.3 of API (generation $0.08, Opus $2.2; the caps total $2.85), then no further call: the export
 is local. The rest is the reader's time. For comparison, Opus judging all 1,154 text answers once is about $8.3 (9.10).
+
+### 9.12 A second draw of v4, and where the recall check stands (2026-11-10)
+
+The self-contained run of 9.11 was made: Haiku 5.5 wrote the 308 text answers with prompt v4 ($0.08, 308 ok), Opus
+5.5 judged all 308 ($2.19), $2.27 in all. It is a fresh draw, so it doubles as a replication of 9.10. The 23 cases
+that Opus flagged or a grader failed are in `docs/assistant-prompt-v4-draw2-opus-flags.csv`.
+
+**Replication.** Opus flagged 11 of 308 (3.6%): `explain` 4 of 134, `when` 7 of 134, `compare` 0 of 40; 27 more
+passed with issues listed, 270 passed clean. Read alone, 11 is in the "11 to 16" band of 9.11, "still better than
+v3's 22 but inside the noise" (one-sided p 0.036). Pooling the two draws gives 21 of 616 (3.4%) against v3's 22 of
+308 (7.1%), p 0.010. So v4's gain is real and the first draw's was not luck; neither draw proves it alone.
+
+| | v3 | v4, draw 1 | v4, draw 2 |
+|---|---|---|---|
+| Opus flags | 22 of 308 (7.1%) | 10 (3.2%) | 11 (3.6%) |
+| `when` flags | 17 of 134 | 5 | 7 |
+| grader pass: explain / when / compare | 128 / 117 / 40 | 127 / 127 / 38 | 130 / 128 / 38 |
+| `no_absence_claims` failures | n/a | 8 | 4 |
+| `visitor_wording` failures | 8 | 3 | 2 |
+| `when` length failures | 12 | 1 | 3 |
+
+Against the guards of 9.9: `compare` is 38 of 40 in both draws (below 40; each time an absence claim, and in draw 1
+a leaked tag); `no_absence_claims` is 4 (the ceiling was 3) and fell from 8; the rest are met.
+
+**What the 11 are**, from Opus's issue text (approximate): 6 misreadings of what the function does, 2 `when`
+answers that describe a related function beyond its listing, and 3 that credit "pyvar's documentation" with
+something it does not say (a fourth, `effective_duration_alm:when`, does both). Counting the first draw (2 of 10 plus
+one false claim that the documentation gives no rate values), **7 of the 21 v4 flags are claims about what pyvar's
+documentation says or lacks**. The v3 rule "say pyvar's documentation" is the likely cause; a v5 would drop it and
+have the guide state facts directly. It would act on about a third of the flags and cost about $2.3 to measure. Not
+decided.
+
+**Some failures repeat.** Six cases were flagged on at least two of the three draws (v3, v4 draw 1, v4 draw 2):
+`black_scholes_european_option:when`, `cva_sensitivity_cva_greeks:when`, `esg_score_integration:when` and
+`pillar_2a_capital:when` (v3 and draw 2), `effective_duration_alm:when` (draws 1 and 2) and
+`retail_deposit_runoff_rate:explain` (v3 and draw 1). Between v3 and draw 2 four were shared where chance expects 0.8
+(p 0.005). So part of the error is specific to a function, and regenerating would not clear it: a pipeline would send
+an answer that fails twice to a person, or fix the record.
+
+**The recall check is not done.** Opus's pools in this draw were 11 flagged, 27 noted, 270 clean, and the tool drew 40
+clean, 12 noted and 4 flagged answers (plus 40 spare) as designed. The answers did not reach the report: the agent's
+verbatim export was stopped by its own output safeguard after the first block, for a reason it could not identify,
+and it did not retry. The files existed on its machine at the time (`stage1.json`, 54,978 bytes, sha256 starting
+`885e53a3`; `stage2.json`, 34,441 bytes, sha256 starting `d6fea27b`). Nothing has been read: the reading waits for
+those two files to be transferred, and if they are lost, a third paid run (about $2.3) is the only way to get
+answers to read.
