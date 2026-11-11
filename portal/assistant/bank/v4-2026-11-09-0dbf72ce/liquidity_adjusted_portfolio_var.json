@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_portfolio_simulation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b50bea1ef775ffe2a8628db7dd1a643d2fc0b5eda8707624947ccf526dd6b513",
+      "source": "model",
+      "text": "`liquidity_adjusted_portfolio_var` answers \"how much could I lose on a normal-market move, plus what would it cost to unwind the positions?\" It takes the parametric delta-normal VaR, which uses `weights`, `cov_matrix`, `confidence_level` and `horizon_days`, and adds half the weighted bid-ask spread, using `bid_ask_spreads`, as a liquidity cost. `monte_carlo_portfolio_simulation` answers \"what does the spread of possible terminal P&L look like if I simulate many correlated return paths?\" It draws multivariate-normal returns, compounds them over `horizon` periods, and reports simulated VaR and expected shortfall (ES). The Monte Carlo function also takes `mean_returns`, `n_simulations` and a `seed` for repeatable draws, and it has no bid-ask or liquidity input. In short, use the first when trading cost matters and you want a closed-form figure, and the second when you want a simulated loss distribution with ES.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9bbfcb05e403fde406866730af5c30d03ad3490196eb33a83abb38625bbdab77",
+    "source": "model",
+    "text": "`liquidity_adjusted_portfolio_var` (Liquidity Adjusted Portfolio VaR) computes a parametric delta-normal VaR and adds a liquidity cost for unwinding positions. The market term is the normal quantile at your `confidence_level` times portfolio volatility, derived from `weights` and `cov_matrix`, and scaled by the square root of `horizon_days`. The liquidity term is half the weighted sum of each asset's proportional bid-ask spread, using absolute weights and the `bid_ask_spreads` input. It follows the simplified Bangia-Diebold-Schuermann add-on. Provide `portfolio_value` to express the result in base currency.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eb60aa188433b6279e16d97c9b985796eeca54d4c41f9cba55025562d2a987e6",
+    "source": "model",
+    "text": "`liquidity_adjusted_portfolio_var` (Liquidity Adjusted Portfolio VaR) fits when you want a parametric VaR that also reflects the cost of exiting positions:\n\n- You hold assets with meaningful bid-ask spreads and want the unwinding cost added to market risk rather than ignored.\n- You're comfortable with a delta-normal, covariance-based view of risk, using portfolio weights and a per-period covariance matrix.\n- You want a simple liquidity add-on, equal to half the weighted spread, rather than a full liquidity model.\n- You want to set the confidence level and a risk horizon in days, keeping in mind that the horizon scales only the market term, not the spread cost.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

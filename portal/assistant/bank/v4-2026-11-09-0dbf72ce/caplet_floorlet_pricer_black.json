@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3fe63e0d80c7d3ac85a44376f8b5dd5f86e7555f3d898586f24055d9a3293764",
+      "source": "model",
+      "text": "`caplet_floorlet_pricer_black` answers \"what is a single option on a forward interest rate worth?\" It prices a caplet (a call on the forward rate) or a floorlet (a put) under the Black lognormal model, so it needs a `strike`, a `vol` and an `expiry` alongside `forward_rate`, `notional`, `accrual` and `discount_factor`.\n\n`total_return_swap_trs` answers \"what is one leg of a total-return swap worth?\" It values the receiver's position: the asset's period return minus the financing rate over the accrual period, discounted. It has no option features, so it takes `asset_return` and `financing_rate` instead of a strike or volatility, and it has a `receive_total_return` flag for direction.\n\nIn short, `caplet_floorlet_pricer_black` values optionality on a rate, while `total_return_swap_trs` values a straightforward exchange of asset return against financing.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afc3ba301c6659a384970dd8b89c1aebbdb39d6015014d8e7bfe616be9393d48",
+    "source": "model",
+    "text": "`caplet_floorlet_pricer_black` prices a single caplet or floorlet under the Black (lognormal) model. A caplet is a call on the forward rate and a floorlet is a put, selected with `option_type` (default `\"caplet\"`). You supply `notional`, `forward_rate`, `strike`, `vol`, `expiry`, `accrual` and `discount_factor`, and pyvar computes the price. By put-call parity, a long caplet and a short floorlet at the same strike replicate a payer FRA, which is a handy consistency check.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dfe7fd81ffc8a372206175a2d73039882de15885bf545a5bfc2b387f8ea11a5d",
+    "source": "model",
+    "text": "`caplet_floorlet_pricer_black` fits when you need the value of one caplet or floorlet under the Black (lognormal) model.\n\n- You have a single option on a forward rate: a caplet (a call on the rate) or a floorlet (a put), set with `option_type`.\n- You can supply a Black volatility (`vol`) for the forward rate, along with `forward_rate`, `strike`, `expiry`, `accrual`, `discount_factor` and `notional`.\n- You want to check put-call parity: a caplet and floorlet at the same strike replicate a payer FRA.\n- You want a single building block rather than a whole cap or floor.\n\nRelated function: `cap_floor_pricer` prices an interest-rate cap/floor as a strip of caplets/floorlets.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

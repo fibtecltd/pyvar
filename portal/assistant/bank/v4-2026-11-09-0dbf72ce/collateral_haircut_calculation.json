@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ecc18ff1c46b6c06ec24626ef4b7c0071b447022f3b2e6d29f14f6106b740e5c",
+      "source": "model",
+      "text": "`collateral_haircut_calculation` answers \"how much is this collateral worth after supervisory haircuts?\" It takes `collateral_value` and applies a volatility haircut (`haircut_collateral`) and an optional currency-mismatch haircut (`haircut_fx`). It returns the adjusted collateral value, floored at zero, following the comprehensive approach in CRE22.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how sensitive is a counterparty's credit valuation adjustment to changes in credit spreads and exposure?\" It takes an expected exposure profile, time steps, discount factors and a `credit_spread`. It returns the base CVA along with `cs01`, the change in CVA for a small parallel spread shift, and `exposure_delta`, the sensitivity to scaling the exposure profile.\n\nIn short, the first is a collateral-valuation step that reduces collateral for risk. The second is a risk-sensitivity measure on a CVA figure, useful for seeing what drives that adjustment.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bc456fc7a7921531b1feffc69bf78dfc914a134920dc2d9db2a8008ab885c107",
+    "source": "model",
+    "text": "`collateral_haircut_calculation` (Collateral Haircut Calculation) works out the adjusted value of collateral under the comprehensive approach in CRE22. It takes the nominal market value, `collateral_value`, and cuts it by a volatility haircut, `haircut_collateral`, and optionally a currency-mismatch haircut, `haircut_fx`, which defaults to zero. The adjusted value is `collateral_value` times one minus the two haircuts, floored at zero so it never goes negative. Both haircuts are given as fractions between 0 and 1. pyvar does the calculation for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "87adc7c91dd345f103b00fdff9077d5f44285a3a7fa47d8a40b0a6f7aaf1f041",
+    "source": "model",
+    "text": "Use Collateral Haircut Calculation (`collateral_haircut_calculation`) when you need to cut collateral's market value down to a prudent value under the comprehensive approach in CRE22.\n\n- You hold collateral and want its adjusted value after allowing for price volatility, using `collateral_value` and `haircut_collateral`.\n- The collateral is in a different currency from the exposure, so you want to add a currency-mismatch haircut via `haircut_fx` (it defaults to 0.0 when there is no mismatch).\n- You want the adjusted value floored at zero, so heavy haircuts never produce a negative collateral amount.\n- You already have the haircut rates and need pyvar to apply them to a collateral amount.\n\nIf you instead need a generic counterparty exposure of current exposure plus add-on, net of collateral, `counterparty_credit_risk_ccr_exposure` is the related function that its listing describes that way.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

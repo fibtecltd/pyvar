@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8b46b0965c2091810b0a030ba0118ad1be826d4606a36976c5ccc70ea24a48a8",
+      "source": "model",
+      "text": "`compound_option_pricer` prices an option on another option (call or put on a call or put) using the exact Geske (1979) closed form, so it answers \"what is the premium-bearing right to buy or sell an option worth?\" It takes two strikes (`strike_underlying` and `strike_compound`) and two expiries (`tau_compound` and `tau_underlying`). `asian_option_pricer` answers a different question: what is an option on the average price of the underlying worth? It uses Monte Carlo with `n_steps` averaging observations and `n_simulations` paths. Averaging lowers volatility, so an Asian option is worth less than the corresponding vanilla European option. Practically, the compound pricer is deterministic and ignores `n_simulations` and `seed`, while the Asian pricer's estimate depends on them. Both can return Greeks via the `greeks` flag.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "16e9eb9c487957841a1f2f482844a048ddb83fcfdefd1d9ee98bca5700fe4cb3",
+    "source": "model",
+    "text": "`compound_option_pricer` (Compound Option Pricer) prices an option on another option, using the Geske (1979) closed-form formula. It covers all four standard types: call-on-call, call-on-put, put-on-call and put-on-put, chosen with `compound_type`. You supply the spot, the underlying option's strike (`strike_underlying`), the premium-style strike of the compound (`strike_compound`), the rate, `sigma`, and the two expiries (`tau_compound`, `tau_underlying`). Setting `greeks` to true also returns delta, gamma, vega, theta and rho, calculated by bumping inputs and repricing. The price is exact rather than simulated, so `n_simulations` and `seed` are kept only for older call signatures.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b7b5c9662371297b4d7e6951b0fb8b5c912bd05daf1517c75528c28fff111890",
+    "source": "model",
+    "text": "Use the Compound Option Pricer (`compound_option_pricer`) when you need the price of an option whose underlying is itself an option:\n\n- You want a call or put on a call or put. It supports all four types via `compound_type` (`call-on-call`, `call-on-put`, `put-on-call`, `put-on-put`).\n- You want an exact closed-form price (Geske 1979) rather than a simulation. `n_simulations` and `seed` are retained only for backward-compatible calls and don't affect the price.\n- You have two expiries: `tau_compound` for the compound option and a longer `tau_underlying` for the underlying option, plus separate strikes (`strike_compound` is the premium paid, `strike_underlying` is the underlying option's strike).\n- You also want delta, gamma, vega, theta and rho from the same price. Set `greeks` to true, and they are computed by bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

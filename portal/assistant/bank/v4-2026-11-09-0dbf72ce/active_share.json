@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "portfolio_turnover": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c78359e8d30d45d5357dc9e51142a31f271bda506d2a91a2943f6620ec13e68e",
+      "source": "model",
+      "text": "`active_share` asks how different your portfolio is from its benchmark, while `portfolio_turnover` asks how much you traded between two sets of weights. Both use the same one-way form, half the sum of absolute weight differences, but they compare different things. `active_share` takes `weights` and `benchmark_weights`, and a value of 0 means identical to the benchmark while 1 means fully differentiated. `portfolio_turnover` takes `weights_before` and `weights_after`, so it measures the traded fraction around a rebalance. In short, use `active_share` for a snapshot of how far you sit from the benchmark, and `portfolio_turnover` for the size of a change over time.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "241e319b0b6f31450be2ab300cd1bb66c6468740d3fedc2dd5d73d10e5e89fbb",
+    "source": "model",
+    "text": "`active_share` (Active Share) measures how much a portfolio's holdings differ from its benchmark. It takes the portfolio's `weights` and the `benchmark_weights`, listed per asset in the same order, and returns half the sum of the absolute differences between them. A value of 0 means the portfolio is identical to the benchmark, and 1 means it is fully differentiated. The measure comes from Cremers & Petajisto and is often used to gauge how actively a manager departs from an index.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "92445138b2582ce8bfef4b648105843a24aeaa7337545f54d9054b112ecd5228",
+    "source": "model",
+    "text": "Use Active Share (`active_share`) when you want to see how far a portfolio's holdings differ from its benchmark's:\n\n- **Checking how active a portfolio really is:** it compares weights asset by asset, so it shows whether holdings differ from the benchmark or mostly mirror it.\n- **Reading a simple scale:** 0 means the portfolio is identical to the benchmark, and 1 means fully differentiated.\n- **Comparing funds against the same benchmark:** you supply `weights` and `benchmark_weights` in the same asset order, so it suits side-by-side comparisons on one set of assets.\n- **Different need:** if you care about the return side rather than holdings, `tracking_error` is the volatility of active (portfolio minus benchmark) return.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

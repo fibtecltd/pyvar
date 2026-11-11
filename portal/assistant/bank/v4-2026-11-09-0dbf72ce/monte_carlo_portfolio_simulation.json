@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "marginal_contribution_to_risk": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "439f1b293d248ed1d228dc45779360c57fb8a425a2b028608af7355785fa4d71",
+      "source": "model",
+      "text": "`monte_carlo_portfolio_simulation` answers \"how bad could the portfolio's terminal P&L get?\" It draws correlated asset returns, compounds them over the `horizon`, and reports simulated VaR and ES at your `confidence_level`. It needs `weights`, `mean_returns` and `cov_matrix`, and it uses `portfolio_value`, `n_simulations` and `seed` to shape the run.\n\n`marginal_contribution_to_risk` answers a different question: \"which assets are driving the portfolio's volatility?\" It takes only `weights` and `cov_matrix`, and gives each asset's marginal and component contribution. The component contributions add up exactly to the portfolio volatility.\n\nIn short, the first function estimates a loss distribution for the whole portfolio, while the second breaks volatility down by asset.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e74232dd97951339dc9901722e64c8a1ec7501243af385eb035c02b16d05e67c",
+    "source": "model",
+    "text": "`monte_carlo_portfolio_simulation` (Monte Carlo Portfolio Simulation) estimates the risk of a portfolio's terminal P&L by simulation. It draws correlated multivariate-normal asset returns from your `mean_returns` and `cov_matrix`, then compounds the weighted portfolio return over `horizon` periods for each of `n_simulations` paths. From the resulting distribution of P&L on `portfolio_value`, it reports VaR and ES at your `confidence_level`. A `seed` keeps runs reproducible, and you supply `weights` per asset.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4f2d98dc671523c455443ea503f77eb48e91781649b236d35b48abb5fb53cb61",
+    "source": "model",
+    "text": "Use Monte Carlo Portfolio Simulation (`monte_carlo_portfolio_simulation`) when you want the distribution of a portfolio's terminal P&L over several periods, not just a one-step figure.\n\n- You want simulated VaR and ES of terminal P&L at a chosen `confidence_level`, based on correlated asset returns drawn from your `mean_returns` and `cov_matrix`.\n- You care about compounding over a multi-period `horizon`, set in periods and applied to a starting `portfolio_value`.\n- You need repeatable results: the `seed` fixes the random draws, and `n_simulations` sets how many paths are run.\n- Your inputs are per-asset weights, per-period mean returns and a per-period covariance matrix, and normally distributed returns are an acceptable model for you.\n- If you instead want to see how each asset contributes to portfolio volatility, `marginal_contribution_to_risk` is listed as giving marginal and component contribution to portfolio volatility risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

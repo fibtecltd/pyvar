@@ -296,7 +296,7 @@ def test_check6_secrets_home_region_and_edge_replica_is_routing_only():
 # CHECK 7 — No outbound HTTP transmitting customer/input data to non-AWS endpoints
 # ---------------------------------------------------------------------------
 def test_check7_no_external_data_egress_from_app_code():
-    """engine/ api/ tasks/ must not ship customer input/results to non-AWS hosts.
+    """engine/ api/ tasks/ assistant/ must not ship customer input/results to non-AWS hosts.
 
     Requirement: GDPR Art. 44 + MiFID II Art. 16(6) — customer portfolio inputs
     and VaR results may only move to in-region AWS services. Only reference-data
@@ -307,7 +307,12 @@ def test_check7_no_external_data_egress_from_app_code():
     external URLs in the compute/API/task layers. Any genuine data-bearing
     outbound call is a BLOCKER; each hit is listed.
     """
-    roots = [_REPO_ROOT / "engine", _REPO_ROOT / "api", _REPO_ROOT / "tasks"]
+    roots = [
+        _REPO_ROOT / "engine",
+        _REPO_ROOT / "api",
+        _REPO_ROOT / "tasks",
+        _REPO_ROOT / "assistant",  # the portal assistant kernel (PR 1)
+    ]
     for root in roots:
         assert root.exists(), f"expected source dir not found: {root}"
 
@@ -338,7 +343,9 @@ def test_check7_no_external_data_egress_from_app_code():
                 # but we still surface them for the audit trail.
                 ref_data_notes.append(f"{pyfile.relative_to(_REPO_ROOT)}:{lineno}: {m.group(0)}")
 
-    print(f"[check7] outbound-HTTP-client imports in engine/api/tasks: {offenders or 'NONE'}")
+    print(
+        f"[check7] outbound-HTTP-client imports in engine/api/tasks/assistant: {offenders or 'NONE'}"
+    )
     print(f"[check7] non-AWS URL literals (review): {ref_data_notes or 'NONE'}")
 
     assert not offenders, (
@@ -347,7 +354,7 @@ def test_check7_no_external_data_egress_from_app_code():
     )
     print(
         "[check7] No HTTP client libs and no data-bearing external endpoints "
-        "in engine/api/tasks — customer data does not leave AWS in-region services."
+        "in engine/api/tasks/assistant — customer data does not leave AWS in-region services."
     )
 
 

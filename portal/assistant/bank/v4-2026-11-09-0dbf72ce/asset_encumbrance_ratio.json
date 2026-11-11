@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "05c8f5e653e59df4fe2276673ca2179f5774af416e2dd13a1861df15ba3de33a",
+      "source": "model",
+      "text": "`asset_encumbrance_ratio` asks how much of a firm's balance sheet is already pledged, by dividing `encumbered_assets` by `total_assets`. A high result means less of the asset pool is free to monetise in stress. `deposit_stability_classification` asks a different question: which deposits are stable and which are less stable? It takes a stability score for each deposit in `deposit_features` and compares it with `stable_threshold`. Deposits at or above the threshold count as stable, which means lower LCR run-off, and the function also gives the stable fraction. So the first function looks at the asset side and gives one ratio, while the second looks at the funding side and sorts individual deposits.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7819220d15c06919d0eb5164c73b78d69377b5d54c3234c7dbbeff0975edc288",
+    "source": "model",
+    "text": "`asset_encumbrance_ratio` (Asset Encumbrance Ratio) is a liquidity risk function that follows EBA reporting. It divides `encumbered_assets`, the carrying value of encumbered assets, by `total_assets`, which covers both encumbered and unencumbered assets. The result shows what share of the balance sheet is already pledged or otherwise tied up. A high ratio means a smaller pool of unencumbered assets that could be monetised in a stress. pyvar does the calculation, so you only supply the two inputs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "97b2ca0fe955d26ea4594ed60be0e8bf22e5201eb7fbca0e5f22a03c95ff4f4a",
+    "source": "model",
+    "text": "`asset_encumbrance_ratio` (Asset Encumbrance Ratio) fits when you need to see how much of a balance sheet is already pledged.\n\n- You're preparing encumbrance figures for EBA-style reporting.\n- You want to gauge how much of the asset pool is left to monetise in a stress, since high encumbrance shrinks the unencumbered pool.\n- You have the carrying value of encumbered assets (`encumbered_assets`) and total assets (`total_assets`, encumbered plus unencumbered), and want one simple ratio.\n- If you instead want collateral availability, meaning post-haircut monetisable value, use `collateral_availability_analysis`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

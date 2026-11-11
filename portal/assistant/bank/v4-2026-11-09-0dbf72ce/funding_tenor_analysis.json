@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_scorecard_aggregation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "60d4a4c7702acc3cbb98a03872ef8a029add675101e2fecdd8145747b0e4157f",
+      "source": "model",
+      "text": "`funding_tenor_analysis` looks at the structure of a funding base: it takes the outstanding amount and residual tenor in days of each funding tranche (`funding_amounts`, `tenors_days`) and returns the amount-weighted average tenor plus the proportion of funding maturing within 90 days. It answers \"how long-dated and how reliant on short-term funding are we?\" Longer weighted average tenor points to more stable funding.\n\n`liquidity_scorecard_aggregation` answers a different question: \"what is our overall liquidity standing across several metrics?\" It takes individual component `scores` (typically 0-100) and a `weights` value for each, normalises the weights, and combines them into one weighted composite score. It then maps that composite to a RAG rating.\n\nIn short, the first measures one specific funding-profile metric from raw tranche data. The second blends scores from many metrics into a single summary rating.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f308e98f8800a67f319685aca086af7e058074c9add8587c76f105d91cf2dad3",
+    "source": "model",
+    "text": "`funding_tenor_analysis` (Funding Tenor Analysis) looks at how long a firm's funding base lasts and how much of it relies on short-term money. It takes the outstanding amount of each funding tranche (`funding_amounts`) and its residual tenor in days (`tenors_days`). From these it computes the amount-weighted average tenor, plus the proportion of funding maturing within 90 days. Both are core structural metrics in an ILAAP, where a longer weighted average tenor points to more stable funding.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9a30dd809f38dd025a842a63d5ef616954e96d56e549a2d150172c0121e54cc7",
+    "source": "model",
+    "text": "Use Funding Tenor Analysis (`funding_tenor_analysis`) when you want to see how stable and long-dated your funding base is:\n\n- You need the amount-weighted average tenor of your funding, where a longer average points to more stable funding.\n- You want to know how much of your funding matures within 90 days, i.e. your reliance on short-term funding.\n- You are preparing an ILAAP and need a structural liquidity metric for the funding base.\n- You have the outstanding amount (`funding_amounts`) and residual tenor in days (`tenors_days`) for each funding tranche.\n\nIf you instead want to simulate stressed net outflows, `liquidity_var_liqvar` is listed as Liquidity VaR (LiqVaR) by Monte Carlo simulation of stressed net outflows.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "structural_hedge_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7019433cee0aa53781a4c30da133ec6a5a0fdb8541704ea87e45f2ac6e5da08a",
+      "source": "model",
+      "text": "`asset_liability_mismatch_index` answers \"how far out of balance are my assets and liabilities?\" It takes durations and amounts for asset and liability buckets and gives an index: the absolute gap between duration-weighted assets and liabilities, divided by total assets. The index is zero when the book is perfectly immunised. `structural_hedge_optimisation` answers a different question: \"what hedge positions get my equity duration to a target?\" You give it a `target_duration`, the hedge instruments' durations and maximum notionals, and the `equity_notional`. It solves numerically for non-negative hedge notionals, within each instrument's cap, that bring the hedge's dollar-duration as close as possible to the target. So the first function measures a mismatch, and the second searches for a hedge sized to a duration goal.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "df3d5865b61ebe3eecd5a16a0e8101601d5c88845731fc36b0e44d4634efd2e1",
+    "source": "model",
+    "text": "`asset_liability_mismatch_index` (Asset Liability Mismatch Index) turns duration-weighted exposures into a single mismatch measure for a balance sheet. It takes the duration-weighted sum of asset amounts, subtracts the duration-weighted sum of liability amounts, takes the absolute value, and divides by total assets. The index is zero when the book is perfectly immunised, and larger values mean a bigger duration gap relative to assets. You supply `asset_durations`, `asset_amounts`, `liability_durations` and `liability_amounts`, each keyed by bucket, with durations in years and amounts in currency.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "90ebbce8384edb6f2f8fc53433ce07f2b9211eefc5ca29780259227c1d8d6128",
+    "source": "model",
+    "text": "The Asset Liability Mismatch Index (`asset_liability_mismatch_index`) fits when you want a single number showing how far assets and liabilities are out of balance on duration.\n\n- You want a quick read on duration mismatch: it gives the absolute gap between duration-weighted assets and liabilities, scaled by total assets.\n- You can split your book into asset and liability buckets, each with a duration in years and an amount, to pass in as `asset_durations`, `asset_amounts`, `liability_durations` and `liability_amounts`.\n- You want to check how close a book is to being immunised: the index is zero when it is perfectly immunised.\n- You want to compare mismatch across portfolios or over time, since the gap is normalised by total assets.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

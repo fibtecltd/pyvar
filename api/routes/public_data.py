@@ -38,6 +38,7 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from starlette.concurrency import run_in_threadpool
 
+from api.assistant_bank import served_bank_version
 from api.middleware.rate_limit import enforce_public_rate_limit
 from config import get_settings
 from storage.s3 import get_s3_client
@@ -96,12 +97,20 @@ async def get_public_config() -> dict[str, Any]:
     tengrade's own build-time CfnOutput flags give it, achieved here at
     request time instead since there's no build step to bake a flag into.
 
+    `assistant_enabled` and `assistant_bank_version` tell the portal's assistant widget (portal/assistant.js)
+    whether to appear and which answer-bank directory to read; see api/assistant_bank.py.
+
     Unrelated to this module's S3-backed status/demo-result JSON above —
     grouped here only because it's the existing public, unauthenticated,
     already-mounted router, not because the data has anything to do with
     that bucket.
     """
+    # The portal assistant (assistant/, api/assistant_bank.py): on only when the setting is on AND a complete
+    # answer bank is on disk. The widget loads nothing and shows nothing unless assistant_enabled is true.
+    bank_version = served_bank_version() if cfg.assistant_enabled else ""
     return {
         "google_sign_in_enabled": bool(cfg.google_oauth_client_id),
         "google_client_id": cfg.google_oauth_client_id,
+        "assistant_enabled": bool(bank_version),
+        "assistant_bank_version": bank_version,
     }

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "61f4ec9254e4e487a838c22c73d113ef64a22af264d9e93711f7f5ab0db10884",
+      "source": "model",
+      "text": "`effective_epe_regulatory` answers \"what single exposure figure summarises this counterparty's expected exposure profile for Basel purposes?\" It turns an expected-exposure profile and its time points into the Effective EPE. To do so, it applies a running maximum so the profile never decreases, then takes the time-weighted average over the first year (CRE53). Downstream, EAD is alpha times that EEPE.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how much does the credit valuation adjustment move when its inputs change?\" It computes the base CVA, then `cs01` (the change from a bump in the credit spread) and `exposure_delta` (the effect of uniformly scaling the exposure profile). It also needs `discount_factors`, `credit_spread` and optionally `recovery_rate`, which `effective_epe_regulatory` does not use.\n\nIn short, the first is an exposure measure for regulatory capital, and the second measures CVA sensitivity for hedging and risk.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2dd45f60b99f147d5580134883713a0069202c0c6ab7deaa12dd68d1d7d7760a",
+    "source": "model",
+    "text": "`effective_epe_regulatory` (Effective EPE Regulatory) calculates the Basel Effective Expected Positive Exposure for a counterparty from an expected-exposure profile. It first builds the Effective EE profile as a running maximum of EE, so the profile never decreases, which captures roll-over risk. It then takes the time-weighted average of that profile over the first year, following CRE53. You supply `expected_exposure` (non-negative values) and `time_steps` (strictly increasing times in years). Downstream, EAD is the prescribed factor multiplied by the EEPE.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1ca82c7dfb37f0fd8200e75cc2509bb13bf2c1c0ab3cc419dc015d69c1294f3b",
+    "source": "model",
+    "text": "`effective_epe_regulatory` (Effective EPE Regulatory) fits when you need the Basel effective EPE for counterparty credit risk, following CRE53.\n\n- You already have an expected-exposure profile (`expected_exposure`) and matching `time_steps` in years, and want it turned into a single EEPE figure.\n- You want roll-over risk captured: the Effective EE profile never decreases, because it takes the running maximum of EE.\n- You need the exposure input for an EAD calculation, since EAD is alpha times EEPE downstream.\n- Your profile covers the first year, which is the window the time-weighted average is taken over.\n\nIf you only need a plain time-weighted average of expected exposure, without the non-decreasing step, `expected_positive_exposure_epe` is listed as the Expected Positive Exposure function, a time-weighted average expected exposure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

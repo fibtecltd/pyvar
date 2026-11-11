@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "56ab228368971eec6924bf449f0f5b1f4f6dc6f5bc8ca33a0d49d5eb91389229",
+      "source": "model",
+      "text": "`egarch_volatility_model` and `correlation_matrix_historical` answer different questions. The first asks how volatile a single return series is over time, and whether bad news raises that volatility more than good news. It takes one 1-D `returns` series and models log-variance, using `omega`, `alpha`, `gamma` and `beta`. A negative `gamma` means negative shocks push volatility up more than positive shocks of the same size.\n\n`correlation_matrix_historical` asks how several assets move together. It takes a `returns_matrix` of T observations on N assets and gives the Pearson correlation between each pair. It describes co-movement across assets and says nothing about how volatility evolves or reacts to shocks.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": true,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ae24cbd1c864152dccedd102e14a558d89b52ba15b04a48d8a1efa8e0e716f6e",
+    "source": "model",
+    "text": "`egarch_volatility_model` (EGARCH Volatility Model) applies an EGARCH(1,1) asymmetric volatility model, following Nelson (1991), to a 1-D return series that it demeans internally. You supply the parameters, or rely on their defaults: `omega` (log-variance intercept), `alpha` (coefficient on shock magnitude), `gamma` (leverage) and `beta` (log-variance persistence, with |`beta`| below 1 for stationarity). Because it models the log of conditional variance, the variance stays positive for any parameter values. When `gamma` is negative, negative shocks raise volatility more than positive shocks of the same size.",
+    "tries": 1,
+    "writer": "claude-opus-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "37290fa227ea767abbd324f30b5288fe459a0593776d246001b31b11ce8ab291",
+    "source": "model",
+    "text": "`egarch_volatility_model` (the EGARCH Volatility Model) fits when you want an asymmetric view of volatility in a return series:\n\n- You expect negative shocks to raise volatility more than positive shocks of equal size. The leverage term `gamma` captures this when it is negative.\n- You want conditional variance that is always positive, since the model works on log-variance, so no parameter choice can break that.\n- You have a single 1-D return series (`returns`) and already have values in mind for `omega`, `alpha`, `gamma` and `beta`. You set these yourself, and each has a default value, so the function does not estimate them from your data.\n- For a different asymmetric model, `gjr_garch_asymmetric_model` is listed as a GJR-GARCH(1,1) asymmetric volatility model (Glosten-Jagannathan-Runkle).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

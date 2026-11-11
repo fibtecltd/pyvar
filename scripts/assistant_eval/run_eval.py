@@ -59,6 +59,8 @@ USAGE_KEYS = (
 
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]
+KERNEL_DIR = REPO / "assistant"
 PROVENANCE_FILES = ("prompts.py", "graders.py")
 
 
@@ -295,16 +297,21 @@ def code_provenance(
 ) -> dict[str, Any]:
     """Which prompts.py and graders.py produced a run: git commit, uncommitted edits, content hashes.
 
-    The hashes need no git, so a run copied off the machine still says which text it used. `commit` is
-    the last commit that touched either file (None outside a git checkout); `dirty` is True when either
-    file differs from it, in which case the commit alone does not identify the code.
+    The kernel files (prompts.py, graders.py, ...) live in assistant/ since the move there, and the old paths
+    are shims, so a name in `files` that exists in assistant/ is read from there; any other name is read from
+    `directory`. The hashes need no git, so a run copied off the machine still says which text it used.
+    `commit` is the last commit that touched any of the files (None outside a git checkout); `dirty` is True
+    when any differs from it, in which case the commit alone does not identify the code.
     """
-    paths = [str(directory / name) for name in files]
+    paths = {
+        name: (KERNEL_DIR / name if (KERNEL_DIR / name).exists() else directory / name)
+        for name in files
+    }
 
     def git(*args: str) -> str | None:
         try:
             done = subprocess.run(  # noqa: S603 - fixed arguments, no shell, no user input
-                ["git", "-C", str(directory), *args],  # noqa: S607
+                ["git", "-C", str(REPO), *args],  # noqa: S607
                 capture_output=True,
                 text=True,
                 timeout=20,
@@ -314,13 +321,14 @@ def code_provenance(
             return None
         return done.stdout.strip()
 
-    commit = git("log", "-1", "--format=%H", "--", *paths) or None
-    status = git("status", "--porcelain", "--", *paths)
+    located = [str(path) for path in paths.values()]
+    commit = git("log", "-1", "--format=%H", "--", *located) or None
+    status = git("status", "--porcelain", "--", *located)
     return {
         "commit": commit,
         "dirty": bool(status) if status is not None else None,
         "sha256": {
-            name: hashlib.sha256((directory / name).read_bytes()).hexdigest() for name in files
+            name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in paths.items()
         },
     }
 

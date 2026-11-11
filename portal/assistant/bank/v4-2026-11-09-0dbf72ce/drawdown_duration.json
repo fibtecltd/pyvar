@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "calmar_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "72d678b3ddf11cde68429ad3cad745ea591b184c3c4d15c6f23af3c243f01618",
+      "source": "model",
+      "text": "`drawdown_duration` answers \"how long was I underwater?\": it counts consecutive periods spent below the prior peak and reports the longest run and the current one. `calmar_ratio` answers \"how much return did I earn for the worst loss I took?\": it divides annualised return (CAGR) by maximum drawdown (MDD). The first measures time and the second measures return relative to depth of loss, so one says nothing about the other.\n\nInputs also differ. `drawdown_duration` accepts per-period returns or an equity curve (set `is_equity_curve` to True), while `calmar_ratio` takes simple returns plus `periods_per_year` for annualisation. If you want the size of the worst decline on its own, `maximum_drawdown` is the related function.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f7a44cfaa744397cc9452a26ae525abe1e6c15c64d37444a7fcf464cada39d2e",
+    "source": "model",
+    "text": "`drawdown_duration` (Drawdown Duration) measures how long a portfolio spends below its prior peak. It counts consecutive periods in which the value sits under the running peak, resetting to zero whenever the value gets back to or above that peak. It reports the longest underwater run and the current one. You pass `returns`, either per-period returns or, with `is_equity_curve` set to True, a value series directly. It complements depth-based drawdown measures by showing how long losses persist rather than how large they are.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "514946bc01b07cbf45a200d067558cb6a48fd9574b67de6fb709f65a8450b68f",
+    "source": "model",
+    "text": "`drawdown_duration` (Drawdown Duration) fits when you care about how long a portfolio stays below its prior peak, not just how deep it falls.\n\n- You want the longest underwater run, to see how long a recovery has taken in the past.\n- You want the current underwater run, to see how long a portfolio has been below its peak right now.\n- You have either per-period returns or an equity curve. Set `is_equity_curve` to True if you pass a value series directly.\n- You're comparing strategies on the patience they demand, since two can have similar losses but very different time spent under water.\n- For the size of the decline rather than its length, `maximum_drawdown` is the largest peak-to-trough decline.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

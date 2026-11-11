@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7b0d6af8101bce79484d663ef4d26e2a7cd25e101f9fb1e01d8cd781e9c703fd",
+      "source": "model",
+      "text": "`collateral_availability_analysis` asks how much secured funding a firm could raise from its collateral. It takes each asset's market value (`collateral_values`), applies a haircut to it (`haircuts`), and nets off anything already pledged (`already_pledged`, optional). Each asset's net value is floored at zero before the results are summed. `deposit_stability_classification` asks a different question: how stable are the deposits? It takes a stability score between 0 and 1 for each deposit (`deposit_features`) and compares it with a cut-off (`stable_threshold`, default 0.5). Deposits at or above the cut-off count as stable, which means lower LCR run-off, and the rest count as less-stable. The first looks at the asset side and returns a monetisable value, while the second looks at the funding side and returns a stable/less-stable label for each deposit plus the stable fraction.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "592c6cdba04f66a0019057314adcf00ccffff591a1ffced44ce35eb12de7c3d9",
+    "source": "model",
+    "text": "`collateral_availability_analysis` (Collateral Availability Analysis) works out how much secured funding you could raise from your collateral, which is your counterbalancing capacity. For each asset, it takes the market value from `collateral_values`, applies the haircut from `haircuts` (each between 0 and 1), and subtracts any amount in the optional `already_pledged`. Each asset's net value is floored at zero, so an over-pledged asset never reduces the total. The function then sums these values across all assets to give the post-haircut monetisable value.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "63ccd003af2e18af0d8d5ba32e4ebff90ba2d44f3bfbb29ac71b99b6db2e5d81",
+    "source": "model",
+    "text": "Use Collateral Availability Analysis (`collateral_availability_analysis`) when you need to know how much secured funding your collateral could realistically raise:\n\n- You want the post-haircut, monetisable value of a collateral pool, rather than its market value, as a view of counterbalancing capacity.\n- Some assets are already pledged and you want those amounts netted off, via the optional `already_pledged` input, so only the unencumbered remainder counts.\n- You hold several asset types with different haircuts and want each assessed separately using `collateral_values` and `haircuts`. Each asset's contribution is floored at zero, so over-pledged assets don't reduce the total.\n- For a related need, `asset_encumbrance_ratio` covers the asset encumbrance ratio (EBA reporting).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

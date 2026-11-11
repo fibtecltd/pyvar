@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_buffer_sizing": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d22f02fbddf3eed627d0617665b172b3083cae1d0214b9f050e7b8c65fcfc056",
+      "source": "model",
+      "text": "`contingency_funding_plan_trigger` answers \"have any of our early-warning metrics fallen below their minimum acceptable levels, so the Contingency Funding Plan should be activated?\" You give it `metrics` (current values) and `thresholds` (minimums). It flags each metric that is below its threshold and returns the list of breaches plus an activation decision. It is a logical yes/no test, not an arithmetic formula.\n\n`liquidity_buffer_sizing` answers \"how large should our liquidity buffer be?\" It takes `stressed_net_outflows` per period, finds the deepest point of the cumulative outflow trough, and can add a management margin through `confidence_buffer`.\n\nSo one is a monitoring trigger that says whether to act, and the other is a sizing calculation that says how much liquidity to hold.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bc41949a0310711e3bf438aa58a9bc865b07cc534e31b22d8013f205094d877f",
+    "source": "model",
+    "text": "`contingency_funding_plan_trigger` (Contingency Funding Plan Trigger) checks whether any liquidity early-warning metrics have fallen far enough to activate a contingency funding plan. You give it `metrics`, a mapping of each metric name to its current value, and `thresholds`, a mapping of each name to its minimum acceptable value. A metric counts as breached when its value is below its threshold, so lower means worse, as with LCR or survival days. It returns the list of breached triggers and a CFP activation decision, which is activated if any single metric is breached. It is a logical comparison rather than an arithmetic formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8bcec2a2bc94fe685201341c440f85cc7ec514ca03f47dfb526a814f30a9ce2b",
+    "source": "model",
+    "text": "The Contingency Funding Plan Trigger (`contingency_funding_plan_trigger`) fits when you want to test early-warning liquidity metrics against activation thresholds:\n\n- You track metrics where lower means worse, such as LCR or survival days, and want to know whether any has fallen below its minimum acceptable value.\n- You need a clear decision on whether the contingency funding plan is activated, plus the list of breached triggers.\n- You have a named set of current values (`metrics`) and a matching set of minimum values (`thresholds`) to compare side by side.\n- If what you need is the survival horizon itself, `survival_horizon_calculator` is listed as computing the days until cumulative net outflow exhausts HQLA, which could then feed in as one of your metrics.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -823,13 +823,12 @@ def test_the_summary_records_prompt_version_code_provenance_and_writer() -> None
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
     code = summary["code"]
     assert set(code["sha256"]) == {"prompts.py", "graders.py"}
-    here = Path(run_eval.__file__).resolve().parent
-    import hashlib
-
-    assert (
-        code["sha256"]["prompts.py"]
-        == hashlib.sha256((here / "prompts.py").read_bytes()).hexdigest()
-    )
+    # The provenance describes the kernel files in assistant/, not the shims at the old paths.
+    kernel, shim = REPO / "assistant", Path(run_eval.__file__).resolve().parent
+    for name in ("prompts.py", "graders.py"):
+        assert code["sha256"][name] == hashlib.sha256((kernel / name).read_bytes()).hexdigest()
+        assert code["sha256"][name] != hashlib.sha256((shim / name).read_bytes()).hexdigest()
+    assert isinstance(code["dirty"], bool) or code["dirty"] is None
     assert code["commit"] is None or len(code["commit"]) == 40
 
 

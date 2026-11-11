@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f30a8a9e8e76df21f09884f0e1fb603e6362a223eb04acf5963ace019c0b1a16",
+      "source": "model",
+      "text": "`garch_11_volatility_forecast` answers \"how volatile is a single asset likely to be over the coming periods?\" It takes one return series, filters the conditional variance, and projects it forward over a `horizon`, with the forecast drifting back toward a long-run variance level. `correlation_matrix_historical` answers a different question: \"how do several assets move together?\" It takes a `returns_matrix` of observations on many assets and gives the pairwise Pearson correlations from the historical data.\n\nThe first is about how one asset's risk changes over time, using `alpha`, `beta` and optionally `omega`. The second is about the co-movement between assets and has no forward-looking projection. If you want correlations that change over time, pyvar's related function `dcc_garch_dynamic_correlation` is the one to look at.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a01630281491f27b047c8303b60e675e8a59111264a80561dfdca97aa01a19a5",
+    "source": "model",
+    "text": "`garch_11_volatility_forecast` (GARCH 11 Volatility Forecast) filters a return series through a GARCH(1,1) model and projects conditional volatility forward over a chosen `horizon`. You supply the coefficients `alpha` and `beta`, which have defaults of 0.1 and 0.85; pyvar does not estimate them. Each period's variance combines a constant `omega`, the last squared shock weighted by `alpha`, and the last variance weighted by `beta`. The forecast mean-reverts toward the long-run variance at a rate set by `alpha` plus `beta`. If you leave out `omega`, pyvar sets it by variance targeting, and returns are demeaned internally.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8c8962b3f32a84945a61c7cde6db8f0b7acaa478c6b22ec539b8dea35cb14d52",
+    "source": "model",
+    "text": "`garch_11_volatility_forecast` fits when you want a forward-looking volatility estimate from a return series:\n\n- You need a multi-step volatility forecast over a chosen `horizon`, one that gradually mean-reverts toward a long-run variance rather than staying flat.\n- You want a conditional-volatility series that reacts to recent shocks (`alpha`) and persists from past variance (`beta`), so calm and turbulent periods are treated differently.\n- You have a single 1-D return series and no estimate of the long-run variance. Leave `omega` unset and pyvar sets it by variance targeting.\n- You are comfortable with a symmetric model, where positive and negative shocks of the same size have the same effect.\n\nIf you need asymmetric behaviour, `gjr_garch_asymmetric_model` is listed in pyvar as a GJR-GARCH(1,1) asymmetric volatility model, and `egarch_volatility_model` as an EGARCH(1,1) asymmetric volatility model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

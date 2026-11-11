@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "internal_control_factor_icf": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3d288a51e697e109a5b46e59bf55de6e613a340f15b2a5f5871f5418fdc84f80",
+      "source": "model",
+      "text": "`business_environment_factor_bei` asks how risky the forward-looking business environment is, and it scales capital up or down accordingly. It averages factor scores (for example on a 1-5 scale where higher means riskier) and compares that average to a neutral `baseline`, with `sensitivity` setting how strongly the gap moves capital. `internal_control_factor_icf` asks how well the firm's internal controls are working. It averages control effectiveness scores in [0, 1], and stronger controls pull the multiplier below 1.0 while weaker ones push it above. The direction is opposite: higher scores in the BEI raise the multiplier, while higher scores in the ICF lower it. The two are counterparts in the BEICF overlay, and each has its own defaults for `baseline` and `sensitivity`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "425be8947faa9c08f5bc87b46187d0809a1912e5cce3694fd45bf62023631d5a",
+    "source": "model",
+    "text": "`business_environment_factor_bei` (Business Environment Factor BEI) turns forward-looking business-environment scores into a capital multiplier centred on 1.0. It averages the scores you pass in `factor_scores`, compares that average with a neutral `baseline`, and scales the gap by `sensitivity`. Averages above the baseline push the multiplier up, and averages below it pull the multiplier down, and it is floored at zero. It is part of the BEICF overlay permitted under the AMA in operational risk. The scores can be on a scale such as 1-5, where higher means riskier.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4dc0a32d77c16c5a5f55b7c3715c2584ebdb6e5bd674615584503b931517148c",
+    "source": "model",
+    "text": "`business_environment_factor_bei` (Business Environment Factor BEI) fits when you need a capital adjustment multiplier driven by forward-looking risk scores:\n\n- You have business-environment factor scores (for example on a 1-5 scale where higher means riskier) and want them turned into a multiplier around 1.0 via `factor_scores`.\n- You are building the BEICF overlay permitted under the AMA and need the business-environment piece of it.\n- You want scores above a neutral level to raise capital and scores below it to lower capital. You can set that level with `baseline` and the strength of the effect with `sensitivity`.\n- Internal control quality is a different need: `internal_control_factor_icf` is listed as the Internal Control Factor (ICF) capital adjustment multiplier.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "13060c8e014ab37f771e860c6aeb704fe1dcdcbec78f7bfddcd8171f74421596",
+      "source": "model",
+      "text": "`trinomial_tree_option_pricer` prices an option by building a lattice with up, middle and down moves at each step. It works backward from maturity and, for American style, checks early exercise at each node. `monte_carlo_option_pricer` instead simulates many terminal prices under geometric Brownian motion and averages the discounted payoffs, and it covers European options only.\n\nSo the tree answers \"what is this option worth, including the right to exercise early if it's American?\" The Monte Carlo function answers \"what is the average discounted payoff of a European option across simulated end prices?\"\n\nAccuracy is controlled differently. The tree is tuned with `n_steps` and has no randomness. The Monte Carlo function uses `n_simulations` and a `seed`, so its result is repeatable for a given seed but depends on the random draws. Both take `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a8a2bdcafeda9ce961d2f284900ac99580adca68623d44c03ed2ae7c7dab3dc6",
+    "source": "model",
+    "text": "The Trinomial Tree Option Pricer (`trinomial_tree_option_pricer`) prices an option using a Boyle trinomial tree, where each step branches into up, middle and down moves. For European options, the tree's price converges toward the Black-Scholes value as you add steps, and it also handles American exercise by checking for early exercise at each node. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can optionally set `n_steps`, `option_type` (call or put), `style` and `div_yield`. pyvar does the calculation and returns the option price.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9ffd9adfa6f8245b8cc14bffa54f161559ae7342d04ea705f5638166e31903ee",
+    "source": "model",
+    "text": "The Trinomial Tree Option Pricer (`trinomial_tree_option_pricer`) fits these situations:\n\n- You need a price for an American option, since it includes an early-exercise check at each step (set `style` to `\"american\"`).\n- You want a European call or put price from a tree that converges toward Black-Scholes as `n_steps` grows.\n- Your underlying pays a continuous dividend yield, which you can enter through `div_yield`.\n- You want to trade accuracy against run time by adjusting `n_steps` (default 300).\n\nIf you only need a closed-form European price, `black_scholes_european_option` is listed as the Black-Scholes-Merton price of a European option.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

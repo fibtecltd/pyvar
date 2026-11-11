@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "01671276207b94c86bdfcb1787e4a2f21783ad87d725c86b0268e805f3a35489",
+      "source": "model",
+      "text": "`inflation_linked_bond_pricer` answers \"what is an inflation-indexed bond worth today?\" You give it a base `face_value`, a `real_coupon_rate`, a `real_yield`, a `maturity` and one assumed `inflation_rate`. Coupons and principal are uplifted by cumulative inflation, and the resulting nominal cashflows are discounted at the real yield.\n\n`bond_pricer_floating_rate` answers \"what is a floating-rate note worth, given projected index rates?\" Instead of one inflation assumption, you supply a `reference_rates` list, a `spread` and per-period `discount_rates`. Each coupon is the reference rate plus the spread, applied to the face value.\n\nIn short, the first function's cashflows move with an index applied to principal, while the second's coupons reset with forward rates. The floating-rate function also takes its number of coupon periods from the length of `reference_rates`, and `maturity` must agree with it. The inflation-linked one derives periods from `maturity` and `frequency`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "33826a36ef7d0bd526a478020f7049a1a82336aff018fbc254351920a7aafc33",
+    "source": "model",
+    "text": "The Inflation Linked Bond Pricer (`inflation_linked_bond_pricer`) prices a real bond whose coupons and principal are uplifted by cumulative inflation. It takes the base `face_value`, the `real_coupon_rate`, the `real_yield`, the `maturity` in years and an assumed `inflation_rate`, with `frequency` setting coupon payments per year (default 2). It grows each coupon and the final principal by the assumed inflation to get nominal cashflows, then discounts them at the real yield. The output is the bond's price under those assumptions.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "575ff76293c4a221d931d35526aa0c70095bde203e46736269c11491eeff97a8",
+    "source": "model",
+    "text": "The Inflation Linked Bond Pricer (`inflation_linked_bond_pricer`) fits when you need to price a bond whose principal and coupons are uplifted by inflation.\n\n- You have an inflation-linked (real) bond and want its price from a real yield, using the real-cashflow / real-yield convention.\n- You want to see how an assumed annual inflation rate (`inflation_rate`) feeds into the price alongside `real_coupon_rate`, `real_yield`, `face_value` and `maturity`.\n- You need to set the coupon schedule with `frequency` (coupon payments per year), which defaults to 2 if you leave it out.\n- You are comparing scenarios, such as different inflation assumptions, for the same bond.\n\nIf your bond pays a fixed coupon with no index uplift, `bond_pricer_fixed_coupon` is listed as pricing a fixed-coupon bond by discounting its cashflows at a flat yield.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "srep_capital_add_on": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ad3d301a7ac484e585c69960ce71eb52970ce2cf2b1ddcb88de54ea0db235217",
+      "source": "model",
+      "text": "`pillar_2a_capital` builds the Pillar 2A amount from the bottom up: you pass `risk_addons` (the per-risk charges, such as concentration, IRRBB, pension or operational) plus `risk_weighted_assets`, and it sums the charges and expresses them as a ratio to RWA. It answers \"what does my Pillar 2A capital come to, given these individual risk add-ons?\" `srep_capital_add_on` works from the top down: you give it a supervisory `pillar2a_addon_ratio`, the `pillar1_requirement` and `risk_weighted_assets`, and it turns that ratio into a capital amount. It then adds Pillar 1 to get the Total SREP Capital Requirement (TSCR). It answers \"given the Pillar 2A ratio, what is my Pillar 2A amount and total SREP requirement?\" In short, one derives Pillar 2A from component risks, the other starts from the ratio and goes on to the TSCR.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3da914c2fe3b1c236442362e164edd90eabf6125c022a0099d02b2d8f19a6691",
+    "source": "model",
+    "text": "`pillar_2a_capital` (Pillar 2a Capital) totals the extra capital a firm holds for risks that Pillar 1 does not fully capture, such as credit concentration, interest rate risk in the banking book, pension and operational risk. You pass in `risk_addons`, an array of per-risk capital add-ons in currency, and `risk_weighted_assets`, the total risk-weighted assets. pyvar sums the add-ons to get the Pillar 2A capital amount. It then divides that sum by the risk-weighted assets to give the Pillar 2A ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "adf4593741813b7cf4d205a84efe5b0e78c3affd571290b9b5f97e41ee275598",
+    "source": "model",
+    "text": "Use `pillar_2a_capital` (Pillar 2a Capital) when you already have individual capital add-ons and want them combined:\n\n- You need a total Pillar 2A charge for risks not fully captured in Pillar 1, such as credit concentration, IRRBB, pension or operational risk.\n- You have per-risk add-ons in currency (`risk_addons`) and want them summed into one figure.\n- You want that total expressed as a ratio to total risk-weighted assets (`risk_weighted_assets`).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

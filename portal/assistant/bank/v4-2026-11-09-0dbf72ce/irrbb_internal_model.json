@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1db51211b1e84073d00b583eb243a3472cc4a6949f6f518d1776e54903dcc438",
+      "source": "model",
+      "text": "`irrbb_internal_model` answers \"how would my cashflows' economic value of equity change under rate scenarios I supply?\" You give it net cashflows, bucket times, base rates and a matrix of `rate_scenarios`, such as historical or simulated shocks, and it reports the distribution of EVE changes plus a 99% worst case. `irrbb_six_standard_rate_shocks` answers a different question: \"what do the six prescribed BCBS d368 shock curves look like for my tenors?\" It builds those curves from `tenors` and the magnitudes `parallel_bps`, `short_bps` and `long_bps`, and it values no cashflows. In short, one supplies a fixed regulatory scenario set, while the other takes any scenarios and measures the EVE impact.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d7fe69d8728f000d9b7fe0443185c64b0be493f4cdde33f112310993bbcee988",
+    "source": "model",
+    "text": "`irrbb_internal_model` (IRRBB Internal Model) estimates a bank's change in economic value of equity (EVE) under its own interest rate scenarios, rather than the standardised shocks. You supply net cashflows per time bucket, the bucket times in years, base zero rates, and a matrix of additive rate shocks, one row per scenario. For each scenario it discounts the cashflows at the shocked rates and compares the result with the base-rate EVE. It reports the resulting distribution of EVE changes and a 99% worst-case, taken as the 1st percentile of those changes. The scenarios can be historical or Monte Carlo simulated.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4c6131732b08725e5efe161992be4af47eb8bb9d6c5d43ed4f1ad3e1400852dc",
+    "source": "model",
+    "text": "`irrbb_internal_model` (IRRBB Internal Model) fits when you want to measure economic value of equity (EVE) risk using your own rate scenarios.\n\n- You have your own set of rate-shock scenarios, such as historical or Monte Carlo simulated ones, and want to pass them in as the `rate_scenarios` matrix.\n- You want the whole distribution of EVE changes across scenarios, not just a single worst shock.\n- You want a 99% worst-case figure taken from that distribution.\n- Your balance sheet is summarised as net cashflows per time bucket, with base zero rates for each bucket.\n- If you want the standardised IRRBB EVE measure instead, `irrbb_standardised_framework` gives the worst ΔEVE across the six shocks.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

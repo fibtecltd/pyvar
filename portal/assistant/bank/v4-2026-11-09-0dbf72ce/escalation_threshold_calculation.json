@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_heat_map_generator": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e0604b8bb4800db7f03dfc61b89045ceb4868961ac459d2aa2faaba3c242f606",
+      "source": "model",
+      "text": "`escalation_threshold_calculation` answers \"who needs to hear about this loss?\": given a `loss_amount` and a set of `thresholds` (level to minimum amount), it picks the triggered tier with the largest threshold value. That is a rule-based lookup, so it relies on your thresholds rising in step with severity.\n\n`oprisk_heat_map_generator` answers \"where do my risks sit on a grid?\": it takes `likelihoods` and `impacts` ratings per risk, buckets each into a 5×5 grid, and gives a score (likelihood × impact), a RAG band, and a count of risks per cell.\n\nIn short, the first routes a single loss amount to a governance level, while the second profiles a set of rated risks across the grid.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cf5d4f62b8ea427f7d614accd168f31f6bb607932f4f5019a67bcc5b15640115",
+    "source": "model",
+    "text": "`escalation_threshold_calculation` (Escalation Threshold Calculation) takes a loss amount and works out which governance tier it should be routed to. You give it `loss_amount` (zero or more) and `thresholds`, a mapping of each level to its minimum amount, such as team, head, exco and board. It finds every level whose threshold the loss meets or exceeds, then returns the one with the numerically largest threshold. Because it goes by threshold value rather than level name or order, `thresholds` should rise consistently with severity. It is a simple rule-based lookup, not a statistical model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9bb74963032a5c21907d97761dc28cef6df0c384cd06b5b02518e58cf9c80f96",
+    "source": "model",
+    "text": "`escalation_threshold_calculation` (Escalation Threshold Calculation) fits when you need to route a loss to the right governance level.\n\n- You have a single loss amount and a set of tiers, each with a minimum amount, such as team, head, exco and board.\n- You want a simple rule-based lookup: it picks the triggered tier with the numerically largest threshold your loss meets or exceeds.\n- Your `thresholds` rise consistently with severity, because the function goes by threshold value, not by tier name or the order you list them in.\n- You want a clear, repeatable way to apply an escalation policy to `loss_amount` (which must be 0 or more).\n\nIf you need to assess an operational risk metric against appetite and tolerance limits, `risk_appetite_statement_oprisk` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

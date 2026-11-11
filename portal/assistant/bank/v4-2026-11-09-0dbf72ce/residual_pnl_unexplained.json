@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "924de57a5a41439d4b8574d3aa19566bc68575a067cb9f1d8e1742bf3eedbb6d",
+      "source": "model",
+      "text": "`residual_pnl_unexplained` takes one period's actual P&L and a set of explained components, then returns the leftover: actual P&L minus the sum of those components. It also gives the ratio of explained to actual, so it answers \"how much of this period's P&L did my explained pieces fail to capture?\" `pnl_attribution_test_frtb_pat` works on two daily series, risk-theoretical P&L (`risk_theoretical_pnl`) and hypothetical P&L (`hypothetical_pnl`). It measures their Spearman rank correlation and the ratio of their standard deviations, then assigns a Basel traffic-light zone. It answers \"does the risk model's P&L track full-revaluation P&L well enough to pass the FRTB test?\" So the first is a single-period decomposition that reconstructs actual P&L exactly, while the second is a pass/fail-style assessment of model quality over a series. A large residual can point to model incompleteness, which is the kind of concern the FRTB test looks at.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3891bec1c1414f739ff4dc5ea79f0506d43e6baca9eb03dec9e3436ce271166b",
+    "source": "model",
+    "text": "`residual_pnl_unexplained` calculates the unexplained (residual) P&L for a period. It subtracts the sum of your explained P&L components (`explained_components`) from the observed, hypothetical P&L (`actual_pnl`). The residual plus the explained components reconstructs the actual P&L exactly. The formula also defines a ratio of explained components to actual P&L. A large residual relative to actual P&L flags model incompleteness, which is an FRTB PAT concern.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5e05f0901a2368cc9211dfe475ddbd593d2c28dc55281d2630bad187a364f05a",
+    "source": "model",
+    "text": "`residual_pnl_unexplained` fits when you need to see how much of a period's P&L your explained components fail to capture.\n\n- You have an observed (hypothetical) P&L and a set of explained components, such as Greeks or other attribution pieces, and want the leftover: actual P&L minus the sum of the components.\n- You want a check that the residual plus the explained components reconstructs actual P&L exactly.\n- You want to see whether the residual is large relative to actual P&L, which flags model incompleteness. This is an FRTB PAT concern.\n- You want the ratio of explained components to actual P&L as a quick measure of how much your model explains.\n\nIf you need the formal FRTB test itself, `pnl_attribution_test_frtb_pat` is listed as the FRTB P&L Attribution Test (PAT), using a Spearman correlation and ratio test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

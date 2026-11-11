@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "market_wide_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b25762fef1e742265794c8f63fb68d3c845972cfb6adfd4bf24f9c8f54e1fa2d",
+      "source": "model",
+      "text": "`idiosyncratic_stress_scenario` models a crisis specific to one firm, such as a rating downgrade, and asks whether your HQLA covers the outflows when retail deposits partly flee and wholesale funding is not rolled over. You give it `retail_deposits`, `wholesale_funding`, `hqla` and optional run-off rates, and it computes outflows from those balances and returns the surplus after subtracting them from HQLA.\n\n`market_wide_stress_scenario` models a system-wide crisis and asks how much your liquidity buffer is worth when market haircuts widen. You give it `hqla_by_level`, `market_haircuts` and a stressed `outflow`, and it reduces each HQLA level by its haircut before subtracting the outflow.\n\nIn short, the first stresses the funding side (the outflows), while the second stresses the asset side (the HQLA value). If you want both shocks together, `combined_stress_scenario` is the related function.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "269a2e8b7cef8398a287bb56ec704134dccc936f0447e0f3ae97da8eff57d311",
+    "source": "model",
+    "text": "`idiosyncratic_stress_scenario` (Idiosyncratic Stress Scenario) models a firm-specific liquidity crisis, such as a rating downgrade. It assumes partial run-off of retail deposits and, by default, complete loss of wholesale funding rollover, which is the hallmark of a name-specific shock. You give it `retail_deposits`, `wholesale_funding` and available `hqla`, and can override the defaults with `retail_runoff` (default 10%) and `wholesale_runoff` (default 100%). It computes outflows as retail times its run-off rate plus wholesale times its run-off rate. The surplus is then `hqla` minus those outflows.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f721de347a4338d61660cc8f3cc4387e228a2aa78263d25c608b26d319adc180",
+    "source": "model",
+    "text": "Use `idiosyncratic_stress_scenario` (Idiosyncratic Stress Scenario) when you want to test liquidity against a crisis that hits one firm, not the whole market:\n\n- You want to model a name-specific shock, such as a rating downgrade, where some retail deposits leave and wholesale funding stops rolling over.\n- You have balances for retail deposits, wholesale funding and available HQLA, and want to see how outflows compare with your liquid buffer (surplus = HQLA minus outflows).\n- You want to vary the assumptions: `retail_runoff` defaults to 10% and `wholesale_runoff` to 100%, and you can override either.\n- You want a firm-specific view where complete loss of wholesale funding is the starting assumption.\n\n- For a market-wide shock rather than a firm-specific one, pyvar lists `market_wide_stress_scenario`; for both together, `combined_stress_scenario` is listed as the combined idiosyncratic and market-wide scenario.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

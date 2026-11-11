@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "kri_threshold_breach_detection": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "16201b7f0e47282b3bcd75f48bb423d1b0aa620533df727ea638ac97e1e3972d",
+      "source": "model",
+      "text": "`key_risk_indicator_kri_library` answers \"is my set of KRI definitions complete and well-formed?\" You give it a list of definitions through `kri_definitions`, each with a `name`, an `amber_threshold`, a `red_threshold` and a `direction`. It checks that those keys are present and returns a registry keyed by name. It does no numeric computation.\n\n`kri_threshold_breach_detection` answers \"given today's reading, is this KRI green, amber or red?\" You pass it a `value` along with `amber_threshold`, `red_threshold` and `direction`, and it classifies that observation. For `higher_breach` KRIs the status worsens as the value rises, and for `lower_breach` KRIs it worsens as the value falls.\n\nThe library function sets up and validates the definitions, and the breach detection function applies thresholds to a single observation.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e2598eff32d7c8fa9339f5f0d33180f57e3800ed2bd959961bcea899bfc3ae92",
+    "source": "model",
+    "text": "`key_risk_indicator_kri_library` (Key Risk Indicator KRI Library) validates a list of KRI definitions and indexes them into a registry keyed by name. Each definition you pass in `kri_definitions` must have a `name`, numeric `amber_threshold` and `red_threshold` values, and a `direction` of either `\"higher_breach\"` or `\"lower_breach\"`. The function checks that these keys are present and returns the validated registry. It is purely a validation and indexing step, with no numeric computation involved.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "466102687e022dd59ca01bd5ca6bf86c68703b5aae819592369485e4411807b8",
+    "source": "model",
+    "text": "`key_risk_indicator_kri_library` fits when you need to set up and check a list of KRI definitions before using them:\n\n- You have a list of KRI definitions and want to confirm each has a `name`, an `amber_threshold`, a `red_threshold` and a `direction`.\n- You want the definitions indexed by name, so each KRI can be looked up as a single registry entry.\n- You are assembling or editing a KRI set and want a quick structural check that required keys are present.\n- You need a clean registry as a starting point for other KRI work. It does no numeric computation, only validation and indexing.\n\nIf you instead want to classify a KRI value into a green, amber or red status, `kri_threshold_breach_detection` is the related function that does that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

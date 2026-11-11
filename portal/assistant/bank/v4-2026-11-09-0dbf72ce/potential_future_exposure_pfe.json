@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c8f24e4977928cd9243d94d5b41e4d5c6760f64395148eb194994c84ec9a2fc7",
+      "source": "model",
+      "text": "`potential_future_exposure_pfe` asks how large a netting set's positive exposure could get at each future time point, at a high confidence level. It simulates the value forward from `initial_value` using `volatility` and `drift`, then reports the per-step PFE and the peak. Because it uses Monte Carlo, results carry sampling noise that depends on `n_paths` and `seed`.\n\n`cva_sensitivity_cva_greeks` asks a different question: how much does the credit valuation adjustment move when its inputs change? It takes an expected exposure profile you supply, along with `credit_spread`, and returns `cs01` (the change in CVA for a small spread bump) and `exposure_delta` (the sensitivity to scaling the exposure profile).\n\nIn short, the first measures exposure itself, while the second measures how a CVA built on exposure responds to changes.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7ca1ab7de953a68bc1b37edbf1f5d3fcff4fdbce97370a098ba4198439eb8736",
+    "source": "model",
+    "text": "`potential_future_exposure_pfe` (Potential Future Exposure PFE) profiles how much a netting set could be owed to you over time. It simulates the netting-set value as a starting value plus drift plus volatility-scaled random noise, using `initial_value`, `drift` and `volatility`, at each point in `time_steps`. At every step it reports the PFE, a high quantile (set by `quantile`, 95% by default) of the positive part of the simulated value. It also gives the peak PFE across the steps. Because this is a Monte Carlo estimate, results carry sampling noise that depends on `n_paths` and `seed`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3146028d14e718d151bd862bca3d826d5ff9e9cb235f54d63c3dbe6c6eb8a921",
+    "source": "model",
+    "text": "`potential_future_exposure_pfe` fits when you want a forward-looking view of counterparty exposure over time:\n\n- You need a PFE profile: a high quantile of positive exposure at each time point you choose in `time_steps`, plus the peak PFE.\n- Your netting-set value can reasonably be modelled as a simple arithmetic random walk, set by `initial_value`, `volatility` and optionally `drift`.\n- You want to pick the confidence level yourself with `quantile`, and can accept Monte Carlo sampling noise that varies with `n_paths` and `seed`.\n- For a time-weighted average of expected exposure instead of a high quantile, `expected_positive_exposure_epe` is listed as doing exactly that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

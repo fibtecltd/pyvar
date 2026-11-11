@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e5abcb372fcdad1a24965e9e9cebe8e087ad1711262d2100ffcc2fea59e77766",
+      "source": "model",
+      "text": "`rho_interest_rate` answers \"how much does one option's value change when the interest rate moves?\" It gives the Black-Scholes Rho for a single call or put, using inputs like `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`. `gamma_cross_gamma_matrix` answers a different question: \"how does a portfolio's value respond to joint moves in several underlyings' prices?\" It doesn't price an option. It assembles a symmetric matrix from net gammas (`own_gammas`) on the diagonal and optional cross-gammas (`cross_gammas`) off the diagonal. That matrix can then be used to get gamma P&L for a shock vector. In short, `rho_interest_rate` looks at rate sensitivity for one option, while `gamma_cross_gamma_matrix` looks at second-order price sensitivity across a portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9be4fa57efd48dff72a67101b2288def10bf54747eb97190043dd4538f571e79",
+    "source": "model",
+    "text": "`rho_interest_rate` (Rho Interest Rate) calculates the Black-Scholes Rho of an option, which is how much its value is sensitive to the interest rate. For a call, the formula is `strike` × `tau` × e^(−`rate`×`tau`) × N(d2); for a put, it is the negative of that with N(−d2). You supply `spot`, `strike`, `rate` (continuously compounded risk-free), `sigma` (annualised volatility) and `tau` (years to maturity). Optionally, you can set `option_type` (\"call\" by default or \"put\") and `div_yield` (default 0.0).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "823c1e7ff67522a8f5aba1b284956b9254f014a7928e2ba73bd621a7c051c0bf",
+    "source": "model",
+    "text": "`rho_interest_rate` (Rho Interest Rate) fits when you want to see how a Black-Scholes option's value responds to the risk-free rate.\n\n- You hold or are pricing a European-style call or put and want its interest-rate sensitivity, using `option_type` to pick which.\n- You need rate exposure for an option on an underlying that pays a continuous dividend, since `div_yield` is an input.\n- You are building a Greeks report or running a what-if on rate moves, and you have `spot`, `strike`, `rate`, `sigma` and `tau` to hand.\n- It is most relevant for longer-dated options, because `tau` appears directly in the formula.\n- For the rate sensitivity of a fixed cashflow stream rather than an option, `dv01_pv01_bucketed` is listed as the tenor-bucketed DV01 / PV01 of a fixed cashflow stream.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

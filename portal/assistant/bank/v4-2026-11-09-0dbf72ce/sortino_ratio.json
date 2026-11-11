@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a3d52e01e7797031d2f58c67ce25a4d5272663e23839aa6c38983d557a4e3ecc",
+      "source": "model",
+      "text": "`sortino_ratio` answers \"how much return did I earn per unit of bad volatility?\" It gives an annualised ratio of average excess return over `risk_free` to downside deviation, which counts only shortfalls below `target` and ignores upside swings. `drawdown_duration` answers \"how long was I underwater?\" It counts consecutive periods spent below the prior peak and reports the longest run and the current one.\n\nThe two also take different inputs. `sortino_ratio` takes per-period simple returns plus `risk_free`, `target` and `periods_per_year`. `drawdown_duration` takes returns or an equity curve (set `is_equity_curve` for the latter) and has no rate or annualisation settings.\n\nIn short, `sortino_ratio` is a risk-adjusted performance score. `drawdown_duration` measures time spent recovering, not size or return.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f7295bc7a55dcd79b413dcb66db20618301a2a8f92459cba9212ee51c885385c",
+    "source": "model",
+    "text": "`sortino_ratio` (Sortino Ratio) computes an annualised risk-adjusted return from a 1-D array of per-period simple returns. It works like the Sharpe ratio, but the denominator counts only downside deviation below `target`, so upside volatility isn't treated as risk. The numerator is the average return in excess of `risk_free`, while the downside deviation measures shortfalls of the raw returns below `target`. When `target` differs from `risk_free`, these are two separate reference rates by design. `periods_per_year` sets the annualisation factor.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "43b17d6a8f009761e979dcef8760936aa3093e45c0ea6a39ecd015142f27e47d",
+    "source": "model",
+    "text": "The Sortino Ratio (`sortino_ratio`) fits when you want risk-adjusted return that only counts downside as risk.\n\n- You're comparing strategies or funds whose returns are skewed, so upside swings shouldn't be penalised the way Sharpe does.\n- You have a minimum acceptable return in mind and want shortfalls below it, set by `target`, to drive the risk measure.\n- You want excess return measured against a risk-free rate (`risk_free`) while using a different `target` for downside. The two can differ.\n- You have a 1-D series of per-period simple returns and want an annualised figure, with `periods_per_year` matching your data frequency.\n- For a measure that penalises all volatility, both up and down, `sharpe_ratio` is listed as the annualised Sharpe ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

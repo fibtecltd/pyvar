@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "96076f7979fde870998f75f3095f47755678f9fdd16435064ff75c57096cb418",
+      "source": "model",
+      "text": "`credit_default_swap_cds_pricer` values protection against a name defaulting, while `total_return_swap_trs` values a swap in which one side receives an asset's total return and pays a financing rate. The CDS pricer answers \"what is this credit protection worth, given a default risk?\" It takes a constant `hazard_rate`, a `recovery_rate`, a `spread`, a `maturity` and a `discount_rate`, then compares the protection leg with the premium leg, including the accrued premium owed if default falls inside a coupon period. `total_return_swap_trs` answers \"what is one period's exchange of asset return against financing worth?\" It takes an `asset_return`, a `financing_rate`, an `accrual` and a `discount_factor` you supply directly. So the CDS pricer models default timing and survival across many coupon periods, whereas the TRS function values a single period from the inputs you give it, with no default model. Choose by whether your question is about credit risk or about swapping an asset's return for funding.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e5ef817408d78fa6285c36fa3c0ea79170cfcd7a9f58e29e2b1c74665fe4573f",
+    "source": "model",
+    "text": "The Credit Default Swap CDS Pricer (`credit_default_swap_cds_pricer`) values a CDS using a reduced-form model with a constant hazard rate, so survival probability decays exponentially over time. It takes `notional`, `spread`, `hazard_rate`, `recovery_rate`, `maturity` and `discount_rate`, plus an optional premium `frequency`. It compares the protection leg, which pays the loss given default, with the premium leg, which includes accrued premium owed if default falls inside a coupon period. Default losses and accrual are both settled at each period's accrual midpoint, following the ISDA/JPMorgan convention. The value is shown from the protection buyer's side, and the par spread is the one that sets the swap value to zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e5b18a8ef6e21a74b1da59c1d64b16ba2cbf53e15514790243010ced9cdf246a",
+    "source": "model",
+    "text": "The Credit Default Swap CDS Pricer (`credit_default_swap_cds_pricer`) fits when you want to value a single-name CDS under a simple, flat credit assumption:\n\n- You want the buyer's value of a CDS (protection leg minus premium leg) for a given `notional`, contractual `spread` and `maturity`.\n- You can describe the credit with one constant `hazard_rate` and a `recovery_rate`, and discount with one flat continuous `discount_rate`.\n- You want the ISDA/JPMorgan-style convention, where default losses and accrued premium settle at each period's accrual midpoint, matching QuantLib's `MidPointCdsEngine`.\n- You want to see how the premium payment `frequency` affects the legs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "991acb7689af5163066768f3da0f9ef79362d83475a276b024610b843e297949",
+      "source": "model",
+      "text": "`operational_var_opvar` reads the loss quantile straight from an annual-loss sample you supply, such as simulated or historical aggregate losses, using `annual_losses` and `confidence_level`. It answers the question \"given these annual losses, what is the OpVaR, along with the expected shortfall and the expected loss?\" `monte_carlo_oprisk_capital` doesn't take a loss sample. It builds one by simulating years from a Poisson event rate (`frequency_lambda`) and lognormal severities (`severity_mu`, `severity_sigma`), controlled by `n_years` and `seed`. It answers \"what regulatory capital does this frequency and severity model imply?\", where capital is OpVaR minus expected loss, floored at zero. Both read the quantile the same way, so the difference is where the losses come from and whether you get a capital figure on top.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7b1f32c0de12e5ea2a2607d56c804fad773170f29d74fca231908116d914caa5",
+    "source": "model",
+    "text": "`operational_var_opvar` (Operational VaR, or OpVaR) estimates operational risk capital directly from a sample of aggregate annual losses that you supply, such as simulated or historical data. You pass the sample as `annual_losses` and set `confidence_level`, which defaults to 0.999 and can range from 0.90 to 0.9999. The function reads the empirical loss quantile at that confidence level, and that quantile is the OpVaR. It also works out the matching expected shortfall (the average of losses from that point upward) and the expected loss (the sample mean).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d0fb200a841e2e659ae4dca7a78dabac2767825f8d167424fb6ed95024459168",
+    "source": "model",
+    "text": "`operational_var_opvar` (Operational VaR, OpVaR) fits when you already have a sample of aggregate annual losses and want the loss quantile read straight from it.\n\n- You have an `annual_losses` array, simulated or historical, and want a direct empirical reading with no distribution fitting.\n- You want OpVaR at a chosen `confidence_level`, which accepts values from 0.90 to 0.9999 (default 0.999).\n- You want expected shortfall and the mean loss (expected loss) from the same sample, as the formula shows.\n- You need a generic reader that works on losses from any source, as long as they are already aggregated to annual totals.\n\n- If you instead need to generate the aggregate annual loss distribution first, `compound_loss_distribution` is listed as simulating the compound (aggregate) annual loss distribution.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "65d97b82594dc5df0791f9922b8b5085dada3906d1086e40b17ba2e5aced2724",
+      "source": "model",
+      "text": "`spectral_risk_measure` answers \"how bad is the tail of this one return series, given how much I dislike tail losses?\" It takes a single 1-D `returns` array and weights the sorted losses with an exponential spectrum. The `risk_aversion` coefficient `k` sets how heavily the worst losses count, and higher `k` puts more weight on the tail.\n\n`expected_shortfall_contribution` answers \"which assets drive my portfolio's tail loss?\" It takes a `(T, N)` matrix of `asset_returns` plus `weights`, `portfolio_value` and a `confidence_level`. It averages each asset's loss over the scenarios where the portfolio breaches VaR. Those per-asset contributions add up to the total ES.\n\nSo the first gives a single risk figure for one series, tuned by risk aversion. The second splits a portfolio's ES across its assets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d11636031e22230daaeb7f51c8fef2d69cfe3fda2e6afe7264ea0d5f484592e0",
+    "source": "model",
+    "text": "`spectral_risk_measure` (Spectral Risk Measure) computes a coherent tail-risk figure from a 1-D array of portfolio `returns`. It sorts the losses and takes a weighted average, with weights from an exponential risk-aversion spectrum that gives more weight to the worst outcomes. You control this with `risk_aversion` (k, which must be above zero and defaults to 25.0): the higher it is, the more tail-weighted the measure. The result is at least the mean loss and increases as k rises.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "301c7489fa10414265fa71846090e488210043de99153f692083da002c6c0dcf",
+    "source": "model",
+    "text": "`spectral_risk_measure` (Spectral Risk Measure) fits when you want a tail-risk figure that reflects how much you dislike extreme losses.\n\n- You want a coherent risk measure that weights worse losses more heavily, rather than treating all tail losses equally.\n- You want to tune risk aversion with `risk_aversion` (k): higher values put more weight on the tail, and the measure rises with k.\n- You have a 1-D series of portfolio returns and want a measure that is at least the mean loss.\n- You want to compare how sensitive your portfolio's risk is to different attitudes toward tail losses by varying `risk_aversion`.\n\nIf you instead want the plain average of losses beyond a VaR threshold, `compute_cvar` is listed as Conditional VaR (Expected Shortfall), the mean of losses beyond the VaR threshold.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "0f8282feeba6987626005cd21409a918ba0089eac6c62fd1ce44419df8c8351d",
+      "source": "model",
+      "text": "`cvar_decomposition_euler` splits a portfolio's Gaussian (normal-model) Expected Shortfall into per-asset pieces using a formula. It takes `weights`, a `cov_matrix` and a `portfolio_value`. It answers: \"if returns are normal, how much of total ES does each asset account for?\" `expected_shortfall_contribution` instead works from actual scenario data. It takes an `asset_returns` matrix and averages each asset's loss across exactly the scenarios where the portfolio breaches VaR. It answers: \"in the tail scenarios I observed, how much did each asset lose?\" Both sets of contributions add up to total ES. The first is parametric, built on covariances and the normal assumption, and the second is non-parametric, built on your own return history.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d9753523c374db4b8e35dc5159ac8490f807ffa2c9d078419ae0e24cc150191d",
+    "source": "model",
+    "text": "`cvar_decomposition_euler` (CVaR Decomposition Euler) splits a portfolio's Gaussian Expected Shortfall into one contribution per asset. It assumes normally distributed returns, so total ES is portfolio volatility times a normal-density factor divided by one minus the confidence level. Because ES scales linearly with the weights, Euler's theorem lets each asset's component be computed from its weight and its covariance with the portfolio, and the components add up exactly to total ES. You supply `weights`, `cov_matrix` and `portfolio_value`, and optionally a `confidence_level`, which defaults to 0.975.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4cd0a6e0e35e9e1c60cc3edcf5fad2c962656d69efb042bf22f254bd8d8bb521",
+    "source": "model",
+    "text": "`cvar_decomposition_euler` (CVaR Decomposition Euler) fits when you want to see where a portfolio's Expected Shortfall comes from.\n\n- You want to split total Gaussian Expected Shortfall into per-asset components that add up exactly to the total, thanks to Euler's theorem.\n- You are comfortable assuming normally distributed returns and have a covariance matrix (`cov_matrix`) plus portfolio `weights` and `portfolio_value`.\n- You want to compare how much each position contributes to tail risk, for example to see which holdings drive it.\n- You want to set the confidence level yourself via `confidence_level` (default 0.975, allowed range 0.90 to 0.9999).\n\nIf you'd rather measure each asset's tail contribution by conditional expectation in the tail instead of a normal model, `expected_shortfall_contribution` is listed as doing per-asset ES contribution that way.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

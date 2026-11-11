@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "mifid_ii_transaction_report_validator": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "16cf6ba8ef6bc35256cd5afc6b1f8a0cbe27c86a17c77e9e20a974feac04389f",
+      "source": "model",
+      "text": "`mifid_ii_best_execution_metric` answers \"how good were my execution prices compared with a reference price?\" It takes `executed_prices`, `benchmark_prices`, `quantities` and an optional `side`, and returns a quantity-weighted price improvement or slippage in basis points, where positive means improvement for the client. `mifid_ii_transaction_report_validator` answers a different question: \"is this transaction report complete and well-formed?\" It takes a `report` mapping and checks that required fields are present, that the LEI and ISIN have the right lengths, and that price and quantity are positive. The first is an internal transaction cost analysis (TCA) measure and not a figure prescribed by RTS 27 or 28. The second is a field check against RTS 22 and covers a core subset of fields, not the full schema.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5c70ae1be020cf535e4289e2bbdd99dc05abcb73cb5bf23a1a1bd899f7ca5f43",
+    "source": "model",
+    "text": "`mifid_ii_best_execution_metric` (MiFID II Best Execution Metric) measures how well a set of fills did against a reference price such as the EBBO or arrival price. It takes the executed price, benchmark price and quantity for each fill, and returns a quantity-weighted price improvement or slippage in basis points. A positive value means the client got price improvement. Use `side` to say whether the fills were buys (+1, the default) or sells (-1). It is an internal transaction cost analysis metric, not a figure that RTS 27 or RTS 28 prescribes.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1c284c1abfcc8ce625322b0ba7713a7cfa841fa009fc7c9760124760d8a53559",
+    "source": "model",
+    "text": "The `mifid_ii_best_execution_metric` function (MiFID II Best Execution Metric) fits these situations:\n\n- You want an internal transaction cost analysis of how your fills compared with a reference price such as EBBO or arrival price.\n- You need one quantity-weighted figure, in basis points, across many fills, where positive means price improvement for the client and negative means slippage.\n- You are reviewing buys and sells separately, using `side` (+1 for buys, -1 for sells).\n- It is not for producing a figure that RTS 27 or RTS 28 prescribes. Neither defines this metric, so treat it as an internal measure only.\n\nIf your need is checking transaction report fields, `mifid_ii_transaction_report_validator` is listed as a MiFID II / RTS 22 transaction report field validator.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

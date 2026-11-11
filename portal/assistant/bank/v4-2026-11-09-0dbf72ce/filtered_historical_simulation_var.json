@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "dca0c78c5bdef809fa0b4c197f45b7f9aedf914713ff1aebd141635245c4a60d",
+      "source": "model",
+      "text": "`filtered_historical_simulation_var` answers \"how much could this portfolio lose, given how volatile markets are right now?\" It takes a history of portfolio returns, standardises them by their EWMA volatility, rescales them by the current volatility forecast, and reads VaR and expected shortfall from the tail of the result. That captures volatility clustering, which plain historical simulation ignores.\n\n`component_var` answers a different question: \"how much of the total VaR comes from each position?\" It takes `weights` and a `cov_matrix`, then allocates VaR to each asset as `w_i * marginal_i`, so the components sum exactly to the total.\n\nIn short, the first function estimates the size of portfolio-level risk from return history, while the second breaks a VaR figure down by position. They take different inputs: `returns` and `lambda_decay` for the first, `weights` and `cov_matrix` for the second. Both share `portfolio_value` and `confidence_level`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "282583c6948e291368e9e71ad3c565a8e469877474d8884c7c85f519bbcfd44f",
+    "source": "model",
+    "text": "`filtered_historical_simulation_var` (Filtered Historical Simulation VaR, after Barone-Adesi & Giannopoulos) estimates portfolio Value at Risk from a history of returns, taking `portfolio_value` to express the result in base currency. It first standardises each historical return by its EWMA conditional volatility, controlled by `lambda_decay`. It then re-scales those standardised residuals by the current volatility forecast and takes the empirical tail quantile at `confidence_level`. This captures volatility clustering, which plain historical simulation ignores. The formula also describes an Expected Shortfall as the tail mean of the same re-scaled losses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "90ff333133e5a08230ce5183bff85a1ee2ecc265d41fa3c52193cdd83bdac7b3",
+    "source": "model",
+    "text": "`filtered_historical_simulation_var` (Filtered Historical Simulation VaR) fits when you want a historical-style VaR that reacts to current market conditions:\n\n- Volatility clustering matters: it rescales past returns by EWMA conditional volatility, then applies the current volatility forecast, which plain historical simulation ignores.\n- You have a 1-D history of portfolio `returns` and a current `portfolio_value` in base currency, and want an empirical quantile rather than a normal-distribution assumption.\n- You want VaR and expected shortfall from the same calculation, since the formula takes the tail mean at your `confidence_level`.\n- You want to tune how quickly volatility estimates fade old data via `lambda_decay` (the RiskMetrics default is 0.94).\n\nIf you want plain non-parametric VaR with no volatility adjustment, `historical_simulation_var` is listed as Non-parametric Historical Simulation VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

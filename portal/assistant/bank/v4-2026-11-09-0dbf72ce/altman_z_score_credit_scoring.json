@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "through_the_cycle_pd_adjustment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d4d010e289ab330df333d3f968da144cc775e35342f1eb406bafc21ce27f7a69",
+      "source": "model",
+      "text": "`altman_z_score_credit_scoring` answers \"how financially healthy does this public manufacturer look?\" It takes balance-sheet and income figures (`working_capital`, `retained_earnings`, `ebit`, `market_value_equity`, `sales`, `total_assets`, `total_liabilities`) and combines them into a single Altman Z-score, which falls into a safe, grey or distress zone. `through_the_cycle_pd_adjustment` answers a different question: \"how do I dampen the economic cycle out of a PD I already have?\" It takes a point-in-time PD (`pit_pd`) and a long-run average PD (`long_run_average_pd`). It blends them with `cyclicality` to produce a through-the-cycle PD, which is a probability. So the first starts from company financials and gives a score and zone, while the second starts from an existing PD and gives an adjusted PD.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f7cdf42bbb2a385693acab7d03fd30596a2a901c9737d6ef5b704e3a004184e0",
+    "source": "model",
+    "text": "`altman_z_score_credit_scoring` calculates the Altman (1968) Z-score, a credit-distress measure designed for public manufacturers. It combines five ratios into one weighted score: working capital, retained earnings and EBIT, each over total assets; market value of equity over total liabilities; and sales over total assets. You supply seven inputs: `working_capital`, `retained_earnings`, `ebit`, `market_value_equity`, `sales`, `total_assets` and `total_liabilities`. A score above 2.99 falls in the safe zone, 1.81 to 2.99 in the grey zone, and below 1.81 in the distress zone.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "80502dbee008891350948b842d1c9fbcf598b19f450b07253de5fd6fb655be48",
+    "source": "model",
+    "text": "`altman_z_score_credit_scoring` (Altman Z Score Credit Scoring) fits when you want a quick distress screen on a company, based on its financial statements.\n\n- You are assessing a public manufacturer, which is what the Altman (1968) Z-score was built for.\n- You have the seven inputs to hand: `working_capital`, `retained_earnings`, `ebit`, `market_value_equity`, `sales`, `total_assets` and `total_liabilities`.\n- You want a zone reading (safe, grey or distress) rather than a probability of default.\n- You want a transparent, formula-based score that mixes liquidity, profitability, leverage and asset turnover.\n- If you instead want to fit your own PD model from data, `logistic_regression_pd_model` is listed as fitting a logistic-regression PD model by Newton-Raphson (IRLS) MLE.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

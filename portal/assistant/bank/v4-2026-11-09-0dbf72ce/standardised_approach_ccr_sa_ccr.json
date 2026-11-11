@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "29e44baed258c7810d69f4377963cd95fdcb53c5fad406ea753e21a2cb789ac8",
+      "source": "model",
+      "text": "`standardised_approach_ccr_sa_ccr` answers \"how much exposure at default should be held against this netting set?\" It takes the current mark-to-market, collateral and aggregate add-on, then combines replacement cost with a collateral-adjusted potential future exposure, scaled by `alpha`. The result is a single regulatory EAD figure under CRE52.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how much does the credit valuation adjustment move when inputs change?\" It starts from an expected exposure profile, time steps, discount factors and a credit spread. It returns `cs01`, the CVA change for a small spread bump, and `exposure_delta`, the sensitivity to scaling the exposure profile.\n\nSo the first is a capital-style exposure measure from netting-set inputs, and the second is a pricing and hedging sensitivity of CVA.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9895a762c2f94f6c468916e0078b961e7fc8f0b4e0038610e04020a67006aecf",
+    "source": "model",
+    "text": "`standardised_approach_ccr_sa_ccr` computes exposure at default for a netting set under the Basel SA-CCR approach (CRE52). It takes the netting set's `mark_to_market`, the net `collateral` held and the `add_on_aggregate`, then combines a replacement cost (the positive part of MtM less collateral) with potential future exposure. Potential future exposure is the aggregate add-on scaled by a multiplier that recognises excess collateral. The sum is then scaled by the supervisory `alpha`, which defaults to 1.4 and can be overridden.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bc66eef4b507fdb3583bcc5ac99cfd5890ef60164ebcbaa42b2713adefe3a408",
+    "source": "model",
+    "text": "`standardised_approach_ccr_sa_ccr` fits when you need a Basel SA-CCR exposure at default (EAD) for a netting set, following CRE52.\n\n- You already have the netting set's current mark-to-market, the net collateral held, and the aggregate asset-class add-on, and want them combined into one EAD figure.\n- You want the regulatory treatment of excess collateral, where the multiplier reduces the potential future exposure part of the EAD.\n- You need the standard supervisory scaling factor, or want to set your own through `alpha`.\n- Your question is about a standardised, formula-based exposure rather than a simulated one.\n\nIf you need a simulation-based view of future exposure instead, `potential_future_exposure_pfe` is listed as a Monte-Carlo potential future exposure profile.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

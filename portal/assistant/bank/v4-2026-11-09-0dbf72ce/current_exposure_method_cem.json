@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b70e955564d0e21666327a30c12e62a97d77dcd437b810ff452d58616feca0ba",
+      "source": "model",
+      "text": "`current_exposure_method_cem` answers \"how much am I exposed to a counterparty if it defaults?\" It returns an exposure-at-default figure from three inputs: `mark_to_market`, `notional` and `add_on_factor`. It takes the current replacement cost, floored at zero, and adds the notional times the prescribed factor. It is a legacy Basel I/II method, retained for legacy reporting.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how much does the price of counterparty credit risk move when things change?\" It takes an expected exposure profile, `time_steps`, `discount_factors` and a `credit_spread`. It then returns the base CVA plus `cs01`, the change from a small spread bump, and `exposure_delta`, the sensitivity to scaling the exposure profile.\n\nIn short, `current_exposure_method_cem` sizes an exposure for a single point in time. `cva_sensitivity_cva_greeks` measures how a valuation adjustment responds to credit and exposure shifts, which is useful for hedging.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "56efa12e985f1f5adda4865da4536f95e363451e4f8db7f1eaf7ba1e4080d211",
+    "source": "model",
+    "text": "`current_exposure_method_cem` computes exposure at default (EAD) under the Basel I/II Current Exposure Method. It adds the replacement cost, which is the mark-to-market floored at zero, to a potential future exposure add-on equal to `notional` times `add_on_factor`. You supply `mark_to_market`, `notional` (zero or more) and `add_on_factor` (between 0 and 1), usually the supervisory percentage for the asset class and residual maturity. CEM is superseded by SA-CCR but is kept for legacy reporting.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "80847d69d011719f623c59ecf3157b7c6871fb4f487d2e0a4dd33eb79613ff3b",
+    "source": "model",
+    "text": "`current_exposure_method_cem` (Current Exposure Method CEM) fits when you need a simple, rules-based exposure at default figure for a derivative trade or netting set.\n\n- You are doing legacy reporting that still relies on the Basel I/II approach, which is the reason CEM is retained.\n- You have a current mark-to-market, a notional, and a supervisory add-on factor for the asset class and residual maturity, and want them combined as the positive part of `mark_to_market` plus `notional` times `add_on_factor`.\n- You want a transparent calculation with only three inputs, without simulating exposure paths.\n- For a newer regulatory measure, `standardised_approach_ccr_sa_ccr` is listed as Basel SA-CCR EAD (CRE52), and CEM is superseded by SA-CCR.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

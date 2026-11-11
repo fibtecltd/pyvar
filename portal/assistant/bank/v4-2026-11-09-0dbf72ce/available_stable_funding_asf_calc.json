@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_coverage_ratio_lcr": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f076092a65e24091399a158af495ef1f5d6aa68c0d5c26ab957909a7894038d0",
+      "source": "model",
+      "text": "`available_stable_funding_asf_calc` answers the question \"how much of a bank's funding is stable enough to count toward the NSFR numerator?\" It takes `funding_amounts` for each source and an `asf_factors` value for each, then sums the amounts weighted by those factors, so more stable funding counts for more.\n\n`liquidity_coverage_ratio_lcr` answers a different question: \"does the bank hold enough high-quality liquid assets to cover its net stressed cash outflows over the short horizon?\" It divides `hqla` by net outflows, which come from `gross_outflows` less inflows limited by `inflow_cap`.\n\nIn short, the ASF calculation measures the stability of the funding structure and returns an amount, not a ratio. The LCR is a ratio that tests short-term liquidity. For the full longer-term stable funding ratio, see the related function `net_stable_funding_ratio_nsfr`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1ec34081737587035fb749cbb549c43e9372c9b8a605c59fb20083c3e9c515fe",
+    "source": "model",
+    "text": "`available_stable_funding_asf_calc` (Available Stable Funding ASF Calc) works out the Available Stable Funding figure that sits in the numerator of the Net Stable Funding Ratio. It takes the carrying amount of each funding source (`funding_amounts`) and an ASF factor for each source (`asf_factors`, each between 0 and 1). It multiplies each amount by its factor and sums the results. Under Basel III, more stable funding such as capital gets a higher factor, and less stable funding such as short-term wholesale gets a lower one.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a66601a47a2e580c440391154ec6c37a78d94cca4cc204aa2943cfb8c0b49b2c",
+    "source": "model",
+    "text": "Use `available_stable_funding_asf_calc` (Available Stable Funding ASF Calc) when you need the numerator of the NSFR:\n\n- You have carrying amounts for each funding source (`funding_amounts`) and an ASF factor for each, between 0 and 1 (`asf_factors`), and want them combined into one weighted sum.\n- You are working in liquidity risk and want to see how much of a funding base counts as stable under the Basel III approach, where more stable sources such as capital get higher factors.\n- You want to break the numerator out on its own, for example to see how each funding source contributes before forming the full ratio.\n- Related function: `required_stable_funding_rsf_calc` covers Required Stable Funding for the NSFR denominator, the other half of the ratio.\n- Related function: `net_stable_funding_ratio_nsfr` is listed as the Basel III Net Stable Funding Ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

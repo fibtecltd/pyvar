@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4eba5199b112731e1c54a7371fb1306dcdfafcbf2b6cf976e8e6a3ffbbc1970a",
+      "source": "model",
+      "text": "`gjr_garch_asymmetric_model` answers \"how volatile is a single return series, and does bad news raise that volatility more than good news?\" It takes one 1-D `returns` series and uses `alpha`, `gamma`, `beta` and `omega` to let negative shocks push variance up by an extra `gamma` term, so volatility changes over time.\n\n`correlation_matrix_historical` answers a different question: \"how do several assets move together?\" It takes a `(T, N)` `returns_matrix` and gives the Pearson correlation between every pair of assets, as a single historical snapshot.\n\nSo the first is about the time-varying size and asymmetry of one asset's risk, and the second is about co-movement across assets. If you need correlations that change over time, `dcc_garch_dynamic_correlation` is the related function for that.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": true,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a294a93ad5696bff5b45aabea031084e2c1a419b5febc8168aa3e74ff296a896",
+    "source": "model",
+    "text": "`gjr_garch_asymmetric_model` (GJR GARCH Asymmetric Model) applies a GJR-GARCH(1,1) volatility model to a 1-D return series, which it demeans internally, using coefficients you supply or their defaults. A leverage indicator adds `gamma` to the ARCH coefficient `alpha` when the prior shock was negative, so with `gamma > 0` downside shocks raise volatility more than upside ones. `beta` sets persistence, and `omega` is the variance intercept, variance-targeted if left as None. The long-run variance is `omega / (1 − alpha − beta − gamma/2)`.",
+    "tries": 1,
+    "writer": "claude-opus-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4465a42269c456b6f26a2cb21646e775ffad7b71cc7e00d23f346cfaabf7a74f",
+    "source": "model",
+    "text": "`gjr_garch_asymmetric_model` (GJR GARCH Asymmetric Model) fits when you want a GARCH(1,1) volatility model that treats bad news and good news differently.\n\n- You suspect downside shocks raise volatility more than upside shocks of the same size. The `gamma` term adds extra weight to the previous shock when it was negative.\n- You have a single 1-D return series (`returns`) and want a market-risk volatility model. The series is demeaned internally.\n- You want a long-run variance view. With the model's formula, that is `omega` divided by one minus `alpha`, `beta` and half of `gamma`.\n- You have no view on the variance intercept. Leave `omega` unset and it is variance-targeted.\n- If you only need a symmetric model, `garch_11_volatility_forecast` is listed as a GARCH(1,1) conditional-volatility filter and multi-step forecast.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

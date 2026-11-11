@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7a263e5ec8f2f326ec6be4a154e8bd4e000c6e512c7c128b227ed8be5fd25f53",
+      "source": "model",
+      "text": "`swaption_pricer_black` prices a European option on a swap rate, while `total_return_swap_trs` values one leg of a total-return swap. The swaption function answers \"what is the right to enter a swap at a given strike worth today?\" It takes `forward_swap_rate`, `strike`, `vol`, `expiry` and `annuity`, and treats a payer swaption as a call on the swap rate and a receiver as a put. The total-return swap function answers \"what is the leg worth, given the asset's return against a financing rate?\" It takes `asset_return`, `financing_rate`, `accrual` and `discount_factor`, and has no volatility or optionality. In short, one prices an option whose value depends on rate volatility, and the other values a swap leg from the asset return, the financing cost and discounting.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "642b0c6f06fd4b48ab5043e8b8b8a20b36cbe3c76c4db49676712c6fc762e637",
+    "source": "model",
+    "text": "`swaption_pricer_black` (Swaption Pricer Black) prices a European swaption under the Black model. It takes the `notional`, `forward_swap_rate`, `strike`, `vol`, `expiry` and `annuity`, and returns the price as the annuity times a Black formula value, scaled by notional. A payer swaption is treated as a call on the swap rate, and a receiver swaption as a put. You choose between them with `option_type`, which defaults to `\"payer\"`. The `annuity` input is the present value of a 1-unit fixed annuity (level / PVBP), and the rates are entered as decimals.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9eddcd5b093857ef54a90080f3a2ec1756b913c095b5d41dd003e1f317800754",
+    "source": "model",
+    "text": "`swaption_pricer_black` (Swaption Pricer Black) fits when you need the price of a European swaption under the Black model.\n\n- You have a single European swaption, a payer (a call on the swap rate) or a receiver (a put), and want its value from `notional`, `forward_swap_rate`, `strike`, `vol`, `expiry` and `annuity`.\n- You can quote a single Black volatility for the swap rate and are happy to treat it as flat across the calculation.\n- You already have the annuity (the PV of a 1-unit fixed annuity, also called PVBP) from your curve and just need the option value on top of it.\n- You want a quick, standard lognormal benchmark for a swaption quote.\n\nIf you'd rather have the volatility come from a smile model, `swaption_pricer_sabr` is listed as pricing a swaption using a SABR-implied Black volatility.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

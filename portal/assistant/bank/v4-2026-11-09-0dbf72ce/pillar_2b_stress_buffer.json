@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pillar_2a_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "641624e604660b11959825d8b24cd56f15f0e254dba4d6badaa3a7bbdabe5d56",
+      "source": "model",
+      "text": "`pillar_2b_stress_buffer` and `pillar_2a_capital` answer different questions. The first asks how much capital a firm should hold to absorb the peak CET1 depletion projected under the supervisory stress scenario. It takes `stressed_capital_depletion` and `risk_weighted_assets`, floors the depletion at zero, and also gives the buffer as a ratio of risk-weighted assets.\n\n`pillar_2a_capital` asks how much capital covers risks that Pillar 1 does not fully capture, such as credit concentration, IRRBB, pension and operational risk. It takes a list of per-risk add-ons in `risk_addons`, sums them, and divides by `risk_weighted_assets` for the ratio.\n\nIn short, 2A is a sum of risk-specific charges today, while 2B is a forward-looking cushion based on stress projections.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "47baca029557c02f8befa7b4dfd736fccbca53eff853573aadebc5155a85a5d8",
+    "source": "model",
+    "text": "`pillar_2b_stress_buffer` (Pillar 2b Stress Buffer) calculates the forward-looking capital buffer meant to absorb the peak CET1 depletion projected under a supervisory stress scenario, often called the PRA buffer or capital guidance. You give it `stressed_capital_depletion` (the peak CET1 depletion, in currency) and `risk_weighted_assets` (total RWA). The buffer amount is the stressed depletion floored at zero, so a scenario with no depletion gives no buffer. It also returns a buffer ratio, which is that buffer divided by RWA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "04c49edbfb76c1e14ac54805b6805c79946827216aa78ea357eb7987ea93a53f",
+    "source": "model",
+    "text": "Use the Pillar 2b Stress Buffer (`pillar_2b_stress_buffer`) when you need to size a forward-looking buffer against projected capital loss under a supervisory stress scenario:\n\n- You have a peak CET1 depletion figure from a stress scenario (`stressed_capital_depletion`) and want it as a buffer amount.\n- You want that buffer as a ratio of total risk-weighted assets (`risk_weighted_assets`), for example to compare scenarios or reporting periods.\n- You are working with PRA buffer or capital guidance, where the buffer covers peak depletion. A depletion below zero gives a buffer of zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

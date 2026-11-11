@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "convertible_bond_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6bc134af545398dbe027aa760861c2d195b4e6df6c01467e893f1dcc5b9f2ac5",
+      "source": "model",
+      "text": "`bond_pricer_floating_rate` prices a floating-rate note: it asks what a note is worth when each coupon is the projected index rate plus a spread, discounted period by period. You give it `reference_rates`, `spread`, `discount_rates`, `face_value`, `maturity` and `frequency`, and the number of coupon periods comes from the length of `reference_rates`. `convertible_bond_pricer` asks a different question: what is a convertible bond worth at minimum, taking the larger of its straight-bond value (a fixed coupon discounted at `yield_rate`) and its conversion value (`conversion_ratio` times `stock_price`). The first is about coupons that reset with market rates. The second is about choosing between holding the bond and converting to shares, using a simple lower-bound approach. Use the floating-rate pricer for index-linked debt, and the convertible pricer when equity conversion matters.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "061a4bc44782256ffe98aa6fecfb37ea63fbf2fb1b34cc6a6bfffdfa0dccd9b6",
+    "source": "model",
+    "text": "`bond_pricer_floating_rate` (Bond Pricer Floating Rate) prices a floating-rate note from projected forward index rates. Each coupon is the reference rate plus the `spread`, divided by `frequency` and multiplied by `face_value`. The final period also repays face value, and every cash flow is discounted using the per-period `discount_rates`. The number of coupon periods comes from the length of `reference_rates`, so `discount_rates` must match it, and `maturity` must equal that length divided by `frequency`, otherwise pyvar rejects the call.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "22fb594aa33dad53d1b9920aaf9d5be06d9e5a78d2f09109cc642bbce5579a12",
+    "source": "model",
+    "text": "`bond_pricer_floating_rate` fits when you need to value a floating-rate note from projected forward rates.\n\n- You have a projected index rate for each coupon period (`reference_rates`) plus a quoted margin (`spread`), and want the present value of the coupons and face value.\n- You have per-period discount rates (`discount_rates`) with the same length as `reference_rates`, since that length sets the number of coupon periods priced.\n- You want to see how the spread affects value: on a reset date, with discount rates equal to the reference rates, an FRN prices near par plus the present value of the spread.\n- Your `maturity` equals `len(reference_rates) / frequency`. If it implies a different number of periods, the function raises an error.\n\nIf your bond pays a fixed coupon instead, `bond_pricer_fixed_coupon` prices a fixed-coupon bond by discounting its cashflows at a flat yield.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "capital_conservation_buffer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "163b61ddcd2d49eaa37db69d83de4e5125d3279db786eab5eaa8c86836d5db71",
+      "source": "model",
+      "text": "`combined_buffer_requirement` answers \"what is the total buffer stack an institution must hold?\" It sums `capital_conservation_buffer_ratio`, `countercyclical_buffer_ratio` and `systemic_buffer_ratio`, and if you pass `risk_weighted_assets` it also converts that total ratio into a capital amount. The caller must already have picked the highest of the systemic buffers (G-SII, O-SII, SyRB) and passed it in as `systemic_buffer_ratio`.\n\n`capital_conservation_buffer` answers a narrower question: \"given my current CET1 ratio, am I inside the conservation buffer, or do distribution restrictions apply?\" It takes `cet1_ratio` and `risk_weighted_assets`, gives the buffer capital, and flags whether Maximum Distributable Amount (MDA) restrictions on dividends and bonuses are triggered.\n\nIn short, one builds the overall buffer requirement, and the other tests a CET1 position against the conservation buffer alone.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5fcda674dfba92464146ea0b38a76e11a13c17cf1d710197487c1308a97d7524",
+    "source": "model",
+    "text": "`combined_buffer_requirement` (Combined Buffer Requirement, or CBR) adds up three buffer ratios: the capital conservation buffer (`capital_conservation_buffer_ratio`), the countercyclical buffer (`countercyclical_buffer_ratio`) and a systemic buffer (`systemic_buffer_ratio`), following CRD IV. You choose the higher of the G-SII, O-SII and SyRB buffers yourself and pass it in as `systemic_buffer_ratio`, because the function only sums what it receives. If you also supply `risk_weighted_assets`, it converts the combined ratio into a capital amount by multiplying it by the RWA. The capital conservation buffer has a default value in pyvar, and the other inputs default to zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dfd5c49317538aeb856233357b339c165bcd6932db5613c5f5c731bd9a99b5ce",
+    "source": "model",
+    "text": "Use `combined_buffer_requirement` (Combined Buffer Requirement) when you need to total an institution's capital buffers into a single ratio.\n\n- You already have the capital conservation, countercyclical and systemic buffer ratios and want them summed under CRD IV.\n- You want the buffer ratio turned into a capital amount by supplying `risk_weighted_assets`.\n- You have already picked the higher of the G-SII, O-SII and SyRB buffers and can pass it as `systemic_buffer_ratio`. The function only sums the three ratios; it does not choose the maximum.\n- You are happy with the default `capital_conservation_buffer_ratio` of 2.5%, or want to override it.\n\nRelated function:\n- `countercyclical_capital_buffer`: its listing describes it as the institution-specific Countercyclical Capital Buffer (CCyB), which fits if that buffer is your focus.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

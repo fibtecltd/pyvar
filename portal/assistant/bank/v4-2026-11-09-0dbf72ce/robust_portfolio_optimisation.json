@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6f124993d201a1d727475a806f16c0fea2eb25bab53824a1c4324f203fb1b8f7",
+      "source": "model",
+      "text": "`robust_portfolio_optimisation` asks: \"What weights make sense if my expected-return estimates might be wrong?\" It cuts each asset's expected return by `uncertainty` (κ) times that asset's volatility, then solves a mean-variance problem with `risk_aversion` (λ), which tends to give more conservative weights. `maximum_sharpe_ratio_portfolio` asks: \"Which mix gives the highest risk-adjusted return, taking my expected returns as given?\" It maximises the annualised Sharpe ratio, using `risk_free` as the annual risk-free rate. Both take `mean_returns`, `cov_matrix` and `periods_per_year`. The robust one adds the uncertainty and risk-aversion inputs, while the Sharpe one adds `risk_free` and `allow_short`. In the robust function, weights sum to 1 and each sits between 0 and 1.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "13e256842c546b6a9bc865ac2cbbe70926421554740e50befb82e2f9ac312955",
+    "source": "model",
+    "text": "`robust_portfolio_optimisation` (Robust Portfolio Optimisation) runs a mean-variance optimisation that allows for error in your expected-return estimates. It first lowers each asset's mean by `uncertainty` (κ) times that asset's standard deviation, which gives a worst-case expected return within a box uncertainty set. It then solves the usual mean-variance problem using your `cov_matrix` and `risk_aversion`, with weights summing to one and each between 0 and 1. The result is typically more conservative weights than a plain optimisation. You supply `mean_returns` and `cov_matrix`, and `periods_per_year` sets the annualisation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a22e43573f6c1a504585998e9f195dbdf1795bf872581b1649d6c46428493aff",
+    "source": "model",
+    "text": "Use Robust Portfolio Optimisation (`robust_portfolio_optimisation`) when you want mean-variance weights that don't lean too hard on shaky return estimates:\n\n- Your expected returns (`mean_returns`) are uncertain, and you want the optimiser to haircut each asset's mean by an amount tied to its volatility, scaled by `uncertainty`.\n- You prefer more conservative weights than plain mean-variance gives, which can otherwise chase noisy return estimates.\n- You want to tune two dials: how much you distrust the mean estimates (`uncertainty`) and how much you penalise risk (`risk_aversion`).\n- You need long-only weights that sum to one, since the problem is set up with weights between 0 and 1.\n\nIf you'd rather start from standard Markowitz without the uncertainty adjustment, `mean_variance_optimisation` is listed in pyvar as mean-variance (Markowitz) optimisation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

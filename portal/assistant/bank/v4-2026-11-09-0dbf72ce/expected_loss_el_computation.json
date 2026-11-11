@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9c6f294db44a04725a98405ec46d5d44734854e50cbb9e87becdbd589a674766",
+      "source": "model",
+      "text": "`expected_loss_el_computation` answers \"how much do I expect to lose on this exposure?\" by multiplying `pd`, `lgd` and `ead` (EL = PD · LGD · EAD) into a single currency amount. `probability_of_default_pd_estimation` answers a narrower question: \"what default probability should I use?\" It takes observed default counts (`n_defaults`) and obligors at risk (`n_obligors`) for each rating cohort. It then computes each cohort's default frequency and the obligor-weighted pooled PD, and applies a regulatory floor through the `floor` parameter. The two fit together: the PD estimation function produces a PD that you can supply as the `pd` input to the expected loss function, alongside `lgd` and `ead`.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "96d3a5079eef84415dc683fe8a10c67cf8d8682317c4071a9a3fab7aaff09706",
+    "source": "model",
+    "text": "`expected_loss_el_computation` (Expected Loss EL Computation) is a pyvar credit risk function that calculates expected loss as `EL = PD * LGD * EAD`. You give it three inputs: `pd`, the probability of default between 0 and 1; `lgd`, the loss given default between 0 and 1; and `ead`, the exposure at default as a currency amount of zero or more. It multiplies them and returns the expected loss in the same currency as `ead`. This is the standard expected-loss building block for a single exposure, and pyvar does the arithmetic for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "776e55051aa2464ec1f9c230b8a6460eb74a83670962a6fa4b5c15e1dde9d9a7",
+    "source": "model",
+    "text": "Use `expected_loss_el_computation` (Expected Loss EL Computation) when you already have the three inputs and want the product `PD * LGD * EAD`:\n\n- You have a probability of default (`pd`) and a loss given default (`lgd`), each between 0 and 1, plus an exposure at default (`ead`) as a currency amount.\n- You want an expected credit loss figure for a single exposure, such as a loan or facility.\n- You want a simple, transparent calculation in credit risk work, where the formula is just the three inputs multiplied together.\n- You need the inputs from elsewhere: `probability_of_default_pd_estimation` estimates PD from observed default cohorts, and `exposure_at_default_ead_calculator` gives EAD for a revolving or committed facility via the CCF method.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

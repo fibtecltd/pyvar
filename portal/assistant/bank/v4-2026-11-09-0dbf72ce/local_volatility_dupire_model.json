@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "610af1e6816ccdd9e84feab33f876ee10801514bb8e62eb4065c84bf364594a1",
+      "source": "model",
+      "text": "`local_volatility_dupire_model` and `displaced_diffusion_model` answer different questions. The first takes a whole grid of call prices (`strikes`, `maturities`, `call_surface`) plus `rate` and `spot`, and asks what local volatility surface is consistent with those prices. It does this by applying the Dupire equation with finite differences across the full grid. The second, `displaced_diffusion_model`, goes the other way: given `spot`, `strike`, `rate`, `sigma`, `tau` and a `displacement`, it asks what a European option is worth. It prices the shifted spot as lognormal, and it reduces exactly to Black-Scholes when `displacement` is zero. So the Dupire function backs a volatility surface out of observed option prices, while displaced diffusion turns a few model inputs into one option price.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9d78d65d6f03f5eb224bdd6acd84f74f852007fadfa553aa4c19d461b9111ba4",
+    "source": "model",
+    "text": "`local_volatility_dupire_model` (Local Volatility Dupire Model) turns a grid of call prices across strikes and maturities into a Dupire local volatility surface. You supply `strikes`, `maturities`, `call_surface`, the continuous `rate` and `spot` (used only for validation). It applies the Dupire equation using finite differences: the maturity derivative plus `rate` times strike times the strike derivative, divided by half the squared strike times the second strike derivative. It uses central differences at interior strikes and one-sided second-order stencils at the strike edges, and it covers the full grid. In practice, it gives you the local volatility implied by your call prices at each strike and maturity point.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b6102310eec5224eb4fda6224e831aa93129fa38af1cfb89f3537f22fe649be3",
+    "source": "model",
+    "text": "`local_volatility_dupire_model` fits when you already have a grid of call prices and want a local volatility surface from it:\n\n- You have call prices across strikes and maturities (`call_surface`, with ascending `strikes` and `maturities`) and want the volatility implied at each strike and maturity point by Dupire's equation.\n- You want the whole grid covered, including the edge strikes and the first and last maturities, which pyvar handles with one-sided finite differences.\n- You work with a continuous risk-free `rate` and a known `spot` (used only for validation) and want a deterministic surface rather than a simulated one.\n- You want a standard Dupire (1994) calculation on a non-uniform grid.\n\nIf you instead want a European option price from a stochastic-volatility model, `heston_stochastic_volatility_model` is listed as a semi-analytic Heston European option price.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

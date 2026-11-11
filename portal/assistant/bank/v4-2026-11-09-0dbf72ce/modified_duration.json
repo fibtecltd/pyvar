@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "dv01_pvbp": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "85fdbe5fb22f71b5540a90cb611dc773b9d08c7f48e9846b2c33097739d77053",
+      "source": "model",
+      "text": "`modified_duration` answers \"roughly what percentage will the bond's price move for a given change in yield?\" It returns a duration figure (Macaulay duration divided by `1 + y/m`) that you apply as ΔP/P ≈ −D_mod · Δy. `dv01_pvbp` answers \"how much does the price change, in price terms, for a 1 basis-point yield move?\" It re-prices the cashflows at the yield shifted down and up by half a basis point and takes the difference. So the first gives a proportional sensitivity and the second gives a price change for a fixed small move. Both take the same inputs: `cashflows`, `times`, `yield_rate` and an optional `frequency`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9b133d70305a54fe820d18b811e8af2a3237526b27c6a6431e9ffc2ed4199fd2",
+    "source": "model",
+    "text": "`modified_duration` (Modified Duration) takes a bond's cashflows, the times they arrive in years, and an annual yield, and returns the Macaulay duration divided by (1 + y/m), where m is the compounding frequency. You use it to approximate the percentage price change for a 1-unit move in yield, via ΔP/P ≈ −D_mod · Δy. The inputs are `cashflows`, `times` and `yield_rate` (a decimal), plus an optional `frequency`, which defaults to 2 compounding periods per year. pyvar does the calculation for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f61eab3ab006168aa8ea7389f0915a1ee0538f5b670817e1ad44c2db709443a8",
+    "source": "model",
+    "text": "Use Modified Duration (`modified_duration`) when you want a quick estimate of how sensitive a bond's price is to a change in yield:\n\n- You have a bond's `cashflows` and `times` (in years) and a `yield_rate`, and want the approximate percentage price change for a small yield move, using ΔP/P ≈ −D_mod · Δy.\n- You want Macaulay duration adjusted for compounding, which is what the `frequency` parameter controls (default 2 per year).\n- You're comparing the rate sensitivity of different fixed-cashflow bonds on a like-for-like basis.\n- For a price change in currency terms per one basis point, `dv01_pvbp` is listed as the price change for a 1 basis-point yield move.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "hqla_level_1_asset_classifier": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fa4779d2e5f1536cc25f3e9f52bdef3da1960677c093d4acfd1f7996a630f93d",
+      "source": "model",
+      "text": "`hqla_level_2b_asset_classifier` values the lower-quality Level 2B liquid assets, while `hqla_level_1_asset_classifier` values the highest-quality Level 1 assets such as cash, central-bank reserves and 0%-risk-weight sovereign debt. The Level 2B function answers \"what are these Level 2B assets worth after a supervisory haircut that can't fall below 25%?\" The Level 1 function answers \"what are these Level 1 assets worth, given that by default no haircut is applied?\"\n\nThe haircut inputs differ too. Level 2B takes a single scalar `haircut` (default 0.25) applied to every asset, and it raises a `ValueError` if you go below 25%. Level 1 takes an optional per-asset `haircuts` list, defaulting to all zeros, so each asset can carry its own value between 0 and 1. Both return the post-haircut sum of the asset values.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "af17d502ed9a8d17fe91d7be7bdd4ba3a8ac6caeefc0aa04c7c6686e5eadca21",
+    "source": "model",
+    "text": "The HQLA Level 2b Asset Classifier (`hqla_level_2b_asset_classifier`) values a set of candidate Level 2B high-quality liquid assets after applying a supervisory haircut. You give it the market values in `asset_values`, and it sums each value times one minus the haircut. The single `haircut` is a scalar applied uniformly to every asset, not a per-asset array. It defaults to 0.25, which is the minimum, and the function raises a `ValueError` if you pass anything lower. For the lower-grade corporate or equity sub-bucket, pass 0.50. It follows BCBS 238 §54.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c70621f2eefa5fc0c6a94864b395eac7d1c206a5fa54b0debe5835449f69725c",
+    "source": "model",
+    "text": "The HQLA Level 2b Asset Classifier (`hqla_level_2b_asset_classifier`) fits when you need to value Level 2B high-quality liquid assets after a supervisory haircut.\n\n- You hold candidate Level 2B assets, such as RMBS, lower-grade corporates or qualifying equities, and want their combined post-haircut value from their market values in `asset_values`.\n- You want one haircut applied uniformly to every asset in the batch. The default `haircut` is 0.25, and the function raises a `ValueError` if you pass anything lower.\n- You are valuing the lower-grade corporate/equity sub-bucket. Pass `haircut=0.50` and keep those assets in their own call, separate from the RMBS.\n- You are working to BCBS 238 §54 and want the minimum haircut enforced for you.\n\n- For Level 1 assets, `hqla_level_1_asset_classifier` is listed as classifying and valuing Level 1 HQLA. For Level 2A assets, `hqla_level_2a_asset_classifier` is listed as classifying and valuing Level 2A HQLA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

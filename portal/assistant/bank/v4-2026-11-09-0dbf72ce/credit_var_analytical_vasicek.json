@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "creditmetrics_portfolio_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5395fc601d3b731f646eff25f38a96f2dc511daf3a0793016d847868db1c28cc",
+      "source": "model",
+      "text": "`credit_var_analytical_vasicek` answers \"what is the closed-form loss at a given confidence for one homogeneous portfolio?\" You give it a single `pd`, `lgd`, `ead_total` and `asset_correlation`, and it applies the Vasicek large-portfolio formula, the same conditional-default idea behind the Basel IRB charge. It returns VaR as a loss rate times total exposure, plus expected loss and unexpected loss, with no simulation involved.\n\n`creditmetrics_portfolio_model` answers \"what does the loss distribution look like for this specific set of obligors?\" It takes per-obligor `exposures`, `pd` and `lgd`, and runs a one-factor Gaussian-copula Monte Carlo (`n_simulations`, `seed`). With `transition_matrix`, `current_rating` and `state_loss_pct`, it also models rating migrations, not just default or no default. Its output is VaR and expected shortfall estimated from simulated paths.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "447584800d3f5d19b2f7c69a2b8ada7a40b8cef7e445e3070643352f0760971f",
+    "source": "model",
+    "text": "`credit_var_analytical_vasicek` computes analytical Credit VaR for a large, homogeneous loan portfolio using the Vasicek asymptotic single-risk-factor model. It turns a portfolio probability of default (`pd`) and loss given default (`lgd`) into a loss rate at your chosen `confidence_level`, using the same conditional-default formula that underlies the Basel IRB charge. VaR is that loss rate times total exposure (`ead_total`). It also works with expected loss (EL), and unexpected loss (UL) is the VaR in excess of EL. `asset_correlation` is optional and defaults to 0.15, and `confidence_level` defaults to 0.999.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "90b107575896573dcb7a2a4151d0abc783fd303880ef3e349f1d34158889f1bc",
+    "source": "model",
+    "text": "`credit_var_analytical_vasicek` fits when you want a closed-form Credit VaR for a large, fairly uniform loan portfolio:\n\n- You can describe the portfolio with a single `pd`, `lgd` and `ead_total`, and treat its exposures as homogeneous and well diversified (the large-homogeneous-portfolio assumption).\n- You want a quick, repeatable calculation with no simulation, driven by one systematic risk factor through `asset_correlation`.\n- You want the same conditional-default formula that underlies the Basel IRB charge, for understanding or comparison.\n- You want VaR at a chosen `confidence_level`, plus expected loss and unexpected loss (VaR in excess of EL) from the same inputs.\n\n- If you'd rather estimate Credit VaR by simulation under a one-factor Gaussian copula, see `credit_var_monte_carlo`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

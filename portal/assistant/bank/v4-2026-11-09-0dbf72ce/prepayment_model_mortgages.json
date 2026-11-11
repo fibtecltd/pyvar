@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "behavioural_modelling_nmds": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "dcda703c0675d0ef5ef5f7e4e0a1bf7e69407282493be8e86e734766bc31b409",
+      "source": "model",
+      "text": "`prepayment_model_mortgages` projects cashflows on a mortgage pool, asking how interest, scheduled principal and prepayments unfold month by month given `principal`, `annual_rate`, `term_years` and a constant `cpr`. It also gives the pool's weighted-average life, which shortens as `cpr` rises. `behavioural_modelling_nmds` instead asks how a non-maturity deposit book runs off, splitting it into a stable core and a volatile non-core part using `core_fraction`, `core_runoff_rate`, `non_core_runoff_rate` and `horizon_years`. It returns the projected surviving balance and an effective average life. So one models asset-side loan repayment behaviour, the other liability-side deposit behaviour, and `behavioural_modelling_nmds` is a bespoke exponential-decay model rather than an implementation of the BCBS d368 standardised slotting method.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "46f9b8c957591feab857a68bdf8d29112502f73f80acf1d40c04fedeb48435fb",
+    "source": "model",
+    "text": "`prepayment_model_mortgages` projects the cashflows of a mortgage pool under a constant prepayment assumption. You give it the initial pool balance (`principal`), the annual coupon (`annual_rate`), the original term (`term_years`) and a constant prepayment rate (`cpr`). It steps through the pool month by month: interest first, then scheduled principal, then prepayment on the balance that remains. It also gives the weighted-average life (WAL), which gets shorter as `cpr` rises. This is useful for ALM and balance-sheet work where prepayment shapes the timing of cashflows.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "abda06718977ac7b5f6a97d57e709f35176f5eddaa35806bfc9822d2f744bdd5",
+    "source": "model",
+    "text": "`prepayment_model_mortgages` fits when you want to project mortgage pool cashflows under a single, steady prepayment assumption:\n\n- You have a pool described by `principal`, `annual_rate`, and `term_years`, and want month-by-month interest, scheduled principal and prepayment cashflows.\n- You want to see how a constant `cpr` shortens the pool's weighted-average life (WAL), for example by comparing a few `cpr` values.\n- You're doing ALM or balance sheet work where a simple, transparent prepayment assumption is enough, rather than one that varies over time.\n- You want the amortisation worked out recursively each month, with prepayments applied to the balance left after scheduled principal.\n\nRelated function: `loan_prepayment_rate_cpr` converts between single-monthly mortality (SMM) and CPR, which is handy if your prepayment input is in the other form.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

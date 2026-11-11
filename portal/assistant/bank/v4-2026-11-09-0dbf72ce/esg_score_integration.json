@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "carbon_footprint_attribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fc75fe81a8b3fa6f628956a21a4b88241cc7d2f45181a80c32050358357ea1af",
+      "source": "model",
+      "text": "`esg_score_integration` answers \"how does my portfolio score on ESG, and could I tilt it to meet a minimum score?\", while `carbon_footprint_attribution` answers \"how carbon-intensive is my portfolio, and how many emissions can be attributed to my holdings?\". The first takes `weights` and `esg_scores` and returns the weighted-average ESG score. If you also give it `min_esg_score` and `cov_matrix`, it solves for a minimum-variance, long-only portfolio whose weighted score meets that floor. The second takes `weights`, `carbon_intensities` and `portfolio_value` and computes the Weighted Average Carbon Intensity (WACI) along with total financed emissions. By default, financed emissions scale intensity by invested value. If you supply both `company_total_emissions` and `company_value`, it switches to the PCAF ownership-share method. In short, one is about a quality score and an optional risk-minimising re-weighting, and the other is about carbon measurement.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "79a3c265db7075f5f8b19feb17423e4c033eeb798941d7d7a5682bc7e15e5056",
+    "source": "model",
+    "text": "`esg_score_integration` (ESG Score Integration) computes the weighted-average ESG score of a portfolio from its `weights` and the per-asset `esg_scores`, where a higher score is better. If you also supply `min_esg_score` and a covariance matrix (`cov_matrix`), it goes a step further. It solves for the minimum-variance, long-only portfolio whose weighted ESG score meets that floor. So you get both a read on the current portfolio's ESG profile and, optionally, an ESG-constrained tilt of it. pyvar does the calculation; the function sits in the Portfolio Analytics domain.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c1821f608af94d496aac1a37a34cdff0ab8c1771f65b0a13337b458d8d6b0fcc",
+    "source": "model",
+    "text": "Use ESG Score Integration (`esg_score_integration`) when you want to see a portfolio's sustainability profile and, optionally, tilt it toward a target.\n\n- You have `weights` and an ESG score per asset (`esg_scores`, higher is better) and want one weighted-average ESG score for the whole portfolio.\n- You want to enforce a minimum ESG level: supply `min_esg_score` together with `cov_matrix`, and it solves for a minimum-variance, long-only portfolio whose weighted score meets that floor.\n- You only need a score check: leave out `min_esg_score` and `cov_matrix`, and it just reports the weighted score.\n- If your question is about emissions rather than ESG scores, `carbon_footprint_attribution` is listed as covering WACI and financed emissions.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,6 +1,6 @@
 # CLAUDE.md — pyvar.com project context
 # Read this file in full before making any changes to this codebase.
-# Last updated: April 2026
+# Last updated: April 2026 (assistant bank section added November 2026)
 
 ---
 
@@ -46,6 +46,18 @@ pyvar/
 │   └── deriv_stoch_vol.py     ← Heston/SABR/Dupire/rBergomi/Variance Gamma/NIG; the 3 MC
 │                                  pricers (rBergomi/VG/NIG) support greeks=True opt-in too
 │
+├── assistant/                 ← portal assistant (measured by scripts/assistant_eval/; only client.py may import `anthropic`)
+│   ├── prompts.py             ← system prompt, per-action tasks, request builder (PROMPT_VERSION v4)
+│   ├── graders.py             ← programmatic graders for menu answers and grade_typed
+│   ├── cost.py                ← token prices and cost from the API's usage block
+│   ├── body_schema.py         ← small JSON-Schema checker for request bodies
+│   ├── records.py             ← trim_record: the part of a catalogue entry a model is shown
+│   ├── scrub.py               ← removes pyvar keys, JWTs and other key-like strings from text
+│   ├── client.py              ← ModelClient protocol + AnthropicClient (retries, served-model check, cost); the SDK is imported lazily here only
+│   ├── gate.py                ← the Opus gate: JUDGE_SYSTEM, judge_message, parse_verdict, gate() -> Verdict
+│   ├── static_text.py         ← the static answer built from the record (graders.oracle_text): the floor of the bank
+│   └── bank.py                ← `python -m assistant.bank build|check`: writes and checks portal/assistant/bank/
+│
 ├── schemas/                   ← Pydantic v2 request/response models
 │   ├── var.py                 ← VaRRequest, VaRResult, JobResponse
 │   ├── auth.py                ← sign-in and API key request/response models
@@ -60,6 +72,7 @@ pyvar/
 │   └── var_task.py
 │
 ├── api/                       ← FastAPI routes and middleware
+│   ├── assistant_bank.py      ← cached manifest read for /public/config + BankStaticFiles (Cache-Control) for /assistant/bank/
 │   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}  WS /var/stream/{id}  POST /var/stream-token/{id}
 │   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
 │   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
@@ -79,6 +92,9 @@ pyvar/
 │   ├── env.py
 │   ├── script.py.mako
 │   └── versions/              ← migration scripts (never edit manually)
+│
+├── portal/assistant.js        ← widget in the Try-it panel (textContent only; loaded by pyvar.js only when /public/config says enabled)
+├── portal/assistant/bank/     ← the answer bank: <bank_version>/<function>.json + manifest.json (written by the CLI only; absent until the first committed build)
 │
 ├── ui/                        ← Streamlit parameter dashboard
 │   └── app.py
@@ -190,6 +206,29 @@ AWS:        CELERY_BROKER_URL = sqs://
   other route must keep refusing it (decode_token_payload does, by that claim). Do not drop the
   `aud`, and do not accept it in get_current_user.
 - Design, settings and failure modes: docs/plan-durable-api-keys.md.
+```
+
+### 3.6 Portal assistant answer bank
+
+```
+- portal/assistant/bank/ is BUILT, never written by hand. Rebuild it with
+  `python -m assistant.bank build --max-usd N` and verify with `python -m assistant.bank check`
+  (no API). Never edit a committed bank file or its manifest: `check` re-grades every answer and a
+  hand edit is a different text from the one that was gated. Change the record, the prompt or the
+  graders instead, then rebuild (incremental: only changed answers are rewritten).
+- To correct chosen answers without a new prompt version, use `--redo-ids FILE` (answer id -> notes):
+  it rewrites those answers once, keeps the old entry if the rewrite would be static, and touches
+  nothing else (file example: docs/assistant-bank-redo-1.json).
+- Inputs that invalidate the bank: portal/functions.json (per-answer record hash), prompts.py
+  (PROMPT_VERSION and prompt_sha256) and graders.py (grader_sha256: any byte, formatting included).
+  The drift tests in tests/test_assistant_bank.py fail until the bank is rebuilt, and SKIP while
+  portal/assistant/bank/manifest.json is absent.
+- Only assistant/client.py may import `anthropic`, and only inside AnthropicClient.__init__. The API
+  never calls a model for the bank; do not add `anthropic` to requirements.txt for it.
+- The key is `anthropic_api_key` (SecretStr, config.py). Never log it; never log answer text.
+- /assistant/bank/ is a static mount (api/assistant_bank.py), registered before the portal catch-all
+  and NOT a reserved API prefix. The widget shows only if assistant_enabled AND the manifest is
+  complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers.
 ```
 
 ---

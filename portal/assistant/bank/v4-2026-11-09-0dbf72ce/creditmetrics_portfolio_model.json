@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "kmv_merton_distance_to_default": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "487fbab38654067ef1523e527f261f6f54ca6de7f21fd4ee2fc2b0c4f00756e5",
+      "source": "model",
+      "text": "`creditmetrics_portfolio_model` answers a portfolio question: given many obligors with their own exposures, `pd` and `lgd`, plus a shared asset correlation, what does the simulated loss distribution look like, and what are the VaR and expected shortfall at a chosen `confidence_level`? It can run as a simple default/no-default model, or as a multi-state model where obligors migrate between ratings via a `transition_matrix`. `kmv_merton_distance_to_default` answers a single-firm question: how far is this company's asset value from its debt boundary, and what default probability does that imply? It takes `asset_value`, `debt_face_value` and `asset_volatility` and returns a distance-to-default and a model PD. In short, the KMV function produces a PD for one firm from its balance sheet, while the CreditMetrics function takes PDs as inputs and turns them into portfolio loss figures. The two fit together: a PD from the Merton approach could be supplied as the `pd` input here.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4cb725806971a0e70c524305fc27a1775037f665a61d1966da89dfcbdbc0f17a",
+    "source": "model",
+    "text": "`creditmetrics_portfolio_model` simulates a portfolio credit loss distribution and reports VaR and expected shortfall at your chosen `confidence_level`. By default it runs a one-factor Gaussian-copula Monte Carlo: each obligor's asset return depends on a common factor via `asset_correlation`, and it defaults when that return breaches the threshold implied by its `pd`, losing `lgd` times `exposures`. If you also supply `transition_matrix`, `current_rating` and `state_loss_pct`, it switches to full multi-state CreditMetrics, where each obligor migrates across rating states through its own matrix row. Your per-obligor `pd` still overrides the matrix's default probability in that mode.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0b94387972c9d7ad3ab95d91093d76ca3cf3dc245ddf1cebd1434168d5aff840",
+    "source": "model",
+    "text": "`creditmetrics_portfolio_model` fits when you want a simulated loss distribution, with VaR and expected shortfall, for a portfolio of credit exposures.\n\n- You have per-obligor exposures, PDs and LGDs and want a one-factor, correlated default view; leave the three transition-matrix arguments out for this default/no-default mode.\n- You care about rating migration, not just default: supply `transition_matrix`, `current_rating` and `state_loss_pct` together, and each obligor's loss reflects the rating state it migrates to.\n- You want your own `pd` to set the default boundary, even when using a transition matrix, since it overrides the matrix's default probability for that obligor.\n- You want to tune the confidence level, correlation, number of paths and seed (`confidence_level`, `asset_correlation`, `n_simulations`, `seed`).\n\n- For an analytical large-homogeneous-portfolio Credit VaR instead of simulation, see `credit_var_analytical_vasicek`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

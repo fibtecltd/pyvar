@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "045a0b8a6e2352e07ea9c2a8f4b075e6a1c999e657783a60bd8dcd2f6c58d39b",
+      "source": "model",
+      "text": "`convexity` and `modified_duration` take the same inputs (`cashflows`, `times`, `yield_rate` and an optional `frequency`), but they measure different orders of price sensitivity to yield. `modified_duration` answers the first-order question: roughly how much a bond's percentage price changes for a given move in yield, via ΔP/P ≈ −D_mod · Δy. `convexity` answers the second-order question: how much that sensitivity itself changes as yield moves, which is the curvature a straight-line duration estimate leaves out. It is never negative for option-free bonds. In textbook terms, duration gives the slope of the price-yield curve and convexity gives its bend, so the two are often read together when judging how a bond's price responds to yield changes.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "084319b5f5107d4b6ee8ccb7830a17b63484171b8ff3436cfe2dc95580d9ec4a",
+    "source": "model",
+    "text": "`convexity` computes bond convexity, the second-order sensitivity of a bond's price to changes in its yield. For option-free bonds the value is always zero or above. You supply the `cashflows` and their `times` in years, plus the annual `yield_rate` as a decimal. You can also set `frequency`, the compounding periods per year, which defaults to 2. It discounts each cashflow at the yield, weights it by its timing, and divides by the bond's present value. Risk managers can use it alongside duration to see how a bond's price reacts to larger yield moves.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "93e84f82a4d6625ff0c0c0bf2ba35e7aaa3e423dc78d6c910c24cf817412e548",
+    "source": "model",
+    "text": "`convexity` (Convexity) fits when you need the second-order sensitivity of a bond's price to yield changes. Use it when:\n\n- You want to go beyond a duration-based view of price risk, since duration captures only the first-order effect and convexity covers the curvature.\n- You have an option-free bond and can supply its `cashflows`, their `times` in years, and a `yield_rate` as a decimal. For such bonds the result is always zero or above.\n- Your bond compounds on a different schedule, since `frequency` sets compounding per year (default 2).\n- You are comparing how sharply two bonds' prices respond to larger yield moves.\n- If you want the first-order yield sensitivity instead, `modified_duration` is listed as Macaulay duration divided by (1 + y/m).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

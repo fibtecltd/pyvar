@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "79d0cc10c38580674a4a2bd6f22fa1cb52a66238a3c0f7a1d0958eb8272ff369",
+      "source": "model",
+      "text": "`vega_surface_bucketed` answers \"where on the volatility surface is my exposure?\" It sums each option's vega into an (expiry × strike) grid, using `expiry_buckets` and `strike_buckets` to place each option, and the grid total equals the total of the input `vegas`. `gamma_cross_gamma_matrix` answers \"how do my price-move exposures interact across underlyings?\" It builds a symmetric matrix with each underlying's net gamma (`own_gammas`) on the diagonal and cross-gammas (`cross_gammas`) off the diagonal. The first organizes sensitivity to volatility by expiry and strike, while the second organizes sensitivity to underlying prices by pair of underlyings. The matrix can be used for gamma P&L under a shock vector.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9bd5265a65d9660181486190784324cf20c049d73528db2e360f371786584a47",
+    "source": "model",
+    "text": "`vega_surface_bucketed` (Vega Surface Bucketed) aggregates the vegas of individual options onto a grid of expiry by strike buckets. You give it each option's vega (`vegas`), the expiry bucket (`expiry_buckets`) and strike bucket (`strike_buckets`) it belongs to, plus the grid size via `n_expiry` and `n_strike`. Each option's vega is summed into its (expiry, strike) cell, so you get a compact view of where your volatility sensitivity sits. Total vega is conserved, meaning the sum across the surface equals the sum of the input vegas.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cbccd78215472f5190125e70bbca5de549964e33c69d9d937c7ef3f67f2f4a85",
+    "source": "model",
+    "text": "Use Vega Surface Bucketed (`vega_surface_bucketed`) when you need option vega laid out by expiry and strike:\n\n- You hold many options and want their vegas summed into an (expiry × strike) grid, to see where volatility exposure sits.\n- You want a surface whose total equals your input vega sum, because total vega is conserved.\n- You already have each option's vega (∂V/∂σ), its expiry and strike bucket index, and the grid size (`n_expiry`, `n_strike`).\n- You want a simple aggregation step before reviewing volatility exposure by bucket.\n- For the convexity of value in volatility (∂²V/∂σ² = ∂vega/∂σ), `volga_vega_convexity` is the related function listed.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

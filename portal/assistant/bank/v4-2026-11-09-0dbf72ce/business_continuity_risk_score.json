@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "model_risk_assessment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ba6b4e86054c099d9d92bfb2bedfb2d856e725f093720be8fda1a6a422f611fe",
+      "source": "model",
+      "text": "`business_continuity_risk_score` asks whether a firm's recovery plan could fail: it compares the recovery time objective (`rto_hours`) with `max_tolerable_downtime`, optionally compares data-loss exposure (`rpo_hours`) with `rpo_target_hours`, and discounts the result by `bcp_maturity`. `model_risk_assessment` asks how risky a particular model is: it multiplies `materiality` by `complexity` for an inherent score, then discounts that by `validation_score` to give a residual model-risk tier. The first concerns operational resilience after a disruption, while the second concerns the reliability of a quantitative model. Both apply a quality-based discount (programme maturity or validation strength) to a raw risk figure. The inputs differ too: hours and tolerances for continuity, versus 1-5 ratings for models.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3f2d1e492d6a7693d3b8e76923c982b84f6d4f9478b857a15550c59b8c7194a7",
+    "source": "model",
+    "text": "`business_continuity_risk_score` (Business Continuity Risk Score) rates operational risk from recovery objectives against tolerance. It checks whether your recovery time objective (`rto_hours`) exceeds the `max_tolerable_downtime`, treating a breach as the dominant driver, then discounts the residual risk by BCP programme maturity (`bcp_maturity`). By default `rpo_hours` is only range-validated and doesn't affect the score. If you also supply `rpo_target_hours`, data loss is scored too, and the pre-maturity risk is the worse of the RTO and RPO outcomes, not an average.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "77241b70fca9fbc6d9a02704df05cd24c84833728971961319d28a16534ab622",
+    "source": "model",
+    "text": "Use `business_continuity_risk_score` (Business Continuity Risk Score) when you want one continuity risk number built from recovery objectives and programme maturity:\n\n- You need to check whether your recovery time objective (`rto_hours`) exceeds the maximum tolerable downtime (`max_tolerable_downtime`), since a breach is the dominant driver of the score.\n- You want that residual risk discounted by how mature your BCP programme is (`bcp_maturity`).\n- You also want to score potential data loss: supply `rpo_target_hours` and the worse of the RTO and RPO breach severities is used, not an average. Without it, `rpo_hours` is only range-checked and doesn't change the score.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

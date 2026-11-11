@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "05213178abf0643de20dbb4690a4437771e79ec81ccc397093dbbca0dfddc3f1",
+      "source": "model",
+      "text": "`equal_weight_portfolio` simply gives every asset the same weight of 1/N, so it only needs `n_assets` and answers \"what does a naive, evenly split portfolio look like?\" `maximum_sharpe_ratio_portfolio` instead searches for the weights that maximise the annualised Sharpe ratio, with weights summing to 1, so it answers \"which mix offers the best return per unit of risk, given my inputs?\"\n\nThe inputs differ accordingly. The maximum Sharpe function requires `mean_returns` and `cov_matrix`, and it lets you choose whether short positions are allowed through `allow_short`. In `equal_weight_portfolio`, `mean_returns` and `cov_matrix` are optional and used only to report volatility and Sharpe, and they never change the weights.\n\nBoth accept `risk_free` and `periods_per_year`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "709d2e4c6e259c2dadd48bb808fd2cc65c2ead869c7c889abd9d9feeb06c2704",
+    "source": "model",
+    "text": "`equal_weight_portfolio` builds an equal-weight (1/N) portfolio, giving each of the `n_assets` assets the same weight of 1 divided by N. If you also supply `mean_returns` and `cov_matrix`, it can report the portfolio's volatility and Sharpe ratio alongside the weights. The Sharpe uses the annual `risk_free` rate (default 0.0), and `periods_per_year` (default 252) sets the annualisation factor. Only `n_assets` is required; the other inputs are optional and used for reporting.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "23b1da41862b8c62704f78a107492ff4334a18b5e58e19cb595852617ed5cbdf",
+    "source": "model",
+    "text": "`equal_weight_portfolio` (Equal Weight Portfolio) builds a simple 1/N portfolio, giving every asset the same weight.\n\n- You want a simple, transparent baseline to compare other allocation methods against.\n- You have no reliable views or estimates of returns or risk, so you prefer not to rely on optimisation inputs.\n- You only know how many assets you hold (`n_assets`) and want the weights without further data.\n- You also want reported volatility or Sharpe for the equal-weight mix: optionally supply `mean_returns`, `cov_matrix`, `risk_free` and `periods_per_year`.\n- If you want each asset to contribute equally to risk instead of equal capital, `risk_parity_portfolio` is listed as an equal risk contribution (risk parity) portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

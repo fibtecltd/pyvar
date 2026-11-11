@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "black_litterman_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a877d1c16d8a23cf2f8cd072f8421862495caa64112310bb86ce7ac6e9e2d514",
+      "source": "model",
+      "text": "`maximum_sharpe_ratio_portfolio` answers the question \"given my expected returns and covariance, which mix of assets gives the best annualised Sharpe ratio?\" You supply `mean_returns` and `cov_matrix` directly, and it finds weights that sum to 1, with `allow_short` controlling whether weights stay between 0 and 1. `black_litterman_model` answers a different question: \"what should my expected returns be, if I start from market-implied equilibrium and blend in my own views?\" It takes `market_weights`, `cov_matrix`, a view pick matrix `p_matrix` and view returns `q_views`, then produces posterior expected returns and the mean-variance weights that follow from them. So the first is an optimiser that takes return estimates as given, while the second is about building those return estimates from equilibrium plus views. Both work with a covariance matrix, but only `maximum_sharpe_ratio_portfolio` targets the Sharpe ratio and uses `risk_free`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0efb3de82b958f31702a0d4af3d0eb333ff6e31d41a3ba6d6be231dece1e1879",
+    "source": "model",
+    "text": "`maximum_sharpe_ratio_portfolio` (Maximum Sharpe Ratio Portfolio) finds the tangency portfolio, meaning the set of asset weights that maximises the annualised Sharpe ratio, with the weights summing to 1. You supply per-period expected returns in `mean_returns` and a per-period covariance matrix in `cov_matrix`. The annual `risk_free` rate defaults to 0.0 and is scaled to each period using `periods_per_year`, which defaults to 252. By default weights are bounded to [0, 1], so no short positions; set `allow_short` to true to lift that bound.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9e9da1adbee1ff8ffe562774735945e0ff26e47c7e5817f04b64eb3b4ed6178f",
+    "source": "model",
+    "text": "`maximum_sharpe_ratio_portfolio` (Maximum Sharpe Ratio Portfolio) fits when you want the mix of assets with the best return per unit of risk, relative to a risk-free rate.\n\n- You have per-period expected returns (`mean_returns`) and a covariance matrix (`cov_matrix`) and want the tangency portfolio, with weights summing to 1.\n- You care about risk-adjusted performance, not just low risk or high return, and can set an annual `risk_free` rate to measure against.\n- You need control over shorting: by default weights stay between 0 and 1, or you can set `allow_short` to permit shorts.\n- Your data isn't daily: set `periods_per_year` so the Sharpe ratio is annualised correctly.\n- If you only want the lowest-risk mix, `minimum_variance_portfolio` is the global minimum-variance portfolio.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

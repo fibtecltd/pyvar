@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_standardised_approach_rwa": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ec23df0a66cdd53adccf8d2e73011566b7300fcebd90baa36a5331ad89e33e01",
+      "source": "model",
+      "text": "`maturity_adjustment_basel_irb` and `basel_standardised_approach_rwa` answer different questions within Basel credit risk. The first returns a maturity scaling factor for the IRB approach: given a probability of default (`pd`) and an effective maturity (`maturity`), it shows how much longer or shorter maturity adjusts the factor, and it equals exactly 1.0 at a maturity of 2.5 years. The second, `basel_standardised_approach_rwa`, answers \"what are the risk-weighted assets for this exposure?\" It takes exposure at default (`ead`), a supervisory `risk_weight`, and optional `credit_risk_mitigation`, then applies the weight to the exposure net of mitigation. In short, one is a building block inside the IRB framework (CRE31.6), while the other is a complete standardised calculation (CRE20) that relies on a fixed risk weight rather than a modelled `pd`. For the full IRB capital figure, the related functions `irb_foundation_approach_capital` and `irb_advanced_approach_capital` are the ones to look at.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "af35fc094f08114a5d1275a92839719c3a597f152a9dc36d7c5255bcda86b6e7",
+    "source": "model",
+    "text": "`maturity_adjustment_basel_irb` (Maturity Adjustment Basel IRB) computes the Basel IRB maturity adjustment factor from CRE31.6. You give it a probability of default (`pd`, in (0, 1]) and an effective maturity in years (`maturity`). It first derives a PD-dependent term `b` from the log of PD, then uses it to scale the adjustment relative to a maturity of 2.5 years, where the factor is exactly 1.0 by construction. It returns the raw factor: pyvar does not enforce Basel's usual caps and floors on maturity, so you see the unconstrained value.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3d22a1fc96aba6db6bb15e9f5a463f54954fea50946074d3af3c5f0a7da2c09a",
+    "source": "model",
+    "text": "`maturity_adjustment_basel_irb` fits when you need the Basel IRB maturity adjustment factor (CRE31.6) on its own.\n\n- You want the factor for a single exposure, given its probability of default (`pd`) and effective maturity (`maturity`, in years).\n- You want the raw factor. The Basel cap and floor on maturity are not enforced here, so apply any capping or flooring yourself beforehand.\n- You are checking or teaching how the adjustment behaves, for example that it equals exactly 1.0 when maturity is 2.5 years, by construction.\n- You are building a larger IRB capital calculation and need this piece separately.\n- For full capital figures instead of just the factor, `irb_foundation_approach_capital` is listed as Basel IRB Foundation-Approach capital (CRE31).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

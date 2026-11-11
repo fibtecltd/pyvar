@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "loss_event_classification_basel": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9d7ef54a30794fb70605cb93ff583f34e5e8f3a32d7debb6998f6fe01798a3a6",
+      "source": "model",
+      "text": "`loss_data_collection_framework` answers \"which of my loss events are big enough to record, and what do they add up to?\" It takes a list of `loss_events` (each with a `gross_amount`) and a `reporting_threshold`, keeps events at or above that threshold, and summarises their count, total loss and largest loss. That reportable set is the internal loss dataset feeding the LDA.\n\n`loss_event_classification_basel` answers a different question: \"which Basel II Level-1 event-type category does this event belong to?\" It takes a single `event_type` string and checks it against the seven Basel II Level-1 categories (BCBS 128, Annex 9). It returns the category's index, or -1 if there's no match. This is a membership lookup, not a numeric calculation.\n\nIn short, one filters and summarises amounts, while the other labels an event by type. You could use them side by side, but they work on different inputs.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8d82bc697d43a13eac26975947e3603eb7b12efe6e1b3c9e605ae249cba57745",
+    "source": "model",
+    "text": "The Loss Data Collection Framework (`loss_data_collection_framework`) builds the internal loss dataset that feeds the loss distribution approach (LDA) in operational risk. You give it a list of `loss_events`, each with a `gross_amount`, and a `reporting_threshold`, the firm's de-minimis cutoff. It keeps only events at or above that threshold. It then summarises them with a count, a total loss and a maximum loss, so events below the cutoff are left out of the dataset.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "719b0c544c2e96017f91db283a232b3561f6846f3a6c69c7fdfd2a10069d4d1e",
+    "source": "model",
+    "text": "Use `loss_data_collection_framework` (Loss Data Collection Framework) when you need to build an internal loss dataset from raw events:\n\n- You have a list of loss events, each with a `gross_amount`, and want only those at or above your de-minimis `reporting_threshold`.\n- You need a quick summary of the reportable losses: how many there are, their total, and the largest.\n- You are preparing the internal loss data that feeds the LDA (loss distribution approach) in operational risk modelling.\n- You want to test how different `reporting_threshold` settings change which events count as reportable.\n\nIf you need to combine internal data with scaled external loss data, `external_loss_data_integration` is listed as the related function for integrating the two.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

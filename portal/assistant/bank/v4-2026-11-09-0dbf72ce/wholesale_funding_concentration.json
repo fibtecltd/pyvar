@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contingency_funding_plan_trigger": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e5ffb8fafcc974ca5de14bba05dbe714fb3c8c9faaebb8d1b91284a03bb3dc80",
+      "source": "model",
+      "text": "`wholesale_funding_concentration` asks how spread out a firm's wholesale funding is across counterparties. You give it `counterparty_amounts`, and it returns the Herfindahl-Hirschman Index (HHI) of funding shares, the largest single-counterparty share, and an effective number of counterparties. A higher HHI means funding is more concentrated and less diversified.\n\n`contingency_funding_plan_trigger` asks whether any early-warning metric has fallen below its activation threshold, and so whether the Contingency Funding Plan should be activated. You give it `metrics` and `thresholds`, and it returns the list of breached triggers plus the activation decision. It is a logical breach test, not an arithmetic formula.\n\nIn short, the first measures a funding-structure risk, while the second checks current indicators against limits you supply.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "48f1e5c0700c56274bd341d163d682e929cad648c431b2866ccea2b336cc5717",
+    "source": "model",
+    "text": "`wholesale_funding_concentration` (Wholesale Funding Concentration) measures how concentrated a firm's wholesale funding is across its counterparties. You pass in `counterparty_amounts`, the funding amount from each counterparty, and it converts these to shares of the total. It returns the Herfindahl-Hirschman Index (the sum of squared shares, ranging from 1/n to 1) and the largest single-counterparty share. A higher index means more concentrated, less diversified funding. The formula also defines an effective number of counterparties as 1 divided by the index.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1db02da193a6c78e6d75427891db01cc8a708f89787fe8a8e32836d8eed29113",
+    "source": "model",
+    "text": "Use Wholesale Funding Concentration (`wholesale_funding_concentration`) when you want to see how dependent funding is on a few counterparties:\n\n- You have funding amounts by wholesale counterparty and want one concentration score. Pass them as `counterparty_amounts`; pyvar returns the HHI (sum of squared funding shares).\n- You want to know how exposed you are to your single biggest funder. The function also returns the largest single-counterparty share.\n- You want to compare funding diversification across time periods or funding structures. A higher HHI means more concentrated, less diversified funding.\n- You want a sense of how many counterparties the funding is effectively spread across, which the formula expresses as 1/HHI (`N_eff`).\n\nIf your question is instead how long liquid assets would last, `survival_horizon_calculator` computes the days until cumulative net outflow exhausts HQLA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

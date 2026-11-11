@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ce83f9d4798b62229d564c1bdce2f25e0e9a9ecb88f40bd4ee6054667103776c",
+      "source": "model",
+      "text": "`loss_distribution_approach_lda` answers \"what capital do my own loss history and event counts imply?\", while `monte_carlo_oprisk_capital` answers \"what capital follows from frequency and severity parameters I already have?\" The first takes raw data (`annual_event_counts` and `loss_amounts`), fits a Poisson frequency and a lognormal severity itself, then simulates and reads off OpVaR and capital in one call. The second skips the fitting: you supply `frequency_lambda`, `severity_mu` and `severity_sigma` directly. It also reports expected shortfall alongside OpVaR, and it describes the confidence level as lying in [0.90, 0.9999]. Both use the same simulation idea, with capital as OpVaR minus expected loss, and both have `n_years` and `seed` to control the simulation. If you want to fit the pieces separately, `frequency_distribution_fitting` and `severity_distribution_fitting` are the related functions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1ccc64ab96111ec9cbacb2b86ec23c00526b4f52f596fc4fa240a7025eaa9c12",
+    "source": "model",
+    "text": "`loss_distribution_approach_lda` (Loss Distribution Approach LDA) runs the full operational-risk capital pipeline in one call. It takes your historical annual loss-event counts (`annual_event_counts`) and individual loss amounts (`loss_amounts`), fits a Poisson frequency distribution and a lognormal severity distribution, then simulates a compound annual loss distribution. From that simulation it reads the OpVaR at `confidence_level`, which defaults to the Basel AMA level, and reports capital as OpVaR less the mean simulated loss, floored at zero. `n_years` and `seed` only control the Monte Carlo simulation and its reproducibility.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2bd1f35b47f5826252a21f1a01dcab96c94af01a66554d2d79bc877f632f9b42",
+    "source": "model",
+    "text": "`loss_distribution_approach_lda` fits when you want a full operational-risk capital estimate from raw history in a single call:\n\n- You have historical annual loss-event counts and individual loss amounts, and want pyvar to fit a Poisson frequency and a lognormal severity from them.\n- You want OpVaR and capital read at a chosen confidence level, with 99.9% (the Basel AMA level) as the default `confidence_level`.\n- You prefer one end-to-end pipeline (fit, simulate, read the quantile) over running each step separately.\n- You need reproducible runs: `seed` fixes the Monte Carlo draws, and `n_years` sets how many years are simulated.\n\nIf you only need the frequency fit, `frequency_distribution_fitting` fits a Poisson frequency distribution to annual loss-event counts.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

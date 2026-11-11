@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a4badb72fd8e2ae46cf3c4bd0b4611b132a072c508874d8859ca1a2872240390",
+      "source": "model",
+      "text": "`lookback_option_pricer` prices an option whose payoff depends on the extreme value the underlying reaches along its path: the minimum or maximum for floating-strike, or the maximum or minimum measured against `strike` for fixed-strike. It answers \"what is this option worth if it pays off based on the best price the asset hit?\" `asian_option_pricer` prices an option on the arithmetic average of the price at observation dates, so it answers \"what is this option worth if it pays off based on the average price over the life?\" A lookback is always worth at least the matching vanilla option, while averaging reduces volatility and makes an Asian worth less than the matching vanilla European. Both use Monte Carlo and share inputs like `spot`, `rate`, `sigma`, `tau`, `qmc` and `greeks`. The lookback adds `strike_type`, and `strike` only matters for fixed-strike.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "99460ebc5b446c0a6ec3660375eff316cfa9f27841235a4de10eb9c27af89b36",
+    "source": "model",
+    "text": "The Lookback Option Pricer (`lookback_option_pricer`) estimates the price of a lookback option by Monte Carlo simulation. A lookback pays off based on the lowest or highest underlying price along the path: a floating-strike call pays `S_T − min` and a put pays `max − S_T`, while a fixed-strike call pays `max − K` and a put pays `K − min`. Its payoff is always at least that of the corresponding vanilla option. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can choose `option_type`, `strike_type`, `div_yield`, `n_steps` and `n_simulations`. Optional switches add quasi-Monte Carlo (`qmc`) for a lower-variance estimate, or Greeks (`greeks`) via bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4026d06f6854f1827a3092f3e992d982a161099a391f7396283828891d7052f6",
+    "source": "model",
+    "text": "The Lookback Option Pricer (`lookback_option_pricer`) fits when the payoff depends on the best or worst price the underlying reaches, not just its final price.\n\n- You want to price a floating-strike lookback, where a call pays `S_T − min` and a put pays `max − S_T`, so the holder effectively buys at the low or sells at the high.\n- You need a fixed-strike lookback, where a call pays `max − K` and a put pays `K − min`, using `strike_type=\"fixed\"`.\n- Your setup needs a Monte Carlo price with control over monitoring frequency (`n_steps`), path count (`n_simulations`), `div_yield` and `seed`. Set `qmc=True` for a lower-variance estimate at the same path count.\n- You also want delta, gamma, vega, theta and rho: set `greeks=True` (this can't be combined with `qmc=True`).\n\nIf you instead need an option on the average price, `asian_option_pricer` is listed as pricing arithmetic-average Asian options via Monte Carlo.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

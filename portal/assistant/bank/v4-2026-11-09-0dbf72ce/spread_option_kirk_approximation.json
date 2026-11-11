@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "300ec3fed84999a14120a90c9b0eb440409cfba6f42914955202ffac967300ae",
+      "source": "model",
+      "text": "`spread_option_kirk_approximation` prices an option on the difference between two assets' forward prices (`spot1` minus `spot2`, against a `strike`), so it answers \"what is a spread between two correlated assets worth?\" It takes a `rho` correlation and a volatility for each asset, and it reduces the problem to a Black-76 option with an effective volatility. That is a closed-form formula, and it is exact when `strike` is zero.\n\n`asian_option_pricer` prices an option on a single underlying's arithmetic average over time, so it answers \"what is an average-price option worth?\" It uses Monte Carlo simulation, with controls such as `n_steps`, `n_simulations` and `seed`. Averaging reduces volatility, so an Asian option is worth less than the corresponding vanilla European option.\n\nIn short, the first function handles two assets at one maturity, and the second handles one asset averaged along its path.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d69caeea56ea2fcf76ca1fce22eb1c6e1c192b9e35db0016543346f889019173",
+    "source": "model",
+    "text": "`spread_option_kirk_approximation` (Spread Option Kirk Approximation) prices an option on the difference between two assets, S1 − S2, using Kirk's approximation. It reduces the problem to a Black-76 option on the ratio of the first forward to the second forward plus the strike, using an effective volatility built from `sigma1`, `sigma2` and their correlation `rho`. Inputs `spot1` and `spot2` are forward prices, and the value is discounted once at the continuous `rate` over `tau` years. When `strike` is 0 the result is exact (the Margrabe case). You choose a `call` or `put` via `option_type`, which defaults to `call`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "75ccddaa4a7e92f87d0b89fb657b2cd37a82572b8ba2ccba8266999360a06059",
+    "source": "model",
+    "text": "`spread_option_kirk_approximation` (Spread Option Kirk Approximation) fits when you need a price for an option on the difference between two assets, `S1 − S2`.\n\n- You want a quick closed-form price for a spread option, as a call or put set by `option_type`.\n- Your inputs are forward prices, as in Black-76, and you want the value discounted once at `rate`.\n- The spread strike is zero, where the approximation is exact (Margrabe).\n- You can supply each asset's volatility (`sigma1`, `sigma2`) and the correlation `rho` between them.\n- If you need a basket instead, `basket_option_pricer` is listed as pricing a basket option via Monte Carlo on a weighted sum of assets.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

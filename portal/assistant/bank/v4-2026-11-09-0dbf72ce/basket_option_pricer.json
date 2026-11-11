@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "839f4c1f0a7ceead6b67f3bf24f8e97852bf2c56e1ec6c922d2090e4a9a1f86f",
+      "source": "model",
+      "text": "`basket_option_pricer` prices an option on a weighted sum of several correlated assets at maturity, so it answers \"what is this basket option worth, given each asset's `spots`, `sigmas`, `weights` and the `correlation` matrix?\" `asian_option_pricer` prices an option on a single underlying's arithmetic average over time, so it answers \"what is this averaging option worth on one asset?\" Both use Monte Carlo and discount the expected payoff at the risk-free `rate`.\n\nThe basket function takes per-asset inputs and a strike on the weighted basket. The Asian function takes a single `spot` and `sigma`, plus `n_steps` for how many observation points enter the average. It also offers `div_yield` and a `qmc` option. For sensitivities, `greeks` in the basket pricer gives per-asset delta, gamma and vega (diagonal only) plus scalar theta and rho. In the Asian pricer it gives delta, gamma, vega, theta and rho.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5f1fdd2fbd1ad7dc5baeeaf42c2d63c24af4fdeeda5ba067e92c2a7d05bcb83f",
+    "source": "model",
+    "text": "The Basket Option Pricer (`basket_option_pricer`) prices an option on a weighted basket of assets using Monte Carlo simulation. It simulates correlated terminal prices for each asset from `spots`, `sigmas` and a `correlation` matrix, forms the basket with `weights`, and discounts the average payoff against `strike` at the risk-free `rate`. You choose a `call` or `put` via `option_type`, and set the number of paths with `n_simulations`. Setting `greeks` to true also returns per-asset delta, gamma and vega, plus theta and rho, by bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a3afc1eaf283e5dfd3fe73b8c54273f9dc28e5852dc44674f2e05629decb01da",
+    "source": "model",
+    "text": "Use the Basket Option Pricer (`basket_option_pricer`) when you need a price for an option written on a weighted sum of several assets rather than on one asset.\n\n- You have a strike on the weighted basket, and can supply per-asset `spots`, `weights` and `sigmas`, plus a `correlation` matrix.\n- Correlation between the assets matters to your payoff, since pyvar simulates correlated paths through Monte Carlo.\n- You want either a call or a put, set with `option_type`.\n- You also want per-asset delta, gamma and vega, plus theta and rho, by setting `greeks` to true. Delta, gamma and vega are diagonal only, with no cross-asset terms.\n- For a different payoff, `rainbow_option_pricer` is listed as pricing best-of / worst-of options via Monte Carlo.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

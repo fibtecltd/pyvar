@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9749446cd9111417f096e9edf2a562ecfd19c9410c68fb54a786efd7c3b88b9b",
+      "source": "model",
+      "text": "`sector_stress_scenario` answers \"what is my P&L if each sector takes a given shock?\" You give it each sector's exposure (`sector_exposures`) and shock (`sector_shocks`), and it sums exposure times shock across sectors, so total P&L is exactly the sum of the per-sector P&L. `contagion_stress_scenario` answers a different question: \"how does an initial shock spread through a network of linked nodes?\" It takes an `initial_shock`, a `contagion_matrix` of spillover coefficients, and a number of `rounds`, and it adds up the shock plus its successive spillovers. In short, the first applies shocks you specify directly to each sector, while the second works out how a shock travels between connected nodes. The second returns a cumulative shock, not a P&L figure.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8debabc4206392f2980c889948fbf2ddad7d33dee0e6fff56b729c265f171adf",
+    "source": "model",
+    "text": "`sector_stress_scenario` (Sector Stress Scenario) runs a sector-level stress test on a portfolio. You give it `sector_exposures`, the currency P&L per unit move for each sector, and `sector_shocks`, the shock applied to each sector. It multiplies each sector's exposure by its shock and sums the results, so total P&L is the exact sum of the per-sector P&L. You can pass `sector_names` to label the sectors; otherwise they default to `sector_0`, and so on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7578eecdea7b22d0b5dda356fdc976b1732b20cec107b174e9ed0f62c3dd3923",
+    "source": "model",
+    "text": "Use Sector Stress Scenario (`sector_stress_scenario`) when you want to see how a shock to specific sectors would hit a portfolio:\n\n- You know your net exposure per sector, expressed as currency P&L per unit move (`sector_exposures`), and want to apply a shock to each one (`sector_shocks`).\n- You want a total P&L that is exactly the sum of the per-sector P&L, so you can see which sectors drive the outcome.\n- You want to run a sector-level what-if, such as a different shock for each sector, with optional labels via `sector_names`.\n- You want a simple, transparent calculation: each sector's exposure times its shock, then added up.\n\nIf you instead need to push an initial shock through a spillover network, `contagion_stress_scenario` is listed as propagating an initial shock through a contagion (spillover) network.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "77e2cf6b7fe794f87cb54e63b62883fe47e1a36a6a0153ea51654deb12072bb8",
+      "source": "model",
+      "text": "`kupiec_pof_test` asks a statistical question: is the observed breach rate consistent with the rate your VaR confidence level implies? You give it `n_breaches`, `n_observations` and optionally `confidence_level`, and it runs a likelihood-ratio test against a chi-squared critical value. `traffic_light_backtesting` asks a supervisory question: given the realised returns and VaR estimates over the backtest window, which Basel zone (green, yellow or red) does the breach count fall into? It takes the actual return series and VaR series, counts the breaches itself, and applies the zone boundaries set by the Basel Committee. In short, the Kupiec test judges whether the breach rate matches the expected one, while the traffic light sorts a breach count into a zone.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e2180b4a8b1263113575d7208fe1184969e7ce39ee5d6e5032e87be812134473",
+    "source": "model",
+    "text": "`kupiec_pof_test` (the Kupiec Proportion-of-Failures test) checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies. It runs a likelihood-ratio test of the observed breach rate, `n_breaches` divided by `n_observations`, against the expected rate of one minus `confidence_level`. The statistic is compared with a chi-squared distribution with 1 degree of freedom, and rejection uses the 95% critical value. If you leave `confidence_level` out, it defaults to 0.99. When there are no breaches, or every observation is a breach, pyvar uses a simplified one-sided form of the ratio to avoid taking the log of zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b676a9bf6eaffeff2e33f73044c7c14829c785a6c35552cd59c9c5afa3891820",
+    "source": "model",
+    "text": "Use the Kupiec POF Test (`kupiec_pof_test`) when you want to check whether a VaR model's observed breach rate matches what its confidence level implies.\n\n- You have a count of VaR breaches (`n_breaches`) over a backtest sample (`n_observations`) and want a statistical test of whether the breach frequency is consistent with the expected rate, which is 1 minus `confidence_level`.\n- You want an unconditional coverage check: it looks only at how many breaches occurred, not when they occurred.\n- You want a likelihood-ratio statistic that is compared against a chi-squared critical value with 1 degree of freedom.\n- Your VaR was measured at a confidence level other than the default; set `confidence_level` to match it.\n\nIf you also want to test whether breaches cluster in time, `christoffersen_independence_test` is listed in pyvar as the Christoffersen independence (clustering) test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

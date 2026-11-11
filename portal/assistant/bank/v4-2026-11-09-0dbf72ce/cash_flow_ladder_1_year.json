@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cash_flow_ladder_30_day": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "22dbb0012ca099473d55b415679e238bfe0098f456154eb31170911d9f05f23f",
+      "source": "model",
+      "text": "`cash_flow_ladder_1_year` buckets contractual inflows and outflows into maturity buckets (the standard 8-bucket set by default) across a one-year horizon, while `cash_flow_ladder_30_day` projects a daily position over a 30-day horizon. So the first answers \"how does my liquidity gap look across the year, bucket by bucket?\", and the second answers \"what is my tightest day in the next 30 days?\"\n\nBoth use the same logic: net gap is inflow minus outflow, and the cumulative gap starts from `opening_balance` and adds each period's net gap. The difference is in the inputs. The one-year version takes `bucket_inflows` and `bucket_outflows`, with optional `buckets` labels. The 30-day version takes `daily_inflows` and `daily_outflows`, each a length-30 array.\n\nBoth report the minimum cumulative position, the low point of the ladder. In the 30-day version, a negative minimum means a funding shortfall on that day.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b8b51a14469ae71f5732ffe566a12f3629af24851ba5aee2adab99f426c05e5e",
+    "source": "model",
+    "text": "`cash_flow_ladder_1_year` (Cash Flow Ladder 1 Year) builds a one-year contractual cash-flow ladder for liquidity risk. You give it inflows and outflows per maturity bucket (`bucket_inflows`, `bucket_outflows`), and it aggregates them into the standard 8-bucket set, or into your own labels via `buckets`. For each bucket it computes the net gap (inflow minus outflow) and a cumulative gap that starts from an optional `opening_balance`. It also reports the minimum cumulative gap across the buckets, showing where the ladder is tightest.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0bdebbf31c473b55302f3fcf607fbc8bb736d3c943ef4018fdfd6d14f61f1389",
+    "source": "model",
+    "text": "`cash_flow_ladder_1_year` fits when you need a view of contractual liquidity over a one-year horizon:\n\n- You want inflows and outflows grouped into maturity buckets, with the net gap shown for each bucket.\n- You want to see how the cumulative gap builds up, including the lowest point (`min_cumulative`), starting from an `opening_balance` if you have one.\n- You have contractual inflow and outflow figures per bucket to supply as `bucket_inflows` and `bucket_outflows`, and you're happy with the standard 8-bucket set or your own labels via `buckets`.\n- If you need a daily view over a shorter window instead, `cash_flow_ladder_30_day` is listed as a 30-day daily contractual cash-flow ladder.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

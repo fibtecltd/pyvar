@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "return_attribution_brinson": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b77146361d06edb7d3177618f885057b3e1fac67fe68014785fc4beb4cd5e641",
+      "source": "model",
+      "text": "`currency_attribution` answers \"how much of my base-currency return came from local markets versus currency moves?\", splitting each holding's return into a local-market part and an FX part, weighted by exposure. By default that split is a simple geometric one with currency as the residual, and supplying both `local_risk_free` and `base_risk_free` switches it to the Karnosky-Singer decomposition. `return_attribution_brinson` answers a different question: \"why did my portfolio beat or trail its benchmark?\" It breaks the active return into allocation, selection and interaction effects per segment, and those effects sum to the total active return. The key difference is that `currency_attribution` takes only portfolio weights and returns, with no benchmark, while `return_attribution_brinson` is built around comparing portfolio and benchmark weights and returns.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3de7c9a2d170772eeadd786fd96df337de234656863292ff442da14154bbc1bf",
+    "source": "model",
+    "text": "`currency_attribution` (Currency Attribution) splits each holding's base-currency return into a local-market part and a currency part, weighted by portfolio exposure. By default it uses a simple geometric split, where base return equals (1 + local)(1 + FX) − 1 and currency is the residual; this is not Karnosky-Singer. If you pass both `local_risk_free` and `base_risk_free`, it switches to the Karnosky-Singer (1994) decomposition. That version nets local returns against the local risk-free rate to get a return premium, and splits the currency side into base cash return and a currency surprise, net of the covered-interest-parity forward premium. You supply `local_returns`, `fx_returns` and `weights`, and optionally `currency_names`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bd5bab9207479293a0e51521ee9e4381e975c54fd6ba2241ceb9164f85c1d122",
+    "source": "model",
+    "text": "`currency_attribution` (Currency Attribution) fits when you need to separate a multi-currency portfolio's base-currency return into local-market and currency effects.\n\n- You hold assets in several currencies and want each holding's return split into a local-market part and an FX part, weighted by exposure.\n- You want a quick baseline split: leave `local_risk_free` and `base_risk_free` out and you get the naive geometric split, with currency as the residual.\n- You want a fuller currency story: supply both `local_risk_free` and `base_risk_free` to get the Karnosky-Singer decomposition. It nets local returns against the local risk-free rate and separates a currency surprise from the interest-rate differential.\n- You want market selection kept apart from currency effects, so the currency side doesn't re-capture local market performance.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

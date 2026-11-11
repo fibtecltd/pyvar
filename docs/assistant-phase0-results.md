@@ -1005,3 +1005,124 @@ better fix.
 **What it does not show.** One fresh draw per writer; Haiku's final answers and Opus's answers beyond 8 cases were not
 judged by anyone other than Opus; regeneration was tested for grader failures only, not for gate flags; nobody has read
 the answers Opus flagged or the ones it passed with issue notes.
+
+### 9.20 PR 2 (the answer bank): the line-start grader fix, and the layout at full size (2026-11-11)
+
+Code: branch `feat/assistant-bank`. No paid API call was made for this section; the scratch-branch answers are re-graded
+offline and the full-size bank is built with a fake client that answers from `graders.oracle_text`.
+
+**The grader fix.** `graders.check_numbers` dumped the record as JSON, where a newline is the two characters backslash and
+`n`, so a number that starts a line of a description (`...\n30-day run-off`) followed a word character and was not read as a
+number of the record. 12 of the 385 records have one (`ifrs_9_staging_criteria_assessment`, `rough_volatility_rbergomi_model`,
+`combined_stress_scenario`, `liquidity_coverage_ratio_lcr`, `required_stable_funding_rsf_calc`, `retail_deposit_runoff_rate`,
+`christoffersen_independence_test`, `frtb_ima_expected_shortfall`, `insurance_offset_calculation`,
+`carbon_footprint_attribution`, `rebalancing_optimiser`, `emir_clearing_obligation_check`). The menu number check now flattens
+newlines first, exactly as `grade_typed` already did through `_flat`. Only `check_numbers` changed: the identifier check reads
+the text as before, and `no_source_claims` is untouched. The pinned oracle hash in `tests/test_assistant_core.py` is unchanged:
+the 576 oracle answers contain no such number, so their grades are identical (576 of 576 pass, null 0 of 576; typed oracle 260
+of 260, null 0 of 260).
+
+**Re-grade of the scratch branches** (`origin/data/assistant-tier-run-1`, `-2`, `-3`; every `results.jsonl`; cases from
+`cases.py --all`). First, with the unchanged graders, all 1,667 prose answers reproduce their stored grade exactly. Then with
+the fix, 25 grades change, all of them `numbers_supported` fail to pass and nothing else (no check flips the other way, no pass
+becomes a fail); 19 of those answers now pass overall and 6 still fail on `no_source_claims`:
+
+| run | prose answers | grades changed | now pass overall | still fail (no_source_claims) |
+|---|---|---|---|---|
+| tier_run_1/opus_d1 | 305 | 5 | 2 | 3 |
+| tier_run_1/sonnet_d1 | 308 | 2 | 2 | 0 |
+| tier_run_2/haiku_d1 | 308 | 2 | 0 | 2 |
+| tier_run_2/sonnet_r3 (8 draws of 8 cases) | 64 | 8 | 8 | 0 |
+| tier_run_3/opus_r3 (8 draws of 8 cases) | 64 | 8 | 7 | 1 |
+| tier_run_3/sonnet_t3, haiku_t3, tier_run_1 smoke runs | 618 | 0 | 0 | 0 |
+
+The three functions involved are `retail_deposit_runoff_rate` (`30`), `liquidity_coverage_ratio_lcr` (`25`) and
+`required_stable_funding_rsf_calc` (`85`). This is the defect behind "8 `retail_deposit_runoff_rate:explain` (the line-start
+defect)" in 9.19: the 8 Opus draws that the graders failed there were 7 passes and 1 `no_source_claims` failure.
+
+**Layout at full size** (fake client, all 385 functions, 1,154 answers, `workers=4`, 1.2 s): 385 files, 754,393 bytes of function
+files (largest `advanced_measurement_approach_ama.json`, 2,189 bytes) plus a 720-byte manifest; `check` passes with no problem.
+Oracle texts are shorter than model answers, so the real bank will be larger: three answers of up to 900, 1,100 and 1,200
+characters plus the metadata come to about 4 to 5 KB per file, against a bound of 16 KB per file and 4 MB in all.
+
+**The widget in Chromium** (Playwright, the app served against that bank; viewports 390 and 1280 wide, light and dark colour
+scheme, scale factor 1): the Try-it panel shows "About this function" with the buttons "What it does", "When to use it" and a
+"Compare with..." select; each shows its answer with the label "From the pyvar catalogue"; keyboard (Tab, Space, Enter, arrow
+keys) works; no page error. The portal has a single light palette and no dark one, so the widget uses the portal's variables
+and looks the same in both schemes. The page itself is 459 px wide at 390 px (the nav and the hero metrics overflow, with or
+without the assistant: not caused by this change); nothing inside the Try-it card overflows. When the bank file is a 404, bad
+JSON, the wrong shape, or the config names a version that is not there, or `assistant_enabled` is false or the config call
+fails, the slot stays empty (height 0) and no error is raised.
+
+### 9.21 Bank build 1 and a person's read of it (2026-11-11)
+
+**The build** (dev key, code `f301ce4`, prompt v4, writer Sonnet 5.5, gate and escalation Opus 5.5, 4 workers): bank version
+`v4-2026-11-09-0dbf72ce`, 1,154 answers, complete, in 23 min 34 s for $16.49 (a one-function smoke run first, $0.04; caps $0.30
+and $19; no failed call). 1,152 answers are model text (1,149 Sonnet, 3 Opus) and 2 are static (`compute_breaches:compare:
+traffic_light_backtesting`, `cox_ingersoll_ross_model:when`). 209 answers needed a second draft (explain 31, when 123, compare 55;
+none a third). The gate flagged 5 first drafts: 3 were rewritten by Opus and passed, 2 became static. The stored entries keep only
+the final verdict, so all show faithful; 49 faithful answers carry gate notes. `check`: 385 files, 1,204,841 bytes, largest 3,774,
+static share 0.17%. The data sits on the scratch branch `data/assistant-bank-1` (`b64daae`); its checksums verify, and the suites
+pass with the bank present (414 passed; the two bank drift tests no longer skip).
+
+**Checks without an API.** Served from the app and opened in Chromium (390 and 1280 px, light and dark), the real answers render
+and nothing overflows. One answer, `active_share:when`, writes its bullets with `**bold**`; the widget showed the asterisks. The
+widget now renders a paired `**` as `<strong>` (`e88dc08`, with a test that runs the renderer under node). Three grammar slips
+("a internal", "a earlier" twice) are in answers the gate had already noted.
+
+**A person's read.** 48 answers drawn at random (16 per action, seed 20261111; the 2 static answers left out), each read against
+its catalogue entry: 39 no wrong claim, 3 wrong claim, 6 unsure. Wrong: `loss_given_default_lgd_model:explain` (the steps leave out
+the "1 minus", so the clipped quantity is misdescribed), `return_attribution_brinson:when` and `compound_option_pricer:when` (the
+closing related-function sentence states no need; the second points a question about an option on an option at a chooser option).
+The 6 unsure marks (`survival_horizon_calculator`, `extreme_value_theory_var`, `frequency_distribution_fitting`,
+`ifrs_9_12_month_ecl_stage_1`, `market_wide_stress_scenario`, `portfolio_beta`, all `when`) were pointer sentences that the sheet
+gave no way to check, because it showed the function's own entry and not the sibling summaries the writer was given. Compared
+afterwards, each of the six sentences repeats its sibling's summary word for word. So 8 of the 9 marks concern the closing "related
+function" sentence of a `when` answer; 238 of the 385 `when` answers have one in the form "`X` is listed as ..." (73 say "For a
+different need"), which follows from the v4 wording rule against claims about sources. Reading the marks as they were made, 3 of 48
+(6.3%, 95% interval 2.1% to 16.8%) have a wrong claim; counting only claims the entry contradicts, 1 of 48 (2.1%, 0.4% to 10.9%).
+Neither settles the 4% tolerance, and the marks as made stand as the record.
+
+**Decision.** One targeted rewrite, not a new prompt: the 49 gate-noted answers plus the 3 marked ones (52, no overlap), with the
+gate's or the reader's note as feedback (`docs/assistant-bank-redo-1.json`, `python -m assistant.bank build --redo-ids`). A rewrite
+never replaces an entry with static text. v4 and the pinned hashes do not change, and the pointer style stays as built.
+
+### 9.22 The re-read of the rewritten answers and a second redo (2026-11-11)
+
+The first redo (52 answers; code `a95f4be`, data `928d3ba`; 55 s, $0.81, no failed call) changed exactly those 52 entries (46 bank
+files: 45 function files and the manifest; nothing outside the 52 differs from `b64daae`). Gate notes on them fell from 61 to 3, no
+rewrite became static, and the mean answer length went from 747 to 722 characters. The three answers the reader had marked were
+fixed: the LGD steps now describe the net recovery rate and take one minus it, the Brinson pointer states its need, and the
+compound-option pointer to the chooser option was dropped.
+
+A person re-read 20 of the 52 (the 3 marked, 10 whose gate notes read like claims, and 7 drawn at random, seed 20261112; this sheet
+also showed each answer's related-function summaries): 19 no wrong claim, 1 wrong claim, 0 unsure. The one,
+`credit_default_swap_cds_pricer:when`, ends with "For a different need, `interest_rate_swap_irs_pricer` ...", which names no need and
+points at a function that does not serve a credit default swap question; the par-spread fix in the same answer was right. This is
+the pointer problem of 9.21 again: the writer is asked to name a related function from the siblings it is given, and for some
+functions none fits (the CDS pricer was given eleven rates and swaps functions). 72 of the 385 `when` answers still end with "For a
+different need" (4 of them were in the first redo). The re-read sample was partly targeted, so no rate follows from 1 of 20.
+
+**Decision.** A second targeted rewrite of those 72 (`docs/assistant-bank-redo-2.json`) with one note: keep a pointer only if it says
+what question the related function answers that this one does not and it is a real next step, otherwise leave it out (the reader's
+wording is added for the CDS answer). Same mechanism and guarantees as the first redo; v4 and the pinned hashes do not change.
+
+**The second redo** (code `868746f`, data `31567db`; 74 s, $0.99, no failed call). Exactly the 72 named entries changed (73 bank files:
+72 function files and the manifest); none became static, 8 needed a second draft and 1 (`historical_simulation_var:when`) was
+escalated to Opus. "For a different need" went from 72 `when` answers to 0: in 45 the pointer was dropped and in 27 it was kept with
+the need stated ("If you need a daily view over a shorter window instead, `cash_flow_ladder_30_day` ..."). The mean length of the 72
+went from 784 to 688 characters. Two gate notes remain on them, both saying the answer names no sibling.
+
+**The second re-read.** 11 of the 72 (the CDS answer the reader had marked, the 2 with a gate note left, 5 whose pointer states a need,
+3 whose pointer was dropped; seed 20261113): 10 no wrong claim, 0 wrong claim, 1 unsure. The unsure one, `historical_simulation_var:when`,
+says "you also want CVaR alongside VaR". The entry's formula defines both VaR and CVaR, but its summary and description mention only VaR,
+so the entry alone does not confirm that CVaR is returned. The engine returns it (`cvar_pct` and `cvar_abs`, `engine/var_models.py`), so
+the claim is right and the catalogue entry under-describes the function; nothing was rewritten for it.
+
+**The bank committed here** is the one after the second redo: bank version `v4-2026-11-09-0dbf72ce`, 1,154 answers (1,152 model text,
+2 static), 385 files, 1,189,138 bytes, `check` clean (rc 0, static share 0.17%), `manifest.json` sha256 `070d6bc0...f5d6`. Built on
+the dev key for $18.36 in all ($16.53 first build with its smoke run, $0.82 and $1.01 for the two redos). The three states are on the scratch
+branches `data/assistant-bank-1` (`b64daae`), `-2` (`928d3ba`) and `-3` (`31567db`). Evidence on quality: a random read of 48 answers of the
+first build (3 wrong, all since rewritten) and 31 reads of rewritten answers (1 wrong, since rewritten; 1 unsure that the engine settles).
+No random read has been made of this final bank, whose 124 rewritten answers differ from the one that was sampled. If the 4% tolerance has
+to be shown for exactly this bank, that read is the missing evidence; the flag `assistant_enabled` stays off until it is decided.

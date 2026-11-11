@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e33ed75cc12a23cc77624b0ec5ff2d911632b1dae8c9808e9f893f7851893d11",
+      "source": "model",
+      "text": "`dv01_pvbp` answers \"how much does the price change, in currency terms, for a 1 basis-point move in yield?\" It gets there by re-pricing the cashflows at the yield shifted half a basis point down and half a basis point up, then taking the difference. `modified_duration` answers a different question: \"how sensitive is the price, as a proportion of itself, to a yield move?\" It divides Macaulay duration by `(1 + y/m)` and approximates `ΔP/P ≈ −D_mod · Δy`.\n\nSo `dv01_pvbp` gives a price amount for one basis point, while `modified_duration` gives a relative sensitivity that you scale by the size of the yield move. Both take the same inputs: `cashflows`, `times`, `yield_rate` and an optional `frequency`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4eeddbf7de9cd5518675623198e33839f4c79e7e851813dc1615cf0aa874fd62",
+    "source": "model",
+    "text": "`dv01_pvbp` (DV01 PVBP) gives the price change for a 1 basis-point move in yield on a stream of cashflows. You supply `cashflows`, their `times` in years, and an annual `yield_rate` as a decimal. It prices the cashflows at the yield shifted down and up by half a basis point and takes the difference, a central-difference approach. Pricing discounts each cashflow using the compounding `frequency` per year, which defaults to 2. This is a standard way to measure a position's first-order sensitivity to yield changes.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d308e9293d527a7354ffc2e0546de8bc18f2ce0b61deb8433d27858a2dadc3c4",
+    "source": "model",
+    "text": "`dv01_pvbp` (DV01 PVBP) gives the price change for a 1 basis-point move in yield, so it fits when you want a dollar-style rate sensitivity.\n\n- You have a bond's `cashflows` and `times` and want its price sensitivity to yield at a given `yield_rate`.\n- You want to size or compare interest-rate risk across positions in price terms rather than as a percentage or duration figure.\n- Your cashflows are fixed and known, and you can state a compounding `frequency` (it defaults to 2).\n- You want a central-difference estimate (price at ±0.5bp around the yield), which is a symmetric, local measure for small yield moves.\n\nIf you instead want a duration measure, `modified_duration` is listed as Macaulay duration divided by (1 + y/m).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

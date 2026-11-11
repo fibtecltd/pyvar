@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "72e91c71871152a9e90b4442ce452bda01437f8220ebe27c2fe822af70079e22",
+      "source": "model",
+      "text": "`digital_option_pricer` prices a cash-or-nothing digital option: it answers \"what is a fixed cash payout worth if the underlying finishes in the money at maturity?\" It uses a closed-form formula based on `spot`, `strike`, `rate`, `sigma` and `tau`, with a `payout` you set. `asian_option_pricer` answers a different question: \"what is an option worth when its payoff depends on the average price of the underlying over several observation dates?\" It estimates that price by Monte Carlo simulation, so it has settings like `n_simulations`, `n_steps` and `seed`. Because averaging reduces volatility, an Asian option is worth less than the corresponding vanilla European option. In short, the digital pays a fixed amount based on the final price, while the Asian pays according to the average price.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "de9f57f69dcc490efb0d4a281e786f1e8c3cc3d2d764c28302e34dd776827aad",
+    "source": "model",
+    "text": "The Digital Option Pricer (`digital_option_pricer`) gives the price of a cash-or-nothing digital (binary) option, which pays a fixed cash amount if it finishes in the money and nothing otherwise. The price is the discounted payout multiplied by the risk-neutral probability of finishing in the money, using the normal distribution term `N(d2)` for a call and `N(-d2)` for a put. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can optionally set `option_type` (call or put), `payout` and `div_yield`. It is a pricing tool, so pyvar does the calculation and returns the number.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "56aaf991cb456f48269735a942ff6c49413d4ef3dbe9d2b2f7613ae3c5fcb5dd",
+    "source": "model",
+    "text": "Use the Digital Option Pricer (`digital_option_pricer`) when the payoff is a fixed cash amount rather than a graded one:\n\n- You need the price of a cash-or-nothing binary option that pays `payout` if it finishes in the money and nothing otherwise.\n- You want a closed-form price under constant volatility (`sigma`) and a continuous risk-free `rate`, with an optional `div_yield` for the underlying.\n- You want either side: set `option_type` to \"call\" or \"put\".\n- The option is European-style, with a single payoff at maturity `tau`.\n\nIf you instead need a payoff tied to a barrier being hit, `barrier_option_pricer` is listed as a single-barrier option price using the Reiner-Rubinstein closed form.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

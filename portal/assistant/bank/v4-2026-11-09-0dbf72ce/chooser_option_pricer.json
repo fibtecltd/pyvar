@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d079da05c794f509a06c407cad9c08c663575297343e447cd674df30c1cdcc6c",
+      "source": "model",
+      "text": "`chooser_option_pricer` answers \"what is a contract worth if the holder can pick call or put at a future choice date?\", using a closed-form formula that combines a call and a put sharing the same strike and expiry. `asian_option_pricer` answers \"what is an option worth if its payoff depends on the average price of the underlying rather than the final price?\", and it estimates that by Monte Carlo simulation of price paths.\n\nThe inputs differ accordingly. The chooser takes `tau_choose` and `tau_expiry` (the choice date and the expiry), while the Asian takes a single `tau`, plus `n_steps` for the number of averaging observations and `n_simulations` for the number of paths. The Asian also has an `option_type` of call or put, whereas the chooser leaves that choice to the holder.\n\nAveraging reduces volatility, so an Asian option is worth less than the matching vanilla European option. A chooser is worth at least the more valuable of its embedded call and put.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ff394ba140e4928f8d2fc93dcdd347023c844c03a392f5fc5909db60a7183256",
+    "source": "model",
+    "text": "`chooser_option_pricer` (the Chooser Option Pricer) gives a closed-form price for a simple chooser option. At the choice date, `tau_choose`, the holder decides whether the option becomes a call or a put, both with the same strike and expiry (`tau_expiry`). By put-call parity, pyvar values it as a call plus a put with an adjusted strike and a shorter maturity. The result is worth at least as much as the more valuable of the embedded call and put. You provide `spot`, `strike`, `rate`, `sigma`, the two times, and optionally `div_yield`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1038be1aecf3f84121d4d69e309f7e8e9b0d9d84473b128b5699d921c60972d1",
+    "source": "model",
+    "text": "The Chooser Option Pricer (`chooser_option_pricer`) fits when you want a closed-form price for an option whose holder decides later whether it becomes a call or a put.\n\n- You are valuing a simple chooser: at `tau_choose` the holder picks call or put, and both share the same strike and expiry.\n- You want a quick closed-form answer rather than a simulation, using `spot`, `strike`, `rate`, `sigma`, `tau_choose` and `tau_expiry`.\n- The underlying pays a continuous dividend yield, which you can supply through `div_yield`. It defaults to zero if you leave it out.\n- You are checking that a chooser's value sits at or above the more valuable of the embedded call and put.\n- If you instead need an option on another option, `compound_option_pricer` is listed as pricing a compound (option-on-option) option via the Geske (1979) closed form.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

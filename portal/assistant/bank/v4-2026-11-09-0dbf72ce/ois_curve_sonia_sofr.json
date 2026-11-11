@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "swap_rate_curve": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4fed99852d37891f56d0dab0561d10ace415f81b0dca38115b16a67086db23c3",
+      "source": "model",
+      "text": "`ois_curve_sonia_sofr` and `swap_rate_curve` run in opposite directions. `ois_curve_sonia_sofr` starts from quoted OIS swap rates (`ois_rates`) at given `maturities` and bootstraps a discount curve from them, so it answers \"what discount factors and zero rates do these market quotes imply?\" `swap_rate_curve` starts from a set of discount factors (`discount_factors`) and returns the par swap rate for each tenor, so it answers \"what fixed rate makes a par swap worth zero on this curve?\" Both take `maturities` and a fixed-leg `frequency`, which defaults to 1 per year. In practice, you could use the first to build a curve from quotes and the second to check which par rates a given curve implies.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3fdb6b8ae91493a3e3788fdd47d411dcdfcd8bceca40cd069286b35ee21f45b7",
+    "source": "model",
+    "text": "`ois_curve_sonia_sofr` (OIS Curve SONIA SOFR) builds a discount curve from quoted OIS swap rates for SONIA or SOFR. You pass in `ois_rates` (decimal rate per maturity) and `maturities` (in years, ascending), plus an optional `frequency` for fixed-leg payments per year, which defaults to 1. It bootstraps the curve the same way as for par swaps, using single-curve OIS discounting: each discount factor comes from the quoted rate and the running sum of earlier discounted accruals. The discount factors are also expressed as zero rates, so you get a curve you can use to discount cash flows.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "015de57bb275a895599293fbbfcddc8c4b77bdd4ca491d4e98b2c1b20df15cbd",
+    "source": "model",
+    "text": "`ois_curve_sonia_sofr` (OIS Curve SONIA SOFR) fits when you need a discount curve built from quoted overnight-indexed swap rates.\n\n- You have OIS quotes (SONIA or SOFR) at a set of maturities and want discount factors and zero rates from them.\n- You want single-curve OIS discounting, where the curve is bootstrapped the same way as for par swaps.\n- Your fixed leg pays at a regular frequency. The default is annual, and you can change it with `frequency`.\n- Your quotes are decimals with maturities in years, ascending.\n\nIf your inputs are different, a related function may suit you better:\n- `bootstrap_yield_curve`: bootstraps zero (spot) rates from par-coupon bond rates.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

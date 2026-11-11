@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "41dd412d936d7dfe7c22ad7609b70f1a44c5d2d58167559b7fd7711ede6bf089",
+      "source": "model",
+      "text": "`volatility_surface_implied_vol` answers the question \"what level of volatility is the market pricing into these options?\" It takes observed option prices, strikes, expiries, `spot` and `rate`, then inverts Black-Scholes by bisection to recover an implied volatility for each option. `option_type` selects calls or puts.\n\n`correlation_matrix_historical` answers a different question: \"how have these assets moved together in the past?\" It takes a `returns_matrix` of observations on several assets and gives their Pearson correlations, from covariance scaled by each asset's volatility.\n\nSo the first looks forward through option prices and concerns one underlying's volatility. The second looks backward through return history and concerns relationships between assets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "21dfccd49cf3c7adbafc7cfacc163fb1d4446708736b73ccbe70766dd6ca941c",
+    "source": "model",
+    "text": "`volatility_surface_implied_vol` (Volatility Surface Implied Vol) backs out an implied-volatility surface from observed option prices. For each quoted option, it inverts the Black-Scholes equation by bisection to find the volatility that makes the model price match the market price. You supply `market_prices`, `strikes`, `expiries` (in years), `spot` and the continuously-compounded `rate`, and optionally set `option_type` to call or put (the default is call). Pricing an option at the recovered volatility should reproduce the input price, which gives you a handy round-trip check.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6615eb4ca4a22d133b18bbf452dd7e1d3860b492ace447b33b4e164de5bbfd9f",
+    "source": "model",
+    "text": "Use Volatility Surface Implied Vol (`volatility_surface_implied_vol`) when you have observed option prices and want the volatility the market is implying.\n\n- You hold market prices across several strikes and expiries (`market_prices`, `strikes`, `expiries`) and want an implied-volatility surface from them.\n- You need to invert Black-Scholes, with the `spot` and a continuously-compounded `rate` on hand, for calls or puts (`option_type`).\n- You want a consistency check: pricing at the recovered volatility should reproduce the input price.\n- You want a forward-looking, market-based volatility view rather than one drawn from past returns.\n\nIf you instead want volatility estimated from historical returns, `realised_volatility` is listed as realised volatility from a block of (typically high-frequency) returns.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

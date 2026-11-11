@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": true,
+      "gate": {
+        "faithful": null,
+        "issues": []
+      },
+      "record_sha256": "c44213538a7925b0220ed22e00323624113ab81bc1b6d8a543dcea9db70b38c3",
+      "source": "static",
+      "text": "Compute Breaches (compute_breaches) is a pyvar function in Market Risk. Backtesting: count days where actual loss exceeded VaR estimate. Traffic Light Backtesting (traffic_light_backtesting) is different: Basel traffic-light backtest over the 250-day window. It is one of the functions listed on its domain page of the pyvar portal, with a Try it panel.",
+      "tries": 1,
+      "writer": "static"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "81cf08fdc4afbc08a4a06ed03a859b2d9820a1fb99771c637522a87ed171dac5",
+    "source": "model",
+    "text": "`compute_breaches` (Compute Breaches) is pyvar's backtesting function: it counts the days on which the actual loss exceeded that day's VaR estimate. You give it `actual_returns` as decimals, where a loss is the negative of a return, and `var_estimates` as positive loss fractions, aligned one to one. Days where the VaR estimate is NaN are ignored, as the early days of a rolling VaR are. The breach count is then mapped to Basel traffic-light zones: green below 5 breaches per 250 days, yellow for 5 to 9, and red for 10 or more.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c4dc8e2d26ec38ec380bb108db017588897b520b81c8e6b1741eca2cb24b34a1",
+    "source": "model",
+    "text": "`compute_breaches` (Compute Breaches) fits when you want to backtest a VaR model by counting how often actual losses beat the estimate.\n\n- You have realised returns and a VaR estimate for each day, and want a simple count of days where the loss (the negative of the return) exceeded `var_estimates`.\n- You want to place that count in the Basel traffic-light zones: green below 5 breaches per 250 days, yellow for 5 to 9, red for 10 or more.\n- Your VaR comes from a rolling window, so the first days have NaN estimates. Those days are ignored, so you can pass the series as is.\n- Both inputs must be aligned one to one, with VaR given as a positive loss fraction and returns as decimals.\n- If you want formal statistical tests of the breaches, `kupiec_pof_test` is listed as the Kupiec Proportion-of-Failures (POF) unconditional coverage test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

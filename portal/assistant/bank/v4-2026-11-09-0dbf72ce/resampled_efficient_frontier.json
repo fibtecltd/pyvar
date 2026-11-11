@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2ee53becf4a41ac83a7c219604d72564591b6eed8f3154cfa0884d160e9d2a64",
+      "source": "model",
+      "text": "`resampled_efficient_frontier` asks \"what low-risk, long-only mix holds up when my estimates are uncertain?\", while `maximum_sharpe_ratio_portfolio` asks \"which mix gives the best risk-adjusted return for my estimates?\". The resampled function draws many synthetic return samples from the estimated multivariate normal, finds the minimum-variance long-only portfolio on each, and averages the weights. That averaging is meant to reduce sensitivity to estimation error. The maximum Sharpe function instead optimises once on your inputs, maximising the annualised Sharpe ratio with weights summing to 1.\n\nThe inputs differ too. `maximum_sharpe_ratio_portfolio` takes `risk_free`, `allow_short` and `periods_per_year`, so it can permit short positions. The resampled function takes `n_resamples`, `n_obs` and `seed`, and it keeps weights between 0 and 1. Pick by whether you want a single return-focused optimum or a smoothed, variance-focused average.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "431035a537db3baa9058e3f25e5fac4d0ef74c614e9180f7f3241f5514a41a6d",
+    "source": "model",
+    "text": "`resampled_efficient_frontier` (Resampled Efficient Frontier, after Michaud) finds a long-only minimum-variance portfolio that is less sensitive to estimation error in your inputs. It takes per-period expected returns (`mean_returns`) and a covariance matrix (`cov_matrix`), then draws many synthetic return samples from a multivariate normal built on them. On each sample it solves for the minimum-variance portfolio with weights between 0 and 1 that sum to 1, then averages those weights. You can set the number of resamples (`n_resamples`), the sample size per resample (`n_obs`), and a `seed` so runs are repeatable.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f61142b8b02ef765f69ee8e420db724b178ecf8b0909384ca9af0a7a58d9caea",
+    "source": "model",
+    "text": "The Resampled Efficient Frontier (`resampled_efficient_frontier`) fits when you want a long-only minimum-variance portfolio that is less sensitive to estimation error:\n\n- You distrust your point estimates of `mean_returns` and `cov_matrix` and want weights averaged over many bootstrap resamples rather than from one optimisation.\n- You need long-only weights that sum to one, with each weight between zero and one.\n- You want reproducible results: the `seed` parameter fixes the random draws, and `n_resamples` and `n_obs` let you set how many resamples and how large each synthetic sample is.\n- You are comparing a single-run minimum-variance solution against a smoother, averaged one.\n\nIf you just want the global minimum-variance portfolio without resampling, `minimum_variance_portfolio` is listed as the global minimum-variance portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

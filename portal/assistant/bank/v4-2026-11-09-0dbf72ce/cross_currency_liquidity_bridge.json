@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "funding_tenor_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "628188286e20eac2cc2d399b745b0ce7115872fc999d633cb927ac616b0b548f",
+      "source": "model",
+      "text": "`cross_currency_liquidity_bridge` answers the question \"if I'm short in one currency and long in another, how much of the shortfall can an FX swap cover?\" You give it the deficit, the surplus, the `fx_rate` and an optional `swap_haircut`, and it works out the usable surplus, the amount coverable and the residual gap. `funding_tenor_analysis` answers a different question: \"how long-dated and stable is my funding base?\" It takes the outstanding amount and residual tenor in days for each funding tranche (`funding_amounts` and `tenors_days`) and returns the amount-weighted average tenor plus the share of funding maturing within 90 days. In short, the first is a currency-mismatch sizing tool for a specific shortfall, while the second is a structural profile of funding maturity and reliance on short-term money.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1dabda34781a5f33c0aa7a72e01ac9d53e446c9bb96f469cf825a7c69e55eaa9",
+    "source": "model",
+    "text": "`cross_currency_liquidity_bridge` (Cross Currency Liquidity Bridge) sizes the FX swap needed to cover a shortfall in one currency using surplus held in another. You give it the deficit currency and amount, the surplus currency and amount, and an `fx_rate` expressed as units of shortfall currency per unit of surplus currency. An optional `swap_haircut`, between 0 and 1, trims the usable surplus to reflect swap-market stress. pyvar then works out how much of the shortfall the swapped surplus can cover, capped at the deficit, and what residual remains uncovered.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d7abcc0e7fd66a55ae4ae6226f4e129574240209ba9eda5e558292258e12ec42",
+    "source": "model",
+    "text": "Use Cross Currency Liquidity Bridge (`cross_currency_liquidity_bridge`) when you need to see how far a surplus in one currency can cover a deficit in another through an FX swap:\n\n- You have a shortfall in one currency and spare cash in another, and want to size the swap that could bridge the gap.\n- You want to see how much of the deficit the surplus could cover and what would be left over, using `fx_rate` to convert between the currencies.\n- You want to allow for swap-market stress by applying a `swap_haircut` that reduces the usable surplus.\n- You are comparing scenarios, such as a different `fx_rate` or a larger haircut, to see how sensitive the bridge is.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}
