@@ -253,14 +253,11 @@ def test_the_guides_own_words_are_caught_and_ordinary_finance_is_not() -> None:
         assert graders.grade(explain, GOOD_EXPLAIN + " " + phrase).checks["visitor_wording"], phrase
 
 
-def test_the_prompt_keeps_the_guides_own_words_out_and_credits_no_source() -> None:
+def test_the_prompt_tells_the_guide_to_say_pyvars_documentation() -> None:
+    """v4 (the candidate, 2026-11-11) still asks for this wording; v5 dropped it and was not adopted."""
     system = prompts.SYSTEM_PROMPT
+    assert 'say "pyvar\'s documentation"' in system
     assert 'never write "the record" or "sibling" (say "related function")' in system
-    assert (
-        "Never attribute a statement to pyvar's documentation, the catalogue or any other source"
-        in system
-    )
-    assert 'say "pyvar\'s documentation"' not in system, "v3 asked for this, and it caused errors"
 
 
 def test_the_prompt_forbids_claims_about_what_the_documentation_lacks() -> None:
@@ -758,7 +755,9 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
-    assert prompts.PROMPT_VERSION.startswith("v5")
+    assert (
+        prompts.PROMPT_VERSION == "v4-2026-11-09"
+    ), "the candidate prompt (plan 1, decisions taken)"
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:
