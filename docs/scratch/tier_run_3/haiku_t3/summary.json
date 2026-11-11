@@ -1,0 +1,127 @@
+{
+  "model": "claude-haiku-5-5",
+  "writer_model": "claude-haiku-5-5",
+  "served_models": [
+    "claude-haiku-5-5"
+  ],
+  "effort": "low",
+  "tries": 3,
+  "overall": {
+    "first_try_pass": {
+      "n": 120,
+      "N": 307
+    },
+    "final_pass": {
+      "n": 306,
+      "N": 307
+    },
+    "model_tries": {
+      "1": 120,
+      "2": 183,
+      "3": 4
+    },
+    "static_fallback": 1
+  },
+  "prompt_version": "v4-2026-11-09",
+  "code": {
+    "commit": "e1caaef111e9828d56fd1f93c2b8d581a74148a6",
+    "dirty": false,
+    "sha256": {
+      "prompts.py": "c21757c1702d67f577375b31f50c8bfbe9f9ee02455533593e9ee41d6f0f332c",
+      "graders.py": "666e4cd12a9838b07db36f95e4f14412e6a43bbd8d08af743ee8d61721d80c63"
+    }
+  },
+  "cases_run": 308,
+  "scored": 307,
+  "truncated": 1,
+  "refusals": 0,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_intent": {
+    "compare": {
+      "n": 40,
+      "pass_rate": 1.0,
+      "ci95": [
+        0.912,
+        1.0
+      ],
+      "failed_checks": {},
+      "first_try_pass": {
+        "n": 23,
+        "N": 40
+      },
+      "final_pass": {
+        "n": 40,
+        "N": 40
+      },
+      "model_tries": {
+        "1": 23,
+        "2": 16,
+        "3": 1
+      },
+      "static_fallback": 0
+    },
+    "explain": {
+      "n": 134,
+      "pass_rate": 1.0,
+      "ci95": [
+        0.972,
+        1.0
+      ],
+      "failed_checks": {},
+      "first_try_pass": {
+        "n": 41,
+        "N": 134
+      },
+      "final_pass": {
+        "n": 134,
+        "N": 134
+      },
+      "model_tries": {
+        "1": 41,
+        "2": 92,
+        "3": 1
+      },
+      "static_fallback": 0
+    },
+    "when": {
+      "n": 133,
+      "pass_rate": 0.9924812030075187,
+      "ci95": [
+        0.959,
+        0.999
+      ],
+      "failed_checks": {
+        "length_ok": 1
+      },
+      "first_try_pass": {
+        "n": 56,
+        "N": 133
+      },
+      "final_pass": {
+        "n": 132,
+        "N": 133
+      },
+      "model_tries": {
+        "1": 56,
+        "2": 75,
+        "3": 2
+      },
+      "static_fallback": 1
+    }
+  },
+  "tokens": {
+    "input_tokens": 730557,
+    "output_tokens": 151731,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "cost_usd": 0.1489,
+  "cost_per_case_usd": 0.000484,
+  "latency_s": {
+    "p50": 2.22,
+    "p95": 4.52
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "model": "claude-opus-5-5",
+  "writer_model": "claude-opus-5-5",
+  "served_models": [
+    "claude-opus-5-5"
+  ],
+  "effort": "low",
+  "tries": null,
+  "overall": {
+    "first_try_pass": {
+      "n": 38,
+      "N": 64
+    },
+    "final_pass": {
+      "n": 38,
+      "N": 64
+    },
+    "model_tries": {
+      "1": 64
+    },
+    "static_fallback": 26
+  },
+  "prompt_version": "v4-2026-11-09",
+  "code": {
+    "commit": "e1caaef111e9828d56fd1f93c2b8d581a74148a6",
+    "dirty": false,
+    "sha256": {
+      "prompts.py": "c21757c1702d67f577375b31f50c8bfbe9f9ee02455533593e9ee41d6f0f332c",
+      "graders.py": "666e4cd12a9838b07db36f95e4f14412e6a43bbd8d08af743ee8d61721d80c63"
+    }
+  },
+  "cases_run": 64,
+  "scored": 64,
+  "truncated": 0,
+  "refusals": 0,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_intent": {
+    "compare": {
+      "n": 8,
+      "pass_rate": 1.0,
+      "ci95": [
+        0.676,
+        1.0
+      ],
+      "failed_checks": {},
+      "first_try_pass": {
+        "n": 8,
+        "N": 8
+      },
+      "final_pass": {
+        "n": 8,
+        "N": 8
+      },
+      "model_tries": {
+        "1": 8
+      },
+      "static_fallback": 0
+    },
+    "explain": {
+      "n": 8,
+      "pass_rate": 0.0,
+      "ci95": [
+        0.0,
+        0.324
+      ],
+      "failed_checks": {
+        "numbers_supported": 8,
+        "no_source_claims": 1
+      },
+      "first_try_pass": {
+        "n": 0,
+        "N": 8
+      },
+      "final_pass": {
+        "n": 0,
+        "N": 8
+      },
+      "model_tries": {
+        "1": 8
+      },
+      "static_fallback": 8
+    },
+    "when": {
+      "n": 48,
+      "pass_rate": 0.625,
+      "ci95": [
+        0.484,
+        0.748
+      ],
+      "failed_checks": {
+        "no_source_claims": 18
+      },
+      "first_try_pass": {
+        "n": 30,
+        "N": 48
+      },
+      "final_pass": {
+        "n": 30,
+        "N": 48
+      },
+      "model_tries": {
+        "1": 48
+      },
+      "static_fallback": 18
+    }
+  },
+  "tokens": {
+    "input_tokens": 85936,
+    "output_tokens": 23899,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "cost_usd": 0.8217,
+  "cost_per_case_usd": 0.012839,
+  "latency_s": {
+    "p50": 4.24,
+    "p95": 6.94
+  }
+}

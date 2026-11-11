@@ -1,0 +1,54 @@
+{
+  "judged": 308,
+  "unparsed": 0,
+  "faithful": {
+    "n": 308,
+    "rate": 0.9902597402597403,
+    "ci95": [
+      0.972,
+      0.997
+    ]
+  },
+  "useful": {
+    "n": 308,
+    "rate": 1.0,
+    "ci95": [
+      0.988,
+      1.0
+    ]
+  },
+  "plausible_values": {
+    "n": 0,
+    "rate": null,
+    "ci95": [
+      0.0,
+      0.0
+    ]
+  },
+  "judge_cost_usd": 2.044,
+  "flagged": [
+    {
+      "case_id": "garch_11_volatility_forecast:explain",
+      "issues": [
+        "Says the function 'fits' a GARCH(1,1) model, but the record only filters with user-supplied or default alpha/beta and does not estimate parameters."
+      ]
+    },
+    {
+      "case_id": "irrbb_six_standard_rate_shocks:explain",
+      "issues": [
+        "The record flags the default magnitudes as a limitation because BCBS d578 recalibrated them in 2024 (effective 2026). The answer reads as if the defaults already reflect d578, which inverts that caveat.",
+        "It promises six shock curves but describes only four (parallel up/down, steepener, flattener); the short-rate up/down shocks are not mentioned.",
+        "It says the short/long weights vary by tenor but omits the e^{-t/4} decay that defines how."
+      ]
+    },
+    {
+      "case_id": "expected_loss_el_computation:when",
+      "issues": [
+        "The last bullet sits under 'use this function when' but describes a need that the sibling unexpected_loss_ul_computation meets, not this function.",
+        "That framing implies EL gives the loss spread around the average, which the record does not support."
+      ]
+    }
+  ],
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
