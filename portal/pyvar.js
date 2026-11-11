@@ -845,6 +845,7 @@ function openTryItPanel(fn, triggerEl) {
       </div>
       <div class="tryit-desc">${fn.summary}${fn.description ? ' — ' + fn.description.replace(/\n/g, ' ') : ''}</div>
       ${_formulaBlockHtml(fn)}
+      <div id="assistantSlot" class="assistant-slot" data-fn="${fn.name}"></div>
       <div class="tryit-jwt-row">
         <input type="text" id="tryitJwt" class="tryit-jwt-input" placeholder="Paste your API key (JWT)…" value="${storedToken}"/>
         <a href="/#get-api-key" class="tryit-jwt-link">Get a free key →</a>
@@ -857,6 +858,8 @@ function openTryItPanel(fn, triggerEl) {
     </div>
   `;
   panel.classList.add('open');
+  // portal/assistant.js (loaded only when the assistant is enabled) fills #assistantSlot on this event.
+  document.dispatchEvent(new CustomEvent('pyvar:tryit-open', { detail: { name: fn.name } }));
   document.getElementById('tryitClose').addEventListener('click', closeTryItPanel);
   document.getElementById('tryitForm').addEventListener('submit', e => _submitTryIt(e, fn));
   document.getElementById('tryitJwt').focus();
@@ -925,6 +928,28 @@ function initNav() {
   }, { passive: true });
 }
 
+// ── Portal assistant (portal/assistant.js, assistant/bank.py) ───────────────────────────────────────────
+// GET /public/config says whether the assistant is on and which answer-bank version to read
+// (api/routes/public_data.py). Only then is assistant.js added; otherwise nothing loads and the Try-it
+// panel is unchanged. Any failure here is silent, like the Google button above.
+async function initAssistant() {
+  try {
+    const res = await fetch(`${API_BASE}/public/config`);
+    if (!res.ok) return;
+    const publicConfig = await res.json();
+    const version = publicConfig.assistant_bank_version;
+    if (!publicConfig.assistant_enabled || typeof version !== 'string' || !/^[A-Za-z0-9._-]+$/.test(version)) return;
+    const script = document.createElement('script');
+    script.src = `${API_BASE}/assistant.js`;
+    script.async = true;
+    script.dataset.bankVersion = version;
+    document.head.appendChild(script);
+  } catch (e) {
+    // Offline / pre-deploy: the page works without the assistant.
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initReveal(); initNav(); initStatusIndicator(); initTerminalDemo(); initSearch(); initVersion();
+  initAssistant();
 });

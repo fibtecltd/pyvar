@@ -279,6 +279,52 @@ a { color: inherit; text-decoration: none; }
   overflow-x: auto; max-height: 320px;
 }
 
+/* ── Assistant buttons in the Try-it panel (portal/assistant.js) ──
+   Colours come from the portal's own variables, so the block follows the page in whatever theme the page has
+   (the portal has one palette today; there is no separate dark set to keep in step). The slot is empty, and
+   takes no space, unless the assistant is on and the function has a bank file. */
+.assistant-slot:empty { display: none; }
+.assistant {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 18px;
+}
+.assistant-title {
+  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text2); margin-bottom: 10px;
+}
+.assistant-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.assistant-btn, .assistant-select {
+  font-family: var(--mono); font-size: 12px; line-height: 1.2; color: var(--text);
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 8px 12px; min-height: 36px; cursor: pointer; max-width: 100%;
+}
+.assistant-btn:hover, .assistant-select:hover { border-color: var(--border3); }
+.assistant-btn[aria-pressed="true"] { color: var(--green); border-color: var(--green); background: var(--green3); }
+.assistant-btn:focus-visible, .assistant-select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.assistant-compare { display: inline-flex; max-width: 100%; }
+.assistant-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.assistant-answer { margin-top: 12px; font-size: 13px; line-height: 1.6; color: var(--text); overflow-wrap: anywhere; }
+.assistant-answer:empty { margin-top: 0; } /* stays in the tree: a live region must exist before its text changes */
+.assistant-answer:focus { outline: none; }
+.assistant-q { font-family: var(--mono); font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+.assistant-text + .assistant-text, .assistant-list { margin-top: 8px; }
+.assistant-list { padding-left: 20px; }
+.assistant-list li + li { margin-top: 4px; }
+.assistant-code { font-family: var(--mono); font-size: 12px; background: var(--bg2); border-radius: 2px; padding: 0 4px; }
+.assistant-source { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 10px; }
+@media (prefers-reduced-motion: no-preference) {
+  .assistant-btn, .assistant-select { transition: border-color .15s, background-color .15s, color .15s; }
+  .assistant-answer > * { animation: assistant-in .18s ease-out; }
+  @keyframes assistant-in { from { opacity: 0; } to { opacity: 1; } }
+}
+@media (max-width: 600px) {
+  .assistant { padding: 12px; }
+  .assistant-btn, .assistant-compare, .assistant-select { flex: 1 1 100%; }
+}
+
 /* ── Typography ── */
 .label {
   font-family: var(--mono); font-size: 10px; font-weight: 500;

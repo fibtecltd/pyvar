@@ -15,6 +15,7 @@ Reasoning:
   hides the Google button. /public/config therefore must not draw on the
   per-IP bucket the S3-backed files use; the last two tests pin that, and that
   the files are still limited.
+- The assistant fields (assistant_enabled, assistant_bank_version) are tested in tests/test_assistant_api.py.
 """
 
 from __future__ import annotations
@@ -43,7 +44,12 @@ async def test_public_config_google_disabled_by_default(app, monkeypatch):
 
     assert resp.status_code == 200
     body = resp.json()
-    assert body == {"google_sign_in_enabled": False, "google_client_id": None}
+    assert body == {
+        "google_sign_in_enabled": False,
+        "google_client_id": None,
+        "assistant_enabled": False,
+        "assistant_bank_version": "",
+    }
 
 
 @pytest.mark.asyncio
