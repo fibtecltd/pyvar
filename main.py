@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.routing import Match, Mount
 from starlette.types import Scope
 
+from api.assistant_bank import BANK_DIR, BankStaticFiles
 from api.errors import request_validation_error_handler
 from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.middleware.usage import usage_tracking_middleware
@@ -205,6 +206,17 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["system"], include_in_schema=False)
     async def health() -> dict:
         return {"status": "ok", "app": cfg.app_name, "env": cfg.app_env}
+
+    # ── Portal assistant answer bank ─────────────────────────────────────────
+    # Static files built by `python -m assistant.bank`, read by portal/assistant.js. Registered BEFORE the
+    # portal catch-all below so that this prefix gets its Cache-Control header, and deliberately not in
+    # _RESERVED_PATH_PREFIXES (it is a static path, not an API route). The directory may not exist yet:
+    # check_dir=False, a request then gets the usual 404 and the widget hides itself.
+    app.mount(
+        "/assistant/bank",
+        BankStaticFiles(directory=BANK_DIR, check_dir=False),
+        name="assistant-bank",
+    )
 
     # ── Portal (static site) ─────────────────────────────────────────────────
     # Mounted last and at "/". html=True serves portal/index.html at "/" and

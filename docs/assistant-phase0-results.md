@@ -1005,3 +1005,51 @@ better fix.
 **What it does not show.** One fresh draw per writer; Haiku's final answers and Opus's answers beyond 8 cases were not
 judged by anyone other than Opus; regeneration was tested for grader failures only, not for gate flags; nobody has read
 the answers Opus flagged or the ones it passed with issue notes.
+
+### 9.20 PR 2 (the answer bank): the line-start grader fix, and the layout at full size (2026-11-11)
+
+Code: branch `feat/assistant-bank`. No paid API call was made for this section; the scratch-branch answers are re-graded
+offline and the full-size bank is built with a fake client that answers from `graders.oracle_text`.
+
+**The grader fix.** `graders.check_numbers` dumped the record as JSON, where a newline is the two characters backslash and
+`n`, so a number that starts a line of a description (`...\n30-day run-off`) followed a word character and was not read as a
+number of the record. 12 of the 385 records have one (`ifrs_9_staging_criteria_assessment`, `rough_volatility_rbergomi_model`,
+`combined_stress_scenario`, `liquidity_coverage_ratio_lcr`, `required_stable_funding_rsf_calc`, `retail_deposit_runoff_rate`,
+`christoffersen_independence_test`, `frtb_ima_expected_shortfall`, `insurance_offset_calculation`,
+`carbon_footprint_attribution`, `rebalancing_optimiser`, `emir_clearing_obligation_check`). The menu number check now flattens
+newlines first, exactly as `grade_typed` already did through `_flat`. Only `check_numbers` changed: the identifier check reads
+the text as before, and `no_source_claims` is untouched. The pinned oracle hash in `tests/test_assistant_core.py` is unchanged:
+the 576 oracle answers contain no such number, so their grades are identical (576 of 576 pass, null 0 of 576; typed oracle 260
+of 260, null 0 of 260).
+
+**Re-grade of the scratch branches** (`origin/data/assistant-tier-run-1`, `-2`, `-3`; every `results.jsonl`; cases from
+`cases.py --all`). First, with the unchanged graders, all 1,667 prose answers reproduce their stored grade exactly. Then with
+the fix, 25 grades change, all of them `numbers_supported` fail to pass and nothing else (no check flips the other way, no pass
+becomes a fail); 19 of those answers now pass overall and 6 still fail on `no_source_claims`:
+
+| run | prose answers | grades changed | now pass overall | still fail (no_source_claims) |
+|---|---|---|---|---|
+| tier_run_1/opus_d1 | 305 | 5 | 2 | 3 |
+| tier_run_1/sonnet_d1 | 308 | 2 | 2 | 0 |
+| tier_run_2/haiku_d1 | 308 | 2 | 0 | 2 |
+| tier_run_2/sonnet_r3 (8 draws of 8 cases) | 64 | 8 | 8 | 0 |
+| tier_run_3/opus_r3 (8 draws of 8 cases) | 64 | 8 | 7 | 1 |
+| tier_run_3/sonnet_t3, haiku_t3, tier_run_1 smoke runs | 618 | 0 | 0 | 0 |
+
+The three functions involved are `retail_deposit_runoff_rate` (`30`), `liquidity_coverage_ratio_lcr` (`25`) and
+`required_stable_funding_rsf_calc` (`85`). This is the defect behind "8 `retail_deposit_runoff_rate:explain` (the line-start
+defect)" in 9.19: the 8 Opus draws that the graders failed there were 7 passes and 1 `no_source_claims` failure.
+
+**Layout at full size** (fake client, all 385 functions, 1,154 answers, `workers=4`, 1.2 s): 385 files, 754,393 bytes of function
+files (largest `advanced_measurement_approach_ama.json`, 2,189 bytes) plus a 720-byte manifest; `check` passes with no problem.
+Oracle texts are shorter than model answers, so the real bank will be larger: three answers of up to 900, 1,100 and 1,200
+characters plus the metadata come to about 4 to 5 KB per file, against a bound of 16 KB per file and 4 MB in all.
+
+**The widget in Chromium** (Playwright, the app served against that bank; viewports 390 and 1280 wide, light and dark colour
+scheme, scale factor 1): the Try-it panel shows "About this function" with the buttons "What it does", "When to use it" and a
+"Compare with..." select; each shows its answer with the label "From the pyvar catalogue"; keyboard (Tab, Space, Enter, arrow
+keys) works; no page error. The portal has a single light palette and no dark one, so the widget uses the portal's variables
+and looks the same in both schemes. The page itself is 459 px wide at 390 px (the nav and the hero metrics overflow, with or
+without the assistant: not caused by this change); nothing inside the Try-it card overflows. When the bank file is a 404, bad
+JSON, the wrong shape, or the config names a version that is not there, or `assistant_enabled` is false or the config call
+fails, the slot stays empty (height 0) and no error is raised.

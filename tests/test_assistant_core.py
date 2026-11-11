@@ -5,8 +5,12 @@ Reasoning:
   the shims at the old paths are the same module objects (a monkeypatch through either name is seen by both),
   the system prompt is byte-identical, and the graders give identical results on the 576 Phase 0 cases. The
   three hashes below were computed on origin/feat/assistant-eval-typed BEFORE the move.
-- The kernel must not reach the network. PR 2 adds the one module allowed to import `anthropic`; until then no
-  module under assistant/ may import any network or HTTP library.
+- The kernel must not reach the network. Since PR 2 exactly one module, assistant/client.py, may import
+  `anthropic` (inside a constructor); no other module under assistant/ may import any network or HTTP library,
+  and client.py may import nothing else from that list.
+- PR 2 changed the menu number check on purpose (a number that starts a line of a record's description is now
+  read as a number of the record; see tests/test_assistant_graders_line_start.py). The pinned hash below is of
+  the grades of the 576 oracle answers, which contain no such number, so it is unchanged by that fix.
 """
 
 from __future__ import annotations
@@ -97,8 +101,11 @@ def test_trim_record_is_the_one_in_assistant_records_and_stays_importable_from_c
     assert record["formula_latex"] is None and record["domain"] == "D"
 
 
+SDK_MODULE = "client.py"  # the one module under assistant/ that may import `anthropic`
+
+
 def test_the_package_has_a_docstring_and_no_module_imports_a_network_library() -> None:
-    """PR 2 adds the one module allowed to import `anthropic`; until then none may."""
+    """Only assistant/client.py may import `anthropic`; nothing under assistant/ imports any other of these."""
     assert assistant.__doc__ and "kernel" in assistant.__doc__
     offenders = []
     for path in sorted((REPO / "assistant").rglob("*.py")):
@@ -109,6 +116,8 @@ def test_the_package_has_a_docstring_and_no_module_imports_a_network_library() -
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
             for name in names:
+                if path.name == SDK_MODULE and name.split(".")[0] == "anthropic":
+                    continue
                 if any(name == f or name.startswith(f + ".") for f in FORBIDDEN):
                     offenders.append(f"{path.relative_to(REPO)}: {name}")
     assert not offenders, offenders

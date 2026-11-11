@@ -7,7 +7,7 @@ Rationale: single source of truth; pydantic-settings validates types at startup.
 from functools import lru_cache
 from urllib.parse import quote
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -202,6 +202,18 @@ class Settings(BaseSettings):
     # audience to check them against, same "don't hard-fail on a missing
     # optional integration" posture as stripe_secret_key/sentry_dsn above.
     google_oauth_client_id: str | None = None
+
+    # ── Portal assistant (assistant/, docs/assistant-plan-implementation.md) ────
+    # assistant_enabled turns the menu widget on, and only together with a complete answer bank:
+    # /public/config reports it true only when portal/assistant/bank/manifest.json exists and says
+    # complete (api/routes/public_data.py). The API never calls a model in this release; the key and
+    # the three model ids below are read by `python -m assistant.bank build` only. The key is a
+    # SecretStr so that it never shows in a repr or a log line.
+    assistant_enabled: bool = False
+    assistant_writer_model: str = "claude-sonnet-5-5"
+    assistant_gate_model: str = "claude-opus-5-5"
+    assistant_escalation_model: str = "claude-opus-5-5"
+    anthropic_api_key: SecretStr | None = None
 
     # ── Billing (Phase A, item 5) ────────────────────────────────────────────
     # Stripe Checkout + webhook flow (api/routes/billing.py) that flips

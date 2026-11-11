@@ -79,12 +79,19 @@ class Grade:
         return {"passed": self.passed, "checks": self.checks, "flags": self.flags}
 
 
-def source_text(case: dict[str, Any]) -> str:
-    """Everything the model was shown, as one string (what an answer may be grounded in)."""
-    parts: list[str] = [json.dumps(case["record"], ensure_ascii=False)]
+def source_text(case: dict[str, Any], *, flat: bool = False) -> str:
+    """Everything the model was shown, as one string (what an answer may be grounded in).
+
+    Args:
+        case: one menu selection.
+        flat: turn every newline inside a string of the record into a space before dumping (see `_flat`).
+            Only the number check asks for it; the identifier check reads the text as it always did.
+    """
+    shape = _flat if flat else (lambda value: value)
+    parts: list[str] = [json.dumps(shape(case["record"]), ensure_ascii=False)]
     parts += [f"{s['name']} {s['summary']}" for s in case.get("siblings") or []]
     if case.get("other"):
-        parts.append(json.dumps(case["other"], ensure_ascii=False))
+        parts.append(json.dumps(shape(case["other"]), ensure_ascii=False))
     return "\n".join(parts)
 
 
@@ -131,7 +138,10 @@ def check_identifiers(case: dict[str, Any], text: str) -> list[str]:
 
 
 def check_numbers(case: dict[str, Any], text: str) -> list[str]:
-    known = {round(v, 6) for v, _ in _numbers(source_text(case))}
+    # flat=True: the record is JSON-dumped, so a newline is the characters backslash and n, and a number that
+    # starts a line of a description ("...\\n30-day") would follow a word character and not be read as a number
+    # (12 of 385 records; `retail_deposit_runoff_rate:explain` failed on "30-day" in every draw).
+    known = {round(v, 6) for v, _ in _numbers(source_text(case, flat=True))}
     unsupported = []
     for value, percent in _numbers(text):
         if value.is_integer() and value <= 10 and not percent:
@@ -353,7 +363,7 @@ def _flat(value: Any) -> Any:
     a number that starts a line of a description ("...expected\\n30-day run-off") follows a word character
     and `check_numbers` does not see it as a number of the record. That wrongly fails the menu answer for
     `retail_deposit_runoff_rate:explain` ("30-day") in every draw (12 catalogue descriptions have a number at
-    the start of a line). The menu graders are left as they were measured; typed grading flattens first.
+    the start of a line). Typed grading flattens first, and since PR 2 the menu number check does too.
     """
     if isinstance(value, str):
         return value.replace("\n", " ")
