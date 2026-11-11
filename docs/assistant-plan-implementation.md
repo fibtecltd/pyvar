@@ -14,6 +14,7 @@ Filippo accepted the review's recommendations "for now". They replace the "decis
 - **Pins use CUSUM** (section 8), **confirmed by Filippo on 2026-11-11**. Revisit with real traffic.
 - **JSON reply, no token streaming** (section 4).
 - **A person still reads a random sample of at least 40 bank answers per release**, outside the request path. The recall-check rule that makes Opus usable as the gate assumed it, and nothing automatic replaces it (the watchdog sees live typed answers only). Section 12 is written to match.
+- **Release 1 status (2026-11-11):** the bank is built, read and merged (#422; results 9.21 and 9.22). The menus are switched on in **dev only**, by `assistant_enabled` in `pyvar-cdk/config.py` (true in the "dev" override, false by default) becoming the container variable `ASSISTANT_ENABLED=true` in `api_stack.py` only where it is true, so staging's and prod's templates are byte-identical. Prod stays off until it is decided; the 4% tolerance has not been shown for exactly this bank (results 9.22). No edge change is needed: the default CloudFront behaviour already forwards `/public/config` (no Cache-Control, so not cached) and `/assistant/bank/` (`max-age=3600`, versioned path) to the API.
 - **Open:** the key for the bank build; the pro tier's pricing (not defined yet, 2026-11-11); Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.
 
 ## Summary (10 lines)

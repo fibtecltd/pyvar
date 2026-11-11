@@ -38,6 +38,15 @@ class PyvarConfig:
         "239817412150-4vv9u7jds7vl2mb5iefqgro0jund6oij.apps.googleusercontent.com"
     )
 
+    # Portal assistant menus (docs/assistant-plan-implementation.md, section 9): the
+    # "What it does / When to use it / Compare with" buttons that serve answers from the
+    # committed bank (portal/assistant/bank/). False everywhere except the "dev" override
+    # below. The app reads it as ASSISTANT_ENABLED (config.py assistant_enabled) and shows
+    # the widget only when it is true AND the bank's manifest is complete; no model is
+    # called when a visitor clicks. api_stack.py sets the environment variable only when
+    # this is True, so staging's and prod's task definitions are unchanged.
+    assistant_enabled: bool = False
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that
@@ -206,6 +215,9 @@ class PyvarConfig:
                 aurora_max_acu=2.0,
                 result_retention_days=14,
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
+                # Portal assistant menus on in dev only (see assistant_enabled above); prod
+                # stays off until the plan's release criteria are met and it is decided.
+                assistant_enabled=True,
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
                 # Domain cutover Stage C: pyvar.com/www.pyvar.com move to prod
