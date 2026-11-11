@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "portfolio_turnover": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e8ace3415f1dc88bd55114f32ea34849ccf6cc74b47b1312e4d378ab9d51d5e0",
+      "source": "model",
+      "text": "`tracking_error` and `portfolio_turnover` answer different questions. `tracking_error` asks how much a portfolio's returns wander from its benchmark's: it takes the volatility of the portfolio-minus-benchmark return and annualises it using `periods_per_year`. Its inputs are two return series, `returns` and `benchmark_returns`.\n\n`portfolio_turnover` asks how much trading a rebalance involved. It takes `weights_before` and `weights_after` and gives the one-way traded fraction, which is half the sum of the absolute weight changes.\n\nIn short, `tracking_error` measures risk relative to a benchmark from return history, while `portfolio_turnover` measures how much the holdings changed between two weight vectors.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d131c0d16231333338dd3488965f759dc569476612436b4d763c00f59208627e",
+    "source": "model",
+    "text": "`tracking_error` (Tracking Error) measures how volatile a portfolio's active return is, meaning its per-period return minus the benchmark's return. You pass in `returns` for the portfolio and `benchmark_returns` for the benchmark, both as 1-D arrays of per-period returns. It takes the standard deviation of the differences between them and scales it by the square root of `periods_per_year`, the annualisation factor, which defaults to 252. A higher figure means the portfolio's returns deviate more from the benchmark's.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "21d47b1438f30b026aa497050de1f53ef883cae7c392310e3d64d5bf32da4c36",
+    "source": "model",
+    "text": "`tracking_error` (Tracking Error) fits when you want to know how closely a portfolio follows a benchmark.\n\n- You want the volatility of active return, meaning the portfolio's return minus the benchmark's, over a series of periods.\n- You're judging how tightly a benchmark-aware portfolio sticks to its reference. A lower figure means it follows the benchmark more closely.\n- You have per-period returns for both the portfolio (`returns`) and the benchmark (`benchmark_returns`) and want an annualised result. Set `periods_per_year` to match your data frequency; it defaults to 252.\n- You want to compare how much active risk different portfolios take against the same benchmark.\n\nFor a different need, `residual_risk` is the volatility of single-factor regression residuals.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

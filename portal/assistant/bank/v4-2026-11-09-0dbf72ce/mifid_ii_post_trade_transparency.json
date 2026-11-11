@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "mifid_ii_transaction_report_validator": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6716820a76bef0d90a197e6fd2abcc98f5a75de80cfacfd250f933d44d0bfe55",
+      "source": "model",
+      "text": "`mifid_ii_post_trade_transparency` answers the question \"does this trade qualify for deferred publication, or should it be published near real-time?\" It takes `trade_size`, `delayed_publication_threshold` and optionally `is_liquid`. Deferral applies when the size meets the threshold or the instrument is not liquid.\n\n`mifid_ii_transaction_report_validator` answers a different question: \"is this transaction report filled in properly?\" It takes a `report` mapping of field names to values and checks that required fields are present and basically valid, such as LEI length, ISIN length, and positive price and quantity. It covers a core subset of 9 fields, not the full set of RTS 22 mandatory fields.\n\nIn short, one assesses publication timing for a trade, and the other checks the data quality of a report about it.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "785f623d6c5e3360bb39a4308db8de61be33a91c282313a2d2c65eb594fb372b",
+    "source": "model",
+    "text": "`mifid_ii_post_trade_transparency` (MiFID II Post Trade Transparency) assesses whether a trade may qualify for deferred publication under MiFID II post-trade rules, or whether it should be published near real-time. You give it the executed `trade_size`, a `delayed_publication_threshold` for the size cutoff, and optionally `is_liquid`, which defaults to true. Deferral is flagged when the trade size is at or above the threshold, or when the instrument is not liquid. Otherwise, publication is near real-time. It is an assessment of the logic, not a ruling on what you must report.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "edb08e89dcaef207ce4c1c006e7368a7a5e7d5720eb981a94876d30bf5e75f95",
+    "source": "model",
+    "text": "`mifid_ii_post_trade_transparency` (MiFID II Post Trade Transparency) fits when you need to check whether a trade may qualify for deferred publication or should be published near real-time.\n\n- You have an executed trade and want to compare its size (`trade_size`) against a deferral size threshold (`delayed_publication_threshold`).\n- You're dealing with an instrument that has no liquid market, so you'd set `is_liquid` to false. Deferral can then apply even when the trade is below the threshold.\n- You want a quick, repeatable check across several trades, using the same threshold each time.\n- Your instrument is liquid and the trade is below the threshold, and you want to confirm that near-real-time publication applies.\n\nFor a different need, `mifid_ii_pre_trade_transparency` is listed as a MiFID II pre-trade transparency / LIS waiver assessment.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

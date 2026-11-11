@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d901ae3b8477b057fdba2a254a1ba537cbaaaad69211e45fa1c8740c3b4dcf32",
+      "source": "model",
+      "text": "`theta_time_decay` answers \"how much does a single Black-Scholes option's value change as calendar time passes?\" It returns Theta per year from `spot`, `strike`, `rate`, `sigma`, `tau`, plus optional `option_type` and `div_yield`. `gamma_cross_gamma_matrix` answers a different question: \"how does a portfolio's value respond to price moves in its underlyings, beyond the first-order effect?\" It assembles a symmetric matrix from `own_gammas` (the diagonal) and optional `cross_gammas` (the off-diagonals), and gamma P&L for a shock vector `ds` is 0.5 · ds' G ds. In short, `theta_time_decay` is about time and one option, while `gamma_cross_gamma_matrix` is about price shocks across a portfolio. The matrix function also takes gammas you already have, rather than pricing inputs.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "36974483862772f07b052d67c7eebadd49930a4cd896657bd613e0a836e0a1b5",
+    "source": "model",
+    "text": "`theta_time_decay` (Theta Time Decay) computes the Black-Scholes Theta of a European option, which is how much its value changes as calendar time passes, expressed per year. It is defined as −∂V/∂τ, so it measures the effect of the option moving closer to maturity. You provide `spot`, `strike`, `rate`, `sigma` and `tau`, and optionally `option_type` (\"call\" or \"put\", defaulting to call) and `div_yield` for a continuous dividend yield. It uses separate call and put formulas that include the dividend yield term, and pyvar does the calculation for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "719852497f3ace1ba456712320b03c1c711e9ba3faa3b917c4355b5a18abf647",
+    "source": "model",
+    "text": "Use Theta Time Decay (`theta_time_decay`) when you want to see how a Black-Scholes option's value changes as calendar time passes, with everything else held fixed.\n\n- You hold a call or put (set with `option_type`) and want its time decay, quoted per year.\n- You're studying how `tau`, `sigma`, `rate` or `div_yield` change the decay profile of a single option.\n- You need the Greek for a European-style option priced under Black-Scholes assumptions, with a continuous dividend yield if relevant.\n- You're checking the cost of carrying an option position as maturity approaches.\n- For how delta itself shifts as maturity nears, `charm_delta_decay` is listed as the sensitivity of delta to time to maturity.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a8c154c2c98277fa2be3f26365c58327f8add30e3958d24cace2d089f44a6a8e",
+      "source": "model",
+      "text": "`reverse_stress_testing` starts from a loss you choose (`target_loss`) and asks which factor shock is the most plausible way to produce it. It uses your `exposures` and the factor covariance `factor_cov` to find the shock with the lowest Mahalanobis magnitude, which lies along `-Σ e`. `contagion_stress_scenario` goes the other way: it starts from an `initial_shock` and asks how that shock spreads through a network of connected nodes. It applies the spillover matrix `contagion_matrix` over a number of `rounds`, adding up the knock-on effects. So use `reverse_stress_testing` when you know the loss you want to explain, and `contagion_stress_scenario` when you know the shock and want to see its spread.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2fbca6b66779fb13c69d84b176d03ecb32b02f7910016018862843a761f65cf4",
+    "source": "model",
+    "text": "`reverse_stress_testing` (Reverse Stress Testing) works backwards from a loss you choose to find the most plausible market scenario that would cause it. You give it `exposures` (currency P&L per unit move in each factor), a `factor_cov` covariance matrix, and a `target_loss` as a positive number. Among all factor shocks that produce that loss, it picks the one with the lowest Mahalanobis magnitude under the factor covariance, using a closed-form solution. It returns that shock scenario along with its magnitude, which shows how extreme the move is relative to the factors' usual variability.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a95d04ae513c4f75e2ae94b087017b04d9a28f15c6d8481a58549e43a86d4d4e",
+    "source": "model",
+    "text": "Use Reverse Stress Testing (`reverse_stress_testing`) when you start from a loss and want to know what could cause it:\n\n- You have a target loss in mind (`target_loss`) and want the most plausible combination of factor shocks that produces it, rather than picking a scenario first.\n- You can describe your portfolio as currency P&L per unit factor move (`exposures`) and have a factor covariance matrix (`factor_cov`).\n- You want plausibility judged by how the factors move together, so the answer favours shocks consistent with the covariance rather than arbitrary ones.\n- You want a closed-form answer that also gives the shock's magnitude, to see how extreme the scenario is.\n\nIf you instead want P&L under a shock you choose yourself, `hypothetical_multi_factor_scenario` is listed as giving P&L under a single hypothetical multi-factor shock.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

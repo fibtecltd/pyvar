@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "423fd192fa8702ffc63f737840d9acc7c7759b539857e9150d653fe406f6c935",
+      "source": "model",
+      "text": "`calmar_ratio` answers \"how much annualised return did I earn for the worst peak-to-trough loss I endured?\" It divides the compound annual growth rate (using `periods_per_year`, default 252) by the maximum drawdown, so it gives a single reward-versus-pain figure. `drawdown_duration` answers a different question: \"how long did I spend below a previous peak?\" It counts consecutive periods under the prior high and reports the longest run and the current run. One measures the depth of losses relative to return, the other measures how long recoveries take. Also, `calmar_ratio` takes per-period simple returns, while `drawdown_duration` accepts either returns or an equity curve (set `is_equity_curve` to True). You might use them together, since a strong ratio can still come with a long time underwater.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "66cc0436127e59a706d2929920f744872beab1cd2874e8183b5d0c260e527ae8",
+    "source": "model",
+    "text": "`calmar_ratio` (the Calmar Ratio) measures a portfolio's annualised return relative to its maximum drawdown. You pass in `returns`, a 1-D array of per-period simple returns. The function compounds them into a CAGR, which is the numerator, and divides that by the maximum drawdown (MDD). The optional `periods_per_year` sets the annualisation factor for the CAGR and defaults to 252. A higher ratio means more annualised return per unit of worst peak-to-trough loss, so it is a useful way to compare strategies on drawdown-adjusted performance.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "582273b00c4837743482edaaea4800cf8e4463a183da531ff9347d1cd40a1470",
+    "source": "model",
+    "text": "The Calmar Ratio (`calmar_ratio`) fits when you want to judge return relative to the worst loss endured along the way.\n\n- You want one figure that compares annualised growth with the largest peak-to-trough decline, rather than with volatility.\n- You are comparing strategies or funds where avoiding deep drawdowns matters as much as earning returns.\n- You have a series of per-period simple returns to pass in as `returns`, and you set `periods_per_year` to match their frequency (it defaults to 252).\n- You want a drawdown-aware view of how a track record compounded over its full history.\n- If you only want the largest peak-to-trough decline by itself, `maximum_drawdown` is listed as doing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

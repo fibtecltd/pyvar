@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c47e530db39a274a80c3196441867210e8c7270a5164ce6a6dd323119c38795b",
+      "source": "model",
+      "text": "`frtb_ima_non_modellable_risk_factors` answers \"how much capital do the risk factors that can't be modelled require in total?\" It takes the per-factor stressed add-ons (`individual_ses`) and combines them into one aggregate SES figure, using the correlation `rho`. With `rho` at 0 this is a Euclidean sum, and at 1 it is a straight linear sum.\n\n`frtb_ima_stressed_period_finder` answers a different question: \"which stretch of history was the most stressful?\" It slides a window across your full `returns` history and returns the start index of the window with the largest Expected Shortfall, ranked at the given `confidence_level`.\n\nOne aggregates capital add-ons you already have. The other searches return history to locate a stress window. They work on different inputs and don't feed each other directly.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2c1cb92028df7b1b11d3c0abaf4066a293a74b903e895c032c4dba6ea2457679",
+    "source": "model",
+    "text": "`frtb_ima_non_modellable_risk_factors` (FRTB IMA Non Modellable Risk Factors) calculates the aggregate stressed expected shortfall (SES) capital for risk factors that can't be modelled under the internal models approach. You pass in `individual_ses`, the stressed capital add-on for each non-modellable factor, and an optional `rho`, the prescribed correlation across those factors, which defaults to 0. The function combines the add-ons following MAR33.16: with `rho` at 0 you get the Euclidean (square-root-of-sum-of-squares) sum, and with `rho` at 1 you get the straight linear sum. Values of `rho` between the two blend those cases.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "814ea584c4ba82616982edc773860e75102e01b1ae6c8be2a644001f1d880f4c",
+    "source": "model",
+    "text": "`frtb_ima_non_modellable_risk_factors` (FRTB IMA Non Modellable Risk Factors) fits when you need the aggregate stressed capital for risk factors that can't be modelled under the internal models approach.\n\n- You already have a stressed capital add-on (ISES) for each non-modellable risk factor and want one combined SES figure, per MAR33.16.\n- You want the aggregation to reflect the prescribed correlation across these factors, set through `rho` (between 0 and 1).\n- You want a simple Euclidean sum of the add-ons (`rho` = 0, the default), or a fully correlated linear sum (`rho` = 1).\n- You're building the NMRF part of an IMA capital calculation and need it as a standalone input.\n\nIf you need the overall IMA capital figure instead, `frtb_ima_aggregate_capital_charge` is listed as the FRTB IMA aggregate capital charge.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

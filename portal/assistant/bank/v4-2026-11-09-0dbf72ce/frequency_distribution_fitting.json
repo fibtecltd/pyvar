@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2e2f328ef463ca26fec9693d0bf164bdeb8954e13921bc2e2a12d3d6c3ac5523",
+      "source": "model",
+      "text": "`frequency_distribution_fitting` answers \"how often do loss events happen?\" It takes your observed `annual_event_counts`, fits a Poisson distribution (its rate is the sample mean of those counts), and reports a dispersion ratio. A ratio far above 1 signals over-dispersion and a possible negative-binomial alternative. `monte_carlo_oprisk_capital` answers a different question: \"how much capital does this loss profile imply?\" It takes a Poisson rate (`frequency_lambda`) and lognormal severity settings (`severity_mu`, `severity_sigma`), then simulates many years of losses. From those it reads off the operational VaR and expected shortfall at your chosen `confidence_level`, and reports capital as OpVaR minus expected loss. The two fit together: the first one estimates the frequency input (lambda) from your data, and the second one uses that rate to build the aggregate loss distribution.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afa902fe871eda29d1d4e347f1f86a69568d361ba791103b5b946cbbf296ccfd",
+    "source": "model",
+    "text": "`frequency_distribution_fitting` (Frequency Distribution Fitting) fits a Poisson distribution to the number of loss events you observed in each year, a common step in operational risk frequency modelling. You pass your yearly counts as `annual_event_counts`. It estimates the Poisson rate, lambda, as the sample mean of those counts, which is the maximum likelihood estimate. It also reports the dispersion, the variance-to-mean ratio. A value far above 1 signals over-dispersion, which may point to a negative-binomial alternative.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "de78b5a9dbb8b78af3f82397193274cc8b2f360655d5853ce1a4158cdb230833",
+    "source": "model",
+    "text": "Use Frequency Distribution Fitting (`frequency_distribution_fitting`) when you need to model how often operational loss events happen:\n\n- You have observed counts of loss events per year and want a Poisson fit, where `lambda` is estimated as the sample mean of those counts.\n- You want to check dispersion (variance-to-mean ratio) to see whether Poisson is reasonable. A value far above 1 signals over-dispersion and a possible negative-binomial alternative.\n- You are building the frequency side of an operational risk loss model and need an input for it.\n- Your data is `annual_event_counts`, one count per year.\n\nIf you need to fit the size of individual losses instead, `severity_distribution_fitting` fits a severity distribution to individual loss amounts.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

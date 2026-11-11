@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_scenario_weighted_ecl": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4f01ec20684975c49cb6726b2d9a750af3bfb4c29ba0d7694f2f3f304ce9d4f6",
+      "source": "model",
+      "text": "`ifrs_9_staging_criteria_assessment` answers \"which IFRS 9 stage does this exposure belong in?\" It takes `pd_current`, `pd_origination`, `days_past_due`, `forbearance` and `watchlist`, and returns the most severe stage triggered. Forbearance and watchlist status force at least Stage 2, and 90 or more days past due forces Stage 3. The PD comparison also feeds in, using `sicr_relative_threshold`.\n\n`ifrs_9_scenario_weighted_ecl` answers a different question: \"what is the probability-weighted expected credit loss across forward-looking scenarios?\" It takes `scenario_ecls` and `scenario_weights` and combines them into a single ECL amount. The first function classifies credit deterioration, while the second blends scenario loss estimates into one figure. They address separate steps, and neither one's output feeds into the other's inputs.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "72abc3a6a265b8afca8f55fefc9072c50d8b1b8f5ebd96d66c8153a94f4fb7a3",
+    "source": "model",
+    "text": "`ifrs_9_staging_criteria_assessment` (IFRS 9 Staging Criteria Assessment) assigns an exposure to an IFRS 9 stage by combining a quantitative significant-increase-in-credit-risk test with qualitative backstops. The quantitative leg compares `pd_current` with `pd_origination` using the PD-threshold rule from `ifrs_9_stage_classification_pd_threshold`, which is tuned by `sicr_relative_threshold`. Forbearance or watchlist status forces at least Stage 2, and 90 or more days past due (`days_past_due`) forces Stage 3. The final stage is the most severe of all triggered criteria.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2c154a11184f52af3b002a4cf3b8eb277c0f2222a243704aebd0a3c2fa0ea0c6",
+    "source": "model",
+    "text": "Use the IFRS 9 Staging Criteria Assessment (`ifrs_9_staging_criteria_assessment`) when you need a full stage call that combines the PD test with qualitative factors:\n\n- You want the quantitative significant-increase-in-credit-risk test and the qualitative backstops applied together, with the most severe triggered stage taken as the final one.\n- The exposure may be under forbearance or on an internal watchlist, which force at least Stage 2 (`forbearance`, `watchlist`).\n- Days past due matter to the outcome: 90 or more forces Stage 3 (`days_past_due`).\n- You want to tune the relative-PD multiple through `sicr_relative_threshold`, which feeds the quantitative leg.\n\nIf you only need the PD-threshold rule without the qualitative backstops, `ifrs_9_stage_classification_pd_threshold` is listed as IFRS 9 stage classification by the PD-threshold SICR rule.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

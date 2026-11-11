@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rcsa_inherent_risk_scoring": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "89281069ce4392b6ca8855ac4a6ae4151e13fa45723594ab7b30a3df50fb047c",
+      "source": "model",
+      "text": "`rcsa_risk_identification` answers \"is my risk register well-formed, and how many risks sit in each category?\" It takes a `risk_register` (a list of risk dicts, each with `risk_id` and `category`), checks those keys, confirms each category is one of the 7 Basel Level-1 types, and counts entries per category. It's validation plus a tally, not a numeric formula.\n\n`rcsa_inherent_risk_scoring` answers \"how severe is one risk before any controls?\" You give it a `likelihood` and an `impact`, each rated 1-5. It multiplies them into a 1-25 score and maps that to a RAG band on the 5×5 heat map.\n\nIn short, the first works on the whole register and tells you what's in it, while the second scores a single risk's gross exposure. They fit together as consecutive steps: identify the risks, then score them.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "75ec0c8fdbdf10fc6622d9cae3e4fc872da652a1f93070aa275feb8f2a50c5d3",
+    "source": "model",
+    "text": "`rcsa_risk_identification` (RCSA Risk Identification) handles the identification step of the Risk and Control Self-Assessment cycle. You pass it `risk_register`, a list of risk entries, each with a `risk_id` and a `category`. It checks that every entry has both keys and that the `category` is one of the seven Basel Level-1 event types. It then summarises the register by counting how many risks fall into each category. This is validation plus a count, not a numeric formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "10c1619ec0a0577c8cf9c21abc9fe8a02c4b6a7c52eee5d7e5f51ba0923633d5",
+    "source": "model",
+    "text": "Use `rcsa_risk_identification` (RCSA Risk Identification) when you are at the identification step of the RCSA cycle:\n\n- You have a risk register as a list of risk entries and want to check each one has a `risk_id` and a Basel `category`.\n- You want a count of risks per category, to see how the register is spread across the Basel Level-1 types.\n- You need to confirm that every entry's category is one of the 7 Basel Level-1 types before moving on.\n- You want a validation and tally, not a numeric score. It is a count-by-category aggregation, not a formula.\n- For scoring risks on the 5×5 heat map, `rcsa_inherent_risk_scoring` is listed as the inherent risk score function.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irb_advanced_approach_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4e3350618c6cd0034b1135194a1b21f14a43a089dc0609a352ab7e376f74c98a",
+      "source": "model",
+      "text": "`basel_standardised_approach_rwa` answers \"what are the risk-weighted assets for this exposure, given a supervisory risk weight?\" You give it `ead`, a `risk_weight` set by rating or exposure class, and optionally `credit_risk_mitigation`, which is netted from the exposure before weighting. Minimum capital is then a fixed share of that RWA.\n\n`irb_advanced_approach_capital` answers \"what capital does a bank's own risk model imply?\" Instead of a ready-made weight, you supply your own estimates of `pd`, `lgd`, `ead` and `maturity`, and it derives the capital requirement and RWA from the Basel risk-weight function. An optional `correlation` can override the default asset correlation.\n\nIn short, the standardised function applies a prescribed weight, while the advanced one builds the weight from the bank's own parameters.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "657ed7b10ea66671ddc38eda93d57f85060d220de9ae6ae8f05b6c0164b8e7ef",
+    "source": "model",
+    "text": "`basel_standardised_approach_rwa` (Basel Standardised Approach RWA) calculates risk-weighted assets for a credit exposure under the Basel standardised approach, citing CRE20. It takes the exposure at default (`ead`), subtracts any eligible collateral or guarantee value (`credit_risk_mitigation`, optional), floors the result at zero, and multiplies by the supervisory risk weight (`risk_weight`, given as a fraction such as 1.0 for 100%). The risk weight depends on the external rating or exposure class. It also gives the minimum capital as 8% of the RWA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b66f123550887ba07db71bf972cfebbea45a6bf2d8020ddff032b7e38cbd92c6",
+    "source": "model",
+    "text": "`basel_standardised_approach_rwa` (Basel Standardised Approach RWA, CRE20) fits when you want risk-weighted assets under the standardised method:\n\n- You have an exposure at default (`ead`) and a supervisory `risk_weight` set by external rating or exposure class, such as sovereign, bank or corporate.\n- You want to net eligible collateral or guarantees against the exposure before weighting, using `credit_risk_mitigation`.\n- You need the minimum capital implied by the RWA, which is 8% of RWA.\n- You want a straightforward calculation where you supply the risk weight as an input, rather than deriving it from internal models.\n\nIf you instead want capital under internal-ratings-based methods, `irb_foundation_approach_capital` is listed as Basel IRB Foundation-Approach capital (CRE31), and `irb_advanced_approach_capital` as Basel IRB Advanced-Approach capital (CRE31).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

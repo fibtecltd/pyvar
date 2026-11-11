@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "066bb89b170e203ad53c59939d2089b59a679b63e1a40761c94085cb884d0e80",
+      "source": "model",
+      "text": "`var_fan_chart` answers \"how does my portfolio's loss envelope widen as the holding period grows?\" It takes historical `returns` and a `portfolio_value`, then gives parametric VaR for each confidence level in `confidence_levels` over 1 to `horizon_days` days, scaling volatility by the square root of time. `component_var` answers a different question: \"which positions are driving my total VaR?\" It takes `weights`, a `cov_matrix` and a `portfolio_value`, and allocates VaR to each position as `w_i * marginal_i`. Those components sum exactly to the total VaR, by Euler's theorem. In short, `var_fan_chart` looks at one portfolio across time and confidence levels, while `component_var` splits the portfolio's VaR across its positions at a single `confidence_level`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d236608f96597b90fd8b745e68ffcc2c0d623e4c5f7ade6451410c1459240f7",
+    "source": "model",
+    "text": "`var_fan_chart` (VaR Fan Chart) builds parametric VaR bands for a portfolio, showing how the potential loss envelope widens as the holding period grows. For each confidence level, it projects VaR over 1 to H days using square-root-of-time volatility scaling, with the mean return netting off the loss over the horizon. You supply historical portfolio `returns` and the current `portfolio_value`. Optionally, you set `confidence_levels` (defaults to 0.9, 0.95 and 0.99) and `horizon_days`, the maximum horizon (default 10). pyvar does the calculation, so you get one band per confidence level, ready to plot.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1d5ce6ab0abfb34ea1d55b6cc0b84b287e13a957cc5d8b2b6b907e02fce51ff1",
+    "source": "model",
+    "text": "`var_fan_chart` (VaR Fan Chart) fits when you want to see how potential losses grow as the holding period lengthens:\n\n- You want a visual of the loss envelope widening over days, from 1 up to a maximum set by `horizon_days`.\n- You want several confidence levels side by side, set with `confidence_levels`, rather than a single VaR figure.\n- You're comfortable with a parametric approach that scales volatility by the square root of time, using historical `returns` and a `portfolio_value` in base currency.\n- You want a quick, standard chart for explaining how risk builds with the holding period.\n\nIf you instead want a non-parametric estimate, `historical_simulation_var` is Non-parametric Historical Simulation VaR.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6d36240e7654f8083f86be562d808cd4d28d654ea40664319e1eed9e57e62577",
+      "source": "model",
+      "text": "`normal_inverse_gaussian_model` prices a European option by Monte Carlo, simulating paths where Brownian motion is run on an inverse-Gaussian clock, so it can capture skew and heavy tails through `alpha`, `beta` and `delta`. It answers the question \"what is this option worth if returns jump around, are skewed and have fat tails?\" `displaced_diffusion_model` instead prices on a shifted lognormal basis, applying Black-Scholes to spot and strike each moved by `displacement`, with a single `sigma`. It answers \"what is the price if the underlying is somewhere between lognormal and normal-like?\" and reduces exactly to Black-Scholes when `displacement` is 0. The NIG function is simulation-based, with `n_simulations` and `seed` controlling the sampling, and can also return Greeks via `greeks`. The displaced-diffusion function is a direct formula with an optional `div_yield`, so there is no sampling involved.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Does not warn that the `delta` parameter is a scale parameter and not the Greek delta, a name collision the record highlights."
+      ]
+    },
+    "record_sha256": "f67a37bfbcf29cb71c23997c3703e2d7ef8842207bdda709f4193713b179fa70",
+    "source": "model",
+    "text": "`normal_inverse_gaussian_model` (Normal Inverse Gaussian Model) prices a European call or put by Monte Carlo simulation. It models the underlying as Brownian motion run on an inverse-Gaussian clock, which allows skewed, fat-tailed returns. The drift is corrected so the discounted spot is a martingale. You supply `spot`, `strike`, `rate` and `tau`, and can tune tail heaviness (`alpha`), skewness (`beta`), scale (`delta`), path count and `seed`. Setting `greeks` to true also returns sensitivities by bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a8861f8fad278e30f1166728b1a3718894eaca8d62ccd593772781d7ed72fb14",
+    "source": "model",
+    "text": "The `normal_inverse_gaussian_model` (Normal Inverse Gaussian Model) prices a European call or put by Monte Carlo, and it fits in these situations:\n\n- You want heavier tails and skew than plain Black-Scholes, which `alpha` (tail heaviness) and `beta` (skewness) let you set.\n- You want the underlying modelled as Brownian motion run on an inverse-Gaussian clock, with the drift corrected so the discounted spot is a martingale.\n- You also want Greeks via bump-and-reprice: set `greeks=True`. Here \"vega\" means sensitivity to the `delta` scale parameter, and the `delta` parameter is not the spot-sensitivity Greek.\n- You want repeatable simulation runs, using `seed` and `n_simulations`.\n- For a different need, `variance_gamma_model` is listed as a Variance Gamma European option price via Monte Carlo.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

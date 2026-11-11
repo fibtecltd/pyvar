@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a3b41b5a92c7bd1e028988cd8efb2cb46cf748b029681758c6146c0887a45bc3",
+      "source": "model",
+      "text": "`information_ratio` asks how much a portfolio earned relative to a benchmark for the risk it took in deviating from it. It takes `returns` and `benchmark_returns`, then divides the average difference between them by the volatility of that difference (the tracking error). It annualises the result with `periods_per_year`, which defaults to 252. `drawdown_duration` asks a different question: how long has the portfolio been stuck below its previous peak? It counts consecutive periods spent underwater and reports the longest run and the current one. It needs no benchmark and takes either per-period `returns` or an equity curve (set `is_equity_curve` to True). In short, `information_ratio` measures benchmark-relative reward per unit of active risk, while `drawdown_duration` measures how long losses from a peak last.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "292a8f139e37dd3a0e7e9239cf11270879869a821c87771594d69274d3a655ed",
+    "source": "model",
+    "text": "`information_ratio` computes the Information Ratio, which measures a portfolio's active return relative to a benchmark, scaled by tracking error. You pass in `returns` (the portfolio's per-period returns) and `benchmark_returns` (the benchmark's per-period returns), both as 1-D arrays. It takes the average of the difference between the two, divides by the standard deviation of that difference, and annualises the result by multiplying by the square root of `periods_per_year`. That parameter is optional and defaults to 252. A higher ratio means more active return per unit of tracking error.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8f15d3a326abc2b5b5c6bf55f298e9006187f33538da1ef66f240f35b2c2a31c",
+    "source": "model",
+    "text": "The Information Ratio (`information_ratio`) fits when you want to judge a portfolio against a benchmark rather than in isolation:\n\n- You want to see how much return a portfolio earned above its benchmark for each unit of active risk, since it divides average active return by the volatility of that difference (tracking error).\n- You're comparing active managers or strategies that share the same benchmark, and want a consistent measure of how steadily they beat it.\n- You have per-period returns for both the portfolio (`returns`) and the benchmark (`benchmark_returns`) over matching periods, and want the result annualised. Set `periods_per_year` to match your data frequency; it defaults to 252.\n- You want a risk-adjusted view of active performance, not just raw outperformance.\n\nIf you instead want return relative to a risk-free rate rather than a benchmark, `sharpe_ratio` is listed in pyvar as the annualised Sharpe ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

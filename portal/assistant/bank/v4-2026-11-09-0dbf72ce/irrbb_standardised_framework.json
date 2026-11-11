@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Typo: 'a earlier question' should read 'an earlier question'."
+        ]
+      },
+      "record_sha256": "b6e04f1a0d1815f02d879300a2540e369714fa61ceec3cdffe74c916a9c8daf4",
+      "source": "model",
+      "text": "`irrbb_standardised_framework` answers \"how much economic value of equity could the banking book lose under the standard shocks?\" You give it net cashflows, bucket times and base zero rates, and it reports the worst change in EVE (the most negative) across the six shocks. `irrbb_six_standard_rate_shocks` answers a earlier question: \"what do those six shocked curves look like?\" It takes tenors and builds the parallel up and down, steepener and flattener shock curves (plus the short-rate up and down shocks) from `parallel_bps`, `short_bps` and `long_bps`. It values nothing and has no cashflows.\n\nBoth share the same three shock-size parameters and defaults, but only the framework function turns shocks into a present-value loss on your balance sheet. Use the shock function to inspect or reuse the curves, and the framework function for the EVE measure.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6e928ef4581ccd0bfe293b3fd444bddd0fb6c0cb614d6d22941b6ea4d5855d5b",
+    "source": "model",
+    "text": "`irrbb_standardised_framework` (IRRBB Standardised Framework) computes the standardised interest rate risk in the banking book measure for economic value of equity, following BCBS d368. You give it net (asset minus liability) cashflows per time bucket, the bucket midpoint times in years, and the base zero rates. For each of six shocks it reprices those cashflows under the shocked curve and takes the change in present value (ΔEVE). The regulatory metric it returns is the worst case, the most negative ΔEVE. You can adjust the parallel, short and long shock sizes with `parallel_bps`, `short_bps` and `long_bps`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7d8649b78aa559ac7b77d403b551165bf7cec2b26e848dce0663627727d5d8a4",
+    "source": "model",
+    "text": "Use `irrbb_standardised_framework` (IRRBB Standardised Framework) when you need the standardised EVE measure for interest rate risk in the banking book:\n\n- You want the worst change in economic value of equity (ΔEVE) across the six BCBS d368 shocks, i.e. the most negative result.\n- You have net (asset − liability) cashflows by time bucket, bucket midpoint times, and base zero rates, and want present values under shocked curves.\n- You want to follow the regulatory standardised approach, optionally adjusting the `parallel_bps`, `short_bps` and `long_bps` shock sizes.\n- If you need to build the six standard shock curves themselves, `irrbb_six_standard_rate_shocks` is listed as constructing them.\n- If you want EVE from a bank's own rate scenarios instead, `irrbb_internal_model` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

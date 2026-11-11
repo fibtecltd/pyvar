@@ -1,0 +1,44 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Implies only the fixed pricer takes `maturity`, but the floating-rate pricer also requires it, and it must equal len(reference_rates)/frequency or the call is rejected."
+        ]
+      },
+      "record_sha256": "cdf4a699505cf88410f1cde1078b264c05ecd9e0c98582c4f8f0997d966b0768",
+      "source": "model",
+      "text": "`bond_pricer_fixed_coupon` prices a bond whose coupon is set in advance, discounting all its cashflows at a single flat yield (`yield_rate`). It answers: \"What is this fixed-coupon bond worth at a given yield?\" `bond_pricer_floating_rate` prices a floating-rate note, where each coupon is the projected reference rate plus a `spread`, discounted with a per-period set of `discount_rates`. It answers: \"What is this note worth given forward rate projections and a discount curve?\" The inputs differ accordingly: the fixed version takes `coupon_rate`, `yield_rate` and `maturity`, while the floating one takes lists of `reference_rates` and `discount_rates`, whose length sets the number of coupon periods. The default `frequency` also differs, 2 for the fixed-coupon pricer and 4 for the floating-rate one.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "00d93da85294d67a2027a7e4b45987d40fb02a3fb2bc1334855e0117e13a0b21",
+    "source": "model",
+    "text": "`bond_pricer_fixed_coupon` (Bond Pricer Fixed Coupon) prices a fixed-coupon bond by discounting its cashflows at a single flat yield. You give it the `face_value`, `coupon_rate`, `yield_rate` and `maturity` in years, plus an optional `frequency` for coupon payments per year (default 2). It discounts each periodic coupon and the final redemption of par back to today, with the number of periods set by maturity times frequency, rounded. Price moves inversely to yield, and it equals par when the coupon rate matches the yield.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Describes zero_coupon_bond_pricer's formula vaguely as 'face divided by a discounted factor' rather than the listed face / (1 + y/m)^{m·T}."
+      ]
+    },
+    "record_sha256": "3dfa3283f1e7e4e4234b98f1d60b23c83eb7ebc80e13894528eace0d66e1af71",
+    "source": "model",
+    "text": "`bond_pricer_fixed_coupon` fits when you want the price of a plain bond that pays regular fixed coupons and returns par at maturity.\n\n- You have a single flat yield to maturity and want to discount all the cashflows at that yield.\n- You want to see how price responds to yield: price falls as yield rises, and equals par when `coupon_rate` equals `yield_rate`.\n- Your bond has a known `face_value`, `maturity` in years and a coupon schedule set by `frequency` (semi-annual by default).\n- You want a quick baseline price for a straight bond, with no embedded options or index-linked features.\n\nFor a bond with no coupons, `zero_coupon_bond_pricer` is listed as pricing a zero-coupon bond as face divided by a discounted factor.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

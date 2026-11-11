@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "0429a975940c30fc73e2f1f35f6ec548cfe925288d2d2d729615b0740dca3b59",
+      "source": "model",
+      "text": "`cs01_credit_spread` and `gamma_cross_gamma_matrix` answer different questions. `cs01_credit_spread` asks how much the price of a risky cashflow stream drops if its credit spread widens by 1bp. You give it `cashflows`, `times`, `risk_free_rate` and `credit_spread`, and it discounts at the risk-free rate plus the spread to return that single sensitivity.\n\n`gamma_cross_gamma_matrix` asks how a portfolio's value responds to second-order moves in its underlyings. It assembles a symmetric matrix from `own_gammas` (net gamma per underlying) and optional `cross_gammas`. That matrix can then be used to get gamma P&L for a shock vector, as 0.5 · ds' G ds.\n\nIn short, `cs01_credit_spread` measures first-order credit spread risk on a cashflow stream, while `gamma_cross_gamma_matrix` organises curvature and cross-curvature across underlyings.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "514b379ded6c51333655562a5de0757abc79a7da4698a8883376060811a69a84",
+    "source": "model",
+    "text": "`cs01_credit_spread` (CS01 Credit Spread) measures how much the value of a risky cashflow stream falls when its credit spread widens by 1bp. You give it the `cashflows`, their `times` in years, a continuously-compounded `risk_free_rate`, and a continuously-compounded `credit_spread`. It discounts each cashflow at the risk-free rate plus the spread. It then sums each cashflow weighted by its time and its discount factor, scaled by 1e-4. The output is the price drop for that 1bp widening, a standard spread-sensitivity measure in market risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0304bcbc2f24e7c76f8f2d7e951e3f8b655d8d23960aa0050279818282634866",
+    "source": "model",
+    "text": "`cs01_credit_spread` (CS01 Credit Spread) fits when you need to see how a risky cashflow stream reacts to a move in credit spread.\n\n- You hold a stream of risky cashflows, such as a bond-like payout, and want its price drop for a 1bp widening of the credit spread.\n- You can supply the `cashflows`, their `times` in years, a continuously-compounded `risk_free_rate` and a continuously-compounded `credit_spread`.\n- You want spread sensitivity kept separate from general rate sensitivity, since the spread is its own input discounted alongside the risk-free rate.\n- You want a quick, formula-based figure to compare spread exposure across different cashflow profiles.\n\nIf you instead want sensitivity to interest rates across tenor buckets for a fixed cashflow stream, `dv01_pv01_bucketed` is listed as the tenor-bucketed DV01 / PV01 of a fixed cashflow stream.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

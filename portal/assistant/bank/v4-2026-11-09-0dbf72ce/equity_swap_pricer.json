@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Final advice 'pick the one that matches the label on your trade' is weak; it doesn't say that both compute the same formula, so the choice is only about naming."
+        ]
+      },
+      "record_sha256": "62337b5f1aa0ff9235ebb0503104b309ade8e3836b15d321c59fa1aaf3a3779f",
+      "source": "model",
+      "text": "`equity_swap_pricer` values an equity swap leg, where the receiver gets an equity total return and pays a funding rate. `total_return_swap_trs` values a total-return swap leg, where the receiver gets a reference asset's total return and pays a financing rate such as SOFR plus a spread. Both use the same structure: notional times (return minus rate times accrual), discounted by the `discount_factor`. `equity_swap_pricer` answers \"what is this equity-versus-funding leg worth?\" and takes `equity_return`, `funding_rate` and `receive_equity`. `total_return_swap_trs` answers \"what is this asset-versus-financing leg worth?\" and takes `asset_return`, `financing_rate` and `receive_total_return`. Pick the one that matches the label on your trade, and pyvar does the calculation.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "015f9dd786c28239c314f5e25306e9ea471471c9dc3814ecef776a35a6da257d",
+    "source": "model",
+    "text": "The Equity Swap Pricer (`equity_swap_pricer`) values one leg of an equity swap, where the equity return is exchanged against a funding cost. It takes the `notional`, the period's `equity_return`, the annual `funding_rate`, the `accrual` year-fraction and a `discount_factor` to the payment date. It then applies `notional · (equity_return − funding_rate · accrual) · discount_factor`, which is the value to the equity receiver. The optional `receive_equity` flag, true by default, sets the direction of the position.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c2afc364c12ad9f87680a0358916685c2a2cfc893b147f6fd020d174335b1d73",
+    "source": "model",
+    "text": "Use the Equity Swap Pricer (`equity_swap_pricer`) when you need to value one leg of an equity swap, where equity return is exchanged against a funding rate.\n\n- You have a period equity total return (`equity_return`) and want its value against funding accrued at `funding_rate` over the `accrual` year-fraction.\n- You want the result scaled by a `notional` and discounted to the payment date with a `discount_factor`.\n- You need to view the swap from either side: `receive_equity` defaults to true, and the flag lets you switch direction.\n- You are working one period at a time, since the inputs are a single period return and a single accrual.\n\nIf you instead want a total-return swap leg, `total_return_swap_trs` is listed as valuing a total-return swap leg.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

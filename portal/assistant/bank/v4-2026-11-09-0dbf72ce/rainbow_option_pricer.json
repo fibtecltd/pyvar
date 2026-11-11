@@ -1,0 +1,43 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a564def6a3c64daa65d508c02dbcb4733c12ee87fa0b2fad713d3c4c3b0bca8e",
+      "source": "model",
+      "text": "`rainbow_option_pricer` prices an option on several assets at once, where the payoff depends on the best-performing (best-of) or worst-performing (worst-of) terminal price against the strike. `asian_option_pricer` prices an option on a single asset, where the payoff depends on the arithmetic average of that asset's price across observation dates. So the rainbow function answers \"what is an option worth when it references the best or worst of several correlated assets?\", while the Asian function answers \"what is an option worth when it pays off on the average price along one asset's path?\" Inputs reflect this: the rainbow function takes per-asset `spots` and `sigmas` plus a `correlation` matrix, while the Asian one takes a single `spot` and `sigma` and an `n_steps` averaging count. Both use Monte Carlo and discount the expected payoff at the risk-free `rate`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "'Best-performing / worst-performing asset' suggests a return-based ranking, but the record takes the max/min of terminal price levels; the later sentence states this correctly.",
+        "Does not mention that the bump-and-reprice delta/gamma/vega are diagonal only (no cross-asset terms)."
+      ]
+    },
+    "record_sha256": "4ee20f479ad87f56235a1eb1255a5d2d3dba71c744f9c1426e092fb9da50e400",
+    "source": "model",
+    "text": "`rainbow_option_pricer` (Rainbow Option Pricer) prices a rainbow option, where the payoff depends on the best-performing (best-of) or worst-performing (worst-of) asset in a basket, measured against a strike. It uses Monte Carlo: correlated terminal prices are simulated for each asset from spot prices, volatilities, a correlation matrix, the risk-free rate and time to maturity. The best or worst terminal price is compared with the strike as a call or put, and the average payoff is discounted. You can set the number of paths, the option type, the rainbow type and the seed. Optionally, `greeks` adds per-asset delta, gamma and vega, plus theta and rho, by bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ee603d030a838a83fa0fe13d6e1f3c10c417da5bbf56fc516d1328b868d68ec1",
+    "source": "model",
+    "text": "The Rainbow Option Pricer (`rainbow_option_pricer`) fits when a payoff depends on the best or worst of several assets at maturity.\n\n- You need a price for a best-of or worst-of call or put, set with `rainbow_type` and `option_type`.\n- You have several underlying assets and can supply their spot prices, volatilities and a correlation matrix, so the model captures how they move together.\n- A Monte Carlo estimate suits you. You can set `n_simulations` and `seed` to control the paths and make runs repeatable.\n- You also want per-asset delta, gamma and vega plus scalar theta and rho. Turn on `greeks`; note that delta, gamma and vega are diagonal only, with no cross-asset terms.\n\nIf your payoff depends on a weighted sum of assets instead, `basket_option_pricer` is listed as pricing a basket option via Monte Carlo on a weighted sum of assets.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

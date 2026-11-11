@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "solvency_ii_scr_credit_risk": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3a91f8adc1163f61fc49ad07db57d99d16949a709aa0847547df9be1458aebb6",
+      "source": "model",
+      "text": "`solvency_ii_scr_market_risk` answers \"how much capital is needed for market risk?\" It takes a charge for each market sub-module (interest rate, equity, property, spread, currency, concentration) and combines them with a prescribed correlation matrix using a square-root formula, so diversification between sub-modules is reflected. `solvency_ii_scr_credit_risk` answers \"how much capital is needed for counterparty default on Type 1 exposures?\" Instead of ready-made charges, it takes `exposures`, `loss_given_default` and `default_probabilities` per counterparty, and builds the loss variability (sigma) from those. It then applies the prescribed multiplier on sigma, capped at total loss given default. Its sigma covers only the intra-counterparty variance term, so its result can understate the full regulatory figure.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fd24a3854e2469ae45970dace149e0f9b7ca5c5e0a14bb1f613eb62104214478",
+    "source": "model",
+    "text": "`solvency_ii_scr_market_risk` (Solvency II SCR Market Risk) combines the capital charges for the market risk sub-modules (interest rate, equity, property, spread, currency and concentration) into a single market risk SCR. You pass in the charge for each sub-module as `sub_module_charges` and the prescribed correlation matrix as `correlation_matrix`. It applies the standard-formula square-root aggregation, SCR = sqrt(s' Corr s), from Delegated Regulation 2015/35 Art. 164. Because the correlations are below perfect, the total reflects diversification between the sub-modules. You can also supply `sub_module_names` to label the diversification report.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "904463e6a90363bf569e9641a7acbbcf5d3bd47cffb07471e5755f058edddbb0",
+    "source": "model",
+    "text": "Use Solvency II SCR Market Risk (`solvency_ii_scr_market_risk`) when you need the market-risk capital charge under the standard formula. It fits in these cases:\n\n- You already have capital charges for each market sub-module (interest rate, equity, property, spread, currency, concentration) and want them combined into one market-risk figure.\n- You need aggregation that uses the prescribed correlation matrix, so diversification between sub-modules is reflected through the square-root formula in Delegated Regulation 2015/35 Art. 164.\n- You want a diversification report with readable labels, which you can get by passing `sub_module_names`.\n- You are working with the standard formula rather than an internal model.\n\nFor a different need, `solvency_ii_scr_credit_risk` covers Solvency II SCR counterparty default (credit) risk, Type 1 exposures.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

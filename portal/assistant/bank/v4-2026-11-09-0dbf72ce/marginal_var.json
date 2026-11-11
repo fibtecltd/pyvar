@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "863a25cee4e9cd39ed0b0d56b5b3e5538df9d8731e75f962191267b9ba7518b8",
+      "source": "model",
+      "text": "`marginal_var` answers \"how sensitive is portfolio VaR to each position's weight?\", giving the gradient `z * (Σ w)_i / sigma_p` for every asset. `component_var` answers \"how much of the total VaR does each position account for?\", by multiplying each weight by its marginal value (`w_i * marginal_i`). Because of Euler's theorem, the components sum exactly to the total VaR, so `component_var` is the one for splitting the total across positions. Both take `weights`, `cov_matrix` and an optional `confidence_level`, but `component_var` also requires `portfolio_value` in base currency. Use `marginal_var` to see where a small change in weight bites hardest, and `component_var` to see where the existing risk sits.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9609bc67862cb7be0bb91560c9f44f98f9031ad568f39ebc748c1b89743f10d9",
+    "source": "model",
+    "text": "`marginal_var` (Marginal VaR) measures how sensitive a portfolio's VaR is to each position's weight. It uses the delta-normal model, where VaR = z * sqrt(w' Σ w), and returns the gradient of that VaR with respect to each weight. Each asset's figure is z * (Σ w)_i / σ_p, where σ_p is the portfolio standard deviation. You supply `weights` and `cov_matrix`, plus an optional `confidence_level` (default 0.99, allowed range 0.90 to 0.9999). It's useful for seeing which positions drive portfolio risk most.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4d436e6c97da7ff8750501e8b622dd7d50d7e47b3a47a211175e483aaf9fb461",
+    "source": "model",
+    "text": "`marginal_var` (Marginal VaR) fits when you want to see how portfolio VaR responds to each position's weight.\n\n- You want to know which positions push portfolio risk up the most per unit of weight, for example when thinking about rebalancing.\n- Your risk view is the delta-normal model, where VaR depends on `weights` and the covariance matrix `cov_matrix`.\n- You have an asset return covariance matrix and want to set the confidence with `confidence_level`.\n- You want a position-by-position sensitivity rather than a single portfolio figure.\n- `component_var` is listed as Component VaR via Euler allocation, so look there if you need that kind of allocation instead.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_scenario_weighted_ecl": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "45c9b1bc20de5e9316eb0785faa00045ab40ca46f977fa005bead651db697fde",
+      "source": "model",
+      "text": "`ifrs_9_12_month_ecl_stage_1` answers the question \"what is the expected credit loss on a single Stage 1 exposure over the next 12 months?\" It multiplies `pd_12m`, `lgd` and `ead`, with an optional `discount_factor` that defaults to 1.0, to give one ECL figure.\n\n`ifrs_9_scenario_weighted_ecl` answers a different question: \"how do I combine ECL figures from several forward-looking macro scenarios, such as base, upside and downside, into one probability-weighted amount?\" It takes `scenario_ecls` and `scenario_weights`, normalises the weights, and returns the weighted sum.\n\nThe first function builds an ECL from credit inputs for one exposure. The second takes ECLs you already have for each scenario and blends them. You could use them together, with the Stage 1 function supplying the per-scenario ECLs that feed the weighting.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "35de38b650121e123140aecb2dee85e109307c67ff5128253d71dcc70fff503f",
+    "source": "model",
+    "text": "`ifrs_9_12_month_ecl_stage_1` (IFRS 9 12 Month ECL Stage 1) computes the 12-month expected credit loss for exposures classed as Stage 1. It multiplies the 12-month probability of default (`pd_12m`), loss given default (`lgd`) and exposure at default (`ead`), then applies a discount factor. `discount_factor` is optional and defaults to 1.0, which leaves the amount undiscounted. Use it when you want pyvar to calculate the Stage 1 figure from your own PD, LGD and EAD inputs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4a585300b0060c9e1defdb97668e3e41427b652f7c70eebeb2e212757eeea176",
+    "source": "model",
+    "text": "`ifrs_9_12_month_ecl_stage_1` fits when you need a Stage 1 expected credit loss based on the 12-month probability of default.\n\n- Use it for exposures already classified as Stage 1, where ECL is `pd_12m` × `lgd` × `ead` × `discount_factor`.\n- Use it when you have a 12-month PD, a loss given default and an exposure at default for a single exposure.\n- Use it when you want the loss discounted to the reporting date via `discount_factor`. If you leave it out, it defaults to 1.0, meaning no discounting.\n- For deciding which stage an exposure belongs in, `ifrs_9_stage_classification_pd_threshold` is listed as classifying IFRS 9 stages by the PD-threshold SICR rule.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

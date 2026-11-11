@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cross_currency_swap_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "71abc777dd6cb43c2b3d2c5f95d89fd5612b290503464d92197e794753036658",
+      "source": "model",
+      "text": "`total_return_swap_trs` values a single total-return swap leg: the receiver gets the reference asset's total return and pays a financing rate, scaled by the notional and discounted with one `discount_factor`. You give it `asset_return`, `financing_rate` and `accrual`, so it answers \"what is this one period of asset return versus financing worth?\" `cross_currency_swap_pricer` instead prices a fixed-fixed swap in two currencies, valuing each leg's coupons and final notional with its own discount factors (`df_dom`, `df_for`). It then converts the foreign leg at `fx_spot` and nets the two, so it answers \"what is the net value of swapping fixed payments and notional between two currencies?\" The first is about asset performance versus funding, and the second is about fixed rates and FX across a multi-period schedule. Both have a direction flag: `receive_total_return` in the first and `pay_domestic` in the second.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "53812a4bcc46096819f5aa8466e774dd7cdb12a5eef8f562d048978369ab50a4",
+    "source": "model",
+    "text": "`total_return_swap_trs` values one leg of a total-return swap. The total-return receiver gets the reference asset's total return and pays a financing rate, such as SOFR plus a spread. It applies the formula notional × (asset return − financing rate × accrual) × discount factor, so the financing cost is accrued over the period and the net amount is discounted to the payment date. You supply `notional`, `asset_return`, `financing_rate`, `accrual` and `discount_factor`. The optional `receive_total_return` flag sets the direction and defaults to true.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b27fc18f99c60c47d9c962704cfd25af978f2a8b6c5bda9c544571f033de4c92",
+    "source": "model",
+    "text": "`total_return_swap_trs` fits when you need to value one leg of a total-return swap, where one side receives an asset's total return and pays a financing rate.\n\n- You already have the asset's period total return as a decimal and want the leg's value at payment, discounted.\n- The financing side is a rate such as SOFR plus a spread, entered as an annual decimal in `financing_rate`, with the year-fraction in `accrual`.\n- You want to view the swap from either side: `receive_total_return` is true by default, and you can change it for the other direction.\n- You have a notional and a discount factor to payment ready as inputs.\n\nIf your swap is an equity return against funding, `equity_swap_pricer` is listed as valuing an equity swap leg (equity return vs funding).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

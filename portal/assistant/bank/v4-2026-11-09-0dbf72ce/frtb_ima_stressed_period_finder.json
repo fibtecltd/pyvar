@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_sa_residual_risk_addon": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fc21029ccd337139a8d748d20fc20cd1300525a3d3cde80664369509631edeac",
+      "source": "model",
+      "text": "`frtb_ima_stressed_period_finder` answers \"which stretch of history was the most stressful?\" It slides a window across your full `returns` history, ranks each window by its Expected Shortfall at the chosen `confidence_level`, and returns the start index of the worst one. That window is what FRTB uses to calibrate the stressed ES in the internal models approach.\n\n`frtb_sa_residual_risk_addon` answers a different question: \"how much extra capital is needed for risks the standard approach's sensitivities-based method doesn't capture?\" It takes `notionals` and `rrao_weights` per instrument and sums notional times weight, with no return history involved.\n\nSo one is a historical, return-based search for a window in the internal models approach. The other is a notional-based add-on in the standardised approach.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9833f983c94a6225c43f1bd0ce36dcd32f91b79571060c6c12737f9f07f74c56",
+    "source": "model",
+    "text": "`frtb_ima_stressed_period_finder` (FRTB IMA Stressed Period Finder) locates the stressed period used to calibrate stressed Expected Shortfall under FRTB's internal models approach. It slides a fixed-length window across your full return history, measures the Expected Shortfall of each window as a tail mean, and returns the start index of the window where that figure is largest. You supply `returns`, and can optionally set `window` (default 250 trading days) and `confidence_level` (default 0.975) used to rank the windows. pyvar does the calculation, so you get the start index of the worst window in your data.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4c5f79e9ad512249944e550e96fc3b6bd4332fdec50f911f8b311e4dfa6e7194",
+    "source": "model",
+    "text": "Use the FRTB IMA Stressed Period Finder (`frtb_ima_stressed_period_finder`) when you need to know which stretch of history was the most stressful for a portfolio:\n\n- You have a full return history (`returns`) and want the start index of the 250-day window whose Expected Shortfall is largest, so the stressed ES can be calibrated to it.\n- You want windows ranked by tail loss at a chosen `confidence_level`, which defaults to 0.975.\n- You want a window length other than the FRTB standard of 250 trading days; you can change `window`.\n- For the regulatory ES at 97.5%, look at `frtb_ima_expected_shortfall`, listed as the FRTB IMA Expected Shortfall.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

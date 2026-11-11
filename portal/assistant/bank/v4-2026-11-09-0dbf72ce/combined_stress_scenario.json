@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "market_wide_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Omits the record's caveat that the default 15% retail / 100% wholesale convention is not the BCBS 238 reference combined scenario."
+        ]
+      },
+      "record_sha256": "11b794c01c62b2e53f445db37f4b36f6944b531dbbaf2d28d1b11c6f2d49c5fe",
+      "source": "model",
+      "text": "`combined_stress_scenario` asks whether a firm can survive a firm-specific shock inside a market-wide crisis. It haircuts HQLA and also builds the outflow itself from `retail_deposits`, `wholesale_funding`, their run-off rates and any `inflows`, then compares the two for a surplus. `market_wide_stress_scenario` asks a narrower question: after widened market haircuts shrink what HQLA can be sold for, does the remaining value cover an outflow you supply as a single `outflow` figure? So the market-wide function covers only the haircut side, while the combined one adds funding run-off. Both apply stressed haircuts to `hqla_by_level` using `market_haircuts`. Optionally, `combined_stress_scenario` can use `retail_deposits_by_category` and `retail_runoff_rates` for a categorised retail outflow.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "85fa799120f05184030b57420695ebc1e0030a799876f76653cf0300d59e18dc",
+    "source": "model",
+    "text": "`combined_stress_scenario` models a firm-specific shock inside a market-wide crisis, working out a liquidity surplus after stressed outflows. It haircuts each level of HQLA further, then applies run-off rates to retail deposits and wholesale funding, subtracts stressed inflows to get net outflows, and reports the surplus as stressed HQLA less net outflows. By default it uses a single flat retail rate and a wholesale rate, which is an internal convention rather than the BCBS 238 reference scenario. Supply `retail_deposits_by_category` and `retail_runoff_rates` together to run off categorised retail balances at your own jurisdiction's rates.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bef491df857ebaa053974f4d8f04722f9d09a91f9b24799db54300d3df5e5404",
+    "source": "model",
+    "text": "`combined_stress_scenario` (Combined Stress Scenario) fits when you want to see liquidity under a firm-specific shock happening inside a market-wide crisis.\n\n- You want to compare stressed HQLA, after extra haircuts by level, against net outflows, and see the resulting surplus.\n- You want a quick internal view using one blended retail run-off rate and a wholesale rate. By default this is an internal convention, not the BCBS 238 reference scenario.\n- You have retail deposits split into stability buckets with their own rates from your jurisdiction. Pass `retail_deposits_by_category` and `retail_runoff_rates` together for a BCBS-238-shaped categorised outflow. The categories must sum to `retail_deposits`.\n- You want to include stressed contractual inflows via `inflows`.\n\nIf you only need one kind of shock, `idiosyncratic_stress_scenario` is listed as the name-specific stress scenario, and `market_wide_stress_scenario` as the market-wide one.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

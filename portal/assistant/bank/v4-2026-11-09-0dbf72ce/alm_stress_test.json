@@ -1,0 +1,45 @@
+{
+  "compare": {
+    "structural_hedge_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Final sentence 'Neither tells you what to do with the output' is a vague filler claim that adds nothing."
+        ]
+      },
+      "record_sha256": "524b1e1b357a5ed5de9619ae2ea8f60d1a35ea5f42f73f4b2352a4154582fb44",
+      "source": "model",
+      "text": "`alm_stress_test` measures risk, while `structural_hedge_optimisation` sizes a hedge. `alm_stress_test` asks: if rates move under the six standard shocks, how large is the worst-case fall in economic value of equity, and how big is that relative to Tier-1 capital? It takes your bucketed `net_cashflows`, `times`, `base_rates` and `tier1_capital`, and gives the supervisory outlier ratio from BCBS d368, including the outlier-test check.\n\n`structural_hedge_optimisation` asks a different question: which hedge notionals bring the hedge's dollar-duration as close as possible to a target equity duration? You give it `target_duration`, `instrument_durations`, `instrument_max_notional` and `equity_notional`. It solves for non-negative notionals within each instrument's cap using a numerical bounded least-squares solver.\n\nIn short, the first diagnoses exposure against capital, and the second solves for a hedge allocation. Neither tells you what to do with the output.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Says the ratio is checked against the outlier test but does not give the 15% threshold that the record states.",
+        "Does not mention that parallel_bps defaults to 200 bps."
+      ]
+    },
+    "record_sha256": "f4cc5d97c0eebb7b03943c71f714a27bd20a91c314363832262e3084a0341335",
+    "source": "model",
+    "text": "`alm_stress_test` (ALM Stress Test) measures how much a bank's economic value of equity could fall under the six standard interest-rate shocks in BCBS d368. It takes the banking-book net cashflows per bucket, the bucket times and base zero rates, and works out the change in EVE for each shock, using `eve_sensitivity_analysis` for that step. It then takes the worst loss and divides it by your `tier1_capital` to give the supervisory outlier ratio. It also checks that ratio against the outlier test. You can set the parallel shock size with `parallel_bps`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6bf04f3aad6cd222d5970ff5fc64c4c224e46f17df58c03eface71c1a07838be",
+    "source": "model",
+    "text": "Use ALM Stress Test (`alm_stress_test`) when you want to see how a banking book's economic value holds up against interest rate shocks, relative to capital:\n\n- You need the worst-case drop in EVE across the six standard shocks, expressed as a fraction of Tier-1 capital (the supervisory outlier ratio under BCBS d368).\n- You want to check against the 15% outlier test, using your net cashflows per bucket, bucket times, base zero rates and `tier1_capital`.\n- You want to adjust the size of the parallel shock with `parallel_bps` and see how the worst case responds.\n- You only need the capital-relative view. The per-scenario ΔEVE figures come from `eve_sensitivity_analysis`, and this function adds the Tier-1 ratio on top.\n\nIf your need is different, `balance_sheet_projection_model` projects the balance sheet and NII forward over `n_years`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

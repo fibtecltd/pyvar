@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4a770942a27c108eefe790f3b917dce03fce9ec64f6445d625fe1824f3f7e523",
+      "source": "model",
+      "text": "`stressed_expected_shortfall` answers \"how large is the average tail loss during a historically stressed period?\" You give it a single return series, the `stress_start` and `stress_end` indices of the stressed window, and the `portfolio_value`. It computes ES only over that slice, which is the stress calibration FRTB IMA asks for.\n\n`expected_shortfall_contribution` answers a different question: \"which assets drive the tail loss?\" It takes a matrix of per-asset returns plus `weights`, finds the scenarios where the portfolio breaches VaR, and averages each asset's loss across those scenarios. The per-asset contributions add up to the total ES.\n\nSo the first is about when the tail is measured (a stressed window), and the second is about where the tail loss comes from (the asset breakdown). Both default to `confidence_level` 0.975.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "63d898d50d6616ba532aa732063a3005d1a031101a82fb440d78f22a9a39ec4c",
+    "source": "model",
+    "text": "`stressed_expected_shortfall` (Stressed Expected Shortfall) computes Expected Shortfall for the FRTB internal models approach, using only a stressed slice of your history. You pass the full array of historical portfolio returns plus `stress_start` (inclusive) and `stress_end` (exclusive) to mark the stressed window, and `portfolio_value` to express the result in base currency. It averages the losses at or beyond the chosen quantile within that window. `confidence_level` is optional and defaults to 0.975, the level FRTB uses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c175ffdedb0f434fbe6bff901f9c553a8c4248601a3866a4d0a0d823ed643082",
+    "source": "model",
+    "text": "`stressed_expected_shortfall` (Stressed Expected Shortfall) fits when you need ES calibrated to a stress period, as FRTB's internal models approach requires.\n\n- You already know which slice of your return history counts as the stressed period and can give its start and end positions with `stress_start` and `stress_end`.\n- You have a full 1-D series of historical portfolio returns plus the current `portfolio_value`, and want the tail loss measured only inside that window.\n- You want the FRTB confidence level, which is the `confidence_level` default of 0.975, or another level between 0.90 and 0.9999.\n- Use `historical_expected_shortfall` instead if you want a non-parametric historical ES, as its listing describes it, rather than one limited to a stressed window.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

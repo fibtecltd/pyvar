@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_iii_tier1_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d4d02fa54ac9593bc49a4e786abd01f425f6d58e3aa4a24f8a539a303f8fa846",
+      "source": "model",
+      "text": "`basel_iv_output_floor` answers \"how much risk-weighted assets must a bank count once the floor is applied?\" It takes `internal_model_rwa` and `standardised_rwa` and returns the larger of the internal-model figure and `floor_factor` times the standardised figure, so internal models can't push RWA below a set share of the standardised result. `basel_iii_tier1_ratio` answers a different question: \"how well is the bank's Tier 1 capital covering its RWA?\" It divides `tier1_capital` (CET1 plus additional Tier 1) by `risk_weighted_assets`.\n\nThe two connect through RWA. The output floor produces an RWA figure, which could then be used as the `risk_weighted_assets` input to the Tier 1 ratio. One adjusts the denominator, the other measures capital against it.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dfdc33c93d068955de1d4a0bcc7545e8ce1d4873787709a74d8a449184c6506e",
+    "source": "model",
+    "text": "`basel_iv_output_floor` (Basel IV Output Floor) applies the output floor to risk-weighted assets. It takes your internal-model RWA (`internal_model_rwa`) and your standardised-approach RWA (`standardised_rwa`), and returns the larger of the internal-model figure and the floor factor times the standardised figure. That stops internal models from pushing capital requirements below a set fraction of the standardised result. The optional `floor_factor` defaults to the prescribed regulatory value, which should not be relaxed.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2121adac4e6d522bcbed7dddc5f4ddd8b75905d83215e21e89e2de7ce6ad7424",
+    "source": "model",
+    "text": "Use `basel_iv_output_floor` (Basel IV Output Floor) when you need to see how the output floor affects a bank's risk-weighted assets (RWA):\n\n- You have RWA from internal models and RWA under the standardised approach, and want the floored RWA: the larger of the model figure and the floor factor times the standardised figure.\n- You want to see whether the standardised-approach floor, rather than the internal models, sets the RWA figure.\n- You're working within the Basel III finalisation framework and want the prescribed floor factor, which is the default for `floor_factor` and is not meant to be relaxed.\n- You want to try a different `floor_factor` for comparison, remembering that the default is the regulatory one.\n\nIf you need the Common Equity Tier 1 ratio instead, `basel_iii_cet1_ratio` is listed as the Basel III Common Equity Tier 1 (CET1) ratio.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

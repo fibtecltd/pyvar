@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b13ef42d8ae5390cfe9be19dffc97293161666e02c613d4b24c879266bb933b6",
+      "source": "model",
+      "text": "`var_by_risk_factor` and `component_var` use the same Euler decomposition, so in both cases the pieces add up to the total VaR. The difference is what the total is split across. `component_var` takes position weights (`weights`) and an asset covariance matrix (`cov_matrix`), and answers \"how much of my VaR comes from each holding?\" `var_by_risk_factor` takes factor exposures (`factor_exposures`) and a risk-factor covariance matrix (`factor_cov`), and answers \"how much of my VaR comes from each systematic risk factor?\" You can label the factors with the optional `factor_names`. Both need `portfolio_value` and accept an optional `confidence_level`. Use `component_var` to see which positions drive risk, and `var_by_risk_factor` to see which market drivers do.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "099fdfd9cd93242eabafafbacb960e129f3042557a89e40fc00de34a4d0c236e",
+    "source": "model",
+    "text": "`var_by_risk_factor` (VaR By Risk Factor) breaks a portfolio's VaR into contributions from systematic risk factors using an Euler allocation. You give it the portfolio's factor exposures (`factor_exposures`), the risk-factor covariance matrix (`factor_cov`) and the `portfolio_value`. Each factor's contribution is based on its exposure times its share of the portfolio's factor-driven risk, scaled by the confidence-level quantile, and the contributions sum to the total VaR. It is the same decomposition as `component_var`, but expressed in factor space rather than by position. You can set `confidence_level` (default 0.99) and label factors with `factor_names`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0453a45b846ab490bb4e2a497b21d0343c7fb90456dea79513feb8737d44f84a",
+    "source": "model",
+    "text": "`var_by_risk_factor` (VaR By Risk Factor) fits when you want to see which systematic risk factors drive your portfolio's VaR:\n\n- You already have your portfolio's sensitivities (betas) to each risk factor and a covariance matrix for those factors, supplied as `factor_exposures` and `factor_cov`.\n- You want the total VaR split into per-factor contributions that add up to the total, using Euler allocation.\n- You want to report or discuss risk by factor rather than by position, and can label factors with `factor_names`.\n- You want to choose the confidence level via `confidence_level`, or accept the default of 0.99.\n\nIf you want the same Euler decomposition by position instead of by factor, `component_var` is listed in pyvar as \"Component VaR via Euler allocation.\"",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

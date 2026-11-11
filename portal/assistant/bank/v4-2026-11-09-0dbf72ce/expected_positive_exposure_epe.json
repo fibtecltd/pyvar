@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ea90b83eada83a417986209d9082e15e9f66f84e31f12bd1d5fe2533420a6e56",
+      "source": "model",
+      "text": "`expected_positive_exposure_epe` answers \"what is the average size of this counterparty exposure over the horizon?\" It takes an expected-exposure profile `expected_exposure` and the matching `time_steps`, then returns the time-weighted average using the trapezoidal rule. `cva_sensitivity_cva_greeks` answers a different question: \"how much does the credit valuation adjustment move when its inputs change?\" It computes the base CVA and returns `cs01`, the change in CVA for a parallel bump in the credit spread, and `exposure_delta`, the sensitivity to scaling the exposure profile. The CVA function also needs `discount_factors`, `credit_spread` and optionally `recovery_rate`, none of which EPE uses. In short, EPE summarises exposure, while the Greeks function measures CVA sensitivity for hedging and capital purposes.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c7a1a8762e2654fe5e97da475a9a4396c958882975f930464754686b920ebc6c",
+    "source": "model",
+    "text": "`expected_positive_exposure_epe` (Expected Positive Exposure) takes an expected-exposure profile and returns its time-weighted average over the horizon. It follows CRE53, where EPE is the average of EE(t) from 0 to T, divided by T. pyvar approximates the integral with the trapezoidal rule on the grid you supply. You pass `expected_exposure`, the non-negative EE values, and `time_steps`, strictly increasing time points in years that start at or after 0. It is a credit risk measure for summarising a counterparty exposure profile as one figure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ab844d63e224bf9b878a416a94e814fe50bb69a2da0cfe2a78d28aef0cb7cecc",
+    "source": "model",
+    "text": "`expected_positive_exposure_epe` (Expected Positive Exposure) fits when you need a single time-averaged figure from an exposure profile.\n\n- You already have an expected-exposure profile, `expected_exposure`, and want its average over the horizon, following the CRE53 definition.\n- Your profile sits on a grid of strictly increasing `time_steps` in years, starting at or after 0. The average is taken with the trapezoidal rule.\n- You want to summarise counterparty credit exposure over time as one number rather than a curve.\n- You're checking or reproducing a CRE53-style EPE calculation from a profile you've produced elsewhere.\n- For the Basel Effective EPE, which uses the non-decreasing Effective EE profile, see `effective_epe_regulatory`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

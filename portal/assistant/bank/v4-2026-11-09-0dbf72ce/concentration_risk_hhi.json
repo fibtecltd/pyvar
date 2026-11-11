@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "monte_carlo_portfolio_simulation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "HHI is described as the sum of squared absolute weights, omitting that the absolute weights are first normalised to sum to 1."
+        ]
+      },
+      "record_sha256": "de6704761ac603db03292d94b0a4381a560817aa889dddd2a7f3acf0c1c34489",
+      "source": "model",
+      "text": "`concentration_risk_hhi` asks how concentrated a portfolio is: it takes only `weights` (which need not be normalised) and returns the Herfindahl-Hirschman Index, the sum of squared absolute weights. Its effective number of holdings is `1/HHI`. `monte_carlo_portfolio_simulation` asks how much money the portfolio could lose over a horizon. It draws correlated random asset returns from `mean_returns` and `cov_matrix`, compounds them over `horizon` periods, and reports simulated VaR and expected shortfall of terminal P&L. The first function looks only at how the weights are spread and uses no return or risk inputs. The second needs those inputs, plus `portfolio_value`, `n_simulations`, `confidence_level` and `seed`, to describe a loss distribution.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "af92974e6f6988bbb37e502fc9bf78201a11c1da5909d1e6099fd176dfeea279",
+    "source": "model",
+    "text": "`concentration_risk_hhi` measures how concentrated a portfolio is using the Herfindahl-Hirschman Index (HHI). You pass in `weights`, one per asset, and they don't need to be normalised: the function takes absolute values and rescales them to sum to 1, then sums the squared weights. The index runs from 1/n for an equal-weight portfolio up to 1 for a single holding. Its inverse, 1/HHI, gives the effective number of holdings, and a normalised HHI rescales the index between those two extremes.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7201bc7d9d941cfb573567c33674256c538352623caca81168d7e7c9ec091a63",
+    "source": "model",
+    "text": "`concentration_risk_hhi` (Concentration Risk HHI) fits when you want a single measure of how concentrated a portfolio is across its holdings.\n\n- You want to know whether a few positions dominate or the weight is spread evenly. The index runs from `1/n` for equal weights up to 1 for a single holding.\n- You want an intuitive effective number of holdings (`1/HHI`) to set against your actual count of positions.\n- Your weights aren't tidy. `weights` need not be normalised, and the function uses absolute weights, so short positions count by their size.\n- You want to compare concentration across portfolios with different numbers of holdings, using the normalised form of the index.\n- For a different need, `diversification_ratio` is the weighted average vol over portfolio vol.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

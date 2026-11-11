@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9c30ad56a12793a31335a8c9ac8fb5dd9926a03c3242670e86750e5bec1e571b",
+      "source": "model",
+      "text": "`frtb_ima_expected_shortfall` answers \"how large is the average loss in the worst tail of this set of returns?\" You give it the `returns` for one observation set and a `confidence_level` (default 0.975), and it returns the mean loss beyond the VaR threshold, which is always at least VaR. `frtb_ima_stressed_period_finder` answers a different question: \"which stretch of history was the most stressful?\" It slides a window (`window`, default 250 trading days) across a full return history, ranks each window by its Expected Shortfall at the same `confidence_level`, and returns the start index of the worst one. So the first gives you an ES figure for the data you pass in, while the second tells you where in a longer history the stress window begins. The two fit together: the finder uses an ES calculation to rank windows, and you could then pass that window's returns to `frtb_ima_expected_shortfall` to get its ES.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fc632ea8a85da5463c744a6f1c76867486cfa2fdcd7e6d3fa602e5b5c3537355",
+    "source": "model",
+    "text": "`frtb_ima_expected_shortfall` (FRTB IMA Expected Shortfall) computes the regulatory Expected Shortfall used under the FRTB internal models approach, at a 97.5% confidence level by default. You give it `returns`, a 1-D array of portfolio returns over the IMA observation set, and optionally a `confidence_level`. ES is the mean loss beyond the VaR threshold, so it is always at least as large as VaR. pyvar does the calculation, taking the VaR as an ordered loss at the cutoff position and averaging the losses from there to the tail end.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dbc0b82fdc3d4e2a88f7132cbee97365af34ffc1f0e28ee2e23250f51d0a8ef4",
+    "source": "model",
+    "text": "`frtb_ima_expected_shortfall` (FRTB IMA Expected Shortfall) fits when you need the regulatory tail-risk measure for a portfolio under the internal models approach.\n\n- You have a 1-D array of portfolio returns over the IMA observation set and want the mean loss beyond the VaR threshold at the FRTB confidence of 97.5%.\n- You want a tail measure that looks at the size of losses beyond the cutoff, not only the cutoff itself. ES is always at least as large as VaR.\n- You want to try a different confidence level: `confidence_level` defaults to 0.975, which is what FRTB IMA uses, but you can change it.\n- To find the worst window for stress calibration, `frtb_ima_stressed_period_finder` is listed as locating the FRTB IMA stressed period, the worst 250-day ES window.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

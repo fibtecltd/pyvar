@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "return_attribution_brinson": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Phrase 'puts whatever is left into' slightly implies the specific return is computed as a residual, though it is a supplied input that is added to the factor total"
+        ]
+      },
+      "record_sha256": "ae5d617e33034a6e5f25257194c8a655ce9ad5fa8874aa5c16a141ff0a11d7d9",
+      "source": "model",
+      "text": "`factor_return_attribution` answers \"which risk factors drove my realised return?\" It multiplies each factor exposure by that factor's realised return, adds the contributions, and puts whatever is left into a specific (idiosyncratic) return you supply through `specific_return`. Its inputs are `factor_exposures`, `factor_returns`, `specific_return` and optional `factor_names`.\n\n`return_attribution_brinson` answers a different question: \"how did my portfolio beat or lag its benchmark?\" It compares portfolio and benchmark weights and returns by segment. It splits the active return into allocation, selection and interaction effects, which sum to the total active return.\n\nSo the first explains total return through factors, and the second explains active return versus a benchmark through segment decisions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "213b9530c81f3ca1845e34337531a23878ed5c826aa5e3393e265d6fd4800886",
+    "source": "model",
+    "text": "`factor_return_attribution` (Factor Return Attribution) breaks a portfolio's realised return into the part each factor contributed and a specific, idiosyncratic part. For each factor it multiplies the portfolio's exposure (`factor_exposures`) by that factor's realised return (`factor_returns`). It adds those contributions to get the total factor return, then adds `specific_return` to reach the total portfolio return. You can pass `factor_names` to label the factors; otherwise they default to `factor_0` and so on. pyvar does the calculation, so you supply the inputs and it returns the decomposition.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "534a3fc9fd873f8103b8a19c9b8b33ee5269c2bccf09baf80f181495edb5ddd5",
+    "source": "model",
+    "text": "Use Factor Return Attribution (`factor_return_attribution`) when you want to see where a realised portfolio return came from, factor by factor:\n\n- You already know the portfolio's exposure (beta) to each factor and each factor's realised return, and want each contribution as `exposure_i * factor_return_i`.\n- You want to separate the part of the return explained by factors from the specific (idiosyncratic) part, which you supply as `specific_return`.\n- You're reviewing a past period and want contributions labelled by name, using the optional `factor_names` (otherwise they default to `factor_0`, and so on).\n- For a different need, `return_attribution_brinson` is listed as Brinson-Hood-Beebower return attribution, an option if you want that style of breakdown instead of a factor-based one.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

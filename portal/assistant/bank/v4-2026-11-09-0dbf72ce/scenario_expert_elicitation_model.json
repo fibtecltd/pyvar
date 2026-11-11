@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "scenario_severity_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2f7d12cd6f55da3eb9b82cd831084721774205ba46f2a1cb6c8ddfedea70ddf1",
+      "source": "model",
+      "text": "`scenario_expert_elicitation_model` answers \"what do our experts collectively think this loss is, and how much do they disagree?\" You give it several experts' loss estimates (`expert_estimates`) and optional credibility weights (`expert_weights`). It returns a weighted consensus plus a dispersion measure, where wide disagreement signals an unreliable scenario.\n\n`scenario_severity_estimation` answers \"what loss distribution fits one expert's view?\" It takes a typical loss and a worst-case loss, treats the typical loss as the lognormal median, and solves for the spread from the worst-case percentile (`worst_case_percentile`). The result is a calibrated lognormal severity.\n\nIn short, the first one combines many opinions into one number and a confidence signal, while the second turns a typical/worst-case pair into a full severity distribution. They can be used together, for example to settle on consensus figures before calibrating a severity.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f47fd0521cc46f6a5a55bb6cfcc482ed440e9dc9dc7bedc84ffa079cdfa98f25",
+    "source": "model",
+    "text": "`scenario_expert_elicitation_model` (Scenario Expert Elicitation Model) is an operational risk function that combines several experts' loss estimates for a scenario into one consensus figure. You pass each expert's estimate in `expert_estimates`, and optionally give credibility weights in `expert_weights`; if you leave the weights out, all experts count equally. The consensus is the weighted average of the estimates. It also reports the weighted standard deviation as a dispersion measure, along with a coefficient of variation (dispersion relative to the consensus). Wide disagreement among experts signals a less reliable scenario.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "32083ee80d3a3c5696d2ffdd84474299d143e4c28b0c3166c9c9b1194c48545b",
+    "source": "model",
+    "text": "Use `scenario_expert_elicitation_model` (Scenario Expert Elicitation Model) when you need to turn several experts' loss estimates into one view:\n\n- You have multiple experts' point estimates for the same operational risk scenario and want a single consensus figure.\n- Some experts are more credible than others, and you want to reflect that through `expert_weights` (equal weights are used if you leave it out).\n- You want to see how far the experts disagree, since pyvar reports the weighted standard deviation and the coefficient of variation as a confidence proxy. Wide disagreement signals an unreliable scenario.\n- Related function: `scenario_severity_estimation` calibrates a lognormal severity from expert typical and worst-case losses, which fits if that is the kind of input you have.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

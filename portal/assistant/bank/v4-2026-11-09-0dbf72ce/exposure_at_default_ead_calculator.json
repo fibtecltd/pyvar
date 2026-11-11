@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fe335a487db975fd18f00f82f58dd84eaa03e747a258fd61e0d79af520538861",
+      "source": "model",
+      "text": "`exposure_at_default_ead_calculator` answers \"how much will be owed if the borrower defaults?\", while `probability_of_default_pd_estimation` answers \"how likely is a default?\". The EAD function takes `drawn`, `undrawn` and an optional `credit_conversion_factor`, and combines them as drawn plus the CCF share of the undrawn commitment. The PD function takes `n_defaults` and `n_obligors` for each rating cohort, works out the pooled default frequency, and applies a regulatory floor through its `floor` parameter. So one gives an amount and the other gives a probability. Both feed into `expected_loss_el_computation`, where EL is PD times LGD times EAD.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "331df91e9a096022eda761d4df6b58a920f8a0c206ab687f4b8de508894ee1ea",
+    "source": "model",
+    "text": "`exposure_at_default_ead_calculator` (Exposure At Default EAD Calculator) estimates exposure at default for a revolving or committed credit facility using the credit-conversion-factor method. It adds the currently drawn amount to a share of the undrawn commitment: `EAD = drawn + CCF * undrawn`. That share, set by `credit_conversion_factor`, reflects how much of the undrawn line is expected to be drawn by the time of default. You supply `drawn` and `undrawn`, and `credit_conversion_factor` is optional, taking a value between 0 and 1 with a default of 0.75. pyvar does the calculation and returns the EAD figure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "21fd71e4c1ac9037af9dd25cca553dad9a41571f01de1887ea80c597bece9699",
+    "source": "model",
+    "text": "The Exposure At Default EAD Calculator (`exposure_at_default_ead_calculator`) fits when you need to size a credit exposure for a facility that is only partly drawn.\n\n- You have a revolving or committed facility, such as a credit line, with both a `drawn` balance and an `undrawn` commitment.\n- You want to allow for the share of the undrawn commitment expected to be drawn by the time of default, set through `credit_conversion_factor`.\n- You want a simple, transparent EAD built as drawn plus a CCF share of undrawn, for example as an input to a wider credit loss calculation.\n- You are working in a Basel F-IRB-style setup, where the default CCF of 0.75 applies to unconditionally cancellable commitments unless otherwise specified.\n- To combine EAD with default probability and loss severity, `expected_loss_el_computation` is listed as computing Expected Loss `EL = PD * LGD * EAD`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

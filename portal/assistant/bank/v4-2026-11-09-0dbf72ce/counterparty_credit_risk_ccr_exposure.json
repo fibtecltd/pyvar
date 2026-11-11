@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4fa2d95b9e6e150a6f042ace5d1040cf88d17e512da9f5696a1afeb06d7ab981",
+      "source": "model",
+      "text": "`counterparty_credit_risk_ccr_exposure` answers \"how much could I lose if this counterparty defaults?\" It takes the netting set's `mark_to_market`, floors it at zero after subtracting any `collateral`, and adds a potential-future-exposure `add_on`. The result is a single exposure figure.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how sensitive is my credit valuation adjustment to changes in credit spreads and exposure?\" It works from an expected exposure profile, `time_steps`, `discount_factors` and a `credit_spread`. It returns `cs01`, the change in CVA for a 1 bp spread bump, and `exposure_delta`, the sensitivity to a 1% uniform scaling of the exposure profile.\n\nIn short, the first measures the exposure itself, while the second measures how the CVA price of that exposure moves, which is useful for hedging and capital.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "778bbfd10cc1a434631305a1bfb981524ea5537a0641da5223ad729e00778965",
+    "source": "model",
+    "text": "`counterparty_credit_risk_ccr_exposure` calculates a generic counterparty credit risk exposure for a netting set. It takes the current mark-to-market (`mark_to_market`), subtracts any collateral held (`collateral`, which defaults to zero), and floors that result at zero, since a counterparty that owes you nothing creates no replacement cost. It then adds a potential-future-exposure add-on (`add_on`) on top. In short: Exposure = max(MtM − collateral, 0) + add-on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d0a1ef1ac8ab044c9b65048efc3a517ef65c34247dc3249e59a7a16e261b6c15",
+    "source": "model",
+    "text": "`counterparty_credit_risk_ccr_exposure` (Counterparty Credit Risk CCR Exposure) fits when you want a simple, generic exposure figure for a netting set:\n\n- You have a current mark-to-market (`mark_to_market`) and a potential-future-exposure `add_on` you want to combine into one exposure number.\n- You hold collateral and want it netted against the current exposure through `collateral`, with the current exposure floored at zero when the counterparty owes you nothing.\n- You want a transparent building block that shows replacement cost and the add-on separately.\n- You are working from the reporting bank's side, where a positive mark-to-market means the position is in the money to you.\n\nIf you need the Basel standardised measure instead, `standardised_approach_ccr_sa_ccr` is listed in pyvar as Basel SA-CCR EAD (CRE52).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

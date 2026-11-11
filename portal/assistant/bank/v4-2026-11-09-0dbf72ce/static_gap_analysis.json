@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "repricing_gap_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7cdbc3a38c2f69b21cc88d70186972785a5035daf33d742924babb2f873fc2ab",
+      "source": "model",
+      "text": "`static_gap_analysis` answers \"how do rate-sensitive assets compare with rate-sensitive liabilities at a single point in time, assuming a frozen balance sheet?\" It takes `bucket_assets` and `bucket_liabilities`, gives the gap per bucket as assets minus liabilities, and also gives a gap ratio, which is total rate-sensitive assets divided by total rate-sensitive liabilities.\n\n`repricing_gap_analysis` answers \"how does the gap build up across time buckets?\" It uses the same two inputs plus optional `bucket_labels`, and returns the per-bucket gap along with the cumulative gap, which drives net interest income (NII) sensitivity.\n\nIn short, use `static_gap_analysis` for a snapshot gap and ratio, and `repricing_gap_analysis` when you want the running cumulative gap across buckets.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eb9785f7e5d602ed387f9006087dfc5b3e28d508d30a44c6e5075d4df5097c7a",
+    "source": "model",
+    "text": "`static_gap_analysis` (Static Gap Analysis) computes a point-in-time repricing gap for a balance sheet, assuming that balance sheet stays frozen. You give it `bucket_assets` and `bucket_liabilities`, the rate-sensitive assets and liabilities in each repricing bucket. For each bucket it takes the gap as rate-sensitive assets minus rate-sensitive liabilities. It also reports a gap ratio, which is total rate-sensitive assets divided by total rate-sensitive liabilities. This gives you a view of how the balance sheet is positioned across repricing time buckets.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "50e6aad7c228f4bf31b71341bb87fba4982f6e1e843f90dea5000f6edac47b9a",
+    "source": "model",
+    "text": "`static_gap_analysis` fits when you want a point-in-time view of repricing mismatch on a balance sheet you treat as frozen:\n\n- You have rate-sensitive assets and liabilities already grouped into buckets, ready to pass as `bucket_assets` and `bucket_liabilities`.\n- You want the gap in each bucket (assets minus liabilities) plus an overall gap ratio of total rate-sensitive assets to total rate-sensitive liabilities.\n- You want a simple snapshot of today's position, with no assumptions about balance growth or new business.\n- If you need to allocate balances into repricing-time buckets first, `repricing_maturity_profile` is listed as doing that.\n- If you want to project balance growth over future periods, `dynamic_gap_analysis` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

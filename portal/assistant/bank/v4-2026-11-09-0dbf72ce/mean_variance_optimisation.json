@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9e55399a0ef83c24fd981fc17c0fbb6a186afb978c1842e1183c0f4f1107e0ee",
+      "source": "model",
+      "text": "`mean_variance_optimisation` answers \"what is the best trade-off between expected return and risk for a given appetite for risk?\" It maximises expected return minus a penalty on variance, and you set that penalty with `risk_aversion` (higher means less risk). `maximum_sharpe_ratio_portfolio` answers a different question: \"which mix gives the most return per unit of risk?\" It maximises the annualised Sharpe ratio and has no risk-aversion setting. Both take `mean_returns`, `cov_matrix`, `allow_short`, `risk_free` and `periods_per_year`, and both require weights to sum to 1. In `mean_variance_optimisation`, `risk_free` only feeds the reported Sharpe, whereas in `maximum_sharpe_ratio_portfolio` it shapes the optimisation itself.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "86051396e7d65cd22e63387bc236e15c02ff5d6c0cc64a70019b5e55ba7349e0",
+    "source": "model",
+    "text": "`mean_variance_optimisation` runs Markowitz mean-variance optimisation: it finds portfolio weights that maximise expected return minus a penalty for variance, with the weights summing to 1. You supply per-period expected returns (`mean_returns`) and a per-period covariance matrix (`cov_matrix`). The `risk_aversion` coefficient sets how heavily variance is penalised, so a higher value favours lower risk. By default weights are kept between 0 and 1 (long-only), and `allow_short` lifts that restriction. It also reports a Sharpe ratio, using `risk_free` and `periods_per_year` to annualise.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f7f7059bd37ec7f4fe96cea68eab343b427051af583d7b66ab9e79384ffa9f79",
+    "source": "model",
+    "text": "`mean_variance_optimisation` (Mean Variance Optimisation) fits when you want to balance expected return against risk in a single set of portfolio weights.\n\n- You have expected returns per asset (`mean_returns`) and a covariance matrix (`cov_matrix`) you're willing to work from.\n- You want to set how much risk you tolerate through `risk_aversion`, where higher means less risk taken.\n- You need fully invested weights that sum to 1, either long-only (the default) or with shorting allowed via `allow_short`.\n- You want a reported Sharpe ratio alongside the weights, using `risk_free` and `periods_per_year` to annualise.\n- If you'd rather ignore return forecasts and only minimise risk, `minimum_variance_portfolio` is listed as the global minimum-variance portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

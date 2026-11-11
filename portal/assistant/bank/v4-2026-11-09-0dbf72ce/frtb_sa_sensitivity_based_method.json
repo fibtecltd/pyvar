@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4247815903b697e96e44086bfe7bb8fb3eb2fa66bd4019eb620ef6f4123032ab",
+      "source": "model",
+      "text": "`frtb_sa_sensitivity_based_method` answers \"how much standardised-approach delta capital does this set of positions need?\" It takes weighted sensitivities grouped by bucket, plus `intra_bucket_corr` and `inter_bucket_corr`, and combines them into a single risk charge. `frtb_ima_stressed_period_finder` answers a different question: \"which stretch of history was the most stressful?\" It slides a window over a full return history (`returns`) and gives back the start index of the window with the largest Expected Shortfall, using `window` and `confidence_level` to set the window length and the ranking confidence.\n\nThe first is a capital calculation under the standardised approach (MAR21). The second is a calibration step for the internal models approach, locating the period used for stressed ES. They use different inputs: sensitivities and correlations versus a return series. They also produce different outputs: a risk charge versus a position in time.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "14d23e01a76a38a390b982432d491e3b4e077f5ff119bfb823c64360528651ef",
+    "source": "model",
+    "text": "`frtb_sa_sensitivity_based_method` (FRTB SA Sensitivities-Based Method) computes the delta risk charge under the FRTB standardised approach, following MAR21. You give it per-bucket lists of weighted sensitivities (`bucket_weighted_sensitivities`, with risk weights already applied), plus the within-bucket correlation `intra_bucket_corr` and the between-bucket correlation `inter_bucket_corr`. It first combines the sensitivities in each bucket into a bucket-level risk position, using the within-bucket correlation. It then aggregates the buckets, using each bucket's summed sensitivity and the between-bucket correlation, into a single charge. Before each square root, pyvar floors the value at 0, a safeguard against negative values under extreme correlation inputs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5f7a2bf1eee6a9a72e2b0631131f1e829accbdf32aee55e7cdd6d50c9f4773e6",
+    "source": "model",
+    "text": "`frtb_sa_sensitivity_based_method` (FRTB SA Sensitivity Based Method) fits when you need the delta risk charge under the FRTB standardised approach (MAR21).\n\n- You already have weighted sensitivities, with the risk weight applied, grouped by bucket, and want them combined into one charge.\n- You have chosen the within-bucket correlation (`intra_bucket_corr`) and the correlation between bucket totals (`inter_bucket_corr`) and want them applied consistently.\n- You want to see how diversification inside and across buckets changes the charge, by varying those two correlations.\n- You want a safeguard against negative values under extreme correlation inputs: the per-bucket term and the aggregate sum are floored at 0 before the square root.\n- For a different need, `frtb_sa_default_risk_charge` is listed as the FRTB SA Default Risk Charge (DRC) with the hedge-benefit ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "active_share": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "da32e05da2aa1d2008991b2754a2e1a86a932f9f47c2e21d8d1067403c29ed5a",
+      "source": "model",
+      "text": "`portfolio_turnover` and `active_share` use the same one-way formula, half the sum of absolute weight differences, but they compare different pairs of weights. `portfolio_turnover` compares your weights before and after a rebalance (`weights_before` and `weights_after`), so it answers \"how much of the portfolio did I trade?\" `active_share` compares your current weights (`weights`) with a benchmark (`benchmark_weights`), so it answers \"how different are my holdings from the benchmark?\" For `active_share`, 0 means identical to the benchmark and 1 means fully differentiated. One measures trading activity across a rebalance, the other measures positioning against a benchmark at a single point in time.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a5ec16ad761ae87012eb634e8e3e148d361b199170dfe64ec9dcdda5464cc07a",
+    "source": "model",
+    "text": "`portfolio_turnover` (Portfolio Turnover) measures the one-way traded fraction between two sets of portfolio weights. You give it `weights_before`, the pre-rebalance weights, and `weights_after`, the post-rebalance weights in the same ordering. It sums the absolute change in each weight and multiplies by one half, so a purchase and its matching sale are counted once rather than twice. The result shows how much of the portfolio was traded in the rebalance, which is useful when thinking about trading activity and its associated costs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "70f950c51855049dcf98a751e304eebbc81d0d8333356eb4b2e0d7c709ac38c9",
+    "source": "model",
+    "text": "Use Portfolio Turnover (`portfolio_turnover`) when you want to know how much of a portfolio was traded in a rebalance:\n\n- You have two weight vectors, before and after a rebalance (`weights_before` and `weights_after`, in the same ordering), and want the one-way traded fraction between them.\n- You want to compare how heavily different rebalances or strategies trade, using one consistent measure.\n- You need the one-way convention, which takes half the sum of absolute weight changes, so each trade is counted once rather than as both a buy and a sell.\n- For a different need, `active_share` is the fraction of holdings differing from the benchmark, which compares to a benchmark rather than to your earlier weights.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "prepayment_model_mortgages": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a8b8a913c46345f10c081d7ff3f6dc898856153da5df052a21ff10055f197fcd",
+      "source": "model",
+      "text": "`core_deposit_duration` asks how sensitive a book of sticky core deposits is to interest rates, giving an effective duration for a balance that runs off exponentially. You supply `core_balance`, `decay_rate`, `discount_rate` and optionally `max_years`, and it sums the discounted run-off month by month. `prepayment_model_mortgages` asks a different question: what cashflows a mortgage pool will produce, and how long they last, if borrowers prepay at a constant rate. It takes `principal`, `annual_rate`, `term_years` and `cpr`, and works through interest, scheduled principal and prepayment each month to give a weighted-average life. The first is about liabilities (deposits that decay), the second about assets (loans that amortise and prepay). The first also returns a closed-form reference value alongside its main figure, while the second is purely a month-by-month amortisation loop.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "069bf107ae8132d87ef0f303841af705ea8380cbbb17e97db204d1404d4e33a1",
+    "source": "model",
+    "text": "`core_deposit_duration` estimates the effective duration of core deposits by modelling the balance as a decaying annuity that runs off exponentially. You give it the `core_balance`, an annual `decay_rate` and a `discount_rate`, plus an optional `max_years` truncation horizon (default 30). It sums monthly run-off cash flows, weights each by its time and present value, and divides by the total present value to get the primary duration figure. It also returns `closed_form_duration` and `closed_form_present_value` for the untruncated version of the model, as a reference only. The primary figure remains the truncated monthly sum.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d48a03992264e142217d20a0abae9ea2f5ae76a0504032b67e31ee3670a34d01",
+    "source": "model",
+    "text": "`core_deposit_duration` (Core Deposit Duration) fits when you need the effective duration of core deposits modelled as a decaying annuity.\n\n- You have a core balance that runs off at a steady exponential rate, and you want a duration that reflects that run-off, discounted at a rate you choose.\n- You're working on ALM or balance sheet questions, such as sticky core books where `decay_rate` is slow and you want the run-off schedule truncated at a horizon you set with `max_years`.\n- You want the primary figure from a monthly sum over the run-off schedule. pyvar also returns `closed_form_duration` and `closed_form_present_value` for reference, which are most useful as a cross-check when `max_years` is long compared with the run-off and discounting.\n- To split core from non-core balances first, `behavioural_modelling_nmds` is listed as modelling non-maturity-deposit (NMD) run-off, splitting core and non-core.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

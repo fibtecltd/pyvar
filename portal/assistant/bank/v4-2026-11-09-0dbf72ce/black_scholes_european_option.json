@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "aefb48353e032c6230bf4dfe07d426a5f90a7ceac708ed493dcf7a5196d81303",
+      "source": "model",
+      "text": "`black_scholes_european_option` gives the Black-Scholes-Merton price of a European option from a closed-form formula, so it answers \"what is this option worth under the model's assumptions?\" directly. `monte_carlo_option_pricer` prices the same kind of option by simulating many random terminal prices under geometric Brownian motion, discounting the average payoff, and so answers \"what does the average simulated payoff imply for the price?\" Both take `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`. The Monte Carlo version adds `n_simulations` and `seed`, which control how many paths are drawn and make the run repeatable. The Black-Scholes function also accepts `sigma` and `tau` equal to zero and handles those edge cases, whereas the Monte Carlo function requires both to be above zero.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9f566dd20906d48ed552c18d40d25411784c78befa7e3e18ab451857208d3862",
+    "source": "model",
+    "text": "`black_scholes_european_option` (Black Scholes European Option) returns the Black-Scholes-Merton price of a European call or put, with the put following from put-call parity. You supply `spot`, `strike`, `rate` (continuously compounded), `sigma` (annualised volatility) and `tau` (years to maturity), and optionally `option_type` (defaults to \"call\") and `div_yield` (continuous, defaults to zero). The price is built from the discounted spot and discounted strike, weighted by normal-distribution terms. In the edge cases where `tau` is zero or `sigma` is zero, it returns an intrinsic-value limit instead of the full formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eade8ed7e14e7e3fa090f75808cf8193224d2513fde2c8a45d2c8e1a3bef463f",
+    "source": "model",
+    "text": "`black_scholes_european_option` fits when you want a Black-Scholes-Merton price for a European option, one exercisable only at maturity.\n\n- You have a spot price, strike, risk-free `rate`, annualised `sigma` and time to maturity `tau`, and want a closed-form price rather than a simulated one.\n- You need either a call or a put: set `option_type` to `\"call\"` or `\"put\"`.\n- The underlying pays a continuous dividend yield: pass it as `div_yield`.\n- You're pricing at the edges: with `tau` of zero or `sigma` of zero, pyvar returns a limiting-case value instead of the full formula.\n- For sensitivities to the inputs, use `black_scholes_greeks`, which pyvar lists as closed-form Black-Scholes first-order Greeks.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

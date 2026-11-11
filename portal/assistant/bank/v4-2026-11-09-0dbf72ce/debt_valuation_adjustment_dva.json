@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a311e5430e4742f1b5b35f2588f1a8d19cbbc6f02fc5d90325c15959f6f6fc92",
+      "source": "model",
+      "text": "`debt_valuation_adjustment_dva` answers the question \"how much is my own possible default worth to me?\" It values the gain from the bank's own default extinguishing what it owes. It takes the expected negative exposure (`expected_negative_exposure`) and the bank's own credit spread (`own_credit_spread`) and `own_recovery_rate`, and it returns one adjustment value.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how much does counterparty credit valuation move when inputs change?\" It starts from the base CVA, which uses the counterparty's spread and the expected exposure profile (`expected_exposure`). It then returns `cs01`, the change from a one basis point spread shift, and `exposure_delta`, the sensitivity to scaling the exposure profile.\n\nSo `debt_valuation_adjustment_dva` gives a level for the own-default benefit, while `cva_sensitivity_cva_greeks` gives sensitivities of the counterparty-default cost.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a9d8c19ebb8ee3d9d936141c20ca54e6f3dc0bf6ca6fe1a5c8255665d2ef3977",
+    "source": "model",
+    "text": "`debt_valuation_adjustment_dva` (Debt Valuation Adjustment) calculates the benefit a bank gets from its own possible default, since that default would extinguish a liability it owes. It mirrors CVA but uses the expected negative exposure (what the bank owes) and the bank's own credit spread instead of the counterparty's. Per time bucket, it combines that exposure with the discount factor and the probability of own default in that bucket, scaled by the bank's loss given default. It takes `expected_negative_exposure`, `time_steps`, `discount_factors` and `own_credit_spread`, plus an optional `own_recovery_rate`. Internally it calls the CVA function with the own-entity inputs swapped in.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "75da0b1ad9c798b4ed5c2e95940f3073b3ee1b7f5811161f36e3a4567f73ec4b",
+    "source": "model",
+    "text": "`debt_valuation_adjustment_dva` fits when you need the value of your own default risk on a derivatives book.\n\n- You want the gain a reporting bank gets because its own default would extinguish a liability.\n- You already have an expected negative exposure profile (the amount the bank owes) per time bucket, plus discount factors and the bank's own CDS spread.\n- You want the mirror image of CVA, using your own spread and recovery instead of the counterparty's.\n- You're building a bilateral valuation adjustment and need the own-credit side. It simply calls the CVA function with your own inputs substituted in.\n\nFor the counterparty-default side, `credit_valuation_adjustment_cva` is listed as the unilateral Credit Valuation Adjustment.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

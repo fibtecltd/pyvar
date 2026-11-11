@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_portfolio_simulation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b1af190b2d717c3fed939aca7a0666ca1287cd23eb4a224313bfd2de025a94c3",
+      "source": "model",
+      "text": "`marginal_contribution_to_risk` answers \"where does my portfolio's volatility come from?\" It takes `weights` and `cov_matrix` and splits portfolio volatility into a marginal and a component contribution for each asset. The component contributions add up exactly to the portfolio volatility. `monte_carlo_portfolio_simulation` answers a different question: \"how bad could the terminal profit and loss get over a horizon?\" It also needs `mean_returns`, and it draws correlated random returns, compounds them over `horizon` periods, and reports simulated VaR and ES of terminal P&L at a chosen `confidence_level`. In short, the first is a decomposition of current risk by asset, and the second is a simulation-based loss estimate for the whole portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4b7d607156037fbc9d7a2b2b95c76137debced63a97d412c7ab32433520332de",
+    "source": "model",
+    "text": "`marginal_contribution_to_risk` breaks a portfolio's volatility down by asset. You give it `weights` (the portfolio weight per asset) and `cov_matrix` (the asset return covariance matrix). For each asset it returns a marginal contribution, which is how much portfolio volatility is tied to a small change in that asset's weight, and a component contribution, which is the weight times the marginal figure. The component contributions add up exactly to total portfolio volatility, following Euler's theorem, so you can read each asset's share of risk directly.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "250d1144117158ee013b1ad5fa66b8f53a835307fcf068b4f9863200b7d75a4d",
+    "source": "model",
+    "text": "`marginal_contribution_to_risk` (Marginal Contribution To Risk) fits when you want to see where a portfolio's volatility comes from.\n\n- You want to know which assets drive portfolio volatility, using each asset's component contribution (`w_i` times its marginal contribution).\n- You want to see how volatility would respond to a small change in one asset's weight, which is what the marginal contribution shows.\n- You need contributions that add up exactly to portfolio volatility, so you can split the total across assets without a leftover.\n- You have `weights` per asset and a `cov_matrix` of asset returns and want a volatility-based breakdown.\n- For a different need: `concentration_risk_hhi` is listed as measuring concentration risk via the Herfindahl-Hirschman Index (HHI).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

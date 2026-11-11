@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "57bf8eed1ebfd86e05b3738b02b125c111ca7369de8100b3e3553c8035b54f2d",
+      "source": "model",
+      "text": "`portfolio_delta_aggregated` answers \"how much does my portfolio's value move for a small move in the underlying?\" It sums each position's `deltas` times its `quantities` into a net delta. If you supply `spot_prices`, it also returns the cash (dollar) delta. `gamma_cross_gamma_matrix` answers a different question: \"how does that sensitivity itself change, and how do different underlyings interact?\" It assembles a symmetric matrix with each underlying's net gamma (from `own_gammas`) on the diagonal and cross-gammas (from the optional `cross_gammas`) off the diagonal. Delta is a single first-order aggregate, while the gamma matrix is second-order and is used for gamma P&L from a shock vector, 0.5 · ds' G ds. In practice the two are complementary views of the same portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "245b62da614e8ccb57ec50be1e8821e2f565c88f7760d4a931a066ebc97dfb70",
+    "source": "model",
+    "text": "`portfolio_delta_aggregated` (Portfolio Delta Aggregated) combines per-position option deltas into a single net portfolio delta. It multiplies each position's delta (`deltas`) by its signed size (`quantities`) and sums the results, so long and short positions offset one another. If you also pass `spot_prices`, it returns the cash (dollar) delta, which weights each position by its underlying's spot price. That gives you a view of directional exposure to the underlyings, both in units and in currency terms.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4a4b3f120e07f7108a7290cba034bd4d33c47a78d882612d71443d1f041f2705",
+    "source": "model",
+    "text": "`portfolio_delta_aggregated` (Portfolio Delta Aggregated) fits when you need one net directional exposure from many option positions.\n\n- You have per-position deltas and signed position sizes (`deltas` and `quantities`) and want them rolled up into a single net portfolio delta.\n- You want to see how exposed the book is to moves in the underlyings, for example to compare long and short positions that offset each other.\n- You also have underlying spot prices and want the cash (dollar) delta, so supply the optional `spot_prices`.\n- You want a first-order sensitivity measure only, with delta as the input for each position.\n\nIf you need curvature or cross effects across positions instead, `gamma_cross_gamma_matrix` assembles the portfolio gamma / cross-gamma matrix.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

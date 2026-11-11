@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b74ea4e45e034f93818a005fc9f13953c5561d00ed9ea95f14d1f0cb3e161a80",
+      "source": "model",
+      "text": "`oprisk_stress_testing` asks \"how much capital would I need if event frequency and severity got worse?\" It takes `base_capital` and scales it by `frequency_shock` and `severity_shock`, using stressed capital = base × (1 + frequency shock) × (1 + severity shock). `oprisk_capital_allocation` asks a different question: \"given a total amount of capital, how much belongs to each business line?\" It takes `total_capital` and `business_line_risks`, then splits the total in proportion to each line's standalone risk, so the pieces add up exactly to the total.\n\nIn short, the first changes the size of the capital figure under stress, while the second divides a figure that is already set. They can be used one after the other, for example stressing the total first and then allocating it, but each one answers its own question.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a4839ec0acfa642d2c1134f8e223b6f12c71f318e03dcc942b763fc41938781e",
+    "source": "model",
+    "text": "`oprisk_stress_testing` (OpRisk Stress Testing) projects stressed operational risk capital from a baseline figure. You give it `base_capital`, a `frequency_shock` and a `severity_shock`, each a fractional increase in event frequency or severity. It treats aggregate loss as scaling roughly multiplicatively in both drivers, so stressed capital is `base_capital` × (1 + `frequency_shock`) × (1 + `severity_shock`). Both shocks must be at least -1, so a negative shock models an improvement.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c2b772ffd01df83cd12fccaf0cb5ee7dd7d40c30541e03964651859c64884310",
+    "source": "model",
+    "text": "`oprisk_stress_testing` (OpRisk Stress Testing) fits when you want to see how operational risk capital moves under shocks to how often loss events happen and how severe they are.\n\n- You have a baseline OpRisk capital figure (`base_capital`) and want a stressed version of it.\n- You want to test a scenario by shocking event frequency (`frequency_shock`), severity (`severity_shock`), or both together.\n- You accept the simplification that aggregate loss scales roughly multiplicatively in both drivers, so stressed capital is the base times (1 + frequency shock) times (1 + severity shock).\n- You want a quick what-if, including a reduction in either driver, since each shock can be negative down to a floor of -1.\n- For a tail-risk scenario capital uplift for OpRisk, `tail_risk_scenario_oprisk` is the related function listed for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

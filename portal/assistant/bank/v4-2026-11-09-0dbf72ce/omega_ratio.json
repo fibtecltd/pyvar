@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d6cef8bbb13fd2893abb40227cdf43937590ccfa0fbc9dbd98c0d21efe5926d3",
+      "source": "model",
+      "text": "`omega_ratio` asks how much total gain a return series delivers relative to total loss, measured against a threshold you choose with `threshold` (default 0.0). It sums the amounts by which returns beat the threshold and divides by the sums of the amounts by which they fall short, so it summarises the whole distribution of returns in one ratio.\n\n`drawdown_duration` asks a different question: how long the series spends below its prior peak. It counts consecutive periods underwater and reports the longest run and the current one. It is about time spent in decline, not about the size of gains versus losses.\n\nBoth take a `returns` input. `drawdown_duration` also accepts an equity curve if you set `is_equity_curve` to True, while `omega_ratio` works on per-period returns.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c91056bc4e2ca42388ae8651c6118f947e1cff849499287e71cff5ecdf09cb1c",
+    "source": "model",
+    "text": "`omega_ratio` (Omega Ratio) measures a return series by dividing total gains above a threshold by total shortfalls below it. You pass `returns`, a 1-D array of per-period returns, and optionally `threshold`, the per-period return that separates gains from losses (default 0.0). Each period's excess over the threshold is summed in the numerator, and each period's shortfall below it in the denominator. A higher ratio means gains outweigh losses by more relative to your chosen threshold. Because it uses every observation, it reflects the whole return distribution rather than just mean and variance.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4437ed956da13ba69fd5d5e84698651512f052448f82eeb0142504e3bd68e54b",
+    "source": "model",
+    "text": "The Omega Ratio (`omega_ratio`) fits when you want to judge returns by total gains versus total losses around a target you choose.\n\n- You care about the whole shape of returns, not just average and volatility, since every gain and loss relative to a threshold counts.\n- You have a minimum acceptable return in mind. Set it with `threshold` (per-period, default 0.0) and pass your per-period `returns`.\n- You want to compare strategies on how much upside they offer per unit of downside below the same threshold.\n- Your returns are not neatly symmetric, so a single volatility figure feels too crude.\n- If you want the largest peak-to-trough decline instead, `maximum_drawdown` is the related function for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

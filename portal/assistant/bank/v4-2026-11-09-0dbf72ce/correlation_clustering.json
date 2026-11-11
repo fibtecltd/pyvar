@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fama_french_3_factor_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d36e5675411161e482d7683789151a86bca37004baf1814c0271e4f8f9e65b07",
+      "source": "model",
+      "text": "`correlation_clustering` and `fama_french_3_factor_model` answer different questions. `correlation_clustering` takes a return matrix of many assets and asks which of them move together. It turns correlations into a distance and uses single-linkage clustering to group the assets into `n_clusters` groups (default 2).\n\n`fama_french_3_factor_model` looks at one portfolio and asks what drives its excess returns. It regresses those returns on the market, size (SMB) and value (HML) factors, using `excess_returns` and a `factors` matrix. The intercept it reports is the factor alpha.\n\nIn short, one sorts assets into groups from their own co-movement, and the other explains a portfolio's returns through named factors.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "be27129b582bdb10c7167304e90353cf2251fece1cc1730ca386b676372434d6",
+    "source": "model",
+    "text": "`correlation_clustering` (Correlation Clustering) groups assets that tend to move together, based on a return matrix you supply. It converts correlations into a distance, `sqrt(2(1 - rho))`, so highly correlated assets end up close together. It then runs single-linkage agglomerative clustering, repeatedly merging the two clusters whose closest pair of assets is nearest, until only `n_clusters` groups remain (the default is 2). The merging is done by SciPy's tested implementation rather than custom code. Note that the integer labels given to clusters are arbitrary, while the membership of each group is what carries meaning.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a11d1255239ecb748f2c8900d6c2533039102f019e7d6d5988f50481db60cccc",
+    "source": "model",
+    "text": "`correlation_clustering` (Correlation Clustering) fits when you want to group assets by how they move together.\n\n- You have an (n_obs, n_assets) return matrix and want to see which assets co-move, split into a target number of groups set by `n_clusters`.\n- You want a grouping based on correlation distance, so assets that move closely together end up in the same cluster.\n- You're happy with single-linkage merging, where clusters join based on their closest pair of assets.\n- You want a quick view of portfolio structure, such as how holdings bunch into related groups.\n- For a different need: `principal_component_analysis` is listed as a Principal Component Analysis of an asset return matrix.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

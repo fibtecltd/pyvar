@@ -1,0 +1,43 @@
+{
+  "compare": {
+    "sftr_securities_finance_report": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "defc71f082e14581d875bb57c34725bcc734a51e4cb5a2fcb4f335104567f93b",
+      "source": "model",
+      "text": "`emir_clearing_obligation_check` answers whether a counterparty falls under EMIR's clearing obligation, while `sftr_securities_finance_report` answers whether a securities financing transaction report has its core fields filled in correctly. The first takes `notionals`, `counterparty_category` (\"FC\", \"NFC+\" or \"NFC-\") and `clearing_thresholds`, and compares each asset class's notional with its threshold. For an FC, breaching in any one asset class puts all its asset classes under clearing. For an NFC+, only the classes it breaches are affected. The second takes a single `transaction` mapping and validates a core subset of SFTR fields for repos, securities lending, buy-sell backs and margin lending, such as counterparties, UTI, collateral and the SFT type. So one is a regulatory scope test on derivatives positions, and the other is a field-presence and format check on a transaction report.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b8b6cb9e06f79ab1764f1c91352a2d2c1beed64a791c362547d1d562eaeafa52",
+    "source": "model",
+    "text": "`emir_clearing_obligation_check` (EMIR Clearing Obligation Check) works out which OTC derivative asset classes a counterparty must clear under EMIR REFIT. You give it `notionals` per asset class, a `counterparty_category` (\"FC\", \"NFC+\" or \"NFC-\"), and `clearing_thresholds` per asset class. For a Financial Counterparty, breaching the threshold in any one class brings all the classes it holds positions in under the obligation. For an NFC+, each class is judged separately, so only classes where its own threshold is breached are caught. pyvar does the comparison; the citation is Art. 4a(1) / Art. 10(1).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Says NFC- is a valid input but not what the function does for it (exempt).",
+        "Bullet on reviewing an earlier per-class approach is an odd use case."
+      ]
+    },
+    "record_sha256": "09ea25d7d71fc38288f764bcf3022b5cf26c1cbe690de595a916c07a3637055b",
+    "source": "model",
+    "text": "Use the EMIR Clearing Obligation Check (`emir_clearing_obligation_check`) when you need to see which OTC derivative asset classes fall under EMIR clearing for a given counterparty:\n\n- You know the counterparty is a Financial Counterparty (`\"FC\"`) and want to see whether a breach in any one asset class pulls all its asset classes into clearing.\n- The counterparty is a Non-Financial Counterparty above threshold (`\"NFC+\"`), and you want each asset class judged on its own threshold.\n- You hold gross notionals for every asset class the counterparty trades, plus a clearing threshold for each, and want to pass them in as `notionals` and `clearing_thresholds`.\n- You're reviewing an earlier per-class-only approach for FCs, which could understate the clearing scope.\n\nIf the counterparty is `\"NFC-\"`, it is also a valid `counterparty_category` input.\n\nFor a different need, `emir_margin_requirement` covers the EMIR (Art. 11) uncleared-derivatives margin requirement.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "674043ad610921cfa7e8bb0fd81302496420acb60bf0aeb48340058f88cb9bde",
+      "source": "model",
+      "text": "`black_scholes_greeks` answers \"how sensitive is an option's value to its inputs?\" It returns delta, gamma, vega, theta (per year) and rho from closed-form Black-Scholes formulas, with gamma and vega the same for calls and puts. `monte_carlo_option_pricer` answers \"what is this European option worth?\" It simulates many terminal underlying prices under geometric Brownian motion, takes the average discounted payoff, and returns a price rather than sensitivities.\n\nThe two share the same core inputs: `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`. The Monte Carlo function adds `n_simulations` and `seed`, which control the number of simulated paths and make the random draws repeatable. The Greeks function has no simulation settings because it evaluates formulas directly.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3f2220178cfa9765335344587563963c895c2c95133e578e13b525c7c93f23a1",
+    "source": "model",
+    "text": "`black_scholes_greeks` computes the closed-form Black-Scholes first-order Greeks for a European option: delta, gamma, vega, theta (per year) and rho. You supply `spot`, `strike`, `rate`, `sigma` (annualised volatility) and `tau` (years to maturity). Optionally, you can set `option_type` to \"call\" (the default) or \"put\", and add a continuous `div_yield`. Gamma and vega come out the same for calls and puts, while delta, theta and rho differ by option type. These are the standard sensitivities used to see how an option's value responds to moves in the underlying, volatility, time and rates.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e349fab162ffd7d753f01eeb7c121a64532322348500a7a7b3177b8298dd988f",
+    "source": "model",
+    "text": "`black_scholes_greeks` fits when you want the sensitivities of a European-style option under Black-Scholes assumptions:\n\n- You need delta, gamma, vega, theta (per year) and rho in closed form, without simulation or a tree.\n- You're looking at a call or a put, with or without a continuous dividend yield (`div_yield`), and want to see how it affects the Greeks.\n- You have a flat risk-free `rate`, an annualised volatility `sigma` and a time to maturity `tau` in years, all as plain inputs.\n- You want a quick way to see how an option's value responds to changes in spot, volatility, time or rates. Gamma and vega are the same for calls and puts.\n\n- If you want the option's price rather than its Greeks, `black_scholes_european_option` gives the Black-Scholes-Merton price of a European option.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b67488425fb1a3e8e29f6b88c834d3acea54a3b5226119526b7ff4dc0ece6bf8",
+      "source": "model",
+      "text": "`liquidity_adjusted_es` and `expected_shortfall_contribution` answer different questions. The first asks how large the portfolio's Expected Shortfall (ES) should be once slower-to-unwind risk factors are accounted for. It takes the base-horizon ES (`es_base`), the partial ES figures for longer liquidity buckets (`partial_es`) and the `liquidity_horizons`, and scales them up as in FRTB IMA, MAR33.12. The second, `expected_shortfall_contribution`, asks how much each asset contributes to total ES. It works from a matrix of per-asset returns (`asset_returns`), the `weights`, the `portfolio_value` and a `confidence_level`. It averages each asset's loss across the scenarios where the portfolio breaches VaR, so the contributions add up to total ES. In short, one adjusts the size of the ES for liquidity, while the other splits an ES across assets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Could mention partial_es length K-1 and that LH_1 must equal base_horizon",
+        "Does not state base_horizon default of 10 days"
+      ]
+    },
+    "record_sha256": "30b1a7c53fd9f35fcca1d27bb13c6ffde5f426ea8f05b7534ba3cf2d82ffdca1",
+    "source": "model",
+    "text": "`liquidity_adjusted_es` (Liquidity Adjusted ES) computes the FRTB internal models approach liquidity-adjusted Expected Shortfall, following MAR33.12. It starts from the whole-portfolio ES at the base horizon (`es_base`) and scales it up for risk factors that take longer than the base horizon to unwind. You supply the partial ES figures for each liquidity bucket (`partial_es`) and the liquidity horizons (`liquidity_horizons`), plus an optional `base_horizon`. The function combines these in a square-root-of-sum-of-squares formula, adding a term for each step between successive liquidity horizons.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "995b263970be21f35df5aae094b4df055f7381a35d72769cc345d70de34800f6",
+    "source": "model",
+    "text": "`liquidity_adjusted_es` (Liquidity Adjusted ES) fits when you need to scale a base-horizon Expected Shortfall for risk factors that take longer to unwind.\n\n- You are working under the FRTB internal models approach (MAR33.12) and need ES adjusted for liquidity horizons.\n- Your portfolio has risk factors in different liquidity buckets, and you already have the whole-portfolio ES at the base horizon (`es_base`) plus the partial ES figures for buckets 2 onward (`partial_es`).\n- You want the adjustment to follow your own `liquidity_horizons` and `base_horizon`, rather than treating every factor as equally liquid.\n- Related need: `stressed_expected_shortfall` is listed as \"Stressed Expected Shortfall (FRTB IMA)\".",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

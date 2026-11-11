@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "model_risk_assessment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "cd5e4c734357983268cc12fdd6b9ccab401eed84cf5c3aacce3077f01d694211",
+      "source": "model",
+      "text": "`it_risk_scoring` answers \"how risky are our IT operations right now?\" It takes `availability`, `incident_count` and `patch_compliance`, and blends them into a 0-100 score (higher is worse) with a RAG band. `model_risk_assessment` answers \"how much risk does this particular model pose, after validation?\" It multiplies `materiality` and `complexity` (each rated 1-5) into an inherent score, then discounts it by `validation_score` to give a residual model-risk tier. The first works from measured operating data about systems, while the second works from judgement ratings about a model and how well it has been validated.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "623cd12f291382fc0f2c1f3229d0cc1ab66f5bceea2b30275c43f880d2317dbb",
+    "source": "model",
+    "text": "`it_risk_scoring` (IT Risk Scoring) produces an IT operational-risk score on a 0-100 scale, where higher means worse, along with a RAG band. It blends three inputs: `availability` as a fraction, `incident_count` for the period, and `patch_compliance` as a fraction. Lower availability, more incidents and weaker patching each push the score up, and the result is capped at 100. pyvar does the calculation, so you supply the three inputs and read back the score and band.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1e9cd85399add6138d208aa5a7bd179f667d3227660b62a2af5dc26a0fafde37",
+    "source": "model",
+    "text": "`it_risk_scoring` (IT Risk Scoring) fits when you want a quick, comparable view of IT operational risk from three inputs:\n\n- You have system availability as a fraction (`availability`), a count of IT incidents in the period (`incident_count`), and patch compliance as a fraction (`patch_compliance`).\n- You want a single 0-100 score, where higher means worse, plus a RAG band for easy reporting or tracking over time.\n- You want to compare periods, systems or business units on the same simple basis.\n- You want a transparent blend of availability, incident frequency and patching, rather than a loss estimate.\n\nIf your need is different, `cyber_risk_loss_estimation` estimates expected and worst-case cyber loss.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

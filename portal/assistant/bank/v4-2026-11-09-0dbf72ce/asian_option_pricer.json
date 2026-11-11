@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "barrier_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "74f1fb662c2e21654a8c56d231512d1aff3623aa2b830f59254665614ab34c73",
+      "source": "model",
+      "text": "`asian_option_pricer` prices an option whose payoff depends on the arithmetic average of the underlying's price across `n_steps` observation dates. It uses Monte Carlo, and because averaging dampens volatility, it is worth less than the matching vanilla European option. `barrier_option_pricer` instead asks what an option is worth when it is knocked in or out if the price touches a `barrier` level. It uses the Reiner-Rubinstein closed form, so there are no simulation settings, and it supports an optional cash `rebate`. In short, the Asian pricer answers \"what is it worth given the path's average?\", while the barrier pricer answers \"what is it worth given whether the path crosses a level?\" Both share inputs like `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "893f6501580f129d160f609231f97fa5ee0d51e6dc0ff62d325b626bf59f0d0d",
+    "source": "model",
+    "text": "`asian_option_pricer` (the Asian Option Pricer) estimates the price of an arithmetic-average Asian option by Monte Carlo simulation. It simulates price paths for the underlying, averages the prices at the observation dates, and discounts the expected payoff of a call or put on that average versus the strike. Because averaging reduces volatility, an Asian option is worth less than the matching vanilla European option. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can tune `n_steps`, `n_simulations`, `div_yield` and `seed`. Optional flags switch on quasi-Monte Carlo (`qmc`) for a lower-variance estimate, or compute the Greeks (`greeks`).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Framing 'you want a price below the vanilla' as a use case is odd; it is a property, not a selection criterion."
+      ]
+    },
+    "record_sha256": "3a3e1138b9a2b1eb1b6ead1f1373456efb47c395a845f013e2896f1c546b3bc9",
+    "source": "model",
+    "text": "The `asian_option_pricer` (Asian Option Pricer) fits when the payoff depends on an average price rather than the final price:\n\n- You want an arithmetic-average Asian call or put priced by Monte Carlo. `average_type` accepts only `\"arithmetic\"`.\n- You want a price below the matching vanilla European option, since averaging reduces volatility.\n- You want to tune accuracy: `n_steps` sets the number of averaging observations and `n_simulations` the number of paths. Setting `qmc` to True gives a lower-variance estimate at the same path count.\n- You also want delta, gamma, vega, theta and rho: set `greeks` to True (not supported together with `qmc`).\n- If you need a lookback option instead, `lookback_option_pricer` is the related function for pricing those via Monte Carlo.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9c0d00046e11a23d773a4bbd5aa97465d0e7e7ce307dc3f48847bc3df0a8c418",
+      "source": "model",
+      "text": "`volga_vega_convexity` measures how an option's vega changes as volatility changes (∂²V/∂σ²). It takes inputs such as `spot`, `strike`, `rate`, `sigma` and `tau`, and gives the same answer for calls and puts. Positive volga means the position is long volatility-of-volatility. `gamma_cross_gamma_matrix` answers a different question: how does portfolio value respond to moves in the underlying prices themselves? It assembles net gammas per underlying (`own_gammas`) on the diagonal and optional cross-gammas (`cross_gammas`) off the diagonal into a symmetric matrix, which gives gamma P&L for a shock vector as 0.5 · ds' G ds. In short, volga is about curvature with respect to volatility for a single option, while the gamma matrix is about curvature with respect to prices across a portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5a3d9f7185aba9d804151974dc72fcbb4425a24a4463a335afaa50062636f05c",
+    "source": "model",
+    "text": "`volga_vega_convexity` computes volga (also called vomma), which measures how an option's vega changes as volatility changes, i.e. the convexity of value with respect to volatility. It follows the formula vega · d1 · d2 / σ, and the result is the same for calls and puts. A positive volga means the position is long volatility-of-volatility. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, plus an optional `div_yield` that defaults to 0.0.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "11db2f3c29093f3ffe031a860e84ff5acf643a6cdf5da6823f07404e9cf112a1",
+    "source": "model",
+    "text": "`volga_vega_convexity` (Volga, or vomma) fits when you want to see how an option's vega itself changes as volatility moves.\n\n- You want to measure exposure to volatility-of-volatility: positive volga means the position is long it.\n- Vega alone feels too simple because it may shift when volatility moves, so you need the second-order effect in volatility.\n- You're analysing a call or a put, since volga is identical for both.\n- You have spot, strike, rate, volatility and time to maturity, plus an optional `div_yield` if the underlying pays a dividend.\n- For a different need, `vanna_delta_vega_cross` is listed as the cross sensitivity ∂vega/∂S = ∂Δ/∂σ, which links vega to the spot price rather than to volatility alone.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

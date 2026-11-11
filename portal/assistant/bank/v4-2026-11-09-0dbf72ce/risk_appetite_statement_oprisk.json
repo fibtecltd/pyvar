@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b6401b5d87377b1671858df46b04492fe463555e6bfeb80d10c60a3cb296795e",
+      "source": "model",
+      "text": "`risk_appetite_statement_oprisk` asks whether a current OpRisk metric sits inside a two-tier limit structure: it returns `within_appetite`, `within_tolerance` or `breach` by comparing `current_metric` with `appetite_limit` and `tolerance_limit`. It also gives a utilisation figure against the tolerance limit, and `higher_is_worse` lets you flip the direction for metrics where lower is adverse. `escalation_threshold_calculation` asks a different question: given a loss amount, which governance level should it be routed to? It takes a `loss_amount` and a `thresholds` mapping of level to minimum amount, and picks the triggered level with the largest threshold. In short, the first judges a metric against limits, while the second routes a loss to the right tier of governance.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Omits the middle band explicitly (above appetite up to tolerance gives within_tolerance), though it is implied."
+      ]
+    },
+    "record_sha256": "31dfd69372e4c387bc73cd63f1e3a4e0a24afd21518a9377be418aa84abf7e5c",
+    "source": "model",
+    "text": "`risk_appetite_statement_oprisk` (Risk Appetite Statement OpRisk) checks an operational risk metric against a two-tier limit structure and returns a status of `within_appetite`, `within_tolerance` or `breach`. You supply `current_metric`, the `appetite_limit` (the desired ceiling) and the `tolerance_limit` (the absolute maximum before escalation). By default higher values are treated as adverse, so a metric at or below appetite is within appetite, and one above tolerance is a breach. Set `higher_is_worse=False` and every inequality reverses. It also reports utilisation, which is the metric divided by the tolerance limit, or the tolerance limit divided by the metric in the reversed case.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a4e5f88f0ffc6a9b18abeea0600b9de6e1bd5be40259897e1ab7b10d0d1678b1",
+    "source": "model",
+    "text": "Use `risk_appetite_statement_oprisk` (Risk Appetite Statement OpRisk) when you need to check an operational risk metric against a two-tier limit structure:\n\n- You have a current metric value and want to know if it is `within_appetite`, `within_tolerance` or a `breach`.\n- You have both an appetite limit (the desired ceiling) and a tolerance limit (the absolute maximum before escalation) to test against.\n- Your metric can be one where higher is worse, such as loss amounts, or one where lower is worse. Set `higher_is_worse` to match, and the comparisons and utilisation flip accordingly.\n- You want a utilisation figure against the tolerance limit alongside the status.\n- For deciding an escalation level for a loss against tiered thresholds, `escalation_threshold_calculation` is listed as the function for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

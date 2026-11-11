@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "12979997350b031153cc97e2363aa5d16e13f17a96f7b487bfa93b4068701936",
+      "source": "model",
+      "text": "`liquidity_transfer_pricing` answers \"what does it cost to fund this position?\" It adds `base_rate`, `liquidity_spread` and an optional `contingent_spread` into an all-in rate, then applies that to `notional` for an annual charge and multiplies by `tenor_years` for a lifetime charge. Its purpose is to pass liquidity costs on to business lines.\n\n`ilaap_internal_liquidity_metric` answers \"is the institution's own liquidity adequate under stress?\" It compares `counterbalancing_capacity` with `stressed_net_outflow` as a coverage ratio, and checks `survival_days` against `minimum_survival_days`. Both tests must pass for it to count as adequate.\n\nIn short, one prices funding costs, while the other tests whether liquidity resources are sufficient.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ce58ff187cf72f9ee668fa50e01690292700dbc10182a0349350412990a92796",
+    "source": "model",
+    "text": "`liquidity_transfer_pricing` (Liquidity Transfer Pricing) calculates the charge that passes the cost of funding a position on to a business line. It builds an all-in transfer rate by adding a base rate, a term liquidity premium (`liquidity_spread`) and an optional contingent liquidity premium (`contingent_spread`) for undrawn or optional commitments. It applies that rate to the position's `notional` to give an annual charge, then multiplies by `tenor_years` for the lifetime charge. Rates and spreads are entered as decimals.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "35f70b402578abe1eeca21d3fe4f5ede869987ef1c00a19acb3547ebe6575e52",
+    "source": "model",
+    "text": "`liquidity_transfer_pricing` (Liquidity Transfer Pricing) fits when you need to pass the cost of liquidity on to a business line for a funding position.\n\n- You want an annual or lifetime charge on a position: it applies the all-in transfer rate to `notional`, and the lifetime charge also uses `tenor_years`.\n- You have a base funding rate and a term liquidity premium (`base_rate`, `liquidity_spread`) and want them combined into one transfer rate.\n- The position includes undrawn or optional commitments, so you can add a `contingent_spread` (it defaults to zero if you leave it out).\n- You want to compare the funding cost of positions with different sizes or tenors on a consistent basis.\n\nIf you instead want to assess contingent liquidity risk from undrawn commitments and guarantees, `contingent_liquidity_risk` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

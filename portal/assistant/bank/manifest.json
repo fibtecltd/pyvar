@@ -1,0 +1,25 @@
+{
+  "bank_version": "v4-2026-11-09-0dbf72ce",
+  "built": "2026-11-11",
+  "catalogue_sha256": "0dbf72cea40164090ba201c7dd54dc1911fde65d77b8c806b34f0c92a02b952b",
+  "complete": true,
+  "counts": {
+    "escalated": 5,
+    "expected": 1154,
+    "model": 1152,
+    "regenerated": 209,
+    "static": 2,
+    "total": 1154
+  },
+  "grader_sha256": "fed79ccb79948c41cfdc0a2760a8eba5eca888b9455d94cd6180f961b2858711",
+  "models": {
+    "escalation": "claude-opus-5-5",
+    "gate": "claude-opus-5-5",
+    "writer": "claude-sonnet-5-5"
+  },
+  "prompt_sha256": "526cdc144601d32266fe89380e0066293446de8cf373630df2081a670b662e74",
+  "prompt_version": "v4-2026-11-09",
+  "reusable_from": [],
+  "run_cost_usd": 16.4868,
+  "stopped": null
+}

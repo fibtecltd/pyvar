@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "dba7f4ba9c4889b8bb834637b6ab628ca2736a6651ae04c30239560904326c57",
+      "source": "model",
+      "text": "`frtb_ima_aggregate_capital_charge` answers \"what is the total IMA capital charge?\" It adds the internally-modelled capital charge (`imcc`), the non-modellable risk factor capital (`ses`) and, optionally, the `default_risk_charge` into one figure, following MAR33.43. `frtb_ima_stressed_period_finder` answers a different question: \"which historical window was the most stressful?\" It slides a window across your full `returns` history and returns the start index of the window with the largest Expected Shortfall. The first is a final summation step that takes already-computed charges as inputs. The second is an upstream step that helps calibrate the stressed ES, which feeds into the ES-based charge. They don't overlap, so you would use the finder while preparing the modelled inputs and the aggregate function when combining the finished components.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "51d5be4a2ff89876936ecb9298e5f336ae3eea227d79f468f0467009f9e31f7f",
+    "source": "model",
+    "text": "`frtb_ima_aggregate_capital_charge` (FRTB IMA Aggregate Capital Charge) adds up the three pieces of the FRTB internal models approach capital requirement: `ACC = IMCC + SES + DRC`. You supply `imcc`, the expected-shortfall-based internally-modelled capital charge, and `ses`, the aggregate capital for non-modellable risk factors. You can also pass `default_risk_charge`, which defaults to 0.0 if omitted. It follows MAR33.43 and returns the combined figure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8c9495e1d7115b7af14998f47cdc354321fe418545b141fc29fd16a90f455858",
+    "source": "model",
+    "text": "`frtb_ima_aggregate_capital_charge` (FRTB IMA Aggregate Capital Charge) fits when you need to combine the separate internal-model pieces into one total.\n\n- You already have the ES-based internally-modelled capital charge (`imcc`) and the aggregate non-modellable risk factor capital (`ses`) and want them summed into one charge.\n- You also have a default risk charge to include, passed as `default_risk_charge`. It is optional and defaults to 0.0, so leave it out if there is none.\n- You are following the MAR33.43 aggregation, `ACC = IMCC + SES + DRC`.\n- Use it as the final step, after the components have been calculated elsewhere, since this function only adds them.\n\nIf you still need the non-modellable piece, `frtb_ima_non_modellable_risk_factors` is listed as computing FRTB IMA non-modellable risk factor (NMRF) capital, the aggregate SES.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

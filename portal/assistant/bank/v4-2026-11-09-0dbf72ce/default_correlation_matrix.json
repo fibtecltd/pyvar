@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ratings_migration_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c1157df65be8e6106e464152bb0f238411afa38d094d2012335c9806eb032827",
+      "source": "model",
+      "text": "`default_correlation_matrix` answers the question \"how strongly are obligors' defaults linked to each other?\" It takes each obligor's probability of default (`pd`) and a matrix of asset correlations (`asset_correlation`), then uses a Gaussian copula to turn them into pairwise default correlations. `ratings_migration_matrix` answers a different question: \"how do obligors move between rating states over a period?\" It counts observed transitions from `from_rating` to `to_rating` across `n_states` states, with default as the last, and normalises each row into probabilities. The first function models co-movement of defaults between pairs of obligors from inputs you supply. The second estimates transition probabilities from observed rating data. They can be used side by side in a credit-risk workflow, but neither one feeds the other directly.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8e05bf338c0be02317f2109341395744fe0c8c786214f3cb71c65ef13b14f9d9",
+    "source": "model",
+    "text": "`default_correlation_matrix` (Default Correlation Matrix) converts asset correlations between obligors into pairwise default correlations, using a Gaussian copula. You give it `pd`, the per-obligor default probabilities, and `asset_correlation`, a symmetric matrix with unit diagonal. For each pair it takes the joint default probability from the bivariate normal CDF at the two obligors' default thresholds, using their asset correlation. It then subtracts the product of the two PDs and divides by the square root of each obligor's PD times one minus PD. The output is a matrix of default correlations, one entry per pair.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ebb3da85cf0e81535cf041504921effed26557d8f2df13be7ad98a6313eb20c3",
+    "source": "model",
+    "text": "Use Default Correlation Matrix (`default_correlation_matrix`) when you need to turn asset correlations into default correlations between obligors:\n\n- You have a per-obligor probability of default (`pd`) and an asset-correlation matrix (`asset_correlation`), and want pairwise default correlations from them.\n- You are modelling credit risk with a Gaussian copula, where joint default probability comes from a bivariate normal CDF.\n- You want a full matrix of default correlations across a set of obligors, for example as an input to portfolio credit analysis.\n- Your asset correlations are already a symmetric matrix with unit diagonal and entries between -1 and 1.\n\nIf you instead want to estimate a row-stochastic ratings-migration matrix using the cohort method, `ratings_migration_matrix` is the related function for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

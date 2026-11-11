@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5d6e7f9bf7297ef93d605521c485167ada738c1db7b419578064582f652025d0",
+      "source": "model",
+      "text": "`oas_option_adjusted_spread` asks what constant spread over the short rate makes a callable bond's tree-based price match its observed market price, which strips out the embedded call option so spreads are comparable across bonds. It takes inputs like `market_price`, `short_rate`, `rate_vol` and `call_price`, and finds the spread by root-finding (Brent's method) against the `callable_bond_pricer` tree price rather than a closed-form formula.\n\n`modified_duration` asks a different question: how sensitive is a bond's price to a small change in yield? It works from a list of `cashflows`, their `times` and a `yield_rate`, and is Macaulay duration divided by (1 + y/m), approximating the percentage price change for a yield move.\n\nSo the first is a spread-valuation measure that accounts for the call option, and the second is a rate-sensitivity measure built from fixed cashflows.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "04a10ba037aa481d1f41381790da1bad6dc94c9ee6e268cfb1abae8697041e5a",
+    "source": "model",
+    "text": "`oas_option_adjusted_spread` (OAS Option Adjusted Spread) finds the constant spread that, added to the short rate on a pricing tree, makes a callable bond's model price match its observed market price. Because the embedded call option is accounted for in the tree, the resulting spread is easier to compare across bonds. You supply the `market_price`, `face_value`, `coupon_rate`, `short_rate`, `rate_vol`, `maturity` and `call_price`, plus an optional `frequency`. The spread is found with a root-finding solver (Brent's method) against the tree price from `callable_bond_pricer`, not from a closed-form formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "\"credit and liquidity compensation\" is a textbook reading of OAS, not something the record states, though it is uncontroversial."
+      ]
+    },
+    "record_sha256": "20ba229dd521c70b6fe62da94698cc5fec72d2877817fd152fd72124c3eab946",
+    "source": "model",
+    "text": "`oas_option_adjusted_spread` fits when you want to price the credit and liquidity compensation of a callable bond with its embedded call option stripped out.\n\n- You have a callable bond's observed market price and want a spread that is comparable with other bonds, whether or not they carry a call.\n- You can supply the tree inputs: `short_rate`, `rate_vol`, `maturity`, `call_price`, plus `face_value` and `coupon_rate`, and optionally `frequency`.\n- You want the option's value reflected in the spread, rather than a spread that ignores how the issuer might call the bond.\n- You are happy with a numerical answer: pyvar finds the spread by root-finding against the `callable_bond_pricer` tree price, not by a closed-form formula.\n\nDifferent need: `z_spread_calculator` is listed as the constant spread over the zero curve that reprices the bond.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

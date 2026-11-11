@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "sector_attribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ff232d3766b99f76947e12a9895dc5f4e515dade62a908138662ba0576d69e7c",
+      "source": "model",
+      "text": "`return_attribution_brinson` answers the general question: how much of a portfolio's active return came from allocation, selection and interaction in each segment, where you define the segments yourself. `sector_attribution` answers the same question for one case, where the segments are GICS sectors. It is a thin specialisation of `return_attribution_brinson`, so the formulas for the three effects are the same, and in both the effects reconcile to the total active return. The inputs also match, except that the optional label parameter is `segment_names` in the general function and `sector_names` in the sector one. Use `return_attribution_brinson` when your segments are something other than sectors, such as regions or asset classes. Use `sector_attribution` when you want the breakdown framed by sector.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4edffc0cbb73d65887cd4d177f281a56f78f6bdba7669386fd6a90c4598ce6bc",
+    "source": "model",
+    "text": "`return_attribution_brinson` runs Brinson-Hood-Beebower return attribution, splitting a portfolio's active return versus its benchmark into allocation, selection and interaction effects for each segment. Allocation reflects over- or underweighting a segment relative to the benchmark, selection reflects how the portfolio's returns within a segment differ from the benchmark's, and interaction captures the combination of the two. You supply portfolio and benchmark weights and returns per segment, plus optional `segment_names` labels. The three effects sum exactly to the total active return (portfolio return minus benchmark return), the reconciliation property performance reporting requires.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0199a68c8f0038bf37e9cfc5e48b0a12f69a85f2b1f070e70c9d6da40fe75e1a",
+    "source": "model",
+    "text": "`return_attribution_brinson` (Return Attribution Brinson) fits when you need to explain why a portfolio's return differed from its benchmark's.\n\n- You want the active return split into allocation, selection and interaction effects for each segment.\n- You need the effects to reconcile exactly to the total active return (portfolio minus benchmark), as performance reporting requires.\n- You have segment weights and segment returns for both the portfolio and the benchmark, with weights summing to 1 in each.\n- You want to separate the impact of over- or underweighting segments from the impact of picking better or worse returns within them.\n- `sector_attribution` is listed as Brinson allocation/selection grouped by sector.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Says risk_aversion helps set how much weight the views get; per the formula λ scales the equilibrium returns Π, while τ and Ω set the prior-versus-views blend."
+        ]
+      },
+      "record_sha256": "cac995ce204f0ac04ff7f3e63b8b2fc47ef641bd021af7c7a72af754673046f8",
+      "source": "model",
+      "text": "`black_litterman_model` asks: given market-cap equilibrium weights and my views on some assets, what expected returns and weights result? It starts from the equilibrium returns implied by `market_weights` and `cov_matrix`, then blends in your views (`p_matrix` and `q_views`). `tau`, `risk_aversion` and `omega` control how much weight the views get. The output is posterior expected returns plus the matching mean-variance weights.\n\n`maximum_sharpe_ratio_portfolio` asks: given expected returns I already have, which weights give the highest Sharpe ratio with weights summing to 1? You supply `mean_returns` and `cov_matrix` directly, along with options such as `risk_free` and `allow_short`.\n\nIn short, the first builds the return estimates from equilibrium and views, while the second takes your return estimates as given and finds the tangency portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "The fallback for omega is diag(P τΣ Pᵀ), so it also uses the covariance matrix, not only the views and tau."
+      ]
+    },
+    "record_sha256": "a997de7bd7d14d91a2d8c1d5e5b07553d495db8d4561a2c03a0884fd3680788e",
+    "source": "model",
+    "text": "`black_litterman_model` blends market-implied equilibrium returns with your own views on asset returns to produce posterior expected returns and matching mean-variance weights. It starts from the returns implied by market-cap weights (`market_weights`), the covariance matrix (`cov_matrix`) and `risk_aversion`. It then adjusts them toward your views, which you give through `p_matrix` (which assets each view involves) and `q_views` (the view returns). `tau` scales the uncertainty in the equilibrium, and the optional `omega` sets how uncertain each view is. If you leave `omega` out, pyvar derives it from the views and `tau`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cc0f9651a2b3faeb3ec3b3e18df97507a51ebab55cc165406187680a361e7da2",
+    "source": "model",
+    "text": "`black_litterman_model` fits when you want to blend market-implied returns with your own views on assets.\n\n- You have a market-cap equilibrium portfolio (`market_weights`) and want a starting point for expected returns that comes from CAPM-implied equilibrium rather than raw historical averages.\n- You hold specific views, absolute or relative, that you can express with `p_matrix` and `q_views`, and you want them to tilt the returns without fully overriding the equilibrium.\n- You can say how uncertain each view is (`omega`), or you are happy with the default, and you can tune how much you trust the equilibrium with `tau`.\n- You want both posterior expected returns and the matching mean-variance weights from one call, using your chosen `risk_aversion`.\n- For a different need: `risk_parity_portfolio` is listed as an equal risk contribution (risk parity) portfolio, which suits cases where you don't want to use return views at all.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

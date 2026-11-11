@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2b3d7c611f3839b8367483c7384ef792d2ff9d9d912a8a430d92b0d03bcef03f",
+      "source": "model",
+      "text": "`insurance_offset_calculation` answers \"how much of a single operational loss would insurance cover?\" It takes `gross_loss`, `deductible`, `policy_limit` and an optional `haircut`, and gives the recoverable amount, which is the loss above the deductible, capped at the policy limit, then reduced by the haircut. From that it also gives the net loss and the recovery rate. `oprisk_capital_allocation` answers a different question: \"how should a firm-wide OpRisk capital figure be split across business lines?\" It takes `total_capital` and `business_line_risks`, and shares the total in proportion to each line's standalone risk, so the pieces add up exactly to the total. In short, the first works on one loss and what insurance offsets, while the second works on a capital total and who bears which share.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e35d0e8a0e95b7a7521418ea16f3cebd2e3fa9d2c7f330ad662edbe847ffc6d3",
+    "source": "model",
+    "text": "`insurance_offset_calculation` (Insurance Offset Calculation) estimates how much of an operational loss insurance would recover. It takes the `gross_loss`, subtracts the `deductible` (never going below zero), and caps the result at the `policy_limit`. An optional `haircut`, between 0 and 1, then reduces that recovery to reflect a supervisory discount. It gives you the recovery, the net loss after insurance (gross loss minus recovery), and the recovery rate (recovery divided by gross loss). Any overall cap on insurance recognition is applied by the caller, not by this function.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d9511b99adb080120f74a60fd6e4eb6539ef7248701edce7060a158f2757d022",
+    "source": "model",
+    "text": "Use `insurance_offset_calculation` (Insurance Offset Calculation) when you need to see how insurance reduces an operational loss:\n\n- You have a gross operational loss and want the amount a policy could recover, given its `policy_limit` and `deductible`.\n- You want to apply a supervisory `haircut` to that recovery, for example to reflect residual term or payment uncertainty.\n- You want the net loss after insurance and the recovery rate (recovery divided by gross loss).\n- You're modelling a single loss event or scenario. Any overall cap on insurance recognition is applied by you, the caller, not by the function.\n- For a broader capital figure, `oprisk_economic_capital` is listed as OpRisk economic capital (unexpected loss net of mitigants).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

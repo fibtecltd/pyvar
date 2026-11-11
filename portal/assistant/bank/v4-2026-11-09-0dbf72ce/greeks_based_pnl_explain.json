@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7004ff8c9bbb14ae3013d4233c1f30161b863ac589d80818aef2b1c413434ce8",
+      "source": "model",
+      "text": "`greeks_based_pnl_explain` answers \"how much of this period's P&L do the Greeks account for?\" It takes your portfolio's `delta`, `gamma`, `vega`, `theta` and `rho`, plus the realised moves and the `actual_pnl`. It then gives a predicted P&L from a second-order expansion, and the unexplained residual is `actual_pnl` minus that prediction.\n\n`pnl_attribution_test_frtb_pat` answers a different question: \"does the model-based P&L track the full-revaluation P&L well enough to pass the FRTB test?\" It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`. It evaluates their Spearman rank correlation together with the ratio of their standard deviations, then assigns a Basel traffic-light zone. The thresholds are set by the Basel Committee and are not parameters you can change.\n\nIn short, the first function explains one period's P&L from the Greeks, while the second tests whether two P&L series agree over time.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "448aaa8f122605eb8b163bdbb5ee4012ac2221114dd29fad64a639ceccb93d24",
+    "source": "model",
+    "text": "`greeks_based_pnl_explain` (Greeks Based Pnl Explain) does a second-order Greeks P&L explain: it takes your portfolio's `delta`, `gamma`, `vega`, `theta` and `rho` along with the realised moves in the underlying (`spot_move`), volatility (`vol_move`), time (`time_step`) and rates (`rate_move`). From these it builds a predicted P&L: delta times the spot move, plus half gamma times the squared spot move, plus the vega, theta and rho terms. It then compares that with the `actual_pnl` you supply. The difference, actual minus predicted, is the unexplained residual, which is the quantity the FRTB P&L attribution test (PAT) scrutinises. Keep `theta` in the same time unit as `time_step`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "085e3b2acdb9e6f4ba7bf5b734e6ef377e2cc91df493ffb7dc79abe8dd611b0a",
+    "source": "model",
+    "text": "`greeks_based_pnl_explain` fits when you want to see how much of a period's P&L your Greeks account for.\n\n- You have portfolio `delta`, `gamma`, `vega`, `theta` and `rho`, plus the realised moves in the underlying, volatility, time and rates, and want a second-order Greeks-based predicted P&L.\n- You have an observed (hypothetical) P&L for the period and want the unexplained residual, which is `actual_pnl` minus the predicted figure.\n- You are looking at the quantity the FRTB P&L attribution test (PAT) scrutinises, and want to see where a gap comes from.\n- You want a single, simple view that combines all the Greek components rather than examining them one at a time.\n- For the formal FRTB test itself, `pnl_attribution_test_frtb_pat` is listed as the Spearman correlation and ratio test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

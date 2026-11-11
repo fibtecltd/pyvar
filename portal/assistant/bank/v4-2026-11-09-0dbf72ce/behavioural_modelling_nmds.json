@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "prepayment_model_mortgages": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f7644d7283cb939fb63fd0b5a945cb9a0734df2c6c19c882dbd0faaa26522e25",
+      "source": "model",
+      "text": "`behavioural_modelling_nmds` models how a non-maturity deposit balance runs off over time, while `prepayment_model_mortgages` projects the cashflows of a mortgage pool. The first answers \"how much of this deposit balance is likely to survive, and what is its effective average life?\" It splits the balance into a core part that decays slowly and a non-core part that runs off quickly, using `core_fraction`, `core_runoff_rate`, `non_core_runoff_rate` and `horizon_years`. The second answers \"what cashflows will this mortgage pool produce, and how long is its weighted-average life?\" It takes `principal`, `annual_rate`, `term_years` and `cpr`, and steps through amortisation month by month, with a higher `cpr` shortening the pool's life. The deposit model is a bespoke exponential-decay model, not the BCBS d368 standardised slotting method.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "555b9b8aab773e4064a318219b0353c280a4e9ea1eb6b7b14e13aa007d42830e",
+    "source": "model",
+    "text": "`behavioural_modelling_nmds` (Behavioural Modelling NMDs) projects how a book of non-maturity deposits runs off over time by splitting it into a core part, which is stable and decays slowly, and a non-core part, which is volatile and decays quickly. You give it `total_balance`, `core_fraction`, the annual run-off rates `core_runoff_rate` and `non_core_runoff_rate`, and optionally `horizon_years`. It returns the projected surviving balance at that horizon and an effective average life. It is a bespoke exponential-decay model, not an implementation of BCBS d368's standardised slotting method, so treat it as an independent, unvalidated behavioural model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c96bf23870ff9165cee175d0c4947d0d48913da0592a1a2288b8e56ea3ca5d15",
+    "source": "model",
+    "text": "`behavioural_modelling_nmds` fits when you want a simple, transparent run-off view of non-maturity deposits, split into core and non-core.\n\n- You have a total NMD balance and an assumed core fraction, and want a projected surviving balance over a chosen `horizon_years`.\n- You have separate annual run-off assumptions for core (`core_runoff_rate`) and non-core (`non_core_runoff_rate`) deposits, and want to see how they blend.\n- You want an effective average life for the deposit book, for ALM or balance sheet analysis.\n- You want an independent behavioural model: it is a bespoke exponential-decay model, not an implementation of BCBS d368's standardised slotting method.\n\nIf you instead need to estimate the stable (core) portion from a balance history, `non_maturity_deposit_stability` is listed as doing that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

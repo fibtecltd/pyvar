@@ -1,0 +1,43 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8863bae6d9682bbca48ae0dcd425c841d8ba4e638f39332f3f1049f5a83dab89",
+      "source": "model",
+      "text": "`parametric_delta_normal_var` answers \"how much could the whole portfolio lose?\" It assumes returns are jointly normal, so it takes the portfolio's standard deviation from `weights` and `cov_matrix`, scales it by a normal quantile at the chosen `confidence_level`, and applies square-root-of-time scaling for `horizon_days`. The result is a single VaR figure for the portfolio.\n\n`component_var` answers \"which positions is that risk coming from?\" It splits the total VaR across positions using Euler allocation, giving each asset `w_i` times its marginal VaR, and the components sum exactly to the total. Note that `component_var` has no `horizon_days` parameter, while `parametric_delta_normal_var` does.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Says the result is in base currency via `portfolio_value`, but the formula shown has no portfolio_value term. This is inferred from the parameter description and the word 'scaled'.",
+        "Does not state the default values (0.99 and 1 day) or the allowed confidence range [0.90, 0.9999]."
+      ]
+    },
+    "record_sha256": "ce33c6eb489802d708c7c0447afd4d01db9ab08e97d4826161ad22aa946bdb68",
+    "source": "model",
+    "text": "`parametric_delta_normal_var` (Parametric Delta Normal VaR) computes variance-covariance VaR for a portfolio. It assumes asset returns are jointly normal, so portfolio loss is normal with a standard deviation of `sqrt(w' Σ w)`, built from your `weights` and `cov_matrix`. VaR is that standard deviation multiplied by the normal quantile for your `confidence_level`, then scaled by the square root of `horizon_days`. You also supply `portfolio_value` so the result is expressed in base currency. The confidence level and horizon are optional and have defaults.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cce5a9a1200c35d554828621becd76c66c62970a9d967afa7ee625e21043bae4",
+    "source": "model",
+    "text": "`parametric_delta_normal_var` (Parametric Delta Normal VaR) fits when you want a quick variance-covariance estimate of portfolio loss.\n\n- Your asset returns are reasonably approximated as jointly normal, since the method assumes this.\n- You have portfolio `weights` and a per-period `cov_matrix`, plus the current `portfolio_value`.\n- You want to scale risk to a longer horizon using square-root-of-time scaling via `horizon_days`, and to choose a `confidence_level` within its allowed range.\n- You want a simple, closed-form calculation rather than a simulation-based one.\n- If you'd rather not assume normality and prefer to use past observed returns directly, `historical_simulation_var` is the Non-parametric Historical Simulation VaR.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

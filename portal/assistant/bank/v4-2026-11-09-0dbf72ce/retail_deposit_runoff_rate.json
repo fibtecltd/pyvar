@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7b647abb3e14676a81ac2e3909904d429a8f49cf6abd8e01c8ab85c548924d24",
+      "source": "model",
+      "text": "`retail_deposit_runoff_rate` answers \"how much of my retail deposit base is expected to leave over the stress window?\" You give it `deposit_balances` and `runoff_rates` per category, and it returns the total expected 30-day run-off amount and the blended rate across categories. `deposit_stability_classification` answers a different question: \"which deposits count as stable and which as less-stable?\" It takes a stability score per deposit in `deposit_features`, compares each to `stable_threshold`, and reports which deposits are stable and the stable fraction. The classification function does not produce run-off amounts. It sorts deposits into the categories that carry different run-off treatment. The run-off function takes categories and rates as inputs and aggregates them into a total and a blended rate. So you might classify first, then use the resulting category balances and rates in `retail_deposit_runoff_rate`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2149ea4e761d0f85cfa643d023c47c32592472e0eb3b9156cef35f968067733d",
+    "source": "model",
+    "text": "`retail_deposit_runoff_rate` (Retail Deposit Runoff Rate) aggregates retail deposit run-off across Basel LCR-style categories, such as stable, less-stable and non-operational deposits. You give it `deposit_balances`, the balance in each category, and `runoff_rates`, a run-off rate for each category between 0 and 1. It returns the total expected 30-day run-off amount, which is the sum of each balance times its rate. It also returns the blended run-off rate, which is that total divided by the total balances. pyvar does the calculation, so you supply the category balances and the rates you want applied.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e311ec2cce2bf355ad66b46866435ba650b332e3eceeaed9757002ac57f6705f",
+    "source": "model",
+    "text": "`retail_deposit_runoff_rate` (Retail Deposit Runoff Rate) fits when you need to size expected retail deposit outflows under Basel LCR-style categories. Typical uses:\n\n- You have retail balances split by category (for example stable and less-stable) and want one blended run-off rate across them.\n- You need the total expected 30-day run-off amount for a liquidity coverage view.\n- You already have a run-off rate for each category, each between 0 and 1, and want pyvar to do the weighted aggregation from `deposit_balances` and `runoff_rates`.\n- You want to compare how shifting the mix between categories changes the blended rate.\n- If your question is how to sort deposits into stable versus less-stable from a stability score, `deposit_stability_classification` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

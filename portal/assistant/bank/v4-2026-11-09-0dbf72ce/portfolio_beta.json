@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "portfolio_turnover": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7fa05dbb2550ad70950401dfb934f2dae255eee7a25dbee339bf00e58fe04435",
+      "source": "model",
+      "text": "`portfolio_beta` asks how sensitive your portfolio's returns are to a benchmark's returns. It computes the covariance of the two return series divided by the benchmark's variance, so you give it `returns` and `benchmark_returns`. `portfolio_turnover` asks how much trading a rebalance involved. It takes `weights_before` and `weights_after` and uses the one-way convention: half the sum of the absolute weight changes. The first looks at market risk exposure from return history, while the second looks at the size of a change in holdings, and neither needs the other's inputs. Use `portfolio_beta` to understand benchmark sensitivity and `portfolio_turnover` to understand how much a rebalance moved the portfolio.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6a60a7c52321a83cb37bf5a5c2ba4b73be3cc21574a32764bf7858b2fbc22b83",
+    "source": "model",
+    "text": "`portfolio_beta` (Portfolio Beta) measures how sensitive your portfolio's returns are to the returns of a benchmark. It takes two inputs: `returns`, a 1-D array of portfolio per-period returns, and `benchmark_returns`, a 1-D array of benchmark per-period returns. Beta is calculated as the covariance of portfolio and benchmark returns divided by the variance of the benchmark. The same formula block also defines correlation (covariance divided by the product of the two standard deviations) and R², which is that correlation squared. You supply the two return series and pyvar does the calculation.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "The correlation and R² bullet implies the function returns them; the record shows them only in the formula, not as outputs."
+      ]
+    },
+    "record_sha256": "81570e342fae2b08cbd40cc661b127ff82eabe1f4f2b8d8ac75e652ca26d65a7",
+    "source": "model",
+    "text": "`portfolio_beta` (Portfolio Beta) fits when you want to know how sensitive a portfolio's returns are to a benchmark's returns.\n\n- You want a single measure of how strongly the portfolio tends to move with its benchmark, using per-period `returns` and `benchmark_returns`.\n- You are comparing portfolios against the same benchmark to see which is more or less sensitive to it.\n- You also want the correlation and R² alongside beta, since they belong to the same formula set.\n- You have two aligned 1-D arrays of per-period returns, one for the portfolio and one for the benchmark.\n- For a different need: `tracking_error` is listed as the volatility of active (portfolio minus benchmark) return, so it suits questions about how far returns stray from the benchmark.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

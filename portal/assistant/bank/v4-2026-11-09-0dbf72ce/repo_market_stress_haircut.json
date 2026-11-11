@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "dcb26fde6a1216a78ed9f1524b3810779ea78b7f28c8f98a61af50deec6afe10",
+      "source": "model",
+      "text": "`repo_market_stress_haircut` asks how much extra collateral or cash an institution would have to post if repo haircuts widened under stress. You give it `base_haircuts`, `stress_multipliers` and `collateral_values` per collateral type, and it sums the incremental margin call across them. `deposit_stability_classification` asks a different question: which deposits count as stable and which as less-stable, given a stability score for each. It compares each score in `deposit_features` against `stable_threshold` and reports the stable fraction. The first concerns secured funding and collateral demands; the second concerns the funding base on the deposit side and how it is split for run-off treatment. Both sit in Liquidity Risk, but they take different inputs and answer different questions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2ac13887ddf4b6f34e6c02c6fa81f6cf645c7bdf1858319aeafe1ec25ad6e1dd",
+    "source": "model",
+    "text": "`repo_market_stress_haircut` (Repo Market Stress Haircut) estimates the extra margin an institution would have to post if repo haircuts widen under stress. For each collateral type, it multiplies the current haircut (`base_haircuts`) by a stress multiplier (`stress_multipliers`), capping the stressed haircut at 1. The increase in haircut is applied to the market value of the pledged collateral (`collateral_values`) to give a margin call for that type. The function then sums these into a single additional margin figure, the extra collateral or cash needed to keep the same secured borrowing.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ddaff8e8da3c0ba9ad87564dbfa9b6b81ad30d3d6662e5b4bef44619a0a75951",
+    "source": "model",
+    "text": "`repo_market_stress_haircut` (Repo Market Stress Haircut) fits when you want to see how much extra margin widened repo haircuts would demand:\n\n- You fund yourself through repo and want the incremental margin call if haircuts widen under stress.\n- You have haircuts, stress multipliers and collateral values for each collateral type, and can supply them as `base_haircuts`, `stress_multipliers` and `collateral_values`.\n- You are building a liquidity stress scenario and need the extra collateral or cash required to keep the same secured borrowing.\n- You want to compare how different multipliers affect each collateral type and the total additional margin.\n- For a different need, `collateral_availability_analysis` is listed as covering collateral availability, meaning post-haircut monetisable value.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

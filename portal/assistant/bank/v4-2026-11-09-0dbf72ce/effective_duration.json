@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "787ad405ba13fd194a5345536170b7d42016a4dc5feb1dc5c95bbee1031f2bc4",
+      "source": "model",
+      "text": "`effective_duration` takes bond prices you have already re-priced after a parallel yield shock up and down (`price_base`, `price_up`, `price_down`, `yield_shock`) and measures how sensitive the price is to yields. It answers the question \"how much does this bond's value actually move when yields shift?\" Because it relies on re-priced values rather than a fixed cashflow schedule, it captures embedded optionality such as callable or puttable features. `modified_duration` instead starts from `cashflows`, `times`, `yield_rate` and `frequency`, and divides Macaulay duration by (1 + y/m). It answers \"given these fixed cashflows and this yield, what is the approximate percentage price change per unit yield move?\" In short, use `modified_duration` when cashflows are fixed and known, and `effective_duration` when your pricing model has to reflect options.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bd4ee6d46dac973ff55eccda3fcaac5cec6ef8ba632af425c4f63f86dc79c7e0",
+    "source": "model",
+    "text": "`effective_duration` (Effective Duration) measures a bond's price sensitivity to yield changes, using prices you have already re-computed under a parallel yield shock. You supply `price_base`, `price_up` (the price after a rise of `yield_shock`), `price_down` (the price after a fall of the same size) and `yield_shock` as a decimal. It applies the formula (P− − P+) / (2 · P0 · Δy). Because it relies on re-priced values rather than an analytic formula, it is model-agnostic and captures embedded optionality, such as callable or puttable features, that analytic duration misses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "053105711e01f4d4cd17a64e5ac75777267833c423a03556f71b4877111a657c",
+    "source": "model",
+    "text": "`effective_duration` (Effective Duration) fits when you already have re-priced bond values and want rate sensitivity from them:\n\n- You have prices from a full re-pricing under a parallel yield shock: `price_base`, `price_up` (yield up by `yield_shock`) and `price_down` (yield down by `yield_shock`).\n- The bond has embedded optionality, such as a callable or puttable bond, where analytic duration misses the effect and this approach captures it.\n- Your pricing model is up to you, since the method is model-agnostic and only needs the three prices and the shock size.\n- You want a symmetric, two-sided estimate of price sensitivity rather than a one-directional one.\n\nFor a different need, `modified_duration` is listed as Macaulay duration divided by (1 + y/m), so it suits a duration derived from the bond's yield rather than from re-priced values.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

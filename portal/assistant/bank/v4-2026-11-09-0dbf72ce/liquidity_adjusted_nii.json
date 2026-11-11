@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_simulation_stress": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "26a71a0126f8a567c6e8e03e71e1d13d726c0364462c71fbedb226d294883f0a",
+      "source": "model",
+      "text": "`liquidity_adjusted_nii` answers \"what does holding a liquidity buffer cost my net interest income?\" It starts from a baseline `base_nii` and adds the buffer's carry: `liquidity_buffer` times (`buffer_yield` minus `funding_cost` minus `liquidity_premium`), which is usually a net drag. `nii_simulation_stress` instead answers \"how does NII change if rates move in parallel?\" It takes balances and rates for each asset and liability bucket, applies a `rate_shock` with repricing betas (`asset_beta`, `liability_beta`), and returns the stressed NII and the change versus baseline. So the first is about the cost of the buffer at a given set of rates, and the second is about rate sensitivity across the whole balance sheet. They also take different inputs: the first needs a single baseline NII figure and buffer terms, while the second needs bucket-level detail and a shock size.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b911b4ffb5869c8675e4d424aad816795b1a9edbc176d86546740179e97fdbac",
+    "source": "model",
+    "text": "`liquidity_adjusted_nii` (Liquidity Adjusted NII) takes a baseline net interest income and adjusts it for the cost of carrying a liquidity buffer of high-quality liquid assets. The buffer earns `buffer_yield`, but it is funded at `funding_cost` plus a `liquidity_premium`, which usually makes it a net drag. The function adds the buffer size times (yield minus funding cost minus premium) to `base_nii`. You supply `base_nii`, `liquidity_buffer`, `buffer_yield`, `funding_cost` and `liquidity_premium`, with the rates as decimals and the amounts in currency.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "65fa67797209ac7c828fbbec92c0e89b6fa2dcaa65c987b1d7908cb68c3a1ea3",
+    "source": "model",
+    "text": "`liquidity_adjusted_nii` fits when you want to see how the cost of holding a liquid-asset buffer changes your baseline net interest income.\n\n- You already have a baseline NII figure (`base_nii`) and want it net of the buffer's carry cost.\n- You need to test how the buffer's size (`liquidity_buffer`) matters, given its yield (`buffer_yield`) against its funding cost (`funding_cost`) plus a `liquidity_premium`.\n- You want a simple, transparent adjustment: base NII plus the buffer times (yield minus funding minus premium).\n- You're comparing buffer assumptions, since the buffer usually earns less than it costs to fund and is a net drag.\n\nIf you instead need a baseline projection at current rates, pyvar lists `nii_simulation_baseline` as the \"baseline (current-rate) net-interest-income projection.\"",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

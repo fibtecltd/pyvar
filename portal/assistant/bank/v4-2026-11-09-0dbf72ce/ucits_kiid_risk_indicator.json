@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "solvency_ii_scr_credit_risk": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a5dab6598238cbd1faec22955bc9ca26df01b640734090c420e91a45c85bb5e0",
+      "source": "model",
+      "text": "`ucits_kiid_risk_indicator` answers \"which risk class from 1 to 7 does a fund fall into?\" It annualises the volatility of the fund's periodic `returns` (using `periods_per_year`) and looks it up against fixed volatility bands. `solvency_ii_scr_credit_risk` answers a different question: \"how much capital is needed for counterparty default risk on Type 1 exposures?\" It takes `exposures`, `loss_given_default` and `default_probabilities` per counterparty, builds a loss-distribution standard deviation, and applies the prescribed tiered multiplier, capped at total loss given default. So the first gives a fund-level risk label from return volatility, and the second gives a capital charge from default exposures. The credit function uses only the intra-counterparty variance term, so the full Art. 201 capital figure is at least as large as what it returns.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d9aee65a744ed336e9cf127124c4e66dab51ca90da1300bfa44ac241e5cd7c8d",
+    "source": "model",
+    "text": "`ucits_kiid_risk_indicator` (UCITS KIID Risk Indicator) returns a fund's Synthetic Risk and Reward Indicator, a class from 1 to 7, following CESR 10-673. You pass in `returns`, a 1-D array of periodic fund returns, and pyvar annualises their sample standard deviation using `periods_per_year`, which defaults to 52 for weekly data (12 for monthly). It then looks that annualised volatility up in fixed CESR volatility bands, from class 1 for the lowest volatility to class 7 for the highest. The class is a bucket lookup, not a closed-form equation; the annualised volatility is the quantity that feeds it.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2f137d7a9388e948813989083064871137b15747d3076579b7be072bfabd7918",
+    "source": "model",
+    "text": "Use the UCITS KIID Risk Indicator (`ucits_kiid_risk_indicator`) when you need a fund's risk class on the 1-7 scale.\n\n- You have a series of periodic fund returns and want to map their annualised volatility to a Synthetic Risk and Reward Indicator (SRRI) class, following CESR 10-673.\n- You are preparing or checking the risk figure for a UCITS Key Investor Information Document (KIID).\n- Your returns are weekly (the default, `periods_per_year` of 52) or another frequency, such as monthly with `periods_per_year` set to 12.\n- You want a simple bucket lookup against fixed volatility bands, not a bespoke risk model.\n\nIf your need is different, `aifmd_risk_metrics` covers AIFMD Annex IV risk metrics: leverage and (optionally) VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

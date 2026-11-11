@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d21e7ecddaa0ad4bcb078b9619c623d3e8e1654b7f98d9bd54b36169f4af44d3",
+      "source": "model",
+      "text": "`wrong_way_risk_adjustment` answers \"how much should a base CVA be scaled up or down because exposure and the counterparty's credit quality move together?\" You give it an existing `base_cva`, a `correlation` and optionally `exposure_volatility`, and it applies a multiplier to that CVA. Positive correlation pushes the multiplier above one, while negative correlation (right-way risk) pushes it below one.\n\n`cva_sensitivity_cva_greeks` answers a different question: \"how much does CVA move when its inputs change?\" It starts from an exposure profile, time steps, discount factors and a `credit_spread`, computes the CVA itself, and returns `cs01` (the credit-spread delta) and `exposure_delta`.\n\nSo the first adjusts a CVA for dependence between exposure and credit, and the second measures how sensitive a CVA is to spreads and exposure. The first is a first-order proxy, not a specific published model.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7bd56116cfe9546a92469ff3d74b06121c105ac436c5636d8f8a123a4ba12f25",
+    "source": "model",
+    "text": "`wrong_way_risk_adjustment` scales a base credit valuation adjustment (CVA) to reflect wrong-way risk, where exposure rises as the counterparty's credit worsens and an independence-based CVA is understated. It takes `base_cva`, the exposure/credit `correlation`, and an optional `exposure_volatility` (default 0.3). It multiplies the base CVA by alpha = 1 + `correlation` × `exposure_volatility`, floored at zero. Negative correlation gives right-way risk, with alpha below 1. It is a first-order proxy rather than a specific published WWR model, so treat it as an internal approximation.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "85c0f3957003bb5ffd400140ffafc6666c02b22a80922ad92d55dbe934857c72",
+    "source": "model",
+    "text": "`wrong_way_risk_adjustment` (Wrong Way Risk Adjustment) fits when you already have a CVA and want to scale it for the link between exposure and counterparty credit.\n\n- You have a base CVA calculated assuming exposure and credit quality are independent, and you suspect exposure tends to rise as the counterparty weakens (wrong-way risk).\n- You expect the opposite link, where exposure falls as credit worsens, and want a reduced CVA (right-way risk).\n- You want a quick first-order internal approximation, a proxy multiplier rather than a specific published wrong-way-risk model.\n- You can supply a correlation between exposure and credit, and optionally a relative exposure volatility, to set how strong the adjustment is.\n- If you still need the base CVA itself, `credit_valuation_adjustment_cva` is listed as the unilateral Credit Valuation Adjustment.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

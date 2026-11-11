@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "mifid_ii_transaction_report_validator": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "71c1a47bd0ef1deff586b399e2888166565ecd79c7d3c83c188b8e0f9902cf75",
+      "source": "model",
+      "text": "`mifid_ii_algorithm_documentation` asks whether an algorithmic trading strategy has its governance and control documentation in place. It takes a `documentation` mapping of item to provided, and scores completeness as one minus the share of missing items out of 6. That 6-item checklist is this codebase's own choice, not one published by RTS 6.\n\n`mifid_ii_transaction_report_validator` asks a different question: is an individual transaction report well-formed? It takes a `report` mapping of field names to values and checks that required fields are present, that the LEI is 20 characters, the ISIN 12 characters, and that price and quantity are positive. It covers a core subset of 9 fields, not the full RTS 22 schema.\n\nIn short, one checks strategy-level documentation, the other checks the fields of a single trade report.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0788d0e9c0473bdcccd0707a4913dac6d15db4693a64d9ab00a18e770bd2d708",
+    "source": "model",
+    "text": "`mifid_ii_algorithm_documentation` (MiFID II Algorithm Documentation) checks whether the governance and control documentation for an algorithmic trading strategy is complete, in the spirit of MiFID II RTS 6. You pass a `documentation` mapping of each documentation item to whether it has been provided. The function compares it against a 6-item checklist and reports completeness as 1 minus the number of missing items divided by 6. That checklist is pyvar's own internal choice, not one published by RTS 6 itself, so treat it as a screening aid rather than a regulatory template.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "41a7cf3ac2ec27af94638d31585a9e6b3459c1a02a04d36e37a46489f103d3e8",
+    "source": "model",
+    "text": "Use `mifid_ii_algorithm_documentation` (MiFID II Algorithm Documentation) when you need a quick completeness check on the governance and control paperwork for an algorithmic trading strategy:\n\n- You have a mapping of documentation items to whether each is provided, and want to see which are missing.\n- You want a completeness score for a strategy's documentation, based on the share of the 6 checklist items that are missing.\n- You are preparing for an RTS 6 style review and want a first-pass internal gap check. The 6-item checklist is this codebase's own choice, not one published by RTS 6, so treat it as an internal aid.\n- You are checking several strategies and want the same consistent test applied to each.\n\nFor a different need, `mifid_ii_transaction_report_validator` is listed as a MiFID II / RTS 22 transaction report field validator.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

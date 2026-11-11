@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_iii_tier1_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2578cd80f187be425b37427338138ea460aaf9fe2a89c248720c61705af91979",
+      "source": "model",
+      "text": "`basel_iii_total_capital_ratio` asks whether a bank's total regulatory capital (Tier 1 plus Tier 2) is sufficient relative to its risk-weighted assets, while `basel_iii_tier1_ratio` asks the same about Tier 1 capital alone (CET1 plus additional Tier 1). The difference is the numerator: `total_capital` for the first, `tier1_capital` for the second. Both take `risk_weighted_assets` as the denominator. The minimum is 8.0% for the total ratio and 6.0% for the Tier 1 ratio. Use the total ratio to look at overall capital strength and the Tier 1 ratio to look at the higher-quality core of that capital.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "824edd5164a9aae7afac4284df447d589a67f1217832d2041eb9a12db0a4b0ea",
+    "source": "model",
+    "text": "`basel_iii_total_capital_ratio` (Basel III Total Capital Ratio) calculates a bank's total regulatory capital, meaning Tier 1 plus Tier 2, as a share of its risk-weighted assets. You supply two inputs: `total_capital` and `risk_weighted_assets`. It divides the first by the second, so you get the ratio itself rather than a pass or fail verdict. The minimum for this ratio is 8.0%, so you can compare your result against that figure.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "aa42b30e2a389e158640e53efa052b43c3a257fce91e3857572fa4f555fb530e",
+    "source": "model",
+    "text": "Use the Basel III Total Capital Ratio (`basel_iii_total_capital_ratio`) when you want to see how much total regulatory capital a bank holds relative to its risk-weighted assets.\n\n- You have total regulatory capital (Tier 1 plus Tier 2) and total risk-weighted assets, and want them combined into one ratio using `total_capital` and `risk_weighted_assets`.\n- You want to compare a bank's ratio with the 8.0% minimum under Basel III §50.\n- You are doing regulatory or compliance analysis where the broadest capital measure, including Tier 2, is the one that matters.\n- For a narrower view of capital, `basel_iii_cet1_ratio` is listed as the Basel III Common Equity Tier 1 (CET1) ratio, and `basel_iii_tier1_ratio` as the Basel III Tier 1 capital ratio.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

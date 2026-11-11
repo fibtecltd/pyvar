@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "mifid_ii_post_trade_transparency": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ebc54c23a28591979349eea074bc5b4693d3e31dbf23615a6722add18dd8ca00",
+      "source": "model",
+      "text": "`mifid_ii_transaction_report_validator` asks whether a transaction report is well formed: it takes a `report` mapping of field names to values and checks that required fields are present, that the LEI is 20 characters, that the ISIN is 12 characters, and that price and quantity are positive. `mifid_ii_post_trade_transparency` asks a different question: whether an executed trade may qualify for deferred publication rather than near real-time publication. It takes `trade_size`, `delayed_publication_threshold` and optionally `is_liquid`, and flags deferral when the size reaches the threshold or the instrument is not liquid. So one concerns the data quality of a regulatory report, the other the timing of public trade disclosure. The validator covers a representative core subset of 9 fields, not the full RTS 22 schema.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "13e342ab94e2551ec59351d6caa07f09503315bdeb899a38ff8d2e31e84f0ec7",
+    "source": "model",
+    "text": "The MiFID II Transaction Report Validator (`mifid_ii_transaction_report_validator`) checks a transaction report against a core subset of MiFID II / RTS 22 requirements. You pass in `report`, a mapping of field names to values. It tests that the required fields are present and basically valid: the LEI has 20 characters, the ISIN has 12, and price and quantity are positive. It covers 9 representative fields, not the full set of roughly 65 mandatory RTS 22 fields, so it works as a first-pass check rather than a complete schema validation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "277cc64fcdd26eb96e29c7803e1a2681e42a98b88f1e59b2cb3d038fe69d41ac",
+    "source": "model",
+    "text": "The MiFID II Transaction Report Validator (`mifid_ii_transaction_report_validator`) fits when you want a quick check of a transaction report before it goes further:\n\n- You have a report as a mapping of field names to values (the `report` parameter) and want to confirm the mandatory core fields are present.\n- You want basic validity checks: a 20-character LEI, a 12-character ISIN, and a positive price and quantity.\n- You want an early sanity check on RTS 22 report data, such as while building or testing a reporting pipeline.\n- Keep in mind it covers a representative core subset of 9 fields, not the roughly 65 mandatory fields in RTS 22, so it is a first-pass screen rather than a full-schema check.\n\nIf your need is different, `mifid_ii_algorithm_documentation` is listed in pyvar as an RTS 6 algorithmic-trading documentation completeness check.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

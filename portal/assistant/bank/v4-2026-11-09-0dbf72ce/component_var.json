@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "filtered_historical_simulation_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "845dc846d3f2f3b98a0b12e86a83cd29ffbf2ed863f81c2eb80921ff1c6f6c6e",
+      "source": "model",
+      "text": "`component_var` splits a portfolio's total VaR into a contribution from each position, using the `weights`, a `cov_matrix` of asset returns and the `portfolio_value`. It answers \"which positions are driving my risk?\", and the components add up exactly to the total VaR because of Euler's theorem. `filtered_historical_simulation_var` answers a different question: \"what is the portfolio's VaR now, given recent volatility?\" It takes a single series of historical portfolio `returns`, standardises them by their EWMA volatility (controlled by `lambda_decay`), rescales them by the current volatility forecast and reads off the empirical quantile. That lets it capture volatility clustering. So the first works from a covariance matrix and gives a per-position breakdown, while the second works from a return history and gives one portfolio-level figure.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1dfd161789c800a15a5657a6c9e343f7c21aefc67a59931771ae9cad24d50d36",
+    "source": "model",
+    "text": "`component_var` (Component VaR) splits a portfolio's total VaR into a contribution from each position using Euler allocation. Each component is the position's weight times its marginal VaR, so the components add up exactly to the total VaR. That works because VaR is homogeneous of degree 1 in the weights. You provide `weights`, a covariance matrix (`cov_matrix`) and the `portfolio_value`, plus an optional `confidence_level` (default 0.99). It uses a covariance-based formula, so you can see which positions drive the portfolio's risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0ece0ab8e5fc11c52391a8198687f62162a4b39779f301adacf9f1dc824f63e5",
+    "source": "model",
+    "text": "Use Component VaR (`component_var`) when you want to see how much each position contributes to total portfolio VaR:\n\n- You need a breakdown where the position contributions add up exactly to the total VaR, which follows from Euler allocation.\n- You have portfolio weights and an asset covariance matrix, plus the portfolio value, and want a covariance-based decomposition.\n- You want to find which positions drive the portfolio's risk, using `w_i * marginal_i` for each one.\n- You need a coherent decomposition that fits a regulator-style risk breakdown.\n\nIf you only want the sensitivity of portfolio VaR to each position weight, `marginal_var` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

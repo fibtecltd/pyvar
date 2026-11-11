@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_portfolio_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6963eafe6a86e4bd6a12f3e9110da75b16b7f2d71685be73b6cdbee24f142261",
+      "source": "model",
+      "text": "`credit_stress_testing` asks how much worse expected loss gets if defaults and losses rise: it scales each exposure's `pd` and `lgd` by `pd_shock_multiplier` and `lgd_shock_multiplier`, then reports baseline versus stressed expected loss and the incremental impairment. `credit_portfolio_optimisation` asks how to split capital across assets: given `expected_returns` and `expected_losses`, it finds the weights that maximise return net of a `risk_aversion`-scaled loss penalty, with `max_weight` capping each name. So the first measures the impact of a shock on exposures you already hold, while the second chooses the weights. The shock design in `credit_stress_testing` is a custom stress, not a copy of a particular published adverse scenario.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3b81bcff9b289dbf8a9b0ed1801b072d5ce2b5506e73fba6a7216cacf2402a83",
+    "source": "model",
+    "text": "`credit_stress_testing` (Credit Stress Testing) runs a credit stress test on a portfolio by scaling each exposure's probability of default and loss given default with multipliers, `pd_shock_multiplier` and `lgd_shock_multiplier`. The stressed values are clipped to the range 0 to 1. It reports baseline expected loss (PD × LGD × EAD summed across exposures), stressed expected loss, and the incremental impairment between them. You supply per-exposure `pd`, `lgd` and `ead`. Note that the shock design is a bespoke internal one, not a reproduction of any specific published adverse scenario such as EBA's.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7080fd24c788c6f066a7c3233a653e8c33cb4b92b5e3ed466b469e0ac3fc10b3",
+    "source": "model",
+    "text": "Use Credit Stress Testing (`credit_stress_testing`) when you want to see how a loan book's expected loss changes under a simple, adjustable shock:\n\n- You have per-exposure `pd`, `lgd` and `ead` and want baseline expected loss compared with a stressed figure, plus the incremental impairment.\n- You want an adverse-scenario style \"what if\" by scaling PD and LGD with `pd_shock_multiplier` and `lgd_shock_multiplier`, which you can tune.\n- You need an internal, illustrative stress. The shock design is bespoke and does not reproduce a specific published adverse scenario, so it isn't a stand-in for an official one.\n- For a different need, `sector_default_rate_analysis` is listed as a per-sector default-rate analysis with a concentration of distress.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

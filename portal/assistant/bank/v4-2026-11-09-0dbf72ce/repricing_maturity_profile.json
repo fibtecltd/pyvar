@@ -1,0 +1,43 @@
+{
+  "compare": {
+    "repricing_gap_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b37596fd86227fb11549ee1262ef291d7a4195854d60ab1ba1f420a14d9f66c6",
+      "source": "model",
+      "text": "`repricing_maturity_profile` answers \"how much of my balance sheet reprices in each time bucket?\" You give it `balances`, each instrument's `repricing_times` in years, `n_buckets` and `bucket_edges`, and it sorts each balance into the bucket where its next repricing time falls. Its formula also includes a balance-weighted average repricing time. `repricing_gap_analysis` answers \"given assets and liabilities already grouped by bucket, what is the net gap, and how does it build up over time?\" It takes `bucket_assets` and `bucket_liabilities` (plus optional `bucket_labels`) and computes the gap per bucket as assets minus liabilities, then the cumulative gap, which drives net interest income sensitivity. In short, the first builds the bucketed profile from instrument-level data, while the second compares assets and liabilities across buckets that are already built.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Does not mention that bucket_edges must have length n_buckets+1.",
+        "Bucket intervals are half-open [e_k, e_{k+1}), which the answer does not state."
+      ]
+    },
+    "record_sha256": "8ec7785ba2fbb8b80f2bc0dfe4705dd3eb1202e7d3b2169e26f913352c1c5ab0",
+    "source": "model",
+    "text": "`repricing_maturity_profile` (Repricing Maturity Profile) sorts balance-sheet balances into repricing-time buckets, which is the basic building block of a repricing gap view. You give it `balances` per instrument, each instrument's next repricing time in years as `repricing_times`, the number of buckets as `n_buckets`, and ascending boundaries as `bucket_edges`. Each bucket's total is the sum of balances whose repricing time falls in that bucket's range, using a discrete binning step. The formula also includes a balance-weighted average repricing time across all instruments.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "358e0b5e46c440b9990869e67352ce017cc0324f8a8ad552941ffa1543f57fc9",
+    "source": "model",
+    "text": "Use Repricing Maturity Profile (`repricing_maturity_profile`) when you need to see how balances are spread across repricing-time buckets:\n\n- You have a balance and a next repricing time (in years) for each instrument, and want them grouped into buckets you define with `n_buckets` and `bucket_edges`.\n- You want a view of how much of the balance sheet reprices soon versus later, as a first step in looking at interest rate sensitivity.\n- You want the balance-weighted average repricing time (the `WAvg` in pyvar's formula) alongside the bucket totals.\n- You want your own bucket boundaries, since `bucket_edges` takes any ascending set of `n_buckets+1` values.\n\nIf you need the repricing gap per time bucket and the cumulative gap, `repricing_gap_analysis` is listed for that purpose.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Minor grammar slip: 'a earlier question' should be 'an earlier question'."
+        ]
+      },
+      "record_sha256": "b148bc4aa21602b63b49cd592ae155aae3c0ca38ddc492f387348ba1d9a86529",
+      "source": "model",
+      "text": "`unexpected_loss_ul_computation` answers \"how much could losses swing around their average?\" It takes per-exposure `pd`, `lgd` and `ead` arrays and returns each exposure's stand-alone unexpected loss (the loss standard deviation) plus their un-diversified sum. `probability_of_default_pd_estimation` answers a earlier question: \"what default probability should I use?\" It takes `n_defaults` and `n_obligors` per rating cohort, works out the default frequency for each cohort and a pooled PD, then applies a regulatory floor through the `floor` parameter.\n\nThe two fit together. The PD estimate is an input-side step, and the UL function consumes PDs (along with LGD and EAD) to measure loss variability. The UL function does not estimate PD itself, and the PD function does not say anything about loss size or volatility.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ff6daa67b3a9b91fb9e5441af306c755b6078dfd6f0b251afbdf1891cfca2fb5",
+    "source": "model",
+    "text": "`unexpected_loss_ul_computation` (Unexpected Loss UL Computation) calculates the stand-alone unexpected loss for each credit exposure, treating default as a Bernoulli event with a fixed LGD. For each exposure it returns `EAD * LGD * sqrt(PD(1-PD))`, which is the standard deviation of that exposure's loss. It takes per-exposure arrays for `pd`, `lgd` and `ead`. It also reports a portfolio figure, which is the plain sum of the individual ULs, so it ignores diversification and acts as the fully-correlated upper bound. Correlation-aware UL is handled by the Vasicek and CreditMetrics models in `engine.credit_var`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "98f028a972f6c53110cbb2e2f9bc1a10472cf446bc9593e4a7eef0775b8782dd",
+    "source": "model",
+    "text": "Use Unexpected Loss UL Computation (`unexpected_loss_ul_computation`) when you want the loss volatility of credit exposures, not the average loss:\n\n- You need the stand-alone UL of each exposure, meaning the loss standard deviation from its `pd`, `lgd` and `ead`.\n- You want one portfolio figure that is the plain sum of those stand-alone ULs, the fully-correlated upper bound.\n- Your setup treats each default as a Bernoulli event with a deterministic LGD.\n- You want a conservative ceiling before moving to correlation-aware methods such as the Vasicek / CreditMetrics models in `engine.credit_var`.\n- For the average loss rather than its variability, `expected_loss_el_computation` is listed as computing Expected Loss `EL = PD * LGD * EAD`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

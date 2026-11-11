@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e6b66cbdabe6b8abf4e59e4d0f0822618b1e7c5a393f2d0bf64c72c02eebcb62",
+      "source": "model",
+      "text": "`central_bank_facility_eligibility` asks how much you could borrow from a central bank against your assets: it keeps only assets whose rating meets `min_rating`, then sums each one's `asset_values` after its `cb_haircuts`. `ilaap_internal_liquidity_metric` asks whether your own liquidity is adequate under stress: it compares `counterbalancing_capacity` with `stressed_net_outflow` as a coverage ratio, and checks `survival_days` against `minimum_survival_days`. Both of those tests must hold for adequacy. The first works asset by asset and produces a borrowing capacity, while the second works on totals and gives an adequate-or-not answer. In practice, a borrowing capacity like the first one's is the kind of monetisable liquidity that could feed into the second's `counterbalancing_capacity`.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "632e8dd9dd9b00052acea90978280b7c874e489902a2966060795f7ba4e7499b",
+    "source": "model",
+    "text": "`central_bank_facility_eligibility` (Central Bank Facility Eligibility) works out how much a firm could borrow from a central bank against its asset pool. It first filters the assets, keeping only those whose ordinal credit rating (`asset_ratings`, higher is better) is at or above the facility's minimum (`min_rating`). For each eligible asset it takes the market value (`asset_values`) and applies the central-bank haircut (`cb_haircuts`, between 0 and 1). The borrowing capacity is the sum of these post-haircut values across eligible assets. It is useful for liquidity risk work such as sizing contingent funding sources.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "09d4145edafd63aad4a78dae3176520af6555b99aa4457254c71cdf82a661dcb",
+    "source": "model",
+    "text": "Use Central Bank Facility Eligibility (`central_bank_facility_eligibility`) when you need to see how much a pool of assets could raise at a central bank facility:\n\n- You want to filter assets by the facility's minimum credit rating, using an ordinal rating where higher is better (`asset_ratings` against `min_rating`).\n- You have a market value (`asset_values`) and a central-bank haircut (`cb_haircuts`) for each asset and want the borrowing capacity after haircuts, counting only eligible assets.\n- You are comparing how changing the minimum rating or the haircuts changes the capacity from your collateral pool.\n- Contingent funding is part of your liquidity analysis and you want to know how much collateral could be mobilised.\n\nIf your need is instead about undrawn commitments and guarantees, `contingent_liquidity_risk` is listed as covering contingent liquidity risk from those items.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

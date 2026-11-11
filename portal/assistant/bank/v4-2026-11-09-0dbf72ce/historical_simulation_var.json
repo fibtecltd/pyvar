@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "642ddefa4b90a2fbedab7142661c935e3d23b5eebc48064dd075b11937351897",
+      "source": "model",
+      "text": "`historical_simulation_var` answers \"how much could this whole portfolio lose?\" It re-prices the portfolio under each observed historical return (`returns`) and reads the empirical loss quantile at your `confidence_level`, with no distributional assumption. `component_var` answers a different question: \"how much of that total risk comes from each position?\" It takes `weights` and a `cov_matrix`, and allocates VaR to each position as `w_i * marginal_i` through Euler allocation. Because of that allocation, the components sum exactly to the total VaR. In short, use `historical_simulation_var` for a single portfolio-level figure drawn from past returns, and `component_var` to see how the total divides across positions, working from a covariance matrix rather than a return history. Both take `portfolio_value` and `confidence_level`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "08500a2bd8a4e2d56644421c0108d2a83b2b544190e4d6a5de372caabb2d4aa5",
+    "source": "model",
+    "text": "`historical_simulation_var` (Historical Simulation VaR) is a non-parametric way to measure market risk. It takes your series of historical portfolio returns, applies each one to the current portfolio value, and reads the loss at the chosen quantile of that empirical distribution, so it assumes no particular return distribution. You supply `returns` (as fractions, not percentages) and `portfolio_value` in base currency, plus an optional `confidence_level` that defaults to 0.99. Its formula also defines a matching CVaR, the average of losses in the tail beyond the VaR point.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3d0903e67f27ba513f90ffd76ac9106f230ac32ec265a760c9c790022526a336",
+    "source": "model",
+    "text": "`historical_simulation_var` (Historical Simulation VaR) fits when:\n\n- You'd rather not assume a return distribution. It re-prices the portfolio under each observed historical return and reads the empirical loss quantile.\n- You have a series of past portfolio returns, given as fractions rather than percentages, and a current portfolio value in base currency.\n- You want a straightforward estimate that rests on what actually happened in your data, including its skew and fat tails, rather than on a fitted curve.\n- You also want CVaR, since pyvar's formula for this function covers both VaR and CVaR at your chosen `confidence_level` (default 0.99, allowed range 0.90 to 0.9999).\n- For a different need, `extreme_value_theory_var` is listed as VaR via Peaks-Over-Threshold (Generalised Pareto).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

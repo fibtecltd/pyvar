@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "16374b1b10e52f76ade2c84bac2e90567d42d371626921338d43794a41b9d525",
+      "source": "model",
+      "text": "`contingent_liquidity_risk` asks how much liquidity your undrawn commitments and guarantees could absorb: it works from `commitment_amounts`, `draw_probabilities` and an optional `ccf` to give an expected outflow (commitment × draw probability × conversion factor) and a maximum outflow. `ilaap_internal_liquidity_metric` asks whether the institution is internally adequate: it compares `counterbalancing_capacity` with `stressed_net_outflow` as a coverage ratio, and checks `survival_days` against `minimum_survival_days`. Both conditions must hold for it to call the position adequate.\n\nThe first looks at one source of outflow, off-balance-sheet commitments. The second looks at the whole liquidity buffer against stressed outflows over a horizon. They can fit together, since a contingent outflow figure could be one input into a stressed outflow estimate, but each function answers its own question separately.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "85f5b8eefcebff991f6871499dfa9b5188bfc7342aaa38a660c1cd97dec4c69f",
+    "source": "model",
+    "text": "`contingent_liquidity_risk` (Contingent Liquidity Risk) estimates how much liquidity off-balance-sheet commitments, such as undrawn lines and guarantees, could absorb in stress. For each commitment, pyvar multiplies the notional (`commitment_amounts`) by the drawdown probability (`draw_probabilities`) and a credit conversion factor (`ccf`), then sums these to give the expected outflow. It also reports a maximum outflow, which is the sum of each notional times its conversion factor, ignoring the draw probabilities. If you don't pass `ccf`, every commitment gets 1.0, which assumes full drawdown.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6305e54d0bb9be1a7ec4f88bc4e6cdf436668c8f16df69d2ded6dd14816209e0",
+    "source": "model",
+    "text": "Use Contingent Liquidity Risk (`contingent_liquidity_risk`) when off-balance-sheet commitments could pull cash out of your firm:\n\n- You hold undrawn lines or guarantees and want to see how much liquidity they could absorb in stress.\n- You have a drawdown probability for each commitment (`draw_probabilities`) and want an expected outflow, which pyvar computes as commitment × draw probability × credit conversion factor.\n- You want a worst-case view as well, since the formula also gives a maximum outflow from the commitments and their conversion factors.\n- You can pass a per-commitment `ccf`. If you leave it out, pyvar assumes full drawdown (1.0) for every commitment.\n- For a different need: `liquidity_risk_appetite_threshold` maps a liquidity metric to a RAG (red/amber/green) risk-appetite zone.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

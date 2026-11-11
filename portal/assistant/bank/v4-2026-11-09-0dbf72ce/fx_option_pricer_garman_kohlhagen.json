@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fx_forward_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b6e21f7c9451dbf72bf81ed45992383a5f30ba52085f01fb16756c5b08fa81ea",
+      "source": "model",
+      "text": "`fx_option_pricer_garman_kohlhagen` prices an FX option, answering \"what is the right to buy (call) or sell (put) this currency pair at a given strike worth today?\" It needs a strike, a volatility (`sigma`) and an `option_type`, because an option's value depends on how much the exchange rate might move. `fx_forward_pricer` answers a different question: \"what forward rate does covered interest-rate parity imply, and what is an existing forward contract worth?\" It uses only `spot`, the two rates and `tau`, with no volatility, since a forward is a commitment rather than a choice. If you supply `contracted_forward`, it also gives the mark-to-market value of a long-foreign position. Both take domestic and foreign rates and a foreign-currency `notional`, and the option's pricing uses a forward-style discounting of spot at the foreign rate.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b6ff788b2449396d5c26fcf682c70ea586288df65f53bb41a7e73e6dac15a80a",
+    "source": "model",
+    "text": "`fx_option_pricer_garman_kohlhagen` (FX Option Pricer Garman Kohlhagen) prices a European-style FX option using the Garman-Kohlhagen model. This is Black-Scholes with the foreign interest rate treated as a continuous dividend yield. You give it `spot`, `strike`, `rate_domestic`, `rate_foreign`, `sigma` and `tau`, and choose `option_type` (\"call\" or \"put\") and an optional foreign-currency `notional`. Spot is quoted as domestic per one foreign unit. The prices it produces satisfy FX put-call parity, which ties call minus put to the discounted spot and strike.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c0d6adca39ef09c08af1ce1b60d825d5769daa2e6b5f80f9245742d75fc16971",
+    "source": "model",
+    "text": "`fx_option_pricer_garman_kohlhagen` (FX Option Pricer Garman Kohlhagen) fits when you need a model price for a European-style currency option. Typical cases:\n\n- You want a call or put price on an FX rate, quoted as domestic per 1 foreign, using the `option_type` parameter.\n- You have a domestic and a foreign continuous rate, plus a single volatility `sigma` and a time to maturity `tau`, and want the foreign rate treated like a continuous dividend yield.\n- You want to scale the price to a position size using `notional`, which is in foreign currency.\n- You want prices consistent with FX put-call parity, where call minus put equals the discounted spot minus the discounted strike.\n\nIf you instead need an FX forward rate and mark-to-market via covered interest-rate parity, `fx_forward_pricer` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "compare": {
+    "cash_flow_ladder_30_day": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "57ff988f2de00d698d76a99b0fc00a585b14d8fb3dc592042473c3888fb58c42",
+      "source": "model",
+      "text": "`liquidity_gap_analysis` answers a structural question: in each maturity bucket, how do maturing assets compare with maturing liabilities, and what is the running (cumulative) gap? A positive cumulative gap means more assets than liabilities mature by that point, while a negative one signals a refinancing need. `cash_flow_ladder_30_day` answers a near-term question: day by day over a 30-day horizon, what are the net and cumulative cash positions, and where is the tightest point? Its minimum cumulative balance shows that point, and if it is negative, there is a funding shortfall on that day.\n\nThe inputs differ too. `liquidity_gap_analysis` takes `asset_maturities` and `liability_maturities`, with optional `buckets` labels that default to the standard 8-bucket set. `cash_flow_ladder_30_day` takes `daily_inflows` and `daily_outflows` arrays of length 30, plus an `opening_balance`. The gap analysis also adds an optional opening balance, defaulting to 0.0, to each cumulative-gap entry.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "Leaves out the per-bucket gap ratio A_i/L_i, which the formula also computes",
+        "Does not say the opening balance defaults to 0.0"
+      ]
+    },
+    "record_sha256": "0306da43e3a90df24351b2a3945d3c6e16bad31f4bfa6a20c6c9335faef1fbf9",
+    "source": "model",
+    "text": "`liquidity_gap_analysis` (Liquidity Gap Analysis) measures the structural maturity mismatch between assets and liabilities. For each time bucket you supply asset inflows via `asset_maturities` and liability outflows via `liability_maturities`. It computes the gap per bucket as assets minus liabilities, plus a running cumulative gap. A positive cumulative gap means more assets than liabilities have matured by that point (a funding surplus), while a negative one signals a refinancing need. You can pass your own bucket labels in `buckets`, or use the standard 8-bucket set. An opening balance, such as starting cash or HQLA, can be added to every cumulative-gap entry.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "opening_balance is used in the formula and description but is missing from the parameter list; the answer treats it as a passable argument"
+      ]
+    },
+    "record_sha256": "817a8a681d5d9c59960486348c99b25e99f72c2187493b4135a8502fea1b83f6",
+    "source": "model",
+    "text": "Use Liquidity Gap Analysis (`liquidity_gap_analysis`) when you want to see the structural maturity mismatch between assets and liabilities:\n\n- You have asset inflows and liability outflows grouped by maturity bucket and want the gap per bucket (assets minus liabilities) plus the cumulative gap.\n- You want to spot where a funding surplus (positive cumulative gap) or a refinancing need (negative cumulative gap) builds up along the maturity profile.\n- You want to start from an existing cash or HQLA position: pass an opening balance, which is added to every cumulative-gap entry.\n- You want to compare assets to liabilities bucket by bucket as a ratio, or use your own bucket labels via `buckets` instead of the standard 8-bucket set.\n- For a daily 30-day view of contractual cash flows, `cash_flow_ladder_30_day` is listed as a 30-day daily contractual cash-flow ladder.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

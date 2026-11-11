@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contingency_funding_plan_trigger": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "078f54a4ae80b6153bab456f509924100d2b94d5cccc4b6fad223d5df9a93f09",
+      "source": "model",
+      "text": "`survival_horizon_calculator` answers \"how many days can we last?\": given opening HQLA (`hqla`) and a path of daily net outflows (`daily_net_outflows`), it walks forward day by day and reports `survival_days`, the count of full days survived before cumulative outflow drives the buffer negative. `contingency_funding_plan_trigger` answers a different question: \"should the contingency funding plan be activated?\" It takes current early-warning metrics (`metrics`) and their minimum acceptable values (`thresholds`), flags each metric that falls below its threshold, and returns the list of breached triggers plus an activation decision, which is activated if any single metric breaches.\n\nThe two connect naturally. Survival days is one of the metrics the trigger function mentions as something that can be tested against a threshold. The first function produces a figure from a cash-flow path, while the second is a logical comparison, not an arithmetic formula.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dc07ef21e887d74ff9a2aa7de39fb1a8cb55a0b7d379d31a71ecad642cf196f8",
+    "source": "model",
+    "text": "The Survival Horizon Calculator (`survival_horizon_calculator`) estimates how many days a firm's liquid asset buffer lasts under a given stress path. You give it `hqla`, the opening counterbalancing capacity, and `daily_net_outflows`, an array of daily net cash outflows where positive values drain the buffer. It subtracts each day's outflow from the buffer in turn and finds the first day the buffer goes negative. The result, `survival_days`, is the count of full days survived before that breach, or the full length of the array if the buffer never goes negative.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5af8fb97b68003b13f76988b4795653f258ae15cc489459f7f529104a5ba1ab2",
+    "source": "model",
+    "text": "The Survival Horizon Calculator (`survival_horizon_calculator`) fits when you want to know how long a liquidity buffer lasts under a given outflow path:\n\n- You have an opening stock of HQLA (`hqla`) and a day-by-day path of expected net cash outflows (`daily_net_outflows`) and want the number of full days before the buffer goes negative.\n- You are comparing stress scenarios and want each one summarised as a single time-to-breach figure.\n- You want a plain, time-based view of liquidity resilience rather than a single ratio.\n- You need to see how an outflow profile, such as front-loaded versus gradual drains, changes how long the buffer holds.\n\nIf your question is instead how large the buffer should be, `liquidity_buffer_sizing` sizes it to the peak cumulative stressed outflow.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

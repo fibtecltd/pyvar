@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e7dfa4c323b7bab3fab2dedf3c2bfdf350ab5b1a658510a09aa88c36f0242f22",
+      "source": "model",
+      "text": "`risk_parity_portfolio` asks how to spread risk evenly: it finds long-only weights so each asset contributes equally to portfolio variance, using only `cov_matrix`. `maximum_sharpe_ratio_portfolio` asks which mix gives the best risk-adjusted return: it maximises the annualised Sharpe ratio, so it needs `mean_returns` as well as `cov_matrix`. In risk parity, `mean_returns` is optional and only used to report a Sharpe figure; it doesn't drive the weights. The maximum Sharpe function also has an `allow_short` option, whereas risk parity is long-only. Both take `risk_free` and `periods_per_year`, but in risk parity they affect only the reported Sharpe, while in the maximum Sharpe function they feed the objective itself.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "129f8ee039593937e965453e361fe4adfec678ad6a0a073bd088b5bc06f3bb4a",
+    "source": "model",
+    "text": "`risk_parity_portfolio` (Risk Parity Portfolio) finds long-only weights so that each asset contributes equally to total portfolio variance. You give it a per-period covariance matrix in `cov_matrix`, and it minimises the sum of squared pairwise differences between the assets' risk contributions, using SLSQP. The weights sum to one, and each is kept above a tiny positive floor. If you also pass `mean_returns`, it reports a Sharpe ratio, using `risk_free` and `periods_per_year` (default 252) to annualise.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e2e02f8e771396a86fb1e0b4d04fe12c6a576511aed69a0cbda3767e7d74aa6b",
+    "source": "model",
+    "text": "`risk_parity_portfolio` (Risk Parity Portfolio) fits when you want each asset to contribute equally to portfolio variance, rather than each holding the same dollar weight.\n\n- You want long-only weights built from a covariance matrix (`cov_matrix`) alone, with no views on expected returns needed.\n- You're worried that one volatile asset would dominate the portfolio's risk, and want risk spread evenly across holdings.\n- You'd like an optional Sharpe figure reported alongside the weights: pass `mean_returns`, plus `risk_free` and `periods_per_year` if the defaults don't suit.\n- If you simply want the lowest-variance mix instead, `minimum_variance_portfolio` is listed as the global minimum-variance portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

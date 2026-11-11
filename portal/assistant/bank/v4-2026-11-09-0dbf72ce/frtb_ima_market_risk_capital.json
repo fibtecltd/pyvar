@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "frtb_sa_market_risk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Minor grammar slip: \"a internal model output\" should read \"an internal model output\"."
+        ]
+      },
+      "record_sha256": "d3ed92490bfd4b73706800b1403a055b1cc93445a56499ef4db460a9ed9e97ac",
+      "source": "model",
+      "text": "`frtb_ima_market_risk_capital` answers \"what is the total market-risk capital under the Internal Models Approach?\", where the bank's own Expected Shortfall model drives the charge. It scales the current 97.5% Expected Shortfall by `stressed_es_ratio` and a supervisory `multiplier` (floored at 1.5), then adds `non_modellable_ses` and `default_risk_charge`. `frtb_sa_market_risk_capital` answers the same kind of question for the Standardised Approach, where the starting point is a prescribed sensitivities-based charge rather than a internal model output. It simply sums `sensitivities_charge`, `default_risk_charge` and `residual_risk_addon`. Both include a Default Risk Charge, but only the IMA function applies a multiplier and non-modellable risk factor capital, and only the SA function includes a residual risk add-on.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8b937390f42f0ee45061b940536e34982b290e29bd2c05dce029481132e932c2",
+    "source": "model",
+    "text": "`frtb_ima_market_risk_capital` (FRTB IMA Market Risk Capital) computes total market-risk capital under the FRTB Internal Models Approach, following BCBS d457 §189. It scales your current 97.5% Expected Shortfall (`expected_shortfall`) by the `stressed_es_ratio` and by the supervisory `multiplier`, which is floored at 1.5. It then adds the non-modellable risk factor capital (`non_modellable_ses`) and the Default Risk Charge (`default_risk_charge`), both of which default to zero. The result is a single currency figure for the IMA charge.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "38431a2d6bb7711719b403d8bc2364c026ca106acecbc8b15d8eb2905fb0a08f",
+    "source": "model",
+    "text": "`frtb_ima_market_risk_capital` (FRTB IMA Market Risk Capital) fits when you need total market-risk capital under the FRTB Internal Models Approach:\n\n- You already have a current-period 97.5% Expected Shortfall in currency and a ratio of stressed ES to current ES, and want them scaled by the supervisory multiplier.\n- You want one figure that combines the scaled ES charge with non-modellable risk factor capital (`non_modellable_ses`) and the Default Risk Charge (`default_risk_charge`). Both are optional and default to zero.\n- You are following BCBS d457 §189 and want the multiplier floored at 1.5 automatically.\n- For a different approach, `frtb_sa_market_risk_capital` is listed as the FRTB Standardised Approach total market-risk capital.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

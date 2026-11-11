@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_spread_curve_bootstrap": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "bf7ee9d7a169dd9d63010a67964e979c16654f0515f67f8f40bb255140aa4b96",
+      "source": "model",
+      "text": "`credit_default_swap_var` asks how much a single-name CDS position could lose from spread moves over a chosen horizon at a chosen confidence level. It takes `notional`, `risky_annuity` and `spread_volatility`, and applies a normal-distribution assumption to the position's spread sensitivity. `credit_spread_curve_bootstrap` asks a different question: what default-risk curve do market CDS spreads imply? It takes `tenors` and `par_spreads`, plus a `recovery_rate`, and builds a piecewise-constant hazard rate and survival curve using the credit-triangle approximation. So the first measures potential loss on a position, and the second turns quoted spreads into a hazard and survival curve. They are not substitutes, though a curve like the second one's could be a way of looking at spread levels before you size spread risk with the first.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6af2f3d3ffcec2d2994458990f5a5f5c22a35b02611b569c33a675c5d34b3696",
+    "source": "model",
+    "text": "`credit_default_swap_var` (Credit Default Swap VaR) calculates a parametric value-at-risk for a single-name CDS position driven by credit spread risk. It takes the spread DV01, which is `notional` times `risky_annuity`, and multiplies it by a normal quantile at your `confidence_level`, the daily `spread_volatility`, and the square root of `horizon_days`. You supply the notional, the contract's risky annuity and the daily absolute spread volatility, and you can optionally set the confidence level, horizon and `position`. The `position` setting (long or short protection) changes only the sign of `pnl_sensitivity`, not the size of the VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7dd9340e308e0125d97f63c514f67d392b502b5f462b0abbcc9679bac26102b1",
+    "source": "model",
+    "text": "`credit_default_swap_var` (Credit Default Swap VaR) fits when you want a quick parametric VaR for a single-name CDS position driven by spread risk.\n\n- You hold one CDS and want a loss estimate from credit spread moves, assuming normally distributed daily spread changes.\n- You already have the notional, the contract's risky annuity and a daily absolute spread volatility, such as 0.0005 for 5 bps/day.\n- You want square-root-of-time scaling through `horizon_days` and a `confidence_level` between 0.90 and 0.9999.\n- You want a first-order view based on spread sensitivity (notional times risky annuity). `position` only changes the sign of `pnl_sensitivity`, not the VaR size.\n- For a different need, `cds_pricing_isda_standard` computes ISDA-standard CDS present value from the protection-buyer perspective.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

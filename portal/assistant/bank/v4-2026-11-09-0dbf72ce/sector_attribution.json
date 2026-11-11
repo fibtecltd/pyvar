@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "return_attribution_brinson": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "15cb2e34d25e49956a753815f624993d769d21a348068d794bda7349be32fb69",
+      "source": "model",
+      "text": "`sector_attribution` is a thin specialisation of `return_attribution_brinson`: it uses the same allocation, selection and interaction formulas, but treats the segments as GICS sectors. It answers \"which sectors drove my active return versus the benchmark?\" `return_attribution_brinson` is the general version, and it answers the same question for any segmentation you define, such as regions or asset classes. The inputs match (`portfolio_weights`, `benchmark_weights`, `portfolio_returns`, `benchmark_returns`). The only difference is the label parameter: `sector_names` in `sector_attribution` and `segment_names` in `return_attribution_brinson`. In both, the three effects reconcile to the active return. Choose `sector_attribution` when your segments are sectors, and `return_attribution_brinson` when they are something else.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a19205e6b3357ea1638c9591369eca2f017dcf0776471d78938e117da65be951",
+    "source": "model",
+    "text": "`sector_attribution` (Sector Attribution) breaks a portfolio's active return versus its benchmark down by sector, using the Brinson method. For each sector it separates an allocation effect (over- or underweighting the sector relative to the benchmark), a selection effect (how the portfolio's holdings performed against the benchmark within that sector) and an interaction effect. Together these three effects reconcile to the active return. You supply portfolio and benchmark sector weights and sector returns, plus optional `sector_names` as labels. It is a thin specialisation of `return_attribution_brinson` where the segments are GICS sectors.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "83948b38680773b49deae021de673bcbfb96801a5c4c6839d61ece4841d45060",
+    "source": "model",
+    "text": "`sector_attribution` (Sector Attribution) fits when you want to explain a portfolio's active return versus a benchmark, sector by sector.\n\n- You want to split active return into allocation, selection and interaction effects, which reconcile to the active return.\n- Your portfolio and benchmark are both described by sector weights and sector returns, with sectors following GICS.\n- You want to see whether over- or underweighting sectors, or picking better securities within them, drove the difference from the benchmark.\n- Your segments are not GICS sectors: it is a thin specialisation of `return_attribution_brinson`, which is the one to look at for other groupings.\n- For a different need, `factor_return_attribution` is listed as doing factor return attribution, so it suits explaining returns by factors rather than sectors.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

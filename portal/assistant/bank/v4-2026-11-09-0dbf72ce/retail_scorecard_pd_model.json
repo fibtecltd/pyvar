@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "through_the_cycle_pd_adjustment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6a7989cdb5593e3a3b1708fb3281738c0dbb18f21d43bc223077c07d6edca8d5",
+      "source": "model",
+      "text": "`retail_scorecard_pd_model` answers \"what PD does this applicant get?\" It sums the points for each attribute (`feature_values` times `points_per_feature`, plus `base_points`) into a score, then maps that score to odds with the points-to-double-odds rule (`pdo`, `base_score`, `base_odds`) and converts the odds to a PD. `through_the_cycle_pd_adjustment` answers a different question: \"how would this PD look if the economic cycle were smoothed out?\" It takes a point-in-time PD (`pit_pd`) and blends it with a long-run anchor (`long_run_average_pd`) in the probit domain, with `cyclicality` setting the weight toward the long-run figure. In short, the scorecard builds a PD from borrower attributes, while the adjustment takes an existing PD and re-expresses it on a through-the-cycle basis. They can be used in sequence, but neither one replaces the other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "551fd4d98dd05cf9a461f1525f516dc5881e9ff2a2434888083d5f0d5662a9ab",
+    "source": "model",
+    "text": "`retail_scorecard_pd_model` (Retail Scorecard PD Model) turns a retail scorecard into a probability of default. It sums the points for each attribute, using `feature_values` and `points_per_feature`, and adds the intercept `base_points` to get a total score. The score becomes good:bad odds through the points-to-double-odds relationship, where `pdo` is how many points double the odds. The odds are anchored by `base_score` and `base_odds`, and the function converts them to a PD as 1 / (1 + odds). The `pdo`, `base_score` and `base_odds` parameters are optional and have defaults.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0c4e7e4d5f7cc9c67bdc9b28d07057a3ac77dbedd773a04c7052d4e9904796ba",
+    "source": "model",
+    "text": "The Retail Scorecard PD Model (`retail_scorecard_pd_model`) fits when you already have a points-based scorecard and need to turn it into a probability of default.\n\n- You have per-attribute points (`points_per_feature`) and an intercept (`base_points`), and want a score built by adding them up.\n- You need to translate a score into a PD using the points-to-double-odds convention, with `pdo`, `base_score` and `base_odds` set to match your scorecard's calibration.\n- Your applicants are described by binary or scaled indicators (`feature_values`), as is typical for retail credit.\n- You want a transparent, additive model where each attribute's contribution to the score is easy to see.\n\nIf you instead need to fit a PD model from data, `logistic_regression_pd_model` is listed as fitting a logistic-regression PD model by Newton-Raphson (IRLS) maximum likelihood.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

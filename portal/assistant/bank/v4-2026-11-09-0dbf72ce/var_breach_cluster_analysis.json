@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "53935d98e52fadc89622afa751b75f054bc23ac6893fbefbdc86507a6abd5315",
+      "source": "model",
+      "text": "`var_breach_cluster_analysis` looks at the pattern of breaches over time: it takes a binary breach sequence (`breaches`) and reports the number of clusters (runs of consecutive breaches), the longest run, and the mean run length. It answers the question \"do my breaches bunch together?\", which is a diagnostic for the independence assumption that the Christoffersen test formalises. `traffic_light_backtesting` instead takes `actual_returns` and `var_estimates`, counts the breaches itself, and assigns a Basel zone (green, yellow or red) from that count. It answers \"how many breaches were there, and which zone does that put the model in?\" So the first cares about when breaches happen, and the second about how many occurred. A model could look fine on the count yet still show clustering, which is why the two views complement each other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3ba3e47cf47ddc12290defed087f05fb38dbba45de207fccbaacb1539dbc9734",
+    "source": "model",
+    "text": "`var_breach_cluster_analysis` (VaR Breach Cluster Analysis) looks at a sequence of VaR breaches and describes how they bunch together. You pass it `breaches`, a binary sequence where 1 marks a breach and 0 marks no breach. It reports the number of breach clusters (maximal runs of consecutive breaches), the longest run, and the mean run length. These diagnostics help you judge the independence assumption that the Christoffersen test formalises. It is a run-length computation over the sequence, not a closed-form statistic.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b57e7bce7787a459d60fcab42a1662c1431f61fbd381d87c4054a46b7b9492f1",
+    "source": "model",
+    "text": "`var_breach_cluster_analysis` (VaR Breach Cluster Analysis) fits when you want to see whether VaR breaches bunch together in time.\n\n- You already have a binary breach sequence (1 = breach, 0 = no breach) and want to know how many clusters of consecutive breaches it contains.\n- You want the longest run and the mean run length, as a quick look at whether the independence assumption holds.\n- You want a descriptive, run-length view before or alongside a formal independence test.\n- You want to see where breaches pile up, rather than just how many there are.\n\nIf you need a formal test of clustering, `christoffersen_independence_test` is listed as the Christoffersen independence (clustering) test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

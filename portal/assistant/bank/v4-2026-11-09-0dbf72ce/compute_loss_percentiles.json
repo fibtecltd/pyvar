@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e11102156e94b8df33d2893c5259dd73366c4ce8dff03c56440c9ca2f1496171",
+      "source": "model",
+      "text": "`compute_loss_percentiles` takes a list of portfolio losses already sorted ascending and returns a dict of loss values at chosen quantile levels, which suits a fan chart showing how severe losses get across the distribution. `component_var` answers a different question: how much of a portfolio's total VaR comes from each position. It takes `weights`, `cov_matrix`, `portfolio_value` and an optional `confidence_level`, and allocates VaR to each asset via Euler allocation so the pieces sum to the total. In short, `compute_loss_percentiles` describes the shape of the loss distribution from loss data you supply, while `component_var` breaks one covariance-based VaR figure down by position.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3fbe2915b18a07c257749fff8ea6194c3253a4358f2288ef0b73e6ce2ff0f61",
+    "source": "model",
+    "text": "`compute_loss_percentiles` (Compute Loss Percentiles) takes a list of portfolio losses sorted ascending, where a loss is a positive number, and returns a dict of {percentile_label: loss_value} meant for fan chart display. For each requested quantile level `p`, it picks the loss at position `floor(p × n)` in the sorted list, capped at the last entry. You can pass your own levels between 0 and 1 via `percentiles`, or omit it to use the defaults: 0.50, 0.75, 0.90, 0.95, 0.99 and 0.995, which cover the standard regulatory range. The only required input is `sorted_losses`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4f12b97343de664e16de3545942f7d55798c5d481d1c7a1e4b08b17ffcb26cd1",
+    "source": "model",
+    "text": "`compute_loss_percentiles` (Compute Loss Percentiles) fits when you already have portfolio losses and want a quick read of how the loss distribution looks across several tail levels.\n\n- You have losses sorted ascending (losses as positive numbers) and want a percentile-to-loss dict for a fan chart display.\n- You want several tail levels in one call. By default it reports 0.50, 0.75, 0.90, 0.95, 0.99 and 0.995, or you can pass your own levels between 0 and 1 via `percentiles`.\n- You want an empirical quantile taken straight from the sorted losses, with no distribution assumed.\n- For a different need, `var_fan_chart` gives parametric VaR bands across confidence levels and horizons.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

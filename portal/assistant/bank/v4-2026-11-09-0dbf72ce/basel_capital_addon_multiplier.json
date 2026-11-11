@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": [
+          "Could have mentioned the multiplier values (3.0, 3.40-3.85, 4.0) given in the record."
+        ]
+      },
+      "record_sha256": "f950a0258a0d050c083bf4fc35c9ca311d3ea86b2ac9d966d48010e36ede86e1",
+      "source": "model",
+      "text": "`basel_capital_addon_multiplier` takes a breach count you already have (`n_breaches`) and returns the Basel capital add-on multiplier for it, so it answers \"what multiplier does this count of breaches carry?\" `traffic_light_backtesting` starts earlier in the process: you give it `actual_returns` and `var_estimates`, it counts the breaches where the loss exceeded VaR, and it assigns the green, yellow or red zone, so it answers \"which zone does this backtest land in?\" Both use the same zone boundaries of fewer than 5, 5 to 9, and 10 or more breaches. The difference is the input and output: raw return and VaR series going to a zone, versus a breach count going to a multiplier. If you only have a count, use the multiplier function. If you have the series, `traffic_light_backtesting` does the counting and the zoning for you.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6fc4c71432b09ae821fa18f23d20a359e9063f861cdd8c47cdf7a651fa28cd04",
+    "source": "model",
+    "text": "`basel_capital_addon_multiplier` (Basel Capital AddOn Multiplier) turns a backtest breach count into the Basel multiplier used for market risk capital. You pass in `n_breaches`, the number of breaches in the 250-day backtest. Fewer than 5 breaches (green zone) gives 3.0, and 10 or more (red zone) gives 4.0. In between, the yellow zone of 5 to 9 breaches follows the BCBS graduated schedule, running from 3.40 up to 3.85. These values are set by the Basel Committee, and pyvar does the lookup for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f608cf92ba3885a17a3178f594838009abc46981df775f6630b41b9f892e4397",
+    "source": "model",
+    "text": "`basel_capital_addon_multiplier` (Basel Capital AddOn Multiplier) fits when you already have a backtest breach count and need the matching multiplier.\n\n- You have the number of breaches from a 250-day backtest and want the multiplier that goes with it.\n- You want to see which zone (green, yellow or red) a breach count falls into, and how that maps to the multiplier.\n- You are working through a market risk capital calculation and need the Basel Committee's prescribed factor for the add-on step.\n- To get the breach count in the first place, `compute_breaches` counts days where actual loss exceeded the VaR estimate.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

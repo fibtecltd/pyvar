@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_portfolio_simulation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "49bd5b4bdbf88c5453bad073d4571e727290c74e60c0d3f08192a7972ae23498",
+      "source": "model",
+      "text": "`diversification_ratio` answers \"how much diversification benefit does this portfolio's mix of assets give?\" It takes only `weights` and `cov_matrix`, and compares the weighted average of the individual asset volatilities with the portfolio's overall volatility. The result is always at least 1, and a higher value means more diversification benefit.\n\n`monte_carlo_portfolio_simulation` answers \"what loss could this portfolio face over a set horizon?\" It draws many correlated random return paths, compounds them forward, and reports the simulated VaR and ES of terminal P&L. It needs more inputs: `mean_returns`, `portfolio_value`, `horizon`, `n_simulations`, `confidence_level` and `seed`, alongside `weights` and `cov_matrix`.\n\nIn short, one describes the structure of the portfolio's risk, and the other simulates a tail-loss outcome in currency terms.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b29dba8edb66a5480d5a8871dfe44cecf556194ec256a07b771decf9c75c3319",
+    "source": "model",
+    "text": "`diversification_ratio` (Diversification Ratio) divides a portfolio's weighted average asset volatility by the portfolio's overall volatility. You give it `weights` (portfolio weights per asset) and `cov_matrix` (the asset return covariance matrix). Asset volatilities come from the diagonal of the covariance matrix. The ratio is always at least 1, and a higher value means more diversification benefit.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7987efe887647c09233355ccacbf4880d86aa2db91706d051135f6c8d07d88fc",
+    "source": "model",
+    "text": "Use the Diversification Ratio (`diversification_ratio`) when you want to see how much a portfolio's risk is reduced by holding assets that don't move in lockstep:\n\n- You want a single measure of diversification benefit: it compares the weighted average of asset volatilities to the portfolio's volatility, and higher means more benefit.\n- You are comparing allocations built from the same assets, to see which weighting spreads risk better. You supply `weights` and `cov_matrix`.\n- You want a Choueifaty-style diversification check on a portfolio, where the ratio is always at least 1.\n- You already have a covariance matrix of asset returns and want a quick read on how much it works in your favour.\n\nFor a different need, `concentration_risk_hhi` covers concentration risk via the Herfindahl-Hirschman Index (HHI).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

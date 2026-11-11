@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "03e37db8ef35d7b864a2ccf2089c9f390e91bc88f65b65efcb4c3f8969e95136",
+      "source": "model",
+      "text": "`regulatory_compliance_score` answers \"how fully are we meeting our regulatory requirements?\" You give it a status for each requirement (`requirements_met`, each between 0 and 1) and optionally importance weights (`weights`). It returns a weighted 0-100 compliance score with a RAG band.\n\n`escalation_threshold_calculation` answers \"who needs to hear about this loss?\" You give it a loss amount (`loss_amount`) and a mapping of governance levels to minimum amounts (`thresholds`). It returns the level whose threshold is the largest one the loss meets or exceeds. It relies on the thresholds rising in line with severity.\n\nThe first one scores a portfolio of requirements. The second routes a single loss to a governance tier.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eb3632722d4efb5423cdcd68222341a259cfc35e5ff45ae6187ef24502587849",
+    "source": "model",
+    "text": "The Regulatory Compliance Score (`regulatory_compliance_score`) turns a set of regulatory requirements into a single weighted compliance score between 0 and 100, along with a RAG band. You supply `requirements_met`, giving each requirement's status as 0 (not met), 1 (met), or a partial value in between. Each requirement counts equally by default, or you can pass `weights` to reflect how important each one is. The score is the weighted sum of the statuses divided by the sum of the weights, scaled to 100.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7ff9692e8245027a9cbfc7a3768c7e181e3ab57222cebf66c69da5c2ac2261ad",
+    "source": "model",
+    "text": "The Regulatory Compliance Score (`regulatory_compliance_score`) fits when you need one summary figure for how well requirements are being met:\n\n- You have a set of regulatory requirements, each marked not met (0), met (1), or partly met (a value in between), and want a single 0-100 score with a RAG band.\n- Some requirements matter more than others, so you want to supply `weights` through the optional parameter; if you leave it out, all requirements count equally.\n- You want a consistent, repeatable way to compare compliance status across periods, business areas or reviews.\n- You need a quick headline view to share with colleagues, with the underlying `requirements_met` inputs still available for detail.\n\nIf you instead want to score an outstanding audit finding, `audit_finding_risk_scorer` is listed as scoring one by severity, likelihood and ageing.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

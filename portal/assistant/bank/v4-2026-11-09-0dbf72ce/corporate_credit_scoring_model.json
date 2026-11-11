@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_portfolio_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e7b488c537534fa1aa8eea21f7121c42ff4c45326af52607b6d97016a8a2accf",
+      "source": "model",
+      "text": "`corporate_credit_scoring_model` answers \"how risky is this one borrower?\": it blends factor scores such as leverage, coverage and profitability (via `factor_scores` and `factor_weights`) into a composite strength and maps that to a probability of default, using `pd_anchor` and `pd_floor`. `credit_portfolio_optimisation` answers a different question: \"how should I split weight across several credits?\" It takes `expected_returns` and `expected_losses` for each asset and finds the weights that maximise return less a risk-aversion penalty on expected loss, within a per-name cap (`max_weight`). So the first produces a default probability for a single name, while the second produces an allocation across many. They can sit in sequence, since a PD estimate is the kind of input that informs expected loss, but pyvar treats them as separate calculations. Also, the scoring model is a bespoke internal model, not a reproduction of any published or regulatory formula.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d9303b02ee63e186ffa48663877947036ffdfa0162fcf8e31e0686eb2c413ce1",
+    "source": "model",
+    "text": "The Corporate Credit Scoring Model (`corporate_credit_scoring_model`) turns a borrower's factor scores, such as leverage, coverage and profitability, into a probability of default (PD). You supply `factor_scores`, each between 0 and 1 with 1 meaning strongest, and `factor_weights`, which are normalised internally. It combines them into a weighted composite strength, then sets PD as `pd_anchor` times (1 minus strength), never lower than `pd_floor`. The anchor is the PD for the weakest borrower. It is a bespoke internal model, not a reproduction of any published or regulatory scoring formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fee21cb72ed62f522f596aa02cbb6595e30952a7ba1d9c4baf1281b598fc1c4e",
+    "source": "model",
+    "text": "The Corporate Credit Scoring Model (`corporate_credit_scoring_model`) fits when you want a transparent, internal way to turn a borrower's strengths into a probability of default (PD).\n\n- You have several normalised factor scores, such as leverage, coverage or profitability, each between 0 and 1 with 1 as strongest, and want one composite strength.\n- You want to control how much each factor matters through `factor_weights`, which are normalised for you.\n- You need a PD mapped from that strength, with `pd_anchor` setting the PD for the weakest borrower and `pd_floor` setting the lowest PD.\n- You want a bespoke internal model, not a reproduction of a published or regulatory scoring formula.\n- For a different need, `credit_stress_testing` runs a credit stress test with multiplicative PD/LGD shocks on the loss profile.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

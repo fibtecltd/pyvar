@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "loss_event_classification_basel": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "19d72079296ed3ecd0153417ca6b83656fa46b51605b7c515c49cf02800e4969",
+      "source": "model",
+      "text": "`external_loss_data_integration` answers the question \"how do I pool outside loss data with my own?\" It takes `internal_losses`, `external_losses` and a `scaling_factor`, scales the external amounts to the firm's size, and combines them with the internal ones. The aim is to enrich a sparse internal tail, and the formula includes a combined mean and the external data's weight in the pool.\n\n`loss_event_classification_basel` answers a different question: \"which Basel II Level-1 event-type category does this loss belong to?\" It takes a single `event_type` string, checks it against the seven Basel II Level-1 categories, and returns its index for downstream bucketing. It is a membership lookup, not a numeric calculation.\n\nIn short, one works on loss amounts and pooling, the other on labelling events.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0826e8676a11137966ba44c5b110bd70fee1b7df7a7f8fc6e9d773a3f70f90ac",
+    "source": "model",
+    "text": "`external_loss_data_integration` (External Loss Data Integration) pools external loss data, such as consortium or public losses, with a firm's own internal losses, which helps enrich a sparse internal tail. You supply `internal_losses`, `external_losses` and a `scaling_factor`, a positive multiplier that adjusts for size, for example a ratio of revenues. The external losses are multiplied by that factor before pooling. The function then reports the combined mean across both sets and the external data's weight, which is the share of all observations that are external.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "641f9e84ca975b976a08fd89de14edcd15af506bd96cdf2335833065dbe597d7",
+    "source": "model",
+    "text": "`external_loss_data_integration` (External Loss Data Integration) fits when you need to pool outside loss data with your own:\n\n- Your internal loss history is sparse, especially in the tail, and you want to enrich it with consortium or public losses.\n- The external losses come from firms of a different size, so they need a multiplicative adjustment (`scaling_factor`, for example a ratio of revenues) before they are comparable.\n- You want a combined mean across internal and scaled external losses, plus the share of the pooled data that is external (`w_ext`).\n- For a different need: `loss_data_collection_framework` covers internal loss-data collection above a reporting threshold, and `loss_event_classification_basel` classifies a loss event into a Basel II Level-1 event-type category.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}
