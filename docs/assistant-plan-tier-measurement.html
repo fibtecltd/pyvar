@@ -36,13 +36,14 @@ hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 <li><strong>Prompt: v4</strong>, <code>PROMPT_VERSION = "v4-2026-11-09"</code>. Master already carries v4; PR #420 changes <code>prompts.py</code> to v5 (the text its v5 run used), so the code PR starts by restoring the v4 text and pins the version in <code>summary.json</code> and in a test.</li>
 <li><strong>Typed questions are not in release 1</strong> (menus first). This plan measures them so the typed release can be decided on evidence.</li>
 <li><strong>Fable is out of scope for now</strong>: R5 and Control 3 wait for a model id and prices. The Sonnet and Opus runs do not depend on it.</li>
-<li><strong>The escalate-on-flag test (rule M2) is part of the plan.</strong> The caps in section 4 are the proposal: the first paid run still needs its own go-ahead from Filippo, as in Phase 0.</li>
-<li><strong>Still open:</strong> the pro plan's monthly price (rule T5 cannot be applied without it).</li>
+<li><strong>The whole paid run is capped at $30</strong> (Filippo, 2026-11-11). Section 4 fits it: the per-command caps sum to $29.5 and the expected spend is about $20 (about $24 if Sonnet's second menu draw runs). The escalate-on-flag test (rule M2) stays. Starting the run still needs Filippo's go and a machine that can read the dev key.</li>
+<li><strong>Deferred to stay within $30:</strong> the Opus arm of the typed run (about $8.5 expected, about $10.5 in caps) and Fable. This run therefore does not decide enterprise typed questions. Opus stays in the menu runs (R2, R3) because release 1 is menus.</li>
+<li><strong>Pro tier pricing is not defined yet</strong> (Filippo, 2026-11-11): rule T5 is deferred. The run still reports the worst user-day per tier, and rule T4 picks the pro writer without T5.</li>
 </ul>
 <h2>Summary (10 lines)</h2>
 <ol>
 <li>Decisions needed from Filippo: (a) the Fable model id and its prices (the design says "Fable 5.1", the current model list says <code>claude-fable-5-2</code>); (b) which prompt version is the candidate, v4 or v5 (PR #420 head carries <code>v5</code>); (c) the pro plan's monthly price, so a per-tier cost ceiling exists; (d) approve the caps in section 9; (e) who pushes the scratch branch (section 10).</li>
-<li>Total cost: about $38 without Fable ($46 at the caps). Fable adds an unknown amount; plan reserves a $15 cap until a price is given. Duration: 1 to 2 days of code and tests, then about 1 working day of runs.</li>
+<li>Total cost: capped at $30 by Filippo; about $20 expected (about $24 with Sonnet's second menu draw), $29.5 in caps. The Opus typed arm and Fable are deferred. Duration: 1 to 2 days of code and tests, then about 1 working day of runs.</li>
 <li>Biggest finding: for the <strong>bank</strong> the writer price barely matters. A full build is $8.5 with Haiku, $14.5 with Sonnet, $20.8 with Opus, because 1,154 Opus verdicts ($8.19) dominate. The bank writer choice is about flags, not cost.</li>
 <li>Biggest design finding: retries by the <strong>same</strong> writer are weak. 8 of 308 cases are flagged on 2 or more of 4 Haiku draws. Test escalate-on-flag (Haiku, then Sonnet, then Opus) instead of "regenerate up to 2 times with Haiku".</li>
 <li>Cost cannot justify a bigger writer. Even if retries fell to zero, Haiku's cost drops by under 8%. A bigger writer is justified only by typed questions, static-fallback rate, or what the tier pays.</li>
@@ -98,7 +99,7 @@ hr{border:0;border-top:1px solid var(--line);margin:24px 0}
 <li>So a bigger writer is bought for <strong>quality</strong> (fewer flags, fewer static fallbacks) or for <strong>tier pricing</strong>, never for saving retries.</li>
 <li>Cost per unflagged answer = cost / (1 minus flag rate). The 20x and 40x ratios survive any flag rate under 50%.</li>
 <li>Per-user-day worst case (typed, live, estimate $0.0006 / $0.0115 / $0.023 per answer): free 40 answers about $0.02; pro 200 answers $0.12 (Haiku), $2.30 (Sonnet), $4.60 (Opus); enterprise 500 answers $11.50 (Opus) plus gate. The earlier $1.10 and $2.20 figures assumed the menu-size answer; a tool loop is about 2.1x. <strong>Unmeasured; R4 measures it.</strong></li>
-<li>Compare the pro figure with the pro plan price (Stripe price id is a secret, not in the repo): <strong>open question c</strong>.</li>
+<li>Compare the pro figure with the pro plan price once there is one: pro pricing is not defined yet (2026-11-11), so rule T5 is deferred (<strong>open question c</strong>).</li>
 </ul>
 <h2>3. Code changes first (one PR, <code>scripts/</code> + <code>tests/</code> only)</h2>
 <p>Branch <code>feat/assistant-eval-typed</code>, from the head of PR #420 (<code>docs/assistant-prompt-v4-result</code>), <strong>not</strong> master: <code>no_source_claims</code>, <code>recall_check.py</code> and the v5 text exist only there. After #420 merges, rebase onto master with <code>git rebase --onto origin/master &lt;old #420 head&gt;</code>. <strong>First commit: restore the v4 prompt text</strong> (<code>git show origin/master:scripts/assistant_eval/prompts.py</code>), <code>PROMPT_VERSION = "v4-2026-11-09"</code>, and update the tests that assert v5; the v5 result stays in <code>docs/</code> and in commit <code>b078380</code>. Paths: <code>scripts/assistant_eval/*</code>, <code>tests/*</code>, <code>docs/*</code> are all in the
@@ -118,6 +119,12 @@ Must keep <code>plugins/</code>, <code>.claude/</code>, <code>.claude-plugin/</c
 <li><code>detectors.py</code>: deterministic known-error detectors for the 8 persistent cases (regex or record-fact checks on the wrong claim Opus keeps flagging). Read the flags CSVs to write them: <code>docs/assistant-prompt-v4-opus-flags.csv</code>, <code>...-draw2-...</code>, <code>...-v5-...</code>.
 Lint pins: black 26.5.1, isort 8.0.1, ruff 0.15.22; tests with <code>scratchpad/venv-test</code>.</li>
 </ol>
+<h2>3a. What the code session found (2026-11-11)</h2>
+<p>The code part of this section was written on <code>feat/assistant-eval-typed</code> (based on PR #420). Two findings change how the run is read:</p>
+<ul>
+<li><strong>Two of the 8 detectors are hypotheses.</strong> <code>conduct_risk_metric:compare:model_risk_assessment</code> and <code>esg_score_integration:when</code> rest on no recorded claim: the flags CSVs keep only the verdict flag and the grader failure, not Opus's issue text. Rule M2's "detectors agree" counts only the 6 grounded detectors. The 2 hypotheses are reported separately and cannot decide.</li>
+<li><strong>The menu grader's number check wrongly fails an answer that cites a number starting a line of a record's description.</strong> The record is dumped as JSON, so a newline is the two characters backslash and <code>n</code>, and the number after it follows a word character. 12 catalogue records are affected, <code>retail_deposit_runoff_rate</code> among them, and <code>retail_deposit_runoff_rate:explain</code> fails on this in every draw. The menu graders stay as measured for this run; typed grading flattens newlines first. The fix belongs to the bank build (Plan 2) and needs a re-grade of the Phase 0 answers and the oracle's 1,924 of 1,924.</li>
+</ul>
 <h2>4. Runs, in order, each with its own cap</h2>
 <p>All paid steps use the DEV key only, read by the user's AWS agent from Secrets Manager; the key is never printed or written.
 Each paid command runs once. Stop on any 401, 403, billing or credit error.</p>
@@ -139,15 +146,15 @@ Each paid command runs once. Stop on any 401, 403, billing or credit error.</p>
 </tr>
 <tr>
 <td>R1</td>
-<td>Sonnet writes the 308 menu answers, 2 draws; Opus judges all 616</td>
-<td>$3.38 + $4.38 = $7.76</td>
-<td>$9.5</td>
+<td>Sonnet writes the 308 menu answers, 1 draw (a second only under the rule below); Opus judges them</td>
+<td>$1.69 + $2.19 = $3.88</td>
+<td>$4.7</td>
 </tr>
 <tr>
 <td>R2</td>
-<td>Opus writes the 308, 2 draws; Opus judges all 616</td>
-<td>$6.75 + $4.38 = $11.13</td>
-<td>$13.5</td>
+<td>Opus writes the 308, 1 draw; Opus judges them</td>
+<td>$3.38 + $2.19 = $5.57</td>
+<td>$6.7</td>
 </tr>
 <tr>
 <td>R3</td>
@@ -157,26 +164,26 @@ Each paid command runs once. Stop on any 401, 403, billing or credit error.</p>
 </tr>
 <tr>
 <td>R4</td>
-<td>Typed set (about 260 cases), one draw per writer (Haiku, Sonnet, Opus); Opus judges the 175 in-scope cases per writer</td>
-<td>writers $0.15 + $3.0 + $6.0; 525 verdicts at about $0.014 = $7.35; total $16.5</td>
-<td>$20</td>
+<td>Typed set (260 cases), one draw per writer (Haiku, Sonnet); Opus judges the 175 in-scope answers per writer</td>
+<td>writers $0.15 + $3.0; 350 verdicts at about $0.014 = $4.9; total $8.05</td>
+<td>$9.8</td>
 </tr>
 <tr>
 <td>R5</td>
-<td>Fable (only if priced): menu 1 draw + typed 1 draw + judge cross-check</td>
+<td>Fable (only if priced)</td>
 <td>unknown</td>
-<td>$15 until priced</td>
+<td>outside the $30</td>
 </tr>
 <tr>
-<td>Total without Fable about $38; at the caps $46.6.</td>
-<td></td>
-<td></td>
-<td></td>
+<td>deferred</td>
+<td>Opus writes the typed set; Opus judges its 175</td>
+<td>$6.0 + $2.45 = $8.5</td>
+<td>about $10.5, outside the $30</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Stop rule after R1 draw 1:</strong> if Sonnet flags 9 or more of 308 (no better than Haiku's 10 and 11) and still fails 6 or more of the 8
-persistent cases, skip Sonnet's second draw and R3's Sonnet arm (saves about $4.4).
+<p>Expected total about $20.0 (R0 0.03, R1 3.88, R2 5.57, R3 2.43, R4 8.05). The caps sum to $24.8, or $29.5 with Sonnet's second menu draw (caps $4.7): the hard ceiling is $30.</p>
+<p><strong>Second Sonnet menu draw (conditional):</strong> run it only if Sonnet's first draw flags 8 or fewer of 308 (better than both Haiku draws, 10 and 11); otherwise skip it and the money stays unspent. Opus gets one menu draw. With one draw each, the comparison has the power of the 308-against-308 column of section 7 or better: 0.82 at a true 0.5%, 0.59 at 1%, 0.38 at 1.5%.
 Haiku is not re-run on the 308: its v4 draws exist (10 and 11 of 308, 21 of 616). Re-running would add noise, not information.
 All writers use the <strong>same</strong> prompt text (commit-pinned), <code>effort: low</code>, <code>max_tokens</code> 1500, the same 308 case ids (<code>cases.jsonl</code> sha256 starts <code>c57a3b304a54e682</code>).</p>
 <h2>5. The typed-question set (no human labelling)</h2>
@@ -354,9 +361,9 @@ Power of a one-sided Fisher test at 5% against Haiku's true 3.5% (simulated, 4,0
 </li>
 <li>T2 (rejection). Reject a writer for typed questions if 12 or more of 175 in-scope answers are flagged, or advice (E) is not declined in 5% or more of cases, or off-topic redirect (F) fails in 10% or more.</li>
 <li>T3 (acceptance). Confirmed at 4% only with 3 flags or fewer of 175. Between 4 and 11 flags: <strong>unclear, ship under the watchdog with pins, never claim 4% as measured.</strong></li>
-<li>T4 (ladder). Free: Haiku if not rejected; if rejected, typed questions off for free and menu only. Pro: the cheapest of Sonnet, Opus that is not rejected <strong>and</strong> has fewer flags than the cheaper one by at least 4 flags of 175 (otherwise take the cheaper). Enterprise: Opus plus a synchronous gate by a <strong>different</strong> model; Fable replaces Opus only if priced, not rejected, and flagged at least 4 fewer of 175 than Opus. If Fable is judge and writer in the same run, rule M3 applies.</li>
+<li>T4 (ladder). Free: Haiku if not rejected; if rejected, typed questions off for free and menu only. Pro: the cheapest of Sonnet, Opus that is not rejected <strong>and</strong> has fewer flags than the cheaper one by at least 4 flags of 175 (otherwise take the cheaper). Enterprise: not decided by this run (the Opus typed arm is deferred); the design keeps Opus plus a synchronous gate by a <strong>different</strong> model, and Fable replaces Opus only if priced, not rejected, and flagged at least 4 fewer of 175 than Opus. If Fable is judge and writer in the same run, rule M3 applies.</li>
 <li>
-<p>T5 (cost ceiling). Reject a tier assignment whose worst user-day (section 2) exceeds the plan price per day (open question c).
+<p>T5 (cost ceiling). <strong>Deferred: pro pricing is not defined yet.</strong> Once it is, reject a tier assignment whose worst user-day (section 2) exceeds the plan price per day (open question c).
 <strong>Latency</strong></p>
 </li>
 <li>
@@ -381,14 +388,14 @@ Power of a one-sided Fisher test at 5% against Haiku's true 3.5% (simulated, 4,0
 5. No commits except the one stated; no pushes; no repo edits; no AWS changes.
 </code></pre>
 <p><strong>Prompt A (R0, R1, R2):</strong> <code>git fetch origin &lt;merge commit of the code PR&gt;</code>, checkout, require the hash prefix, install requirements (<code>-r requirements.txt -r requirements-ci.txt -r scripts/assistant_eval/requirements.txt</code>), run the three assistant test files (expect all passing), build <code>cases.jsonl</code> and require sha256 prefix <code>c57a3b304a54e682</code>, require <code>prompts.PROMPT_VERSION</code> equal to the pinned version.
-Then, each once: smoke (<code>run_eval.py ... --limit 1 --max-usd 0.10</code> per model); <code>run_eval.py --cases ... --out $WORK/out/sonnet_d1 --model claude-sonnet-5-5 --only explain,when,compare --max-usd 2.1</code>; the same <code>sonnet_d2</code>; <code>judge.py --run $WORK/out/sonnet_d1 --per-intent 134 --max-usd 2.6</code>, and <code>sonnet_d2</code> (draw 2 only if the stop rule allows); then Opus the same with <code>--model claude-opus-5-5 --max-usd 4.1</code> per draw and the same judge cap 2.6. Then <code>SHA256SUMS</code>, local commit on <code>data/assistant-tier-run-1</code>. Report: per run ok/truncated/refusal/errors/skipped, cost, grader pass n/N per action and per check, judged and unparsed counts, flagged counts per action, p50 and p95 latency, hashes. No flagged texts in chat.
-<strong>Prompt B (R3, R4):</strong> same set-up. R3: <code>run_eval.py --only-ids &lt;the 8 ids&gt; --reps 8</code> for Haiku, Sonnet, Opus (<code>--max-usd</code> 0.1, 0.6, 1.0), then <code>judge.py</code> on all 192 (<code>--max-usd 1.8</code>), then <code>detectors.py</code>. R4: <code>run_typed.py --cases typed_cases.jsonl --out ... --model &lt;w&gt; --max-usd</code> (Haiku 0.3, Sonnet 3.5, Opus 7), <code>judge.py --kind typed --in-scope-only --max-usd 3.0</code> per writer; leak and scrub checks run offline. Report counts per category and per check, tool turns, tokens per case, cost per case, latency, hashes, commit id. (<code>--only-ids</code> and <code>--kind</code> are the code-PR additions.)
+Then, each once: smoke (<code>run_eval.py ... --limit 1 --max-usd 0.10</code> per model); <code>run_eval.py --cases ... --out $WORK/out/sonnet_d1 --model claude-sonnet-5-5 --only explain,when,compare --max-usd 2.1</code>, judged with <code>judge.py --run $WORK/out/sonnet_d1 --per-intent 134 --max-usd 2.6</code>; <code>sonnet_d2</code> and its judging only if the second-draw rule in section 4 allows; then Opus, one draw (<code>--model claude-opus-5-5 --max-usd 4.1</code>, judge <code>--max-usd 2.6</code>). Then <code>SHA256SUMS</code>, local commit on <code>data/assistant-tier-run-1</code>. Report: per run ok/truncated/refusal/errors/skipped, cost, grader pass n/N per action and per check, judged and unparsed counts, flagged counts per action, p50 and p95 latency, hashes. No flagged texts in chat.
+<strong>Prompt B (R3, R4):</strong> same set-up. R3: <code>run_eval.py --only-ids &lt;the 8 ids&gt; --reps 8</code> for Haiku, Sonnet, Opus (<code>--max-usd</code> 0.1, 0.6, 1.0), then <code>judge.py</code> on all 192 (<code>--max-usd 1.8</code>), then <code>detectors.py</code>. R4: <code>run_typed.py --cases typed_cases.jsonl --out ... --model &lt;w&gt; --max-usd</code> (Haiku 0.3, Sonnet 3.5; no Opus arm inside the $30), <code>judge.py --kind typed --in-scope-only --max-usd 3.0</code> for each of the two writers; leak and scrub checks run offline. Report counts per category and per check, tool turns, tokens per case, cost per case, latency, hashes, commit id. (<code>--only-ids</code> and <code>--kind</code> are the code-PR additions.)
 <strong>Prompt C (R5, only when priced):</strong> same set-up; first add the Fable <code>PRICES</code> entry given by Filippo in a working copy (no commit of it), smoke call, then Fable menu one draw (cap from 308 x 1,340 in / 280 out at the given price x 2), typed one draw, then Fable judges the fixed 56 + 100 sample; compare with Opus verdicts. Report agreement counts only.</p>
 <h2>12. Open questions for Filippo</h2>
 <p>a. Fable: id (<code>claude-fable-5-2</code> in the current model list; the design text says 5.1) and per-million-token prices, and whether <code>output_config.effort</code> is accepted.
 b. Candidate prompt: <strong>decided, v4</strong> (2026-11-11). Master has v4; PR #420's <code>prompts.py</code> carries v5, so the code PR restores v4 first and the run pins it.
-c. Pro plan price per month (to apply rule T5), and whether enterprise is priced per seat or per call.
-d. Approve the caps ($46.6 without Fable, +$15 for Fable) and the escalate-on-flag test.
+c. Pro tier pricing: <strong>not defined yet</strong> (2026-11-11), so rule T5 waits. Also open: whether enterprise is priced per seat or per call.
+d. Caps: <strong>decided</strong>, $30 for the whole run (section 4). The escalate-on-flag test stays.
 e. Typed-question text may go to Anthropic (plan 4.6): measuring typed questions on <strong>synthetic</strong> questions needs no privacy change; shipping it does (plan 2).
 f. Should the typed set be read by you at least once (a 30-case spot read)? The plan does not need it; it would reduce the "script-labelled" risk.</p>
 <h2>13. Risks</h2>

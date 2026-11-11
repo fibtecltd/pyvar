@@ -8,10 +8,10 @@ Filippo accepted the review's recommendations "for now". They replace the "decis
 
 - **Release 1 is menus only**: the bank is built by an agent run (option A, as in Phase 0) and committed to git; the typed box stays off.
 - **Release 2: refresh the bank by GitHub Actions with an AWS OIDC role (option B)**, if the OIDC role is accepted when it is proposed; otherwise option C.
-- **Pins use CUSUM** (section 8), the plan's recommendation. Revisit with real traffic.
+- **Pins use CUSUM** (section 8), **confirmed by Filippo on 2026-11-11**. Revisit with real traffic.
 - **JSON reply, no token streaming** (section 4).
 - **A person still reads a random sample of at least 40 bank answers per release**, outside the request path. The recall-check rule that makes Opus usable as the gate assumed it, and nothing automatic replaces it (the watchdog sees live typed answers only). Section 12 is written to match.
-- **Open:** the key for the bank build; the pro plan's price; Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.
+- **Open:** the key for the bank build; the pro tier's pricing (not defined yet, 2026-11-11); Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.
 
 ## Summary (10 lines)
 
