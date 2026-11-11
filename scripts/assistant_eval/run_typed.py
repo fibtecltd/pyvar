@@ -36,6 +36,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cost import usage_cost
+from graders import grade_typed
 from prompts import EFFORT
 from run_eval import (
     EFFORT_LEVELS,
@@ -54,7 +55,7 @@ from typed_prompts import (
     build_typed_request,
     user_content,
 )
-from typed_tools import ToolBox, load_catalogue
+from typed_tools import ToolBox, load_catalogue, trim_record
 
 PROVENANCE_FILES = ("typed_prompts.py", "typed_tools.py", "graders.py", "run_typed.py")
 
@@ -81,6 +82,33 @@ def _error_row(
         "error": str(exc)[:300],
         "retries": retries,
     }
+
+
+def grade_row(
+    case: dict[str, Any], row: dict[str, Any], by_name: dict[str, dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Grade a finished row with `graders.grade_typed`; None unless the reply is a scorable answer.
+
+    The records the tools returned are rebuilt from the catalogue by name (`get_function` returns exactly
+    `trim_record`), so a row stores names, not copies.
+    """
+    if row["status"] != "ok":
+        return None
+    records = {n: trim_record(by_name[n]) for n in row["records_seen"] if n in by_name}
+    hits = {n: by_name[n]["summary"] for n in row["search_hits"] if n in by_name}
+    page = case.get("page_function")
+    shown = {n: e["display_name"] for n, e in by_name.items()}
+    return grade_typed(
+        row["text"],
+        records,
+        case["question"],
+        expect=case["expect"],
+        search_hits=hits,
+        tool_calls=row["tool_calls"],
+        proposals=row["proposals"],
+        page_function=page,
+        display_names=shown,
+    ).as_dict()
 
 
 class ScrubFailed(Exception):
@@ -176,7 +204,7 @@ def run_case(
         return "error", _error_row(case, rep, model, "api_error", exc, counters["retries"])
 
     assert last is not None
-    row = {
+    row: dict[str, Any] = {
         "case_id": case["id"],
         "rep": rep,
         "category": case["category"],
@@ -202,6 +230,7 @@ def run_case(
         "retries": counters["retries"],
         "trace": trace,
     }
+    row["grade"] = grade_row(case, row, {e["name"]: e for e in catalogue})
     return "result", row
 
 
@@ -217,8 +246,17 @@ def summarize(
     by_category: dict[str, dict[str, Any]] = {}
     for category in sorted({r["category"] for r in rows}):
         group = [r for r in rows if r["category"] == category]
+        graded = [r for r in group if r["grade"]]
+        failed: dict[str, int] = {}
+        for r in graded:
+            for name, ok in r["grade"]["checks"].items():
+                if not ok:
+                    failed[name] = failed.get(name, 0) + 1
         by_category[category] = {
             "n": len(group),
+            "graded": len(graded),
+            "grader_pass": sum(1 for r in graded if r["grade"]["passed"]),
+            "failed_checks": dict(sorted(failed.items(), key=lambda kv: -kv[1])),
             "status": {
                 s: sum(1 for r in group if r["status"] == s)
                 for s in sorted({r["status"] for r in group})
