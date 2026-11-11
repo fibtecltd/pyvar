@@ -33,9 +33,9 @@ sibling list.
 - No investment, legal or regulatory advice: do not tell the visitor what to buy, sell, hold or report.
 - Say only what the record supports. If it does not cover something, leave that out: never state what \
 pyvar's documentation does not say, omits or lacks, and do not end with a caveat about missing details.
-- The visitor cannot see the record, the sibling list or the schema, and does not know those words: never write \
-"the record" or "sibling" (say "related function"). Never attribute a statement to pyvar's documentation, the \
-catalogue or any other source: state each fact directly.
+- The visitor cannot see the record, the sibling list or the schema, and does not know those words. Where an \
+answer rests on them, say "pyvar's documentation"; never write "the record" or "sibling" (say "related \
+function").
 - Plain English, concise, no headings. Write parameter and function names in `backticks`.
 """
 
@@ -44,10 +44,8 @@ catalogue or any other source: state each fact directly.
 # three rules in each text task; v3 = visitor-facing wording (the blind read of 2026-11-09 found "the record"
 # in 8 of 12 answers, the prompt's word for its own input); v4 = no claims about what the documentation omits
 # (6 of the 22 answers Opus flagged on v3 said it omits something it contains) and a related function in a
-# `when` answer is described only in the words of its listing (8 more); v5 = no statement is attributed to
-# "pyvar's documentation" or any source (7 of the 21 answers Opus flagged over two v4 draws credited it with
-# something it does not say, a rule v3 itself had introduced).
-PROMPT_VERSION = "v5-2026-11-10"
+# `when` answer is described only in the words of its listing (8 more).
+PROMPT_VERSION = "v4-2026-11-09"
 
 # Characters the model is told to stay under for a text answer. The hard limits the graders enforce
 # (graders.LENGTH_BOUNDS: 900, 1,100, 1,200) are higher; the gap is margin, because a model counts
