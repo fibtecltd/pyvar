@@ -284,6 +284,11 @@ _OTHER_STOP = frozenset(
     "el la los las de que y en un una es por con para le les des du est une et der die das und "
     "ist nicht il che di per sono os uma n\u00e3o".split()
 )
+# Letters of scripts a reply in another language would use. Greek letters and symbols are not listed: a
+# formula's "\u0394EVE" in an English answer is English.
+_FOREIGN_SCRIPT = re.compile(
+    "[\u0400-\u04ff\u0590-\u06ff\u0900-\u0dff\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]"
+)
 _SENTENCE = re.compile(r"(?<=[.!?\n])\s+")
 
 
@@ -309,9 +314,9 @@ def _shown_objects(text: str) -> list[dict[str, Any]]:
 
 
 def looks_english(text: str) -> bool:
-    """A cheap, deterministic test that a reply is English: no non-Latin letters, and more English
-    function words than those of Spanish, French, German, Italian or Portuguese."""
-    if any(ch.isalpha() and ord(ch) > 0x24F for ch in text):
+    """A cheap, deterministic test that a reply is English: no Cyrillic, Arabic, Indic, Thai or CJK letters,
+    and more English function words than those of Spanish, French, German, Italian or Portuguese."""
+    if _FOREIGN_SCRIPT.search(text):
         return False
     words = re.findall(r"[a-z\u00e0-\u00ff']+", text.lower())
     english = sum(1 for w in words if w in _ENGLISH_STOP)
@@ -445,12 +450,9 @@ def grade_typed(
             _names_in(answer, function, shown.get(function)),
             f"does not name {function}",
         )
-    for other in expect.get("functions", []):
-        need(
-            f"mentions_{other}",
-            _names_in(answer, other, shown.get(other)),
-            f"does not name {other}",
-        )
+    if expect.get("functions"):
+        missing = [n for n in expect["functions"] if not _names_in(answer, n, shown.get(n))]
+        need("mentions_all_functions", not missing, f"does not name {missing}")
     for tool in expect.get("must_call", []):
         need(f"calls_{tool}", tool in called, f"did not call {tool}")
     if expect.get("must_call_any"):

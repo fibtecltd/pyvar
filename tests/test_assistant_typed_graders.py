@@ -136,7 +136,7 @@ def test_function_and_tool_expectations() -> None:
     ]
     assert not grade(GOOD, expect={"no_tools": True}, tool_calls=calls).checks["calls_no_tool"]
     both = {"functions": [LCR, "net_stable_funding_ratio_nsfr"]}
-    assert not grade(GOOD, expect=both).checks["mentions_net_stable_funding_ratio_nsfr"]
+    assert not grade(GOOD, expect=both).checks["mentions_all_functions"]
 
 
 def test_which_function_questions_need_an_expected_function_named() -> None:

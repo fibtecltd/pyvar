@@ -16,6 +16,8 @@ Reasoning (plan 1, section 3 item 5; the rules are run_eval.py's, applied to a t
   first token is not measurable with the non-streaming client.
 
 Usage:
+    python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --oracle   # no API
+    python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --null     # no API
     python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --model claude-haiku-5-5 --max-usd 0.3
 """
 
@@ -49,6 +51,7 @@ from run_eval import (
     code_provenance,
 )
 from scrub import has_secret, scrub_secrets
+from typed_oracle import oracle_run
 from typed_prompts import (
     MAX_TOOL_TURNS,
     TYPED_PROMPT_VERSION,
@@ -234,6 +237,46 @@ def run_case(
     return "result", row
 
 
+def run_offline(
+    case: dict[str, Any], rep: int, kind: str, catalogue: list[dict[str, Any]]
+) -> tuple[str, dict[str, Any]]:
+    """The oracle (the answer of a correct agent, built from the tool results) or null (an empty answer,
+    no tool calls): no API call, no cost."""
+    if kind == "oracle":
+        done = oracle_run(case, catalogue)
+    else:
+        done = {
+            "text": "",
+            "tool_calls": [],
+            "records_seen": [],
+            "search_hits": [],
+            "proposals": [],
+        }
+    row: dict[str, Any] = {
+        "case_id": case["id"],
+        "rep": rep,
+        "category": case["category"],
+        "in_scope": case["in_scope"],
+        "model": kind,
+        "served_model": kind,
+        "status": "ok",
+        "stop_reason": "end_turn",
+        "scrubbed": 0,
+        "tool_turns": len({c["name"] for c in done["tool_calls"]}),
+        "model_calls": 0,
+        "usage": dict.fromkeys(USAGE_KEYS, 0),
+        "cost_usd": 0.0,
+        "call_latencies_s": [],
+        "latency_s": 0.0,
+        "wall_s": 0.0,
+        "retries": 0,
+        "trace": [{"role": "assistant", "content": done["text"]}],
+        **done,
+    }
+    row["grade"] = grade_row(case, row, {e["name"]: e for e in catalogue})
+    return "result", row
+
+
 def summarize(
     rows: list[dict[str, Any]],
     errors: list[dict[str, Any]],
@@ -338,7 +381,14 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--case-timeout", type=float, default=240.0)
     parser.add_argument("--max-usd", type=float, default=5.0, help="hard spend cap for this run")
+    parser.add_argument(
+        "--oracle",
+        action="store_true",
+        help="no API: the answer of a correct agent, from the tools",
+    )
+    parser.add_argument("--null", action="store_true", help="no API: empty answers")
     args = parser.parse_args()
+    offline = "oracle" if args.oracle else "null" if args.null else None
 
     only_ids = {i.strip() for i in args.only_ids.split(",") if i.strip()} if args.only_ids else None
     categories = (
@@ -359,9 +409,11 @@ def main() -> int:
             done.add((row["case_id"], row["rep"]))
     jobs = [(c, r) for c in cases for r in range(args.reps) if (c["id"], r) not in done]
 
-    import anthropic  # imported late: the tests and the offline baselines need no SDK
+    client = None
+    if offline is None:
+        import anthropic  # imported late: the tests and the offline baselines need no SDK
 
-    client = anthropic.Anthropic(max_retries=0, timeout=90.0)
+        client = anthropic.Anthropic(max_retries=0, timeout=90.0)
     budget = Budget(args.max_usd)
     lock = threading.Lock()
     errors: list[dict[str, Any]] = []
@@ -370,15 +422,19 @@ def main() -> int:
     def work(job: tuple[dict[str, Any], int]) -> None:
         nonlocal skipped
         case, rep = job
-        kind, row = run_case(
-            client,
-            case,
-            args.model,
-            rep,
-            catalogue=catalogue,
-            budget=budget,
-            case_timeout_s=args.case_timeout,
-            effort=args.effort,
+        kind, row = (
+            run_offline(case, rep, offline, catalogue)
+            if offline
+            else run_case(
+                client,
+                case,
+                args.model,
+                rep,
+                catalogue=catalogue,
+                budget=budget,
+                case_timeout_s=args.case_timeout,
+                effort=args.effort,
+            )
         )
         with lock:
             if kind == "result":
@@ -396,7 +452,7 @@ def main() -> int:
             else:
                 skipped += 1
 
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+    with ThreadPoolExecutor(max_workers=1 if offline else args.workers) as pool:
         list(pool.map(work, jobs))
 
     all_rows = (
@@ -404,9 +460,17 @@ def main() -> int:
         if results_path.exists()
         else []
     )
-    summary = summarize(all_rows, errors, skipped, args.model, args.effort)
+    summary = summarize(all_rows, errors, skipped, offline or args.model, args.effort)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
+    if offline == "oracle":
+        bad = [r for r in all_rows if not r["grade"]["passed"]]
+        print(f"ORACLE: {len(all_rows) - len(bad)}/{len(all_rows)} pass (must be all)")
+        return 1 if bad else 0
+    if offline == "null":
+        good = [r for r in all_rows if r["grade"]["passed"]]
+        print(f"NULL: {len(good)}/{len(all_rows)} pass (must be none)")
+        return 1 if good else 0
     return 0
 
 
