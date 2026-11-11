@@ -1,0 +1,219 @@
+{
+ "asian_option_pricer:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "asset_encumbrance_ratio:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "asset_liability_mismatch_index:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "balance_sheet_projection_model:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "basel_iii_leverage_ratio:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "basis_risk_irrbb:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "black_litterman_model:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "business_continuity_risk_score:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "carbon_footprint_attribution:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "cash_flow_ladder_1_year:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "cds_spread_to_pd_conversion:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "christoffersen_independence_test:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "compute_loss_percentiles:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "concentration_risk_hhi:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "contingency_funding_plan_trigger:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "contingent_liquidity_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "convexity_gap:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "corporate_credit_scoring_model:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "correlation_clustering:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "credit_default_swap_cds_pricer:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out.",
+  "The reader's mark: an interest-rate swap pricer does not serve a credit default swap question, so the pointer to it should go unless a real need can be stated."
+ ],
+ "credit_default_swap_var:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "credit_stress_testing:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "cross_currency_liquidity_bridge:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "currency_attribution:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "diversification_ratio:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "effective_duration:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "emir_clearing_obligation_check:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "emir_trade_repository_report:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "es_at_multiple_confidence_levels:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "esg_score_integration:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "external_loss_data_integration:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "factor_return_attribution:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "frtb_sa_residual_risk_addon:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "frtb_sa_sensitivity_based_method:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "frtb_trading_desk_aggregation:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "funding_cost_analysis:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "historical_simulation_var:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "icaap_capital_assessment:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "intraday_liquidity_monitor:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "irb_foundation_approach_capital:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "jensens_alpha:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "kri_threshold_breach_detection:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "liquidity_adjusted_portfolio_var:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "liquidity_scorecard_aggregation:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "marginal_contribution_to_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "mifid_ii_algorithm_documentation:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "mifid_ii_post_trade_transparency:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "nii_simulation_baseline:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "nii_simulation_stress:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "normal_inverse_gaussian_model:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "option_risk_irrbb:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "pillar_2a_capital:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "pillar_2b_stress_buffer:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "portfolio_beta:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "portfolio_turnover:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "regime_detection_hmm:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "repo_market_stress_haircut:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "residual_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "scenario_severity_estimation:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "sector_attribution:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "sector_default_rate_analysis:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "severity_distribution_fitting:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "solvency_ii_scr_credit_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "solvency_ii_scr_market_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "sovereign_credit_risk_assessment:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "structural_hedge_optimisation:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "third_party_vendor_risk:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "tracking_error:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "traffic_light_backtesting:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "treynor_ratio:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "volga_vega_convexity:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ],
+ "yield_to_maturity:when": [
+  "The closing pointer begins 'For a different need' and names no need, and the related function may not serve a question about this function. Keep a pointer only if you can say in one clause what question the related function answers that this one does not, and it is a real next step for someone using this function; otherwise leave the pointer out."
+ ]
+}

@@ -1086,3 +1086,23 @@ Neither settles the 4% tolerance, and the marks as made stand as the record.
 **Decision.** One targeted rewrite, not a new prompt: the 49 gate-noted answers plus the 3 marked ones (52, no overlap), with the
 gate's or the reader's note as feedback (`docs/assistant-bank-redo-1.json`, `python -m assistant.bank build --redo-ids`). A rewrite
 never replaces an entry with static text. v4 and the pinned hashes do not change, and the pointer style stays as built.
+
+### 9.22 The re-read of the rewritten answers and a second redo (2026-11-11)
+
+The first redo (52 answers; code `a95f4be`, data `928d3ba`; 55 s, $0.81, no failed call) changed exactly those 52 entries (46 bank
+files: 45 function files and the manifest; nothing outside the 52 differs from `b64daae`). Gate notes on them fell from 61 to 3, no
+rewrite became static, and the mean answer length went from 747 to 722 characters. The three answers the reader had marked were
+fixed: the LGD steps now describe the net recovery rate and take one minus it, the Brinson pointer states its need, and the
+compound-option pointer to the chooser option was dropped.
+
+A person re-read 20 of the 52 (the 3 marked, 10 whose gate notes read like claims, and 7 drawn at random, seed 20261112; this sheet
+also showed each answer's related-function summaries): 19 no wrong claim, 1 wrong claim, 0 unsure. The one,
+`credit_default_swap_cds_pricer:when`, ends with "For a different need, `interest_rate_swap_irs_pricer` ...", which names no need and
+points at a function that does not serve a credit default swap question; the par-spread fix in the same answer was right. This is
+the pointer problem of 9.21 again: the writer is asked to name a related function from the siblings it is given, and for some
+functions none fits (the CDS pricer was given eleven rates and swaps functions). 72 of the 385 `when` answers still end with "For a
+different need" (4 of them were in the first redo). The re-read sample was partly targeted, so no rate follows from 1 of 20.
+
+**Decision.** A second targeted rewrite of those 72 (`docs/assistant-bank-redo-2.json`) with one note: keep a pointer only if it says
+what question the related function answers that this one does not and it is a real next step, otherwise leave it out (the reader's
+wording is added for the CDS answer). Same mechanism and guarantees as the first redo; v4 and the pinned hashes do not change.
