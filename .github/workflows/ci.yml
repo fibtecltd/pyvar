@@ -74,10 +74,10 @@ jobs:
       - run: pip install bandit[toml]
 
       - name: Bandit security scan
-        # -ll = report MEDIUM and HIGH severity only
-        # Fail on HIGH findings; warn on MEDIUM
-        run: bandit -r . -ll -x tests/ --exit-zero
-        # Remove --exit-zero once all MEDIUM findings are resolved
+        # The same gate as the pipeline's Synth step (pyvar-cdk/stacks/pipeline_stack.py):
+        # -ll = MEDIUM and HIGH severity only, and any finding fails the job. It used to run
+        # with --exit-zero, so a finding only showed up when the pipeline ran on master.
+        run: bandit -r . -ll -x tests/
 
   # ── 3. Unit & integration tests ───────────────────────────────────────────
   test:
