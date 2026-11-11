@@ -791,3 +791,68 @@ mechanical graders, then Opus on every answer (about $8.3 per full generation of
 regeneration of what fails), regeneration of failures, an answer that fails twice sent to a person or to a fix of its
 record (eight cases were flagged on two or more of four draws), and a person reading a random sample of at least 40
 Opus-passed answers per release. Not covered here: the example-values action, and the cost of building the pipeline.
+
+### 9.17 Tier run A: Sonnet 5.5 and Opus 5.5 write the menu answers (2026-11-11)
+
+Plan: `docs/assistant-plan-tier-measurement.md` (R0 to R2). Sonnet 5.5 and Opus 5.5 each wrote the same 308 menu cases
+(`explain`, `when`, `compare`) once with prompt v4 (`v4-2026-11-09`, effort low, code commit `490d288`, not dirty;
+the graders include `no_source_claims`), and Opus 5.5 judged each set. Dev key, the plan's caps. The data (answers,
+verdicts, summaries) is on the scratch branch `data/assistant-tier-run-1`, commit `71fe7c0`; every file's sha256 was
+checked against its `SHA256SUMS` and every figure below was recomputed from those files, not taken from the agent's
+report. `docs/assistant-tier-run-1-flags.csv` has each case's grader result, failing checks, Opus verdict and Opus's
+issue text (no answer text).
+
+| | Haiku v4 (9.10, 9.12) | Sonnet 5.5 | Opus 5.5 |
+|---|---|---|---|
+| answers scored | 616 (two draws) | 308 | 305 (3 `compare` cases skipped by the spend cap) |
+| Opus flags | 21 (3.4%; 2.2 to 5.2) | **3 (1.0%; 0.3 to 2.8)** | **0 (0%; 0 to 1.2)** |
+| Opus passes with issues listed | not recorded | 9 | 5 |
+| grader pass (current graders) | not comparable, see below | 235/308 (76%) | 214/305 (70%) |
+| writer cost per answer | $0.00027 | $0.0052 | $0.0138 |
+| Opus verdict cost | about $0.0071 | $0.0067 | $0.0065 |
+| latency p50 / p95, no tools | about 1.9 s | 2.7 / 3.7 s | 4.6 / 6.1 s |
+
+Total spend $9.87 (smoke calls $0.02, Sonnet $1.59 + $2.07 judged, Opus $4.20 + $1.99 judged). The plan's estimates ran
+25% low for Opus as a writer ($0.011 expected), 6% high for Sonnet and 8% high for the verdicts. The Opus run reached
+its $4.10 cap and finished $0.098 over it, because calls already running finish; the three skipped cases are all
+`compare`, so Opus has 37 of 40 there. Caps are soft by about the workers' in-flight cost.
+
+**The rules fixed before the run (plan 1, section 9).**
+- **M1 (bank writer stays Haiku unless a bigger writer is clearly better): met by Sonnet.** 3 of 308 against Haiku's
+  21 of 616 is a drop of 2.4 points (the rule asks 1.5) with one-sided Fisher p 0.019. By the rule the bank writer
+  moves from Haiku to Sonnet. Caveats: one draw (three flags can easily be one or six), the Haiku figures come from
+  earlier sessions, all on the same 308 cases, and Haiku's grader results under today's graders are not known yet (below).
+- **M3 (Opus judging Opus): applies.** Opus's 0 of 305 beats Sonnet's 3 of 308 only under the Opus judge (one-sided p
+  0.13), while under the graders Opus is worse (70% against 76%) and the detectors tie. Probable self-grading: no tier
+  decision rests on the Opus writer's 0 of 305. Sonnet's result is a different model judging, so it stands.
+
+**The eight persistent cases (9.12).** All eight pass the Opus judge for both writers (16 of 16), and the model-free
+detectors fire on none of the 16 answers. Haiku was flagged on at least two of four draws for each of them; if Sonnet
+failed them half the time the chance of 0 in 8 would be 0.4% (5.8% at 30%). The graders fail 5 of the 8 Sonnet answers
+and 4 of the 8 Opus answers, almost all on the wording check below. One draw each is not the plan's eight draws (R3):
+that part of the plan is trimmed to Sonnet only in run B.
+
+**The graders.** Every grader failure of both writers comes from two checks; all other checks (length, wording, absence
+claims, advice, identifiers, `mentions_*`) fail on none of the 613 answers.
+- `no_source_claims` fails 71 Sonnet and 89 Opus answers (23% and 29%). It is a wording rule (never credit a statement
+  to "pyvar's documentation" or the catalogue), added for prompt v5, and this run applies it to v4 text, which still
+  tells the writer what the documentation does not say. The Opus judge flagged none of these 160 answers, so they cost a
+  regeneration, not an error; and the graders passed all three answers Opus did flag, so the two checks again find
+  different things. Haiku's rate under the same check is unknown: its v4 draws predate it. Run B measures it.
+- `numbers_supported` fails 2 Sonnet and 5 Opus answers, all in records with the line-start-number defect found while
+  building the typed harness (`retail_deposit_runoff_rate` explain and when, `liquidity_coverage_ratio_lcr` when,
+  `required_stable_funding_rsf_calc` explain and when): the grader wrongly fails a number that starts a line of a
+  description, in 12 of the 385 records. A fix in the bank build needs a re-grade of the Phase 0 answers.
+With those two checks set aside, both writers pass the graders on 100% of answers.
+
+**Sonnet's three flags.** `black_litterman_model` `compare:maximum_sharpe_ratio_portfolio` and `when` both group
+`risk_aversion` with `tau` and `omega` as controlling how much weight the views get, where the record says lambda
+scales the equilibrium returns and the final weights and the view blend is set by tau and omega; and
+`garch_11_volatility_forecast:explain` says the function fits a GARCH(1,1) model, where alpha and beta are supplied
+(defaults 0.1 and 0.85) and only omega can be set by variance targeting. Two of three are one misreading repeated.
+
+**What this does not show.** One draw of 308 cases per writer, so the intervals above are wide and overlap Haiku's at
+the edges. Opus as judge was validated only on Haiku-written answers (9.16); its verdicts on Sonnet's and Opus's text
+are the same judge on new text. Opus lists issues on 9 Sonnet and 5 Opus answers it passes, the stratum that held 1
+error in 12 for Haiku (9.16); nobody has read these. No typed question has been measured. At 4.6 s a menu answer
+before any tool call, Opus is unlikely to meet the plan's 12 s typed-answer rule (L1); that is an inference.
