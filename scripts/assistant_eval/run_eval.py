@@ -18,15 +18,19 @@ Usage:
     python scripts/assistant_eval/run_eval.py --cases CASES --out DIR --oracle
     python scripts/assistant_eval/run_eval.py --cases CASES --out DIR --null
     python scripts/assistant_eval/run_eval.py --cases CASES --out DIR --model claude-haiku-5-5 --max-usd 3
+    python scripts/assistant_eval/run_eval.py --cases CASES --out DIR --model claude-opus-5-5 \\
+        --effort low --only-ids ID1,ID2 --reps 8 --max-usd 1
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import random
 import statistics
+import subprocess
 import sys
 import threading
 import time
@@ -39,7 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cost import usage_cost
 from graders import grade, oracle_text
-from prompts import PROMPT_VERSION, build_request, intent_key
+from prompts import EFFORT, PROMPT_VERSION, build_request, intent_key
 
 RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504, 529}
 RETRYABLE_NAMES = {"APIConnectionError", "APITimeoutError", "ConnectionError", "TimeoutError"}
@@ -51,6 +55,11 @@ USAGE_KEYS = (
     "cache_read_input_tokens",
     "cache_creation_input_tokens",
 )
+
+
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+HERE = Path(__file__).resolve().parent
+PROVENANCE_FILES = ("prompts.py", "graders.py")
 
 
 class CaseTimeout(Exception):
@@ -133,6 +142,7 @@ def run_case(
     case_timeout_s: float,
     sleep: Callable[[float], None] = time.sleep,
     rng: random.Random | None = None,
+    effort: str = EFFORT,
 ) -> tuple[str, dict[str, Any]]:
     """Run one (case, rep). Returns ("result" | "error" | "skipped", row)."""
     rng = rng or random.Random()
@@ -151,7 +161,7 @@ def run_case(
         for attempt in range(tries):
             if budget.exhausted() and attempt == 0:
                 return "skipped", {"case_id": case["id"], "rep": rep, "reason": "spend cap reached"}
-            request = build_request(case, feedback)
+            request = build_request(case, feedback, effort)
             if attempt == 0:
                 turns.append({"role": "system", "content": request["system"]})
                 turns.append({"role": "user", "content": request["messages"][0]["content"]})
@@ -272,10 +282,53 @@ def _percentile(values: list[float], q: float) -> float:
     return ordered[min(len(ordered) - 1, int(q * len(ordered)))]
 
 
+def code_provenance(directory: Path = HERE) -> dict[str, Any]:
+    """Which prompts.py and graders.py produced a run: git commit, uncommitted edits, content hashes.
+
+    The hashes need no git, so a run copied off the machine still says which text it used. `commit` is
+    the last commit that touched either file (None outside a git checkout); `dirty` is True when either
+    file differs from it, in which case the commit alone does not identify the code.
+    """
+    paths = [str(directory / name) for name in PROVENANCE_FILES]
+
+    def git(*args: str) -> str | None:
+        try:
+            done = subprocess.run(  # noqa: S603 - fixed arguments, no shell, no user input
+                ["git", "-C", str(directory), *args],  # noqa: S607
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=True,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return done.stdout.strip()
+
+    commit = git("log", "-1", "--format=%H", "--", *paths) or None
+    status = git("status", "--porcelain", "--", *paths)
+    return {
+        "commit": commit,
+        "dirty": bool(status) if status is not None else None,
+        "sha256": {
+            name: hashlib.sha256((directory / name).read_bytes()).hexdigest()
+            for name in PROVENANCE_FILES
+        },
+    }
+
+
 def summarize(
-    rows: list[dict[str, Any]], errors: list[dict[str, Any]], skipped: int, model: str
+    rows: list[dict[str, Any]],
+    errors: list[dict[str, Any]],
+    skipped: int,
+    model: str,
+    effort: str = EFFORT,
+    provenance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Per-intent pass rates with intervals, plus counts, tokens, cost and latency."""
+    """Per-intent pass rates with intervals, plus counts, tokens, cost and latency.
+
+    `model` is the writer model id that was asked for ("oracle" or "null" for the offline baselines);
+    the summary also lists the model ids the API reported serving, so a silent swap would show.
+    """
     by_intent: dict[str, dict[str, Any]] = {}
     scored = [r for r in rows if r["status"] == "ok"]
     for intent in sorted({r["intent"] for r in rows}):
@@ -303,7 +356,11 @@ def summarize(
     totals = {k: sum(r["usage"][k] for r in rows) for k in USAGE_KEYS}
     return {
         "model": model,
+        "writer_model": model,
+        "served_models": sorted({str(r.get("served_model")) for r in rows}),
+        "effort": effort,
         "prompt_version": PROMPT_VERSION,
+        "code": provenance if provenance is not None else code_provenance(),
         "cases_run": len(rows),
         "scored": len(scored),
         "truncated": sum(1 for r in rows if r["status"] == "truncated"),
@@ -325,9 +382,24 @@ def summarize(
     }
 
 
-def load_cases(path: Path, limit: int | None, only: set[str] | None = None) -> list[dict[str, Any]]:
-    """The cases in file order; `only` keeps those whose action is listed, before `limit` is applied."""
+def load_cases(
+    path: Path,
+    limit: int | None,
+    only: set[str] | None = None,
+    only_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """The cases in file order; `only` keeps those whose action is listed and `only_ids` those whose id is
+    listed, both before `limit` is applied.
+
+    Raises:
+        ValueError: if `only_ids` names an id that is not in the file (a typo would otherwise run nothing).
+    """
     cases = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if only_ids:
+        missing = sorted(only_ids - {c["id"] for c in cases})
+        if missing:
+            raise ValueError(f"case ids not in {path.name}: {missing}")
+        cases = [c for c in cases if c["id"] in only_ids]
     if only:
         cases = [c for c in cases if intent_key(c) in only]
     return cases[:limit] if limit else cases
@@ -347,6 +419,17 @@ def main() -> int:
         default=None,
         help="comma-separated actions to run (explain, when, compare, example:typical, example:stress)",
     )
+    parser.add_argument(
+        "--only-ids",
+        default=None,
+        help="comma-separated case ids to run (an id that is not in --cases is an error)",
+    )
+    parser.add_argument(
+        "--effort",
+        default=EFFORT,
+        choices=EFFORT_LEVELS,
+        help=f"output_config.effort sent with every writer call (default {EFFORT}, as in every Phase 0 run)",
+    )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--case-timeout", type=float, default=240.0)
     parser.add_argument("--max-usd", type=float, default=5.0, help="hard spend cap for this run")
@@ -357,7 +440,11 @@ def main() -> int:
     args = parser.parse_args()
 
     only = {a.strip() for a in args.only.split(",") if a.strip()} if args.only else None
-    cases = load_cases(args.cases, args.limit, only)
+    only_ids = {i.strip() for i in args.only_ids.split(",") if i.strip()} if args.only_ids else None
+    try:
+        cases = load_cases(args.cases, args.limit, only, only_ids)
+    except ValueError as exc:
+        parser.error(str(exc))
     offline = "oracle" if args.oracle else "null" if args.null else None
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "traces").mkdir(exist_ok=True)
@@ -387,7 +474,13 @@ def main() -> int:
             run_offline(case, rep, offline)
             if offline
             else run_case(
-                client, case, args.model, rep, budget=budget, case_timeout_s=args.case_timeout
+                client,
+                case,
+                args.model,
+                rep,
+                budget=budget,
+                case_timeout_s=args.case_timeout,
+                effort=args.effort,
             )
         )
         with lock:
@@ -416,7 +509,7 @@ def main() -> int:
         if results_path.exists()
         else []
     )
-    summary = summarize(all_rows, errors, skipped, offline or args.model)
+    summary = summarize(all_rows, errors, skipped, offline or args.model, args.effort)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     if offline == "oracle":

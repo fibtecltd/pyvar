@@ -133,7 +133,9 @@ def user_content(case: dict[str, Any]) -> str:
 
 
 def build_request(
-    case: dict[str, Any], feedback: list[tuple[str, list[str]]] | None = None
+    case: dict[str, Any],
+    feedback: list[tuple[str, list[str]]] | None = None,
+    effort: str = EFFORT,
 ) -> dict[str, Any]:
     """Keyword arguments for `client.messages.create`, minus `model`.
 
@@ -141,6 +143,7 @@ def build_request(
         case: one menu selection from cases.py.
         feedback: for the example action only, earlier attempts as (raw reply, validation errors), oldest
             first. Each is replayed as an assistant turn plus a user turn asking for a corrected object.
+        effort: the `output_config.effort` level; the default is the one every Phase 0 run used.
     """
     messages: list[dict[str, Any]] = [{"role": "user", "content": user_content(case)}]
     for reply, errors in feedback or []:
@@ -161,5 +164,5 @@ def build_request(
         "system": SYSTEM_PROMPT,
         "messages": messages,
         "max_tokens": MAX_TOKENS[kind],
-        "output_config": {"effort": EFFORT},
+        "output_config": {"effort": effort},
     }

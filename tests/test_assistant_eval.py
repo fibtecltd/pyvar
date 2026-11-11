@@ -755,9 +755,81 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
+    pinned = "v4-2026-11-09"  # the candidate prompt (plan 1, decisions taken)
+    assert prompts.PROMPT_VERSION == pinned
+
+
+def test_effort_defaults_to_low_and_is_sent_when_asked() -> None:
+    case = make_case("explain")
+    assert prompts.build_request(case)["output_config"] == {"effort": "low"}
+    assert prompts.build_request(case, None, "high")["output_config"] == {"effort": "high"}
+    client = FakeClient([response(GOOD_EXPLAIN)])
+    run_eval.run_case(
+        client,
+        case,
+        "claude-haiku-5-5",
+        0,
+        budget=run_eval.Budget(5.0),
+        case_timeout_s=60.0,
+        effort="medium",
+    )
+    assert client.calls[0]["output_config"] == {"effort": "medium"}
+
+
+def test_the_summary_records_prompt_version_code_provenance_and_writer() -> None:
+    row = {
+        "intent": "explain",
+        "status": "ok",
+        "grade": {"passed": True, "checks": {}},
+        "first_try_passed": None,
+        "usage": dict.fromkeys(run_eval.USAGE_KEYS, 0),
+        "cost_usd": 0.0,
+        "latency_s": 1.0,
+        "retries": 0,
+        "served_model": "claude-sonnet-5-5-20261101",
+    }
+    summary = run_eval.summarize([row], [], 0, "claude-sonnet-5-5", "medium")
+    assert summary["writer_model"] == "claude-sonnet-5-5" and summary["effort"] == "medium"
+    assert summary["served_models"] == ["claude-sonnet-5-5-20261101"]
+    assert summary["prompt_version"] == prompts.PROMPT_VERSION
+    code = summary["code"]
+    assert set(code["sha256"]) == {"prompts.py", "graders.py"}
+    here = Path(run_eval.__file__).resolve().parent
+    import hashlib
+
     assert (
-        prompts.PROMPT_VERSION == "v4-2026-11-09"
-    ), "the candidate prompt (plan 1, decisions taken)"
+        code["sha256"]["prompts.py"]
+        == hashlib.sha256((here / "prompts.py").read_bytes()).hexdigest()
+    )
+    assert code["commit"] is None or len(code["commit"]) == 40
+
+
+def test_only_ids_runs_just_those_cases_and_a_typo_is_an_error(tmp_path: Path) -> None:
+    rows = [{"id": f"f{i}:explain", "intent": "explain"} for i in range(4)]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    kept = run_eval.load_cases(path, None, None, {"f3:explain", "f1:explain"})
+    assert [c["id"] for c in kept] == ["f1:explain", "f3:explain"]
+    with pytest.raises(ValueError, match="f9:explain"):
+        run_eval.load_cases(path, None, None, {"f1:explain", "f9:explain"})
+
+
+def test_only_ids_with_reps_makes_one_row_per_case_and_rep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cases = [make_case("explain"), make_case("when")]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(c) + "\n" for c in cases))
+    out = tmp_path / "out"
+    argv = ["run_eval.py", "--cases", str(path), "--out", str(out), "--oracle"]
+    argv += ["--only-ids", cases[1]["id"], "--reps", "3"]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert run_eval.main() == 0
+    rows = [json.loads(line) for line in (out / "results.jsonl").read_text().splitlines()]
+    assert sorted((r["case_id"], r["rep"]) for r in rows) == [(cases[1]["id"], i) for i in range(3)]
+    assert json.loads((out / "summary.json").read_text())["prompt_version"] == (
+        prompts.PROMPT_VERSION
+    )
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:
