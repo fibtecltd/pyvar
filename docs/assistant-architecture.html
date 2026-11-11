@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Portal Assistant Architecture</title>
+<style>
+:root{--bg:#F5F7F9;--fg:#18222E;--dim:#566273;--ink:#7A8696;--line:#CBD3DD;--box:#FFFFFF;--band:#ECF0F4;
+  --accent:#0A6A96;--good:#1E7B4C;--warn:#B06A00;--chip:#E3E9EF;
+  --f-head:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;--f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161C;--fg:#E7ECF2;--dim:#9BA7B6;--ink:#76839A;--line:#2C3643;--box:#1A212A;--band:#161C23;
+  --accent:#62C3EA;--good:#5FCB93;--warn:#E7A64A;--chip:#232C37;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161C;--fg:#E7ECF2;--dim:#9BA7B6;--ink:#76839A;--line:#2C3643;--box:#1A212A;--band:#161C23;
+  --accent:#62C3EA;--good:#5FCB93;--warn:#E7A64A;--chip:#232C37;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+main{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+h1,h2,h3{font-family:var(--f-head);text-wrap:balance;margin:0}
+h1{font-size:30px;line-height:1.15}h2{font-size:21px;margin-bottom:6px}h3{font-size:16px;margin-bottom:6px}
+p{margin:0 0 10px;max-width:70ch}.lead{font-size:17px;max-width:68ch}.sub{color:var(--dim)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;font-size:13.5px;color:var(--dim);padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--box)}
+.legend span{display:inline-flex;gap:8px;align-items:center;min-width:0}
+.sw{width:30px;height:16px;border-radius:4px;border:1.5px solid var(--ink);background:var(--box);flex:none}.sw.d{border-style:dashed}
+.dt{width:11px;height:11px;border-radius:50%;flex:none}.dt.g{background:var(--good)}.dt.a{background:var(--warn)}
+.bl-acc{color:var(--accent);font-weight:600}
+.fig{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hint{display:none;color:var(--dim);font-size:13px;margin:0}@media (max-width:820px){.hint{display:block}}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--box);padding:6px}
+.scroll svg{display:block;width:100%;min-width:900px;height:auto}
+figcaption{color:var(--dim);font-size:14px;max-width:80ch}
+svg text{font-family:var(--f-body)}
+svg .n{fill:var(--box);stroke:var(--ink);stroke-width:1.4}svg .n.dash{stroke-dasharray:5 4}svg .band{fill:var(--band)}
+svg .nt{fill:var(--fg);font-size:13px;font-weight:600}svg .nl{fill:var(--dim);font-size:12px}
+svg .na,svg .nla{fill:var(--accent);font-size:12px;font-weight:600}
+svg .al{fill:var(--dim);font-size:11px}svg .al.ala{fill:var(--accent)}
+svg .bl{fill:var(--dim);font-size:10.5px;letter-spacing:.09em;font-weight:600}svg .bl2{fill:var(--dim);font-size:11px}
+svg .ar{fill:none;stroke:var(--ink);stroke-width:1.5}svg .ar.acc2{stroke:var(--accent)}svg .ah{fill:var(--ink)}
+svg .dotg{fill:var(--good)}svg .dota{fill:var(--warn)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--box)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-head);font-size:12.5px;letter-spacing:.04em;color:var(--dim);background:var(--band);font-weight:600}
+tr:last-child td{border-bottom:0}td.k{font-weight:600;white-space:nowrap}.num{font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--chip);color:var(--dim)}
+.pill.g{color:var(--good)}.pill.a{color:var(--warn)}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 14px;max-width:78ch}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}.cols>div{min-width:0}
+ol.d{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;max-width:74ch}ol.d li{padding-left:2px}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--box);padding:14px 16px}
+</style></head><body>
+<main>
+<header style="display:flex;flex-direction:column;gap:12px">
+  <h1>How the portal assistant fits together</h1>
+  <p class="lead">One layout, drawn for each tier. Menu questions never reach a model at request time: they are static files holding answers that were checked once, offline. The tier only changes who writes and who checks the typed, open-ended answers.</p>
+  <p class="sub">Everything measured so far is about fixed menu actions (explain, when to use, compare) written by Haiku. Typed questions and the larger models are drawn here but not measured yet.</p>
+  <div class="legend" aria-label="Legend"><span><i class="sw"></i> exists in production</span><span><i class="sw d"></i> still to build</span><span><i class="dt g"></i> measured in Phase 0</span><span><i class="dt a"></i> not measured</span><span class="bl-acc">blue = changes with the tier</span></div>
+</header>
+<div class="note"><p><b>What changed since the first sketch.</b></p>
+<ol class="d"><li>Menu answers are static files on the CDN, so the gateway, the quota and the router are gone from that path. The widget picks menu or typed. This is faster, free, and leaves nothing to abuse.</li>
+<li>The watchdog audits by a daily budget spread over functions, not a percentage. At 1%, one function would need about 2,000 live answers to fill a 20-answer window, so a per-function rule would almost never fire.</li>
+<li>The pin is a flag the gateway reads, not a router decision.</li></ol></div>
+<section aria-labelledby="h-free"><h2 id="h-free">Free tier</h2>
+  <figure class="fig"><p class="hint">Scroll sideways inside the diagram to see all of it.</p>
+    <div class="scroll"><svg viewBox="0 0 1130 612" role="img" aria-label="Free tier: menu questions are static files with no gateway, quota or model; only typed questions reach Haiku, behind free checks, static text and a watchdog." xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah-free" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><polygon class="ah" points="0,0 10,5 0,10"/></marker></defs>
+<rect class="band" x="0" y="4" width="1130" height="84" rx="8"/>
+<rect class="band" x="0" y="100" width="1130" height="404" rx="8"/>
+<rect class="band" x="0" y="510" width="1130" height="98" rx="8"/>
+<text class="bl" x="16" y="28">OFFLINE</text><text class="bl2" x="16" y="44">once per catalogue version</text>
+<text class="bl" x="16" y="116">AT REQUEST TIME</text><text class="bl" x="16" y="528">WATCHING</text>
+<text class="nla" x="16" y="426">Blue text is what changes with the tier:</text>
+<text class="nl" x="16" y="443">daily quota, live model, checks</text>
+<text class="nl" x="16" y="458">before delivery, audit policy.</text>
+<text class="nl" x="16" y="480">The rest is identical in all three.</text>
+<rect class="n" x="170" y="14" width="260" height="60" rx="6"/>
+<text class="nt" x="180" y="34">Catalogue (exists)</text>
+<text class="nl" x="180" y="52">functions.json, 385 functions</text>
+<rect class="n dash" x="500" y="14" width="380" height="64" rx="6"/>
+<text class="nt" x="510" y="34">Release pipeline</text>
+<text class="nl" x="510" y="52">Haiku writes → graders → Opus gate</text>
+<text class="nl" x="510" y="67">≤2 retries, then static text</text>
+<circle class="dotg" cx="868" cy="26" r="5"/>
+<rect class="n" x="16" y="120" width="150" height="80" rx="6"/>
+<text class="nt" x="26" y="140">Visitor</text>
+<text class="nl" x="26" y="158">widget decides:</text>
+<text class="nl" x="26" y="173">menu or typed question</text>
+<rect class="n dash" x="580" y="120" width="200" height="80" rx="6"/>
+<text class="nt" x="590" y="140">Answer bank (files)</text>
+<text class="nl" x="590" y="158">static files on the CDN</text>
+<text class="nl" x="590" y="173">no gateway, no model</text>
+<circle class="dotg" cx="768" cy="132" r="5"/>
+<rect class="n" x="880" y="120" width="140" height="80" rx="6"/>
+<text class="nt" x="890" y="140">Reply</text>
+<text class="nl" x="890" y="158">to the visitor</text>
+<rect class="n" x="180" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="190" y="270">Gateway (route is new)</text>
+<text class="nl" x="190" y="288">auth → tier, key scrub</text>
+<text class="na" x="190" y="303">40/day, anon 10/h</text>
+<text class="nl" x="190" y="318">pin check</text>
+<rect class="n dash" x="580" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="590" y="270">Live agent</text>
+<text class="na" x="590" y="288">Haiku 5.5</text>
+<text class="nl" x="590" y="303">reads the record via tools:</text>
+<text class="nl" x="590" y="318">search, get_function,</text>
+<text class="nl" x="590" y="333">propose_parameters</text>
+<circle class="dota" cx="748" cy="262" r="5"/>
+<rect class="n dash" x="800" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="810" y="270">Guardrails</text>
+<text class="nl" x="810" y="288">graders (free, ~ms)</text>
+<text class="nl" x="810" y="303">fail → retry once</text>
+<text class="na" x="810" y="318">no second-model gate</text>
+<circle class="dotg" cx="968" cy="262" r="5"/>
+<rect class="n dash" x="800" y="410" width="180" height="80" rx="6"/>
+<text class="nt" x="810" y="430">Static fallback</text>
+<text class="nl" x="810" y="448">text built from the</text>
+<text class="nl" x="810" y="463">record, nothing more</text>
+<circle class="dotg" cx="968" cy="422" r="5"/>
+<rect class="n dash" x="300" y="520" width="460" height="80" rx="6"/>
+<text class="nt" x="310" y="540">Watchdog (no human)</text>
+<text class="nl" x="310" y="558">audit sample → Opus judge → flag counter</text>
+<text class="na" x="310" y="573">audit: $2/day pool (proposed)</text>
+<text class="nl" x="310" y="588">CUSUM on audited flags → pin function</text>
+<circle class="dota" cx="748" cy="532" r="5"/>
+<polyline class="ar" points="430,44 500,44" marker-end="url(#ah-free)"/><text class="al" x="465" y="36" text-anchor="middle">the record</text>
+<polyline class="ar" points="680,78 680,120" marker-end="url(#ah-free)"/><text class="al" x="686" y="104" text-anchor="start">stores</text>
+<polyline class="ar" points="166,160 580,160" marker-end="url(#ah-free)"/><text class="al" x="373" y="151" text-anchor="middle">menu action: fetch the stored answer</text>
+<polyline class="ar" points="780,160 880,160" marker-end="url(#ah-free)"/><text class="al" x="830" y="151" text-anchor="middle">answer</text>
+<polyline class="ar" points="80,200 80,305 180,305" marker-end="url(#ah-free)"/><text class="al" x="88" y="262" text-anchor="start">typed question</text>
+<polyline class="ar" points="360,305 580,305" marker-end="url(#ah-free)"/><text class="al" x="470" y="297" text-anchor="middle">question</text>
+<polyline class="ar" points="760,290 800,290" marker-end="url(#ah-free)"/><text class="al" x="780" y="282" text-anchor="middle">draft</text>
+<polyline class="ar" points="800,335 760,335" marker-end="url(#ah-free)"/><text class="al" x="780" y="349" text-anchor="middle">retry</text>
+<polyline class="ar" points="900,250 900,200" marker-end="url(#ah-free)"/><text class="al" x="906" y="232" text-anchor="start">passes</text>
+<polyline class="ar" points="890,360 890,410" marker-end="url(#ah-free)"/><text class="al" x="884" y="392" text-anchor="end">fails twice</text>
+<polyline class="ar" points="980,450 1010,450 1010,200" marker-end="url(#ah-free)"/><text class="al" x="1004" y="392" text-anchor="end">static text</text>
+<polyline class="ar" points="1020,160 1060,160 1060,560 760,560" marker-end="url(#ah-free)"/><text class="al" x="912" y="552" text-anchor="middle">sampled live answers</text>
+<polyline class="ar acc2" points="330,520 330,360" marker-end="url(#ah-free)"/><text class="al ala" x="338" y="440" text-anchor="start">pin to static</text>
+</svg></div><figcaption>Menu questions are static files: no gateway, no quota, no model, and the same in every tier. Typed questions pass the gateway to Haiku. A draft that fails the free checks gets one retry, and a second failure becomes static text. The watchdog pins any function that keeps getting flagged.</figcaption></figure></section>
+<section aria-labelledby="h-pro"><h2 id="h-pro">Pro tier</h2>
+  <figure class="fig"><p class="hint">Scroll sideways inside the diagram to see all of it.</p>
+    <div class="scroll"><svg viewBox="0 0 1130 612" role="img" aria-label="Pro tier: the same skeleton as free; the live model, the quota and the audit policy change." xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah-pro" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><polygon class="ah" points="0,0 10,5 0,10"/></marker></defs>
+<rect class="band" x="0" y="4" width="1130" height="84" rx="8"/>
+<rect class="band" x="0" y="100" width="1130" height="404" rx="8"/>
+<rect class="band" x="0" y="510" width="1130" height="98" rx="8"/>
+<text class="bl" x="16" y="28">OFFLINE</text><text class="bl2" x="16" y="44">once per catalogue version</text>
+<text class="bl" x="16" y="116">AT REQUEST TIME</text><text class="bl" x="16" y="528">WATCHING</text>
+<text class="nla" x="16" y="426">Blue text is what changes with the tier:</text>
+<text class="nl" x="16" y="443">daily quota, live model, checks</text>
+<text class="nl" x="16" y="458">before delivery, audit policy.</text>
+<text class="nl" x="16" y="480">The rest is identical in all three.</text>
+<rect class="n" x="170" y="14" width="260" height="60" rx="6"/>
+<text class="nt" x="180" y="34">Catalogue (exists)</text>
+<text class="nl" x="180" y="52">functions.json, 385 functions</text>
+<rect class="n dash" x="500" y="14" width="380" height="64" rx="6"/>
+<text class="nt" x="510" y="34">Release pipeline</text>
+<text class="nl" x="510" y="52">Haiku writes → graders → Opus gate</text>
+<text class="nl" x="510" y="67">≤2 retries, then static text</text>
+<circle class="dotg" cx="868" cy="26" r="5"/>
+<rect class="n" x="16" y="120" width="150" height="80" rx="6"/>
+<text class="nt" x="26" y="140">Visitor</text>
+<text class="nl" x="26" y="158">widget decides:</text>
+<text class="nl" x="26" y="173">menu or typed question</text>
+<rect class="n dash" x="580" y="120" width="200" height="80" rx="6"/>
+<text class="nt" x="590" y="140">Answer bank (files)</text>
+<text class="nl" x="590" y="158">static files on the CDN</text>
+<text class="nl" x="590" y="173">no gateway, no model</text>
+<circle class="dotg" cx="768" cy="132" r="5"/>
+<rect class="n" x="880" y="120" width="140" height="80" rx="6"/>
+<text class="nt" x="890" y="140">Reply</text>
+<text class="nl" x="890" y="158">to the visitor</text>
+<rect class="n" x="180" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="190" y="270">Gateway (route is new)</text>
+<text class="nl" x="190" y="288">auth → tier, key scrub</text>
+<text class="na" x="190" y="303">200 a day</text>
+<text class="nl" x="190" y="318">pin check</text>
+<rect class="n dash" x="580" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="590" y="270">Live agent</text>
+<text class="na" x="590" y="288">Sonnet 5.5 (or Opus 5.5)</text>
+<text class="nl" x="590" y="303">reads the record via tools:</text>
+<text class="nl" x="590" y="318">search, get_function,</text>
+<text class="nl" x="590" y="333">propose_parameters</text>
+<circle class="dota" cx="748" cy="262" r="5"/>
+<rect class="n dash" x="800" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="810" y="270">Guardrails</text>
+<text class="nl" x="810" y="288">graders (free, ~ms)</text>
+<text class="nl" x="810" y="303">fail → retry once</text>
+<text class="na" x="810" y="318">no second-model gate</text>
+<circle class="dotg" cx="968" cy="262" r="5"/>
+<rect class="n dash" x="800" y="410" width="180" height="80" rx="6"/>
+<text class="nt" x="810" y="430">Static fallback</text>
+<text class="nl" x="810" y="448">text built from the</text>
+<text class="nl" x="810" y="463">record, nothing more</text>
+<circle class="dotg" cx="968" cy="422" r="5"/>
+<rect class="n dash" x="300" y="520" width="460" height="80" rx="6"/>
+<text class="nt" x="310" y="540">Watchdog (no human)</text>
+<text class="nl" x="310" y="558">audit sample → Opus judge → flag counter</text>
+<text class="na" x="310" y="573">audit: same $2/day pool</text>
+<text class="nl" x="310" y="588">CUSUM on audited flags → pin function</text>
+<circle class="dota" cx="748" cy="532" r="5"/>
+<polyline class="ar" points="430,44 500,44" marker-end="url(#ah-pro)"/><text class="al" x="465" y="36" text-anchor="middle">the record</text>
+<polyline class="ar" points="680,78 680,120" marker-end="url(#ah-pro)"/><text class="al" x="686" y="104" text-anchor="start">stores</text>
+<polyline class="ar" points="166,160 580,160" marker-end="url(#ah-pro)"/><text class="al" x="373" y="151" text-anchor="middle">menu action: fetch the stored answer</text>
+<polyline class="ar" points="780,160 880,160" marker-end="url(#ah-pro)"/><text class="al" x="830" y="151" text-anchor="middle">answer</text>
+<polyline class="ar" points="80,200 80,305 180,305" marker-end="url(#ah-pro)"/><text class="al" x="88" y="262" text-anchor="start">typed question</text>
+<polyline class="ar" points="360,305 580,305" marker-end="url(#ah-pro)"/><text class="al" x="470" y="297" text-anchor="middle">question</text>
+<polyline class="ar" points="760,290 800,290" marker-end="url(#ah-pro)"/><text class="al" x="780" y="282" text-anchor="middle">draft</text>
+<polyline class="ar" points="800,335 760,335" marker-end="url(#ah-pro)"/><text class="al" x="780" y="349" text-anchor="middle">retry</text>
+<polyline class="ar" points="900,250 900,200" marker-end="url(#ah-pro)"/><text class="al" x="906" y="232" text-anchor="start">passes</text>
+<polyline class="ar" points="890,360 890,410" marker-end="url(#ah-pro)"/><text class="al" x="884" y="392" text-anchor="end">fails twice</text>
+<polyline class="ar" points="980,450 1010,450 1010,200" marker-end="url(#ah-pro)"/><text class="al" x="1004" y="392" text-anchor="end">static text</text>
+<polyline class="ar" points="1020,160 1060,160 1060,560 760,560" marker-end="url(#ah-pro)"/><text class="al" x="912" y="552" text-anchor="middle">sampled live answers</text>
+<polyline class="ar acc2" points="330,520 330,360" marker-end="url(#ah-pro)"/><text class="al ala" x="338" y="440" text-anchor="start">pin to static</text>
+</svg></div><figcaption>Only three things move from the free diagram: the live model, the daily quota and the audit policy. The bank, the checks and the floor are identical.</figcaption></figure></section>
+<section aria-labelledby="h-ent"><h2 id="h-ent">Enterprise tier</h2>
+  <figure class="fig"><p class="hint">Scroll sideways inside the diagram to see all of it.</p>
+    <div class="scroll"><svg viewBox="0 0 1130 612" role="img" aria-label="Enterprise tier: the same skeleton with one more hop on the live path, a different model that checks each answer." xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah-ent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><polygon class="ah" points="0,0 10,5 0,10"/></marker></defs>
+<rect class="band" x="0" y="4" width="1130" height="84" rx="8"/>
+<rect class="band" x="0" y="100" width="1130" height="404" rx="8"/>
+<rect class="band" x="0" y="510" width="1130" height="98" rx="8"/>
+<text class="bl" x="16" y="28">OFFLINE</text><text class="bl2" x="16" y="44">once per catalogue version</text>
+<text class="bl" x="16" y="116">AT REQUEST TIME</text><text class="bl" x="16" y="528">WATCHING</text>
+<text class="nla" x="16" y="426">Blue text is what changes with the tier:</text>
+<text class="nl" x="16" y="443">daily quota, live model, checks</text>
+<text class="nl" x="16" y="458">before delivery, audit policy.</text>
+<text class="nl" x="16" y="480">The rest is identical in all three.</text>
+<rect class="n" x="170" y="14" width="260" height="60" rx="6"/>
+<text class="nt" x="180" y="34">Catalogue (exists)</text>
+<text class="nl" x="180" y="52">functions.json, 385 functions</text>
+<rect class="n dash" x="500" y="14" width="380" height="64" rx="6"/>
+<text class="nt" x="510" y="34">Release pipeline</text>
+<text class="nl" x="510" y="52">Haiku writes → graders → Opus gate</text>
+<text class="nl" x="510" y="67">≤2 retries, then static text</text>
+<circle class="dotg" cx="868" cy="26" r="5"/>
+<rect class="n" x="16" y="120" width="150" height="80" rx="6"/>
+<text class="nt" x="26" y="140">Visitor</text>
+<text class="nl" x="26" y="158">widget decides:</text>
+<text class="nl" x="26" y="173">menu or typed question</text>
+<rect class="n dash" x="580" y="120" width="200" height="80" rx="6"/>
+<text class="nt" x="590" y="140">Answer bank (files)</text>
+<text class="nl" x="590" y="158">static files on the CDN</text>
+<text class="nl" x="590" y="173">no gateway, no model</text>
+<circle class="dotg" cx="768" cy="132" r="5"/>
+<rect class="n" x="880" y="120" width="140" height="80" rx="6"/>
+<text class="nt" x="890" y="140">Reply</text>
+<text class="nl" x="890" y="158">to the visitor</text>
+<rect class="n" x="180" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="190" y="270">Gateway (route is new)</text>
+<text class="nl" x="190" y="288">auth → tier, key scrub</text>
+<text class="na" x="190" y="303">500 a day</text>
+<text class="nl" x="190" y="318">pin check</text>
+<rect class="n dash" x="580" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="590" y="270">Live agent</text>
+<text class="na" x="590" y="288">Opus 5.5 (or Fable 5.2)</text>
+<text class="nl" x="590" y="303">reads the record via tools:</text>
+<text class="nl" x="590" y="318">search, get_function,</text>
+<text class="nl" x="590" y="333">propose_parameters</text>
+<circle class="dota" cx="748" cy="262" r="5"/>
+<rect class="n dash" x="800" y="250" width="180" height="110" rx="6"/>
+<text class="nt" x="810" y="270">Guardrails</text>
+<text class="nl" x="810" y="288">graders (free, ~ms)</text>
+<text class="na" x="810" y="303">+ 2nd-model gate, sync</text>
+<text class="nl" x="810" y="318">fail → retry once</text>
+<circle class="dotg" cx="968" cy="262" r="5"/>
+<rect class="n dash" x="800" y="410" width="180" height="80" rx="6"/>
+<text class="nt" x="810" y="430">Static fallback</text>
+<text class="nl" x="810" y="448">text built from the</text>
+<text class="nl" x="810" y="463">record, nothing more</text>
+<circle class="dotg" cx="968" cy="422" r="5"/>
+<rect class="n dash" x="300" y="520" width="460" height="80" rx="6"/>
+<text class="nt" x="310" y="540">Watchdog (no human)</text>
+<text class="nl" x="310" y="558">audit sample → Opus judge → flag counter</text>
+<text class="na" x="310" y="573">audit: 1% (already gated)</text>
+<text class="nl" x="310" y="588">CUSUM on audited flags → pin function</text>
+<circle class="dota" cx="748" cy="532" r="5"/>
+<polyline class="ar" points="430,44 500,44" marker-end="url(#ah-ent)"/><text class="al" x="465" y="36" text-anchor="middle">the record</text>
+<polyline class="ar" points="680,78 680,120" marker-end="url(#ah-ent)"/><text class="al" x="686" y="104" text-anchor="start">stores</text>
+<polyline class="ar" points="166,160 580,160" marker-end="url(#ah-ent)"/><text class="al" x="373" y="151" text-anchor="middle">menu action: fetch the stored answer</text>
+<polyline class="ar" points="780,160 880,160" marker-end="url(#ah-ent)"/><text class="al" x="830" y="151" text-anchor="middle">answer</text>
+<polyline class="ar" points="80,200 80,305 180,305" marker-end="url(#ah-ent)"/><text class="al" x="88" y="262" text-anchor="start">typed question</text>
+<polyline class="ar" points="360,305 580,305" marker-end="url(#ah-ent)"/><text class="al" x="470" y="297" text-anchor="middle">question</text>
+<polyline class="ar" points="760,290 800,290" marker-end="url(#ah-ent)"/><text class="al" x="780" y="282" text-anchor="middle">draft</text>
+<polyline class="ar" points="800,335 760,335" marker-end="url(#ah-ent)"/><text class="al" x="780" y="349" text-anchor="middle">retry</text>
+<polyline class="ar" points="900,250 900,200" marker-end="url(#ah-ent)"/><text class="al" x="906" y="232" text-anchor="start">passes</text>
+<polyline class="ar" points="890,360 890,410" marker-end="url(#ah-ent)"/><text class="al" x="884" y="392" text-anchor="end">fails twice</text>
+<polyline class="ar" points="980,450 1010,450 1010,200" marker-end="url(#ah-ent)"/><text class="al" x="1004" y="392" text-anchor="end">static text</text>
+<polyline class="ar" points="1020,160 1060,160 1060,560 760,560" marker-end="url(#ah-ent)"/><text class="al" x="912" y="552" text-anchor="middle">sampled live answers</text>
+<polyline class="ar acc2" points="330,520 330,360" marker-end="url(#ah-ent)"/><text class="al ala" x="338" y="440" text-anchor="start">pin to static</text>
+</svg></div><figcaption>Enterprise adds one hop to the live path: a different model than the writer checks each answer before it is shown. Writer and gate must differ, so a model never marks its own work. Gated answers need far less auditing.</figcaption></figure></section>
+<section><h2>Decisions</h2><div class="cols">
+<div class="card"><h3>Settled</h3><ol class="d">
+<li>Menu answers come from a stored bank written by Haiku with the v4 prompt, checked by the graders then Opus, and served as static files. Same bank in every tier.</li>
+<li>No more than 4% of published answers may carry a wrong claim, and no person sits in the request path (Filippo).</li>
+<li>Static text built from the record is the floor: a second failed check, or a pinned function.</li>
+<li>Pins use a CUSUM on audited answers (confirmed 2026-11-11), not a fixed window of 20: a plain 3-flags-in-20 rule falsely pins busy healthy functions.</li>
+<li>Typed questions use a live agent with read-only tools. It never computes a number, gives advice or handles a key.</li>
+<li>The ladder Haiku, then Sonnet or Opus, then Opus or Fable is the target. A larger model is switched on only after it is measured.</li>
+<li>The spare reading batch is skipped (Filippo).</li></ol></div>
+<div class="card"><h3>Starting values, to tune on real traffic</h3><ol class="d">
+<li>Audit budget about $2 a day, shared by free and pro, spread so every function with traffic gets audited answers.</li>
+<li>Pin a function when a CUSUM on its audited answers crosses 2.5 (reference rate 3.5%, allowance 0.10).</li>
+<li>Alert when more than 8% of the last 200 audited answers are flagged.</li>
+<li>One retry, then static text.</li>
+<li>The 8 cases flagged on two or more draws start as static text until their record is fixed.</li>
+<li>Quotas from the plan: anonymous 10 an hour per IP, free 40 a day, pro 200, enterprise 500.</li></ol></div>
+<div class="card"><h3>Open, needs a decision (my pick first)</h3><ol class="d">
+<li><b>Typed questions in the first release?</b> No: ship the bank first, then typed questions after the measurement run.</li>
+<li><b>Who regenerates the bank when the catalogue changes?</b> A test fails CI until it is regenerated; an automated job that opens the PR is my pick, and it needs the Anthropic key in CI.</li>
+<li><b>Anonymous visitors on the live agent?</b> Keep 10 an hour per IP: the bank covers the common case.</li>
+<li><b>Fable:</b> price and availability are unknown.</li>
+<li><b>Pro tier pricing:</b> not defined yet, so the cost ceiling per tier waits for it.</li>
+<li><b>Does a person still read a sample of the bank at every release?</b> The rule behind "Opus is usable as the gate" assumed it: 40 random answers, about half an hour, outside the request path. Yes, keep it: nothing else measures what slips past Opus, and without it the only bound is the 8.8% above.</li></ol></div></div></section>
+<section><h2>What changes between tiers, and what it costs</h2>
+  <p class="sub">Cost per live answer uses the measured size of one answer (about 1,340 tokens in, 280 out) at the prices already in the repo. The bank costs about $9 per catalogue version in total: $0.32 for Haiku to write all 1,154 answers and about $8.30 for Opus to check them, plus retries.</p><div class="tbl"><table><thead><tr><th></th><th>Free</th><th>Pro</th><th>Enterprise</th></tr></thead><tbody><tr><td class=k>Live agent writes with</td><td>Haiku 5.5</td><td>Sonnet 5.5 (or Opus 5.5)</td><td>Opus 5.5 (or Fable 5.2)</td></tr><tr><td class=k>Checked before delivery</td><td>graders</td><td>graders</td><td>graders + a different model as gate</td></tr><tr><td class=k>Audit by the watchdog (proposed)</td><td>shared pool of about $2 a day, about 280 verdicts, spread over functions</td><td>same pool</td><td>1% of its answers (already gated)</td></tr><tr><td class=k>Daily quota on typed questions (plan placeholder)</td><td>40 signed in, 10 an hour anonymous</td><td>200</td><td>500</td></tr><tr><td class=k>Menu answers</td><td>static files: no quota, no model, $0</td><td>same</td><td>same</td></tr><tr><td class=k>Cost of one live answer</td><td><span class="num">$0.0003</span></td><td><span class="num">$0.0055</span> Sonnet, <span class="num">$0.011</span> Opus</td><td><span class="num">$0.011</span> Opus + <span class="num">$0.007</span> gate if Opus-priced; Fable has no price in the repo</td></tr><tr><td class=k>Worst case per user per day (whole quota used)</td><td><span class="num">$0.01</span></td><td><span class="num">$1.10</span> Sonnet, <span class="num">$2.20</span> Opus</td><td><span class="num">about $9</span>, plus about 8% for retries</td></tr></tbody></table></div></section>
+<section><h2>Where the human went</h2><div class="cols"><div class="note"><p><b>Done once, by a person:</b> a blind read (the model's text was preferred in 11 of 12 pairs) and the recall check that found 0 errors in 40 answers Opus passed. That is how we know the Opus check can be trusted at all.</p></div>
+<div class="note"><p><b>Not replaced yet:</b> the measured design had a person read at least 40 bank answers at every release. The watchdog watches live typed answers only, so nothing automatic takes that job for the bank. Without it, all we can say about what slips past Opus is the 8.8% bound at 95% confidence, above the 4% tolerance. See the last open question.</p></div></div></section>
+<section><h2>What the evidence covers</h2><div class="tbl"><table><thead><tr><th>Component</th><th>Status</th><th>What we have</th><th>What is missing</th></tr></thead><tbody><tr><td class=k>Answer bank and release pipeline</td><td><span class="pill g">measured</span></td><td>Haiku with the v4 prompt: Opus flags 3.5% of answers over three draws (32 of 924), against 7.1% before. The graders fail a different set (16 of 308 on the first v4 draw; only 2 overlap with Opus), so together 7.8% would be regenerated. Opus on every answer: a person found <b>0 errors in 40</b> clean answers (upper bound 8.8%; your tolerance is 4%).</td><td>Eight cases were flagged on two or more of four draws, three of them on three. No prompt change reached them: they need a fix to the record, or static text.</td></tr><tr><td class=k>Graders</td><td><span class="pill g">measured</span></td><td>Built and tested: identifiers, numbers, advice, wording, absence, length. Free and instant.</td><td>They miss claims about what a function does; Opus finds those.</td></tr><tr><td class=k>Static fallback</td><td><span class="pill g">measured</span></td><td>Built from the record. A reader preferred the model's text in 11 of 12 pairs, so the fallback is the floor, not the target.</td><td>Nothing.</td></tr><tr><td class=k>Live agent on typed questions</td><td><span class="pill a">not measured</span></td><td>Every measurement is on fixed menu actions with a fixed prompt.</td><td>Typed questions: quality, injection, privacy. Measuring costs a new run.</td></tr><tr><td class=k>Sonnet, Opus, Fable as writers</td><td><span class="pill a">not measured</span></td><td>Only Haiku has been measured as the writer. The price ratios are exact: Sonnet is 20 times, Opus 40 times Haiku.</td><td>To measure 308 answers: about $3.9 for Sonnet and $5.6 for Opus, judge included. Fable: price not in the repo.</td></tr><tr><td class=k>Second-model gate on live answers</td><td><span class="pill a">not measured</span></td><td>Opus as a judge is measured (8 of 10 flags real, recall passes the rule). Its delay on a live answer is not.</td><td>Latency, and whether a different gate model changes the result.</td></tr><tr><td class=k>Watchdog and pin flag</td><td><span class="pill a">not measured</span></td><td>Not built. Arithmetic and a planning simulation only. A plain 3 flags in the last 20 falsely pins a healthy function 3.1% of fresh windows, and a busy one (7 audited answers a day) about 0.6 times a month; CUSUM cuts that to about 0.04 a month and pins a failing function later. A global alert at an audited flag rate above 8% over 200 answers falsely fires 0.07% of windows.</td><td>Real traffic to tune it, and proof it catches a regression.</td></tr></tbody></table></div></section>
+<p class="sub">Source of the numbers: docs/assistant-phase0-results.md, sections 9.10 to 9.16, and scripts/assistant_eval/cost.py for the prices. The watchdog arithmetic is exact binomial. This page does not settle example values or the cost of building the pipeline.</p>
+</main>
+</body></html>

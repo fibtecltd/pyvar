@@ -273,7 +273,7 @@ NAT data for text traffic is negligible.
   the model's answer was picked in 11 of 12 pairs with no error ticked, so by the rule fixed in advance it earns
   all three actions. Neither cheaper judge (Haiku 5.5, Sonnet 5.5) reproduced enough of Opus's flags (recall 0.18 and
   0.41 against a threshold of 0.75), so by the rule fixed in advance model-written text is built only if a person
-  reads every answer. Prompt v4, which acts on 14 of Opus's 22 flags, is prepared and not yet measured
+  reads every answer. Prompt v4, which acts on 14 of Opus's 22 flags, cut them to 10 of 308 (3.2%), mostly in `when` (17 to 5). A person reading 56 answers Opus passed or flagged found no error among the 40 it passed cleanly (0 of 40, upper bound 8.8%), so by the rule fixed beforehand Opus is usable as a build-time gate with a release-time sample (`docs/assistant-phase0-results.md` 9.16)
   (`docs/assistant-phase0-results.md` section 9).
 
 > Phases 1 to 3 below were written for a runtime chat route (option A). Phase 0 points to option B, in which

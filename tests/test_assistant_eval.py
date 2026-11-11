@@ -254,6 +254,7 @@ def test_the_guides_own_words_are_caught_and_ordinary_finance_is_not() -> None:
 
 
 def test_the_prompt_tells_the_guide_to_say_pyvars_documentation() -> None:
+    """v4 (the candidate, 2026-11-11) still asks for this wording; v5 dropped it and was not adopted."""
     system = prompts.SYSTEM_PROMPT
     assert 'say "pyvar\'s documentation"' in system
     assert 'never write "the record" or "sibling" (say "related function")' in system
@@ -275,6 +276,30 @@ def test_a_related_function_is_described_only_in_the_words_of_its_listing() -> N
     assert "never recommend it for a use its listing does not mention" in task
     assert "add no such bullet" in task
     assert "{" not in task, "no stray braces from the added rule"
+
+
+def test_a_statement_credited_to_a_source_is_caught_and_ordinary_finance_is_not() -> None:
+    """2026-11-10: 7 of the 21 answers Opus flagged over two v4 draws credited "pyvar's documentation" with
+    something it does not say (or lacks). v3 had asked for that wording; v5 forbids it."""
+    explain = make_case("explain")
+    for phrase in (
+        "pyvar's documentation cites a 4.5% minimum.",
+        "pyvar\u2019s documentation describes it as broader.",
+        "The documentation lists three zones.",
+        "Its catalogue says it is a ratio.",
+    ):
+        grade = graders.grade(explain, GOOD_EXPLAIN + " " + phrase)
+        assert not grade.checks["no_source_claims"] and not grade.passed, phrase
+        assert "credits a source" in " ".join(grade.flags)
+    for phrase in (
+        "It follows ISDA documentation for the collateral terms.",
+        "Loan documentation is out of scope.",
+        "See the full documentation of the Basel framework.",
+        "The catalogue entry for this function is below.",
+    ):
+        assert graders.grade(explain, GOOD_EXPLAIN + " " + phrase).checks[
+            "no_source_claims"
+        ], phrase
 
 
 def test_a_claim_that_the_documentation_lacks_something_is_caught() -> None:
@@ -730,7 +755,9 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
-    assert prompts.PROMPT_VERSION.startswith("v4")
+    assert (
+        prompts.PROMPT_VERSION == "v4-2026-11-09"
+    ), "the candidate prompt (plan 1, decisions taken)"
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:

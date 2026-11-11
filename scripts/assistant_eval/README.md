@@ -49,6 +49,12 @@ python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/hai
     --only explain,when,compare --per-intent 80 --judge-model claude-haiku-5-5 --tag haiku
 python scripts/assistant_eval/compare_judges.py --actions explain,when,compare \
     --pair $WORK/haiku_v2/judgments.jsonl $WORK/haiku_v2/judgments_haiku.jsonl
+
+# 7. Opus's recall (docs/assistant-phase0-results.md 9.11): a person reads answers Opus passed
+python scripts/assistant_eval/recall_check.py pick   --cases $WORK/cases.jsonl --run $WORK/haiku_v4   # the draw
+python scripts/assistant_eval/recall_check.py export --cases $WORK/cases.jsonl --run $WORK/haiku_v4 > stage1.json
+python scripts/assistant_eval/recall_check.py build  --cases $WORK/cases.jsonl --answers stage1.json \
+    --out check.html --key key.json            # --stage 2 on export for the second batch; keep key.json from the reader
 ```
 
 `--max-usd` is a hard cap: when reached, new cases are skipped (and counted as skipped, not failed). A run
@@ -56,7 +62,7 @@ resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `trac
 names the `prompt_version` that produced it (`prompts.PROMPT_VERSION`; v1 was the first paid run, v2 states a
 character budget and three rules in each text task, v3 stops the guide using its own words, "the record" and
 "sibling", which a visitor cannot interpret, and a grader checks it, v4 withdraws the claim that the
-documentation lacks something, which Opus found false in 6 of 22 flagged answers, and a grader checks that too). The judge's sample inside an action is in a fixed hash
+documentation lacks something, which Opus found false in 6 of 22 flagged answers, and a grader checks that too, v5 stops it crediting any statement to "pyvar's documentation" (7 of 21 flags over two v4 draws), and a grader checks that too). The judge's sample inside an action is in a fixed hash
 order, so `--per-intent 80` starts with the answers `--per-intent 40` judged: runs can be compared case by
 case. The judge overwrites `judgments.jsonl` in the run directory; copy it first if you want the old one.
 

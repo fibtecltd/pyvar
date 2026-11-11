@@ -1,0 +1,25 @@
+case_id,opus,grader_failure
+basel_iii_cet1_ratio:when,F,
+basel_iii_total_capital_ratio:when,P,visitor_wording (sibling)
+black_litterman_model:compare:maximum_sharpe_ratio_portfolio,P,no_absence_claims
+black_litterman_model:when,P,length_ok (1109 > 1100)
+black_scholes_greeks:compare:monte_carlo_option_pricer,F,identifiers_known (other_function)
+combined_buffer_requirement:compare:capital_conservation_buffer,F,
+convexity_gap:explain,P,no_absence_claims
+counterparty_credit_risk_ccr_exposure:compare:cva_sensitivity_cva_greeks,F,
+counterparty_credit_risk_ccr_exposure:when,P,no_absence_claims
+effective_duration_alm:when,F,
+escalation_threshold_calculation:when,P,no_absence_claims
+fx_forward_pricer:when,F,
+hypothetical_multi_factor_scenario:explain,F,
+hypothetical_multi_factor_scenario:when,F,
+kri_threshold_breach_detection:explain,P,no_absence_claims
+liquidity_coverage_ratio_lcr:when,F,
+liquidity_scorecard_aggregation:when,P,no_absence_claims
+nelson_siegel_svensson_curve:explain,P,no_absence_claims
+probability_of_default_pd_estimation:explain,P,visitor_wording (the record)
+retail_deposit_runoff_rate:explain,F,numbers_supported ('30')
+retail_deposit_runoff_rate:when,P,numbers_supported ('30')
+sftr_securities_finance_report:when,P,visitor_wording (sibling)
+structural_hedge_optimisation:explain,P,no_absence_claims
+through_the_cycle_pd_adjustment:explain,P,length_ok (937 > 900)

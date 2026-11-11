@@ -1,0 +1,24 @@
+case_id,opus,grader_failure
+advanced_measurement_approach_ama:explain,P,length_ok (933 > 900)
+basel_standardised_approach_rwa:compare:irb_advanced_approach_capital,P,no_absence_claims
+basis_risk_irrbb:compare:irrbb_six_standard_rate_shocks,P,no_absence_claims
+black_scholes_european_option:when,F,
+convexity_gap:when,F,
+creditmetrics_portfolio_model:when,P,length_ok (1158 > 1100)
+cva_sensitivity_cva_greeks:when,F,
+effective_duration_alm:when,F,
+esg_score_integration:when,F,
+filtered_historical_simulation_var:when,P,length_ok (1116 > 1100)
+fx_option_pricer_garman_kohlhagen:when,P,visitor_wording (sibling)
+hqla_level_1_asset_classifier:explain,P,no_absence_claims
+irrbb_six_standard_rate_shocks:explain,F,
+kmv_merton_distance_to_default:when,P,length_ok (1135 > 1100)
+model_risk_assessment:explain,P,no_absence_claims
+modified_duration_balance_sheet:when,F,
+nelson_siegel_svensson_curve:explain,F,
+nii_sensitivity_rate_shock:explain,F,
+nii_simulation_stress:when,P,visitor_wording (sibling)
+pillar_2a_capital:when,F,
+retail_deposit_runoff_rate:explain,P,numbers_supported ('30')
+retail_deposit_runoff_rate:when,P,numbers_supported ('30')
+survival_horizon_calculator:explain,F,

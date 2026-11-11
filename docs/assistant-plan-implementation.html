@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Plan 2: implementing the settled design (answer bank + live agent + watchdog)</title>
+<style>
+:root{--bg:#F5F7F9;--fg:#18222E;--dim:#566273;--line:#CBD3DD;--box:#FFFFFF;--band:#ECF0F4;--accent:#0A6A96;--code:#E9EEF3;
+  --f-head:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;--f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161C;--fg:#E7ECF2;--dim:#9BA7B6;--line:#2C3643;--box:#1A212A;--band:#161C23;--accent:#62C3EA;--code:#232C37;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11161C;--fg:#E7ECF2;--dim:#9BA7B6;--line:#2C3643;--box:#1A212A;--band:#161C23;--accent:#62C3EA;--code:#232C37;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 64px}
+main{max-width:960px;margin:0 auto;min-width:0}
+nav{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--dim);margin-bottom:22px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+a{color:var(--accent)}
+h1,h2,h3,h4{font-family:var(--f-head);text-wrap:balance;line-height:1.2}
+h1{font-size:28px;margin:0 0 6px}h2{font-size:21px;margin:34px 0 8px;padding-top:6px}h3{font-size:17px;margin:24px 0 6px}
+p,li{max-width:78ch}p{margin:0 0 10px}ul,ol{padding-left:22px;margin:0 0 12px}li{margin:3px 0}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--code);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.5;max-width:100%}
+pre code{background:none;padding:0;overflow-wrap:normal}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--box);margin:8px 0 16px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:8px 11px;border-bottom:1px solid var(--line)}
+th{font-size:12.5px;color:var(--dim);background:var(--band)}tr:last-child td{border-bottom:0}
+blockquote{margin:0 0 12px;padding:2px 0 2px 14px;border-left:3px solid var(--accent);color:var(--dim)}
+hr{border:0;border-top:1px solid var(--line);margin:24px 0}
+.src{color:var(--dim);font-size:13px;margin-top:36px}
+</style></head><body><main>
+<nav><a href="assistant-architecture.html">Design, per tier</a> <a href="assistant-plan-tier-measurement.html">Plan 1: measuring the writers</a> Plan 2: implementation <a href="assistant-plan-implementation.md">Markdown source</a></nav>
+<h1>Plan 2: implementing the settled design (answer bank + live agent + watchdog)</h1>
+<p>Status: draft by the planning fork, 2026-11-10. Read-only on the repo. Every repo fact below cites <code>path:line</code>; items marked <strong>(unverified)</strong> were not read.
+"Free tier diagram" is the shared skeleton: the bank for menus, the gateway and a live agent for typed questions. Tiers differ only in the live agent model, quota and gate.</p>
+<h2>Decisions taken (2026-11-11)</h2>
+<p>Filippo accepted the review's recommendations "for now". They replace the "decisions needed" list in the summary below where they overlap.</p>
+<ul>
+<li><strong>Release 1 is menus only</strong>: the bank is built by an agent run (option A, as in Phase 0) and committed to git; the typed box stays off.</li>
+<li><strong>Release 2: refresh the bank by GitHub Actions with an AWS OIDC role (option B)</strong>, if the OIDC role is accepted when it is proposed; otherwise option C.</li>
+<li><strong>Bank pipeline, measured (run C, results 9.19):</strong> Sonnet writes; the graders check; a failing answer goes back to Sonnet with the failing checks, up to two more calls (239 of 308 pass first try, 69 the second, none needs a third); Opus gates every final answer (1.0% flagged); a gate flag is regenerated once by Opus (supported by one case, <code>esg_score_integration:when</code>; the record of that function is the better fix), then static text. A full build costs about $15 (writer $7.6, verdicts $7.7) plus the gate's regenerations. Two grader defects must be fixed in the bank PR with a re-grade of the Phase 0 answers: the line-start-number check, and the <code>no_source_claims</code> wording rule, which v4 text violates in a quarter of first drafts.</li>
+<li><strong>Bank writer: Sonnet</strong>, by rule M1 of the measurement plan (run A, results 9.17), to be confirmed by run B's Haiku grader control. A full build costs about $13.6 before regenerations (Sonnet $6.0 plus 1,154 Opus verdicts $7.6) against about $8 with Haiku. With the v4 prompt about a quarter of first drafts fail the <code>no_source_claims</code> wording check; regeneration with feedback is not yet tested.</li>
+<li><strong>Typed questions are not ready</strong> (run B, results 9.18): the first iteration is flagged on 8 and 9 of 175 in-scope answers (Haiku, Sonnet) and Sonnet is no better than Haiku. A typed verdict costs about $0.0077, so the $2 daily audit budget buys about 260 verdicts, not 143. Before the typed box: a parameter validator that accepts arrays for <code>object</code>-typed parameters (or validates against the OpenAPI schema), the domain in search results, an absence rule, a negation-aware advice check, and an English-only rule that allows the visitor's language or says why not.</li>
+<li><strong>Pins use CUSUM</strong> (section 8), <strong>confirmed by Filippo on 2026-11-11</strong>. Revisit with real traffic.</li>
+<li><strong>JSON reply, no token streaming</strong> (section 4).</li>
+<li><strong>A person still reads a random sample of at least 40 bank answers per release</strong>, outside the request path. The recall-check rule that makes Opus usable as the gate assumed it, and nothing automatic replaces it (the watchdog sees live typed answers only). Section 12 is written to match.</li>
+<li><strong>Open:</strong> the key for the bank build; the pro tier's pricing (not defined yet, 2026-11-11); Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.</li>
+</ul>
+<h2>Summary (10 lines)</h2>
+<ol>
+<li>Decisions needed from Filippo: (a) bank storage: repo-committed (recommended for the first release) or S3-served (needed for full no-human refresh); (b) accept CUSUM instead of "3 of 20" for pins (section 8); (c) typed questions reopen the privacy decision (plan 9, decision 3): privacy.html:86-87 and terms.html:94 say the opposite today; (d) the key for the bank build (dev key was only approved for evals); (e) token streaming or not (section 4).</li>
+<li>Total effort: about 31 to 39 working days across 8 PRs; the first user-visible release (bank only, PRs 1 and 2) is about 10 to 12 days. Run cost: bank build about $9 for a full run, a few cents per changed function.</li>
+<li>Pipeline: PR 1, 2, 3, 4, 5, 6, 7 each <strong>start a CodePipeline run</strong> (new top-level dir, <code>portal/</code>, <code>api/</code>, <code>pyvar-cdk/</code>, root files). Only PR 8 (docs/tests/scripts only) is pipeline-safe. Per-PR statement in section 10.</li>
+<li><strong>The budget idea is workable only as a tripwire for gross failure</strong>, not as a guarantee of the 4% tolerance (section 8). "3 of 20 in a sliding window" falsely pins busy healthy functions: at 7 audited answers a day, 0.59 false pins per function-month and 14% of days pinned; CUSUM: 0.04 and 0.9%.</li>
+<li>Long-tail functions (385 active, about 0.7 audited answers a day each) take 27 days to fill one window of 20. Coverage there is thin by arithmetic.</li>
+<li>Design inconsistency: guardrails after generation defeat token streaming. Plan: JSON reply (or one SSE message), not streamed tokens.</li>
+<li>Design inconsistency: <code>scripts/</code> is pipeline-excluded, so prompts or graders imported from <code>scripts/assistant_eval</code> could change in git without changing production. Move the shared kernel into a top-level <code>assistant/</code> package.</li>
+<li>No DB migration is needed (Redis counters, Prometheus, S3 or git). One would be needed only for per-user usage history (section 9).</li>
+<li>Existing CI has no AWS access and no secrets (no <code>secrets.</code> in <code>.github/workflows</code>, no AWS credentials or role in <code>pyvar-cdk</code>; the only OIDC in the repo is GitHub-to-PyPI trusted publishing): the no-human bank release is net-new infrastructure either way.</li>
+<li>Biggest risks: typed accuracy is unmeasured (Plan 1); audit coverage; the privacy copy; the Anthropic SDK entering the production image.</li>
+</ol>
+<h2>1. Settled design, restated and checked</h2>
+<ul>
+<li>Menus (explain, when, compare): 1,154 static answers (385 + 385 + 384, <code>cases.py --all</code>), written by Haiku 5.5 with the v4 prompt, checked by graders then Opus, up to 2 regenerations, else static text from the record. Same for every tier. No model call at request time.</li>
+<li>Typed questions: <code>POST</code> to a gateway (auth to tier, per-tier quota, scrub, pin check), live agent by tier (free Haiku; pro Sonnet or Opus; enterprise Opus or Fable, pending Plan 1), read-only tools, guardrails, one retry, static fallback.</li>
+<li>Watchdog: fixed daily audit budget, pin flag in Redis, global alert.</li>
+</ul>
+<p>Inconsistencies found against the repo (plain):</p>
+<ol>
+<li><strong>Streaming vs guardrails.</strong> The gateway cannot stream model tokens if graders (and for enterprise a gate model) must pass the whole answer first. Showing tokens and retracting a wrong claim is worse than waiting. Recommendation: a JSON reply, with an optional SSE of status events ("looking up <code>lcr</code>") then one <code>answer</code> event. This also removes plan 10's unverified "SSE through CloudFront and ALB unbuffered" (<code>docs/plan-portal-ai-assistant.md</code> section 10).</li>
+<li><strong>Quotas differ from the existing compute limits.</strong> <code>config.py:161-164</code>: unauth 60 an hour, free 10 a day, pro 500 a day; <code>rate_limit.py:106</code> exempts enterprise and internal entirely. The assistant quotas (plan 4.5: anonymous 10 an hour per IP, free 40, pro 200, enterprise 500 a day) need their <strong>own scope</strong> that does not exempt enterprise.</li>
+<li><strong>Auth cannot serve anonymous visitors as written.</strong> <code>auth.py:40</code> is <code>HTTPBearer()</code> with <code>auto_error</code> defaulting to true, so a missing header is rejected before any limit runs. An optional-user dependency is needed (new code beside <code>get_current_user</code>, <code>auth.py:144</code>).</li>
+<li><strong><code>scripts/</code> is pipeline-excluded</strong> (<code>pipeline_stack.py:1053</code>). A merge that changes only <code>scripts/assistant_eval/prompts.py</code> would not deploy, so git and production would disagree until some unrelated deploy. Section 3 fixes it.</li>
+<li><strong>The Phase 0 text says visitors type nothing</strong> (plan section 1a, decision 3 closed "by design"). Typed questions reverse that. <code>portal/privacy.html:86-87</code> says "our own backend never sends your portfolio data ... to Anthropic" and <code>terms.html:94</code> says results are not AI. Both need new wording <strong>before</strong> the flag goes on.</li>
+<li>Plan section 7 says phases 1 to 3 "were written for a runtime chat route (option A)" and are "to be rewritten". This plan is that rewrite.</li>
+<li>The bank key and the eval key: only the DEV key was approved, for evals. A production bank build needs an explicit decision (open question d).</li>
+<li>Model id: the design says "Fable 5.1"; the current model list has <code>claude-fable-5-2</code>. And Fable has no price in <code>cost.py</code>.</li>
+</ol>
+<h2>2. Component to repo-path map (verified)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Where it lives today</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App factory, routers, static mount</td>
+<td><code>main.py:94-217</code>; portal served by <code>_PortalStaticMount("/", StaticFiles(directory=PORTAL_DIR, html=True))</code></td>
+<td>add <code>assistant_router</code>; add <code>/api/v1/assistant</code> (already under <code>cfg.api_v1_prefix</code>, a reserved prefix, <code>main.py:58-66</code>)</td>
+</tr>
+<tr>
+<td>Reserved path prefixes</td>
+<td><code>main.py:58-66</code></td>
+<td>no change (assistant route is under <code>/api/v1</code>); the bank under <code>/assistant/bank/</code> is a static path and must <strong>not</strong> be reserved</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>config.py</code> (single source; no assistant keys today, grep empty)</td>
+<td>add <code>assistant_*</code> keys (section 9)</td>
+</tr>
+<tr>
+<td>Tier and token</td>
+<td><code>api/middleware/auth.py:46-70</code> (<code>TokenPayload</code>, tiers free, pro, enterprise, internal); <code>create_access_token</code> <code>:213</code></td>
+<td>optional-user dependency; tier read from DB for keys is already handled (<code>api_keys.py</code>)</td>
+</tr>
+<tr>
+<td>Rate limit</td>
+<td><code>api/middleware/rate_limit.py:106-241</code> (slowapi <code>Limiter</code> over Redis, plain FastAPI dependencies, <code>enforce_compute_rate_limit :160</code>, <code>enforce_public_rate_limit :226</code>, <code>get_trusted_client_ip :129</code> index -2 for CloudFront + ALB)</td>
+<td>new <code>enforce_assistant_rate_limit</code>, same pattern, own prefix, no tier exemption</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td><code>storage/redis_client.py:redis_url()</code>; async client built lazily in <code>api/routes/caching.py:69-80</code></td>
+<td>a small async helper in <code>assistant/store.py</code> using the same URL helper</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td><code>api_stack.py:248-287</code> import by name, <code>grant_read(task_role)</code>; app resolves at startup (<code>billing._resolve_stripe_secrets :165</code>, <code>observability/setup.py:74-103</code>); deliberately <strong>not</strong> ECS <code>secrets={}</code></td>
+<td>add <code>pyvar/{env}/anthropic-api-key</code> the same way (plan 4.8)</td>
+</tr>
+<tr>
+<td>Public flags</td>
+<td><code>api/routes/public_data.py</code> <code>/public/config</code> returns <code>google_sign_in_enabled</code>, <code>google_client_id</code></td>
+<td>add <code>assistant_enabled</code>, <code>assistant_bank_version</code> (widget hides itself when false)</td>
+</tr>
+<tr>
+<td>Widget</td>
+<td><code>portal/pyvar.js</code> (41,604 bytes): <code>API_BASE</code> <code>:15</code>, search panel with lazy <code>functions.json</code> fetch <code>:500-560</code>, Try-it <code>:899</code>, <code>DOMContentLoaded</code> init <code>:928</code></td>
+<td><code>portal/assistant.js</code> (new, lazy-loaded), launcher injected from <code>initSearch</code>-style init; keep <code>pyvar.js</code> change small</td>
+</tr>
+<tr>
+<td>Catalogue</td>
+<td><code>portal/functions.json</code> 990,448 bytes, 385 entries (keys description, display_name, domain, formula, name, params, path, summary...)</td>
+<td>source of truth for records, tools and drift hash</td>
+</tr>
+<tr>
+<td>Eval harness</td>
+<td><code>scripts/assistant_eval/{prompts,graders,cases,cost,judge,run_eval,body_schema,...}.py</code></td>
+<td>kernel moves to <code>assistant/</code> (section 3)</td>
+</tr>
+<tr>
+<td>Drift-test pattern</td>
+<td><code>tests/test_skills_sync.py</code> (re-runs <code>scripts/sync_skills.py</code>, fails until regenerated); <code>scripts/sync_portal_seo.py</code>, <code>tests/test_portal_links.py</code></td>
+<td><code>tests/test_assistant_bank.py</code> (section 5)</td>
+</tr>
+<tr>
+<td>Egress guard</td>
+<td><code>tests/test_data_residency.py::test_check7</code> scans <code>engine api tasks</code> for HTTP client imports (<code>:298-343</code>); <code>anthropic</code> is not in its regex</td>
+<td>keep gateway in <code>api/assistant/</code>; add an explicit test that only <code>assistant/client.py</code> imports <code>anthropic</code></td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td><code>observability/setup.py:26-48</code> (two <code>Histogram</code>s, structlog <code>:183</code>, Sentry <code>:109</code>), <code>/metrics</code> reserved</td>
+<td>add counters and histograms there</td>
+</tr>
+<tr>
+<td>Image</td>
+<td><code>Dockerfile:139</code> <code>COPY . .</code> (portal and scripts are in the image); <code>requirements.txt</code> has no <code>anthropic</code></td>
+<td><code>anthropic==2.6.0</code> pin (as in <code>scripts/assistant_eval/requirements.txt</code>) into root <code>requirements.txt</code></td>
+</tr>
+<tr>
+<td>Pipeline trigger</td>
+<td><code>pipeline_stack.py:1053-1084</code> excludes 8 dirs from the push filter</td>
+<td>see section 11</td>
+</tr>
+<tr>
+<td>Edge</td>
+<td><code>edge_stack.py:409-435</code>: default behaviour ALLOW_ALL, <code>compress=True</code>, <code>api_cache_policy</code> (default TTL 0, max 1 h, keyed on Authorization and Cache-Control, <code>:308-324</code>); extra behaviours only <code>/health</code>, <code>/docs</code>. WAF in <code>alb_waf_stack.py</code> (rules at priorities 10, 20, 30 <code>RateLimitPerIp</code>)</td>
+<td>see section 9</td>
+</tr>
+<tr>
+<td>Static files cache headers</td>
+<td>no <code>Cache-Control</code> set in <code>main.py</code> or <code>api/middleware/*</code> (grep empty)</td>
+<td>the bank needs one (section 5)</td>
+</tr>
+<tr>
+<td>Not read <strong>(unverified)</strong>: <code>observability/setup.py</code> instrumentator wiring; <code>api/middleware/usage.py</code> columns; <code>alerts_stack.py</code> alarm patterns beyond the four <code>Alarm(</code> calls.</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<h2>3. New modules and responsibilities</h2>
+<p>Top-level <strong><code>assistant/</code></strong> (pure functions, no FastAPI, no network except <code>client.py</code>) so eval and production share one kernel:</p>
+<ul>
+<li><code>assistant/prompts.py</code>, <code>graders.py</code>, <code>cost.py</code>, <code>records.py</code> (<code>trim_record</code>), <code>body_schema.py</code>: moved from <code>scripts/assistant_eval/</code> with <code>git mv</code>; <code>scripts/assistant_eval/</code> keeps thin re-export shims so Phase 0 tests and the harness still import. This is PR 1 and changes no behaviour.</li>
+<li><code>assistant/client.py</code>: the <strong>only</strong> module importing <code>anthropic</code>; retries, served-model check (as <code>run_eval.call_model</code>, <code>run_eval.py:86-123</code>), usage and cost, a hard per-call timeout; takes only scrubbed strings.</li>
+<li><code>assistant/scrub.py</code>: removes <code>pyvar_</code> keys (<code>"pyvar_" + token_urlsafe(32)</code>, 43 chars of <code>[A-Za-z0-9_-]</code>, verified <code>api_keys.py:45,75</code>), JWT shapes (<code>eyJ...</code> three dot-separated segments; HS-algorithm tokens, <code>auth.py:88,117</code>), long hex and base64 runs, and email addresses; replaces with a marker. Applied to the question before any model call and to the answer before it is returned.</li>
+<li><code>assistant/bank.py</code>: bank build (writer, graders, Opus verdict, regeneration ladder, static fallback), manifest, hashes. Used by a CLI <code>python -m assistant.bank</code>.</li>
+<li><code>assistant/agent.py</code>: the live loop: system prompt, tools, at most 4 tool turns, token cap.</li>
+<li><code>assistant/tools.py</code>: <code>search_functions</code> (Fuse-like server-side scoring over <code>functions.json</code>), <code>get_function</code> (returns <code>trim_record</code>), <code>propose_parameters</code> (validated against the catalogue's parameter types and bounds via <code>body_schema</code>).</li>
+<li><code>assistant/guardrails.py</code>: <code>grade_typed</code> (union of tool records, question numbers whitelisted, typed length bound), gate interface (enterprise: a different model), one retry, static fallback builder.</li>
+<li><code>assistant/watchdog.py</code>: allocator, audit scheduling, verdict recording, CUSUM, pin flag, alerts.</li>
+<li><code>assistant/store.py</code>: Redis access (async) for quotas' companion keys, pins, counters.
+<code>api/assistant/</code>: <code>routes.py</code> (<code>POST /api/v1/assistant/ask</code>), <code>deps.py</code> (optional-user, <code>enforce_assistant_rate_limit</code>), <code>schemas</code> in <code>schemas/assistant.py</code> (repo convention: <code>schemas/var.py</code>, <code>schemas/derivatives.py</code>).
+<code>portal/assistant.js</code> and <code>portal/assistant.css</code> (or a section of <code>pyvar.css</code>): launcher, menus, typed box, escaping; reads the bank, calls the gateway.
+<code>tests/test_assistant_*.py</code>.
+Why a top-level package: one source for eval and production; a new dir triggers the pipeline, which is <strong>correct</strong>, since it changes production. <code>test_check7</code> roots (<code>engine api tasks</code>) should gain <code>assistant</code> (widening a guard, not relaxing it).</li>
+</ul>
+<h2>4. Gateway API contract</h2>
+<p><code>POST /api/v1/assistant/ask</code> (JSON; optional <code>Authorization: Bearer &lt;session JWT | pyvar_ key&gt;</code>; anonymous allowed)
+Request:</p>
+<pre><code>{ &quot;question&quot;: str (1..500 chars, trimmed),
+  &quot;function&quot;: str | null   (page context: a catalogue name),
+  &quot;history&quot;: [ {&quot;q&quot;: str, &quot;a&quot;: str} ] (max 3 turns, kept in the browser, scrubbed again server-side) }
+</code></pre>
+<p>Response 200: <code>{"answer": str, "source": "live"|"static", "model_tier": "haiku"|"sonnet"|"opus"|"fable",
+"functions": [names], "suggested_parameters": {...}|null, "request_id": str}</code>. <code>source:"static"</code> means a pin, a guardrail failure or a budget stop produced the answer from catalogue text. The model id is not exposed for free users beyond <code>model_tier</code>.
+<code>suggested_parameters</code>: only when <code>propose_parameters</code> validated; the widget shows "Apply to Try it" and never submits.
+Errors: 400 empty or over-length; 401 bad token (an <strong>API key is accepted</strong> here: this route is not key management, <code>require_session</code> is not used; stream-token <code>aud</code> tokens stay refused, <code>auth.py:99-141</code>); 429 with <code>Retry-After</code> and which quota; 503 <code>assistant_disabled</code> or daily cap or provider outage, always with a static-answer hint, never a stack trace. Anthropic 5xx or refusal: one retry, then <code>source:"static"</code>.
+Limits (placeholders from plan 4.5, a new scope): anonymous 10 an hour per IP (<code>get_trusted_client_ip</code>, <code>rate_limit.py:129</code>); free 40 a day; pro 200; enterprise 500; counters in Redis under <code>pyvar-ratelimit:assistant:*</code>. Global daily token cap as a circuit breaker (plan 4.5). Kill switch: <code>assistant_enabled</code> in <code>/public/config</code>; when false the route returns 503 and the widget shows the bank only.
+Streaming: not for tokens. Option: <code>Accept: text/event-stream</code> returns <code>status</code> events and one final <code>answer</code> event. Recommendation: ship JSON first; SSE is a later, optional polish.
+Order of work in the handler: auth and quota, scrub, pin check on <code>function</code>, agent loop, pin check on cited functions (replace by static if any pinned), guardrails (and enterprise gate), response, then (after the response) the audit decision. Logs carry request id, tier, function names, model tier, latency, token counts and outcome; <strong>never the question or answer text</strong>.</p>
+<h2>5. Bank layout, widget and drift</h2>
+<p>Layout (first release, committed to git): <code>portal/assistant/bank/&lt;bank_version&gt;/&lt;function&gt;.json</code> plus <code>manifest.json</code>.</p>
+<ul>
+<li><code>&lt;function&gt;.json</code>: <code>{"explain": {...}, "when": {...}, "compare": {...}}</code>, each <code>{"text", "source": "model"|"static", "record_sha256", "verdict"}</code>; about 3 answers of up to 1,200 characters, so about 3 KB per function, <strong>about 1.1 MB for 385 files</strong> (an estimate from the character budgets, <code>prompts.py</code> <code>CHAR_BUDGET</code>). <code>compare</code> lists every sibling pair, so one file may hold several <code>compare</code> entries (384 total).</li>
+<li><code>manifest.json</code>: <code>bank_version</code>, <code>prompt_version</code>, <code>grader_sha256</code>, <code>catalogue_sha256</code>, writer and judge ids, build date, counts (model, static, regenerated).</li>
+<li><code>bank_version</code> = <code>&lt;prompt_version&gt;-&lt;first 8 of catalogue_sha256&gt;</code>; the directory name is the version so old bank files can sit beside new ones for rollback.
+Widget reading: <code>GET /assistant/bank/&lt;bank_version&gt;/&lt;function&gt;.json</code> on first menu open (lazy, like <code>functions.json</code> at <code>pyvar.js:520</code>). It never loads all 385. <code>bank_version</code> comes from <code>/public/config</code>.
+Caching: the static mount sets no Cache-Control (grep empty), CloudFront's policy has default TTL 0 and max 1 h (<code>edge_stack.py:308-324</code>). Without a header every bank read reaches Fargate. Fix: a small <code>StaticFiles</code> subclass for <code>/assistant/bank/</code> adding <code>Cache-Control: public, max-age=3600</code>; the version in the path makes files immutable, so a long <code>max-age</code> is safe. (Edge max is 1 h.)
+Drift (<code>tests/test_assistant_bank.py</code>): (1) recompute <code>catalogue_sha256</code> from <code>portal/functions.json</code> and require it equals the manifest's, with the failure message "run <code>python -m assistant.bank --incremental</code>"; (2) for every function, <code>record_sha256</code> of its record equals the one stored in each answer (so a single edited function fails by name); (3) every served answer re-passes <code>graders.grade_prose</code> (a model-free re-check); (4) file sizes under a bound; (5) <code>static</code> count under 3% of answers (acceptance, section 12). Model for the pattern: <code>tests/test_skills_sync.py</code>.
+Runtime safety: in release 1 the bank and the catalogue deploy in one image and the CI drift test guarantees they match. If the bank is later served from S3 (options C and D), the widget must show a bank answer only when the manifest's <code>catalogue_sha256</code> equals the deployed catalogue's (exposed as a 64-character value in <code>/public/config</code>); otherwise it shows catalogue text, so drift cannot reach a visitor.
+Static text when the model cannot be trusted: built from the record (<code>graders.oracle_text</code>, verified in Phase 0 to pass 1,924 of 1,924).</li>
+</ul>
+<h2>6. Release pipeline (no human): options and recommendation</h2>
+<p>Inputs that force a rebuild: <code>portal/functions.json</code>, <code>assistant/prompts.py</code>, <code>assistant/graders.py</code>. A catalogue edit needs only the changed functions (record hash differs): 3 answers x (writer + verdict) about $0.02 per function, pennies. A prompt or grader change needs a full build, about $9 (Haiku $0.32 + 1,154 verdicts $8.19 + about 40 regenerations).
+Why not CodeBuild per push: the push filter excludes 8 directories only; any other push would rebuild or re-check. Hash-gate it.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Key lives</th>
+<th>Human</th>
+<th>Pipeline cost</th>
+<th>Rollback</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Agent run by Filippo (as Phase 0)</td>
+<td>agent's Secrets Manager read</td>
+<td><strong>yes</strong></td>
+<td>none</td>
+<td>git revert</td>
+<td>fine for release 1, not "no human"</td>
+</tr>
+<tr>
+<td>B. GitHub Actions on PRs touching the inputs, OIDC to AWS, bot commits the bank into the PR</td>
+<td>new IAM OIDC role reading Secrets Manager (none exists for AWS; the only OIDC in the repo is PyPI trusted publishing, <code>id-token: write</code> in the <code>pyvar-*-publish.yml</code> workflows)</td>
+<td>no</td>
+<td>the merge runs one CodePipeline execution (it touches <code>portal/</code>)</td>
+<td>git revert</td>
+<td>good audit trail; needs new <code>infra/</code> work (OIDC provider, role)</td>
+</tr>
+<tr>
+<td>C. Hash-gated CodeBuild started from the pipeline's pre-synth step (copy of the AMI-bake mechanism, CLAUDE.md section 11), writing to <strong>S3</strong>; widget and API read S3</td>
+<td>CodeBuild role reads Secrets Manager; key never leaves AWS</td>
+<td>no</td>
+<td>no extra run (the push already ran); build time added to the Synth stage</td>
+<td>S3 object versions</td>
+<td>no repo artefact; serving needs the <code>/public/</code> pattern or a new behaviour</td>
+</tr>
+<tr>
+<td>D. Scheduled Fargate task, S3</td>
+<td>same</td>
+<td>no</td>
+<td>none</td>
+<td>S3 versions</td>
+<td>Lambda is out (the public-data publisher is a Lambda with a 15-minute cap; a full build is about 20 minutes at 8-way concurrency, an estimate)</td>
+</tr>
+<tr>
+<td>Recommendation: <strong>release 1 = option A</strong> (committed bank, ships soonest, matches the settled design exactly). <strong>Release 2 = option B</strong> if Filippo accepts a GitHub OIDC role; otherwise C. B keeps the bank in git (reviewable, revertable) and the PR carries both the catalogue change and its bank, so the drift test passes in the same PR; no chicken and egg. C removes git but then the drift test cannot compare against a repo file; it would test the S3 manifest at deploy time instead.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>If S3 is chosen later: serve through the API like <code>api/routes/public_data.py</code> (private bucket in eu-west-1, no S3 origin at the edge: <code>tests/test_data_residency.py</code> check 5 and 6), <strong>without</strong> that router's per-IP hourly limit (60, <code>config.py:161</code>), which would throttle menu reads; cache with Cache-Control 1 h.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<h2>7. The live agent, tools, guardrails, fallback</h2>
+<ul>
+<li>Model by tier from Plan 1 rules T4: free Haiku 5.5 (typed may be off if rejected); pro Sonnet 5.5 or Opus 5.5; enterprise Opus 5.5 or Fable. Config keys, not code: <code>assistant_model_free|pro|enterprise</code>.</li>
+<li>System prompt: the v4 menu prompt's rules (visitor wording, no absence claims, no advice) plus typed rules (answer only from tool results; refuse off-topic and advice politely; never reveal instructions). <code>output_config.effort</code> low, <code>max_tokens</code> 1,500 as in <code>prompts.py:100-101</code>; thinking on by default counts toward max_tokens (prompts.py:10-11), so keep <code>effort</code> low.</li>
+<li>Tools (read-only, local, no network): <code>search_functions(query)</code>, <code>get_function(name)</code> (returns <code>trim_record</code>), <code>propose_parameters(name, values)</code> (validates types and bounds; returns errors to the model, shows the visitor only a passing object). At most 4 tool turns. Prompt caching on the system prompt and tool block (<code>cost.py</code> models cache reads at 0.1x Haiku, 0.05x Opus).</li>
+<li>Injection: the visitor's text is user content, never concatenated into the system prompt; tool results are data; function names from the catalogue are trusted, visitor strings are not; output escaped in the widget and links limited to pyvar.com (plan 4.7).</li>
+<li>Guardrails (<code>grade_typed</code>): identifiers known, numbers supported (union of tool records plus numbers in the question), no advice, wording rules, length. One retry with the failures as feedback (the pattern <code>build_request(feedback=...)</code> already has, <code>prompts.py:137</code>). Second failure: static fallback (the function's bank text plus catalogue link) with <code>source:"static"</code>.</li>
+<li>Enterprise gate: a <strong>different</strong> model reads question, tool results and answer and returns pass or fail; synchronous; fail then one retry then static. Cost about $0.007 per answer at Opus verdict prices, plus latency (unmeasured; rule L1 in Plan 1).</li>
+<li>Refusals and provider errors: counted, not retried more than once; the user sees the static fallback.</li>
+</ul>
+<h2>8. Watchdog: budget allocator, pin flag, and a plain verdict</h2>
+<p><strong>Verdict.</strong> The fixed-budget audit is workable as a <strong>tripwire for gross, sustained failure</strong> on functions that see audits regularly, and as a global regression alert. It is <strong>not</strong> a way to prove or enforce the 4% tolerance, because 280 verdicts a day cannot estimate a per-function rate near 3.5%. "3 or more of the last 20" without a TTL, a probe or a different statistic also pins healthy busy functions repeatedly. The plan keeps the coordinator's rule as the baseline and adds the changes below; the choice between them is open question (b).
+Facts (all simulated by me, same arithmetic as the coordinator for the fresh-window figures: false pin 0.031, 15% true caught 0.595, global false alarm 0.00075, 8% true alerts 0.434, 12% true alerts 0.954):</p>
+<ul>
+<li>$2 a day buys 282 verdicts at $0.0071, or 143 if a typed verdict needs about double the input ($0.014; <strong>unmeasured</strong>, Plan 1 R4).</li>
+<li>Days to fill one 20-answer window at 280 audits a day: 385 active functions 27.5; 150 functions 10.7; 60 functions 4.3; 20 functions 1.4.</li>
+<li><strong>Multiple looks.</strong> A sliding 3-of-20 rule on a healthy function (true 3.5%), pinned 7 days then probed with 20 audited answers, per function:</li>
+</ul>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Audited answers a day</th>
+<th>3-of-20: false pins a month</th>
+<th>days pinned</th>
+<th>CUSUM (k .10, h 2.5): false pins a month</th>
+<th>days pinned</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.7</td>
+<td>0.06</td>
+<td>1.5%</td>
+<td>0.00</td>
+<td>0.1%</td>
+</tr>
+<tr>
+<td>2.8</td>
+<td>0.25</td>
+<td>5.9%</td>
+<td>0.01</td>
+<td>0.3%</td>
+</tr>
+<tr>
+<td>7</td>
+<td>0.59</td>
+<td>13.8%</td>
+<td>0.04</td>
+<td>0.9%</td>
+</tr>
+<tr>
+<td>20</td>
+<td>1.29</td>
+<td>30.4%</td>
+<td>0.10</td>
+<td>2.4%</td>
+</tr>
+<tr>
+<td>- <strong>Time to the first pin</strong> (median days, true failing function): at 0.7 audits a day, true 15%: 26 (3-of-20) or 66 (CUSUM); true 30%: 12 or 17. At 2.8 a day: 15%: 7 or 14; 30%: 3 or 4. At 7 a day: 15%: 2 or 5; 30%: 1 or 2.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>- Audited answers needed to pin (median): 3-of-20 18, 9, 5 at true 15%, 30%, 50%; CUSUM 31, 12, 6.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Recommendation: <strong>CUSUM</strong> (reference 3.5%, allowance 0.10, threshold 2.5) as the pin rule, with 3-of-20 kept as a fast trigger only for catastrophic runs, written as "4 flags in the last 8 audited". If the coordinator prefers plain 3-of-20, accept that busy functions spend about 6% to 30% of days pinned for nothing; a false pin degrades UX (static text), not safety.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Allocator</strong> (each UTC day; eligible = free and pro live answers; every number is a config key):</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Budget <code>assistant_audit_budget_usd_day</code> = 2.00, tracked in Redis as spent micro-dollars (<code>INCRBY</code> reserve at decision, correct after the verdict from real <code>usage</code> and <code>cost.py</code>). Stop when spent.</li>
+<li>Two pools. <strong>Coverage pool 60%</strong>: water-filling. Keep per-function audited counts for the day; audit an answer iff the function's count is below the level <code>tau</code>; recompute <code>tau</code> hourly as the largest k with sum over functions of min(k, expected answers per day) times verdict cost within the pool, using each function's trailing 7-day answer count. Selection depends on counts, not on outcomes, so audited samples are unbiased for each function. <strong>Exposure pool 40%</strong>: uniform random sampling at probability pool budget / (verdict cost x trailing 7-day eligible answers); gives an unbiased, traffic-weighted global rate without weights.</li>
+<li><strong>Strata by writer.</strong> One global window of the last 200 exposure audits <strong>per writer model</strong>; a blended rate would hide a regression in the small tier. Alert when a writer's window flag rate exceeds 8% (false alarm 0.07% at 3.5%). Floor of 25% of the exposure pool per writer that has any traffic, so a small tier's window fills (about 2 to 5 days at the 110 exposure verdicts a day).</li>
+<li><strong>Multi-function answers</strong> (typed answers cite several functions through tool calls): the audit counts for every function the agent fetched with <code>get_function</code>.</li>
+<li><strong>Enterprise</strong>: answers are gated synchronously; audit 1% (config) of published enterprise answers; its "flag rate" is gate misses, and its alert is the gate's rejection rate above a config value.</li>
+<li><strong>Pin flag</strong> (Redis <code>asst:pin:&lt;function&gt;</code>, value written by the watchdog, read by the gateway in microseconds, <strong>TTL 7 days</strong>, doubling to 28 on a repeat): pinned functions serve static answers and receive no new audits, so a <strong>probe</strong> follows expiry: the next 20 audited answers of that function are taken at 100% from the coverage pool; fewer than 3 flags unpin for good, otherwise re-pin with a doubled TTL. Seed pre-pins from the bank build's twice-failed list.</li>
+<li><strong>Global alert</strong> (writer window above 8%): sets <code>asst:degrade:&lt;writer&gt;</code>; typed answers of that writer's tiers become static plus search results until the next 200 exposure audits (taken at 10% live probe traffic) fall to 5% or less. No human step.</li>
+<li><strong>No text retention.</strong> The decision to audit is taken when the answer is produced, and the audit runs immediately after the response in the same process (a bounded <code>asyncio</code> task), holding question and answer only in memory. Redis keeps counts, function names, writer, tier, hour and a boolean; <strong>no question, answer or verdict text</strong> and no log lines with message text. If the container dies mid-audit, that audit is lost (acceptable). This avoids the 24-hour text store I had considered; if Filippo wants verdict text for debugging, that is a privacy change (open question).</li>
+<li>Verdict calls count the same way as writer calls in the daily token cap.
+Cost: $2 a day is about $60 a month, plus enterprise sync gates (about $0.007 per enterprise answer).</li>
+</ul>
+<h2>9. Config and CDK</h2>
+<p><code>config.py</code> additions (pydantic-settings; no <code>os.environ</code> elsewhere, CLAUDE.md section 7): <code>assistant_enabled=False</code>, <code>assistant_model_free|pro|enterprise</code>, <code>assistant_gate_model</code>, <code>assistant_quota_anon_per_hour</code>, <code>..._free_daily</code>, <code>..._pro_daily</code>, <code>..._enterprise_daily</code>, <code>assistant_daily_token_cap</code>, <code>assistant_audit_budget_usd_day</code>, <code>assistant_audit_enterprise_rate</code>, <code>assistant_pin_ttl_days</code>, <code>anthropic_api_key</code> (resolved at startup, never from env in prod).
+Secret: <code>pyvar/{env}/anthropic-api-key</code>, imported with <code>Secret.from_secret_name_v2</code>, <code>grant_read(task_role)</code> in <code>api_stack.py</code> next to Sentry and Stripe (<code>api_stack.py:248-287</code>), fetched by the app lazily so that a missing secret never blocks task launch (the reason given in that file's comment, <code>:233-244</code>). One key per env (plan 4.8).
+<code>infra/assistant-edge</code> PR (needs <code>cdk diff</code> in the description, CLAUDE.md section 8):</p>
+<ul>
+<li>CloudFront: the default behaviour already allows POST (<code>ALLOW_ALL</code>, <code>edge_stack.py:413</code>) and its cache policy does not cache POST, so <code>/api/v1/assistant/*</code> works. If SSE is ever added, add a behaviour for the path with <code>compress=False</code> (the default has <code>compress=True</code>, <code>:416</code>).</li>
+<li>WAF: a stricter per-IP rate rule scoped to the path, and exclude the path from the aggregate rule so assistant abuse cannot block compute users (<code>alb_waf_stack.py</code> rules at priorities 10, 20, 30; <code>edge_stack.py</code> has its own set). Edge stack is us-east-1 on purpose: do not move it.</li>
+<li>Alarms (<code>alerts_stack.py</code> has four <code>Alarm(</code> calls): daily tokens, 5xx, refusal rate, audit spend near the budget.</li>
+<li>No Redis change. Outbound to <code>api.anthropic.com</code> needs internet egress: the VPC has NAT gateways and <code>PRIVATE_WITH_EGRESS</code> subnets (<code>network_stack.py:48,57</code>), and the API already calls Stripe and Sentry, so egress very likely exists <strong>(unverified: that the API task runs in those subnets)</strong>. CLAUDE.md section 3.4 only forbids direct internet routes for SQS, ECR, S3 and Secrets Manager; keep those on their endpoints. NAT data cost for a few KB per call is negligible.
+Observability: Prometheus counters and histograms beside <code>observability/setup.py:35-48</code>: tokens in, out, cache read, by model and action; latency per source; tool calls; refusals; rate-limit hits; pins set and cleared; audit spend; guardrail failures by check; static fallback share. Alert if <code>cache_read_input_tokens</code> is zero across repeated requests. structlog events with <code>extra={}</code>; Sentry with no message content (the sub-processor row already says "configured not to include request content by default", <code>privacy.html:106</code>).
+Privacy and terms (must merge before the flag goes on; plan 4.6): <code>privacy.html</code> section 5 and the sub-processor table get an Anthropic row (sees: the visitor's typed question after scrubbing, function names, answers the model wrote; nothing from computations; no key or token); state retention <strong>(unverified: read Anthropic's current API retention terms first)</strong>; <code>terms.html</code> an AI-assistant clause. The scrub is a privacy control, so its tests are acceptance tests.
+DB: <strong>no Alembic migration</strong> for any of the above. A migration is needed only if per-user usage history is wanted: <code>api/middleware/usage.py</code> writes <code>api_usage</code> rows <strong>(unverified columns)</strong>; adding <code>route</code> or <code>kind</code> would need one (CLAUDE.md section 3.3). Not recommended for v1; Redis counters and Prometheus suffice.</li>
+</ul>
+<h2>10. Phases (separate PRs; one branch per PR from latest <code>origin/master</code>)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Branch</th>
+<th>Content</th>
+<th>Effort</th>
+<th>CodePipeline run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>feat/assistant-core</code></td>
+<td>move kernel to <code>assistant/</code>, shims, tests, widen <code>test_check7</code> roots</td>
+<td>1.5 days</td>
+<td><strong>yes</strong> (new top-level dir)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>feat/assistant-bank</code></td>
+<td>bank builder, committed bank (agent run, about $9), <code>portal/assistant.js</code> menus, <code>/public/config</code> flag, drift test, cache header</td>
+<td>8 to 10 days</td>
+<td><strong>yes</strong> (<code>portal/</code>, <code>api/</code>)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>feat/assistant-gateway</code></td>
+<td>route, optional auth, quota scope, scrub, client, agent, tools, guardrails, config, metrics, tests; flag off</td>
+<td>7 to 9 days</td>
+<td><strong>yes</strong> (<code>api/</code>, <code>config.py</code>, root <code>requirements.txt</code>)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>infra/assistant-edge-secret</code></td>
+<td>secret import and grant, WAF path rule, alarms, egress check, <code>cdk diff</code></td>
+<td>3 to 4 days</td>
+<td><strong>yes</strong> (<code>pyvar-cdk/</code>)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>feat/assistant-privacy-terms</code></td>
+<td>privacy.html, terms.html wording, typed box on</td>
+<td>1 day plus review</td>
+<td><strong>yes</strong> (<code>portal/</code>)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>feat/assistant-watchdog</code></td>
+<td>allocator, audits, CUSUM, pins, degrade flag, tests with seeded simulation</td>
+<td>5 to 7 days</td>
+<td><strong>yes</strong> (<code>assistant/</code>, <code>api/</code>)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>infra/assistant-bank-release</code></td>
+<td>option B or C</td>
+<td>5 to 6 days</td>
+<td><strong>yes</strong> (<code>.github</code> is excluded but OIDC needs <code>pyvar-cdk/</code>)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>docs/assistant-design-tiers</code></td>
+<td>plans, results, runbooks only</td>
+<td>0.5 day</td>
+<td><strong>no</strong> (<code>docs/</code> and <code>tests/</code> only are in the excluded list)</td>
+</tr>
+<tr>
+<td>Order: 1, 2 (release 1: menus for everyone, no typed box), then 4 and 3 in parallel, 5, 6, then 7. The flag stays off in prod until 3, 4, 5 and 6 are in and Plan 1 has set the tier ladder.</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Every PR: <code>plugins/</code>, <code>.claude/</code>, <code>.claude-plugin/</code>, <code>scripts/skill_specs/</code> byte-identical to master (verify with <code>git diff --stat origin/master -- &lt;paths&gt;</code>); lint pins black 26.5.1, isort 8.0.1, ruff 0.15.22; mypy rules of CLAUDE.md section 5a; type hints, structlog, 100 columns; no <code>os.environ</code> outside <code>config.py</code>. Each PR states its CodePipeline consequence before merge (CLAUDE.md section 8.1).</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<h2>11. Tests (80% gate: <code>.github/workflows/ci.yml:135-139</code> <code>--cov-fail-under=80</code>)</h2>
+<p>Fake Anthropic client only (no real AWS or API in tests, CLAUDE.md section 5). Covered: scrub (every key and JWT shape, a model that echoes a key is scrubbed on the way out); quota per tier and anonymous; optional auth; pin read; tool loop and the 4-turn cap; <code>propose_parameters</code> validation; guardrail retry then static; enterprise gate; budget stop; refusal; provider outage; disabled flag; no message text in any log line (capture structlog); the egress test (only <code>assistant/client.py</code> imports <code>anthropic</code>); bank drift tests; allocator and CUSUM with a <strong>seeded simulation</strong> asserting the numbers in section 8 (false-pin rate under 0.05 a month at 7 audits a day; first pin within 5 days at a true 15% and 7 a day); the widget's escaping (jsdom-free string tests on the renderer, or a Playwright smoke using the pre-installed Chromium).</p>
+<h2>12. Acceptance criteria (tied to measured numbers)</h2>
+<p>Bank (release 1): 1,154 of 1,154 answers present; every served answer passes all graders on re-check; at most 3% are <code>static</code> (35); <strong>a person reads a random sample of at least 40 served answers</strong> (the rule of recall check 9.16: 0 errors in 40 keeps Opus as the gate, any error reopens the question). A second Opus pass over the served set is reported as a noise check only, not as acceptance: it is the same judge that already passed these answers, and one verdict in 120 changed on a repeat. The recall check showed 0 of 40 clean wrong (upper bound 8.8%), so state in the release note that 4% is <strong>not proven</strong>, only not contradicted. Bank read p95 under 300 ms from cache (target, unmeasured).
+Typed (before the flag is on): Plan 1 rules T1 to T5 satisfied for the tier's writer; scrub tests 100%; typed p95 under 12 s (rule L1).
+Watchdog: simulation tests pass; after release, the audited flag rate by writer reported daily; global alert and a deliberately injected failure (a dev-only switch that corrupts one function's answers) pinned within 5 days at 7 audits a day, 14 days at 2.8.
+Cost: worst user-day per tier below the pro price per day (Plan 1 T5); $2 a day audit budget never exceeded (alarm at 90%).</p>
+<h2>13. Risks</h2>
+<ul>
+<li>Audit coverage is thin in the long tail; a bad function with under 1 audited answer a day can run for weeks. Mitigation: the coverage pool, pre-pins from the build, and the <strong>menu bank needing no pins</strong> (it is checked offline).</li>
+<li>Unmeasured: typed accuracy and latency, verdict cost on typed, sync-gate latency, streaming, real traffic volume.</li>
+<li>Anthropic SDK in the production image (root <code>requirements.txt</code> change; <code>scripts/assistant_eval/requirements.txt</code> kept it out deliberately for this reason).</li>
+<li>Privacy copy reversal; Anthropic retention terms unread.</li>
+<li>Bank staleness if the pipeline is not automated (release 1).</li>
+<li>Prompt injection through the visitor's text into the audit judge (the judge sees question and answer): mitigated by the judge's system prompt treating them as data and by only recording a boolean.</li>
+<li>A false pin storm in the long tail after a catalogue release (every function's record hash changes at once): hash-gate pins by <code>bank_version</code>, so a new version resets windows.</li>
+</ul>
+<h2>14. What to decide first (in this order)</h2>
+<ol>
+<li>Fable id and price; prompt version v4 or v5 (Plan 1 blockers). 2. Bank storage and release option (section 6). 3. Pin statistic: CUSUM or 3-of-20 (section 8). 4. JSON reply or SSE (section 4). 5. Whether the bank key may be the dev key or needs its own. 6. Confirm the API task has egress (section 9). 7. Privacy wording and Anthropic retention terms.</li>
+</ol>
+<h2>15. Open questions</h2>
+<p>a. Is the design meant to give free users typed questions at all, if Plan 1 rejects Haiku for typed? b. CUSUM or the coordinator's rule. c. Debug text retention (default none). d. Key for the bank build. e. Does the enterprise sync gate apply to the first token latency target (no streaming)? f. Should per-user assistant usage be recorded for billing (migration)? g. Who owns the alarm responses with no human in the loop: the degrade flag handles the answer path; page-out of the alarm is still a human step.</p>
+<p class="src">Generated from assistant-plan-implementation.md; the markdown is the source of truth.</p>
+</main></body></html>
