@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_gap_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e7bd76e51bc90d9b3728326bd1a9df5fbdb114398c674786291179594cee4f9e",
+      "source": "model",
+      "text": "`cash_flow_ladder_30_day` answers the question \"what is my day-by-day liquidity position over the next 30 days, and where is it tightest?\" You give it daily contractual inflows and outflows (plus an optional `opening_balance`), and it reports the daily net and cumulative position, with the minimum cumulative balance marking the tightest day. A negative minimum would mean a funding shortfall on that day.\n\n`liquidity_gap_analysis` answers a different question: \"how mismatched are my assets and liabilities across maturity buckets?\" It takes `asset_maturities` and `liability_maturities` per bucket, with optional `buckets` labels. It returns the gap per bucket and the cumulative gap. A positive cumulative gap points to a funding surplus, and a negative one to a refinancing need.\n\nIn short, the ladder is a daily short-horizon view of cash, while the gap analysis is a structural view across maturity buckets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "dee5339bf13e1d698c28f0b55a0cf109e0493b2182c280d4e302c3f8382b103b",
+    "source": "model",
+    "text": "`cash_flow_ladder_30_day` builds a 30-day daily contractual cash-flow ladder. You give it `daily_inflows` and `daily_outflows` for each day, plus an optional `opening_balance` (cash or HQLA at day 0). For each day it works out the net gap (inflow minus outflow) and the cumulative position, starting from the opening balance. The tightest liquidity point is the minimum cumulative balance, and if that is negative, the institution faces a funding shortfall on that day.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "138734f864d49a2ff39774a62c25e068015789d9e0d8cfbc458f9b96d4ef6786",
+    "source": "model",
+    "text": "`cash_flow_ladder_30_day` fits when you want a day-by-day view of short-term liquidity from contractual cash flows. Use it when:\n\n- You have daily contractual inflows and outflows over the 30-day horizon and want the daily net and cumulative position.\n- You need the tightest liquidity point, meaning the minimum cumulative balance, and want to see whether it goes negative, which signals a funding shortfall on that day.\n- You want to start from a known cash or HQLA balance by setting `opening_balance`, which is included in the minimum.\n- You want a near-term view rather than a longer-dated one.\n\nFor a longer horizon, `cash_flow_ladder_1_year` is a one-year bucketed contractual cash-flow ladder.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

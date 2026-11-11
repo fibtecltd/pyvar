@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "capital_conservation_buffer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c915d56d50cd175c2defb2207096916730d31193b50fbcbc7cc04f410ac6838f",
+      "source": "model",
+      "text": "`crr2_large_exposure_limit` checks a single client or group exposure against the CRR2 Art. 395 cap. You give it `exposure_value`, `tier1_capital` and optionally `is_institution`, and it works out the limit and any excess over it. `capital_conservation_buffer` instead asks whether a bank's CET1 ratio sits above the minimum plus the conservation buffer. It uses `cet1_ratio`, `risk_weighted_assets` and `buffer_ratio`, and it flags when distribution restrictions on dividends and bonuses would apply. So the first is about concentration risk in one counterparty, measured against Tier 1 capital, while the second is about overall capital adequacy, measured against risk-weighted assets. Both are regulatory checks, but they look at different parts of a bank's position.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "54aab851ed5a8f7335e44c41e2bb826fb5f2682e669905f8c03da06bc0850155",
+    "source": "model",
+    "text": "`crr2_large_exposure_limit` (CRR2 Large Exposure Limit) checks a single client or group exposure against the Art. 395 cap, using `exposure_value` and `tier1_capital`. The standard limit is 25% of Tier 1 capital. If you set `is_institution` to true, the limit becomes the higher of 25% of Tier 1 or EUR 150m. It works from the exposure ratio and returns any excess over the limit, which is zero when the exposure is within it. Inputs are assumed to be in EUR, with no currency conversion, and the connected-client-group condition is not checked.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5249c43e86034634535c6e3e4a4337632dacc9d2e4af50831c647a79c016de72",
+    "source": "model",
+    "text": "Use the CRR2 Large Exposure Limit (`crr2_large_exposure_limit`) when you need to check one client or group exposure against the Art. 395 cap.\n\n- You have a single post-CRM exposure value and a Tier 1 capital figure, both in EUR, and want to see the exposure ratio and any excess over the limit.\n- The counterparty is an institution (or a connected group including one): set `is_institution` to True so the higher of 25% of Tier 1 or EUR 150m applies.\n- The counterparty is not an institution: leave `is_institution` at its default of False, so the plain 25% of Tier 1 limit is used.\n- You are scoring one exposure at a time. It does not check the connected-client-group condition in Art. 395(1) and does not convert currencies.\n\nRelated functions such as `capital_conservation_buffer`, `countercyclical_capital_buffer` and `combined_buffer_requirement` cover capital buffers, not large exposure limits, so none of them fits this need.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,26 @@
+{
+ "bank_version": "v4-2026-11-09-0dbf72ce",
+ "entries": 1154,
+ "redo_ids": 72,
+ "redo_found": 72,
+ "changed": 72,
+ "unchanged": 0,
+ "now_static": 0,
+ "now_not_faithful": 0,
+ "gate_notes_before": 0,
+ "gate_notes_after": 2,
+ "with_notes_after": 2,
+ "tries_histogram_after": {
+  "1": 64,
+  "2": 8,
+  "3": 0
+ },
+ "escalated_after": 1,
+ "mean_length_before": 784.0,
+ "mean_length_after": 688.2,
+ "longest_after": 871,
+ "outside_changed": [],
+ "redo_ids_not_in_bank": []
+}
+NOTES historical_simulation_var:when Does not point to a sibling (e.g. filtered_historical_simulation_var, parametric_delta_normal_var) as an alternative when the assumptions fail.
+NOTES sector_default_rate_analysis:when Does not contrast with sibling functions (e.g. credit_stress_testing) on when to choose this one instead.

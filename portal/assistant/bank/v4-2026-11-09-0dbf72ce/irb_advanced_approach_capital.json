@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_standardised_approach_rwa": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "66bd4975b7697fe4b375a3347af1a245693a1821f2d98e68132f71479859f1c6",
+      "source": "model",
+      "text": "`irb_advanced_approach_capital` and `basel_standardised_approach_rwa` both produce risk-weighted assets for a credit exposure, but they answer different questions. The first asks what capital a bank's own risk estimates imply. You supply your own `pd`, `lgd`, `ead` and `maturity`, and it runs the Basel IRB risk-weight formula (CRE31), with an optional `correlation` override. The second asks what the exposure weighs under fixed supervisory categories (CRE20). You give `ead` and a `risk_weight` set by the external rating or exposure class, plus optional `credit_risk_mitigation` that is netted from `ead` first. In short, the advanced IRB function is driven by internal probability and loss estimates, while `basel_standardised_approach_rwa` is driven by a prescribed weight and a simple multiplication. The standardised function also reports capital as a fixed share of RWA, whereas the IRB one derives capital from the formula before scaling to RWA.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5488098a940d95f28b4bcb8720aad3f0eff7c9953e4bbdd90cb199bc2a666ca2",
+    "source": "model",
+    "text": "`irb_advanced_approach_capital` (IRB Advanced Approach Capital) calculates Basel IRB Advanced-Approach capital under CRE31 for a single credit exposure. You supply your own estimates of `pd`, `lgd` and `ead`, plus an optional effective `maturity`. It applies the Basel risk-weight function, including a maturity adjustment, to get a capital requirement K and then risk-weighted assets. The formula is the same as F-IRB, and only the source of the inputs differs. Unless you pass a `correlation` override, such as for an SME or specialised-lending adjustment, it uses the Basel corporate correlation formula based on PD.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "28f1206ebabddbf1891bd919080f0090803d29cfdfe046c980881c32e3e2890c",
+    "source": "model",
+    "text": "`irb_advanced_approach_capital` (IRB Advanced Approach Capital) fits when you need Basel IRB capital for a credit exposure and you have your own risk estimates.\n\n- You can supply your own estimates of `pd`, `lgd`, `ead` and `maturity`, rather than using prescribed values.\n- You want capital and risk-weighted assets for a single exposure under the CRE31 risk-weight function.\n- You need to override the asset correlation through `correlation`, for example for an SME or specialised-lending adjustment. Otherwise it uses the Basel corporate formula based on PD.\n- For a Foundation-approach calculation, `irb_foundation_approach_capital` is listed as the Basel IRB Foundation-Approach capital function in CRE31.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

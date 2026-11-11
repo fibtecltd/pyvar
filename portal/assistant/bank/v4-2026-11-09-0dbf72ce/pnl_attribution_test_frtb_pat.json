@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rates_pnl_attribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "412afb76fab6777db93a5c3413c91da61563ad9dcc031dd7648e76969e0e6534",
+      "source": "model",
+      "text": "`pnl_attribution_test_frtb_pat` asks whether your risk model's P&L is close enough to the full-revaluation P&L to pass the FRTB test. It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`, and combines their Spearman rank correlation with the ratio of their volatilities. It then assigns a Basel traffic-light zone (green, amber or red). The thresholds are set by the Basel Committee and are not parameters you can change.\n\n`rates_pnl_attribution` answers a different question: how much of the interest-rate P&L came from each key-rate tenor. You give it `key_rate_sensitivities` (P&L per +1bp move) and `yield_moves_bp` for each tenor, and it sums sensitivity times move across the ladder. In short, one function tests model quality against a pass/fail zone, and the other breaks down where rates P&L came from.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "42351d1a4f69955024a1f5d358886cf63194ba25e29a96396e4bd28c1d3f5310",
+    "source": "model",
+    "text": "`pnl_attribution_test_frtb_pat` runs the FRTB P&L Attribution Test, checking how well a desk's model-based P&L tracks its full-revaluation P&L. You give it two daily series: `risk_theoretical_pnl` (RTPL) and `hypothetical_pnl` (HPL). It looks at the Spearman rank correlation between them and the ratio of their standard deviations, `std(RTPL)/std(HPL)`, then assigns a Basel traffic-light zone of green, amber or red. The thresholds are set by the Basel Committee and cannot be changed through parameters. It follows BCBS FRTB §9.5.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c1349ba0ce9cd13a4c2f66fe8e199550c6869c5644e45e5c90d05331472b802c",
+    "source": "model",
+    "text": "Use `pnl_attribution_test_frtb_pat` (Pnl Attribution Test FRTB PAT) when you need to check how closely a model's P&L tracks full-revaluation P&L:\n\n- You have daily series for both risk-theoretical P&L (`risk_theoretical_pnl`, model-based) and hypothetical P&L (`hypothetical_pnl`, full revaluation).\n- You want a Basel traffic-light zone (green, amber or red), judged jointly from the Spearman rank correlation and the ratio of the series' standard deviations.\n- You are working under FRTB (BCBS FRTB §9.5), where the Basel Committee sets the thresholds. They are not parameters, so you can't tune them.\n- If you want the unexplained (residual) P&L itself rather than a zone, `residual_pnl_unexplained` is the related function for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

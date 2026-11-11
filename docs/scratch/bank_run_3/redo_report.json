@@ -1,0 +1,1900 @@
+{
+ "summary": {
+  "bank_version": "v4-2026-11-09-0dbf72ce",
+  "entries": 1154,
+  "redo_ids": 72,
+  "redo_found": 72,
+  "changed": 72,
+  "unchanged": 0,
+  "now_static": 0,
+  "now_not_faithful": 0,
+  "gate_notes_before": 0,
+  "gate_notes_after": 2,
+  "with_notes_after": 2,
+  "tries_histogram_after": {
+   "1": 64,
+   "2": 8,
+   "3": 0
+  },
+  "escalated_after": 1,
+  "mean_length_before": 784.0,
+  "mean_length_after": 688.2,
+  "longest_after": 871,
+  "outside_changed": [],
+  "redo_ids_not_in_bank": []
+ },
+ "rows": [
+  {
+   "id": "asian_option_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    758,
+    654
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "asset_encumbrance_ratio:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    712,
+    616
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "asset_liability_mismatch_index:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    867,
+    742
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "balance_sheet_projection_model:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    791,
+    651
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "basel_iii_leverage_ratio:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    588,
+    491
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "basis_risk_irrbb:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    822,
+    662
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "black_litterman_model:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    940,
+    714
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "business_continuity_risk_score:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    879,
+    675
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "carbon_footprint_attribution:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    870,
+    731
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "cash_flow_ladder_1_year:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    660,
+    694
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "cds_spread_to_pd_conversion:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    709,
+    672
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "christoffersen_independence_test:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    803,
+    772
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "compute_loss_percentiles:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    688,
+    683
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "concentration_risk_hhi:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    778,
+    682
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "contingency_funding_plan_trigger:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    858,
+    769
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "contingent_liquidity_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    804,
+    669
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "convexity_gap:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    793,
+    776
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "corporate_credit_scoring_model:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    825,
+    696
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "correlation_clustering:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    697,
+    564
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "credit_default_swap_cds_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    780,
+    673
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "credit_default_swap_var:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    809,
+    683
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "credit_stress_testing:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    751,
+    614
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "cross_currency_liquidity_bridge:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    790,
+    666
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "currency_attribution:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    952,
+    844
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "diversification_ratio:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    816,
+    737
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "effective_duration:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    852,
+    651
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "emir_clearing_obligation_check:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    926,
+    804
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "emir_trade_repository_report:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    707,
+    570
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "es_at_multiple_confidence_levels:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    735,
+    630
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "esg_score_integration:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    863,
+    748
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "external_loss_data_integration:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    793,
+    701
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "factor_return_attribution:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    797,
+    763
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "frtb_sa_residual_risk_addon:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    838,
+    728
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "frtb_sa_sensitivity_based_method:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    877,
+    742
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "frtb_trading_desk_aggregation:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    804,
+    839
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "funding_cost_analysis:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    692,
+    554
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "historical_simulation_var:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    true
+   ],
+   "notes": [
+    0,
+    1
+   ],
+   "length": [
+    795,
+    631
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "icaap_capital_assessment:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    782,
+    612
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "intraday_liquidity_monitor:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    892,
+    793
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irb_foundation_approach_capital:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    707,
+    735
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "jensens_alpha:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    876,
+    682
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "kri_threshold_breach_detection:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    804,
+    849
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "liquidity_adjusted_portfolio_var:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    782,
+    668
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "liquidity_scorecard_aggregation:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    821,
+    693
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "marginal_contribution_to_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    781,
+    648
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "mifid_ii_algorithm_documentation:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    847,
+    665
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "mifid_ii_post_trade_transparency:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    854,
+    725
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "nii_simulation_baseline:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    740,
+    761
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "nii_simulation_stress:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    763,
+    762
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "normal_inverse_gaussian_model:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    802,
+    613
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "option_risk_irrbb:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    799,
+    646
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "pillar_2a_capital:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    571,
+    454
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "pillar_2b_stress_buffer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    710,
+    588
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "portfolio_beta:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    666,
+    685
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "portfolio_turnover:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    718,
+    685
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "regime_detection_hmm:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    752,
+    659
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "repo_market_stress_haircut:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    803,
+    657
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "residual_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    725,
+    726
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "scenario_severity_estimation:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    741,
+    708
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "sector_attribution:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    830,
+    742
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "sector_default_rate_analysis:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    1
+   ],
+   "length": [
+    758,
+    607
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "severity_distribution_fitting:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    865,
+    871
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "solvency_ii_scr_credit_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    873,
+    739
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "solvency_ii_scr_market_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    848,
+    615
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "sovereign_credit_risk_assessment:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    805,
+    678
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "structural_hedge_optimisation:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    848,
+    665
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "third_party_vendor_risk:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    688,
+    564
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "tracking_error:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    774,
+    662
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "traffic_light_backtesting:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    708,
+    753
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "treynor_ratio:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    714,
+    800
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "volga_vega_convexity:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    724,
+    706
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "yield_to_maturity:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    661,
+    645
+   ],
+   "faithful": true,
+   "issues": []
+  }
+ ]
+}

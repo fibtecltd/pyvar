@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6a6998f753d60474fa57ea14f58bdd4cb3e28b8d1dd2531d37d2b6dbec9c0184",
+      "source": "model",
+      "text": "`margin_valuation_adjustment_mva` answers \"what does it cost to fund the initial margin I post over the life of the trade?\" It takes an expected initial margin profile, bucket end-times, discount factors and a `margin_funding_spread`, and sums the discounted margin carry across the buckets. `cva_sensitivity_cva_greeks` answers a different question: \"how much does my counterparty credit valuation adjustment move when its inputs change?\" It takes an expected exposure profile, a counterparty `credit_spread` and a `recovery_rate`, and returns the base CVA along with `cs01` (the change in CVA for a parallel bump in the credit spread) and `exposure_delta` (the sensitivity to scaling the exposure profile). In short, the first gives a funding cost figure, while the second gives risk sensitivities of a credit-risk figure, which are useful for hedging.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e6e2f63227c5c644ecf1c40e84c700674a6357a3451e5e6b65ba425b14020dbb",
+    "source": "model",
+    "text": "`margin_valuation_adjustment_mva` computes the Margin Valuation Adjustment, which is the present value of the cost of funding initial margin you post over a trade's life. Initial margin typically earns less than the bank's funding cost, and the gap between the two is the `margin_funding_spread`. The function sums expected initial margin in each time bucket (`initial_margin_profile`), weights it by that bucket's `discount_factors` and length (taken from `time_steps`), and scales the total by the spread. It takes in your margin profile, bucket end-times, discount factors and spread, and returns a single adjustment figure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ab39dd5e4e63dc1e912a43f4e64d529157dc4ee06b2284fa52cc0db579f11941",
+    "source": "model",
+    "text": "`margin_valuation_adjustment_mva` (Margin Valuation Adjustment) fits when you need to price the funding cost of posting initial margin.\n\n- You have an expected initial margin profile over the trade's life and want the present value of the carry on funding it, given a spread between your funding cost and what the margin earns.\n- You're building a valuation adjustment stack and need the initial margin funding piece, alongside other adjustments.\n- You have bucketed inputs ready: margin per bucket, increasing bucket end-times, and discount factors, plus a `margin_funding_spread`.\n- You want to see how much a longer-dated or margin-heavy trade costs to carry, with pyvar doing the calculation.\n- For funding the cost of uncollateralised exposure instead, `funding_valuation_adjustment_fva` is listed as the Funding Valuation Adjustment for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rcsa_risk_identification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1d251c768b189a4bc68f51dd163ecd513d6fbcaf96ccc76363fd9bb226eac6fa",
+      "source": "model",
+      "text": "`rcsa_inherent_risk_scoring` answers \"how severe is this risk before any controls?\" It takes a `likelihood` and an `impact` rating, each from 1 to 5, and multiplies them to give a 1-25 score on the heat map, which maps to a RAG band. `rcsa_risk_identification` answers a different question: \"is my risk register complete and well-formed, and how are the risks spread across categories?\" It takes a `risk_register`, a list of risk entries that each carry a `risk_id` and a Basel `category`. It checks those keys are present and counts the entries per category. In short, one scores a single risk numerically, while the other validates and summarises the whole register, which is the identification step of the RCSA cycle.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "17065482de935ac30a8e39e35b7a314495b8a8bf6e3011550ba955450f807931",
+    "source": "model",
+    "text": "`rcsa_inherent_risk_scoring` (RCSA Inherent Risk Scoring) calculates the inherent risk score for a risk on a 5×5 RCSA heat map. Inherent risk is the gross exposure before any controls are considered. You supply two integer ratings, `likelihood` and `impact`, each on the 1-5 scale. pyvar multiplies them (S = L × I) to give a score between 1 and 25, then maps that score to a RAG band.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "74b3b75b69c0c484e15f9becb75946186b75633d7b2171b19498a88afd62f168",
+    "source": "model",
+    "text": "`rcsa_inherent_risk_scoring` fits when you need a gross risk score before any controls are considered.\n\n- You are rating a risk on the 5×5 RCSA heat map and have a likelihood rating and an impact rating, each on the 1-5 scale.\n- You want a single score (likelihood × impact) that maps to a RAG band, so risks can be compared and ranked.\n- You are setting the starting point of an assessment, the exposure before controls, to compare against later.\n- Related function: `rcsa_residual_risk_scoring` covers residual risk after control mitigation, which is the one to look at once controls come into play.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

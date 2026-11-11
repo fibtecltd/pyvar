@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "64ffb9e3d21e5995664ef1fd9df4c6cd3d732ba9438b0e4a8ba8c92b6cb7a773",
+      "source": "model",
+      "text": "`ulcer_index` answers \"how deep and how prolonged were the losses?\" It takes the percentage drawdowns from the running peak, squares them, averages them and takes the square root, so deeper and longer drawdowns weigh more heavily. `drawdown_duration` answers \"how long was the portfolio underwater?\" It counts consecutive periods spent below the prior peak and reports the longest run and the current run.\n\nIn short, `ulcer_index` gives a single measure that blends depth and duration, while `drawdown_duration` looks only at length and ignores how far the value fell. Both take the same inputs: `returns` and the optional `is_equity_curve` flag, which tells pyvar to treat `returns` as a value series rather than compounding it. You might use them together to see both how painful and how long the drawdowns were.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1e5c6bdbf191633017594a7893422243a9df5a89dc661ba6215f5a0cd1be5915",
+    "source": "model",
+    "text": "`ulcer_index` computes the Ulcer Index, a portfolio risk measure that takes the root-mean-square of percentage drawdowns from the running peak. Because the drawdowns are squared, deeper and longer declines are penalised more heavily than shallow, brief ones. You pass `returns` as a one-dimensional array of per-period returns, and pyvar compounds them into a value series. If you already have an equity curve, set `is_equity_curve` to True and it is used directly instead of being compounded.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0c6781cbaaa860cd4b86b765ff703717e41fe19adebacf19b4e74458e90dc40d",
+    "source": "model",
+    "text": "The Ulcer Index (`ulcer_index`) fits when you care about how deep and how long a portfolio stays below its prior peak, not just how bad the worst moment was.\n\n- You want a single risk number that penalises deeper and longer drawdowns quadratically, so a prolonged slump counts for more than a brief dip.\n- You're comparing strategies or funds on the stress of holding through declines, rather than on day-to-day volatility.\n- You have either per-period returns or an equity curve. Set `is_equity_curve` to True if you're passing values directly rather than returns to be compounded.\n- Different need: `maximum_drawdown` is the largest peak-to-trough decline, which suits you if only the single worst fall matters.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

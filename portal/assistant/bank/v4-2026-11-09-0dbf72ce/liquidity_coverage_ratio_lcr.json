@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "required_stable_funding_rsf_calc": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f19de67fafeb2b39d5090c5efe7df4e03d807154fd08a06a5f9aad423ba8f9d8",
+      "source": "model",
+      "text": "`liquidity_coverage_ratio_lcr` answers the short-term question: does a bank hold enough high-quality liquid assets (`hqla`) to cover its net stressed cash outflows over 30 days? It takes `hqla`, `gross_outflows`, `gross_inflows` and an optional `inflow_cap`, then divides `hqla` by net outflows, where inflows can only offset outflows up to the cap. `required_stable_funding_rsf_calc` answers a different, longer-term question: how much stable funding does a bank's asset base require? It takes `asset_amounts` and `rsf_factors`, and returns the sum of each asset multiplied by its factor, with more liquid or shorter assets carrying lower factors. The RSF result is the denominator of the NSFR, whereas the LCR is a complete ratio on its own.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8c09c7018be3e411ffde519a0750b3c8f664a03c94725f5cf774529a8e854cac",
+    "source": "model",
+    "text": "`liquidity_coverage_ratio_lcr` computes the Basel III Liquidity Coverage Ratio, which divides your stock of high-quality liquid assets (`hqla`, post-haircut) by net 30-day cash outflows. Net outflows are `gross_outflows` minus recognised inflows, but inflows can only offset outflows up to a cap set by `inflow_cap`, which defaults to 75%. That cap puts a floor under net outflows, so heavy expected `gross_inflows` can't shrink the denominator past a set share of gross outflows. The approach follows BCBS 238 §69. You supply `hqla`, `gross_outflows` and `gross_inflows`, and pyvar does the calculation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e6ca5adac085da9da6fa6fbcb86e82b5f8b8fdb9e863ced4ce5cd888d9f159a1",
+    "source": "model",
+    "text": "`liquidity_coverage_ratio_lcr` (Liquidity Coverage Ratio LCR) fits when you want a Basel III short-term liquidity measure:\n\n- You want to compare your stock of high-quality liquid assets (`hqla`, post-haircut) against expected 30-day stressed cash outflows.\n- You have figures for `gross_outflows` and `gross_inflows` and need inflows capped so they can offset only part of outflows, as BCBS 238 §69 sets out.\n- You want to test how a different `inflow_cap` changes the ratio. The default is 0.75, and you can override it.\n- You are reporting or reviewing liquidity coverage, and need the net outflow denominator built consistently from gross figures.\n\nFor longer-term funding rather than 30-day liquidity, `net_stable_funding_ratio_nsfr` is listed as the Basel III Net Stable Funding Ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

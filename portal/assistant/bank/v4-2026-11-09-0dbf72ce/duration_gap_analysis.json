@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration_balance_sheet": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7c8501d68c8e391ef9de9ce6131de174fc15ed4eb00ca3d45acaa7f7ae3f1d66",
+      "source": "model",
+      "text": "`duration_gap_analysis` works at the level of the whole banking book. It takes asset and liability durations plus total assets and total liabilities, and combines them into a duration gap, `DGAP = D_A − (L/A)·D_L`. It then approximates how economic value of equity changes for a parallel `rate_shock`. So it answers: \"How exposed is my balance sheet's equity value to a rate move?\"\n\n`modified_duration_balance_sheet` works on a single position or cashflow stream. You give it `cashflows`, `times`, a `discount_rate` and a `frequency`, and it returns that stream's modified duration, which is Macaulay duration divided by `1 + y/m`. It answers: \"How sensitive is this one set of cashflows to its discount rate?\"\n\nIn short, the modified duration function produces a duration input for one position. `duration_gap_analysis` takes asset and liability durations, such as those, and turns them into an equity-level view.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c053922599fe515dea55c092016c95f711b8aaeab110782ab210252189f56ed8",
+    "source": "model",
+    "text": "`duration_gap_analysis` (Duration Gap Analysis) assesses the interest-rate exposure of the banking book by computing the duration gap, `DGAP = D_A − (L/A)·D_L`. It takes asset and liability durations (`asset_duration`, `liability_duration`) along with `total_assets` and `total_liabilities`. It then estimates the change in economic value of equity for a parallel rate shock as roughly `−DGAP · A · Δy`. The shock is set by `rate_shock`, an optional decimal that defaults to 0.01. The result is a first-order approximation, so treat it as an estimate rather than a precise outcome.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "faae5191a43861eaa84f5086c212162d741eb8a9fe090da44d7595e8ed4fbe9d",
+    "source": "model",
+    "text": "Use Duration Gap Analysis (`duration_gap_analysis`) when you want a quick, first-order view of how interest rate moves affect a bank's balance sheet:\n\n- You want to see how mismatched the durations of assets and liabilities are, using `asset_duration`, `liability_duration`, `total_assets` and `total_liabilities`.\n- You want an approximate change in economic value of equity for a parallel rate shock, set with `rate_shock`.\n- You already have weighted average durations for the banking book as a whole.\n- You want to compare sensitivity across different shock sizes, since the approximation is linear in the shock.\n- For the convexity gap of the banking book, see `convexity_gap`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

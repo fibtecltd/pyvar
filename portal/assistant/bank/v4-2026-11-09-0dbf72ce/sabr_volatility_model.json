@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "89f6f99b030c6d1617257f3840b354c1711583722e6aa207bce949d4d819ff29",
+      "source": "model",
+      "text": "`sabr_volatility_model` returns a Black implied volatility for a given strike, using Hagan's expansion of the SABR dynamics, so it answers \"what implied vol does this model give at this strike?\" Its inputs are the `forward`, `strike`, `tau`, and the SABR parameters `alpha`, `beta`, `rho` and `nu`. `displaced_diffusion_model` instead returns a European option price, treating spot plus a shift as lognormal, so it answers \"what is this option worth under shifted-lognormal dynamics?\" It takes `spot`, `strike`, `rate`, `sigma`, `tau` and `displacement`, plus optional `option_type` and `div_yield`. The displaced model reduces exactly to Black-Scholes when `displacement` is 0. So the first is about a volatility output driven by stochastic-vol parameters, and the second is about a price output driven by a single shift and volatility.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a23acdded098a5b810318938d957ed15f6ef4ee352ac7dcdeec5477d887977a4",
+    "source": "model",
+    "text": "`sabr_volatility_model` (SABR Volatility Model) returns the Black (lognormal) implied volatility for a given strike, using Hagan's expansion of the SABR dynamics. You supply the `forward`, `strike`, `tau` (time to maturity in years), and the model parameters `alpha` (initial volatility level), `beta` (CEV exponent), `rho` (correlation) and `nu` (vol-of-vol). Calling it across a range of strikes lets you see the volatility smile the model implies. At the money, where `strike` equals `forward`, it reduces to the familiar ATM SABR volatility.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d56cdd6bb26b9b5a00b15415fe4dffe5e529d3a663ecc1c1d7338a4906de970",
+    "source": "model",
+    "text": "`sabr_volatility_model` (SABR Volatility Model) fits when you need a Black implied volatility for a given strike from SABR dynamics.\n\n- You have a forward, a strike and a maturity (`forward`, `strike`, `tau`), plus SABR parameters (`alpha`, `beta`, `rho`, `nu`), and want the implied vol at that strike.\n- You want to see how implied vol changes across strikes by repeating the call with different `strike` values.\n- You want the at-the-money SABR vol, which the function gives when `strike` equals `forward`.\n- You want a quick closed-form expansion (Hagan's) rather than a simulation.\n\nIf you need an option price from a stochastic-volatility model rather than an implied vol, `heston_stochastic_volatility_model` is listed as a semi-analytic Heston European option price.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

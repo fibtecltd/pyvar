@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e9b9d90eada46b7d420d855c0c1db5943a98e52277bd0c68f3175fb757f5a94e",
+      "source": "model",
+      "text": "`compute_cvar` answers \"what is the average loss in the worst tail of my portfolio?\" You give it portfolio losses already sorted ascending (`sorted_losses`) and a `confidence_level`, and it returns the mean of the losses from position floor(`confidence_level` x n) to the end. It works on a single series of portfolio-level losses, so it gives one total Expected Shortfall figure.\n\n`expected_shortfall_contribution` answers \"which assets are driving that tail loss?\" It takes a matrix of per-asset returns (`asset_returns`), `weights` and `portfolio_value`, finds the scenarios where the portfolio breaches VaR, and averages each asset's loss across exactly those scenarios. The per-asset contributions add up to the total ES.\n\nIn short, use `compute_cvar` for the portfolio's tail-loss number, and `expected_shortfall_contribution` to split that number across assets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9c1f1f9784772aa76b158de681b808616bee46eb8ce6adc9a7778dbf3b548665",
+    "source": "model",
+    "text": "`compute_cvar` (Compute CVaR) calculates Conditional VaR, also called Expected Shortfall: the average of portfolio losses that fall beyond the VaR threshold. You pass in `sorted_losses`, your portfolio losses sorted ascending with losses as positive numbers, and a `confidence_level` such as 0.99 that sets where the tail begins. It averages the losses from position floor(`confidence_level` x n) to the end of the array, so it covers the largest losses. This measure is a regulatory standard under Basel III / FRTB for market risk capital.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d4e17c5af946aa4448d4e0e0bcaa5199ea35e4eab0466d6998a0dbd793b2795d",
+    "source": "model",
+    "text": "`compute_cvar` (Compute CVaR) fits when you already have a portfolio's losses and want the average size of the worst ones.\n\n- You have a ready array of losses, sorted ascending with losses as positive numbers, and want the mean loss in the tail beyond the VaR threshold.\n- You need Expected Shortfall for market risk work, since it is described as the standard under Basel III / FRTB for market risk capital.\n- You want to choose where the tail starts through `confidence_level`, for example 0.99.\n- You care about how bad losses get past the cutoff, not just where the cutoff sits, which VaR alone doesn't show.\n- If you have a return series rather than sorted losses, `conditional_var_es` computes Conditional VaR (Expected Shortfall) from a return series.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

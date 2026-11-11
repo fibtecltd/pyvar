@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fama_french_3_factor_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "317acc094db202d4cb617e2118b019c59be0c34fc3a47dcd80f033fd348ca871",
+      "source": "model",
+      "text": "`regime_detection_hmm` asks \"does this return series look like it comes from a calm state or a turbulent one?\", while `fama_french_3_factor_model` asks \"how much of a portfolio's excess return is explained by market, size and value exposure?\" The first takes a single array of `returns` and fits a two-component Gaussian mixture by EM (controlled by `n_iter`). It labels each observation by its most likely regime and reports the higher-variance component as \"stress\". The second regresses `excess_returns` on a matrix of `factors` (MKT, SMB, HML) by OLS, and the intercept is the factor alpha. Despite its name, `regime_detection_hmm` is not a true hidden Markov model: it has no transition matrix, so it doesn't model how regimes persist or switch. The regression instead gives factor loadings and alpha, and needs factor data as input.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "77ad0bcf47ffc91a39397fb47b7d36afe9cfd4be9c2d6a0aced883c5182c17f9",
+    "source": "model",
+    "text": "`regime_detection_hmm` (Regime Detection HMM) takes a one-dimensional array of per-period `returns` and fits a two-component Gaussian mixture to them using EM, running for `n_iter` iterations (default 50). It then labels each observation with the regime it most likely belongs to, and the higher-variance component is reported as the \"stress\" regime, the usual calm versus turbulent split. Despite the name, it is not a true hidden Markov model: it has no transition matrix, so it describes the overall mix of regimes but not how persistent they are or how likely switching is.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4d6c566e79ae72f5fa2e198ed03fe98f34eceabb99216e1589c391b8acd1a1b9",
+    "source": "model",
+    "text": "`regime_detection_hmm` (Regime Detection HMM) fits when you want to split a return series into a calmer group and a more turbulent group.\n\n- You have a 1-D array of per-period returns and want each observation labelled by its most likely regime, with the higher-variance group reported as \"stress\".\n- You want a simple, stationary picture of returns as a mix of two Gaussian components, with no time ordering assumed.\n- You want to control how long the fit runs, using `n_iter` (default 50 EM iterations).\n- Skip it if you need regime persistence or switching probabilities. Despite the name, it has no transition matrix and is not a true hidden Markov model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

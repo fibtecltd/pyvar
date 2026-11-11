@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "30564e77fd43870f37441173c869a97ba36be951a9ed0e4e77585928cb94613c",
+      "source": "model",
+      "text": "`maximum_drawdown` and `drawdown_duration` both look at how a portfolio falls below its prior peak, but they answer different questions. `maximum_drawdown` asks how deep the worst fall was: it reports the largest peak-to-trough decline, measured as a fraction of the running peak. `drawdown_duration` asks how long the portfolio stayed down: it counts consecutive periods spent below the prior peak and gives the longest run and the current underwater run. Both take the same inputs, `returns` and the optional `is_equity_curve` flag, so you can feed them the same data. Use the first when the size of the loss matters, and the second when the time spent recovering matters.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9a1e5884ea1ee0c2642b614a0a4185302c5d4069b83450c37285c8c0e8c65a7d",
+    "source": "model",
+    "text": "`maximum_drawdown` (Maximum Drawdown) measures the largest peak-to-trough decline in a series of portfolio values. For each point in time it compares the current value to the highest value reached up to then, and the function reports the biggest such drop as a fraction of that peak. You pass `returns` as either a 1-D array of per-period returns or an equity curve. If you supply an equity curve (a value series), set `is_equity_curve` to True; it defaults to False, meaning the input is treated as returns. It's a standard way to see how deep a historical losing stretch has been.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ee224a09b3e55a37e7c549d82ec3f597f69aefef01a859964a1277a94d8cac73",
+    "source": "model",
+    "text": "`maximum_drawdown` (Maximum Drawdown) fits when you want to know the largest peak-to-trough decline in a series. It's a good choice when:\n\n- You want a worst-case-style view of losses along the way, not just the end result or average volatility.\n- You have per-period returns, or you already have an equity curve. Set `is_equity_curve` to True for a value series.\n- You're comparing strategies or portfolios by how deep their worst fall from a prior high was.\n- You want a simple, intuitive measure of the pain an investor would have lived through, based on the running peak.\n\nIf you need something different, `drawdown_duration` gives the longest and current underwater run lengths, which is about how long a drawdown lasts rather than how deep it is.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

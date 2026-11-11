@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "762620615d69eed3ce66c691bd3063bb14f2322b2d0417b856ccd47034c8af71",
+      "source": "model",
+      "text": "`tail_risk_scenario_oprisk` asks how much extra capital a severe \"perfect-storm\" scenario would imply: it takes a sample of annual losses, scales the losses beyond the tail quantile (`tail_confidence`) by a `severity_multiplier`, and reports the uplift of the stressed tail expectation over the unstressed one. `oprisk_capital_allocation` asks a different question: given a firm-wide capital figure (`total_capital`), how should it be split across business lines? It does this in proportion to each line's standalone risk measure (`business_line_risks`), so the allocations add up exactly to the total.\n\nIn short, the first one stresses and measures the tail of your loss distribution. The second one takes a capital number you already have and divides it up. They work on different inputs and are not substitutes, though you could use one's output as an input to the other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6862668bdafab7ca8fe3eec8ec86f7cbe1c8b5be955630c1bb514a742fdfacb4",
+    "source": "model",
+    "text": "`tail_risk_scenario_oprisk` (Tail Risk Scenario OpRisk) estimates how much extra operational-risk capital a severe \"perfect-storm\" scenario could imply. You give it a sample of aggregate annual losses (`annual_losses`), and it looks at the losses beyond a tail quantile set by `tail_confidence`. It then scales those tail losses by `severity_multiplier` and re-reads the tail expectation. The output is the uplift of the stressed tail over the unstressed tail.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bdec658b12aca788f82721e3483a2451d0b85b06693541270244f0176e507984",
+    "source": "model",
+    "text": "`tail_risk_scenario_oprisk` (Tail Risk Scenario OpRisk) fits when you want to see how extreme-tail operational losses could change capital under a stress.\n\n- You have a sample of aggregate annual losses (`annual_losses`) and want the tail expectation beyond a chosen quantile, set by `tail_confidence`.\n- You want a \"perfect-storm\" view: set `severity_multiplier` to amplify tail losses and read the uplift over the unstressed tail.\n- You want a simple scenario comparison, such as running different `severity_multiplier` values to see how the stressed tail expectation moves.\n- For a broader capital projection under stress, `oprisk_stress_testing` is listed in pyvar as an OpRisk stress-testing capital projection.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

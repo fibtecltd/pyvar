@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a7990e03d2404b216040cf2a80df42813ce74dfc6e794610f42bb8c12cf53894",
+      "source": "model",
+      "text": "`diversification_benefit_oprisk` asks how much capital is saved when OpRisk cells are not perfectly correlated. It takes the standalone capital per cell (`standalone_capitals`) and a uniform `correlation`, then compares the simple sum of those capitals with the correlated aggregate. The benefit is the reduction, floored at zero.\n\n`oprisk_capital_allocation` asks a different question: given a firm-wide total (`total_capital`), how should it be split across business lines? It shares the total in proportion to each line's standalone risk (`business_line_risks`), so the allocations add up exactly to the total.\n\nIn short, the first measures how much combining cells reduces capital, and the second divides an already-fixed total among business lines.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d036467b82b67e32550257a88bd32305be623f947e34ed330191d9281157011",
+    "source": "model",
+    "text": "`diversification_benefit_oprisk` (Diversification Benefit OpRisk) measures how much operational risk capital is saved when losses across business cells are not perfectly correlated. You give it the standalone capital for each cell as `standalone_capitals`, plus a single uniform pairwise `correlation` between cells, which defaults to 0 (independent). It compares the simple sum of standalone capitals, which assumes no diversification, with a correlated aggregate that applies that one correlation to every pair of cells. The benefit is the reduction from the simple sum to the aggregate, floored at zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3d72a7e2bf42831b1dc833ff6739409ea0d394dcfa61fb58a13102c79194ba82",
+    "source": "model",
+    "text": "`diversification_benefit_oprisk` fits when you want to see how much capital relief comes from OpRisk cells not moving perfectly together.\n\n- You already have a standalone capital figure for each OpRisk cell and want to compare their simple sum with a correlated aggregate.\n- You are willing to assume one uniform pairwise correlation between all cells, set with `correlation` (0 means independent, 1 means no diversification).\n- You want to test how sensitive the benefit is to that correlation assumption by rerunning with different values.\n- Related function: `oprisk_capital_allocation` is listed as allocating total OpRisk capital across business lines, pro-rata by risk.\n\npyvar does the calculation; the benefit is the reduction from the simple sum, floored at zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

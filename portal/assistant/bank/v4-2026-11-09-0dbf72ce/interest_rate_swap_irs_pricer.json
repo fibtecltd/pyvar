@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "21f72adf710acc115d59ed0617af434f1efdbb9b278472e5613f98e4ebc23f2d",
+      "source": "model",
+      "text": "`interest_rate_swap_irs_pricer` values a vanilla fixed-vs-float swap over many periods: it takes lists of forward rates, discount factors and accruals, and answers \"what is this swap worth to the payer, and what fixed rate would make it break even?\" It returns both the swap value (float leg minus fixed leg) and the par fixed rate. `total_return_swap_trs` values a single total-return swap leg, answering \"what is the exchange of an asset's total return against a financing rate worth for one period?\" It takes a single `asset_return`, `financing_rate`, `accrual` and `discount_factor`, and has no par-rate output. The key difference is what's exchanged: the IRS swaps a fixed rate for a floating index rate across many payment dates, while the TRS swaps a reference asset's return for a financing cost. Use `receive_total_return` for the TRS direction and `pay_fixed` for the IRS direction.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9d40dd53a1878d40aed54c8acd59d99a7cb4663d55e34d28dbb9df41b4256ad8",
+    "source": "model",
+    "text": "`interest_rate_swap_irs_pricer` prices a vanilla fixed-vs-float interest-rate swap. You supply the `notional`, the `fixed_rate`, the projected `forward_rates`, the `discount_factors` and the `accruals` for each period. It discounts the floating leg (forward rate × accrual × discount factor) and the fixed leg (fixed rate × accrual × discount factor), then values the swap to the payer as float minus fixed. It also returns the par (break-even) fixed rate. The `pay_fixed` flag, true by default, sets whether you are the payer (long float) or the receiver.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3b1099e3dd30e51eaa631de29e2889e72f90720da1e9e93dc589be1b2e07a32e",
+    "source": "model",
+    "text": "Use `interest_rate_swap_irs_pricer` when you need to value a plain fixed-vs-float interest-rate swap from curve inputs you already have.\n\n- You have a projected float rate, a discount factor and an accrual for each period, and want the swap's value to the payer (float leg minus fixed leg).\n- You want the par (break-even) fixed rate, meaning the fixed rate that balances the two legs.\n- You need to view either side: `pay_fixed` is true for a payer swap and false for a receiver.\n- The swap is vanilla, with one fixed rate and a single `notional`.\n\nIf you want an option on a swap rather than the swap itself, `swaption_pricer_black` is listed as pricing a European swaption under the Black model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

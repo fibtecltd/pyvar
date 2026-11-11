@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contingency_funding_plan_trigger": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ad20d5b46998ecabc481178346c00fac8dd9f2ca3fb37e1515f1e7fbc3fe52ee",
+      "source": "model",
+      "text": "`liquidity_buffer_sizing` answers \"how much liquidity should we hold?\": it takes per-period stressed net outflows (`stressed_net_outflows`), finds the deepest point of the cumulative cash-flow trough, and sets the required buffer to that peak, optionally uplifted by a management margin (`confidence_buffer`). `contingency_funding_plan_trigger` answers a different question: \"has the situation deteriorated enough to activate the contingency funding plan?\" It compares current early-warning metrics (`metrics`) against their minimum acceptable values (`thresholds`), flags any metric that falls below its threshold, and returns the breached triggers plus an activation decision. So the first produces an amount, while the second produces a yes/no decision with a list of breaches. The first is a sizing calculation over a stress horizon, and the second is a logical comparison of where things stand today against set limits.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d835a31acbb8336ae5c4db5836508fc3522fbc19917236e746e93612bb3d6a6d",
+    "source": "model",
+    "text": "`liquidity_buffer_sizing` (Liquidity Buffer Sizing) sizes a liquidity buffer to the deepest point of the cumulative cash-flow trough over a stress horizon. You pass `stressed_net_outflows`, a series of per-period stressed net outflows where positive values are drains. The function accumulates them period by period and takes the peak cumulative outflow, floored at zero. You can optionally set `confidence_buffer`, a fractional management uplift, which scales that peak up to give the required buffer.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "489bf95183c145b37f6a1a29228a619f4d6f36379d75f884b7e4adc03773445a",
+    "source": "model",
+    "text": "Use Liquidity Buffer Sizing (`liquidity_buffer_sizing`) when you need to turn a stressed cash-flow projection into a single buffer amount:\n\n- You have per-period stressed net outflows (positive meaning a drain) and want the buffer to cover the deepest point of the cumulative cash-flow trough, passed in as `stressed_net_outflows`.\n- You want to add a management margin on top of that peak, using `confidence_buffer` (for example 0.10 for a 10% uplift).\n- You are comparing how different stress scenarios change the buffer you would need, by running each scenario's outflows through the same calculation.\n- For a different question, `survival_horizon_calculator` is listed as computing the survival horizon: days until cumulative net outflow exhausts HQLA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

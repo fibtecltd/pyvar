@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_trading_desk_aggregation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "44afa13e5b7cf4ac1abcb6e4627b271682e493dae6cd5f6a8667b29909e3ed04",
+      "source": "model",
+      "text": "`frtb_sa_market_risk_capital` answers \"what is the Standardised Approach capital for one portfolio?\" It adds three charges you supply: `sensitivities_charge`, `default_risk_charge` and `residual_risk_addon`. The result is their simple sum.\n\n`frtb_trading_desk_aggregation` answers \"what is the firm-wide market-risk capital across several desks?\" For each desk it takes the internal-models charge if the desk is eligible (`desk_ima_eligible`) and the standardised charge if not. It then sums across desks, using `desk_sa_charges` and `desk_ima_charges`.\n\nIn short, the first builds a single standardised charge from its components. The second combines per-desk charges, choosing between the two approaches desk by desk. The first's output could serve as a desk's standardised charge in the second, but you'd need to supply it yourself.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4c16e4eeb5a0315dbb6ff1159b8e59884309936e25362e735ff9e52a60b52203",
+    "source": "model",
+    "text": "`frtb_sa_market_risk_capital` (FRTB SA Market Risk Capital) gives the total market-risk capital under the FRTB Standardised Approach. It adds together three charges you supply: the aggregate Sensitivities-Based Method charge (`sensitivities_charge`), the Default Risk Charge (`default_risk_charge`) and the Residual Risk Add-On (`residual_risk_addon`). The sensitivities charge should already be aggregated across delta, vega and curvature and taken as the maximum over the correlation scenarios. All inputs are in currency, and the result is their simple sum, following BCBS d457 §2.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "19787afddab7d686801e0af4b4cf23f9dea122e5bd88de4b11c96a55bd4ddde5",
+    "source": "model",
+    "text": "`frtb_sa_market_risk_capital` (FRTB SA Market Risk Capital) fits when you need the total market-risk capital under the FRTB Standardised Approach.\n\n- You already have the three components: the aggregate Sensitivities-Based Method charge (`sensitivities_charge`), the Default Risk Charge (`default_risk_charge`) and the Residual Risk Add-On (`residual_risk_addon`).\n- You want them combined into one capital figure, which is the simple sum of the three.\n- Your SBM charge is already aggregated across delta, vega and curvature and taken as the maximum over the correlation scenarios, in currency terms.\n- If you're on the internal models route instead, `frtb_ima_market_risk_capital` is listed as the FRTB Internal Models Approach total market-risk capital.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

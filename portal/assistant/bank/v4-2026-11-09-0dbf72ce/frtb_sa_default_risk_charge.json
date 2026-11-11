@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e33975e28b81fc0fe1ed1e832d466c12f388a4d3665ea8a9fa07f6d001d63d5b",
+      "source": "model",
+      "text": "`frtb_sa_default_risk_charge` answers \"how much capital does the standardised approach require for the risk that issuers default?\" It takes long and short jump-to-default exposures per issuer (`jtd_long`, `jtd_short`) plus a default risk weight for each (`risk_weights`). It nets each issuer, risk-weights the results, and scales the short side by a hedge-benefit ratio. The charge is floored at zero.\n\n`frtb_ima_stressed_period_finder` answers a different question: \"which stretch of history was the most stressed?\" It slides a window across a return history (`returns`) and gives back the start index of the window with the largest Expected Shortfall, ranked at `confidence_level`.\n\nThe first is a standardised-approach capital calculation on issuer positions. The second is an internal-models helper that works on return history to pick the calibration window for stressed ES.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "00fb4b3d07d87f962cc3ea76c4c4b49e4ed39128f0c62c12711d63d8f5d99d6a",
+    "source": "model",
+    "text": "`frtb_sa_default_risk_charge` (FRTB SA Default Risk Charge) calculates the standardised-approach capital charge for default risk, following MAR22. For each issuer it nets long jump-to-default exposure (`jtd_long`) against short exposure (`jtd_short`), then applies that issuer's default risk weight from `risk_weights`. Net long positions are charged in full, while the risk-weighted net shorts are scaled down by a Weighted-to-Short ratio that reflects the hedge benefit. The final charge is floored at zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "88fd9562e9a5094d7bd75525f4c94c1073c518f10b3698c7a95a2deae07dd6ba",
+    "source": "model",
+    "text": "`frtb_sa_default_risk_charge` (FRTB SA Default Risk Charge) fits when you need the standardised-approach capital for jump-to-default risk, following MAR22.\n\n- You hold long and short positions in the same issuers and want the hedge benefit reflected through the Weighted-to-Short ratio.\n- You can supply long jump-to-default exposure (`jtd_long`), short exposure as positive numbers (`jtd_short`), and a default risk weight per issuer (`risk_weights`).\n- You want issuer-level net exposures risk-weighted, with the result floored at zero.\n- You are working in market risk under the FRTB standardised approach, not an internal model.\n\nIf you instead need the delta risk charge under the standardised approach, `frtb_sa_sensitivity_based_method` is listed as the FRTB SA Sensitivities-Based Method (delta) risk charge.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

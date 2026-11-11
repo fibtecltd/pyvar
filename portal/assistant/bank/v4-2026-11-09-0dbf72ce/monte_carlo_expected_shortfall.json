@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7d751591ff4438b3158acabebcb574984d0e3f1eb33a49a783b4dd2b99e1c531",
+      "source": "model",
+      "text": "`monte_carlo_expected_shortfall` answers \"how large is the portfolio's total tail loss?\" It fits a mean and volatility from a single series of historical portfolio `returns`, simulates `n_simulations` normally distributed paths over `horizon_days`, and reads the Expected Shortfall from the simulated losses. With a fixed `seed`, the result is repeatable.\n\n`expected_shortfall_contribution` answers \"which assets make up that tail loss?\" It takes a matrix of per-asset returns (`asset_returns`) plus `weights`. For each asset it averages that asset's loss across the scenarios where the portfolio breaches VaR. Those per-asset figures add up to the total ES.\n\nIn short, use the first for a simulated, portfolio-level ES figure, and the second to split an ES figure across assets using your own scenarios rather than a simulation.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4dc715b09f09a53acebfa07994152a9ca1d64898b0d175e9fb6664120883a47e",
+    "source": "model",
+    "text": "`monte_carlo_expected_shortfall` estimates Expected Shortfall (CVaR) for a portfolio by simulating losses under a normal distribution. It fits the mean and volatility directly from your historical `returns`, then simulates `n_simulations` paths over `horizon_days`, summing daily draws into a loss for each path. ES is the average of the losses in the tail beyond the `confidence_level`. Results are given as a percentage and as an amount in the currency of `portfolio_value`, and they are repeatable for a fixed `seed`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f182cc825addac961bc8b8d5269d3feb424160ad05c2c186df1ac1042634374e",
+    "source": "model",
+    "text": "`monte_carlo_expected_shortfall` fits when you want a tail-loss figure (ES, also called CVaR) from a simulated loss distribution:\n\n- You have a history of portfolio `returns` and want a normal distribution fitted to its mean and volatility, then simulated forward.\n- You want the loss expressed both as a percentage and in base currency, using your `portfolio_value`.\n- You need a multi-day view: `horizon_days` sets the risk horizon, and `n_simulations` sets how many paths are run.\n- You want repeatable output, since results are deterministic for a fixed `seed`.\n- For a non-parametric estimate, `historical_expected_shortfall` is listed as a non-parametric historical Expected Shortfall.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

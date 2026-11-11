@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4738ff59da79ebfac8f906338d7c4ef20b8eb76c25236dd0f9c4a80dd2e480ce",
+      "source": "model",
+      "text": "`barrier_option_pricer` answers the question \"what is an option worth if it is created or cancelled when the underlying touches a set `barrier` level?\" It uses the Reiner-Rubinstein closed form, covers down and up, in and out combinations, and takes an optional `rebate` paid if the barrier makes the option worthless. `asian_option_pricer` answers a different question: \"what is an option worth if its payoff depends on the average price over its life rather than the final price?\" It prices the arithmetic-average case by Monte Carlo, so it has settings like `n_simulations`, `n_steps` and `seed`, plus optional `qmc` and `greeks`. The barrier pricer needs a `barrier` level, whereas the Asian one needs none. Pick the barrier pricer for a knock-in or knock-out feature, and the Asian pricer for average-price payoffs.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0a7523002bab5db536c3940071769546f111c2630952855e3c46f0ae03bea2a4",
+    "source": "model",
+    "text": "`barrier_option_pricer` (Barrier Option Pricer) prices a single-barrier option using the Reiner-Rubinstein closed form. It handles calls and puts with `down-and-out`, `down-and-in`, `up-and-out` or `up-and-in` barriers, using the parity that knock-in plus knock-out equals the vanilla option. You supply `spot`, `strike`, `barrier`, `rate`, `sigma` and `tau`, with optional `div_yield`. An optional `rebate` adds a cash payment: for a knock-in, paid at expiry if the barrier is never touched; for a knock-out, paid when the barrier is touched.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "63fc857c9ac5bf50eff5458498cd621cecb2092dbd66cb4dfb2789e477977465",
+    "source": "model",
+    "text": "The Barrier Option Pricer (`barrier_option_pricer`) fits when you need a single-barrier option price from a closed form rather than a simulation:\n\n- You have a call or put that knocks in or out at one barrier level, and you want any of the four combinations: `down-and-out`, `down-and-in`, `up-and-out` or `up-and-in`.\n- You want a Reiner-Rubinstein closed-form price, with continuous `rate` and `div_yield` and a constant `sigma`.\n- The contract pays a cash `rebate`. pyvar models it as paid at expiry for a knock-in if the barrier is never touched, or at the moment of the touch for a knock-out.\n- You want a no-rebate price that respects the knock-in plus knock-out equals vanilla relationship. Leave `rebate` at its default of 0.\n\n- For a different payoff, `digital_option_pricer` is listed as pricing a cash-or-nothing digital (binary) option.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "var_breach_cluster_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "87148116ef6e45a02fd39399369bbd58119b5683ae2e806b71dfadf3b3ab71d0",
+      "source": "model",
+      "text": "`traffic_light_backtesting` answers \"how many VaR breaches did I have over the backtest window, and which Basel zone does that put me in?\" It takes `actual_returns` and `var_estimates`, counts the days the loss exceeded VaR, and assigns green, yellow or red using the Basel Committee's boundaries. `var_breach_cluster_analysis` asks a different question: \"are the breaches bunched together?\" It takes a binary `breaches` sequence (1 for a breach, 0 for none) and reports the number of clusters, the longest run of consecutive breaches, and the mean run length. So the first looks at how many breaches there were, while the second looks at when they happened relative to each other, as a diagnostic for the independence assumption that the Christoffersen test formalises.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2cc0e51afa690c32dac9f6fae0ec6c2bbddcf0ceb5b7b976501350fad6987ca9",
+    "source": "model",
+    "text": "`traffic_light_backtesting` runs the Basel traffic-light backtest over the 250-day window. It takes your realised returns (`actual_returns`) and the matching VaR estimates (`var_estimates`, given as positive losses). It counts the days on which the loss exceeded that day's VaR, then assigns a zone. Green means fewer than 5 breaches, yellow means 5 to 9, and red means 10 or more, with boundaries set by the Basel Committee. pyvar does the counting and zone assignment for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "18ed2b1baed5d76693d75475046fb41cfdfb96875c1cf2bdcaef82f1a0272b67",
+    "source": "model",
+    "text": "Use Traffic Light Backtesting (`traffic_light_backtesting`) when you want a Basel-style check of how well your VaR estimates held up against realised returns.\n\n- You have realised returns (`actual_returns`) and a matching VaR estimate for each day (`var_estimates`), expressed as a positive loss.\n- You want the breach count over the 250-day window and the resulting green, yellow or red zone, using the Basel Committee boundaries.\n- You need a quick, readable summary of VaR model performance for a model review or validation discussion.\n- If you want a formal statistical test of whether the breach rate is consistent with the VaR level, rather than a zone, `kupiec_pof_test` is listed as the Kupiec Proportion-of-Failures unconditional coverage test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

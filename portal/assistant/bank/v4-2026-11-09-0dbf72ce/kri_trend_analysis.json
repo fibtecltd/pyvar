@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "key_risk_indicator_kri_library": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b2570a6debe3518bf5b5a1aee99ecd8bb920c6057a5390f63775d303e31b5c23",
+      "source": "model",
+      "text": "`kri_trend_analysis` answers \"Is this key risk indicator getting better, worse or staying flat over time?\" It fits a straight-line (OLS) slope to an ordered series of `observations` and labels the trend \"deteriorating\", \"improving\" or \"stable\". The call depends on the slope's sign and on `higher_is_worse`, and \"stable\" is judged relative to the scale of the data.\n\n`key_risk_indicator_kri_library` answers a different question: \"Is my set of KRI definitions complete and usable?\" It checks that each definition has a `name`, an `amber_threshold`, a `red_threshold` and a `direction`, then returns a registry keyed by name. It does no numeric analysis.\n\nIn short, one analyses a series' direction, the other validates and indexes definitions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afb4e87d49a9b01913a9e867c6e966841b3925dc1d60d8b2ccff360b7aa6fc4f",
+    "source": "model",
+    "text": "`kri_trend_analysis` (KRI Trend Analysis) looks at a time series of a key risk indicator, ordered oldest first, and fits a straight line to it using ordinary least squares. It then labels the trend \"deteriorating\", \"improving\" or \"stable\" based on the sign of the slope. The `higher_is_worse` setting (on by default) decides which direction counts as adverse, so turning it off flips the deteriorating and improving calls. \"Stable\" is a scale-relative rule: the slope has to be very small compared with the average size of the observations, not below a fixed absolute tolerance.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6366e9e4cc4d1a985f38b4beb71851f0255103aaf127c7c06d1fe1848b8ee569",
+    "source": "model",
+    "text": "`kri_trend_analysis` (KRI Trend Analysis) fits a straight-line slope to a KRI series and labels it deteriorating, improving or stable. It fits when:\n\n- You have an ordered series of KRI observations (oldest first) and want a quick read on its overall direction.\n- You want a simple, rule-based label rather than a judgment call on the slope's sign.\n- Your metric can move either way: set `higher_is_worse` to match it (the default treats rising values as adverse, and setting it to false flips that).\n- Your KRI values vary in scale, since \"stable\" is judged relative to the average size of the observations, not a fixed tolerance.\n\nKeep in mind that the label is a rule layered on a linear fit, so it summarises overall direction, not shape.\n\n- If you instead need to classify a single KRI value as green, amber or red, `kri_threshold_breach_detection` is the related function listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

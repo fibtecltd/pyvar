@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b5abdc16f3d3e405ff0196ca172698e26916714cea59500faf397210611a6ea5",
+      "source": "model",
+      "text": "`near_miss_capture_framework` answers \"how many near-misses have we captured, and how much loss could they have caused?\" It takes a list of `events`, each with an `actual_loss` and a `potential_loss`. It counts those with zero actual loss and non-zero potential loss, and sums their potential loss, which serves as a leading indicator of control weakness.\n\n`escalation_threshold_calculation` answers \"who needs to know about this loss?\" It takes a single `loss_amount` and a `thresholds` mapping of level to minimum amount. It returns the governance tier with the largest threshold that the loss meets or exceeds.\n\nIn short, the first summarises a set of events that caused no actual loss, while the second routes one loss to a governance level. Both are rule-based, not model-based.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e0881fea8febc132a0a380390d8620deb3a5804501acbc1cb0a6b57d1ec7febb",
+    "source": "model",
+    "text": "`near_miss_capture_framework` (Near Miss Capture Framework) summarises captured near-miss events in operational risk. It takes a list of `events`, each carrying an `actual_loss` and a `potential_loss`, and validates them. An event counts as a near-miss when its actual loss is zero but its potential loss is above zero. The function returns the count of those near-misses and their aggregate potential loss, which serves as a leading indicator of control weakness. It is a rule-based filter and count, so it doesn't model or forecast anything.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "95c3c2c45f1eca557f6e88f7b6c3ecc7f1cc0b84db261ee271528caf86e9f382",
+    "source": "model",
+    "text": "Use the Near Miss Capture Framework (`near_miss_capture_framework`) when you want a quick summary of events that cost nothing but could have:\n\n- You have a list of operational events, each with `actual_loss` and `potential_loss`, and want the count of near-misses and their total potential loss.\n- You want a leading indicator of control weakness, based on events that were caught or avoided before any loss occurred.\n- You need a simple rule-based filter: an event counts only if `actual_loss` is zero and `potential_loss` is above zero.\n- You want events validated before they are summarised.\n\nIf your need is different, `root_cause_analysis_template` aggregates root-cause contributions into a normalised attribution.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basis_risk_irrbb": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b330ec50371b188841f4ab1dba5ccd57a3f24526ff1812a0ee68ce9f68d69805",
+      "source": "model",
+      "text": "`irrbb_six_standard_rate_shocks` builds the six standard interest-rate shock curves from BCBS d368 Annex 2 (parallel up and down, steepener, flattener and the short-rate shocks), so it answers \"what rate scenarios should I apply across these tenors?\" It takes tenor points plus shock sizes in basis points (`parallel_bps`, `short_bps`, `long_bps`) and returns the shock curves. `basis_risk_irrbb` answers a different question: \"how much does net interest income change when assets and liabilities reprice off different indices that don't move together?\" It takes balances and index shifts for asset and liability buckets and computes ΔNII as asset balances times their index moves, minus liability balances times theirs. In short, the first function defines the shocks, while the second measures an income effect from imperfectly correlated indices.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "870164c97882848e793579a750b8f7e0c5d29df62de46700ec4839b60a3db845",
+    "source": "model",
+    "text": "`irrbb_six_standard_rate_shocks` constructs the six standard interest-rate shock curves from BCBS d368 Annex 2, used for interest rate risk in the banking book. You supply the tenor points in years (`tenors`), and it builds the shocks at those tenors: parallel up, parallel down, steepener, flattener, short-rate up and short-rate down. The steepener and flattener combine a short-rate shock and a long-rate shock, each scaled by tenor. You set the shock sizes in basis points with `parallel_bps`, `short_bps` and `long_bps`, all of which have defaults. BCBS d578 recalibrated these default magnitudes in 2024, effective 2026.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3a5986db3b240f7f3c9d07d41963986b1566263daa5d72b1fd0608741211fec4",
+    "source": "model",
+    "text": "`irrbb_six_standard_rate_shocks` (IRRBB Six Standard Rate Shocks) fits when you need the shock curves themselves, not a risk figure.\n\n- You want the six BCBS d368 Annex 2 standard shock curves across your own `tenors`.\n- You're setting up IRRBB scenarios and want the steepener and flattener built from scaled short and long shocks, with the decay by tenor handled for you.\n- You want to set your own magnitudes via `parallel_bps`, `short_bps` or `long_bps`, since BCBS d578 recalibrated the default magnitudes in 2024, effective 2026.\n- Related: `irrbb_standardised_framework` is listed as the standardised IRRBB EVE measure, giving the worst ΔEVE across the six shocks.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

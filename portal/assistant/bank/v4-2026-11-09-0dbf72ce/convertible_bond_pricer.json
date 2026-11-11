@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "93b8ac6c461c486a70b6de1c5d8437ad388127fa632212818d77d643ef128f64",
+      "source": "model",
+      "text": "`convertible_bond_pricer` answers \"what is a convertible bond worth at least?\": it takes the larger of a straight-bond floor (coupons and face value discounted at a flat `yield_rate`) and the conversion value (`conversion_ratio` times `stock_price`). `bond_pricer_floating_rate` answers \"what is a floating-rate note worth?\": it prices a bond whose coupons move with an index, using projected `reference_rates` plus a `spread`, discounted with per-period `discount_rates`.\n\nThe inputs differ accordingly. The convertible pricer uses a single coupon rate and one flat yield, and it brings in equity through the share price. The floating-rate pricer has no equity link; it takes a list of forward rates and a matching list of discount rates, and the number of coupon periods comes from the length of `reference_rates`, which `maturity` must be consistent with.\n\nPick the first when a bond can be exchanged into shares, and the second when coupons reset off a reference rate.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "47e96808002880fc7a1677cb57fd2e7735dff763596b91e4432e8f6c6133e82a",
+    "source": "model",
+    "text": "The Convertible Bond Pricer (`convertible_bond_pricer`) values a convertible bond as the higher of two quantities: its straight bond floor and its conversion value. The floor is the present value of the coupons and face value, discounted at `yield_rate`, using `face_value`, `coupon_rate`, `maturity` and `frequency`. The conversion value is `conversion_ratio` multiplied by `stock_price`. This gives a simple lower bound, since the bond is worth at least each of the two. It is a simplified decomposition and does not model conversion optionality, equity volatility, or embedded call/put features.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d222df8113d023da2b1bec3fa32230565aa3ad37faff68dd00a1b5c47a3d47a",
+    "source": "model",
+    "text": "Use the Convertible Bond Pricer (`convertible_bond_pricer`) when you want a simple lower-bound value for a convertible bond:\n\n- You want the value as the higher of the straight-bond floor and the conversion value.\n- You have `face_value`, `coupon_rate`, `yield_rate`, `maturity`, `conversion_ratio` and `stock_price`; set `frequency` if coupons aren't paid twice a year.\n- It suits a rough sense check or a teaching example, not a full valuation: it does not model conversion optionality, equity volatility, or embedded call/put features.\n- For a bond with an issuer's option, `callable_bond_pricer` is listed as pricing a callable bond (issuer's option) on a short-rate binomial tree.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

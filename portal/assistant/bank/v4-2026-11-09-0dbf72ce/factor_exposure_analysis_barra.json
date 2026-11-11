@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "return_attribution_brinson": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ce68289f33df75e399cc2ae10b6daeaf19adaef2121c7f4ad7ad130f1c2c53b9",
+      "source": "model",
+      "text": "`factor_exposure_analysis_barra` answers \"what is my portfolio tilted toward?\" It takes a matrix of per-asset factor loadings (`asset_exposures`) and the portfolio's `weights`, and aggregates them into one exposure per factor, which you can label with `factor_names`. It describes the portfolio's holdings at a point in time and does not look at returns.\n\n`return_attribution_brinson` answers \"where did the active return come from?\" It takes portfolio and benchmark segment weights and returns, and splits the difference between portfolio and benchmark return into allocation, selection and interaction effects per segment. Those three effects sum exactly to the total active return.\n\nIn short, the first function reports factor tilts from loadings and weights. The second explains realised performance against a benchmark by segment.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "40fc65a7ae75dc7b93f1e4271a39be291086f676eb1bc68cd335948d0c4cc777",
+    "source": "model",
+    "text": "`factor_exposure_analysis_barra` (Factor Exposure Analysis Barra) gives a Barra-style view of a portfolio's factor exposures. It takes each asset's factor loadings and combines them with the portfolio weights, using E = Bᵀw, so each factor's exposure is the weighted sum of the assets' loadings on it. The result shows the portfolio's active or absolute tilts across the factors. You supply `asset_exposures` (an assets-by-factors loading matrix) and `weights` (one per asset), and optionally `factor_names` for labels, which otherwise default to `factor_0`, and so on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9b8bb02bcc18e8bdfc8d063339a5638224a2e5ce7eb4fa219192f6a1238b8b48",
+    "source": "model",
+    "text": "`factor_exposure_analysis_barra` (Factor Exposure Analysis Barra) fits when you want to see a portfolio's factor tilts rolled up from its individual holdings.\n\n- You have a loading matrix of assets by factors (`asset_exposures`) and a weight for each asset (`weights`), and you want one exposure per factor.\n- You want to see the portfolio's absolute or active factor tilts, such as how much it leans on each style or risk factor.\n- You are doing Barra-style portfolio analytics and need readable output, which you can get by passing `factor_names` (otherwise labels default to `factor_0`, and so on).\n- You want a simple weighted aggregation of loadings (`Bᵀ w`), not a return or risk breakdown.\n\nIf you instead want to split returns by factor, pyvar's related function `factor_return_attribution` is listed as doing factor return attribution.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

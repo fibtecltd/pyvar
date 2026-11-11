@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "swap_rate_curve": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "76d40926096701cdc5ac92c71742bbcf8d7f8c2513af492213caaec48e492ab1",
+      "source": "model",
+      "text": "`nelson_siegel_curve_fit` starts from yields you observe at various maturities and fits a smooth four-parameter curve (`beta0`, `beta1`, `beta2`, `tau`) to them, so it answers \"what smooth curve describes these observed yields?\" By contrast, `swap_rate_curve` starts from a curve of discount factors and works out the par swap rate for each tenor, so it answers \"what fixed rate makes a swap worth zero, given these discount factors?\"\n\nThe inputs differ accordingly. The fit takes `maturities` and `yields`, plus an optional starting guess `tau_init` for the decay. The swap function takes `discount_factors` and `maturities`, plus the fixed-leg payment `frequency`. One function summarizes market yields as a fitted shape, while the other converts an existing discount curve into swap rates.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "27c9170bcc2cf4c929867f748cbfaa2365bd3293b3ec47090343f782c5eac216",
+    "source": "model",
+    "text": "`nelson_siegel_curve_fit` fits a Nelson-Siegel yield curve to yields you observe at various maturities. You supply `maturities` (in years) and `yields` (as decimals), and optionally `tau_init`, an initial guess for the decay parameter. The curve is described by `beta0` (level), `beta1` (slope), `beta2` (curvature) and `tau` (decay). In this setup `beta0` is the asymptotic long rate, and `beta0 + beta1` is the instantaneous short rate. It's useful for smoothing a set of market yields into a compact curve.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6c38789389c1aeb677f4da5b06369948cc9abc96cf1b62753079cfc833db8609",
+    "source": "model",
+    "text": "`nelson_siegel_curve_fit` (Nelson Siegel Curve Fit) fits a smooth four-parameter curve to yields you have observed, so it suits these situations:\n\n- You have yields at a handful of maturities and want a smooth curve that summarises them, described by `beta0` (level), `beta1` (slope), `beta2` (curvature) and `tau` (decay).\n- You want to read off the short end (`beta0 + beta1`) and the long-run level (`beta0`) of the curve in a compact form.\n- You have observed `maturities` (in years, above zero) and matching `yields` as decimals, and are happy to start the decay search from `tau_init` or leave it at its default.\n- You want to compare curve shapes over time using just a few parameters.\n\nIf you need a richer, six-parameter shape instead, `nelson_siegel_svensson_curve` fits the Nelson-Siegel-Svensson (six-parameter) curve.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

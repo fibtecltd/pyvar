@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2cad7ecc5d9a4a28e41b662d4c1df1a4c62af7cad673febb07554b01fb2608c3",
+      "source": "model",
+      "text": "`compute_rolling_var` (Compute Rolling VaR) answers \"how much could I lose?\": it produces a Gaussian VaR estimate at each point, using the mean and volatility from only the most recent `window` observations of `returns` at the chosen `confidence_level`. `traffic_light_backtesting` answers \"how well did those estimates hold up?\": it takes `actual_returns` and `var_estimates`, counts the days the loss exceeded the VaR, and assigns a Basel zone of green, yellow or red. So the first produces the forecasts, and the second checks them against what actually happened. In practice you could feed the output of `compute_rolling_var` into `traffic_light_backtesting` as its `var_estimates`. Note that the first entries of the rolling output are NaN, since the window needs data to fill.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "37539adf4a80fb939fbbc0861d3facd4525f1a4465839a1ac6ac2716912694db",
+    "source": "model",
+    "text": "`compute_rolling_var` (Compute Rolling VaR) produces a parametric, Gaussian value-at-risk series from a list of periodic returns, given as decimals and ordered oldest first. At each point it estimates the mean and volatility from only the most recent `window` observations, a fixed-length trailing window rather than one that expands from the start of the series. It then applies the normal quantile for your `confidence_level` to get VaR at that point. The output has the same length as `returns`, with NaN for the first `window` entries. It's a fast approximation suited to backtesting, not a full Monte Carlo.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "29de756ea01416161b677911e37026a0d4cc6d3e80b4249ef5d0e2d6581cfa77",
+    "source": "model",
+    "text": "`compute_rolling_var` (Compute Rolling VaR) fits when you want a quick Gaussian VaR series that adapts over time:\n\n- You're backtesting and need a fast approximation rather than the full Monte Carlo.\n- You want each estimate based only on the most recent `window` observations, so older data drops out instead of accumulating as in an expanding window.\n- You're happy to assume returns are roughly normal, with VaR at a chosen `confidence_level`.\n- You have periodic returns as decimals, oldest first, and can accept NaN for the first `window` entries of the output.\n- To count days when actual loss exceeded the VaR estimate, `compute_breaches` is listed as doing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

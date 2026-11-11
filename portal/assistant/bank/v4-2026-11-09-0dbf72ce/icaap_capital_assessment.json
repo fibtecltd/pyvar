@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pillar_2a_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5bb8284629c55232dc975149c85e23abfb6a0026d45c4aa4af2a1af362aecdc6",
+      "source": "model",
+      "text": "`icaap_capital_assessment` answers \"do our own funds cover everything we need?\", while `pillar_2a_capital` answers \"how large are the Pillar 2A add-ons, and what is that as a ratio of risk-weighted assets?\". The ICAAP function takes `pillar1_capital`, a list of internal charges in `risk_capital_components`, and `available_capital`. It adds Pillar 1 to those charges to get a total capital requirement, then subtracts that from available capital to give a capital surplus. `pillar_2a_capital` takes `risk_addons` and `risk_weighted_assets`. It sums the per-risk add-ons (for example credit concentration, IRRBB, pension or operational) and divides that sum by risk-weighted assets. So `pillar_2a_capital` covers only the add-on layer, whereas `icaap_capital_assessment` combines that layer with Pillar 1 and compares the total with what is available.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cbfdba4848af5ca8d0386b42be330b3b68a769b8d131a7d15044b074e1408758",
+    "source": "model",
+    "text": "`icaap_capital_assessment` (ICAAP Capital Assessment) runs an internal capital adequacy check by adding your Pillar 1 minimum capital requirement (`pillar1_capital`) to a list of additional internal risk charges (`risk_capital_components`), such as credit concentration or IRRBB. That sum is the total capital requirement. It then compares the total with your available own funds (`available_capital`). The capital surplus is available capital minus the total requirement. All three inputs are required, and pyvar does the calculation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e7a7fb499f1fc68518711ed6ab8062f70fea2783badba9718cde2ff69fbd90ab",
+    "source": "model",
+    "text": "Use ICAAP Capital Assessment (`icaap_capital_assessment`) when you want to compare a firm's own view of its capital needs with the own funds it has available:\n\n- You have a Pillar 1 minimum capital requirement and want to add internally assessed Pillar 2 risk charges, such as credit concentration or IRRBB, through `risk_capital_components`.\n- You want the capital surplus, meaning `available_capital` less the total capital requirement, as part of an internal capital adequacy assessment.\n- You already have the three inputs: `pillar1_capital`, a list of additional risk charges, and total available own funds.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

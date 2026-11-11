@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_scenario_weighted_ecl": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8c25d003fcb4f234f94022082ad31169ea3fb8dc506eace3a4898eeb569d1314",
+      "source": "model",
+      "text": "`ifrs_9_stage_classification_pd_threshold` answers \"which stage is this exposure in?\", while `ifrs_9_scenario_weighted_ecl` answers \"what is the probability-weighted expected loss across scenarios?\" The first returns Stage 3 if `days_past_due` is 90 or more. Otherwise it returns Stage 2 if `pd_current` is at least `sicr_relative_threshold` (default 2.0) times `pd_origination`, or if the PD rise meets `sicr_absolute_threshold` (default 0.02). Either condition alone is enough, and anything else is Stage 1. The second function takes `scenario_ecls` and `scenario_weights` and returns their weighted sum. In a workflow, the stage points you to `ifrs_9_12_month_ecl_stage_1` or `ifrs_9_lifetime_ecl_stage_2_3`, and scenario weighting can then combine those ECLs across scenarios. Staging gives a category, and weighting gives an amount.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4659bc89af8c01685596b4c5d721776bb7bed02d04881cae47e32c8445a3b37b",
+    "source": "model",
+    "text": "`ifrs_9_stage_classification_pd_threshold` assigns an exposure to IFRS 9 Stage 1, 2 or 3 using a PD-threshold rule for significant increase in credit risk (SICR). It puts the exposure in Stage 3 if it is credit-impaired, based on `days_past_due` reaching 90 (the rebuttable default presumption). Otherwise it moves to Stage 2 if the current lifetime PD (`pd_current`) is at least `sicr_relative_threshold` times the origination PD (`pd_origination`), or if the absolute PD increase reaches `sicr_absolute_threshold`. If neither trigger applies, it is Stage 1. The defaults are 2.0 for the relative multiple and 0.02 for the absolute increase.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ea4a437f2e0ac252992f003ba84dd53bc137f2e936b3d5a75b0914f67db9997b",
+    "source": "model",
+    "text": "`ifrs_9_stage_classification_pd_threshold` fits when you need to assign an exposure to IFRS 9 Stage 1, 2 or 3 from its probability of default (PD) figures.\n\n- You have the current lifetime PD and the PD at initial recognition (`pd_current`, `pd_origination`) and want a quantitative stage test.\n- You want a significant increase in credit risk (SICR) judged by a relative PD multiple (`sicr_relative_threshold`) or an absolute PD rise (`sicr_absolute_threshold`), and you can set both.\n- You want exposures that are 90 or more days past due (`days_past_due`) placed in Stage 3, reflecting the rebuttable default presumption.\n- For a full assessment combining quantitative and qualitative SICR, use `ifrs_9_staging_criteria_assessment`, which is listed as doing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

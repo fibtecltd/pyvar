@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "conduct_risk_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "18c28fe6c691a85216cd423c5d330198deed92c8c9eb78b95738b8381e2a5a62",
+      "source": "model",
+      "text": "`model_risk_assessment` asks how risky a model is to rely on. It takes `materiality` and `complexity` ratings (1-5 each), multiplies them into an inherent score, then discounts that by `validation_score`, which measures how effective validation is, to give a residual model-risk tier. `conduct_risk_metric` asks how much customer-conduct harm a firm is showing. It combines upheld `complaints` per `customers` with `redress_paid` relative to `revenue` into a 0-100 index where higher is worse, with a RAG band.\n\nThe first works from judgement ratings about a model and rewards strong validation. The second works from observed operating figures about complaints and redress. Both sit in Operational Risk, but they cover different risk sources, so they suit different questions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "002af3854bba89086d23864dca39e27eecebfd7d9f1e1d88db7b9a402a18aa50",
+    "source": "model",
+    "text": "`model_risk_assessment` (Model Risk Assessment) turns three inputs into a model-risk tier. It multiplies `materiality` and `complexity`, each rated 1-5, to get an inherent score. It then discounts that score by `validation_score`, a value in [0, 1] where 1 means strong validation, giving a residual score: inherent × (1 − validation). The approach follows the general materiality × complexity tiering style of SR 11-7 / PRA SS1/23. The 1-5 scale, the multiplication and the RAG thresholds are pyvar's own, not values those documents prescribe.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4c0c2aab9c18b178aeae68a2c0c32a5065201e490cd7508f4b11576d3d7bb823",
+    "source": "model",
+    "text": "`model_risk_assessment` (Model Risk Assessment) fits when you need a model risk tier from a few simple ratings.\n\n- You want to tier a model by combining its `materiality` and `complexity`, each rated 1-5.\n- You want the tier to reflect how effective validation is, using `validation_score` between 0 and 1 (1 = strong).\n- You want a quick, consistent way to compare models, in the general style of SR 11-7 / PRA SS1/23 tiering.\n- Keep in mind the 1-5 scale, the multiplication and the RAG thresholds are pyvar's own, not values prescribed by either document, so don't treat the output as a regulatory rating.\n- For a different operational-risk need, such as scoring IT availability, incidents and patching, `it_risk_scoring` is listed as an IT operational-risk score.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

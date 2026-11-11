@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "44403e3585e0eef6bcd61523a70d5ef46b2434ce5da068987eca18d73e939489",
+      "source": "model",
+      "text": "`realised_volatility` answers \"how much did a single series move over this block of returns?\" It takes a 1-D array of `returns`, sums the squared returns, takes the square root, and can scale the result to an annual figure using `annualisation_factor`, which defaults to 252.\n\n`correlation_matrix_historical` answers a different question: \"how do several assets move relative to one another?\" It takes a `returns_matrix` of T observations on N assets and returns the Pearson correlation between each pair, which is their covariance divided by the product of their standard deviations.\n\nIn short, one gives you the size of movement for one series, and the other gives you the co-movement across many assets. Correlation is scale-free, so it says nothing about how large the moves are, while realised volatility says nothing about how assets relate to each other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b9a2357edc51109dbe37cb67005cbbde23ea73301f6e8e2306c47d21031406d6",
+    "source": "model",
+    "text": "`realised_volatility` (Realised Volatility) measures how volatile an asset has been over a block of returns, typically high-frequency ones. It squares each return and sums them to get realised variance, then takes the square root to give realised volatility. It can also annualise that figure by multiplying by the square root of `annualisation_factor`, the number of periods per year, which defaults to 252. You pass the block of returns as a 1-D array in `returns`. pyvar does the calculation, so you only supply the data and, if needed, the annualisation setting.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9ffb70dae4513bd6e1bcd29b35c2e3c1d85d7e06137f6fb37a6a16cc53a8b728",
+    "source": "model",
+    "text": "`realised_volatility` (Realised Volatility) fits when you want a volatility figure measured from returns you already have, rather than a modelled one.\n\n- You have a block of returns, typically high-frequency, and want one volatility number for that block.\n- You want to annualise the result: set `annualisation_factor` to the periods per year (the default is 252).\n- You prefer a straightforward measure: the square root of summed squared returns, with no model fitting.\n- You want to look back at how volatile a period was, as opposed to forecasting.\n\nIf you need a conditional-volatility filter with multi-step forecasts, `garch_11_volatility_forecast` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

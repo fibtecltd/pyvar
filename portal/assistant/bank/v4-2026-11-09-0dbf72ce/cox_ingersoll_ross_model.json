@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "hull_white_short_rate_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7c68a2e6b05e33a0a336ffa864cbc994e4bd3b892e58a334992cc454e1593702",
+      "source": "model",
+      "text": "`cox_ingersoll_ross_model` prices a zero-coupon bond and simulates a short rate whose volatility scales with the square root of the rate level, which keeps the rate non-negative. It answers: \"what is the bond worth, and how might a non-negative rate evolve?\" `hull_white_short_rate_model` uses constant volatility with no square root, so rates can go negative, and it answers the same bond-price question under that simpler dynamic. With a constant `theta_const` it simply calls `vasicek_interest_rate_model`, so it is not a time-dependent fit to a market forward curve. The CIR function requires `theta`, while the Hull-White one takes an optional `theta_const`. The CIR simulation uses the exact transition distribution, so `n_steps` affects only path granularity.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "92a55ef152e01be54f5a4e8e04784a82dc8e858b5e8024dc00f00d6ddbcfc9dc",
+    "source": "model",
+    "text": "`cox_ingersoll_ross_model` (Cox Ingersoll Ross Model) works with the CIR short-rate model, where the rate mean-reverts toward a long-run level `theta` at speed `kappa` and its volatility scales with the square root of the rate, so it stays non-negative. Given `r0`, `kappa`, `theta`, `sigma` and `maturity`, it returns a closed-form zero-coupon bond price. It also simulates short-rate paths by Monte Carlo, using the exact non-central chi-squared transition rather than an Euler approximation. That means `n_steps` only sets path granularity, while `n_simulations` and `seed` control the number of paths and reproducibility.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": true,
+    "gate": {
+      "faithful": null,
+      "issues": []
+    },
+    "record_sha256": "eebcbd430631aeb70b81a3494815ec9102f5a5b109ebf55dee900e2f4359c38e",
+    "source": "static",
+    "text": "- Use Cox Ingersoll Ross Model when you need this: CIR model: closed-form ZCB price + simulated (non-negative) short rate.\n- It takes `r0`, `kappa`, `theta`, `sigma`, `maturity`, `n_steps`. For a different question, compare with `hull_white_short_rate_model` in the same group. It is one of the functions listed on its domain page of the pyvar portal, with a Try it panel.",
+    "tries": 2,
+    "writer": "static"
+  }
+}

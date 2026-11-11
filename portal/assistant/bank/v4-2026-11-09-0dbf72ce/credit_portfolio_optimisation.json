@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_stress_testing": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c96e50771967d5aa9ab2840259c67bc69e0af86596c58855afc40c35561ee17c",
+      "source": "model",
+      "text": "`credit_portfolio_optimisation` answers \"how should I split a portfolio across assets?\", while `credit_stress_testing` answers \"how much worse would losses get under a shock?\". The optimiser takes per-asset `expected_returns` and `expected_losses`, then picks weights that maximise return minus `risk_aversion` times expected loss. Weights sum to one and each is capped by `max_weight`. The stress test starts from existing exposures (`pd`, `lgd`, `ead`), scales PD and LGD with `pd_shock_multiplier` and `lgd_shock_multiplier`, and reports baseline versus stressed expected loss and the incremental impairment. So the first produces an allocation, and the second measures loss under stress for exposures you already hold.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "808b68e9b9a5662f9f1c4dfbb40e98bdbf070a1d77492c0a8d1f4ab9ed62d16c",
+    "source": "model",
+    "text": "`credit_portfolio_optimisation` chooses single-period portfolio weights across credit assets to balance expected return against expected loss. For each asset it scores `expected_returns` minus `risk_aversion` times `expected_losses`, then maximises the weighted sum of those scores. Weights must sum to 1, and each sits between zero and `max_weight`, a per-name concentration cap. It fills the highest-scoring names first up to the cap, then moves to the next best, using a greedy allocation instead of a generic solver. For this problem shape that allocation is the exact optimum, and tests cross-check it against a standard linear programming solver.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "da86049a94e201076dedba1d520a3e61f1ff9f5622d5cfaf81da4e101ab74aec",
+    "source": "model",
+    "text": "Use Credit Portfolio Optimisation (`credit_portfolio_optimisation`) when you need to split one allocation across credit assets in a single period, trading expected return against expected loss.\n\n- You have per-asset expected returns and expected loss rates and want weights that sum to one with no shorting.\n- You want a per-name concentration limit, set through `max_weight`.\n- You want to control how heavily expected loss is penalised, using `risk_aversion`.\n- Your objective is the linear return-minus-penalised-loss form, the only shape the greedy allocation is built to solve exactly.\n\nIf you instead want to see how shocks to default probability and loss given default change a loss profile, `credit_stress_testing` is listed as a credit stress test with multiplicative PD/LGD shocks.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

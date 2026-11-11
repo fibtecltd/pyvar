@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d8df5e63f83f790cf7696a964d407175bcec17e706741015a6e41c79ab08331e",
+      "source": "model",
+      "text": "`cap_floor_pricer` prices an interest-rate cap or floor as a strip of caplets or floorlets, so it answers \"what is this rate-protection option worth?\" It needs a `strike`, a Black volatility (`vols`) and a forward rate for each period, and it sums the option values across all periods. `total_return_swap_trs` values a single total-return swap leg, so it answers \"what is the exchange of an asset's return against a financing rate worth?\" It takes a period `asset_return`, a `financing_rate`, an `accrual` and a `discount_factor`, and has no volatility input. In short, the first is an option on interest rates with a payoff that depends on the strike, while the second is a linear swap leg of the form `notional` times (asset return minus financing cost) discounted. Use `receive_total_return` on the swap to set which side you are on, and `option_type` on the cap/floor pricer to switch between cap and floor.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7d780eef36f21497ab8fda26a01e1280cf857efa8ef2f14d25e5b711fa286e4b",
+    "source": "model",
+    "text": "`cap_floor_pricer` (Cap Floor Pricer) prices an interest-rate cap or floor by treating it as a strip of individual caplets or floorlets. Each period is valued with the Black formula, using that period's forward rate, Black vol, fixing time, accrual fraction and discount factor, and the period values are then summed. You supply the `notional`, a common `strike` as a decimal, and per-period inputs: `forward_rates`, `vols`, `expiries`, `accruals` and `discount_factors`. Use `option_type` to choose `\"cap\"` (the default) or `\"floor\"`. pyvar does the calculation and returns the price.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b9453e97696a337b31ac8949a317aa5ee3392fc3e8738b8680589d7ec8799f7e",
+    "source": "model",
+    "text": "Use `cap_floor_pricer` (Cap Floor Pricer) when you need to price an interest-rate cap or floor as a strip of caplets or floorlets:\n\n- You have a cap or floor covering several periods and want one price built from each period's forward rate, Black vol, fixing time, accrual and discount factor.\n- You want a single common strike across all periods, with `option_type` set to `\"cap\"` or `\"floor\"`.\n- You work with Black (lognormal) vols quoted per caplet and have discount factors for each payment date.\n- You want to see how a notional, strike or vol input changes the strip's price.\n- For just one period, `caplet_floorlet_pricer_black` is listed as pricing a single caplet/floorlet under the Black (lognormal) model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

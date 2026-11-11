@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "intraday_liquidity_stress_test": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "00a44b7d30acd5eddbc0bdde46e9d4f828757124b958661c03eda25243383651",
+      "source": "model",
+      "text": "`intraday_liquidity_monitor` looks at what actually happened (or is expected to happen) during the day: you give it `timestamps`, `net_flows` and an `opening_balance`, and it reports the peak usage and the largest net debit position, which answers \"how far did my intraday liquidity position fall, and did it go negative?\" `intraday_liquidity_stress_test` asks a \"what if\" question instead: it takes `net_flows` and `opening_balance`, delays a fraction of the positive inflows via `delay_factor`, and optionally reserves extra liquidity with `inflow_delay_shock`. It reports the stressed peak usage and whether the opening buffer plus any shock survives. Of the monitor's two figures, only the net debit peak is the BCBS 248 monitoring tool, while peak usage is pyvar's own extra metric. The stress test is likewise pyvar's internal design, set in the BCBS 248 context, not a scenario BCBS 248 prescribes. The monitor also needs `timestamps`, whereas the stress test works on the flow sequence alone.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c506c7514c720c864783f62ddbe1c2c4d27c3fa14371533ae8b63711ace64b7f",
+    "source": "model",
+    "text": "`intraday_liquidity_monitor` (Intraday Liquidity Monitor) tracks a bank's intraday liquidity position from time-stamped net payment flows (credits positive, debits negative) and an opening balance. It builds the running balance through the day and reports two figures: `net_debit_peak`, the largest negative cumulative position, and `max_usage`, the largest drop below the opening balance. Only `net_debit_peak` is the genuine BCBS 248 \"largest net debit position\" monitoring tool. `max_usage` is pyvar's own additional metric, and the two diverge when the balance never goes negative.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fa2f7009225db2f9cf0959ca7b39a699a85f8dac82951db152664b852cd56200",
+    "source": "model",
+    "text": "The Intraday Liquidity Monitor (`intraday_liquidity_monitor`) fits when you want to see how a day's payment flows move your available liquidity:\n\n- You have time-stamped net payment flows (credits positive, debits negative) and an opening balance, and want to track the running intraday position.\n- You need the largest net debit position, which is `net_debit_peak`, the BCBS 248 monitoring tool.\n- You want to see how far liquidity dropped below the opening balance, via `max_usage`. This is pyvar's own additional metric, not a BCBS 248 tool, and it can differ from `net_debit_peak` whenever the balance never goes negative.\n- If you want BCBS 248 stress scenarios rather than a monitored flow path, `intraday_liquidity_stress_test` is listed as the intraday liquidity stress test for those.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

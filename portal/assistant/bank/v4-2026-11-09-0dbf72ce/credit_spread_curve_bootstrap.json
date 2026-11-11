@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_default_swap_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d10123fa675745b2775b830e06a4c85c8cd9767e836268ac99c2aea29e71531c",
+      "source": "model",
+      "text": "`credit_spread_curve_bootstrap` answers \"what default risk do today's CDS spreads imply?\" You give it `tenors`, `par_spreads` and optionally a `recovery_rate`, and it builds a piecewise-constant hazard and survival curve using the credit-triangle approximation, where hazard is spread divided by loss given default. `credit_default_swap_var` answers a different question: \"how much could a single-name CDS position lose from spread moves?\" It takes `notional`, `risky_annuity`, `spread_volatility`, plus optional `confidence_level`, `horizon_days` and `position`. It then computes a parametric VaR from the spread DV01 and a normal spread move. So the first describes market-implied credit quality across maturities, while the second measures the risk of holding a contract. They are not substitutes, though a curve could feed your view of the credit before you size up spread risk.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5953ab83560616a1c44c97dcb23e1d9f2959ede1d7583ae191a9954e85ea7864",
+    "source": "model",
+    "text": "`credit_spread_curve_bootstrap` (Credit Spread Curve Bootstrap) builds a piecewise-constant hazard rate and survival curve from par CDS spreads. You give it increasing `tenors` in years, the matching `par_spreads` as decimals, and optionally a `recovery_rate` (default 0.4). It uses the credit-triangle approximation: hazard equals spread divided by loss given default (1 minus recovery), and survival is the exponential of minus hazard times time. This is the quick bootstrap rather than the full ISDA method, and `cds_pricing_isda_standard` is the related function for validating it.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b4148eba590e09fe1f395dce20247eddad47a15c1eedca7cf6879cbd0630393f",
+    "source": "model",
+    "text": "`credit_spread_curve_bootstrap` (Credit Spread Curve Bootstrap) fits best in these situations:\n\n- You have par CDS spreads at several tenors and want a quick hazard and survival curve from them.\n- A credit-triangle approximation is good enough, where hazard is spread divided by loss given default (one minus `recovery_rate`).\n- You want to see how survival probabilities change across tenors, using a piecewise-constant hazard between them.\n- You want to set `recovery_rate` yourself, rather than rely on the default.\n- For an ISDA-standard CDS present value from the protection-buyer perspective, `cds_pricing_isda_standard` is the related function.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

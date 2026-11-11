@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7a4c063efac3dd272346a8f5d4eaa8d7ffb90ec2c449067b8f597355fa457423",
+      "source": "model",
+      "text": "`puttable_bond_pricer` prices a fixed-coupon bond whose holder can sell it back at `put_price`, using a short-rate binomial tree driven by `short_rate`, `rate_vol` and `maturity`. It answers: what is a bond with a holder's put option worth, given that the put keeps its value at or above the equivalent straight bond? `bond_pricer_floating_rate` prices a floating-rate note with no embedded option. It answers: what is a note worth when its coupons are `reference_rates` plus a `spread`, discounted at `discount_rates`?\n\nThe two also take different inputs. The puttable pricer takes a single coupon rate and a volatility. The floating-rate pricer takes a rate for each period and sets the number of coupon periods from the length of `reference_rates`, so `maturity` must match it. The puttable pricer uses a simplified tree that is not calibrated to a market curve.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4863fd41aee38611b313de11379cb345c2efcbd47a3d8b0936f3bbfaa3b761ee",
+    "source": "model",
+    "text": "The Puttable Bond Pricer (`puttable_bond_pricer`) prices a bond whose holder has the option to sell it back at a set price, using a short-rate binomial tree. You supply the `face_value`, `coupon_rate`, `short_rate`, `rate_vol`, `maturity` and `put_price`, plus an optional `frequency` for coupons and tree steps per year. At each node it takes the higher of the put price and the discounted continuation value plus coupon, then works backward to today's price. Because the put belongs to the holder, the result is at least the equivalent straight bond's value. The tree is simplified: fixed 0.5/0.5 branch probabilities, not calibrated to a market curve, as in `callable_bond_pricer`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6279683519c3f055f8ac72ac8cb861313dbfbc149e83e41c38233debfd8b3e70",
+    "source": "model",
+    "text": "Use the Puttable Bond Pricer (`puttable_bond_pricer`) when you want to value a bond whose holder can sell it back at a set price before maturity.\n\n- You have a bond with an embedded put option and know its `put_price` (per face), `coupon_rate`, `maturity` and `face_value`.\n- You want to see how rate uncertainty, via `rate_vol` and the starting `short_rate`, feeds into the bond's value on a binomial tree.\n- You want a quick, illustrative valuation or a way to compare the put's effect against the equivalent straight bond. A puttable bond is worth at least that straight bond.\n- Its tree is simplified: fixed 0.5/0.5 branch probabilities, not calibrated to a market curve. That suits exploration more than market-matched pricing.\n- If the bond is instead callable by the issuer, `callable_bond_pricer` is listed as pricing a callable bond (issuer's option) on a short-rate binomial tree.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

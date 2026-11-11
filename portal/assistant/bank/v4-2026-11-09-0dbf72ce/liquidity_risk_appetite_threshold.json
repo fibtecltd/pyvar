@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c1a0ad228acd66d2191ae59699d3391b0ee9261e0d44d9fb72af0b1825534db6",
+      "source": "model",
+      "text": "`liquidity_risk_appetite_threshold` answers \"which red/amber/green zone does this one metric fall into?\" You give it a `metric_value`, a `green_threshold` and an `amber_threshold`, and it sorts the value into a zone. `higher_is_better` controls the direction, so it suits metrics like LCR or funding concentration. `ilaap_internal_liquidity_metric` answers a different question: \"is the institution internally liquidity-adequate?\" It divides `counterbalancing_capacity` by `stressed_net_outflow` to get a coverage ratio, and it also checks `survival_days` against `minimum_survival_days`. Both conditions must hold for adequacy. In short, the first labels any metric against appetite boundaries you supply, while the second tests a specific pair of internal adequacy conditions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a9de33b15f4191afb80842f14716b7dac28d201f5abb155f25da85bb71cc84ac",
+    "source": "model",
+    "text": "`liquidity_risk_appetite_threshold` (Liquidity Risk Appetite Threshold) maps a liquidity metric to a red, amber or green risk-appetite zone. You give it the current `metric_value` plus a `green_threshold` and an `amber_threshold`. By default (`higher_is_better` is True, as for LCR, NSFR or survival days), a value at or above the green threshold is green, one below the amber threshold is red, and anything in between is amber. For lower-is-better metrics such as funding concentration, set `higher_is_better` to False and the comparisons invert. It is a piecewise categorical rule rather than a continuous formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ff869eddee91bc6934ad140fd227a28cad055cfca68f18c29e438c87842aa552",
+    "source": "model",
+    "text": "`liquidity_risk_appetite_threshold` fits when you already have a liquidity metric and want it sorted into a red, amber or green zone.\n\n- You track a metric such as LCR, NSFR or survival days, where higher is better, and have green and amber boundaries to compare it against.\n- You track a lower-is-better metric, such as funding concentration, and want the comparison inverted by setting `higher_is_better` to False.\n- You want a simple categorical status for a dashboard or risk-appetite report, rather than a continuous number.\n- Your thresholds are already set: you supply `green_threshold` and `amber_threshold`, and the function only classifies `metric_value` against them.\n\nIf you want a dashboard of liquidity early-warning indicators rather than a single zone, `early_warning_indicator_liquidity` is listed as a liquidity early-warning indicator (EWI) dashboard.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

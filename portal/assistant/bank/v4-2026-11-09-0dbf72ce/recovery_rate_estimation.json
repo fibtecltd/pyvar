@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6d6ec7f909d6b261a7903d35be20a14e9ce473dc1ce9bf1f9706edae1c52a1dc",
+      "source": "model",
+      "text": "`recovery_rate_estimation` answers \"how much of the exposure do we get back after a default?\", while `probability_of_default_pd_estimation` answers \"how likely is a default in the first place?\". The recovery function takes `recovery_amounts` and `exposure_amounts` from defaulted facilities, optionally applies `discount_factors` to value late workout recoveries in present terms, and gives a recovery rate, with LGD as one minus that rate. The PD function takes `n_defaults` and `n_obligors` from rating cohorts, computes default frequencies, pools them across obligors, and applies a regulatory `floor` to the pooled estimate. So one looks at what happened after default, and the other at how often default occurs. In expected-loss work they feed different inputs, PD on one side and LGD on the other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d1eab18fd026e56e68bdbf8fd4c28acc76be35fecdd936679d19c98a0ed0a293",
+    "source": "model",
+    "text": "`recovery_rate_estimation` (Recovery Rate Estimation) estimates the recovery rate, which is 1 minus loss given default (LGD), from a sample of defaulted facilities. You give it the nominal recovered amounts (`recovery_amounts`) and the exposure at default for each facility (`exposure_amounts`, which must be above zero). The rate is the total of the recoveries divided by the total exposure, so it is pooled across the sample rather than averaged facility by facility. Optionally, `discount_factors` present-value each recovery, since workout recoveries arrive some time after default; leave it unset and no discounting is applied.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5708e43f2b02cf0645e48509bc784ae3317da6e59e0175a59184edce6e95c983",
+    "source": "model",
+    "text": "Use `recovery_rate_estimation` (Recovery Rate Estimation) when you have a sample of defaulted facilities and want a pooled recovery rate, with LGD as one minus that rate.\n\n- You have recovery amounts and exposure at default for each defaulted facility and want a single portfolio-level recovery rate.\n- Recoveries arrive some time after default, so you want to present-value them. Pass per-facility `discount_factors`; leave them out for no discounting.\n- You want LGD from observed workout outcomes rather than an assumed figure.\n- Your exposures at default are all positive, as `exposure_amounts` requires.\n- If you need workout LGD net of workout costs, `loss_given_default_lgd_model` is listed as computing workout LGD as one minus the recovery rate, net of workout costs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

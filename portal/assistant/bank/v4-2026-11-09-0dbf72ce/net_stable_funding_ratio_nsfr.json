@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_coverage_ratio_lcr": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "052f6dc20c3b2fc46f8c7c5a8085472cd357ecae14ab39e77f6e5d136949a91c",
+      "source": "model",
+      "text": "`net_stable_funding_ratio_nsfr` asks whether a bank's long-term assets are backed by stable funding over a one-year horizon. It divides `available_stable_funding` by `required_stable_funding`, and the result must be at least 100% (BCBS 295). `liquidity_coverage_ratio_lcr` asks a shorter-term question: does the bank hold enough high-quality liquid assets to cover net cash outflows over 30 days of stress? It divides `hqla` by net outflows, where `gross_inflows` can offset `gross_outflows` only up to `inflow_cap`, which defaults to 0.75 (BCBS 238 §69). In short, the NSFR looks at funding structure against long-term assets, while the LCR looks at the liquid buffer against near-term stressed outflows. The related functions `available_stable_funding_asf_calc` and `required_stable_funding_rsf_calc` build the NSFR inputs.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "957925be39395d6967aa98ffa7c7e79fcbda866af9f6cd951f2ba66b069b7821",
+    "source": "model",
+    "text": "`net_stable_funding_ratio_nsfr` (Net Stable Funding Ratio, NSFR) is the Basel III liquidity measure from BCBS 295. It divides available stable funding by required stable funding, showing how much of a bank's long-term assets are backed by stable funding sources over a one-year horizon. You supply two inputs, `available_stable_funding` and `required_stable_funding`, which come from `available_stable_funding_asf_calc` and `required_stable_funding_rsf_calc`. The ratio must be at least 100%.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d98678ed60c51a00d5c0cc83224a9c7d035bd065b03c6124a78a610482f9da98",
+    "source": "model",
+    "text": "Use `net_stable_funding_ratio_nsfr` (Net Stable Funding Ratio) when you want to see how well long-term assets are funded by stable sources over a one-year horizon.\n\n- You already have total available stable funding and total required stable funding, and want their ratio (`available_stable_funding` divided by `required_stable_funding`).\n- You're testing a balance sheet against the Basel III requirement that the ratio be at least 100% (BCBS 295).\n- You still need the inputs: `available_stable_funding_asf_calc` covers Available Stable Funding for the NSFR numerator, and `required_stable_funding_rsf_calc` covers Required Stable Funding for the denominator.\n- For the Basel III Liquidity Coverage Ratio instead, see `liquidity_coverage_ratio_lcr`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

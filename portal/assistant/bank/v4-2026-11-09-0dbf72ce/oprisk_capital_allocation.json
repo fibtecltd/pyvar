@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "diversification_benefit_oprisk": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d15cf06e09849215bf6a8488f95159d72fd66d852d7c4c94976b3bdc7c678c39",
+      "source": "model",
+      "text": "`oprisk_capital_allocation` answers \"how do I split a known firm-wide capital figure across business lines?\", while `diversification_benefit_oprisk` answers \"how much capital reduction comes from the cells not all being hit together?\". The first takes `total_capital` and `business_line_risks`, then shares the total out in proportion to each line's standalone risk, so the allocations add up exactly to the total. It doesn't change the total, only divides it. The second takes `standalone_capitals` and an optional uniform `correlation`, compares the simple sum of standalone capitals with a correlated aggregate, and reports the reduction from imperfect correlation. So one distributes capital you already have, and the other measures how much a correlation assumption lowers the aggregate.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7838d7113433bed73eaefb138b56b2d9f8ea1f4a5bf658189aa41a48140f1b75",
+    "source": "model",
+    "text": "`oprisk_capital_allocation` (OpRisk Capital Allocation) splits a firm-wide operational risk capital figure across business lines in proportion to each line's standalone risk measure. You supply `total_capital`, the amount to allocate, and `business_line_risks`, the standalone risk measure for each business line. Each line's share is its risk divided by the sum of all lines' risks, multiplied by the total capital. Because the allocation is pro-rata, the business-line amounts add up exactly to `total_capital`, which makes it a coherent, additive allocation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afd02bca625a178a2f739e8fea0453d6a2507cc649f4fad99ba4de3ed91ba3df",
+    "source": "model",
+    "text": "`oprisk_capital_allocation` (OpRisk Capital Allocation) fits when you already have a firm-wide capital figure and need to split it across business lines.\n\n- You have a total OpRisk capital number (`total_capital`) and a standalone risk measure for each business line (`business_line_risks`).\n- You want allocations that add up exactly to the total, so nothing is left over or double-counted.\n- You are happy with a simple pro-rata split, where each line's share follows its standalone risk relative to the sum across all lines.\n- You need a coherent, additive allocation, for example when attributing capital to business units.\n- If you need to work out the capital itself rather than split it, `oprisk_economic_capital` is listed as OpRisk economic capital (unexpected loss net of mitigants).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

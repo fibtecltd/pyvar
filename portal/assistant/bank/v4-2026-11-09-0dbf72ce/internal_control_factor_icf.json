@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "business_environment_factor_bei": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a1a4e2965bd5b807f3c5c65200cc3c9e3ebd2687358febe5f358fc137f26a76e",
+      "source": "model",
+      "text": "`internal_control_factor_icf` asks how strong a firm's internal controls are, while `business_environment_factor_bei` asks how risky its operating environment looks going forward. The ICF takes `control_scores` (effectiveness from 0 to 1, where higher is better) and lowers the capital multiplier below 1.0 when average effectiveness is above the `baseline`. The BEI takes `factor_scores` (for example on a 1-5 scale where higher means riskier) and raises the multiplier when the average score is above its `baseline`. The direction is therefore opposite: better control scores reduce capital, whereas higher environment scores increase it. They are the two counterparts in the BEICF overlay, and each has its own `baseline` and `sensitivity` defaults, which differ because the scales differ.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9c3d3e8ba3a6612bb0e773fedc99f419fe5302b164e9abeb5a3e46aa3df54a07",
+    "source": "model",
+    "text": "`internal_control_factor_icf` (Internal Control Factor ICF) returns a capital adjustment multiplier based on how effective a firm's internal controls are. You pass `control_scores`, a set of effectiveness scores between 0 and 1, and it averages them. Controls stronger than the neutral `baseline` pull the multiplier below 1.0, and weaker ones push it above 1.0. The `sensitivity` parameter sets how strongly capital responds to the gap, and the multiplier is floored at zero. It is the BEICF counterpart to `business_environment_factor_bei`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b3f03e5252ff42cca2413a2cca2077a95cad8fff3a82424813d7a453a6a1b53b",
+    "source": "model",
+    "text": "Use Internal Control Factor ICF (`internal_control_factor_icf`) when you need a capital adjustment multiplier driven by how effective a firm's internal controls are:\n\n- You have control effectiveness scores between 0 and 1 and want them turned into a multiplier through `control_scores`.\n- You are working on the internal control side of a business environment and internal control factors (BEICF) adjustment to operational risk capital.\n- You want to see how stronger controls pull the multiplier below 1.0 and weaker controls push it above, relative to a neutral `baseline` (default 0.8).\n- You want to test how much capital responds to control quality by changing `sensitivity` (default 0.25).\n- For the business environment side instead, `business_environment_factor_bei` is listed as the Business Environment Indicator (BEI) capital adjustment multiplier.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

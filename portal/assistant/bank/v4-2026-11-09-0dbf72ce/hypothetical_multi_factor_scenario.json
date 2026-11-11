@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ec39ad2d689149c83bcb2d8e3c6af56559e3e33888debe73b19f6ec8c2210b83",
+      "source": "model",
+      "text": "`hypothetical_multi_factor_scenario` answers \"what is my P&L if these factors all move by these amounts at once?\" You give it `exposures` (currency P&L per unit factor move) and `shocks` (the factor moves), and it sums exposure times shock across the factors, a first-order calculation. `contagion_stress_scenario` answers a different question: \"if one shock hits some nodes, how does it spread through a network of linked assets?\" It takes an `initial_shock`, a `contagion_matrix` of spillover coefficients, and a number of `rounds`, and it adds up the shock as it passes from node to node. In short, the first function turns a shock you specify directly into a P&L, while the second works out how an initial shock grows as it propagates. Both are market risk stress tools, so choose by whether you already know the full shock or need to model its spread.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1b33ba7908c25b34e4d75248427ab9f5e5434253b221a656439ed9768ade60d7",
+    "source": "model",
+    "text": "`hypothetical_multi_factor_scenario` (Hypothetical Multi Factor Scenario) computes the P&L from a single hypothetical shock applied to several risk factors at once. It's a first-order calculation: each factor's currency exposure is multiplied by its shock, and the products are summed. You supply `exposures`, the currency P&L per unit factor move, and `shocks`, the factor moves in the same units as the historical moves. It suits ad-hoc \"what if\" scenarios, such as an equity sell-off combined with a rates spike.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e522cc4e27df3759d8ed4d7e9ebd72f9822c07abe47ac35c06b72b0ebdf01273",
+    "source": "model",
+    "text": "`hypothetical_multi_factor_scenario` fits when you want the P&L from one hypothetical shock hitting several factors at once.\n\n- You have a \"what if\" in mind, such as an equity sell-off together with a rates spike, and want its first-order P&L.\n- You can express your portfolio as currency P&L per unit factor move (`exposures`) and the shock sizes in the same units as the historical moves (`shocks`).\n- You want a quick, transparent calculation: the sum of each exposure times its shock.\n- You're running an ad-hoc scenario rather than a systematic set of them.\n\nIf you instead want to replay historical factor moves against the current portfolio, `historical_scenario_replay` is the related function listed for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "key_risk_indicator_kri_library": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "53daf51ca03abb3268828a1c961f375b9c10c37f79b5bc4308edf73c7355ef3c",
+      "source": "model",
+      "text": "`kri_threshold_breach_detection` answers the question \"given this one KRI reading, is it green, amber or red?\" You give it a `value`, an `amber_threshold`, a `red_threshold` and optionally a `direction` (`higher_breach` or `lower_breach`), and it classifies the reading against those boundaries. `key_risk_indicator_kri_library` answers a different question: \"is my set of KRI definitions complete and well-formed?\" It takes a list of definitions via `kri_definitions`, checks that each has a `name`, both thresholds and a `direction`, and returns a registry keyed by name. The library function does no numeric computation and never looks at a current observation, while the breach function evaluates one observation. In practice you could use the library to hold and validate your KRI set, then use the breach function to assess a reading for one of them.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3699da8a45da6af1e5f06435d7c709d861fcf22eb5df52e981e0fe8e0f98f3e",
+    "source": "model",
+    "text": "`kri_threshold_breach_detection` (KRI Threshold Breach Detection) takes a single key risk indicator observation and classifies it as green, amber or red. You supply the current `value`, an `amber_threshold` and a `red_threshold` that is more extreme than amber. With the default `direction` of `higher_breach`, where higher is worse (failed trades, for example), the status is red at or above the red threshold, amber from the amber threshold up to red, and green below amber. With `lower_breach`, where lower is worse (such as staffing level), the inequalities reverse: red at or below the red threshold, amber between red and amber, and green above amber.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "941484860e7532293cd72e316607c7b920198edc800fa557f1b0b8f146d60915",
+    "source": "model",
+    "text": "Use KRI Threshold Breach Detection (`kri_threshold_breach_detection`) when you need to turn a single key risk indicator reading into a green, amber or red status.\n\n- You have a current KRI observation (`value`) and agreed amber and red boundaries (`amber_threshold`, `red_threshold`) to compare it against.\n- The indicator is one where higher is worse, such as failed trades. Use the default `direction` of `higher_breach`.\n- The indicator is one where lower is worse, such as staffing level. Set `direction` to `lower_breach`, which reverses the comparisons so that falling through a threshold is the breach.\n- You want a simple, consistent status label for monitoring a KRI against its limits.\n- If your question is about how a KRI moves over time rather than its status now, `kri_trend_analysis` does a linear-trend analysis of a KRI time series.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

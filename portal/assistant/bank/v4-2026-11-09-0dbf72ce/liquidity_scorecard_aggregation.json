@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "funding_tenor_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4d5263542ebfc761da87fa8eabed6f33ebb27a7585f0b480986654aa3f6dee27",
+      "source": "model",
+      "text": "`liquidity_scorecard_aggregation` answers \"how healthy does our liquidity look overall?\" by blending several individual metric scores into one weighted composite and mapping it to a RAG rating. You pass `scores` (one per component) and `weights`, which are normalised so they need not sum to 1. `funding_tenor_analysis` answers a narrower structural question: \"how long-dated and stable is our funding base?\" It takes `funding_amounts` and `tenors_days` for each tranche and returns the amount-weighted average tenor plus the share of funding maturing within 90 days. Put simply, the scorecard is a general roll-up of whatever metric scores you supply, while the tenor analysis computes one specific funding-profile metric from raw tranche data. The two can work together, since a tenor result could be one of the component scores you feed into the scorecard.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2af7ff4cf26e8172b4acddb2e06701e494cac1298335b9e6a9963734e8ae5cd3",
+    "source": "model",
+    "text": "`liquidity_scorecard_aggregation` (Liquidity Scorecard Aggregation) combines several individual liquidity metric scores into one weighted composite score. You pass `scores`, the component scores (each typically 0-100), and `weights`, one weight per component. The weights need not sum to 1 because pyvar normalises them. The composite is the sum of each score times its weight, divided by the sum of the weights. pyvar then maps that composite to a RAG (red/amber/green) rating, so you get a single summary view of liquidity health.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "584c59424637a1a4d9b8ae3805a9e31ccb971b516988463a9b4e7135d80afff1",
+    "source": "model",
+    "text": "Use Liquidity Scorecard Aggregation (`liquidity_scorecard_aggregation`) when you want one overall liquidity view built from several separate metrics:\n\n- You already have individual component scores (typically 0-100) and need a single weighted composite instead of a pile of separate figures.\n- Some metrics matter more than others in your view. `weights` let you express that, and they need not sum to 1 because pyvar normalises them.\n- You want the composite mapped to a RAG rating, so the overall position is easy to communicate in a summary or dashboard.\n- You want a transparent calculation: the composite is the weighted average of the `scores`, so it is easy to explain and to re-weight.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

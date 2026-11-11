@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "repricing_gap_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "251136e2a602883d2ba61e5d627ccad0cb63faabc393fd153ca8b834cf0f1095",
+      "source": "model",
+      "text": "`dynamic_gap_analysis` answers \"how will my gap look over the next several periods if balances keep growing?\", while `repricing_gap_analysis` answers \"what is my gap in each repricing-time bucket right now?\" The dynamic version takes initial assets and liabilities per bucket, plus per-bucket growth rates (`asset_growth`, `liability_growth`) compounded over `n_periods`. It returns a projected gap path that reflects new business. `repricing_gap_analysis` takes the balances that reprice in each bucket, computes the gap as assets minus liabilities, and gives the cumulative gap across buckets, which drives net interest income sensitivity. It works on the balances as given and has no growth or projection inputs. Use the dynamic one to see how the gap evolves over time, and the repricing one to see how it is spread across time buckets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b803f7212f40ba259907fa02fed653bc68cf89e8de99eb1fdbc39e5c0869ffae",
+    "source": "model",
+    "text": "`dynamic_gap_analysis` (Dynamic Gap Analysis) projects an interest-rate gap forward by letting balances grow over time, instead of holding them fixed as a static gap does. You give it starting rate-sensitive assets and liabilities per bucket (`bucket_assets`, `bucket_liabilities`), a per-period growth rate for each side (`asset_growth`, `liability_growth`), and the number of periods (`n_periods`). It compounds each bucket's balance at its growth rate, sums assets and liabilities, and returns the gap for each period from 1 to `n_periods`. This lets the projected path reflect new business, so you can see how the asset-liability mismatch may evolve.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f93095ebbc7c10719d2c62ec0ee8c8e2a086195fee1d1e6218f76c93f53fd4f9",
+    "source": "model",
+    "text": "`dynamic_gap_analysis` (Dynamic Gap Analysis) fits when you want to see how a rate-sensitive gap evolves as balances grow, not just where it stands today.\n\n- You expect assets and liabilities to grow at different rates per bucket and want that new business reflected in the gap.\n- You need a projected gap path over several future periods, set with `n_periods`, rather than a single snapshot.\n- You can supply starting balances per bucket (`bucket_assets`, `bucket_liabilities`) and per-period growth rates (`asset_growth`, `liability_growth`) as decimals.\n- You want to compare how different growth assumptions change the gap over time, since growth compounds each period.\n\nFor a point-in-time gap on a frozen balance sheet, `static_gap_analysis` is the related function: a static repricing gap assuming a frozen balance sheet.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

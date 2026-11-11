@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e85e81eeb88b2985d92b58ded567020ba9f88d29c15cc8195192583a0501ae94",
+      "source": "model",
+      "text": "`heston_stochastic_volatility_model` prices a European option when the variance itself moves randomly: it starts at `v0`, mean-reverts toward `theta` at speed `kappa`, has its own volatility `sigma`, and is correlated with spot through `rho`. It answers \"what is the option worth if volatility is uncertain and linked to the underlying?\" It uses a semi-analytic integral, and as `sigma` goes to 0 with `v0` equal to `theta` it tends to Black-Scholes with constant vol of `sqrt(theta)`.\n\n`displaced_diffusion_model` instead prices `(S + a)` as lognormal with a single constant volatility, using the `displacement` parameter to move between lognormal and normal-like behaviour. It answers \"how does a simple shifted-lognormal shape change the price?\" It reduces exactly to Black-Scholes when `displacement` is 0, and it also accepts `div_yield`, which the Heston function does not.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "01817c55524649443970ec4da33d71c16f2c126f3d42c8812455c1337dd734c9",
+    "source": "model",
+    "text": "`heston_stochastic_volatility_model` (Heston Stochastic Volatility Model) prices a European call or put, set by `option_type`, when the underlying's variance moves randomly instead of staying constant. Variance starts at `v0`, is pulled toward a long-run level `theta` at speed `kappa`, and has its own volatility `sigma`. `rho` sets the correlation between spot and variance. The price comes from a semi-analytic integral built on the model's characteristic function, and puts follow from put-call parity. As `sigma` goes to zero with `v0` equal to `theta`, the price approaches Black-Scholes with constant volatility of the square root of `theta`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3ee1e37dea2a30011b982d11af2077e0b94b8ea6593efe0dcccec6333667606",
+    "source": "model",
+    "text": "The Heston Stochastic Volatility Model (`heston_stochastic_volatility_model`) fits these situations:\n\n- You want a European call or put price where volatility itself moves randomly, rather than staying constant as in Black-Scholes.\n- You want variance that mean-reverts toward a long-run level (`theta`) at a speed set by `kappa`, with `sigma` controlling how much variance fluctuates.\n- You want spot and variance to be correlated through `rho`, so price moves and volatility moves can be linked.\n- You want a semi-analytic price rather than a simulation, or a sanity check: with `sigma` tending to 0 and `v0` equal to `theta`, it approaches Black-Scholes with constant vol of `sqrt(theta)`.\n\nIf you instead need a Monte Carlo price under rough volatility, `rough_volatility_rbergomi_model` is listed as a Rough Bergomi (rBergomi) European option pricer via Monte Carlo.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

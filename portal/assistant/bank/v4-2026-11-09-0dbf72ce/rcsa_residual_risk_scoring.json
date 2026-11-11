@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rcsa_risk_identification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d0174ffc0912a2f44db09e696b3dcddf3f80ebeb00136e36e4dbe3c74a12d546",
+      "source": "model",
+      "text": "`rcsa_residual_risk_scoring` answers \"how much risk is left once controls are taken into account?\" It takes an `inherent_score` and a `control_effectiveness` value between 0 and 1, applies R = I × (1 − CE), and maps the residual to a RAG band. `rcsa_risk_identification` answers a different question: \"is my risk register complete and well-formed, and how are the risks spread across categories?\" It takes a `risk_register` list, checks that each entry has a `risk_id` and a Basel `category`, and counts the entries per category. So the first function is a numeric scoring step, while the second is validation plus counting, not a numeric formula. In the RCSA cycle, identification comes first, and residual scoring comes after you have inherent scores and a view of control effectiveness.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cbeb0718ae85b1b7072225e1c59e65af6bc5bcbaad0004f941e776db961e525a",
+    "source": "model",
+    "text": "`rcsa_residual_risk_scoring` (RCSA Residual Risk Scoring) works out how much operational risk remains after your controls are taken into account. You give it an `inherent_score` on a 1-25 scale and a `control_effectiveness` between 0 and 1, where 1 means fully effective. It applies residual = inherent × (1 − control effectiveness), so more effective controls push the score toward zero. The residual is then mapped to a RAG (red/amber/green) band.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "93f3f19613e11c48cf5589dd40bdb381122e4f9127f6f80a856ad077fb56ba7c",
+    "source": "model",
+    "text": "RCSA Residual Risk Scoring (`rcsa_residual_risk_scoring`) fits when you already have an inherent score and a view of how well controls work, and want to see what risk is left.\n\n- You're doing a risk and control self-assessment and need the residual score after controls, calculated as `inherent_score` × (1 − `control_effectiveness`).\n- You want the residual mapped to a RAG band so risks can be compared and prioritised.\n- You want to see how stronger or weaker controls change a risk's position, by varying `control_effectiveness` between 0 (no effect) and 1 (fully effective).\n- Your inputs are an inherent score on the 1-25 scale and a control effectiveness value in [0, 1].\n\nIf you still need the inputs, `rcsa_inherent_risk_scoring` gives the inherent risk score on the 5×5 RCSA heat map, and `rcsa_control_effectiveness` gives a composite control effectiveness from design and operating effectiveness.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

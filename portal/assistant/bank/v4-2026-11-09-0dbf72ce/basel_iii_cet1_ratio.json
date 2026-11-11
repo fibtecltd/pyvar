@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_iii_tier1_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "31e1a36da0894296aae8a9cb2c517635e84c3aeaef3793331063185bf5253639",
+      "source": "model",
+      "text": "`basel_iii_cet1_ratio` answers how well a bank's risk-weighted assets are covered by Common Equity Tier 1 capital alone, using `cet1_capital` divided by `risk_weighted_assets`. `basel_iii_tier1_ratio` answers the same question for the broader Tier 1 capital, which is CET1 plus additional Tier 1, so its input is `tier1_capital` instead. Both divide by the same `risk_weighted_assets` figure, so the only difference is which capital measure goes in the numerator. Each carries its own minimum: 4.5% for the CET1 ratio and 6.0% for the Tier 1 ratio, both under Basel III §50. Use the CET1 function for the core equity layer, and the Tier 1 function to include the additional Tier 1 layer on top.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a2585e5da28ae6c3732d41ed841de52f8f8951c52fbfe784e5133bb1571f6f0d",
+    "source": "model",
+    "text": "`basel_iii_cet1_ratio` (Basel III CET1 Ratio) computes a bank's Common Equity Tier 1 ratio by dividing CET1 capital by total risk-weighted assets. You supply two inputs, both in currency: `cet1_capital` and `risk_weighted_assets`. The function returns the ratio, so you don't have to work it out yourself. The minimum for this ratio is 4.5%, which is a useful benchmark when you read the output.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2798bbd16f46040d3561c2a3034000cdd4b336352a5d7b5ba74a72c55c1a300a",
+    "source": "model",
+    "text": "Use `basel_iii_cet1_ratio` (Basel III CET1 Ratio) when you need to see how much of a bank's risk-weighted assets is backed by its highest-quality capital.\n\n- You have a CET1 capital figure and a total risk-weighted assets figure, both in currency, and want them as a single ratio.\n- You want to compare a bank's CET1 position against the 4.5% minimum cited from Basel III §50.\n- You are doing regulatory or compliance work and want a transparent formula: CET1 capital divided by RWA.\n- You want to track how the ratio changes as capital or risk-weighted assets change across periods or scenarios.\n\n- If you need a broader capital measure, `basel_iii_total_capital_ratio` is listed as the Basel III Total capital ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

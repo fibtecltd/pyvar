@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "50555a7b4387369c65e93203869ed926f6406d7f946dc6048d675e2418f9b9bf",
+      "source": "model",
+      "text": "`callable_bond_pricer` answers \"what is a bond worth when the issuer can redeem it early?\" It values a fixed-coupon bond on a short-rate binomial tree, using `short_rate`, `rate_vol` and `call_price`, and caps the value at the call price, so the result is no more than the equivalent straight bond. Note that the tree is a simplified multiplicative lattice with fixed 0.5/0.5 branch probabilities, not a Black-Derman-Toy tree calibrated to an initial term structure.\n\n`bond_pricer_floating_rate` answers \"what is a floating-rate note worth given projected forward rates?\" It has no option and no tree: each coupon comes from a `reference_rates` entry plus a `spread`, discounted with `discount_rates`. The period count comes from the length of `reference_rates`, and `maturity` must agree with it.\n\nSo the first prices an embedded issuer option, and the second prices a cashflow schedule that resets with the index.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "31053a9db9bb9fc266cf6cc8919715f64db655ebfe45b3f8210ac9ecb967c067",
+    "source": "model",
+    "text": "`callable_bond_pricer` (Callable Bond Pricer) prices a bond that the issuer has the right to call, using a short-rate binomial tree. You give it `face_value`, `coupon_rate`, `short_rate`, `rate_vol`, `maturity` and `call_price`, plus an optional `frequency` for coupons and tree steps per year. It works backward through the tree, capping each node's value at the call price to reflect the issuer's option. A callable bond is worth no more than the equivalent straight bond, since the call belongs to the issuer. Note that the tree is a simplified multiplicative lattice with fixed 0.5/0.5 branch probabilities, not one calibrated to an initial term structure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "702352a59337673f82053667b06d06f82539dedb07c40a3b59db06de3e577fbf",
+    "source": "model",
+    "text": "Use the Callable Bond Pricer (`callable_bond_pricer`) when:\n\n- You want a price for a bond the issuer can redeem early at `call_price`, so its value is capped by that call rather than priced as a straight bond.\n- You want to see how rate uncertainty (`rate_vol`) and the current `short_rate` feed into the price on a binomial short-rate tree.\n- You want a quick, simplified lattice: it uses fixed 0.5/0.5 branch probabilities and is not a Black-Derman-Toy tree calibrated to a term structure, so it suits illustration better than calibrated work.\n- Your bond pays periodic coupons, set with `coupon_rate` and `frequency`.\n\nIf the option belongs to the holder instead, `puttable_bond_pricer` prices a puttable bond (holder's option) on a short-rate binomial tree.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

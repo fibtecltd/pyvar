@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "755874d06e603c553b207b7ae15013a90b2279cfa55b672db3388632f0c5a669",
+      "source": "model",
+      "text": "`macro_scenario_generator` answers the question \"what range of joint macro-factor outcomes could plausibly occur?\" It takes a factor covariance matrix (`factor_cov`), draws random standard-normal innovations, and colours them with the Cholesky factor. The result is `n_scenarios` random scenarios (10000 by default) that reproduce the correlation structure of the factors, and `seed` makes them repeatable.\n\n`contagion_stress_scenario` answers a different question: \"if one shock hits, how does it spread through a network?\" You give it an `initial_shock` per node and a `contagion_matrix` of spillover coefficients. It adds the shock's knock-on effects over a chosen number of `rounds`, and it is deterministic rather than random.\n\nIn short, the first function samples many correlated scenarios from a covariance, while the second traces how a single given shock propagates.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c74f4fa2f3cb6b841a9d8703714180ee2258a4e312eda5c91fb0132df3c7c5eb",
+    "source": "model",
+    "text": "The Macro Scenario Generator (`macro_scenario_generator`) produces simulated scenarios for a set of macro factors, such as rates or inflation, that move together in line with a covariance matrix you supply. It draws standard-normal random numbers and applies the Cholesky factor of your `factor_cov` matrix, which must be symmetric positive definite, so the scenarios reflect the target correlation structure. You choose how many scenarios to generate with `n_scenarios`, and `seed` lets you fix the random draws for reproducibility. The output can feed market risk work like stress testing or simulation-based risk measures.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b00d4348a360c1922cfc16fd31ef7ec1e8ccea1248778b1c2c627bf1653eaffa",
+    "source": "model",
+    "text": "Use the Macro Scenario Generator (`macro_scenario_generator`) when you need many simulated macro factor moves rather than a single hand-picked shock:\n\n- You have a covariance matrix for your macro factors (`factor_cov`) and want scenarios that reproduce its correlation structure.\n- You want a large set of random scenarios for Monte Carlo-style market risk work. `n_scenarios` sets how many to draw.\n- You need repeatable runs: the `seed` parameter fixes the random draws, or you can set it to None for non-deterministic output.\n- Your covariance matrix is symmetric positive definite, which the Cholesky step requires.\n\nIf you instead want the P&L under one specific multi-factor shock, `hypothetical_multi_factor_scenario` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

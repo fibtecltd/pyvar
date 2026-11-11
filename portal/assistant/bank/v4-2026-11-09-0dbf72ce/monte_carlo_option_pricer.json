@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "black_scholes_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4a4c086426e151058de9e0ee3726743b1ca24e2e1e45f51b0e96869f1d404c53",
+      "source": "model",
+      "text": "`monte_carlo_option_pricer` answers \"what is a European call or put worth?\" by simulating many terminal prices under geometric Brownian motion, discounting the average payoff, and returning a price. `black_scholes_greeks` answers \"how sensitive is that option's value to its inputs?\" and returns delta, gamma, vega, theta (per year) and rho from closed-form formulas.\n\nBoth take spot, strike, rate, `sigma`, `tau`, `option_type` and `div_yield`. Only the Monte Carlo pricer also takes `n_simulations` and `seed`, since its answer comes from random draws. The `seed` keeps those draws repeatable. The Greeks function is a direct formula with no simulation.\n\nIf you need a price, use `monte_carlo_option_pricer`. If you need risk sensitivities, use `black_scholes_greeks`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b8116f9e1127865857981609588185ee2059d561a92c97b80feed568dd3bdaca",
+    "source": "model",
+    "text": "The Monte Carlo Option Pricer (`monte_carlo_option_pricer`) estimates the price of a European call or put by simulation. It draws random standard-normal shocks, uses them to generate terminal underlying prices under geometric Brownian motion, and averages the resulting option payoffs. That average is then discounted at the risk-free rate to give the price. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can optionally set `option_type`, `div_yield`, `n_simulations` and `seed`. The `seed` keeps results reproducible from run to run.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9fc1d5d5dc7ed871ed778320beb90f52bee94132a1c4117afd5492483e801efc",
+    "source": "model",
+    "text": "The Monte Carlo Option Pricer (`monte_carlo_option_pricer`) fits when you want a simulated price for a European option:\n\n- You need a call or put price based on the terminal asset price under geometric Brownian motion, using `spot`, `strike`, `rate`, `sigma` and `tau`.\n- You want to include a continuous dividend yield via `div_yield`.\n- You want reproducible runs: `seed` fixes the random draws, and `n_simulations` sets the number of paths, so you can trade run time against sampling noise.\n- You want a simulation-based price to compare with one from another method.\n\nIf you want the Black-Scholes-Merton price of a European option instead of a simulated one, `black_scholes_european_option` is the related function for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

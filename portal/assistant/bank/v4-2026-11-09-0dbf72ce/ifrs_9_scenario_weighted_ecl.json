@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_12_month_ecl_stage_1": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "cc2e3ea5f7274f83d845a84bd09a01050814177074c7e899f07e2a05c02ed786",
+      "source": "model",
+      "text": "`ifrs_9_scenario_weighted_ecl` answers \"how do I combine ECL figures from several macro scenarios (base, upside, downside) into one probability-weighted amount?\" It takes `scenario_ecls` and `scenario_weights`, and weights the ECLs by their probabilities. The weights are normalised so they sum to 1.\n\n`ifrs_9_12_month_ecl_stage_1` answers a different question: \"what is the ECL for a single Stage 1 exposure?\" It builds that figure from `pd_12m`, `lgd`, `ead` and an optional `discount_factor`, multiplying them together.\n\nSo the 12-month function produces an ECL from credit inputs, while the scenario-weighted one starts from ECLs you already have for each scenario and blends them. They can work together: you could compute a Stage 1 ECL under each scenario, then pass those results to `ifrs_9_scenario_weighted_ecl`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "96492975e7026efd4f1a80523cfc33870dd1abcdd6a40cf9c1425e7a16e0bdbf",
+    "source": "model",
+    "text": "`ifrs_9_scenario_weighted_ecl` (IFRS 9 Scenario Weighted ECL) computes a probability-weighted expected credit loss across forward-looking macro scenarios such as base, upside and downside. You pass `scenario_ecls`, the ECL for each scenario, and `scenario_weights`, the probability of each scenario. The function normalises the weights by their total, then sums each scenario's ECL times its weight. This reflects IFRS 9's requirement that ECL be an unbiased, probability-weighted amount over multiple scenarios.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6929d524e592df2e36652f6a2ab9a9c8edaa348ecc633f8ea2f00c8339ff4471",
+    "source": "model",
+    "text": "`ifrs_9_scenario_weighted_ecl` fits when you already have an ECL figure for each macro scenario and need one blended number.\n\n- You have separate ECLs for scenarios such as base, upside and downside, and want a probability-weighted amount, as IFRS 9 asks for.\n- You have a probability for each scenario (non-negative, summing to about 1). pyvar normalises the weights by their total before combining.\n- You want the final ECL to reflect several forward-looking outcomes rather than a single central view.\n- Your scenario ECLs are already computed (each at least 0), and you only need the weighting step.\n\nIf you instead want to adjust a base ECL with forward-looking macroeconomic overlays, `macroeconomic_overlays_ecl` is listed in pyvar as applying those overlays to a base ECL.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

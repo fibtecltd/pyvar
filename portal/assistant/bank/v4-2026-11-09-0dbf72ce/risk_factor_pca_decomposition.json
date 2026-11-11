@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "371f223f2dda2c1893cea348b98478803ce4c6d1558e9d7992afeeb152d84f34",
+      "source": "model",
+      "text": "`risk_factor_pca_decomposition` breaks the covariance of your risk factors into principal components, ordered from most to least variance, and reports how much of the total variance each one explains. It answers \"what are the main independent drivers of movement across these factors, and how dominant is each?\" `correlation_matrix_historical` instead returns the pairwise Pearson correlations between assets, so it answers \"how strongly does each pair of series move together?\"\n\nBoth take a `returns_matrix` of T observations on N series. The PCA function also has an optional `n_components` to keep only the leading components. Its explained-variance ratios sum to 1 across all components, and its eigenvalues are non-negative.\n\nUse the correlation matrix to look at pair relationships, and the PCA decomposition to see how the overall factor covariance is structured.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fde24af1db79ea38b10a23fae0b21d55a3c0164f1e3902989b05851eb117d25e",
+    "source": "model",
+    "text": "`risk_factor_pca_decomposition` runs a principal-component analysis on the covariance of your risk factors. You pass `returns_matrix`, a (T, N) matrix of T observations on N factors, and it eigen-decomposes the factor covariance and orders the components by descending variance. Each component comes with an explained-variance ratio, its eigenvalue's share of the total, and these sum to 1 across all components. The eigenvalues are non-negative because a covariance matrix is positive semi-definite. Use the optional `n_components` to return only the leading components, or leave it unset to get all of them.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7ec6cdf38b789113e77d05c69b5ef25ff7dccd9e0c6955c5288464c073bc9821",
+    "source": "model",
+    "text": "`risk_factor_pca_decomposition` fits when you want to understand how the risk in a set of factors is structured:\n\n- You have a `returns_matrix` of observations on several risk factors and want to see which combinations of them drive most of the variance.\n- You want the components ranked by variance, with explained-variance ratios showing how much each one accounts for.\n- You want to simplify a large factor set by keeping only the leading components, which you can do with `n_components`.\n- You want a view of the factor covariance itself rather than a volatility forecast.\n\nIf you need a plain correlation view instead, `correlation_matrix_historical` is described as the historical (Pearson) correlation matrix of asset returns.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

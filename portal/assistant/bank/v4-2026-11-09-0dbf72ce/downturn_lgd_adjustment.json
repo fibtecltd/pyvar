@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b4ecacb548f0fee0d4db105d1e316e413e8d98daa7a8ffa280cc340fbbd2deb8",
+      "source": "model",
+      "text": "`downturn_lgd_adjustment` answers \"how much of an exposure could be lost if the borrower defaults, once downturn conditions are taken into account?\" It takes a long-run average LGD (`lgd_long_run`) and scales it up with `downturn_multiplier`, using either the `\"multiplicative\"` or `\"additive\"` method, and applies a `floor`. `probability_of_default_pd_estimation` answers a different question: \"how likely is a borrower to default?\" It takes defaults and obligors per rating cohort (`n_defaults`, `n_obligors`), pools them into one default frequency, and applies a PD `floor`. So one function is about loss severity given default, the other about default frequency. Both are credit-risk inputs, and each has its own regulatory floor.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3a86ec1b05f4ab0cb28bbe39f7a58ee5e93798b5c1d35805500edb3d0bedf4e",
+    "source": "model",
+    "text": "`downturn_lgd_adjustment` (Downturn LGD Adjustment) raises a long-run average LGD to reflect downturn conditions, following the CRR Art. 181 idea that LGD should be conservative when a downturn is worse than average. By default (`method=\"multiplicative\"`) it multiplies `lgd_long_run` by `downturn_multiplier`, caps the result at 1, and applies `floor`; the result is also never below the long-run LGD itself. With `method=\"additive\"` it adds max(0, `downturn_multiplier` - 1) × (1 - long-run LGD) × 0.5 to the long-run LGD. The multiplicative approach is not prescribed by CRR or EBA guidelines, so calibrate the multiplier to your own analysis.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "84775b601a45f2425425d6472751f31a0458bed0c25455c0d7c80a3510553d91",
+    "source": "model",
+    "text": "Use Downturn LGD Adjustment (`downturn_lgd_adjustment`) when you need to turn a long-run average LGD into one that reflects downturn conditions:\n\n- You have a long-run average LGD (`lgd_long_run`) and need a downturn version, as CRR Art. 181 asks when downturn conditions are more conservative.\n- You have your own downturn analysis and want to apply it through `downturn_multiplier`, using the default `\"multiplicative\"` method, which scales the long-run LGD and keeps the result from falling below it.\n- You want the EBA/GL/2019/03 supervisory-style fallback add-on instead: set `method=\"additive\"`.\n- You need to apply a regulatory LGD floor through `floor`.\n\nIf you instead want a workout LGD as one minus the recovery rate, net of workout costs, `loss_given_default_lgd_model` is the related function listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

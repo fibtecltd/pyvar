@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_simulation_stress": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a4292a08d7433826d109ad9e97876bf3e0498dd1860b56caf943bc0de842c4a9",
+      "source": "model",
+      "text": "`nii_simulation_baseline` answers \"what net interest income do the current rates give?\" It sums balance times yield over the asset buckets and subtracts balance times cost over the liability buckets, using only `asset_balances`, `asset_rates`, `liability_balances` and `liability_rates`.\n\n`nii_simulation_stress` answers \"what happens to NII if rates shift in parallel?\" It takes the same four inputs plus a `rate_shock`. Asset and liability rates then move by a beta times that shock. `asset_beta` and `liability_beta` capture incomplete pass-through, especially on deposits. It returns the stressed NII and the change versus baseline.\n\nIn short, the baseline gives a single current-rate figure, while the stress version compares a shocked scenario against that starting point.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "58e67b1d444cda008f4e43daf5bfa1ca7ac2a79addb35fb57f69722bbbc4b593",
+    "source": "model",
+    "text": "`nii_simulation_baseline` (NII Simulation Baseline) projects net interest income at current rates, with no rate shock applied. It sums balance times yield across your interest-earning asset buckets, then subtracts balance times cost across your interest-bearing liability buckets. You supply four inputs: `asset_balances`, `asset_rates`, `liability_balances` and `liability_rates`, each keyed by bucket, with rates as decimals. The result is the baseline figure you would typically compare against shocked scenarios in ALM work.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0b771b23ded7c57b2d5570ce3a5482b5058bf90d8771626dc1a88475a95794a2",
+    "source": "model",
+    "text": "`nii_simulation_baseline` (NII Simulation Baseline) fits when you want a current-rate view of net interest income:\n\n- You need a baseline NII projection with rates held at today's levels, built from balances and yields for your interest-earning asset buckets and balances and costs for your interest-bearing liability buckets.\n- You have data per bucket (`asset_balances`, `asset_rates`, `liability_balances`, `liability_rates`) and want interest income on assets minus interest cost on liabilities over the projection horizon.\n- You want a starting reference point before looking at any rate-shock scenario.\n- If you want to see NII under a parallel rate shock with repricing betas, `nii_simulation_stress` is listed as doing that, which the baseline does not.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

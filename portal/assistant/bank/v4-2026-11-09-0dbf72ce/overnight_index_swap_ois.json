@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8f2b3117525e6a9b2fe64185cae7362bbb94412bdb3568e738763a9d397d5880",
+      "source": "model",
+      "text": "`overnight_index_swap_ois` values a single-period swap where a fixed rate is exchanged for a compounded overnight rate, so it answers \"what is this fixed-versus-floating exchange worth, given the rates over the period?\" Its inputs are `fixed_rate`, `compounded_rate`, `accrual`, `notional` and `discount_factor`, and `pay_fixed` sets which side you are on. `total_return_swap_trs` values one leg of a swap where the receiver gets an asset's total return and pays a financing rate, so it answers \"what is the asset's return worth against its financing cost?\" It takes `asset_return` and `financing_rate` instead, with `receive_total_return` as the direction flag. In the OIS the two rates are compared directly, and the value is zero when they match. In the TRS, `accrual` scales only the financing rate, and the asset return is a period figure that enters as given. Both discount the result with `discount_factor`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0fdb23320d6d214babbc38a1fff794345bae86666fa4d997ce48ae049744c656",
+    "source": "model",
+    "text": "`overnight_index_swap_ois` (Overnight Index Swap OIS) values a single-period overnight index swap. It takes the notional, the fixed rate, the compounded overnight rate (realised or projected), the accrual year-fraction and a discount factor to payment. The net cashflow is the notional times the gap between the compounded and fixed rates, times the accrual, then discounted. The value is zero when the compounded rate equals the fixed rate. The `pay_fixed` flag, true by default, says whether you pay fixed and receive floating.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "608966ebbbbf56091b1fa3adb6a142597689c78379be9eb66547d3c996ab1ad3",
+    "source": "model",
+    "text": "`overnight_index_swap_ois` (Overnight Index Swap OIS) fits when you need to value a single-period overnight index swap.\n\n- You have a fixed OIS rate and a realised or projected compounded overnight rate for one period, and want the discounted net cashflow.\n- You want to see how far a swap sits from zero value, which happens when the compounded rate equals the fixed rate.\n- You need to value either side: `pay_fixed` is true by default (paying fixed, receiving floating), and you can switch it for the other side.\n- You already have the `accrual` year-fraction and the `discount_factor` to payment, since both are required inputs.\n- For a vanilla fixed-vs-float swap rather than a single overnight-indexed period, `interest_rate_swap_irs_pricer` is listed as pricing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

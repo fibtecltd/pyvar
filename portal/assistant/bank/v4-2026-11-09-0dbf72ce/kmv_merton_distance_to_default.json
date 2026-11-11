@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "creditmetrics_portfolio_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "94c8baa1ea31aef0dd79bbb29853176d3a3cc7de033452c83061e8b8977ae1e1",
+      "source": "model",
+      "text": "`kmv_merton_distance_to_default` looks at a single firm and asks how far its asset value sits from its debt face value, in volatility terms, and what default probability that implies. It takes `asset_value`, `debt_face_value`, `asset_volatility`, and optionally `risk_free_rate`, `asset_drift` and `horizon`, and returns a distance-to-default and a model PD. If you omit `asset_drift`, it uses `risk_free_rate`, which is a risk-neutral assumption rather than a view of the firm's actual expected return.\n\n`creditmetrics_portfolio_model` asks a portfolio question: how large could losses be across many obligors, given their exposures, PDs, LGDs and a common-factor asset correlation? It simulates a loss distribution and reads off VaR and expected shortfall at your chosen `confidence_level`. It can also run a multi-state mode with rating migrations.\n\nIn short, the first produces a PD from a firm's balance-sheet structure, while the second takes PDs as inputs and builds a portfolio loss distribution.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6a21f1c646913d0dea419a59c126f22f760ad2e3fd279b53c796e7f6067821a6",
+    "source": "model",
+    "text": "`kmv_merton_distance_to_default` computes the Merton/KMV distance-to-default and the implied probability of default for a firm. It uses the structural Merton model, where the firm defaults at the horizon if its asset value falls below the debt face value. You supply `asset_value`, `debt_face_value` and `asset_volatility`, with optional `risk_free_rate`, `asset_drift` and `horizon`. The model PD (expected default frequency) is the normal CDF of minus the distance-to-default. If you omit `asset_drift`, it defaults to `risk_free_rate`, a risk-neutral assumption rather than an estimate of the firm's actual expected asset return.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e65ad396e75e686e414dc1388f84ff7d1cdc1d189c106fecca2a5853e82b4869",
+    "source": "model",
+    "text": "`kmv_merton_distance_to_default` fits when you want a structural, balance-sheet view of one firm's default risk:\n\n- You have a firm's asset value, debt face value and asset volatility, and want a distance-to-default and model PD (`N(-DD)`) from them.\n- You think of default as asset value ending up below the debt face value at a chosen `horizon`.\n- You want a quick comparison of how leverage, volatility or horizon change a firm's default distance.\n- You have no view on the firm's expected asset return: `asset_drift` defaults to `risk_free_rate`, a risk-neutral assumption rather than an estimate of the firm's actual return. Supply `asset_drift` if you want a different drift.\n\nIf you need portfolio-level credit losses instead, `credit_var_analytical_vasicek` is listed in pyvar as an analytical Vasicek large-homogeneous-portfolio Credit VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

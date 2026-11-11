@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "30df0053438f1fc698ca3a013c1015fe9b7e2b57429595d67aa848b4709bc82f",
+      "source": "model",
+      "text": "`combined_backtesting` asks whether a VaR model's breaches are both the right in number and spread out rather than clustered, using the Kupiec and Christoffersen statistics added together and tested against a chi-squared critical value. It takes a binary `breaches` sequence and a `confidence_level`, so you supply the breach flags yourself. `traffic_light_backtesting` asks a simpler question: how many breaches occurred over the Basel 250-day window, and which zone (green, yellow or red) does that count fall into? It takes `actual_returns` and `var_estimates`, counts the breaches itself, and assigns the zone using the Basel Committee's boundaries. In short, `combined_backtesting` tests statistical coverage and clustering, while `traffic_light_backtesting` classifies the raw breach count into a zone. The first can reject a model whose breaches bunch together, which a count alone does not look at.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "76a41820e3afb4ab8a9b4aa361a5b3b957c12c9839873a732fcc06beba6f9b6a",
+    "source": "model",
+    "text": "`combined_backtesting` (Combined Backtesting) runs a conditional coverage backtest of a VaR model, combining the Kupiec proportion-of-failures test with the Christoffersen independence test. It adds the two statistics, `LR_cc = LR_POF + LR_ind`, and compares the sum to a chi-squared critical value with 2 degrees of freedom at the 95% level. That means it can reject a model that either records the wrong number of breaches or lets its breaches cluster together. You supply `breaches`, a binary sequence where 1 is a breach and 0 is not, and optionally `confidence_level` (default 0.99), the level the VaR was measured at.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4d8f25c22a2b70d3a167a5f40ce953eacdec069414ff77cb8183ab053e1e09b8",
+    "source": "model",
+    "text": "`combined_backtesting` (Combined Backtesting) fits when you want one test that checks both how many VaR breaches occurred and whether they bunch together.\n\n- You have a binary sequence of breaches (1 = breach, 0 = no breach) and want to judge the VaR model as a whole.\n- You're worried about two failures at once: too many or too few breaches, and breaches that cluster in time.\n- You want a single pass/fail decision from a chi-squared statistic with 2 degrees of freedom, tested at the 95% critical value.\n- Your VaR was measured at a known confidence level. Set `confidence_level` to match it (the default is 0.99).\n- If you only need the breach-count check, `kupiec_pof_test` is listed as the Kupiec Proportion-of-Failures (POF) unconditional coverage test.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

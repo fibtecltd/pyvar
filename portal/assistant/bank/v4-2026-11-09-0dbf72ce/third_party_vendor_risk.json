@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "model_risk_assessment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9e44ce7c6dfc4ee6c0fcb9f6fa330743c818d21a529de468f1893f1ea22d6c57",
+      "source": "model",
+      "text": "`third_party_vendor_risk` asks how risky a particular outside supplier is, while `model_risk_assessment` asks how risky one of your own models is. The vendor function takes `criticality`, `financial_health`, `concentration` and `substitutability`, and blends them into a weighted 0-100 score where higher is worse. The model function takes `materiality`, `complexity` and `validation_score`. It multiplies the first two into an inherent score, then discounts that by validation quality to reach a residual model-risk tier. In short, the vendor score reflects how dependent you are on a supplier and how weak it is, whereas the model tier reflects how much a model matters and how well it has been validated.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d4d4c1bfd28ffb7da29722c85f385ad16d25609e724a5466b2755b75e49e0c46",
+    "source": "model",
+    "text": "`third_party_vendor_risk` (Third Party Vendor Risk) scores a vendor on a 0-100 scale, where higher means worse. It combines four inputs into a weighted index: `criticality` (1-5), `financial_health`, `concentration` and `substitutability`, each of the last three on a 0-1 scale. Poor financial health and low substitutability push the score up, as do high criticality and heavy reliance on a single supplier. Financial health and criticality carry the most weight in the index. pyvar does the calculation, so you supply the four ratings and get one comparable score per vendor.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fbd65e8ab01e233f9272848be383c3a2892b025065cb94863fed7eaa00c33f6f",
+    "source": "model",
+    "text": "`third_party_vendor_risk` gives a single 0-100 score (higher = worse) for how risky a vendor relationship is. It fits in these situations:\n\n- You want to compare or rank vendors on one scale, using their service criticality, financial health, concentration and substitutability.\n- You're screening a vendor and have a judgment for each input: `criticality` as 1-5, and the other three as values between 0 and 1.\n- You want to see how reliance on a single supplier (`concentration`) or difficulty of replacement (`substitutability`) affects a vendor's overall risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

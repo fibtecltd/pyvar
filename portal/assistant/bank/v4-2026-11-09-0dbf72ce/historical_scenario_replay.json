@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ed2297eec3d4400da8ad0651b8de909f6c4bad80907787a32c17bd2baafa9d75",
+      "source": "model",
+      "text": "`historical_scenario_replay` asks what your current portfolio would have lost or gained if each past day's factor moves happened again. You give it `exposures` (currency P&L per unit move of each risk factor) and `historical_factor_returns` (a matrix of past factor moves). It applies each day's moves to those exposures, returns the P&L path and flags the single worst day.\n\n`contagion_stress_scenario` asks a different question: if one shock hits, how far does it spread through a network of connected nodes? You give it an `initial_shock`, a `contagion_matrix` of spillover coefficients, and optionally the number of `rounds`. It adds up the shock plus its repeated spillovers.\n\nIn short, the first replays real history against your holdings, while the second propagates a shock through a network you define.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9e7557fc9a509e6e08ae418b58a247d3c0c437d49ec70c4c0ee49116439ec51e",
+    "source": "model",
+    "text": "`historical_scenario_replay` (Historical Scenario Replay) takes your current portfolio's sensitivities and runs each past day's factor moves through them. You supply `exposures`, the currency P&L per unit move of each risk factor, and `historical_factor_returns`, a matrix of historical factor moves with one row per day and one column per factor. For each day it sums the factor moves times the exposures to give a P&L figure, building a full P&L path. It then identifies the single worst day in that path, so you can see how today's book would have fared under past market conditions.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b88cc889a8b871c44b7d39f3c74a5606d7d906d4c952546a2278d240059cf9a1",
+    "source": "model",
+    "text": "Use Historical Scenario Replay (`historical_scenario_replay`) when you want to see how today's portfolio would have fared through past market moves:\n\n- You want to apply each historical day's factor moves to your current exposures and look at the whole P&L path, not just one figure.\n- You need to know which single day in the history would have hurt the current portfolio most.\n- You can express your portfolio as currency P&L per unit move of each risk factor (`exposures`) and have a matrix of past factor moves (`historical_factor_returns`).\n- You prefer scenarios drawn from what actually happened rather than ones you invent.\n\nIf you instead want P&L under a single hypothetical multi-factor shock, `hypothetical_multi_factor_scenario` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_transfer_pricing": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4553d67dc6d32234ad5ebd7891dfd3bc5707bf7a9f529de6e17b61db2b7e3a87",
+      "source": "model",
+      "text": "`ilaap_internal_liquidity_metric` asks whether an institution has enough liquidity to withstand its own stress scenario. It compares `counterbalancing_capacity` with `stressed_net_outflow` as a coverage ratio, and checks the modelled `survival_days` against `minimum_survival_days`. Both tests must hold for the result to count as internally adequate.\n\n`liquidity_transfer_pricing` asks what liquidity costs a business line for a funding position. It adds `base_rate`, `liquidity_spread` and an optional `contingent_spread` into an all-in rate, then applies that to `notional` for an annual charge, or multiplies by `tenor_years` for a lifetime charge.\n\nSo the first is an adequacy check on the balance sheet, and the second is a pricing charge on an individual position.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7944361e8266c1709d46f6ea8c3267b400877a6c8e5e27f15b8c4cdc6c3596fe",
+    "source": "model",
+    "text": "`ilaap_internal_liquidity_metric` (ILAAP Internal Liquidity Metric) checks whether an institution is liquidity-adequate by its own internal standards. It looks at two things: the coverage ratio, which is `counterbalancing_capacity` divided by `stressed_net_outflow`, and whether the modelled `survival_days` meets an internal minimum, `minimum_survival_days`. Internal adequacy holds only if the coverage ratio is at least 1 and the survival horizon is at least the minimum. The minimum is optional and defaults to 90 days, a commonly used internal target.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1a99364376e8a9431caa9f63213f09c295de2296f8954385d6aa16e41e9b139e",
+    "source": "model",
+    "text": "Use the ILAAP Internal Liquidity Metric (`ilaap_internal_liquidity_metric`) when you want to test liquidity adequacy against your own internal standards:\n\n- You are preparing an internal liquidity adequacy assessment and need one check that combines a coverage ratio (`counterbalancing_capacity` against `stressed_net_outflow`) with a survival-horizon test.\n- You have a modelled survival horizon (`survival_days`) and want to compare it with an internal minimum, set through `minimum_survival_days`, which defaults to 90.\n- You need both conditions to hold at once: coverage of at least 1 and survival at or above the minimum.\n- You want to check the institution's own measures rather than a prescribed regulatory ratio.\n\nIf your need is to place a liquidity metric into a red/amber/green zone, `liquidity_risk_appetite_threshold` is listed as mapping a liquidity metric to a RAG risk-appetite zone.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

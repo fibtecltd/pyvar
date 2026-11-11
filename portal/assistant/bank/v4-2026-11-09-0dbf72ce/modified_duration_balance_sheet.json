@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "effective_duration_alm": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "23fbc789cc33e531197a6258b68570a1827cb8b9bda8a12d9848c357c835f516",
+      "source": "model",
+      "text": "`modified_duration_balance_sheet` answers \"how sensitive is this fixed set of cashflows to a change in the discount rate?\" You give it `cashflows`, `times`, a `discount_rate` and optionally a `frequency`, and it works out the Macaulay duration analytically, then divides by `1 + y/m` to get modified duration. `effective_duration_alm` answers \"how much does the position's value actually move when rates are shocked?\" It takes `pv_base`, `pv_up`, `pv_down` and a `rate_shock`, so the values come from re-valuing the position at shifted rates rather than from a formula on fixed cashflows. That re-valuation approach captures optionality in deposits, prepayments and caps/floors that analytic duration misses. So `modified_duration_balance_sheet` fits positions with known cashflows, and `effective_duration_alm` fits positions whose cashflows may change with rates.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3838a6047f524b136c5a32971d690aff6733f4c424a62a48f96970471846a15e",
+    "source": "model",
+    "text": "`modified_duration_balance_sheet` (Modified Duration Balance Sheet) returns the modified duration of a balance-sheet position, which is its Macaulay duration divided by `1 + y/m`. You supply the position's `cashflows`, the `times` of those cashflows in years, and a decimal `discount_rate`. The Macaulay duration is the present-value-weighted average time of the cashflows, discounted continuously at the `discount_rate`. The optional `frequency` sets the compounding per year and defaults to 1. As `frequency` gets large, modified duration approaches Macaulay duration.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3e1bd6bd39a56556fe94e99819d3eb4d838f4633711ab8d7d32bfb09ba0f7d55",
+    "source": "model",
+    "text": "`modified_duration_balance_sheet` fits when you want the modified duration of a balance-sheet position from its cashflows.\n\n- You have a stream of cashflow amounts (`cashflows`) with their timings in years (`times`) and a single `discount_rate` to apply.\n- You want a measure of how sensitive the position's value is to changes in the discount rate, rather than the weighted-average time of the cashflows.\n- You need to reflect compounding, using `frequency` (it defaults to 1 per year). With very frequent or continuous compounding, modified duration comes out close to Macaulay duration.\n- Related function: `macaulay_duration_balance_sheet` is listed as giving the Macaulay duration of a balance-sheet cashflow stream in years, which fits if you want that measure instead.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}
