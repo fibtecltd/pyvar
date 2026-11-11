@@ -1,0 +1,74 @@
+{
+  "model": "claude-sonnet-5-5",
+  "writer_model": "claude-sonnet-5-5",
+  "served_models": [
+    "claude-sonnet-5-5"
+  ],
+  "effort": "low",
+  "prompt_version": "v4-2026-11-09",
+  "code": {
+    "commit": "490d288c2ca7371448971c11b31520fae27759cc",
+    "dirty": false,
+    "sha256": {
+      "prompts.py": "49b471580df793db01014d8ffbe99d88265a75ec6842d1ec127de27c725e2ba1",
+      "graders.py": "666e4cd12a9838b07db36f95e4f14412e6a43bbd8d08af743ee8d61721d80c63"
+    }
+  },
+  "cases_run": 308,
+  "scored": 308,
+  "truncated": 0,
+  "refusals": 0,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_intent": {
+    "compare": {
+      "n": 40,
+      "pass_rate": 0.775,
+      "ci95": [
+        0.625,
+        0.877
+      ],
+      "failed_checks": {
+        "no_source_claims": 9
+      }
+    },
+    "explain": {
+      "n": 134,
+      "pass_rate": 0.8731343283582089,
+      "ci95": [
+        0.806,
+        0.919
+      ],
+      "failed_checks": {
+        "no_source_claims": 16,
+        "numbers_supported": 1
+      }
+    },
+    "when": {
+      "n": 134,
+      "pass_rate": 0.6492537313432836,
+      "ci95": [
+        0.565,
+        0.725
+      ],
+      "failed_checks": {
+        "no_source_claims": 46,
+        "numbers_supported": 1
+      }
+    }
+  },
+  "tokens": {
+    "input_tokens": 412817,
+    "output_tokens": 76748,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "cost_usd": 1.5931,
+  "cost_per_case_usd": 0.005172,
+  "latency_s": {
+    "p50": 2.73,
+    "p95": 3.67
+  }
+}

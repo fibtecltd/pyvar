@@ -1,0 +1,74 @@
+{
+  "model": "claude-opus-5-5",
+  "writer_model": "claude-opus-5-5",
+  "served_models": [
+    "claude-opus-5-5"
+  ],
+  "effort": "low",
+  "prompt_version": "v4-2026-11-09",
+  "code": {
+    "commit": "490d288c2ca7371448971c11b31520fae27759cc",
+    "dirty": false,
+    "sha256": {
+      "prompts.py": "49b471580df793db01014d8ffbe99d88265a75ec6842d1ec127de27c725e2ba1",
+      "graders.py": "666e4cd12a9838b07db36f95e4f14412e6a43bbd8d08af743ee8d61721d80c63"
+    }
+  },
+  "cases_run": 305,
+  "scored": 305,
+  "truncated": 0,
+  "refusals": 0,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 3,
+  "retries": 0,
+  "by_intent": {
+    "compare": {
+      "n": 37,
+      "pass_rate": 0.7567567567567568,
+      "ci95": [
+        0.599,
+        0.866
+      ],
+      "failed_checks": {
+        "no_source_claims": 9
+      }
+    },
+    "explain": {
+      "n": 134,
+      "pass_rate": 0.6791044776119403,
+      "ci95": [
+        0.596,
+        0.752
+      ],
+      "failed_checks": {
+        "no_source_claims": 43,
+        "numbers_supported": 2
+      }
+    },
+    "when": {
+      "n": 134,
+      "pass_rate": 0.7089552238805971,
+      "ci95": [
+        0.627,
+        0.779
+      ],
+      "failed_checks": {
+        "no_source_claims": 37,
+        "numbers_supported": 3
+      }
+    }
+  },
+  "tokens": {
+    "input_tokens": 403618,
+    "output_tokens": 129182,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "cost_usd": 4.1981,
+  "cost_per_case_usd": 0.013764,
+  "latency_s": {
+    "p50": 4.59,
+    "p95": 6.15
+  }
+}

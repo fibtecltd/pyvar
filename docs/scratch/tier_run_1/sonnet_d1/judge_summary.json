@@ -1,0 +1,51 @@
+{
+  "judged": 308,
+  "unparsed": 0,
+  "faithful": {
+    "n": 308,
+    "rate": 0.9902597402597403,
+    "ci95": [
+      0.972,
+      0.997
+    ]
+  },
+  "useful": {
+    "n": 308,
+    "rate": 1.0,
+    "ci95": [
+      0.988,
+      1.0
+    ]
+  },
+  "plausible_values": {
+    "n": 0,
+    "rate": null,
+    "ci95": [
+      0.0,
+      0.0
+    ]
+  },
+  "judge_cost_usd": 2.0672,
+  "flagged": [
+    {
+      "case_id": "black_litterman_model:compare:maximum_sharpe_ratio_portfolio",
+      "issues": [
+        "Groups `risk_aversion` with `tau` and `omega` as controlling how much weight the views get. Per the record, \u03bb is the equilibrium risk aversion that scales \u03a0 and the final weights; the view blend is set by \u03c4 and \u03a9."
+      ]
+    },
+    {
+      "case_id": "garch_11_volatility_forecast:explain",
+      "issues": [
+        "Says the function 'fits' a GARCH(1,1) model, but the record shows alpha and beta are user-supplied with defaults (0.1, 0.85) rather than estimated. Only omega can be set by variance targeting."
+      ]
+    },
+    {
+      "case_id": "black_litterman_model:when",
+      "issues": [
+        "Lists risk_aversion as controlling trust in the market versus views. Per the formula, \u03bb only scales \u03a0 and the weights; tau and omega set that balance."
+      ]
+    }
+  ],
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
