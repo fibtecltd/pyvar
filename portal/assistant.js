@@ -66,12 +66,25 @@
     return banks[name];
   }
 
-  // `code` spans (backticks) become <code>; everything else is plain text.
+  // `code` spans (backticks) become <code> and **bold** becomes <strong>; everything else is plain text.
+  // A ** without its partner stays as it was written.
   function inline(parent, line) {
     line.split('`').forEach(function (part, index) {
       if (part === '') return;
-      if (index % 2 === 1) parent.appendChild(make('code', 'assistant-code', part));
-      else parent.appendChild(document.createTextNode(part));
+      if (index % 2 === 1) {
+        parent.appendChild(make('code', 'assistant-code', part));
+        return;
+      }
+      var pieces = part.split('**');
+      if (pieces.length % 2 === 0) {
+        parent.appendChild(document.createTextNode(part));
+        return;
+      }
+      pieces.forEach(function (piece, i) {
+        if (piece === '') return;
+        if (i % 2 === 1) parent.appendChild(make('strong', '', piece));
+        else parent.appendChild(document.createTextNode(piece));
+      });
     });
   }
 

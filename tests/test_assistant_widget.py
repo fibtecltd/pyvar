@@ -12,8 +12,13 @@ Reasoning:
 
 from __future__ import annotations
 
+import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 PORTAL = REPO / "portal"
@@ -135,3 +140,66 @@ def test_the_stylesheet_respects_reduced_motion_and_a_narrow_screen() -> None:
     assert "#" not in re.sub(
         r"/\*.*?\*/", "", block, flags=re.DOTALL
     )  # colours come from the portal's variables
+
+
+# A bank answer may hold `code`, **bold** and "- " lists. inline() is run under node with a minimal stand-in
+# for the DOM, so the rule "bank text only becomes text nodes, <code> or <strong>" is checked as behaviour.
+_HARNESS = """
+function node(tag) {
+  return { tag: tag, children: [], className: '', textContent: '',
+           appendChild: function (c) { this.children.push(c); return c; } };
+}
+var document = { createElement: node, createTextNode: function (t) { return { tag: '#text', textContent: t }; } };
+function make(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+%s
+var lines = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+console.log(JSON.stringify(lines.map(function (line) {
+  var p = node('p'); inline(p, line);
+  return p.children.map(function (c) { return [c.tag, c.textContent]; });
+})));
+"""
+
+
+def _run_inline(lines: list[str], tmp_path: Path) -> list[list[list[str]]]:
+    match = re.search(r"  function inline\(parent, line\) \{.*?\n  \}\n", WIDGET, flags=re.DOTALL)
+    assert match, "the widget has no inline() function"
+    script = tmp_path / "inline_check.js"
+    script.write_text(_HARNESS % match.group(0))
+    node = shutil.which("node")
+    assert node is not None
+    done = subprocess.run(  # noqa: S603 - a fixed script, no user input
+        [node, str(script)], input=json.dumps(lines), capture_output=True, text=True, check=True
+    )
+    parsed: list[list[list[str]]] = json.loads(done.stdout)
+    return parsed
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_inline_turns_code_and_bold_into_nodes_and_everything_else_into_text(
+    tmp_path: Path,
+) -> None:
+    out = _run_inline(
+        [
+            "**Lead:** use `weights` and a * b",
+            "a stray ** marker",
+            "no markup at all",
+            "`a**b` stays code",
+            "<b>x</b> then **y**",
+        ],
+        tmp_path,
+    )
+    assert out[0] == [
+        ["strong", "Lead:"],
+        ["#text", " use "],
+        ["code", "weights"],
+        ["#text", " and a * b"],
+    ]
+    assert out[1] == [["#text", "a stray ** marker"]]  # unpaired: shown as written
+    assert out[2] == [["#text", "no markup at all"]]
+    assert out[3] == [["code", "a**b"], ["#text", " stays code"]]
+    assert out[4] == [["#text", "<b>x</b> then "], ["strong", "y"]]  # markup is never parsed
