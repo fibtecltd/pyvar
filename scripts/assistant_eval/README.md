@@ -87,8 +87,14 @@ python scripts/assistant_eval/judge.py --kind typed --cases $WORK/typed_cases.js
 `output_config.effort`. `summary.json` of every run records the writer model id, the model ids the API reported
 serving, the effort, `prompt_version`, and under `code` the git commit that last touched `prompts.py` and
 `graders.py`, whether they have uncommitted edits (`dirty`) and their sha256, so a run says which text produced it.
-`--tries N` gives every action up to N writer calls: after a grader failure the flags go back to the writer (what the bank pipeline would do), `model_tries` counts the calls, `static_fallback` marks an answer that still fails, and `summary.json` reports first-try and final passes and the histogram of calls (unset: example values get 3 calls, text actions 1). `--only-ids` runs the named cases only (an id not in `--cases` is an error); `--reps N` repeats each case N times
-(draw numbers 0 to N-1). The judge samples draw 0 unless `--all-reps` is given.
+`--only-ids` runs the named cases only (an id not in `--cases` is an error); `--reps N` repeats each case N times
+(draw numbers 0 to N-1). `--tries N` gives every action up to N writer calls: after a grader failure the flags go back
+to the writer (what the bank pipeline would do). `model_tries` counts the calls; `static_fallback` marks an answer whose
+final grade still fails (without `--tries` it simply equals the grader failures); `summary.json` reports first-try and
+final passes and the histogram of calls (unset: example values get 3 calls, text actions 1). A truncated or refused
+reply is counted under `truncated` or `refusal`, never as a static fallback. The `code` block of `summary.json` names
+the last commit that touched `prompts.py` or `graders.py`, which is not necessarily HEAD. The judge samples draw 0
+unless `--all-reps` is given.
 
 **Typed questions.** The set is `typed_cases.py` (templates over `portal/functions.json`: A how-to 50, B which
 function 35, C example values 30, D not in the record 30, I multi-function, long or non-English 11) plus
