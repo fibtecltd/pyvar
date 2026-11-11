@@ -216,6 +216,9 @@ AWS:        CELERY_BROKER_URL = sqs://
   (no API). Never edit a committed bank file or its manifest: `check` re-grades every answer and a
   hand edit is a different text from the one that was gated. Change the record, the prompt or the
   graders instead, then rebuild (incremental: only changed answers are rewritten).
+- To correct chosen answers without a new prompt version, use `--redo-ids FILE` (answer id -> notes):
+  it rewrites those answers once, keeps the old entry if the rewrite would be static, and touches
+  nothing else (file example: docs/assistant-bank-redo-1.json).
 - Inputs that invalidate the bank: portal/functions.json (per-answer record hash), prompts.py
   (PROMPT_VERSION and prompt_sha256) and graders.py (grader_sha256: any byte, formatting included).
   The drift tests in tests/test_assistant_bank.py fail until the bank is rebuilt, and SKIP while

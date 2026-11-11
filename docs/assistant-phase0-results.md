@@ -1053,3 +1053,36 @@ and looks the same in both schemes. The page itself is 459 px wide at 390 px (th
 without the assistant: not caused by this change); nothing inside the Try-it card overflows. When the bank file is a 404, bad
 JSON, the wrong shape, or the config names a version that is not there, or `assistant_enabled` is false or the config call
 fails, the slot stays empty (height 0) and no error is raised.
+
+### 9.21 Bank build 1 and a person's read of it (2026-11-11)
+
+**The build** (dev key, code `f301ce4`, prompt v4, writer Sonnet 5.5, gate and escalation Opus 5.5, 4 workers): bank version
+`v4-2026-11-09-0dbf72ce`, 1,154 answers, complete, in 23 min 34 s for $16.49 (a one-function smoke run first, $0.04; caps $0.30
+and $19; no failed call). 1,152 answers are model text (1,149 Sonnet, 3 Opus) and 2 are static (`compute_breaches:compare:
+traffic_light_backtesting`, `cox_ingersoll_ross_model:when`). 209 answers needed a second draft (explain 31, when 123, compare 55;
+none a third). The gate flagged 5 first drafts: 3 were rewritten by Opus and passed, 2 became static. The stored entries keep only
+the final verdict, so all show faithful; 49 faithful answers carry gate notes. `check`: 385 files, 1,204,841 bytes, largest 3,774,
+static share 0.17%. The data sits on the scratch branch `data/assistant-bank-1` (`b64daae`); its checksums verify, and the suites
+pass with the bank present (414 passed; the two bank drift tests no longer skip).
+
+**Checks without an API.** Served from the app and opened in Chromium (390 and 1280 px, light and dark), the real answers render
+and nothing overflows. One answer, `active_share:when`, writes its bullets with `**bold**`; the widget showed the asterisks. The
+widget now renders a paired `**` as `<strong>` (`e88dc08`, with a test that runs the renderer under node). Three grammar slips
+("a internal", "a earlier" twice) are in answers the gate had already noted.
+
+**A person's read.** 48 answers drawn at random (16 per action, seed 20261111; the 2 static answers left out), each read against
+its catalogue entry: 39 no wrong claim, 3 wrong claim, 6 unsure. Wrong: `loss_given_default_lgd_model:explain` (the steps leave out
+the "1 minus", so the clipped quantity is misdescribed), `return_attribution_brinson:when` and `compound_option_pricer:when` (the
+closing related-function sentence states no need; the second points a question about an option on an option at a chooser option).
+The 6 unsure marks (`survival_horizon_calculator`, `extreme_value_theory_var`, `frequency_distribution_fitting`,
+`ifrs_9_12_month_ecl_stage_1`, `market_wide_stress_scenario`, `portfolio_beta`, all `when`) were pointer sentences that the sheet
+gave no way to check, because it showed the function's own entry and not the sibling summaries the writer was given. Compared
+afterwards, each of the six sentences repeats its sibling's summary word for word. So 8 of the 9 marks concern the closing "related
+function" sentence of a `when` answer; 238 of the 385 `when` answers have one in the form "`X` is listed as ..." (73 say "For a
+different need"), which follows from the v4 wording rule against claims about sources. Reading the marks as they were made, 3 of 48
+(6.3%, 95% interval 2.1% to 16.8%) have a wrong claim; counting only claims the entry contradicts, 1 of 48 (2.1%, 0.4% to 10.9%).
+Neither settles the 4% tolerance, and the marks as made stand as the record.
+
+**Decision.** One targeted rewrite, not a new prompt: the 49 gate-noted answers plus the 3 marked ones (52, no overlap), with the
+gate's or the reader's note as feedback (`docs/assistant-bank-redo-1.json`, `python -m assistant.bank build --redo-ids`). A rewrite
+never replaces an entry with static text. v4 and the pinned hashes do not change, and the pointer style stays as built.

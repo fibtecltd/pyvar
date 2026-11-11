@@ -1,0 +1,170 @@
+{
+ "alm_stress_test:compare:structural_hedge_optimisation": [
+  "Final sentence 'Neither tells you what to do with the output' is a vague filler claim that adds nothing."
+ ],
+ "alm_stress_test:explain": [
+  "Says the ratio is checked against the outlier test but does not give the 15% threshold that the record states.",
+  "Does not mention that parallel_bps defaults to 200 bps."
+ ],
+ "asian_option_pricer:when": [
+  "Framing 'you want a price below the vanilla' as a use case is odd; it is a property, not a selection criterion."
+ ],
+ "basel_capital_addon_multiplier:compare:traffic_light_backtesting": [
+  "Could have mentioned the multiplier values (3.0, 3.40-3.85, 4.0) given in the record."
+ ],
+ "black_litterman_model:compare:maximum_sharpe_ratio_portfolio": [
+  "Says risk_aversion helps set how much weight the views get; per the formula λ scales the equilibrium returns Π, while τ and Ω set the prior-versus-views blend."
+ ],
+ "black_litterman_model:explain": [
+  "The fallback for omega is diag(P τΣ Pᵀ), so it also uses the covariance matrix, not only the views and tau."
+ ],
+ "bond_pricer_fixed_coupon:compare:bond_pricer_floating_rate": [
+  "Implies only the fixed pricer takes `maturity`, but the floating-rate pricer also requires it, and it must equal len(reference_rates)/frequency or the call is rejected."
+ ],
+ "bond_pricer_fixed_coupon:when": [
+  "Describes zero_coupon_bond_pricer's formula vaguely as 'face divided by a discounted factor' rather than the listed face / (1 + y/m)^{m·T}."
+ ],
+ "callable_bond_pricer:compare:bond_pricer_floating_rate": [
+  "Omits the caveat that the tree is a simplified lattice, not calibrated BDT."
+ ],
+ "caplet_floorlet_pricer_black:explain": [
+  "Repeats the record's 'caplet + floorlet' parity wording; strictly a long caplet minus a floorlet replicates a payer FRA."
+ ],
+ "combined_stress_scenario:compare:market_wide_stress_scenario": [
+  "Omits the record's caveat that the default 15% retail / 100% wholesale convention is not the BCBS 238 reference combined scenario."
+ ],
+ "compound_option_pricer:when": [
+  "The pointer 'For a different need' names no need, and a chooser option does not serve an option-on-option question. Name the need a related function serves, or leave the pointer out."
+ ],
+ "concentration_risk_hhi:compare:monte_carlo_portfolio_simulation": [
+  "HHI is described as the sum of squared absolute weights, omitting that the absolute weights are first normalised to sum to 1."
+ ],
+ "conduct_risk_metric:explain": [
+  "Loose wording: the redress ratio is scaled by 500 before its cap of 50; the ratio itself is not capped at 50."
+ ],
+ "control_testing_effectiveness:compare:rcsa_risk_identification": [
+  "Omits the concrete threshold (pass rate ≥ 0.95, i.e. >5% failures deficient) that is in the record."
+ ],
+ "convertible_bond_pricer:when": [
+  "Doesn't state the caveat explicitly: no conversion optionality, equity volatility, or embedded call/put features."
+ ],
+ "convexity:when": [
+  "The closing pointer to modified_duration gives only its formula and does not say when a reader would pick it over convexity."
+ ],
+ "cornish_fisher_var:explain": [
+  "Does not mention the default confidence level (0.99) or the allowed range [0.90, 0.9999]."
+ ],
+ "credit_default_swap_cds_pricer:when": [
+  "Says you can 'find the par spread', but the record only notes that the par spread zeroes the value and does not confirm the function returns it."
+ ],
+ "cva_sensitivity_cva_greeks:compare:counterparty_credit_risk_ccr_exposure": [
+  "'Defaults today' slightly understates the CCR measure, since the add_on covers potential future exposure."
+ ],
+ "downturn_lgd_adjustment:explain": [
+  "Additive add-on described only vaguely: omits the max(0, m-1) * 0.5 scaling of the headroom.",
+  "Phrase 'never falls below the long-run figure' is attached to the floor/1 clipping, whereas the formula enforces it through the separate max with LGD_LR."
+ ],
+ "egarch_volatility_model:when": [
+  "The bullet saying you want |beta| < 1 for stationarity is a parameter constraint, not a reason to choose the model.",
+  "The answer never says the parameters are user-set rather than estimated, which a practitioner may assume the model does."
+ ],
+ "emir_clearing_obligation_check:when": [
+  "Says NFC- is a valid input but not what the function does for it (exempt).",
+  "Bullet on reviewing an earlier per-class approach is an odd use case."
+ ],
+ "equity_swap_pricer:compare:total_return_swap_trs": [
+  "Final advice 'pick the one that matches the label on your trade' is weak; it doesn't say that both compute the same formula, so the choice is only about naming."
+ ],
+ "factor_return_attribution:compare:return_attribution_brinson": [
+  "Phrase 'puts whatever is left into' slightly implies the specific return is computed as a residual, though it is a supplied input that is added to the factor total"
+ ],
+ "frtb_ima_market_risk_capital:compare:frtb_sa_market_risk_capital": [
+  "Minor grammar slip: \"a internal model output\" should read \"an internal model output\"."
+ ],
+ "frtb_pl_attribution_test:when": [
+  "The record does not say the function returns the correlation and ratio values alongside the zone; that bullet slightly overreaches."
+ ],
+ "funds_transfer_pricing_ftp:compare:ftp_curve_construction": [
+  "The phrase 'FTP rate, which already includes the liquidity charge' is ambiguous: the margin uses the all-in rate (ftp_rate + liquidity_premium), not the ftp_rate parameter itself.",
+  "Does not warn that if ftp_rate is taken from ftp_curve_construction, which already includes a liquidity spread, setting liquidity_premium as well would double-count it."
+ ],
+ "garch_11_volatility_forecast:explain": [
+  "'fits' could suggest the function estimates alpha/beta; the record shows they are user inputs with defaults (0.1, 0.85), not estimated"
+ ],
+ "hull_white_short_rate_model:compare:vasicek_interest_rate_model": [
+  "The final paragraph implies the Monte Carlo cross-check sets the Hull-White function apart, but the Vasicek record also simulates the short rate."
+ ],
+ "ifrs_9_stage_classification_pd_threshold:compare:ifrs_9_scenario_weighted_ecl": [
+  "Omits the actual thresholds (90 DPD; relative multiple k=2 or absolute increase τ=0.02) and the OR logic, leaving the Stage 2/3 tests vague.",
+  "Doesn't explain how the two functions connect in an IFRS 9 workflow (stage drives 12-month vs lifetime ECL, which scenario weighting then aggregates)."
+ ],
+ "ifrs_9_stage_classification_pd_threshold:when": [
+  "Omits the 90+ days-past-due trigger: 'an exposure that is past due' could be read as any arrears leading to Stage 3."
+ ],
+ "irb_foundation_approach_capital:compare:basel_standardised_approach_rwa": [
+  "Closing sentence ('both are in the credit risk domain, and pyvar does the calculation') adds no comparative information."
+ ],
+ "irb_foundation_approach_capital:explain": [
+  "Omits the supervisory LGD values (45% senior unsecured, 75% subordinated) and the 2.5-year default maturity, which the record states",
+  "Does not mention the `lgd` override or the condition under which it applies"
+ ],
+ "irrbb_six_standard_rate_shocks:explain": [
+  "Lists only four of the six shocks; short-rate up/down are not mentioned."
+ ],
+ "irrbb_six_standard_rate_shocks:when": [
+  "Could mention the record's note that the default shock magnitudes were recalibrated by BCBS d578 (effective 2026)."
+ ],
+ "irrbb_standardised_framework:compare:irrbb_six_standard_rate_shocks": [
+  "Typo: 'a earlier question' should read 'an earlier question'."
+ ],
+ "liquidity_adjusted_es:explain": [
+  "Could mention partial_es length K-1 and that LH_1 must equal base_horizon",
+  "Does not state base_horizon default of 10 days"
+ ],
+ "liquidity_gap_analysis:explain": [
+  "Leaves out the per-bucket gap ratio A_i/L_i, which the formula also computes",
+  "Does not say the opening balance defaults to 0.0"
+ ],
+ "liquidity_gap_analysis:when": [
+  "opening_balance is used in the formula and description but is missing from the parameter list; the answer treats it as a passable argument"
+ ],
+ "loss_given_default_lgd_model:explain": [
+  "The step-by-step leaves out the '1 minus': (recovery minus costs) / EAD is the net recovery rate, but the answer clips it as 'the resulting loss'. The record clips 1 minus that ratio."
+ ],
+ "nelson_siegel_curve_fit:when": [
+  "'one smooth curve through them' slightly overstates it: a least-squares fit need not pass exactly through every observed yield."
+ ],
+ "normal_inverse_gaussian_model:explain": [
+  "Does not warn that the `delta` parameter is a scale parameter and not the Greek delta, a name collision the record highlights."
+ ],
+ "oas_option_adjusted_spread:when": [
+  "\"credit and liquidity compensation\" is a textbook reading of OAS, not something the record states, though it is uncontroversial."
+ ],
+ "parametric_delta_normal_var:explain": [
+  "Says the result is in base currency via `portfolio_value`, but the formula shown has no portfolio_value term. This is inferred from the parameter description and the word 'scaled'.",
+  "Does not state the default values (0.99 and 1 day) or the allowed confidence range [0.90, 0.9999]."
+ ],
+ "portfolio_beta:when": [
+  "The correlation and R² bullet implies the function returns them; the record shows them only in the formula, not as outputs."
+ ],
+ "rainbow_option_pricer:explain": [
+  "'Best-performing / worst-performing asset' suggests a return-based ranking, but the record takes the max/min of terminal price levels; the later sentence states this correctly.",
+  "Does not mention that the bump-and-reprice delta/gamma/vega are diagonal only (no cross-asset terms)."
+ ],
+ "repricing_maturity_profile:explain": [
+  "Does not mention that bucket_edges must have length n_buckets+1.",
+  "Bucket intervals are half-open [e_k, e_{k+1}), which the answer does not state."
+ ],
+ "return_attribution_brinson:when": [
+  "The related-function bullet for sector_attribution reads as a 'fits when' bullet but states no need. Say what need it serves, or leave it out."
+ ],
+ "risk_appetite_statement_oprisk:explain": [
+  "Omits the middle band explicitly (above appetite up to tolerance gives within_tolerance), though it is implied."
+ ],
+ "spread_option_kirk_approximation:explain": [
+  "Loose wording: the ratio is S1/(S2+K), but the answer calls 'the second asset plus the strike' itself a ratio."
+ ],
+ "unexpected_loss_ul_computation:compare:probability_of_default_pd_estimation": [
+  "Minor grammar slip: 'a earlier question' should be 'an earlier question'."
+ ]
+}

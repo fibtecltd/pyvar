@@ -37,6 +37,10 @@ issues as feedback, graded and gated again; whatever still fails becomes static 
 python -m assistant.bank build --max-usd 20 --workers 4          # all functions, resumable, never exceeds the cap
 python -m assistant.bank build --max-usd 2 --only-functions liquidity_coverage_ratio_lcr,retail_deposit_runoff_rate
 python -m assistant.bank build --max-usd 2 --retry-static        # try again the answers that fell back to static
+python -m assistant.bank build --max-usd 3 --redo-ids docs/assistant-bank-redo-1.json
+# --redo-ids: {"function:action[:sibling]": ["note", ...]}. Rewrites those answers once, in place: the writer is
+# shown its old answer and the notes, then graders, gate and escalation run as usual. Never makes an answer
+# worse: a rewrite that would be static text, a failed call or a budget stop keeps the old entry.
 # Check (no API, no key): manifest and per-answer hashes against the live catalogue, every answer re-graded,
 # size bounds, static share under 3%. Exit code 1 on any problem.
 python -m assistant.bank check

@@ -692,6 +692,9 @@ def test_no_answer_text_reaches_a_log_line_or_stdout(
     )
     with structlog.testing.capture_logs() as events:
         build(fake, tmp_path, small)
+    with structlog.testing.capture_logs() as redo_events:  # a redo logs no text either
+        build(FakeModelClient(small), tmp_path, small, redo=redo_note(flagged))
+    events = events + redo_events
     texts = [e["text"] for e in load_entries(tmp_path).values()] + [
         "A draft that is far too short."
     ]
@@ -709,6 +712,7 @@ def test_no_answer_text_reaches_a_log_line_or_stdout(
         "tries",
         "escalated",
         "faithful",
+        "redo",
         "bank_version",
         "complete",
         "stopped",
@@ -771,6 +775,102 @@ def test_the_command_line_builds_with_the_configured_models_and_needs_a_cap(
         ["build", "--out", str(tmp_path / "b2"), "--max-usd", "5", "--only-functions", only]
     )
     assert again == 1  # the other functions are missing, so not complete
+
+
+# ── --redo-ids ───────────────────────────────────────────────────────────────────────────────────────────
+
+CHECKED = json.dumps(
+    {"faithful": True, "useful": True, "plausible_values": None, "issues": ["checked again"]}
+)
+
+
+def redo_note(key: bank.Key) -> dict[str, list[str]]:
+    return {bank.case_id(key): ["the closing pointer names no need"]}
+
+
+def test_a_redo_rewrites_only_the_named_answer_and_shows_the_writer_its_old_answer_and_the_notes(
+    tmp_path: Path, small: list[dict[str, Any]]
+) -> None:
+    target = keys_of(small, "when")[0]
+    build(FakeModelClient(small), tmp_path, small)
+    before = load_entries(tmp_path)
+    fake = FakeModelClient(small, judge=lambda k, a, m, r: CHECKED)
+    result = build(fake, tmp_path, small, redo=redo_note(target))
+    assert {key for _, _, key, _ in fake.calls} == {target}
+    assert (result.redone, result.built, result.redo_kept, result.complete) == (1, 1, 0, True)
+    after = load_entries(tmp_path)
+    assert after[target]["gate"]["issues"] == [
+        "checked again"
+    ]  # a new entry, written and gated again
+    assert all(after[k] == before[k] for k in before if k != target)
+    first = fake.requests[0]["messages"]  # the writer's first request
+    assert first[1] == {"role": "assistant", "content": before[target]["text"]}
+    assert "a reviewer found: the closing pointer names no need" in first[2]["content"]
+
+
+def test_a_redo_never_makes_an_answer_worse(tmp_path: Path, small: list[dict[str, Any]]) -> None:
+    target = keys_of(small, "when")[0]
+    build(FakeModelClient(small), tmp_path, small)
+    before = load_entries(tmp_path)
+    # the rewrite fails every grader, so it would be static text: the old, gated entry stays
+    bad = FakeModelClient(small, write=lambda k, a, m, r: "No." if k == target else bad.oracle(k))
+    result = build(bad, tmp_path, small, redo=redo_note(target))
+    assert (result.redone, result.redo_kept) == (0, 1)
+    assert load_entries(tmp_path) == before
+    # a failed call and a budget stop keep it too
+    flaky = FakeModelClient(
+        small, fail=lambda m, role, key: ModelCallError("down") if key == target else None
+    )
+    failed = build(flaky, tmp_path, small, redo=redo_note(target))
+    assert failed.failed == 1 and load_entries(tmp_path) == before
+    broke = build(FakeModelClient(small), tmp_path, small, max_usd=0.0, redo=redo_note(target))
+    assert broke.stopped == "budget" and load_entries(tmp_path) == before
+
+
+def test_a_redo_of_an_unknown_id_or_without_notes_is_refused_before_any_call(
+    tmp_path: Path, small: list[dict[str, Any]]
+) -> None:
+    fake = FakeModelClient(small)
+    with pytest.raises(ValueError, match="not bank answers"):
+        build(fake, tmp_path, small, redo={"no_such_function:explain": ["x"]})
+    assert fake.calls == [] and not (tmp_path / "manifest.json").exists()
+    path = tmp_path / "redo.json"
+    for text in ("[]", "{}", '{"a:explain": []}', '{"a:explain": [" "]}', '{"a:explain": "note"}'):
+        path.write_text(text)
+        with pytest.raises(ValueError):
+            bank.load_redo(path)
+    path.write_text('{"a:explain": [" a note "]}')
+    assert bank.load_redo(path) == {"a:explain": ["a note"]}
+
+
+def test_the_command_line_redoes_named_answers_and_reads_the_file_before_any_client(
+    tmp_path: Path,
+    small: list[dict[str, Any]],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(bank, "load_text_cases", lambda path=bank.CATALOGUE_PATH: small)
+    first = FakeModelClient(small)
+    monkeypatch.setattr(client_module, "AnthropicClient", lambda: first)
+    out = str(tmp_path / "bank")
+    assert bank.main(["build", "--out", out, "--max-usd", "5"]) == 0
+    capsys.readouterr()
+    target = keys_of(small, "explain")[0]
+    path = tmp_path / "redo.json"
+    path.write_text(json.dumps(redo_note(target)))
+    again = FakeModelClient(small)
+    monkeypatch.setattr(client_module, "AnthropicClient", lambda: again)
+    assert bank.main(["build", "--out", out, "--max-usd", "5", "--redo-ids", str(path)]) == 0
+    assert "redone=1 redo_kept=0" in capsys.readouterr().out
+    assert {key for _, _, key, _ in again.calls} == {target}
+
+    def no_client() -> FakeModelClient:
+        raise AssertionError("the client was made before the redo file was read")
+
+    path.write_text("[]")
+    monkeypatch.setattr(client_module, "AnthropicClient", no_client)
+    with pytest.raises(ValueError):
+        bank.main(["build", "--out", out, "--max-usd", "5", "--redo-ids", str(path)])
 
 
 # ── a committed bank, once there is one ──────────────────────────────────────────────────────────────────

@@ -25,6 +25,11 @@ Reasoning:
   moment may have paid for a draft whose gate call then did not fit; that one draft is written again later.)
 - The order is deterministic (functions by name, actions explain, when, compare). With one worker a run is fully
   reproducible; with more, the output of each function is the same but the point where a budget stop falls is not.
+- `--redo-ids FILE` rewrites named answers once, in place: the file maps an answer id (function:action or
+  function:compare:sibling) to the notes a reader or the gate made about it. The writer is shown its old answer
+  and the notes (the way the escalation step is), then the usual graders, gate and escalation run. A redo never
+  makes an answer worse: if the rewrite would end as static text, or a call fails, or the budget stops, the old
+  entry stays. Nothing else in the bank is touched.
 - `check` needs no API: manifest and record hashes against the live catalogue, every served answer re-graded,
   size bounds, and a static share under 3%.
 - Nothing in a log line or on stdout is answer text: events carry function names, actions, counts and dollars.
@@ -139,6 +144,41 @@ def case_key(case: dict[str, Any]) -> Key:
     """(function, action, sibling) of a text case; sibling is the compared function for `compare`."""
     other = case["other"]["name"] if case["intent"] == "compare" else None
     return (case["record"]["name"], case["intent"], other)
+
+
+def case_id(key: Key) -> str:
+    """The id of an answer as the redo file and the reports write it: function:action[:sibling]."""
+    function, action, sibling = key
+    return f"{function}:{action}:{sibling}" if sibling else f"{function}:{action}"
+
+
+def load_redo(path: Path) -> dict[str, list[str]]:
+    """Read a redo file: a JSON object mapping an answer id to a non-empty list of notes.
+
+    Args:
+        path: the JSON file.
+
+    Returns:
+        {answer id: [note, ...]}.
+
+    Raises:
+        ValueError: the file is not an object, is empty, or an id has no notes.
+    """
+    raw = json.loads(path.read_text())
+    if not isinstance(raw, dict) or not raw:
+        raise ValueError(
+            "a redo file is a JSON object {answer id: [note, ...]} with at least one id"
+        )
+    notes: dict[str, list[str]] = {}
+    for answer_id, value in raw.items():
+        if (
+            not isinstance(value, list)
+            or not value
+            or not all(isinstance(n, str) and n.strip() for n in value)
+        ):
+            raise ValueError(f"redo {answer_id!r}: give a non-empty list of notes")
+        notes[str(answer_id)] = [n.strip() for n in value]
+    return notes
 
 
 def load_text_cases(catalogue_path: Path = CATALOGUE_PATH) -> list[dict[str, Any]]:
@@ -290,13 +330,20 @@ def _static_entry(case: dict[str, Any], tries: int, escalated: bool) -> dict[str
     )
 
 
-def build_entry(client: ModelClient, case: dict[str, Any], models: Models) -> dict[str, Any]:
+def build_entry(
+    client: ModelClient,
+    case: dict[str, Any],
+    models: Models,
+    revise: tuple[str, list[str]] | None = None,
+) -> dict[str, Any]:
     """Produce the bank entry for one text case.
 
     Args:
         client: the model client (already wrapped in a MeteredClient by a build).
         case: one text case (explain, when or compare).
         models: the writer, gate and escalation model ids.
+        revise: (the old answer, the notes about it) for a redo: the writer is shown both before its
+            first draft, the way the escalation step shows the gate's issues.
 
     Returns:
         The entry dict: text, source ("model" or "static"), writer, tries, escalated, gate, record_sha256.
@@ -306,6 +353,9 @@ def build_entry(client: ModelClient, case: dict[str, Any], models: Models) -> di
         ModelCallError: if a model call fails for good (the caller skips this entry).
     """
     feedback: list[tuple[str, list[str]]] = []
+    if revise is not None:
+        old_text, notes = revise
+        feedback.append((old_text, [f"a reviewer found: {note}" for note in notes]))
     tries = 0
     text: str | None = None
     for _ in range(MAX_WRITER_TRIES):
@@ -439,6 +489,8 @@ class BuildResult:
     failed: int = 0
     missing: int = 0
     counts: dict[str, int] = field(default_factory=dict)
+    redone: int = 0  # answers rewritten by --redo-ids
+    redo_kept: int = 0  # redo answers whose rewrite would have been static: the old entry stayed
 
 
 def _counts(entries: list[dict[str, Any]], expected: int) -> dict[str, int]:
@@ -461,6 +513,7 @@ def build(
     workers: int = 1,
     only_functions: set[str] | None = None,
     retry_static: bool = False,
+    redo: dict[str, list[str]] | None = None,
     catalogue_path: Path = CATALOGUE_PATH,
     cases: list[dict[str, Any]] | None = None,
     today: Callable[[], datetime.date] = datetime.date.today,
@@ -475,6 +528,8 @@ def build(
         workers: functions built in parallel (1 is fully deterministic).
         only_functions: rebuild only these functions; the others keep their valid entries.
         retry_static: also rewrite entries that are static text (kept by default).
+        redo: {answer id: notes}: rewrite these answers once, showing the writer its old answer and the
+            notes; the old entry stays if the rewrite would be static, a call fails or the budget stops.
         catalogue_path: the catalogue to build from.
         cases: the text cases (tests pass a few; the CLI builds all 1,154).
         today: the clock for the manifest's build date.
@@ -485,12 +540,16 @@ def build(
     Raises:
         ServedModelMismatch: a model other than the requested one answered (the build stops at once;
             the manifest says complete=false).
-        ValueError: a model id has no price.
+        ValueError: a model id has no price, or a redo id is not a bank answer.
     """
     for model in (models.writer, models.gate, models.escalation):
         if model not in PRICES:
             raise ValueError(f"no price for model {model!r}: add it to assistant/cost.py")
     cases = load_text_cases(catalogue_path) if cases is None else cases
+    if redo:
+        unknown = sorted(set(redo) - {case_id(case_key(c)) for c in cases})
+        if unknown:
+            raise ValueError("redo ids that are not bank answers: " + ", ".join(unknown[:10]))
     cat_hash = catalogue_sha256(catalogue_path)
     version = bank_version(cat_hash)
     provenance = {
@@ -522,7 +581,7 @@ def build(
     metered = MeteredClient(client, budget)
     stop = threading.Event()
     state: dict[str, Any] = {"stopped": None, "fatal": None}
-    tally = {"built": 0, "reused": 0, "failed": 0}
+    tally = {"built": 0, "reused": 0, "failed": 0, "redone": 0, "redo_kept": 0}
     lock = threading.Lock()
 
     def manifest(entries: list[dict[str, Any]], complete: bool) -> dict[str, Any]:
@@ -555,28 +614,42 @@ def build(
         for case in function_cases:
             key = case_key(case)
             existing = old.get(key)
+            valid = existing is not None and existing.get("record_sha256") == record_sha256(case)
+            notes = redo.get(case_id(key)) if redo else None
+            redoing = valid and notes is not None
             if (
                 existing is not None
-                and existing.get("record_sha256") == record_sha256(case)
+                and valid
+                and not redoing
                 and not (retry_static and existing.get("source") == "static")
             ):
                 kept[key] = existing
                 with lock:
                     tally["reused"] += 1
                 continue
+            fallback = (
+                existing if redoing else None
+            )  # a redo never loses the answer it started from
             if not may_build or stop.is_set():
+                if fallback is not None:
+                    kept[key] = fallback
                 continue
+            revise = (str(fallback["text"]), notes) if fallback is not None and notes else None
             try:
-                entry = build_entry(metered, case, models)
+                entry = build_entry(metered, case, models, revise=revise)
             except BudgetExhausted:
                 with lock:
                     state["stopped"] = "budget"
                 stop.set()
+                if fallback is not None:
+                    kept[key] = fallback
                 continue
             except ServedModelMismatch as exc:
                 with lock:
                     state["fatal"] = exc
                 stop.set()
+                if fallback is not None:
+                    kept[key] = fallback
                 continue
             except ModelCallError as exc:
                 logger.warning(
@@ -590,10 +663,20 @@ def build(
                     if tally["failed"] >= MAX_CALL_FAILURES:
                         state["stopped"] = "errors"
                         stop.set()
+                if fallback is not None:
+                    kept[key] = fallback
+                continue
+            if fallback is not None and entry["source"] == "static":
+                kept[key] = fallback
+                with lock:
+                    tally["redo_kept"] += 1
+                logger.info("bank_redo_kept_old", function=function, action=key[1], sibling=key[2])
                 continue
             kept[key] = entry
             with lock:
                 tally["built"] += 1
+                if fallback is not None:
+                    tally["redone"] += 1
             logger.info(
                 "bank_entry_built",
                 function=function,
@@ -603,6 +686,7 @@ def build(
                 tries=entry["tries"],
                 escalated=entry["escalated"],
                 faithful=entry["gate"]["faithful"],
+                redo=fallback is not None,
             )
         if kept:
             _atomic_write(target / f"{function}.json", _dump(entries_to_file(kept)))
@@ -641,6 +725,8 @@ def build(
         failed=tally["failed"],
         missing=expected - len(final),
         counts=_counts(final, expected),
+        redone=tally["redone"],
+        redo_kept=tally["redo_kept"],
     )
 
 
@@ -780,6 +866,12 @@ def main(argv: list[str] | None = None) -> int:
     build_parser.add_argument("--workers", type=int, default=4)
     build_parser.add_argument("--only-functions", default="", help="comma-separated names")
     build_parser.add_argument("--retry-static", action="store_true")
+    build_parser.add_argument(
+        "--redo-ids",
+        type=Path,
+        default=None,
+        help='JSON file {"function:action[:sibling]": ["note", ...]}: rewrite these answers once',
+    )
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -793,6 +885,8 @@ def main(argv: list[str] | None = None) -> int:
         if len(report.problems) > 50:
             _say(f"... and {len(report.problems) - 50} more")
         return 0 if report.ok else 1
+
+    redo = load_redo(args.redo_ids) if args.redo_ids is not None else None  # before any key is read
 
     from assistant.client import AnthropicClient
     from config import get_settings
@@ -812,11 +906,13 @@ def main(argv: list[str] | None = None) -> int:
         workers=args.workers,
         only_functions=only,
         retry_static=args.retry_static,
+        redo=redo,
     )
     _say(
         f"{result.bank_version}: complete={result.complete} stopped={result.stopped} "
         f"cost=${result.cost_usd:.2f} built={result.built} reused={result.reused} "
-        f"failed={result.failed} missing={result.missing} counts={result.counts}"
+        f"failed={result.failed} missing={result.missing} counts={result.counts} "
+        f"redone={result.redone} redo_kept={result.redo_kept}"
     )
     return 0 if result.complete else 1
 
