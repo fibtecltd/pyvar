@@ -8,10 +8,13 @@ Filippo accepted the review's recommendations "for now". They replace the "decis
 
 - **Release 1 is menus only**: the bank is built by an agent run (option A, as in Phase 0) and committed to git; the typed box stays off.
 - **Release 2: refresh the bank by GitHub Actions with an AWS OIDC role (option B)**, if the OIDC role is accepted when it is proposed; otherwise option C.
-- **Pins use CUSUM** (section 8), the plan's recommendation. Revisit with real traffic.
+- **Bank pipeline, measured (run C, results 9.19):** Sonnet writes; the graders check; a failing answer goes back to Sonnet with the failing checks, up to two more calls (239 of 308 pass first try, 69 the second, none needs a third); Opus gates every final answer (1.0% flagged); a gate flag is regenerated once by Opus (supported by one case, `esg_score_integration:when`; the record of that function is the better fix), then static text. A full build costs about $15 (writer $7.6, verdicts $7.7) plus the gate's regenerations. Two grader defects must be fixed in the bank PR with a re-grade of the Phase 0 answers: the line-start-number check, and the `no_source_claims` wording rule, which v4 text violates in a quarter of first drafts.
+- **Bank writer: Sonnet**, by rule M1 of the measurement plan (run A, results 9.17), to be confirmed by run B's Haiku grader control. A full build costs about $13.6 before regenerations (Sonnet $6.0 plus 1,154 Opus verdicts $7.6) against about $8 with Haiku. With the v4 prompt about a quarter of first drafts fail the `no_source_claims` wording check; regeneration with feedback is not yet tested.
+- **Typed questions are not ready** (run B, results 9.18): the first iteration is flagged on 8 and 9 of 175 in-scope answers (Haiku, Sonnet) and Sonnet is no better than Haiku. A typed verdict costs about $0.0077, so the $2 daily audit budget buys about 260 verdicts, not 143. Before the typed box: a parameter validator that accepts arrays for `object`-typed parameters (or validates against the OpenAPI schema), the domain in search results, an absence rule, a negation-aware advice check, and an English-only rule that allows the visitor's language or says why not.
+- **Pins use CUSUM** (section 8), **confirmed by Filippo on 2026-11-11**. Revisit with real traffic.
 - **JSON reply, no token streaming** (section 4).
 - **A person still reads a random sample of at least 40 bank answers per release**, outside the request path. The recall-check rule that makes Opus usable as the gate assumed it, and nothing automatic replaces it (the watchdog sees live typed answers only). Section 12 is written to match.
-- **Open:** the key for the bank build; the pro plan's price; Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.
+- **Open:** the key for the bank build; the pro tier's pricing (not defined yet, 2026-11-11); Fable's id and prices; the privacy wording and Anthropic's API retention terms; the egress check.
 
 ## Summary (10 lines)
 
