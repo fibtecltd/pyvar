@@ -725,6 +725,11 @@ person, or a fix to the records, and a pipeline would send an answer that fails 
 pushed by Filippo after the agent's own push failed for lack of credentials. Their sha256 values match the agent's
 report byte for byte. The reading is pending; the branch is deleted once it is recorded.
 
+**Where the prompt stands in the repository (2026-11-11).** `scripts/assistant_eval/prompts.py` carries v4
+(`v4-2026-11-09`) again, the candidate: the v5 text lives in commit `b078380` (the run of this section) and in the
+plan's history, not in the file. The v5 grader checks (`no_source_claims`) stay, and 9.17 to 9.19 measure v4 text
+against them.
+
 ### 9.15 The first reading of the recall check was incomplete (2026-11-10)
 
 Filippo read the 56 answers on a page that showed each catalogue entry's summary, description and inputs but **not its
