@@ -46,6 +46,14 @@ pyvar/
 │   └── deriv_stoch_vol.py     ← Heston/SABR/Dupire/rBergomi/Variance Gamma/NIG; the 3 MC
 │                                  pricers (rBergomi/VG/NIG) support greeks=True opt-in too
 │
+├── assistant/                 ← portal assistant kernel (measured by scripts/assistant_eval/; no network imports)
+│   ├── prompts.py             ← system prompt, per-action tasks, request builder (PROMPT_VERSION v4)
+│   ├── graders.py             ← programmatic graders for menu answers and grade_typed
+│   ├── cost.py                ← token prices and cost from the API's usage block
+│   ├── body_schema.py         ← small JSON-Schema checker for request bodies
+│   ├── records.py             ← trim_record: the part of a catalogue entry a model is shown
+│   └── scrub.py               ← removes pyvar keys, JWTs and other key-like strings from text
+│
 ├── schemas/                   ← Pydantic v2 request/response models
 │   ├── var.py                 ← VaRRequest, VaRResult, JobResponse
 │   ├── auth.py                ← sign-in and API key request/response models
