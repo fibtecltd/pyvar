@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9c82e8efa8ec1f00c8129b3a200e72440a79b93b7b3fe83668ab4419a15a673c",
+      "source": "model",
+      "text": "`jensens_alpha` asks whether a portfolio earned more or less than the CAPM says it should, given its beta to a benchmark. It takes portfolio `returns`, `benchmark_returns`, an optional `risk_free` rate and `periods_per_year`, and gives an annualised alpha from the average excess return minus beta times the benchmark's average excess return. `drawdown_duration` asks a different question: how long has the portfolio spent below its previous peak? It takes `returns` (or an equity curve if `is_equity_curve` is True) and counts consecutive periods underwater, reporting the longest run and the current one. So the first is about risk-adjusted performance relative to a market benchmark, and the second is about the length of losing stretches. It needs no benchmark and no risk-free rate.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fe215ad014b476a1f041138192b5d03a21d69f09f5a4ae71495a0a411e1c7858",
+    "source": "model",
+    "text": "`jensens_alpha` computes Jensen's alpha, the portfolio's average excess return over what the CAPM single-factor regression predicts given its beta to a benchmark. You pass in `returns` for the portfolio and `benchmark_returns` for the market, both as 1-D arrays of per-period returns. It takes the portfolio's mean excess return over the risk-free rate and subtracts beta times the benchmark's mean excess return. The optional `risk_free` is a per-period rate, and the per-period alpha is annualised by multiplying by `periods_per_year`, which defaults to 252.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a3d3ef44ba20b0ec299f2aadd4c1520de9ff0613a6bfabf7fbd653e0b20c9718",
+    "source": "model",
+    "text": "`jensens_alpha` fits when you want to know how much a portfolio earned beyond what its market exposure would explain under CAPM.\n\n- You have a portfolio's per-period returns and a market benchmark's returns, and want return net of beta (the portfolio's sensitivity to that benchmark).\n- You want to judge a manager's or strategy's skill relative to the risk taken from market exposure, not just raw return.\n- You need an annualised figure: set `periods_per_year` to match your data frequency, and `risk_free` to the per-period risk-free rate if you want excess returns.\n- Your benchmark is a sensible stand-in for \"the market\" for this portfolio, since the single-factor regression depends on it.\n- For a different need, `treynor_ratio` is listed as annualised excess return per unit of systematic risk (beta), which suits a ratio-style comparison rather than an alpha figure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7676368875681e07c4f59b5523ef75612c68444c35a4eeee90976d1ac2c0fecb",
+      "source": "model",
+      "text": "`factor_based_optimisation` asks \"which long-only, fully invested mix has the lowest risk?\", using a covariance built from a factor model (`factor_exposures`, `factor_cov` and `specific_var`). It needs no expected returns, and it can optionally match `target_exposures` to the factors. `maximum_sharpe_ratio_portfolio` asks \"which mix gives the best risk-adjusted return?\", so it takes `mean_returns` and a `cov_matrix`, plus an annual `risk_free` rate. Its weights must sum to 1, and by default they are bounded to [0, 1], though `allow_short` can change that. In short, the first function minimises variance from a factor-based covariance, while the second maximises the annualised Sharpe ratio from return forecasts and a covariance you supply directly. Both share `periods_per_year` for annualisation.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "59fe758038a7444cc8424d7ced4fa2df2c890fad012f48874c694e68298067ad",
+    "source": "model",
+    "text": "`factor_based_optimisation` (Factor Based Optimisation) finds the long-only, fully invested minimum-variance portfolio using a factor model of risk. It builds the asset covariance from your `factor_exposures`, `factor_cov` and `specific_var`, combining the factor-driven part with each asset's own idiosyncratic variance. You can also pass `target_exposures` so the portfolio matches chosen factor exposures exactly. The `periods_per_year` parameter sets the annualisation factor, which defaults to 252.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a958d426f1a5488edc7d08415ec954f4d19831d0a510cf13549bf228488765d7",
+    "source": "model",
+    "text": "`factor_based_optimisation` (Factor Based Optimisation) fits when you want a minimum-risk portfolio whose risk comes from a factor model.\n\n- You have factor loadings, a factor covariance and idiosyncratic variances, and want the asset covariance built from them rather than estimated directly.\n- You need a long-only, fully invested minimum-variance portfolio.\n- You want the portfolio to match specific factor exposures exactly, which you set with `target_exposures`.\n- Your data isn't daily: set `periods_per_year` to match your data's frequency for annualisation.\n\nIf you want a minimum-variance portfolio without a factor model, `minimum_variance_portfolio` is listed as the global minimum-variance portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

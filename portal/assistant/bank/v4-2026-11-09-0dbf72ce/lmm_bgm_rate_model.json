@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b6c88469de9d7e6c66c6feb1175533b73e943cb07dcedf570ac2a1a5cc4c2509",
+      "source": "model",
+      "text": "`lmm_bgm_rate_model` and `total_return_swap_trs` answer different questions. The first asks how a whole curve of forward LIBOR rates might evolve. It runs a Monte Carlo simulation under the BGM log-normal dynamics, using a predictor-corrector scheme, and returns the mean terminal forward curve. You supply `forward_rates`, `vols`, `tenor` and `horizon`, plus optional `n_steps`, `n_simulations` and `seed`.\n\n`total_return_swap_trs` asks what one total-return swap leg is worth for a given period. It takes `notional`, `asset_return`, `financing_rate`, `accrual` and `discount_factor`, and applies a closed-form formula: the asset's return minus the financing cost, scaled by notional and discounted. It involves no simulation and no rate dynamics.\n\nIn short, the first is a stochastic model of interest-rate behaviour. The second is a direct valuation of a swap leg from inputs you already have.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3304f29d460bff15e86914ead811dad5e7e651f7503dbede26bcda62135fdf8",
+    "source": "model",
+    "text": "`lmm_bgm_rate_model` runs a Monte Carlo simulation of the LIBOR Market Model (BGM), evolving a vector of forward LIBOR rates under the spot measure. You supply initial `forward_rates`, a lognormal volatility per rate (`vols`), the accrual `tenor`, and a `horizon` in years. Each path is stepped forward with a predictor-corrector Euler scheme, and the function returns the mean terminal forward curve across paths. Because the dynamics are lognormal, simulated rates stay positive. You can control the number of paths with `n_simulations`, the time grid with `n_steps`, and reproducibility with `seed`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "77974004a05578ea58816d8b273acf3a316b297ab2af4ece96dc0c06713db9d0",
+    "source": "model",
+    "text": "`lmm_bgm_rate_model` (Lmm BGM Rate Model) fits when you want to simulate a whole curve of forward LIBOR rates, not just one rate.\n\n- You have a set of initial forward rates, each with its own lognormal vol, and want the mean terminal forward curve at a chosen `horizon`.\n- You want rates that stay positive, since the dynamics are lognormal.\n- You need Monte Carlo with a predictor-corrector scheme (Glasserman-Zhao) for the drift, and can tune `n_steps`, `n_simulations` and `seed` for the run.\n- Your forwards share one accrual length, set by `tenor`.\n- For a single caplet or floorlet under the Black (lognormal) model, `caplet_floorlet_pricer_black` is listed as the tool for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

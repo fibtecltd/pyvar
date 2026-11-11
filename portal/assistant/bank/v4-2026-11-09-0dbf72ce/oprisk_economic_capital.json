@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ed6005e4b1c0214fdafd0990c890365e534b930a0695f2ab3bc37c3d07407e83",
+      "source": "model",
+      "text": "`oprisk_economic_capital` answers \"how much capital does this exposure need?\": it takes `opvar` less `expected_loss` to get unexpected loss, subtracts any recognised `insurance_offset` and `diversification_benefit`, and floors the result at zero. `oprisk_capital_allocation` answers a different question: \"given a firm-wide total, how much belongs to each business line?\" It takes `total_capital` and `business_line_risks`, then splits the total in proportion to each line's standalone risk, so the shares add up exactly to the total.\n\nIn short, the first function produces a capital figure from risk inputs and mitigants, while the second divides a capital figure you already have. They can be used in sequence, with the output of the first serving as the `total_capital` for the second.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "43bdb31cb6daa1a9fe87235c47a09b766b83098671612f1c3f6fd4c71a686e09",
+    "source": "model",
+    "text": "`oprisk_economic_capital` (OpRisk Economic Capital) works out operational-risk economic capital as unexpected loss net of recognised mitigants. It takes `opvar` (operational VaR at the economic-capital confidence) and subtracts `expected_loss` to get unexpected loss, floored at zero. It then deducts `insurance_offset` and `diversification_benefit`, both optional and defaulting to zero. The final result is floored at zero, so it never comes out negative.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "14f24fd6a4d00a591c9af9fe1bd3ef132e7ab6b0c6e6dd93c7ebf307a09eda54",
+    "source": "model",
+    "text": "`oprisk_economic_capital` (OpRisk Economic Capital) fits when you already have your loss figures and want the capital left after mitigants:\n\n- You have an operational VaR at your economic-capital confidence and an expected annual loss, and want the unexpected loss between them.\n- You want to net recognised insurance (`insurance_offset`) and diversification (`diversification_benefit`) off that unexpected loss, with the result floored at zero.\n- You want one capital figure that shows how much mitigants reduce the requirement. Both mitigant inputs default to 0.0, so you can run it with no mitigation first.\n- To get the insurance or diversification amounts themselves, `insurance_offset_calculation` is listed as the insurance mitigation offset for an operational loss, and `diversification_benefit_oprisk` as the diversification benefit across OpRisk cells under a single correlation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "scenario_severity_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f6e24dc46c6de858ec124fdcd1a20d1c277d8da38ed57104f79f60e75d58fec6",
+      "source": "model",
+      "text": "`scenario_frequency_estimation` answers \"how often does this scenario happen?\" It returns an annual event rate (the Poisson lambda), taken from the expert's `expected_events_per_year` or, if you supply `occurrences` and `observation_years`, from the observed count divided by the window. `scenario_severity_estimation` answers \"how big is the loss when it happens?\" It treats `typical_loss` as the median of a lognormal and uses `worst_case_loss` at `worst_case_percentile` to solve for the spread. So one covers the frequency side of a scenario and the other the severity side. The frequency result feeds the scenario's compound loss, and `scenario_analysis_oprisk` is the related function that combines the two through Monte Carlo.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "de286d8aa0c8ef99f69d5e4fa21b876fc1778238c4308faf26b0fd0eee72ab46",
+    "source": "model",
+    "text": "`scenario_frequency_estimation` (Scenario Frequency Estimation) estimates how many times per year an operational risk scenario is expected to occur, expressed as a Poisson lambda. By default it takes your expert's estimate through `expected_events_per_year`. If you also supply `occurrences` and `observation_years` (which must be greater than zero), it uses the empirical rate instead, which is occurrences divided by observation years. The resulting lambda is the frequency input to the scenario's compound loss.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d72e4b769c80d3fd14e75ae5952e8090649ecdf52dfe4421442ef969b5f65f5f",
+    "source": "model",
+    "text": "Use Scenario Frequency Estimation (`scenario_frequency_estimation`) when you need the annual event rate (the Poisson lambda) for an operational risk scenario.\n\n- You have an expert's view of how many events happen per year and want it used directly as lambda via `expected_events_per_year`.\n- You also have historical counts and an observation window, so you can supply `occurrences` and `observation_years` and let pyvar use the empirical rate (occurrences divided by years) instead.\n- You need the frequency input that feeds a scenario's compound loss.\n- Related function: `scenario_severity_estimation` calibrates a lognormal severity from expert typical and worst-case losses, which covers the loss-size side rather than frequency.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

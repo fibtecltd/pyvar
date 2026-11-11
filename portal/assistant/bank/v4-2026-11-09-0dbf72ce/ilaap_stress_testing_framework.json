@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "338e358ed94d26e555eae5b0182d9d071f284140155ac93ae952d01fce698acf",
+      "source": "model",
+      "text": "`ilaap_stress_testing_framework` answers \"across all my named stress scenarios, which one is worst and is the position adequate overall?\" It takes a `scenarios` mapping, where each scenario already carries a `surplus_deficit` figure, and reports the binding (worst) scenario, how many scenarios are breached, and whether the minimum surplus/deficit is at or above zero. It does no cash-flow arithmetic itself and only aggregates figures you have already computed.\n\n`ilaap_internal_liquidity_metric` answers \"does my own liquidity buffer cover stressed outflows, and do I survive long enough?\" It takes `counterbalancing_capacity`, `stressed_net_outflow`, `survival_days` and optionally `minimum_survival_days`. It calculates a coverage ratio and checks that both the ratio and the survival horizon meet the internal tests.\n\nIn short, one summarises many scenarios, while the other tests a single position against coverage and survival.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1594f488601b6717b4c938273234e47fe803a7e8eedffd06162c5523f1409717",
+    "source": "model",
+    "text": "`ilaap_stress_testing_framework` (ILAAP Stress Testing Framework) rolls the results of several named liquidity stress scenarios into one ILAAP-style summary. You pass `scenarios` as a mapping of scenario name to a dict that carries a `surplus_deficit` figure, such as the scenario functions in pyvar produce. It identifies the binding scenario, meaning the one with the lowest surplus or deepest deficit, and reports that worst value. It also counts how many scenarios are breached and gives an overall adequacy verdict, which is adequate only if the worst surplus/deficit is at or above zero. It only aggregates values you already computed and does no cash-flow arithmetic itself.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "88a8672e17eb8aa03eb8b3f613f0ee8513af124b99cdeca4c6bd032b6b48ea8a",
+    "source": "model",
+    "text": "`ilaap_stress_testing_framework` (ILAAP Stress Testing Framework) fits when you already have several liquidity stress scenario results and want them rolled into one summary.\n\n- You have named scenarios, each with a `surplus_deficit` figure already computed, and want to know which one is the binding (worst) case.\n- You want a count of how many scenarios were breached, plus an overall adequacy verdict, which is adequate only if the worst surplus or deficit is at or above zero.\n- You are putting together an ILAAP-style summary and need a single view across scenarios, passed in through the `scenarios` parameter.\n- Keep in mind it only aggregates; it does no cash-flow arithmetic, so the scenario figures must come from elsewhere first.\n\nIf you instead need to map a liquidity metric to a red/amber/green risk-appetite zone, `liquidity_risk_appetite_threshold` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

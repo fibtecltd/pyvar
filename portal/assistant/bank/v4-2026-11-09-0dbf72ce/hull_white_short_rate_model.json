@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "vasicek_interest_rate_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5351382615a3a5db28d33ddcf4b45063c370ff90257865a9a0169c9d1f82f0fa",
+      "source": "model",
+      "text": "`hull_white_short_rate_model` and `vasicek_interest_rate_model` share the same dynamics and the same closed-form zero-coupon bond price. With a constant mean-reversion level, `hull_white_short_rate_model` literally delegates to the Vasicek function, so the two give the same model. It is not a genuine time-dependent Hull-White fit to an observed market forward curve.\n\nThe differences are in the interface. The Hull-White function takes `theta_const`, with a default of 0.03, while `vasicek_interest_rate_model` requires `theta` as the long-run mean. The default seeds also differ: 103 for Hull-White and 101 for Vasicek.\n\nUse `vasicek_interest_rate_model` to ask what a zero-coupon bond is worth, and how the short rate might evolve, under a mean-reverting Gaussian rate. Use `hull_white_short_rate_model` to ask the same question framed as the extended-Vasicek form with a constant level.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9b5d777ac3d7ceb8d9d9342271f86e6daa1b7920d47ce45b2cd184d75764e3b1",
+    "source": "model",
+    "text": "`hull_white_short_rate_model` prices a zero-coupon bond under a one-factor short-rate model where the rate follows `dr = κ(θ−r)dt + σ dW`. You give it the starting rate `r0`, the mean-reversion speed `kappa`, the volatility `sigma` and the bond `maturity`. It returns an analytic bond price and a Monte Carlo cross-check, which you can tune with `n_steps`, `n_simulations` and `seed`. With the constant level `theta_const`, it simply calls `vasicek_interest_rate_model`, so it is not a time-dependent Hull-White fit to a market forward curve.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1f309e00e5b913527c8e4fa4a8c15b41dac23f1ff2f7c2bb51a103e50452a87e",
+    "source": "model",
+    "text": "`hull_white_short_rate_model` fits when you want a simple mean-reverting short-rate model with a constant long-run level.\n\n- You want a closed-form zero-coupon bond price from `r0`, `kappa`, `sigma`, `maturity` and `theta_const`, plus a Monte Carlo cross-check of it.\n- You want to see how mean-reversion speed and volatility shape a bond price under `dr = κ(θ−r)dt + σ dW`.\n- You are fine with a constant `theta_const`. In that case it gives the same result as the Vasicek model, so it is not a time-dependent Hull-White fit to an observed market forward curve.\n- You want to compare the simulation with the analytic price by adjusting `n_steps`, `n_simulations` and `seed`.\n\nIf you need a short rate that stays non-negative, `cox_ingersoll_ross_model` is listed as giving a closed-form ZCB price and a simulated non-negative short rate.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

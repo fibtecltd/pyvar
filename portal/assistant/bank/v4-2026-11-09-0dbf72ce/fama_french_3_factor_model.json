@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "principal_component_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2013faa7445577368df43896d50ca03923503b33b04e0936709adb399659f632",
+      "source": "model",
+      "text": "`fama_french_3_factor_model` asks how much of a portfolio's excess returns can be explained by three named factors: market, size (SMB) and value (HML). You give it `excess_returns` and a `factors` matrix, and it regresses the former on the latter. The intercept is the factor alpha, the part the three factors don't account for.\n\n`principal_component_analysis` asks a different question: what are the main independent patterns of variation within a set of asset returns? It takes a `returns_matrix` and eigendecomposes its covariance matrix. It returns orthogonal components ordered by explained variance, with no factors supplied from outside.\n\nIn short, the first tests returns against factors you choose in advance, while the second finds the structure in the returns themselves.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8e0ea2976e20bd2a2b3daff9b7e7c419aa508e7bf3ba47c6a26a1ae1ae1c7d31",
+    "source": "model",
+    "text": "`fama_french_3_factor_model` (Fama French 3 Factor Model) runs a regression of your portfolio's excess returns, meaning returns over the risk-free rate, on three factors: market (MKT), size (SMB) and value (HML). You supply `excess_returns` and a `factors` matrix with one column each for MKT, SMB and HML. It fits the coefficients by ordinary least squares and returns the portfolio's loadings on each factor. The intercept is the factor alpha, the part of the return the three factors don't explain.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f64d37c35f72f1ce971b58ad46602b628de776d88a69bcd57eab44280961a7ce",
+    "source": "model",
+    "text": "`fama_french_3_factor_model` fits when you want to explain a portfolio's returns through market, size and value exposure:\n\n- You want to see how much of a portfolio's excess return comes from market (MKT), size (SMB) and value (HML) factors.\n- You want a factor alpha, which is the regression intercept, after those three exposures are accounted for.\n- You have the portfolio's excess returns over the risk-free rate and a matrix of MKT, SMB and HML factor returns for the same periods.\n- You want a simple, standard OLS regression with three factors.\n\nIf you also want a momentum factor, pyvar's `carhart_4_factor_model` is listed as a 4-factor regression covering MKT, SMB, HML and MOM.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

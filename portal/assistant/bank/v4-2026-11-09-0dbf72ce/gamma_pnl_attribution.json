@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ed5f8f981ed722925d6d656188a3d7108231a41f426574f569c83f25ed10d6b9",
+      "source": "model",
+      "text": "`gamma_pnl_attribution` and `pnl_attribution_test_frtb_pat` answer different questions. The first asks how much of a P&L move came from convexity. You give it `gamma` and the realised underlying move `spot_move`, and it applies ½ · Γ · dS² to give that single component. The second, the FRTB P&L Attribution Test, asks whether a risk model's P&L tracks full-revaluation P&L well enough. You give it daily `risk_theoretical_pnl` and `hypothetical_pnl` series, and it combines a Spearman rank correlation with a volatility ratio to assign a Basel traffic-light zone. Roughly, one explains where P&L came from, and the other tests the quality of a model's P&L against a regulatory benchmark (BCBS FRTB §9.5).",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b77aaab4bb15684621c062949f779a83a2d2f99aa89a8333510a6b9ebbfcbbba",
+    "source": "model",
+    "text": "`gamma_pnl_attribution` (Gamma Pnl Attribution) calculates the convexity part of a portfolio's P&L, using the formula ½ · Γ · dS². It takes two inputs: `gamma`, the portfolio's second derivative of value with respect to the underlying (∂²V/∂S²), and `spot_move`, the realised move in the underlying. In a P&L explain, this term sits alongside the first-order delta effect and captures what a linear approximation misses when the underlying moves. Because the move is squared, the sign of the move does not affect the term; the sign of `gamma` does.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b52047f6824babda58edc3fa3d7e114589c64ced37db83dd5bc126054754c71f",
+    "source": "model",
+    "text": "Use `gamma_pnl_attribution` (Gamma Pnl Attribution) when you want the convexity part of a P&L move, calculated as ½ · Γ · dS².\n\n- You have a portfolio gamma (`gamma`) and a realised underlying move (`spot_move`) and want to see how much P&L the curvature of the position contributed.\n- You are splitting a P&L explanation into pieces and need the second-order, spot-driven component on its own.\n- You want to see how large moves in the underlying matter because the move enters squared.\n- Related: `vega_pnl_attribution` covers the volatility component (ν · dσ), so it fits if your question is about changes in volatility rather than spot.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

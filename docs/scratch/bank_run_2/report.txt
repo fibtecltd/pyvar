@@ -1,0 +1,26 @@
+{
+ "bank_version": "v4-2026-11-09-0dbf72ce",
+ "entries": 1154,
+ "redo_ids": 52,
+ "redo_found": 52,
+ "changed": 52,
+ "unchanged": 0,
+ "now_static": 0,
+ "now_not_faithful": 0,
+ "gate_notes_before": 61,
+ "gate_notes_after": 3,
+ "with_notes_after": 2,
+ "tries_histogram_after": {
+  "1": 48,
+  "2": 4,
+  "3": 0
+ },
+ "escalated_after": 0,
+ "mean_length_before": 747.1,
+ "mean_length_after": 721.6,
+ "longest_after": 926,
+ "outside_changed": [],
+ "redo_ids_not_in_bank": []
+}
+NOTES irb_foundation_approach_capital:explain RWA is described only as 'the prescribed factor times K times ead'; the record gives the factor as 12.5.
+NOTES liquidity_adjusted_es:explain Never says that partial_es[j] is the ES from risk factors in liquidity bucket j and longer. | Gives the combination only as 'square root of summed squares' and omits the sqrt((LH_j−LH_{j-1})/T) scaling of each term.

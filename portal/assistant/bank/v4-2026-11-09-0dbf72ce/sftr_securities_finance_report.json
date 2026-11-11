@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "emir_margin_requirement": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a914234515bdc85e47baaa027b5a17f05365bcdee6976e44e461031c8227bbe2",
+      "source": "model",
+      "text": "`sftr_securities_finance_report` checks whether a securities-financing transaction report is well formed, while `emir_margin_requirement` calculates how much margin is owed on uncleared derivatives. The first answers \"is this repo, securities lending, buy-sell back or margin lending report complete and valid?\" It takes a `transaction` mapping and checks that required fields are present, that the SFT type is one of the allowed kinds, and that the collateral value is not negative. It covers a core subset of 6 fields, not SFTR's full field set.\n\nThe second answers \"how much margin must be posted?\" It takes `portfolio_value`, `initial_margin_rate`, `variation_margin` and an optional `minimum_transfer_amount`. It returns the initial margin plus the variation margin call, with the call set to zero when it falls below the minimum transfer amount. In short, one validates reporting data and the other computes margin amounts, under SFTR and EMIR Art. 11 respectively.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4606172f25367842f9f3d338e81c6f04bc90046398717f510b35b144aa868c3a",
+    "source": "model",
+    "text": "`sftr_securities_finance_report` (SFTR Securities Finance Report) builds and validates a securities-financing transaction report. You pass a `transaction` mapping of SFTR fields to values, and it checks the core fields for an SFT such as a repo, securities lending, buy-sell back or margin lending: counterparties, UTI, collateral and the SFT type. It confirms the required fields are present, that `sft_type` is one of those four types, and that `collateral_value` is not negative. Note that it covers a representative core subset of 6 fields, not SFTR's full field set.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "feba11c700cbc89f1af99224091bb88ec2289db99a581a45fbbfa1ba9c47f449",
+    "source": "model",
+    "text": "Use `sftr_securities_finance_report` (SFTR Securities Finance Report) when you need to check a securities-financing transaction before it is reported.\n\n- You have a repo, securities lending, buy-sell back or margin lending transaction and want to confirm its core SFTR fields are present and correctly formed.\n- You want a quick check of the counterparties, UTI, collateral and SFT type in a `transaction` mapping.\n- You are building a report and want a basic pre-submission screen, such as checking that `collateral_value` is not negative and that the SFT type is a supported one.\n- A representative core subset of 6 fields is enough for your purpose. It is not a full SFTR schema check.\n- For EMIR trade repository reporting instead, `emir_trade_repository_report` is an EMIR trade repository report builder/validator.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

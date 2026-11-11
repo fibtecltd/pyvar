@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "funds_transfer_pricing_ftp": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5cd68646c935dc26602fabafc6a61ee1d6bd9ae4f7deee0ad87112cf4a297228",
+      "source": "model",
+      "text": "`ftp_curve_construction` builds the transfer-rate curve itself: for each tenor it adds a term-liquidity spread (`liquidity_spreads`) to a base funding rate (`base_curve`), so it answers \"what should the matched-maturity transfer rate be at each tenor?\" `funds_transfer_pricing_ftp` takes a single deal and splits its economics into margin components, so it answers \"given this deal's transfer rate, how much margin does each unit earn?\" The curve function works across a list of `tenors`, while the deal function works on one `notional` with a `customer_rate`, an `ftp_rate` and an optional `liquidity_premium`. The two fit together: a curve from `ftp_curve_construction` is the kind of matched-maturity rate you would supply as `ftp_rate` when pricing a deal. The deal function also handles both assets and liabilities through `is_asset`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "33f459ef491c5b2411cb8489069e3939f47723748aee254f7176ab0c057c5f4f",
+    "source": "model",
+    "text": "`ftp_curve_construction` (FTP Curve Construction) builds a matched-maturity funds transfer pricing curve for use in ALM and balance sheet work. At each tenor it adds a term-liquidity spread to the base funding rate, following FTP_i = r_i^base + s_i. You supply `tenors` (in years, ascending), `base_curve` (the base funding rate per tenor, as a decimal) and `liquidity_spreads` (the spread per tenor, as a decimal). By construction, the curve is non-decreasing in the spread component. pyvar does the calculation and returns the resulting transfer rate at each tenor.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "55dcd8881d37418f3bd361a997b5528dfc06909a7f4012d36c9eb893dc2ca38c",
+    "source": "model",
+    "text": "`ftp_curve_construction` (FTP Curve Construction) fits when you need a term structure of transfer rates rather than a single rate.\n\n- You want a matched-maturity FTP curve built as a base funding curve plus a term-liquidity spread at each tenor.\n- You already have the inputs: ascending `tenors` in years, a `base_curve` of funding rates, and `liquidity_spreads` per tenor, all as decimals.\n- You want the spread component to be non-decreasing across tenors by construction, so longer terms carry at least as much liquidity charge.\n- You need a reference curve in ALM and balance sheet work that deals can later be priced against.\n- If you need to price a single deal into margin components, `funds_transfer_pricing_ftp` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

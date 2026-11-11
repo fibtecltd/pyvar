@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8d7e688037fd7cd64e778d93386376fd1a7f5bfae7e9be9112d6a25a9fe366d9",
+      "source": "model",
+      "text": "`cornish_fisher_var` and `component_var` answer different questions. `cornish_fisher_var` asks how large the portfolio's VaR is once skewness and fat tails in its historical `returns` are taken into account. It adjusts the Gaussian quantile using the third and fourth moments, and with zero skewness and zero excess kurtosis it matches the parametric delta-normal VaR. `component_var` asks how a portfolio's total VaR splits across its positions. It takes `weights` and a `cov_matrix`, and allocates VaR to each position as `w_i * marginal_i`, so the components sum exactly to the total. In short, one refines the shape of the loss distribution behind a single VaR figure, and the other breaks a VaR figure down by position.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "923da3b6cd203a18db356b628eb8cf91a319819a65ff20636bdd39f384eb2383",
+    "source": "model",
+    "text": "`cornish_fisher_var` (Cornish Fisher VaR) calculates a modified Value at Risk that adjusts the Gaussian quantile using skewness and excess kurtosis, so the figure reflects asymmetry and fat tails in returns. You supply a 1-D array of historical portfolio `returns` and the current `portfolio_value` in base currency. The `confidence_level` defaults to 0.99 and can range from 0.90 to 0.9999. You can also override `skewness` and `excess_kurtosis` instead of having them computed from the data. When both are zero, it collapses exactly to the parametric delta-normal VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9d22160ace35116d569c8a8537344020d3f67b52002feec90150009f18f0f98e",
+    "source": "model",
+    "text": "`cornish_fisher_var` (Cornish Fisher VaR) fits when a plain normal assumption looks too tidy for your return history:\n\n- Your historical `returns` show noticeable skewness or fat tails, and you want the VaR to reflect that.\n- You want a parametric-style estimate that adjusts the Gaussian quantile using the third and fourth moments rather than simulating from history.\n- You'd like to supply your own `skewness` or `excess_kurtosis` views instead of the sample values, for example to test how sensitive VaR is to them.\n- You want a result that matches the delta-normal VaR when skewness and excess kurtosis are both zero, so the two are easy to compare.\n\nIf you want a non-parametric approach instead, `historical_simulation_var` is listed as Non-parametric Historical Simulation VaR.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

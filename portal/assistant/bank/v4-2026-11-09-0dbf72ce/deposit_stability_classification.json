@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "collateral_availability_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1bbc7fad47bc26ada8ef86ff73b546be2757f412b20e42c18d5a821618ef7e98",
+      "source": "model",
+      "text": "`deposit_stability_classification` looks at the funding side: it takes a stability score for each deposit and sorts deposits into stable or less-stable using a cut-off, `stable_threshold`. It answers the question \"which of my deposits are likely to stay put, and what fraction is stable?\" Stable deposits get lower LCR run-off, so this feeds into how much funding could leave.\n\n`collateral_availability_analysis` looks at the asset side. It takes `collateral_values`, `haircuts` and optionally `already_pledged`, and returns the net value you could realise after haircuts and pledged amounts. It answers \"how much secured funding could I raise from my collateral?\"\n\nIn short, one classifies deposit behaviour, the other measures usable collateral.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d711ddf0e954cfaf3cf56650e3fa579cd5cb41492038baf5c189cffa1dd0395f",
+    "source": "model",
+    "text": "`deposit_stability_classification` (Deposit Stability Classification) sorts deposits into stable and less-stable groups based on a stability score you supply for each one, between 0 and 1. That score might come from things like insurance coverage, the transactional relationship or tenor. Any deposit scoring at or above `stable_threshold` counts as stable, which carries lower LCR run-off, and the rest are less-stable. The threshold defaults to 0.5 if you don't set it. pyvar also reports the stable fraction, meaning the share of deposits classed as stable.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5bbe98a7ee3ac3ffdb39d8b0f40e4d34e4336ab9e2deb62090508acd0d564c22",
+    "source": "model",
+    "text": "Use Deposit Stability Classification (`deposit_stability_classification`) when you need to split deposits into stable and less-stable groups:\n\n- You already have a stability score between 0 and 1 for each deposit, for example based on insurance coverage, transactional relationship or tenor, and want to turn it into a stable/less-stable label.\n- You want to see what share of your deposits counts as stable, since the formula also gives a stable fraction.\n- You are preparing liquidity analysis where stable deposits carry lower LCR run-off than less-stable ones.\n- You want to test a different cut-off: `stable_threshold` is adjustable, and deposits at or above it count as stable.\n- For aggregate retail deposit run-off by Basel LCR category, look at `retail_deposit_runoff_rate`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

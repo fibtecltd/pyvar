@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "26d79b9b4a60f25fe46123558df2d776a1fd991ca90c1fc2b6d826788b02f87d",
+      "source": "model",
+      "text": "`pipeline_risk_measurement` asks how much rate risk sits in rate-locked mortgage commitments that aren't on the balance sheet yet. It takes `pipeline_notional`, `pull_through_rate`, `rate_lock_period` and `rate_volatility`, and works from the expected exposure (notional times pull-through). It then scales that by volatility and the square root of the lock period. The result is a heuristic proxy, not a rigorous option-pricing valuation of the rate-lock.\n\n`irrbb_six_standard_rate_shocks` asks a different question: what do the six standard interest-rate shock curves look like across a set of `tenors`? It builds the parallel, steepener and flattener shapes following BCBS d368 Annex 2, with shock sizes set by `parallel_bps`, `short_bps` and `long_bps`. It produces scenario curves, not a risk figure for any portfolio.\n\nIn short, one measures the risk of a specific pipeline, and the other supplies standard shock scenarios for banking-book rate risk work.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2a3583a9043475750d9774d8067f2ee757e12988b4fb961ee837c3f02044a761",
+    "source": "model",
+    "text": "`pipeline_risk_measurement` (Pipeline Risk Measurement) estimates the risk on rate-locked mortgage commitments that are not yet on the balance sheet. It first works out the expected exposure as `pipeline_notional` times `pull_through_rate`, the expected fraction that completes. It then scales that exposure by `rate_volatility` and the square root of `rate_lock_period` (in years) to give `rate_risk`. Note that `rate_risk` is a heuristic volatility-exposure proxy, not a rigorous option-pricing valuation of the rate-lock optionality.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bea7b0d8cfc26a1ff3f44ee74afa88548005d43f8435d6b51502a9c6a510ba09",
+    "source": "model",
+    "text": "`pipeline_risk_measurement` (Pipeline Risk Measurement) fits when you want a quick read on rate-lock exposure that isn't on the balance sheet yet.\n\n- You hold rate-locked mortgage commitments that haven't funded, and want the exposure scaled by the share you expect to complete (`pull_through_rate`).\n- You want a rough sense of how rate risk grows with a longer `rate_lock_period` or higher `rate_volatility`.\n- You're comfortable with a heuristic √time-scaled volatility proxy, since `rate_risk` is not a rigorous option-pricing valuation of the rate-lock optionality.\n- You have the four inputs on hand: `pipeline_notional`, `pull_through_rate`, `rate_lock_period` and `rate_volatility`.\n\nIf you need the value of automatic and behavioural embedded options, `option_risk_irrbb` is listed as doing that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "liquidity_coverage_ratio_lcr": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d043cd7158597e8fd04423b8b3ab38a83455635f0648f7237abf67aa6599b7d8",
+      "source": "model",
+      "text": "`required_stable_funding_rsf_calc` answers \"how much stable funding does a bank's asset book call for?\" It takes `asset_amounts` and a matching `rsf_factors` for each asset (each between 0 and 1), then returns the weighted sum, which is the NSFR denominator. Less liquid or longer-dated assets carry higher factors.\n\n`liquidity_coverage_ratio_lcr` answers a different question: \"does the bank hold enough high-quality liquid assets to cover a short stress period?\" It divides `hqla` by net 30-day outflows. Those outflows are `gross_outflows` minus `gross_inflows`, with inflows limited by `inflow_cap`.\n\nIn short, RSF is a one-sided funding requirement built from the asset side of a longer-term structural measure. LCR is a complete ratio focused on near-term cash stress. For the full structural ratio, see `net_stable_funding_ratio_nsfr`, and for the other side of its calculation, see `available_stable_funding_asf_calc`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "36b27a71e73500d6df51c4e86a611ade6da6444333ebf315b532ac7989ac0298",
+    "source": "model",
+    "text": "`required_stable_funding_rsf_calc` (Required Stable Funding RSF Calc) computes the RSF figure that sits in the denominator of the NSFR. It takes `asset_amounts`, the carrying amounts of each asset or off-balance item, and `rsf_factors`, a factor between 0 and 1 for each one. It multiplies each amount by its factor and sums the results. More liquid or shorter-dated assets carry lower factors, while illiquid assets carry the highest. For example, Level 1 HQLA gets a lower factor than loans.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1421c16b34ea7bba9f1e2d1ad00aa782fe4820a2c1f3d44194e90214cd944627",
+    "source": "model",
+    "text": "`required_stable_funding_rsf_calc` fits when you need the denominator of the NSFR, the weighted sum of assets by their RSF factor.\n\n- You have carrying amounts for each asset or off-balance item (`asset_amounts`) and a factor between 0 and 1 for each (`rsf_factors`).\n- You want to see how asset mix drives stable funding needs, since more liquid or shorter assets attract lower factors and illiquid ones attract higher.\n- You are building the NSFR step by step and want the RSF piece on its own.\n- You want to test how changing a factor or an asset amount changes the weighted total.\n\nFor the funding side, `available_stable_funding_asf_calc` is listed as computing Available Stable Funding for the NSFR numerator. If you want the full ratio, `net_stable_funding_ratio_nsfr` is listed as the Basel III Net Stable Funding Ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

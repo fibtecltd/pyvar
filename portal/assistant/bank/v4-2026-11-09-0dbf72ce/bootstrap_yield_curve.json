@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "swap_rate_curve": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "eecaf650fa600923637469be10cae120418a6742384dc6c0596ec3adcacf5ebf",
+      "source": "model",
+      "text": "`bootstrap_yield_curve` and `swap_rate_curve` run in opposite directions. `bootstrap_yield_curve` answers \"what zero rates are implied by the par-coupon bond rates I observe?\" You give it `par_rates` and `maturities`, and it solves for each discount factor in turn so every par bond prices to par. It then converts those factors to continuously-compounded zero rates.\n\n`swap_rate_curve` answers \"what par swap rates does a given discount curve imply?\" You give it `discount_factors` and `maturities`, and it returns the fixed rate at each tenor that makes a par swap worth zero. Both take a `frequency` parameter, but in `swap_rate_curve` it sets the fixed-leg payment frequency.\n\nIn short, one builds a curve from par rates, and the other reads par swap rates off a curve you already have.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "003230a89538190ab4d8a04cd5b0b134bff3c083ad54a345b984141bd7b39f88",
+    "source": "model",
+    "text": "`bootstrap_yield_curve` (Bootstrap Yield Curve) turns a set of par-coupon bond rates into zero (spot) rates. It works through the maturities in order, solving for each discount factor so that the corresponding par bond prices to par. It then converts those discount factors into continuously-compounded zero rates. You supply `par_rates` as decimals and `maturities` in years, ascending and evenly spaced by 1/`frequency`. You can also set `frequency` (coupons per year) and `face_value`, which defaults to 1.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3c732c24fb181ac55391627f528fad870e673b3dab6b188fbbe56df1c7d03c52",
+    "source": "model",
+    "text": "Use Bootstrap Yield Curve (`bootstrap_yield_curve`) when you want zero (spot) rates and all you have are par-coupon bond rates:\n\n- You have a par rate for each maturity (`par_rates`) and want continuously-compounded zero rates from them, with each par bond priced back to par.\n- Your maturities (`maturities`) run in ascending order and are evenly spaced by 1/`frequency`, since the method solves for each discount factor in turn.\n- You need to set the coupon `frequency` or the `face_value` (it defaults to 1) to match the bonds you're working with.\n- You want the curve built directly from the quotes, not a smooth curve fitted to observed yields. For that, see `nelson_siegel_curve_fit`, which fits a Nelson-Siegel curve to observed yields.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

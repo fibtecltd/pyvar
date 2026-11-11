@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "706cf2904dbb8d31beadc38628e4f11520e3c5f369ce9eba9e5a19d75c3ddedc",
+      "source": "model",
+      "text": "`charm_delta_decay` (Charm Delta Decay) asks how an option's delta changes as time to maturity moves, for a single option described by `spot`, `strike`, `rate`, `sigma`, `tau`, `option_type` and `div_yield`. `gamma_cross_gamma_matrix` asks a different question: how a portfolio's value responds to joint moves in several underlyings. It assembles a symmetric matrix with each underlying's net gamma on the diagonal and cross-gammas off the diagonal, built from the `own_gammas` and `cross_gammas` you supply. That matrix feeds a gamma P&L of 0.5 · ds' G ds for a shock vector ds. In short, charm is about delta over time for one option, while the matrix is about second-order price sensitivity across a portfolio. Note that `charm_delta_decay` uses the time-to-maturity sign convention, which is the opposite of the calendar-time charm often quoted elsewhere.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "466fcaedfa6485fea9597e5da0a3adedbd952e8fae8d9809cc7a922cb3432e40",
+    "source": "model",
+    "text": "`charm_delta_decay` (Charm Delta Decay) calculates charm, which is how much an option's delta changes as time to maturity changes. You give it `spot`, `strike`, `rate`, `sigma` and `tau`, and optionally `option_type` (call by default) and `div_yield`. It works in the time-to-maturity convention, so it returns +∂Δ/∂τ, and a finite difference of delta with respect to `tau` should reproduce its value. That is the opposite sign from the calendar-time charm (−∂Δ/∂t) often quoted on trading desks and in textbooks. Check which convention any comparison source uses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f45b4b13462f492d8f45b0b6c513e7a152e6c040638a9c99faff3a39dfd3f72e",
+    "source": "model",
+    "text": "`charm_delta_decay` (Charm Delta Decay) fits when you need to see how an option's delta shifts as time to maturity changes.\n\n- You're checking how a delta hedge may drift as expiry approaches, using `tau` as the time input.\n- You want a value consistent with a finite difference of delta with respect to time to maturity.\n- You're comparing against another source: this uses the +∂Δ/∂τ sign, opposite to the calendar-time convention (−∂Δ/∂t) common on desks, so confirm which convention your comparison uses.\n- You have a call or put, with an optional `div_yield`, and want the dividend effect included.\n- For calendar time decay of option value rather than delta, `theta_time_decay` is listed as Black-Scholes Theta, calendar time decay per year.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

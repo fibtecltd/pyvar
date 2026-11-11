@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rcsa_risk_identification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b00d1788d8aa5faa9ad16bff068ff1cf5594f5f1f983f5d7a8d4033dfb694dcb",
+      "source": "model",
+      "text": "`control_testing_effectiveness` answers \"how well did our control tests perform?\" You give it `tests_passed` and `tests_total`, and it returns the pass rate, the exception rate (one minus the pass rate), and a conclusion. The conclusion is effective if the pass rate is at least 0.95, and deficient otherwise, so an exception rate above 5% downgrades it.\n\n`rcsa_risk_identification` answers a different question: \"is our risk register well-formed, and how are the risks spread across categories?\" It takes a `risk_register` of entries with a `risk_id` and a `category`, checks that each category is one of the Basel Level-1 types, and counts entries per category. It is validation and counting, not a numeric formula.\n\nIn short, one judges control testing outcomes, the other checks and tallies the identified risks.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e1a41b39fb54f4fd4610704296dfabeef8b7c97ecf725b7e9336c624693e36ea",
+    "source": "model",
+    "text": "`control_testing_effectiveness` (Control Testing Effectiveness) is an operational risk function that turns control testing results into a pass rate and an effectiveness conclusion. You give it `tests_passed` and `tests_total` (the total must be greater than 0). It divides passed by total to get the pass rate, and the exception rate is one minus that. If the exception rate is above the supervisory tolerance (the default is more than 5% failures), the conclusion is downgraded from effective to deficient.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a7b6eca9175b297ddeee4daf6d1a3a8aaf72f573e764f7051eb0fa588c793286",
+    "source": "model",
+    "text": "`control_testing_effectiveness` (Control Testing Effectiveness) fits when you have sample test results for a control and want a simple pass rate and conclusion.\n\n- You know how many control tests were performed (`tests_total`) and how many passed (`tests_passed`).\n- You want the exception rate, which is one minus the pass rate, shown alongside the pass rate.\n- You need an effective-or-deficient conclusion, where an exception rate above the supervisory tolerance (default more than 5% failures) downgrades the result.\n- You are reviewing operational risk controls and want an empirical, test-based view rather than a judgement-based one.\n- For a composite view built from design and operating effectiveness, see `rcsa_control_effectiveness`, which is listed as computing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fdf6973f3c0be0e3cd705f2f93bda6e25929c7f5ab175343f0e426451c8bb364",
+      "source": "model",
+      "text": "`basis_risk_irrbb` answers \"how much would net interest income change if my assets and liabilities reprice off different indices that move by different amounts?\" It takes balances and index moves for each asset and liability bucket (`asset_balances`, `asset_index_shifts`, `liability_balances`, `liability_index_shifts`) and applies ΔNII = Σ A·Δi_A − Σ L·Δi_L. `irrbb_six_standard_rate_shocks` answers a different question: \"what do the six standard BCBS d368 shock curves look like across my tenors?\" It takes `tenors` plus optional `parallel_bps`, `short_bps` and `long_bps`, and builds the parallel, steepener and flattener curves. So the first measures an earnings effect from your own index moves, while the second only constructs the shock scenarios and does not use any balances.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9c279889dd4b2e0314af44bea39ff1eb3f10055fb3b5718a0dfef44dc357902e",
+    "source": "model",
+    "text": "`basis_risk_irrbb` (Basis Risk IRRBB) measures how much net interest income changes when assets and liabilities reprice off different indices that don't move in step. It follows the BCBS d368 definition of basis risk. You give it balances and index shifts (as decimals) for each asset bucket and each liability bucket. It then sums balance times shift across assets and subtracts the same sum across liabilities, giving the change in NII. The inputs are `asset_balances`, `asset_index_shifts`, `liability_balances` and `liability_index_shifts`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "89c978fcb8a8eb7c4b47aa29e6dbd1c3fcf2ffa4a706a2e8a554aa96a0dfe5d0",
+    "source": "model",
+    "text": "`basis_risk_irrbb` (Basis Risk IRRBB) fits when your assets and liabilities reprice off different indices and you want to see the net interest income effect.\n\n- Your balance sheet has asset and liability buckets tied to different reference indices that may not move together.\n- You want the change in net interest income (ΔNII) from index moves, using balances and index shifts (as decimals) for each bucket on both sides.\n- You are doing interest rate risk in the banking book work and need the basis risk piece, which is linked to BCBS d368.\n- You want to test how imperfectly correlated index moves change earnings, for example one index rising while another stays put.\n\n- For a different need, `irrbb_standardised_framework` is listed as the standardised IRRBB EVE measure, giving the worst ΔEVE across the six shocks.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

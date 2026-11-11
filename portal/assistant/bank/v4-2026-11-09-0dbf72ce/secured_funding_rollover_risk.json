@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b34e3053a1b1929d15d7bd390278d7e81fd8978f7f2f79f275acfa90016f62fb",
+      "source": "model",
+      "text": "`secured_funding_rollover_risk` answers the question of how much repo funding you would need to replace or repay if some maturing tranches fail to renew. You give it `maturing_amounts` and a `rollover_rates` value for each tranche, and it returns the rolled amount, the rollover gap and the effective rollover rate. `deposit_stability_classification` answers a different question: which deposits count as stable and which as less-stable. You give it a stability score per deposit in `deposit_features` and optionally a `stable_threshold`. Deposits at or above the cut-off are classed as stable, which carries lower LCR run-off, and the function also reports the stable fraction. In short, the first sizes a funding gap on secured funding, while the second sorts deposits into categories.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5132515ad4ad560bcfee3ef853965f34759ece5c7f3aef2d5bcad246b914ce27",
+    "source": "model",
+    "text": "`secured_funding_rollover_risk` (Secured Funding Rollover Risk) estimates the funding gap that arises when repo and other secured funding fails to roll over. You give it the amount maturing in each tranche (`maturing_amounts`) and an assumed rollover rate for each tranche (`rollover_rates`, between 0 and 1). For each tranche, the non-rolled portion must be replaced or repaid. The function sums these into a total rolled amount, a total rollover gap, and an effective rollover rate across all tranches, which is the rolled amount divided by the total maturing.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "269688af85fc91f4beb89f814bcf2861b725ee868f1b9c9ef4c95cbac53f5c03",
+    "source": "model",
+    "text": "Use Secured Funding Rollover Risk (`secured_funding_rollover_risk`) when you want to see how much repo funding would need replacing or repaying if some of it fails to roll.\n\n- You have secured funding maturing in several tranches and can assign each tranche an assumed rollover rate between 0 and 1 (`maturing_amounts` and `rollover_rates`).\n- You want the funding gap from the non-rolled portion of each tranche, plus the rolled amount and the effective rollover rate across all tranches.\n- You want to compare rollover assumptions, such as a lower rate for a tranche you consider fragile, to see how the gap changes.\n- For a different liquidity question, `repo_market_stress_haircut` fits when you want the incremental margin call from widened repo haircuts, which is a separate issue from tranches failing to renew.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

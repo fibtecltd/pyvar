@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5860a5e155e0ab8f36b4abefef3ce3caa7994437efd4f724160af6f6d8ce5e13",
+      "source": "model",
+      "text": "`oprisk_heat_map_generator` answers \"where does each of my risks sit on a 5×5 likelihood-and-impact grid?\" You give it `likelihoods` and `impacts` ratings (1-5) per risk, and it returns each risk's score (likelihood × impact), its RAG band, and a count matrix of risks per cell. `escalation_threshold_calculation` answers a different question: \"which governance tier should this loss be routed to?\" You give it a `loss_amount` and a `thresholds` mapping of level to minimum amount, and it picks the triggered tier with the numerically largest threshold. So the heat map profiles a portfolio of rated risks, while the escalation function is a rule-based lookup for a single loss. Because the lookup goes by threshold value, `thresholds` should be ordered monotonically with severity.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "839a97b87768d93b6b6e2e5f8d1c6b35211fefa14d75c15cc309f45f55ffa23b",
+    "source": "model",
+    "text": "`oprisk_heat_map_generator` (the OpRisk Heat Map Generator) builds a 5×5 operational risk heat map from a list of risks, each rated for likelihood and impact on a 1-5 scale. You supply `likelihoods` and `impacts`, with one rating per risk in each. For every risk, it places it in the matching grid cell, calculates a score as likelihood × impact, and assigns a RAG band. It also returns a count matrix showing how many risks fall in each cell, which gives you the overall distribution across the grid.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "765179464b21b2f21266d27a329d5ba8db7eaf463b77f78f2303dcedc165c5cf",
+    "source": "model",
+    "text": "The OpRisk Heat Map Generator (`oprisk_heat_map_generator`) fits when you want to see how a set of operational risks is spread across a 5×5 grid.\n\n- You have a list of risks, each already rated 1-5 for likelihood (`likelihoods`) and impact (`impacts`), and want them placed on a heat map.\n- You need a score for each risk (likelihood × impact) and its RAG band.\n- You want a count matrix showing how many risks fall in each likelihood/impact cell, for a quick view of where risks cluster.\n- Another function fits a different need: `escalation_threshold_calculation` determines the escalation level for a loss against tiered thresholds.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

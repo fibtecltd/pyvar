@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "689cbd6458f9ee952b821173c12b082b8d063673cf82ce1bfe7eeccd3c382403",
+      "source": "model",
+      "text": "`rolling_var_backtest` starts from a full return history and answers \"how would a parametric VaR, re-estimated on each trailing window, have performed against realised next-day returns?\" It builds those VaR figures itself using `window` and `confidence_level`, counts the breaches, and returns the Basel traffic-light zone. `traffic_light_backtesting` answers a narrower question: \"given returns and VaR estimates I already have, which zone do the breaches fall in?\" You pass it `actual_returns` and `var_estimates` aligned to each return, and it counts breaches and assigns green, yellow or red. So the main difference is where the VaR numbers come from: `rolling_var_backtest` generates them, while `traffic_light_backtesting` takes them as input, so it can be used with VaR from any model.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6de8f3bbfc438f73e3a30bcc4bbdc5c493257178ade26f7ae344e89f7f7173a6",
+    "source": "model",
+    "text": "`rolling_var_backtest` (Rolling VaR Backtest) runs a backtest of parametric VaR over a rolling window of your return history. For each trailing window (`window`, default 250 trading days, the Basel standard), it estimates VaR at your `confidence_level` (default 0.99) and compares it with the realised next-day return. It counts how many times the loss exceeded VaR, and returns the Basel traffic-light zone: green below 5 breaches, yellow for 5 to 9, red for 10 or more. You supply the full return history as `returns`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2c07a13d7ac6eba10d7df8a2315bb5d13fbb805565392ec23bf2d88772e03ae0",
+    "source": "model",
+    "text": "Use Rolling VaR Backtest (`rolling_var_backtest`) when you want to check how well a parametric VaR model has held up against actual returns:\n\n- You have a full return history and want to see how often realised next-day losses beat a VaR estimated on each trailing window.\n- You want the Basel traffic-light zone (green, yellow or red) from the breach count, using the standard 250-day `window` by default.\n- You want to test a particular `confidence_level` (default 0.99, allowed range 0.90 to 0.9999) against your own data.\n- You want the estimation and the backtest in one call, rather than supplying VaR figures yourself.\n\nIf you already have VaR estimates and only need to count the days when the actual loss exceeded them, `compute_breaches` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

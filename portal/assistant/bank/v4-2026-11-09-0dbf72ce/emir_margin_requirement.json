@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "sftr_securities_finance_report": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c8c126cd7f8b18116aeb49c392241222595ab50f4c94758f067976845cfbfd1b",
+      "source": "model",
+      "text": "`emir_margin_requirement` answers \"how much margin is needed on uncleared derivatives?\" It takes `portfolio_value`, `initial_margin_rate`, `variation_margin` and an optional `minimum_transfer_amount`. From these it computes the initial margin plus the variation margin call, and the call is zero if the variation margin is smaller in size than the minimum transfer amount. `sftr_securities_finance_report` answers a different question: \"is this securities financing transaction report complete and well formed?\" It takes a `transaction` mapping and checks that required fields are present, that the SFT type is one of repo, securities lending, buy-sell back or margin lending, and that collateral value is not negative. In short, the first is a calculation under EMIR Art. 11, while the second is a field-presence and format validator that covers a core subset of 6 SFTR fields rather than the full schema.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1a54d842d09f9bbf521353543dad8df0c7030cce618dabc9cd9260d0b2180802",
+    "source": "model",
+    "text": "`emir_margin_requirement` (EMIR Margin Requirement) computes the margin for uncleared derivatives under EMIR Art. 11. It works out Initial Margin by multiplying `initial_margin_rate` by `portfolio_value`. It then applies the Minimum Transfer Amount to the net variation margin: if the absolute value of `variation_margin` is below `minimum_transfer_amount`, the variation margin call is zero, and otherwise it is the full `variation_margin`. The total margin is Initial Margin plus that variation margin call. `minimum_transfer_amount` is optional and defaults to 0.0.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5f0afdddcbfb5d6b22135b7de91a5e28ac9a29c8d958df303ad819072f43ace7",
+    "source": "model",
+    "text": "`emir_margin_requirement` (EMIR Margin Requirement) fits when you need the margin for uncleared derivatives under EMIR Art. 11.\n\n- You want the Initial Margin from a margin rate applied to a portfolio value or notional (`initial_margin_rate` × `portfolio_value`).\n- You need the variation margin call after the Minimum Transfer Amount is applied, so a net mark-to-market amount below `minimum_transfer_amount` results in no transfer.\n- You want a total margin figure that combines the initial margin and the variation margin call.\n- If your need is instead the clearing obligation, `emir_clearing_obligation_check` is the related function for the EMIR clearing obligation check (Art. 4 / Art. 4a / Art. 10 / clearing thresholds).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

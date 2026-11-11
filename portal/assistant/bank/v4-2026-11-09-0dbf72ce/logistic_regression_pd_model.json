@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "through_the_cycle_pd_adjustment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "638e9d6551a0dd071f7aa15387202547e9707cbdfb64bd1b50f0120b3d37f292",
+      "source": "model",
+      "text": "`logistic_regression_pd_model` answers the question \"how do borrower characteristics relate to default?\" It fits a model from a design matrix of `features` and a binary `defaults` indicator. It estimates coefficients by Newton-Raphson (IRLS) maximum likelihood and gives a PD as a sigmoid of the intercept plus the weighted features. `through_the_cycle_pd_adjustment` answers a different question: \"how do I dampen the economic cycle in a PD I already have?\" It takes a point-in-time PD (`pit_pd`) and a `long_run_average_pd`, then blends them in the probit domain, with `cyclicality` setting the weight toward the long-run anchor. So the first builds a PD from data, while the second rescales an existing PD toward a long-run level for stability.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "80fe40f25c9e7d3fb429a7c64861df2daee73e12a4fb4bf738a9289825ae9c47",
+    "source": "model",
+    "text": "`logistic_regression_pd_model` (Logistic Regression PD Model) fits a probability-of-default model from a matrix of borrower `features` and a binary `defaults` indicator, where 1 means default and 0 means no default. It estimates PD as a sigmoid of an intercept plus a weighted sum of the features, and it adds the intercept automatically. The coefficients are found by Newton-Raphson (IRLS) maximum-likelihood iteration rather than a closed-form solution. A small `ridge` term stabilises the fit on separable or collinear data. You can control the iteration with `max_iter` and `tol`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4980ab3653c9bbaaf85ae31df894157d012687879e2b8bd9fe1175aedad0aa20",
+    "source": "model",
+    "text": "The Logistic Regression PD Model (`logistic_regression_pd_model`) fits a probability of default from your own data, so it suits these situations:\n\n- You have a historical dataset with a binary default indicator (`defaults`) and a design matrix of borrower characteristics (`features`), and you want PD estimated from them.\n- You want a transparent model where PD is a sigmoid of an intercept plus a weighted sum of features. The intercept is added for you.\n- Your data may be separable or collinear. A small ridge term (`ridge`) stabilises the fit.\n- You want maximum-likelihood coefficients from Newton-Raphson (IRLS) iteration, which you can control with `max_iter` and `tol`.\n- If you instead need to turn raw ML scores into calibrated PDs, `machine_learning_pd_calibration` is listed as doing Platt-scaling calibration for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

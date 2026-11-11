@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "51e4f21a7af2c080a28f125335aefb6ab43523a3e3f8903e172c5016527e61bf",
+      "source": "model",
+      "text": "`conditional_drawdown_at_risk` answers \"how deep do the worst drawdowns get?\" It takes the mean of the worst `(1 - confidence_level)` fraction of drawdowns, so it is the drawdown counterpart of Expected Shortfall. `drawdown_duration` answers \"how long do I stay underwater?\" It counts consecutive periods spent below the prior peak and reports the longest and the current run.\n\nOne measures the size of the losses from a peak, the other measures their length in time. A portfolio could have shallow but very long drawdowns, or deep but short ones, and the two functions would pick up those differences separately.\n\nBoth take `returns` (or an equity curve, via `is_equity_curve`). Only `conditional_drawdown_at_risk` uses `confidence_level`, which sets how much of the worst tail is averaged.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ec7ef78a3aee8a8da33072d1e7331f275089d2cd02ded5103c7e17de9a1200b4",
+    "source": "model",
+    "text": "`conditional_drawdown_at_risk` (Conditional Drawdown at Risk, or CDaR) averages the worst fraction of drawdowns in a return history, which makes it the drawdown counterpart of Expected Shortfall. It first finds the drawdown level at the chosen quantile, then takes the mean of all drawdowns at or beyond that level. You pass `returns` as per-period returns, or as an equity curve by setting `is_equity_curve` to True. `confidence_level` defaults to 0.95 and accepts values from 0.90 to 0.9999. The method is credited to Chekhlov, Uryasev and Zabarankin.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9bfcdadeb1b415bb61388c88cfd87c2dd0fb7cd23cc10275e8b8fb0219e1eab1",
+    "source": "model",
+    "text": "`conditional_drawdown_at_risk` (Conditional Drawdown at Risk, or CDaR) fits when you care about how deep the worst drawdowns run, not just how often losses occur.\n\n- You want a tail-focused drawdown measure: it is the mean of the worst `(1 - confidence_level)` fraction of drawdowns, the drawdown analogue of Expected Shortfall.\n- You want to look past a single worst case. Averaging the worst drawdowns shows how bad the bad stretches are as a group.\n- You have either per-period returns or an equity curve. Set `is_equity_curve` to True if you are passing a value series directly.\n- You want to adjust how far into the tail you look. `confidence_level` accepts values from 0.90 to 0.9999, with 0.95 as the default.\n\nIf you only need the single largest peak-to-trough decline, the related function `maximum_drawdown` does exactly that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

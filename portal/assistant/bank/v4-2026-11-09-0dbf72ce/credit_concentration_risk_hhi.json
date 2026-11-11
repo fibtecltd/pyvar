@@ -1,0 +1,26 @@
+{
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "738eda5304e2592797baa004ffdcdf4d7b927b7f1ee11f94441707cbf0e4eb1b",
+    "source": "model",
+    "text": "`credit_concentration_risk_hhi` (Credit Concentration Risk HHI) measures how concentrated a credit portfolio is using the Herfindahl-Hirschman index. You pass `exposures`, the per-name exposure amounts, which must be non-negative with at least one positive. It turns each into a share of total exposure and sums the squared shares. A value of 1 means a single-name portfolio, while 1/n means n names with perfectly even exposure. The inverse, 1/HHI, gives the effective number of independent exposures, also called the diversification score.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d570695045259863facce2db4ca2f5aea7a6a7ce3cec1a677e9b2a2c725b7f62",
+    "source": "model",
+    "text": "`credit_concentration_risk_hhi` (Credit Concentration Risk HHI) fits when you want a single number showing how concentrated a credit portfolio is across names.\n\n- You have per-name exposure amounts (`exposures`) and want to see whether a few borrowers dominate the portfolio.\n- You want a diversification score, since `1/HHI` gives the effective number of independent exposures.\n- You want to compare portfolios, or track one over time, against clear reference points: an HHI of 1 means a single-name portfolio, and 1/n means perfectly granular.\n- You only have exposure sizes, with no need for default probabilities, correlations or loss estimates.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

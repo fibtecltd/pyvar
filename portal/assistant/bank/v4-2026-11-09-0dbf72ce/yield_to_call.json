@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b8ff7a805494b5fc60485b18af5d0c63bad0b9e9ec8dae2860ee2ad8bfa8d6bc",
+      "source": "model",
+      "text": "`yield_to_call` answers \"what yield would I earn if the bond is redeemed at its first call date?\" It takes an observed dirty `price`, the coupon terms, a `call_price` and a `call_date` in years, then solves for the yield on the cashflows up to that date. `modified_duration` answers a different question: \"how sensitive is the price to a change in yield?\" It takes cashflows, times and a `yield_rate` you already have, and gives Macaulay duration divided by (1 + y/m), which approximates the percentage price change for a 1-unit yield move. So `yield_to_call` produces a yield from a price, while `modified_duration` starts from a yield and describes price sensitivity. You could use the yield from one as an input to the other, though they measure different things.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "00aa1cfb1182db1f64ffac03b2b2cb092bc2b632d9f199dd9146a568989585a3",
+    "source": "model",
+    "text": "`yield_to_call` (Yield To Call) gives the yield on a bond assuming it is redeemed at its first call date instead of running to maturity. It builds the coupon cashflows only up to `call_date` (time to the call in years), adds redemption at `call_price`, and solves for the yield that makes the discounted cashflows equal the observed dirty `price`. Coupons are sized from `face_value` and `coupon_rate`, paid `frequency` times a year (default 2). The number of periods is `call_date` times `frequency`, rounded.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a815b9c23c503da89d363fc47370ee12bee92fb84e77c7401222244e783d1748",
+    "source": "model",
+    "text": "`yield_to_call` (Yield To Call) fits when you want the yield on a bond assuming it is redeemed at its first call date instead of running to maturity.\n\n- You have an observed dirty `price` and want the yield if the issuer redeems at `call_price` at `call_date`, given in years.\n- The bond is callable and you want to see the return under the early-redemption case, not just the hold-to-maturity case.\n- You know the coupon terms: `face_value`, `coupon_rate` and `frequency` (payments per year, default 2).\n- You want the cashflow stream cut off at the call date, with redemption at the call price in place of par.\n- For a flat-rate yield assuming the bond runs to its final date, use `yield_to_maturity`, which pyvar lists as the flat rate that discounts cashflows to `price`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

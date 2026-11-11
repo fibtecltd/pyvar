@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "model_risk_assessment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8594dbbe03fe1c17ed51d8f4e0fee858f9ba947a40de64e48252a6198caccf01",
+      "source": "model",
+      "text": "`cyber_risk_loss_estimation` answers \"how much money could a cyber breach cost us, in the worst case and on average per year?\" It takes `records_exposed`, `cost_per_record`, `breach_probability` and optionally `business_interruption_cost`, then multiplies records by cost per record, adds the interruption cost for the worst case, and scales that by the breach probability for the expected loss. `model_risk_assessment` answers a different question: \"how risky is a particular model, and what tier does it fall into?\" It takes `materiality` and `complexity` ratings (1-5 each) plus a `validation_score`, multiplies the first two into an inherent score, and discounts that by validation quality to give a residual tier. In short, the first produces a monetary loss estimate for a cyber event, while the second produces a risk tier for a model, based on ratings rather than money.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9aca67078074059bd1b888dc0d4805676052540643582a2cb1c7b6f12e87ee34",
+    "source": "model",
+    "text": "`cyber_risk_loss_estimation` (Cyber Risk Loss Estimation) gives a FAIR-style single-loss-expectancy estimate of cyber loss. The worst-case loss, given a breach, is `records_exposed` × `cost_per_record`, plus any `business_interruption_cost`, which defaults to 0. Expected loss is that worst-case figure multiplied by `breach_probability`, the annual chance of a breach between 0 and 1. You supply the inputs and pyvar does the calculation. The cost per record is meant to cover regulatory and remediation costs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "451f6b308094c7fe2d583d2385dc5d432042290c5a0f4a63d6fd78ff2308a89e",
+    "source": "model",
+    "text": "`cyber_risk_loss_estimation` (Cyber Risk Loss Estimation) fits when you want a quick, FAIR-style single-loss view of cyber exposure:\n\n- You need a worst-case loss if a breach happens, built from records exposed, cost per record and any business interruption cost.\n- You want an expected annual loss, which scales that worst case by your annual breach probability (`breach_probability`).\n- You already have rough inputs for `records_exposed` and `cost_per_record` and want a simple, transparent calculation rather than a detailed simulation.\n- You want to compare scenarios by changing inputs such as `breach_probability` or `business_interruption_cost` (optional, defaults to zero).\n\n- If you need a score for IT availability, incidents and patching rather than a loss figure, `it_risk_scoring` is listed as an IT operational-risk score from those factors.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

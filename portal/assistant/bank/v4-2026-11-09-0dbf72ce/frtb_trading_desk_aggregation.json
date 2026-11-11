@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_sa_market_risk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "89571469bbb5289142a31b344c4815f7ee1e25ca203bb69cc1e7e0a64aa93523",
+      "source": "model",
+      "text": "`frtb_trading_desk_aggregation` answers \"what is the firm-wide market-risk capital once each desk is assigned IMA or SA?\" It takes per-desk SA charges, IMA charges and an eligibility flag (`desk_sa_charges`, `desk_ima_charges`, `desk_ima_eligible`). Eligible desks contribute their IMA charge, the others fall back to their SA charge, and the total is the sum across desks.\n\n`frtb_sa_market_risk_capital` answers a different question: \"what is the Standardised Approach capital itself?\" It takes three single numbers, `sensitivities_charge`, `default_risk_charge` and `residual_risk_addon`, and adds them. So the SA function builds one SA charge, while the aggregation function combines charges across desks and chooses between IMA and SA for each. An SA figure from the first could feed `desk_sa_charges` in the second.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b8168493eaf019a4606abc7fc4525020e2f40aff32dec21e0773f62bc44eda69",
+    "source": "model",
+    "text": "`frtb_trading_desk_aggregation` (FRTB Trading Desk Aggregation) works out firm-wide market-risk capital by combining charges desk by desk. A desk that is allowed to use the internal models approach (IMA) contributes its IMA charge, while a desk that is not eligible, such as one that is PAT-red or has failed backtesting, falls back to its standardised approach (SA) charge. The total is the sum across all desks, in line with BCBS d457. You supply three inputs: `desk_sa_charges`, `desk_ima_charges` and `desk_ima_eligible`, which flags whether each desk may use IMA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d16730e198b2e4f0cfedce4a09d3dc15b1c0657d017be08d795d3a069a09a7e0",
+    "source": "model",
+    "text": "`frtb_trading_desk_aggregation` (FRTB Trading Desk Aggregation) fits when you need a firm-wide market-risk capital figure built from desk-level charges.\n\n- You already have an SA charge and an IMA charge for each desk (`desk_sa_charges`, `desk_ima_charges`) and want them combined into one total.\n- Some desks may use IMA and others may not, for example because of a PAT-red result or a failed backtest. Flag each desk in `desk_ima_eligible`, and eligible desks contribute their IMA charge while the rest fall back to SA.\n- You want to follow the BCBS d457 treatment, where the firm charge is the sum of approved-desk IMA plus SA for the remaining desks.\n- For a different need, `frtb_pl_attribution_test` is listed as the FRTB P&L Attribution Test (PAT), using Spearman correlation and a variance ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

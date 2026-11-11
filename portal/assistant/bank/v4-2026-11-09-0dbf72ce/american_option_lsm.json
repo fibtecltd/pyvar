@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3cbe476a18c6df90962472bff9f4e064337e737be742c8b4ab53e950a22e653f",
+      "source": "model",
+      "text": "`american_option_lsm` prices an option that can be exercised early at any of its exercise dates, so it answers \"what is this option worth if I can exercise before maturity?\" It uses Longstaff-Schwartz Monte Carlo, fitting a quadratic regression on in-the-money paths to decide when exercising beats continuing. `asian_option_pricer` answers a different question: \"what is an option worth when the payoff depends on the arithmetic average of the price over the observation dates?\" It has no early exercise and pays off at maturity based on that average. Averaging makes an Asian option worth less than the matching vanilla European, while an American price must be at least the European price. Only `asian_option_pricer` offers a `qmc` option, because correlated Sobol paths would bias the regression that `american_option_lsm` relies on.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c8e89b050199259571b43d8e47320eaf2a8e768e906bdbdbaee45f7b85b1a27a",
+    "source": "model",
+    "text": "`american_option_lsm` (American Option LSM) prices an American option with the Longstaff-Schwartz Monte Carlo method, allowing early exercise at every time step. It simulates price paths, then works backward, using a quadratic regression on in-the-money paths to estimate continuation value and decide when exercising beats holding. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can set `option_type` (call or put), `div_yield`, `n_steps`, `n_simulations` and `seed`. Setting `greeks=True` also returns delta, gamma, vega, theta and rho by bump-and-reprice, at a much higher compute cost.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9947cdf6d0f92c9967c5ccaf5899c44df43038fca4dad0ae80f50ca1364f9b8c",
+    "source": "model",
+    "text": "`american_option_lsm` prices American options by Longstaff-Schwartz Monte Carlo, so it fits when early exercise matters:\n\n- You need to value a call or put that can be exercised at any time step up to maturity, not only at expiry (`option_type` defaults to put).\n- The underlying follows the standard lognormal path model, with optional continuous `div_yield`.\n- You want a price that should sit at or above the European price of the same option.\n- You want opt-in Greeks (`greeks=True`). They cost several extra reprices, so a smaller `n_simulations` may help if speed matters, and delta and gamma are coarser here by design.\n- Bermudan exercise: `bermudan_option_pricer` is listed as pricing Bermudan options via LSM with discrete exercise dates.\n\nIt has no quasi-Monte Carlo option, so you rely on plain Monte Carlo paths and the `seed` for reproducibility.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

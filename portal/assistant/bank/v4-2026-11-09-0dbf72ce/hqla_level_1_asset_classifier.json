@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "hqla_level_2a_asset_classifier": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c09c241a538ea1879c903103c91a532890c338778e5249d07360c612080e71c5",
+      "source": "model",
+      "text": "`hqla_level_1_asset_classifier` answers \"what is this set of top-tier assets (cash, central-bank reserves, 0%-risk-weight sovereign debt) worth after haircuts?\", while `hqla_level_2a_asset_classifier` answers the same question for Level 2A assets such as 20%-risk-weight sovereigns, certain covered bonds and high-grade corporates. The Level 1 function takes an optional `haircuts` object with a per-asset value, and if you leave it out every haircut is zero, so assets count at full market value. The Level 2A function takes a single scalar `haircut` applied to every asset, defaulting to 15%. It raises a `ValueError` if you pass anything lower. Both take `asset_values` and return a post-haircut total, but only Level 1 lets you vary haircuts asset by asset.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3e8e63d7015e4220c7a2c29af7a5ddd70d6e58b74039ec4fd926a32171f8dafc",
+    "source": "model",
+    "text": "The HQLA Level 1 Asset Classifier (`hqla_level_1_asset_classifier`) classifies and values Level 1 high-quality liquid assets such as cash, central-bank reserves and 0%-risk-weight sovereign debt. You pass in `asset_values`, the market values of your candidate assets, and optionally `haircuts`, a per-asset haircut between 0 and 1. If you leave out `haircuts`, it defaults to all zeros, so every asset is valued at full market value. The post-haircut value is the sum of each asset's value times one minus its haircut. Level 1 assets have no composition cap (BCBS 238 §50).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4d667a3dacb335cb073497f83bcf190c9a58e803e1f1cbdd5a30097142ee52a7",
+    "source": "model",
+    "text": "Use the HQLA Level 1 Asset Classifier (`hqla_level_1_asset_classifier`) when you need to classify and value Level 1 high-quality liquid assets:\n\n- You have market values for candidate Level 1 assets such as cash, central-bank reserves or 0%-risk-weight sovereign debt, and want them valued through `asset_values`.\n- You want a post-haircut total for the Level 1 pool. With no `haircuts` supplied, every asset is valued at full market value.\n- You want to apply your own per-asset haircuts between 0 and 1 via `haircuts`, instead of the default of none.\n- You are working from BCBS 238 §50, under which Level 1 assets have no composition cap.\n- For Level 2A assets, `hqla_level_2a_asset_classifier` is listed as classifying and valuing Level 2A HQLA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

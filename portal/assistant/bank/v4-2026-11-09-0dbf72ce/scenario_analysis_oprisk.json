@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "scenario_severity_estimation": {
+      "escalated": true,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "070f105ea084ecffab30b7efc77fa2c50c1e55ef0f8e9dd5a97bb748ca3cb62e",
+      "source": "model",
+      "text": "`scenario_analysis_oprisk` answers \"how much capital does this scenario contribute?\": it takes a Poisson frequency (`frequency_lambda`) and a lognormal severity (`severity_mu`, `severity_sigma`), simulates many years of losses, and reads off the loss quantile at `confidence_level`. `scenario_severity_estimation` answers an earlier, narrower question: \"what lognormal severity fits what the experts told us?\" It treats `typical_loss` as the median and solves for the lognormal parameters from a `worst_case_loss` at a chosen `worst_case_percentile`. The two fit together, since `scenario_severity_estimation` can supply the `severity_mu` and `severity_sigma` that `scenario_analysis_oprisk` needs. In short, `scenario_severity_estimation` calibrates one ingredient, while `scenario_analysis_oprisk` combines frequency and severity into an annual loss distribution.",
+      "tries": 1,
+      "writer": "claude-opus-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d1b3419f5ed6dc23e1ccfa8441c3d0148d08209018970fe03e2623eb9eba5c27",
+    "source": "model",
+    "text": "`scenario_analysis_oprisk` (Scenario Analysis OpRisk) estimates the capital a single operational-risk scenario contributes, using a compound Monte Carlo simulation. You give it a Poisson annual frequency (`frequency_lambda`) and a lognormal severity (`severity_mu`, `severity_sigma`). It simulates many years, each with a random number of loss events, and sums the severities into an annual loss. It then reads off a high quantile of that aggregate loss distribution at your `confidence_level` as the scenario's capital figure. You can set `n_years` and `seed` to control the simulation and make runs reproducible.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1b4e7dabfd492270d4835f5ce987195187eadb55f7669cb5e3b197c7a622284c",
+    "source": "model",
+    "text": "`scenario_analysis_oprisk` fits when you already have a calibrated scenario and want its capital figure from simulation.\n\n- You have a Poisson annual frequency (`frequency_lambda`) and lognormal severity parameters (`severity_mu`, `severity_sigma`) for a single scenario.\n- You want that scenario's aggregate annual loss distribution and its loss quantile at a chosen `confidence_level`, as the scenario's contribution to capital.\n- You want expected loss and expected shortfall alongside the quantile, from the same simulation.\n- You need reproducible runs: `seed` and `n_years` let you fix the randomness and set the number of simulated years.\n- If you still need to calibrate a lognormal severity from expert typical and worst-case losses, `scenario_severity_estimation` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

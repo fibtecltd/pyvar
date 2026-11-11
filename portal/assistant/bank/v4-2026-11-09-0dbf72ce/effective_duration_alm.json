@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration_balance_sheet": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6d63213f8adfd65195a4fe2345042ffa88a62d1e6b39f2f7be5ba0971e2572ac",
+      "source": "model",
+      "text": "`effective_duration_alm` measures interest-rate sensitivity from re-valued present values: you supply `pv_base`, `pv_up`, `pv_down` and `rate_shock`, and it compares the position's value after an upward and a downward parallel shock. It answers \"how much does this position's value actually move when rates shift?\", so it picks up optionality such as deposits, prepayments and caps/floors that analytic duration misses.\n\n`modified_duration_balance_sheet` works from the cashflows themselves: you give `cashflows`, `times`, `discount_rate` and optionally `frequency`. It computes Macaulay duration and then divides by `1 + y/m`. It answers \"given these fixed cashflows, what is the duration implied by the discounting formula?\"\n\nIn short, one reads sensitivity off re-priced values, the other derives it from a cashflow schedule.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4076beb637c9820f76b6db6abb54545c7dc23d163e57b0236a429cc77f125c04",
+    "source": "model",
+    "text": "`effective_duration_alm` (Effective Duration ALM) gives the effective duration of an ALM position from present values re-valued under a parallel rate shock. You supply `pv_base`, the PV at base rates, `pv_up` and `pv_down`, the PVs after the rate moves up and down, and `rate_shock`, the size of the shock as a decimal. It then applies D_eff = (PV− − PV+) / (2 · PV0 · Δy). Because it relies on full re-valuation rather than an analytic formula, it captures optionality in deposits, prepayments and caps/floors that analytic duration misses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9dcdbe0f6afbd7030e2dca7d0904e98eb9280d8560cc516e14c402f6bcb2e38d",
+    "source": "model",
+    "text": "Use Effective Duration ALM (`effective_duration_alm`) when you want a position's rate sensitivity measured from re-valued present values rather than from a formula:\n\n- Your position has optionality, such as deposits, prepayments, or caps and floors, which analytic duration misses.\n- You already have present values from a full re-valuation at base rates, after a rate rise, and after a rate fall, and want one duration figure from them (`pv_base`, `pv_up`, `pv_down`).\n- You are shocking rates in parallel by a set amount, given as a decimal in `rate_shock`.\n- You want a symmetric, two-sided measure that uses both the up and down shocks.\n\nIf you instead need a duration gap for the banking book, `duration_gap_analysis` is listed as the duration-gap analysis of the banking book.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

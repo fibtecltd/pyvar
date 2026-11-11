@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "portfolio_turnover": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fddc21fe1c7cceef17e0768c2936ba60b127d0f825ac20eb24bd8ecd3b8888a0",
+      "source": "model",
+      "text": "`residual_risk` and `portfolio_turnover` answer very different questions. `residual_risk` asks how much of a portfolio's return volatility is left over after the benchmark's influence (its beta) is removed. It takes `returns` and `benchmark_returns`, regresses one on the other, and reports the standard deviation of the residuals, annualised using `periods_per_year`. `portfolio_turnover` asks how much trading a rebalance involved. It takes `weights_before` and `weights_after` and gives the one-way traded fraction, which is half the sum of the absolute weight changes. So the first is a risk measure built from return history, and the second is a trading-activity measure built from two sets of weights, with no returns involved.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d0777f1eaded9988a179088861c32cb3516a61604c3ad912f888a523c0d3f6e6",
+    "source": "model",
+    "text": "`residual_risk` (Residual Risk) measures the idiosyncratic volatility of a portfolio, meaning the part of its risk that the benchmark doesn't explain. It regresses the portfolio's per-period `returns` on `benchmark_returns` in a single-factor CAPM setup, which gives a beta and an alpha. It then takes the standard deviation of the leftover residuals and annualises it using `periods_per_year`, which defaults to 252. Both return inputs are 1-D arrays of per-period returns.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "24e22e5b30b34309f996e7afdf06215790206d3c135c3cad43f4db23cb8d40d3",
+    "source": "model",
+    "text": "`residual_risk` fits when you want to know how much of a portfolio's volatility comes from sources other than its benchmark exposure.\n\n- You want to isolate idiosyncratic risk, the part left over after removing what beta explains in a single-factor CAPM regression.\n- You're judging how much of a portfolio's risk comes from active choices rather than from moving with the benchmark.\n- You have per-period portfolio and benchmark returns and want an annualised figure. Set `periods_per_year` to match your data frequency, since it defaults to 252.\n- For a different need, `tracking_error` is listed as the volatility of active (portfolio minus benchmark) return, which suits measuring the spread against the benchmark itself.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

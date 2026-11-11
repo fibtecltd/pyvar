@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f3afcfda3a783dad9fa5908e5ce8895b25ea68eae1c60580467d251aadf0666a",
+      "source": "model",
+      "text": "`fx_pnl_attribution` answers \"how much of my P&L came from each currency pair?\" It takes `fx_deltas` (P&L per unit move of each FX rate) and `fx_moves` (the realised move in each rate), and sums delta times move across currencies, with optional `currency_names` as labels. `pnl_attribution_test_frtb_pat` answers a different question: \"does my risk model's P&L track the full-revaluation P&L closely enough?\" It takes a daily risk-theoretical P&L series (`risk_theoretical_pnl`) and a hypothetical P&L series (`hypothetical_pnl`), then checks their Spearman rank correlation and volatility ratio to assign a Basel traffic-light zone. Those thresholds are set by the Basel Committee and are not parameterised. So the first explains where P&L came from, while the second tests whether the model's P&L is a good enough match to the full-revaluation figure.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ae42b25b03cb557c92111ddf9d4b65b03b0c7d0a837248715fcc615bd9514140",
+    "source": "model",
+    "text": "`fx_pnl_attribution` breaks down the profit and loss from foreign exchange exposure across currency pairs. For each currency, it multiplies the P&L per unit move of that FX rate (`fx_deltas`) by the realised move in that rate (`fx_moves`), then adds the results. Because the contributions are additive, you can see how much each currency added to or took from the total. You can optionally pass `currency_names` to label the currencies; otherwise they default to `ccy_0` and so on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "df9cc856cb470df2445b94313c730a3629b96e31d9a19e5a252c06fd48fa627e",
+    "source": "model",
+    "text": "`fx_pnl_attribution` (FX Pnl Attribution) fits when you want to break a portfolio's FX P&L down by currency pair.\n\n- You have the P&L per unit move of each FX rate (`fx_deltas`) and the realised move in each rate (`fx_moves`), and want to see how much each currency contributed.\n- You want a total FX P&L that is additive across currencies, so the pieces sum to the whole.\n- You want readable output: `currency_names` lets you label currencies instead of the default `ccy_0, ...`.\n- Your question is about FX exposure in market risk reporting or explaining realised moves, not about other risk factors.\n\nIf you need a different component, `rates_pnl_attribution` is listed as interest-rate P&L attribution by key-rate tenor, and `credit_pnl_attribution` as credit P&L attribution by issuer / curve.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

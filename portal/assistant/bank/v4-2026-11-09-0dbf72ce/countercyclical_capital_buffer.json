@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "capital_conservation_buffer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b96b3214f756f717922b6cf0c4d04158cd360da57b133017b20f49c45be2c7d9",
+      "source": "model",
+      "text": "`countercyclical_capital_buffer` answers \"what buffer rate applies to this bank, given where its private-sector credit exposures sit?\" It takes `exposure_amounts` and `country_ccyb_rates` per jurisdiction, computes the exposure-weighted average of the national rates, and multiplies that by `risk_weighted_assets` to give the buffer capital. `capital_conservation_buffer` instead asks \"is the bank's current CET1 ratio high enough to avoid distribution restrictions?\" It takes `cet1_ratio` and `risk_weighted_assets`, adds `buffer_ratio` (default 2.5%) to the 4.5% minimum, and flags whether Maximum Distributable Amount limits on dividends and bonuses would apply. In short, the first one derives a rate from geography, while the second one tests a fixed buffer against your capital position.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ac3acc33a0de1755a6e5828a3d4690c917986536100c634b25eafb0b114ad8ab",
+    "source": "model",
+    "text": "`countercyclical_capital_buffer` calculates a bank's institution-specific Countercyclical Capital Buffer (CCyB), following CRD IV Art. 140. It takes the national CCyB rate for each jurisdiction and averages those rates, weighting each by the bank's private-sector credit exposure there. That gives the buffer rate. Multiplying the rate by total risk-weighted assets gives the buffer in capital terms. You supply `exposure_amounts`, `country_ccyb_rates` (as decimals) and `risk_weighted_assets`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "020b0a58ef9dcd690faa8bd57b60ee1c68c8c0cd3a2d54490e5c7ec294181106",
+    "source": "model",
+    "text": "Use `countercyclical_capital_buffer` (the Countercyclical Capital Buffer function) when:\n\n- You need a bank's institution-specific CCyB rate, worked out as the exposure-weighted average of national CCyB rates across its private-sector credit exposures (CRD IV Art. 140).\n- Your exposures sit in more than one jurisdiction and each country sets its own rate. You supply `exposure_amounts` and `country_ccyb_rates` per jurisdiction.\n- You want the rate turned into a capital amount by applying it to total `risk_weighted_assets`.\n- You are doing regulatory capital planning or compliance work and want the CCyB piece on its own.\n\nFor the Combined Buffer Requirement (CBR), use `combined_buffer_requirement` instead.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "vanna_delta_vega_cross": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "afd668179a674af62bc9192d6d96363dd788bed6d5b9058eacee12dc0d5e4f04",
+      "source": "model",
+      "text": "`gamma_cross_gamma_matrix` assembles a portfolio-level matrix of second-order price sensitivities: each underlying's net gamma on the diagonal and the cross-gammas between underlyings off the diagonal. It answers \"how does my portfolio's delta respond to moves across several underlyings at once?\", and its matrix `G` feeds the gamma P&L for a shock vector `ds` as `0.5 · ds' G ds`. Its inputs are `own_gammas` and an optional `cross_gammas` matrix.\n\n`vanna_delta_vega_cross` instead computes a single Black-Scholes cross sensitivity for one option: how vega changes with spot, which equals how delta changes with volatility. It answers \"how does delta drift when volatility moves?\", using `spot`, `strike`, `rate`, `sigma`, `tau` and optionally `div_yield`.\n\nIn short, the first aggregates spot-versus-spot sensitivities across underlyings, while the second measures the spot-versus-volatility cross effect for one option.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4aba7c81af1f3e57db8a23b36b1c1dc0996f7e925bb335b98976d0526c450138",
+    "source": "model",
+    "text": "`gamma_cross_gamma_matrix` (Gamma Cross Gamma Matrix) builds the portfolio's gamma matrix across its underlyings. The diagonal holds each underlying's net gamma, which you supply through `own_gammas`. The off-diagonals hold cross-gammas, the second-order sensitivities between pairs of underlyings. You can supply these through the optional `cross_gammas`, and pyvar symmetrises them by averaging each pair. The resulting matrix is used for gamma P&L, which is 0.5 times the shock vector transposed, times the matrix, times the shock vector.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "da01bcc4cf339155d2cc42a3b7a2d85b2292cbb289d1c8d7b551c241f3f0a7b7",
+    "source": "model",
+    "text": "Use `gamma_cross_gamma_matrix` (Gamma Cross Gamma Matrix) when you need to combine second-order sensitivities across several underlyings into one matrix:\n\n- You have a net gamma for each underlying and want them on the diagonal of a single portfolio gamma matrix (`own_gammas`).\n- You also have cross-gammas between underlyings and want them included. Pass them as `cross_gammas`, and pyvar symmetrises the off-diagonal entries.\n- You want to express gamma P&L for a shock vector `ds` as 0.5 · ds' G ds, so the matrix is the input to that calculation.\n- You need a symmetric gamma/cross-gamma input for market risk work where moves in several underlyings happen together.\n\nIf you instead want a first-order, net exposure across positions, `portfolio_delta_aggregated` aggregates per-position deltas into a net portfolio delta.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

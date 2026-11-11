@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_sa_market_risk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4ba10b149c5f29abddb96a8b51b8a67941d9cf0b0b7f0a18332c8b517f96e0e1",
+      "source": "model",
+      "text": "`frtb_pl_attribution_test` asks whether a trading desk's risk model tracks its actual P&L closely enough. It takes two series, `risk_theoretical_pnl` and `hypothetical_pnl`, and works out their Spearman correlation and the ratio of their standard deviations. It then assigns a green, amber or red zone using fixed thresholds, with red meaning loss of the internal models approach. `frtb_sa_market_risk_capital` asks a different question: how much market-risk capital does the Standardised Approach require? It adds three amounts you supply in currency terms: `sensitivities_charge`, `default_risk_charge` and `residual_risk_addon`. In short, one is a pass/fail-style model-quality check on two P&L series, and the other is a capital sum built from three charges.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1c64d9318e4f9c36e17663736a0eff014a38742fe00674657d8a25c0397cefc4",
+    "source": "model",
+    "text": "`frtb_pl_attribution_test` (FRTB Pl Attribution Test) runs the FRTB P&L Attribution Test on two series you supply: `risk_theoretical_pnl` from your risk model and `hypothetical_pnl` from full revaluation. It computes the Spearman rank correlation between them and the ratio of their standard deviations, `std(RTPL)/std(HPL)`. It then looks both values up against fixed thresholds from BCBS d457 to assign a green, amber or red zone, where red means loss of the internal models approach. The zone comes from that threshold lookup, not from a single closed-form equation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2e32baef3a8b1e47a1fcc256ed8b14c6d285178cf53ffc845333ef4dc9b99cca",
+    "source": "model",
+    "text": "`frtb_pl_attribution_test` fits when you need to check how closely a risk model's P&L tracks full revaluation under the FRTB framework.\n\n- You have a risk-theoretical P&L series from your risk model and a hypothetical P&L series from full revaluation, and want to compare them (`risk_theoretical_pnl` and `hypothetical_pnl`).\n- You want a Basel traffic-light zone (green, amber or red) based on Spearman rank correlation and the ratio of the two series' volatilities.\n- You are assessing a desk's model against BCBS d457, where a red result means loss of the internal models approach (IMA).\n- Different need: `frtb_ima_market_risk_capital` computes FRTB Internal Models Approach total market-risk capital.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

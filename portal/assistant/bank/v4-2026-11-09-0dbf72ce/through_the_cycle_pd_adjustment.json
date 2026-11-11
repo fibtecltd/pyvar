@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "altman_z_score_credit_scoring": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e4d15f09afbde18605db569f9d78dde7b6ccbba0a08bd58ea02834b9d02e0c2a",
+      "source": "model",
+      "text": "`through_the_cycle_pd_adjustment` takes a point-in-time PD you already have and converts it to a through-the-cycle PD by blending it with a long-run average PD. It answers the question: how would this PD look with the macro cycle dampened? You control the blend with `cyclicality`, where 0 keeps the point-in-time view and 1 gives the pure long-run anchor. `altman_z_score_credit_scoring` instead starts from a public manufacturer's financials (`working_capital`, `retained_earnings`, `ebit`, `market_value_equity`, `sales`, `total_assets`, `total_liabilities`) and produces a Z-score. It answers a different question: where does this firm sit on the safe, grey or distress scale? In short, the first rescales an existing PD, while the second scores a company from its balance sheet and income figures, and it does not output a PD.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5b0434d9128f6cee843c875595bcfeb171dae2a18d197d645c56fe43014e6557",
+    "source": "model",
+    "text": "`through_the_cycle_pd_adjustment` converts a point-in-time probability of default (PD) into a through-the-cycle PD, which dampens the macro cycle so capital stays more stable. It takes `pit_pd`, a `long_run_average_pd` as the anchor, and an optional `cyclicality` weight that sets how far the result moves toward that anchor (0 is pure point-in-time, 1 is pure through-the-cycle, default 0.5). The blend happens in the probit (Gaussian-score) domain, so the output is always a valid probability between 0 and 1. In short, it is a weighted average of the two PDs' scores, converted back to a PD.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c74d2cfb852038dfa94d2c6c57eb7f639952e54a41525c3a38c46900c4319713",
+    "source": "model",
+    "text": "`through_the_cycle_pd_adjustment` fits when you have a point-in-time PD and want a steadier, through-the-cycle version of it.\n\n- You need a PD that dampens the macro cycle, for example to support stable regulatory capital.\n- You have a long-run average PD to anchor to, alongside the current point-in-time PD.\n- You want to control how far the result moves toward the long-run anchor, using `cyclicality` (0 keeps the point-in-time PD, 1 gives the pure long-run view).\n- You want the blended result to stay a valid probability, which the probit-domain blend is designed to do.\n- For the reverse direction, `point_in_time_pd_estimation` derives a point-in-time PD from a TTC PD and a macro factor.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

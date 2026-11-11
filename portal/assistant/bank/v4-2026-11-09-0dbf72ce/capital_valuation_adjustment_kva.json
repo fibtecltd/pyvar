@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "76a8247f8cdfa063a1e6318cd48bbc0e1d54a0ed3287b636e8225b5381f08002",
+      "source": "model",
+      "text": "`capital_valuation_adjustment_kva` answers \"what is the lifetime cost of the regulatory capital held against this trade?\" It takes a capital profile, bucket end-times, discount factors and a `cost_of_capital` (default 0.1), and returns the present value of the shareholders' required return on that capital. `cva_sensitivity_cva_greeks` answers a different question: \"how much does counterparty credit valuation move when inputs change?\" It takes an expected exposure profile, a `credit_spread` and a `recovery_rate`, and returns the base CVA along with `cs01` (the change from a bump in the credit spread) and `exposure_delta` (sensitivity to scaling the exposure profile). In short, KVA prices a capital cost, while the CVA Greeks measure risk sensitivity of CVA, which is used for hedging and capital. The two also differ in inputs: KVA is driven by capital held per bucket, while the Greeks are driven by exposure and credit spread.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "140eaac0fab991c3498aa826839d6e67fb217e6912315e7c96b1dbe0d93556ec",
+    "source": "model",
+    "text": "`capital_valuation_adjustment_kva` (Capital Valuation Adjustment, KVA) puts a price on the regulatory capital a trade ties up over its life. It takes the capital held in each time bucket, discounts it, weights it by the bucket's length, and sums the results. That sum is multiplied by `cost_of_capital`, the shareholders' required return (default 0.1). The result is the present value of that return on the capital held. You supply `capital_profile`, `time_steps` (strictly increasing bucket end-times in years) and `discount_factors`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6d9fe9aa883eea3613919885bcc23f58cb2e1d5488ddafc0489d70fb6cf3b568",
+    "source": "model",
+    "text": "`capital_valuation_adjustment_kva` (Capital Valuation Adjustment, KVA) fits when you want the lifetime cost of regulatory capital on a trade.\n\n- You have a projected regulatory capital profile per time bucket (`capital_profile`) and want its present value at a required return, with `cost_of_capital` defaulting to 0.1.\n- You are pricing a trade and want shareholders' required return on held capital included as a cost.\n- You already have bucket end-times (`time_steps`) and discount factors (`discount_factors`) to go with the capital profile.\n- You want KVA as one piece of a wider XVA picture, alongside other adjustments.\n\nIf you want to combine the XVA components into a total valuation adjustment, `xva_aggregation` is listed as the function that aggregates them.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

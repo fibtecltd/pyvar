@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_default_swap_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8bf448f435dc08e7480236ae4fe0d9540a40942e26d1793c2e1eed729fe4e187",
+      "source": "model",
+      "text": "`cds_pricing_isda_standard` answers \"what is this CDS worth today to the protection buyer?\" It takes payment times, accrual factors, discount factors, a flat `hazard_rate` and a `contract_spread`, then returns the present value (protection leg minus premium leg) and the par spread that would zero it. `credit_default_swap_var` answers a different question: \"how much could this position lose from spread moves over a given horizon?\" It takes the `notional`, a `risky_annuity`, a daily `spread_volatility`, a `confidence_level` and `horizon_days`, and gives a parametric VaR. In short, the pricing function values the contract from a hazard-rate model, while the VaR function measures spread risk using a spread sensitivity (notional times risky annuity) and a normal-move assumption. You could use the pricing function's risky annuity concept as an input idea for the VaR one, but each is run separately.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f72a13fa55311a408c4efb0243e039c4461c8fc30a47750a0387f462f119a991",
+    "source": "model",
+    "text": "`cds_pricing_isda_standard` (CDS Pricing ISDA Standard) values a credit default swap from the protection buyer's side. It takes the premium payment times, accrual fractions and risk-free discount factors, plus a flat `hazard_rate` and the running `contract_spread`. Present value is the protection leg (loss given default times `notional`, weighted by discounted default probabilities) minus the premium leg (spread times `notional` times the risky annuity). `recovery_rate` and `notional` are optional. It also returns the par spread, the spread at which the present value is zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f3da757ff95a9d87e3a7a07d03637a402d155e2fabfd5a4f24bbac32112976cb",
+    "source": "model",
+    "text": "`cds_pricing_isda_standard` (CDS Pricing ISDA Standard) fits when you want the present value of a CDS from the protection buyer's side.\n\n- You have a CDS with a running contractual spread and want its value under a flat hazard rate, using `hazard_rate`, `contract_spread` and `recovery_rate`.\n- You want the par spread, the spread that sets the present value to zero, returned alongside the value.\n- You want to see how the protection leg and premium leg combine, given your own `payment_times`, `accrual_factors` and `discount_factors`.\n- You need to scale the result to a position size using `notional`.\n\n- If you need a hazard or survival curve built from CDS spreads, `credit_spread_curve_bootstrap` is listed as bootstrapping a piecewise-constant hazard / survival curve from CDS spreads.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

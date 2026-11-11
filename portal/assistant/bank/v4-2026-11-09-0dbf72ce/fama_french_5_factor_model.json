@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fama_french_3_factor_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5d7af135c9e6257ff7c0d926938cd0609e6731a342e0302049fba0a70e7c9573",
+      "source": "model",
+      "text": "`fama_french_5_factor_model` extends `fama_french_3_factor_model` by adding two factors: profitability (RMW) and investment (CMA). The 3-factor version regresses portfolio excess returns on market, size (SMB) and value (HML) factors, so it answers: how much of the portfolio's return is explained by market, size and value exposure, and what alpha is left? The 5-factor version asks the same question with profitability and investment exposure also accounted for, so its alpha is measured after those two effects as well.\n\nIn practice, the difference is the `factors` input. The 3-factor function takes a matrix with 3 columns (MKT, SMB, HML), while `fama_french_5_factor_model` takes 5 columns (MKT, SMB, HML, RMW, CMA). Both take the same `excess_returns` input and both estimate coefficients with the same regression formula.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4127fbefe54259225a93c801518888a16888e905b43717afc0de9d4c187a701a",
+    "source": "model",
+    "text": "`fama_french_5_factor_model` runs a Fama-French 5-factor regression of a portfolio's excess returns (returns over the risk-free rate) on five factor return series: market (MKT), size (SMB), value (HML), profitability (RMW) and investment (CMA). It extends the 3-factor model by adding the profitability and investment factors. The regression has an intercept (alpha) plus a beta for each factor, estimated by ordinary least squares. You supply `excess_returns` and `factors`, an (n_obs, 5) matrix with one column per factor. pyvar does the calculation, so the output is the fitted alpha and factor loadings for your data.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a4f590fe1dbc66ab250f123827f86fec45d3ac562d4f481f972d5bf3655cba15",
+    "source": "model",
+    "text": "The Fama French 5 Factor Model (`fama_french_5_factor_model`) fits when you want to explain a portfolio's returns using five common risk factors.\n\n- You have a series of portfolio excess returns over the risk-free rate (`excess_returns`) and matching factor returns for MKT, SMB, HML, RMW and CMA (`factors`).\n- You want to see how much of the portfolio's return loads on profitability (RMW) and investment (CMA), beyond the market, size and value factors.\n- You want a regression-based estimate of alpha and factor betas, fitted by ordinary least squares.\n- You're comparing a richer factor description against a simpler one for the same portfolio.\n\nIf you only need market, size and value, `fama_french_3_factor_model` is listed as the 3-factor regression (MKT, SMB, HML).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

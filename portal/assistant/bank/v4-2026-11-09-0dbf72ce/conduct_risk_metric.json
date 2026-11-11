@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "model_risk_assessment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6b4e38d480056c778d0c7bb7eb833efb308097e6d446629595b1b520c0fe0f52",
+      "source": "model",
+      "text": "`conduct_risk_metric` asks how much conduct trouble a firm is showing, based on outcomes. It takes upheld `complaints`, `customers`, `redress_paid` and `revenue`, and combines the complaints rate per 1000 customers with the redress-to-revenue ratio into a 0-100 index (higher is worse) with a RAG band. `model_risk_assessment` asks how risky a particular model is to rely on. It takes `materiality` and `complexity` (1-5 each) and multiplies them into an inherent score, then discounts that by `validation_score` to give a residual model-risk tier. The first works from observed complaint and redress data, while the second works from ratings and judgements about a model and its validation. Both sit in Operational Risk, but they measure different things.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "99f24dfb2296c78bf8b1624b8cb90a628e4cc72eaf19980cbd5f13bf93a31ee3",
+    "source": "model",
+    "text": "The Conduct Risk Metric (`conduct_risk_metric`) turns a firm's complaints and redress figures into a single 0-100 conduct-risk index, where higher means worse, along with a RAG band. It combines upheld complaints per 1000 customers with redress paid relative to revenue, which is scaled by 500 first. Each of the two components is then capped at 50, so they contribute equally at most. You supply `complaints`, `customers`, `redress_paid` and `revenue`, with `customers` and `revenue` both above zero. pyvar does the calculation for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7e824b71b763267f6df71df14a99068da7c06c282fe3a9427ea5f758c0537de4",
+    "source": "model",
+    "text": "Use the Conduct Risk Metric (`conduct_risk_metric`) when you want a single conduct-risk reading built from complaints and redress:\n\n- You want a composite 0-100 index (higher is worse) with a RAG band, rather than tracking complaints and redress separately.\n- You have the period's upheld complaints (`complaints`), active customer count (`customers`), redress paid (`redress_paid`) and revenue (`revenue`) to hand.\n- You want to compare conduct risk across periods, products or business units on one normalised scale, using the same inputs each time.\n- For a different operational risk, `third_party_vendor_risk` is a separate function that gives a third-party / vendor risk score.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

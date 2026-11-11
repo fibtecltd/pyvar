@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "mifid_ii_transaction_report_validator": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3063cc73cc4521a493132ab6851132c9a49a177958ba7269ece7ec57ed626e10",
+      "source": "model",
+      "text": "`mifid_ii_pre_trade_transparency` asks whether an order can be waived from pre-trade transparency. It takes `instrument_type`, `order_size`, `large_in_scale_threshold` and optionally `is_liquid`, and reports a waiver of \"large_in_scale\" if the order size is at or above the threshold, \"illiquid_instrument\" if the instrument isn't liquid, or \"none\" otherwise. `mifid_ii_transaction_report_validator` asks a different question: is a transaction report filled in properly? It takes a `report` mapping of field names to values and checks that required fields are present and basically valid, such as the length of the LEI and ISIN and that price and quantity are positive. It covers a representative core subset of 9 fields, not the full RTS 22 schema. In short, one concerns what must be shown before a trade, the other whether the report of a trade is well formed.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "39644f8a0a258f8743257665de2037a13da285a49ac08e5e46cb2171dd69604e",
+    "source": "model",
+    "text": "`mifid_ii_pre_trade_transparency` assesses whether an order qualifies for a waiver from MiFID II pre-trade transparency, specifically the Large-in-Scale (LIS) waiver. You give it the `instrument_type` (a label only), the `order_size`, and the instrument's `large_in_scale_threshold`. You can also set `is_liquid`, which defaults to true. If the order size is at or above the threshold, it returns a large-in-scale waiver. Otherwise, if the instrument is not liquid, it returns an illiquid-instrument waiver, and if neither applies it returns none.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b4581dcbbe1b1461d72779640dc2b5f409e0f9c92b8aec49e75ad29ec7dee0c1",
+    "source": "model",
+    "text": "Use `mifid_ii_pre_trade_transparency` (MiFID II Pre Trade Transparency) when you need to assess whether an order qualifies for a waiver from pre-trade transparency:\n\n- You have an order and want to check whether its `order_size` meets or exceeds the `large_in_scale_threshold` for the instrument, which points to the Large-in-Scale (LIS) waiver.\n- You are dealing with an instrument that has no liquid market. Set `is_liquid` to false and the function can flag the illiquid-instrument waiver instead.\n- You want a quick, rule-based screening of an order before it goes to market, with `instrument_type` carried along as a label only.\n- For post-trade questions such as deferred publication, `mifid_ii_post_trade_transparency` is listed as the MiFID II post-trade transparency / deferred-publication assessment.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

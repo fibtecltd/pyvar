@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "hypothetical_multi_factor_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "67337eacf988b235941385775020d91f85c7eed1801915edac4d8b206a9a81f7",
+      "source": "model",
+      "text": "`contagion_stress_scenario` asks how an initial shock spreads from node to node through a network. It takes `initial_shock`, a `contagion_matrix` of spillover coefficients and a number of `rounds`, then returns the cumulative shock per node after that many rounds of propagation. `hypothetical_multi_factor_scenario` asks what a single, simultaneous set of factor shocks would do to portfolio P&L. It takes `exposures` and `shocks` and sums exposure times shock across the factors, which is a first-order calculation with no knock-on effects. In short, use `contagion_stress_scenario` when the question is about second-round spillovers between connected nodes, and `hypothetical_multi_factor_scenario` for a quick \"what if\" P&L from shocks you specify directly.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0ec9b4fe6fa66a73d5696012b596c8df249a21c3c5585787e528574ebb207a18",
+    "source": "model",
+    "text": "`contagion_stress_scenario` (Contagion Stress Scenario) takes an initial shock to a set of nodes or assets and propagates it through a spillover network. You supply `initial_shock` (one value per node) and `contagion_matrix`, a square matrix where each entry is the effect of one node on another. Each round, the current shock spills to connected nodes through the matrix, and the function returns the cumulative shock: the initial shock plus each successive round of spillover. The `rounds` parameter sets how many rounds are included (default 3), and `0` simply returns the initial shock.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "84f3e6594feb51b74faec9308ea2aa95ac3db2b03b548ded2fb78716a8fce1ce",
+    "source": "model",
+    "text": "Use Contagion Stress Scenario (`contagion_stress_scenario`) when you want to see how a shock to one or more nodes spreads through a network of connected assets.\n\n- You have an initial shock per node or asset and a matrix of spillover coefficients (`contagion_matrix`) describing how each node affects the others.\n- You want knock-on effects over several rounds, not just the first hit. Set `rounds` to control how far the spillover runs, and `0` returns the initial shock unchanged.\n- You want to compare how different network structures or shock patterns change the cumulative impact, with pyvar doing the calculation.\n- For a single hypothetical multi-factor shock and the resulting P&L, `hypothetical_multi_factor_scenario` is listed for that purpose.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

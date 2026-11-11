@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "garch_11_volatility_forecast": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "83619aa2281d5da1cc920795d6419d5f94fa8a396731c1e646560dafb7e24b7e",
+      "source": "model",
+      "text": "`correlation_matrix_historical` answers \"how have these assets moved together over the sample?\" It takes a `returns_matrix` of T observations on N assets and gives the historical Pearson correlation matrix, where each entry is the covariance of two assets divided by the product of their volatilities. `garch_11_volatility_forecast` answers a different question: \"how volatile is a single asset now, and how will that volatility evolve?\" It takes one return series, filters the conditional variance with `alpha` and `beta`, and projects it forward over a `horizon`. That forecast mean-reverts toward a long-run variance. So the first function describes cross-asset co-movement across the whole sample, while the second tracks time-varying volatility for one series. If you want correlations that change over time, pyvar's related function `dcc_garch_dynamic_correlation` is aimed at that.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "244b85e0dbe25dc2bd88817137e2fca5820712c42469819b699f841dfacbf90c",
+    "source": "model",
+    "text": "`correlation_matrix_historical` (Correlation Matrix Historical) computes the historical Pearson correlation matrix of asset returns. You pass it `returns_matrix`, a (T, N) matrix holding T observations on N assets. For each pair of assets it divides their covariance by the product of their standard deviations, which is the formula ρ_ij = Cov(r_i, r_j) / (σ_i σ_j). The output is the matrix of those pairwise correlations, which you can use to see how assets have moved together in the sample you supply.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d8604e7b831816a6807a1d457aa9a8c8a494dd9a8c245ce04ccc1f9489e02fc6",
+    "source": "model",
+    "text": "`correlation_matrix_historical` fits when you want a plain Pearson correlation matrix built from past returns:\n\n- You have a `returns_matrix` of T observations on N assets and want to see how those assets have moved together over that sample.\n- You need a single, fixed correlation estimate for the whole period, with every observation treated the same.\n- You want a simple correlation input for a wider market-risk analysis, such as a diversification check or a portfolio risk calculation.\n- Correlation over time is not your question, because this gives one static matrix rather than a changing one.\n\nIf you need correlations that change over time, the related function `dcc_garch_dynamic_correlation` is described as a DCC-GARCH dynamic conditional correlation, returning the terminal R_T.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

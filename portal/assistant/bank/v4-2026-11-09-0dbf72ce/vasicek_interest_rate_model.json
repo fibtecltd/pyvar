@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "hull_white_short_rate_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "bb0063353f5ea8a660535d6a66e7a3f21087dbcce19d108c244c09fdd74e0e6e",
+      "source": "model",
+      "text": "`vasicek_interest_rate_model` takes a long-run mean `theta` and returns a closed-form zero-coupon bond price plus a simulated short rate, so it answers \"what is this bond worth under mean-reverting Gaussian rates, and how might the short rate evolve?\" `hull_white_short_rate_model` uses the same dynamics with a constant mean level, `theta_const`, and returns the analytic bond price with a Monte Carlo cross-check, so it answers \"does simulation agree with the analytic price?\" With a constant level, `hull_white_short_rate_model` literally delegates to `vasicek_interest_rate_model`, so the closed-form price is the same. It is not a genuine time-dependent Hull-White fit to a market forward curve. The practical differences are the parameter name (`theta` versus `theta_const`, which defaults to 0.03) and the default `seed` (101 versus 103).",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0ba350a960cdcbf0e109009fb4666a6db596a1b6990e1ddfd1998fee1e288cf7",
+    "source": "model",
+    "text": "The Vasicek Interest Rate Model (`vasicek_interest_rate_model`) prices a zero-coupon bond under the Vasicek short-rate model, where the rate follows `dr = κ(θ−r)dt + σ dW`. It gives a closed-form bond price from the affine formula `P = A·e^{−B·r0}`, and it also simulates short-rate paths by Monte Carlo. You supply the initial rate `r0`, mean-reversion speed `kappa`, long-run mean `theta`, volatility `sigma` and the bond's `maturity`. Optional settings are `n_steps`, `n_simulations` and `seed`. Because the short rate is Gaussian, it can go negative.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "122d03fe3d7d0e30242c1cb89ed5e0b1b01a4fa40b574af73513b02c07c91791",
+    "source": "model",
+    "text": "`vasicek_interest_rate_model` (the Vasicek Interest Rate Model) fits when you want a simple, mean-reverting view of interest rates.\n\n- You want a closed-form zero-coupon bond price from `r0`, `kappa`, `theta`, `sigma` and `maturity`, alongside a simulated short rate path.\n- You believe rates are pulled back toward a long-run mean (`theta`) at a speed set by `kappa`, with random shocks scaled by `sigma`.\n- You're fine with a Gaussian short rate that can go negative, for example in a negative-rate setting or for teaching and benchmarking.\n- You want to tune the simulation with `n_steps`, `n_simulations` and a fixed `seed` for repeatable runs.\n\nIf you need rates that stay non-negative, `cox_ingersoll_ross_model` is listed as a CIR model with a closed-form ZCB price and a simulated non-negative short rate.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

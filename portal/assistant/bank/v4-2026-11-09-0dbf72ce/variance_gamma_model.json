@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "bfc550104d47ea3114394fe904584d9f18861f8ec323c7ed385d0afce33c0366",
+      "source": "model",
+      "text": "`variance_gamma_model` prices a European option by Monte Carlo under a Variance Gamma process, where Brownian motion is time-changed by a Gamma subordinator. It answers: what is the option worth if returns have skew and fat tails, controlled by `theta` (skew), `nu` (variance rate of the subordinator) and `sigma`? `displaced_diffusion_model` instead prices on a shifted lognormal: it runs Black-Scholes on spot and strike each moved by `displacement`. It answers: what is the option worth if I want something between lognormal and normal-like dynamics, with a simple closed-form calculation? With `displacement` at zero it reduces exactly to Black-Scholes. The first needs `n_simulations` and a `seed`, and can return Greeks with `greeks=True`. The second has no simulation settings but accepts `div_yield`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9bbaf843d90610c0e757877936c9b8dcd2ce2d947a67a724e03e8c36e3d35c07",
+    "source": "model",
+    "text": "`variance_gamma_model` prices a European call or put under the Variance Gamma model, using Monte Carlo simulation. It time-changes Brownian motion with a Gamma subordinator whose mean is 1 and whose variance is `nu`. A drift correction keeps the discounted spot a martingale. The price is the discounted average payoff across simulated paths. Here `theta` is the model's skew parameter, not the time-decay Greek, and setting `greeks=True` also returns delta, gamma, vega, theta and rho by bump-and-reprice.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7287d9f305560a6934ba9b8d977446f769a897d3042eebbb5772caac4073a654",
+    "source": "model",
+    "text": "`variance_gamma_model` (Variance Gamma Model) fits when you want a Monte Carlo price for a European call or put under a model with skew and fat tails, rather than plain lognormal moves.\n\n- You want skew in the return distribution: `theta` sets the skew, `nu` is the variance rate of the Gamma time change, and `sigma` is the diffusion volatility.\n- A simulation-based estimate is acceptable. You set the number of paths with `n_simulations` and fix `seed` for repeatable runs.\n- You also want delta, gamma, vega, theta and rho by bump-and-reprice: set `greeks=True`. The Greek theta there is time decay, not the model's `theta` skew.\n- You want the discounted spot to be a martingale, which the closed-form drift correction `omega` ensures.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

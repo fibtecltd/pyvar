@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "portfolio_turnover": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "34d638cb35c66970896bf712bb8264b39ebd9be856a354f6be7a73d6fa480d6d",
+      "source": "model",
+      "text": "`transaction_cost_analysis` asks what your trades cost: it compares each fill's executed price with an arrival or VWAP benchmark and reports quantity-weighted slippage in basis points. With `decision_price` it can also add delay cost and implementation shortfall, and with `unexecuted_quantity` and `cancellation_price` it adds the opportunity cost of shares never filled. Its inputs are `trade_prices`, `benchmark_prices` and `trade_quantities`, plus `side` for buys or sells.\n\n`portfolio_turnover` asks how much you traded: it takes `weights_before` and `weights_after` and gives the one-way traded fraction, half the sum of absolute weight changes. It says nothing about prices or the quality of execution.\n\nIn short, turnover measures the size of a rebalance, while `transaction_cost_analysis` measures what it cost to carry out the trades.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fbf22f3922466346ab5352d3b4e653d68bdd3892bda87c49caa6ef7091a530ed",
+    "source": "model",
+    "text": "`transaction_cost_analysis` (Transaction Cost Analysis) measures how much a set of fills cost relative to a benchmark. It computes per-trade slippage against an arrival or VWAP price, plus the quantity-weighted average slippage in basis points, with `side` set for buys or sells. If you also pass `decision_price`, it adds a delay-cost leg and an implementation shortfall measured against the price at the decision moment, following Perold (1988). Adding `unexecuted_quantity` and `cancellation_price` brings in the opportunity cost of shares never filled. It does not model commissions or fees.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e7f7b752bbeb5db2a46b2c627d6336863be564b966188cddb2062e299ddfa6f9",
+    "source": "model",
+    "text": "Use Transaction Cost Analysis (`transaction_cost_analysis`) when you want to see what trading actually cost against a benchmark:\n\n- You have fills (executed prices, quantities) and an arrival or VWAP benchmark, and want slippage per trade plus a quantity-weighted average in basis points. Set `side` to +1 for buys and -1 for sells.\n- You want to separate delay cost from execution slippage: add `decision_price`, the price when the investment decision was made, to get the delay-cost leg and an implementation shortfall figure.\n- Part of the order never traded: pass `unexecuted_quantity` and `cancellation_price` together (with a single scalar `decision_price`) to add the opportunity cost of the unfilled shares.\n- Keep in mind it has no explicit commission or fee leg.\n- If your question is about how much a portfolio's weights changed between two points, `portfolio_turnover` is listed as the one-way traded fraction between two weight vectors.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

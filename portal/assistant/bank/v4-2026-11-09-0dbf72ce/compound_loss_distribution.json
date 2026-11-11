@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "df92547a9b40090ca758f81e90eecae8d295c071069417fd50b838aa42b96c35",
+      "source": "model",
+      "text": "`compound_loss_distribution` simulates the annual aggregate loss distribution: it draws a Poisson number of events each year, draws lognormal severities for them, and sums them, then reports the mean and standard deviation of annual loss. It answers \"what does a typical year of operational losses look like, and how spread out is it?\" `monte_carlo_oprisk_capital` takes the same inputs (`frequency_lambda`, `severity_mu`, `severity_sigma`, `n_years`, `seed`) and builds the same kind of compound distribution. It then reads off a high quantile of annual loss at a chosen `confidence_level`. It answers \"how much capital would cover the unexpected part of the loss?\", reporting OpVaR, expected shortfall and capital, where capital is OpVaR minus expected loss. In short, use the first to see the loss distribution itself and the second to turn it into a tail-based capital figure.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d7039a313ee30e3b6981a640e34d1f0224cf9ec0f50f611b06b39ac04cf5906e",
+    "source": "model",
+    "text": "`compound_loss_distribution` (Compound Loss Distribution) simulates an operational risk annual aggregate loss distribution using the classic frequency-severity approach. For each simulated year it draws a Poisson number of loss events, then draws that many lognormal severities and sums them into one annual loss. You set the event rate with `frequency_lambda` and the severity shape with `severity_mu` and `severity_sigma`. `n_years` controls how many years are simulated and `seed` makes runs reproducible. The output includes the mean and standard deviation of the simulated annual losses.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e44cdda92ee8c09621d7d58d80d24bc896daa2bc7de3f71b47bf9d57a5576572",
+    "source": "model",
+    "text": "`compound_loss_distribution` (Compound Loss Distribution) fits when you want a simulated annual aggregate loss from a frequency and severity model.\n\n- You already have a Poisson event rate (`frequency_lambda`) and lognormal severity settings (`severity_mu`, `severity_sigma`) and want to see how they combine over a year.\n- You want the mean and standard deviation of simulated annual losses across many years (`n_years`).\n- You need reproducible simulation runs, which `seed` supports.\n- You are working in operational risk and want the classic frequency-severity convolution.\n\nIf you need to fit the inputs first, `frequency_distribution_fitting` fits a Poisson frequency distribution to annual loss-event counts, and `severity_distribution_fitting` fits a severity distribution to individual loss amounts.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

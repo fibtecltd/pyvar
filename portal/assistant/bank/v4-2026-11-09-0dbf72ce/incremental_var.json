@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "99205c0d0907f106567d464de487e93c2366437b71b8de392d9bb5df0ed113d0",
+      "source": "model",
+      "text": "`incremental_var` answers \"how much does portfolio VaR change if this one position is removed?\" It computes the full portfolio VaR minus the VaR of the portfolio with position `position_index` taken out, so it is an exact, non-marginal effect. `component_var` answers \"how is the total VaR split across all positions?\" It allocates VaR to each position as `w_i * marginal_i` through Euler allocation, so the components sum exactly to the total VaR. The practical difference is that `incremental_var` looks at one position and a removal scenario, and its results generally won't add up to the total. `component_var` covers every position at once and is built to add up. Both take `weights`, `cov_matrix`, `portfolio_value` and an optional `confidence_level`, but only `incremental_var` needs `position_index`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e291858a24d3002c3dbb520f78dbbbab4fad0527ee0cf806919ec5ea49145568",
+    "source": "model",
+    "text": "`incremental_var` (Incremental VaR) measures how much a single position contributes to portfolio VaR, as the exact difference rather than a marginal approximation. It takes the VaR of the full portfolio and subtracts the VaR of the same portfolio with that position removed. You supply `weights`, the asset covariance matrix `cov_matrix`, the `position_index` of the position to measure, and the `portfolio_value`. The `confidence_level` is optional and defaults to 0.99. The formula scales the portfolio standard deviation, `sqrt(w'Σw)`, by a normal quantile at that confidence level.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "665c1d7895238fbbda065a09aef851bf8234e4ea79fe23581dcafeb2a8d17f5f",
+    "source": "model",
+    "text": "`incremental_var` (Incremental VaR) fits when you want to know how much one position changes your portfolio's VaR.\n\n- You want the exact effect of a position, not a small-change approximation: it compares VaR for the full portfolio with VaR for the portfolio with that position removed.\n- You're weighing whether to keep or trim a holding and want to see how much risk it adds, using `position_index` to pick the position.\n- You have portfolio `weights`, a `cov_matrix` of asset returns and a `portfolio_value`, and want a covariance-based result at a chosen `confidence_level`.\n- For sensitivity of portfolio VaR to each position weight, use `marginal_var`, which its listing describes as exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

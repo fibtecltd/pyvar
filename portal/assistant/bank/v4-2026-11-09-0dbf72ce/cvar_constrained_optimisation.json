@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "71cf26115139cee5aef2ade10cf9aa39a307f21d03fb5b2952aec23aad8b31e6",
+      "source": "model",
+      "text": "`cvar_constrained_optimisation` asks: \"What is the highest expected return I can get while keeping tail losses (CVaR at `confidence_level`) under `cvar_limit`?\" It works from a matrix of `scenario_returns`, keeps weights long-only and fully invested, and solves a linear program using the Rockafellar-Uryasev reformulation. `maximum_sharpe_ratio_portfolio` asks a different question: \"Which mix gives the best return per unit of volatility?\" It takes `mean_returns` and a `cov_matrix`, and maximises the annualised Sharpe ratio, with `risk_free` and `allow_short` as options. So the first limits tail loss, while the second balances return against overall variability with no cap on risk. The first can only be as good as the scenarios you supply, and the second only as good as the means and covariances you give it.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "20e37fbe8ddb22fe264cd7e1baf83fb1bd6b03c99d77ac01688201a46969a8f0",
+    "source": "model",
+    "text": "`cvar_constrained_optimisation` (CVaR Constrained Optimisation) finds long-only, fully invested portfolio weights that maximise expected return while keeping portfolio CVaR at your chosen `confidence_level` within `cvar_limit`. CVaR is measured empirically over the scenarios you supply in `scenario_returns`, and expected returns default to the scenario means unless you pass `mean_returns`. It solves the problem with Rockafellar and Uryasev's linear-programming reformulation, using an auxiliary VaR estimate and one excess-loss variable per scenario, via `scipy.optimize.linprog`. The return it reports is annualised using `periods_per_year`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "52ec010ea37620da5814a32c06c62698eee7e89120f31f2fd30c80be60b02607",
+    "source": "model",
+    "text": "`cvar_constrained_optimisation` (CVaR Constrained Optimisation) fits when tail loss is your main concern and you want the highest expected return within a set tail-risk budget.\n\n- You have a cap on average loss in the worst scenarios and want to set it directly through `cvar_limit` at a chosen `confidence_level`.\n- You have a scenario return matrix (historical or simulated) and want tail risk measured empirically from it, rather than assuming returns follow a normal distribution.\n- You want a long-only, fully invested portfolio, since weights are kept between 0 and 1 and sum to 1.\n- You want to supply your own `mean_returns` view, or let it default to the scenario means.\n\nIf you'd rather control overall variance than tail loss, `mean_variance_optimisation` is listed as Mean-variance (Markowitz) optimisation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

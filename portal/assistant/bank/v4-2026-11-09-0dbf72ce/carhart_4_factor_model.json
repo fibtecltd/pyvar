@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fama_french_3_factor_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e2a52078e6f943281547a66ae9d9d4d8e2d1f5d701a807681ccd4a387f62547c",
+      "source": "model",
+      "text": "`carhart_4_factor_model` extends `fama_french_3_factor_model` by adding a fourth factor, momentum (MOM), to the market, size (SMB) and value (HML) factors. Both regress portfolio excess returns on factor returns using ordinary least squares, with the intercept as the alpha. The practical difference is the `factors` input: the Carhart function expects a matrix with 4 columns (MKT, SMB, HML, MOM), while the Fama-French function expects 3 (MKT, SMB, HML).\n\n`fama_french_3_factor_model` answers: how much of my portfolio's excess return is explained by exposure to the market, size and value? `carhart_4_factor_model` answers the same question while also asking how much is explained by momentum, so the alpha it reports is measured after accounting for that extra factor. Both take the same `excess_returns` input.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7021778c63b21dd77fe35c67d0abdd8533d54cf64b249341ef65e1ad0c6ab729",
+    "source": "model",
+    "text": "`carhart_4_factor_model` (Carhart 4 Factor Model) runs a regression of a portfolio's excess returns on four factors: market (MKT), size (SMB), value (HML) and momentum (MOM). It extends the Fama-French 3-factor model by adding the momentum factor. You pass in `excess_returns`, the portfolio's returns over the risk-free rate, and `factors`, an (n_obs, 4) matrix of the four factor returns. It fits an intercept (alpha) plus a beta for each factor using ordinary least squares, so you can see how much of the portfolio's return is explained by each style exposure.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e9065d36c1150ab67aa87c5748134cc85f34e8629b1845b0c6239a5e4c22f211",
+    "source": "model",
+    "text": "`carhart_4_factor_model` (Carhart 4 Factor Model) fits when you want to explain a portfolio's returns using market, size, value and momentum exposures.\n\n- You have a series of portfolio excess returns over the risk-free rate and matching MKT, SMB, HML and MOM factor returns to pass as `excess_returns` and `factors`.\n- You suspect momentum matters, for example a strategy that tilts toward recent winners or losers, and you want that exposure separated from market, size and value.\n- You want an intercept (alpha) and factor loadings from one ordinary least squares regression.\n- You want to see how much a plain 3-factor view leaves out, since this model extends it with the momentum factor.\n- If momentum isn't a concern, `fama_french_3_factor_model` is listed as a Fama-French 3-factor regression (MKT, SMB, HML), and `fama_french_5_factor_model` as a 5-factor regression (MKT, SMB, HML, RMW, CMA).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

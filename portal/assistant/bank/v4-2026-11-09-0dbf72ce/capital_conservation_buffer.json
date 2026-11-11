@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "countercyclical_capital_buffer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "123610f41e3379f4f354d8583fb5861ef29999a8971d72648fa27034bc509a57",
+      "source": "model",
+      "text": "`capital_conservation_buffer` asks whether a bank's current CET1 ratio sits above the minimum plus a fixed buffer, and so whether dividend and bonus restrictions (the Maximum Distributable Amount) apply. It takes `cet1_ratio`, `risk_weighted_assets` and an optional `buffer_ratio`, and works out the buffer capital and a restricted-or-not test. `countercyclical_capital_buffer` asks a different question: what buffer rate does this particular bank owe, given where its private-sector lending sits? It takes the bank's exposures per jurisdiction (`exposure_amounts`) and each country's rate (`country_ccyb_rates`), averages the rates weighted by exposure, and multiplies by `risk_weighted_assets` to get the capital amount. So the first is a fixed-size buffer plus a distribution check, while the second is a bank-specific rate that varies with its geographic exposure mix.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "20dbf70e76c0ebf1eb6104a6c761cb2b78affac8768853c85d54eaec2687907f",
+    "source": "model",
+    "text": "`capital_conservation_buffer` (Capital Conservation Buffer) checks a bank's CET1 ratio against the regulatory minimum plus the conservation buffer. It takes `cet1_ratio` and `risk_weighted_assets`, plus an optional `buffer_ratio` that defaults to 2.5%. The required CET1 level is the 4.5% minimum plus `buffer_ratio`, and the buffer capital is `buffer_ratio` times risk-weighted assets. The function flags whether Maximum Distributable Amount (MDA) restrictions on dividends and bonuses apply, which happens when the CET1 ratio falls below that required level.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "25a41dd4b5b2191d412b96e202edaeba5685057b75e26f6dcf42a47db277920d",
+    "source": "model",
+    "text": "`capital_conservation_buffer` (Capital Conservation Buffer) fits when you need to check a bank's CET1 position against the buffer that sits above the minimum.\n\n- You want to test whether a current CET1 ratio falls below the required level (the 4.5% minimum plus the buffer), which is the condition for Maximum Distributable Amount (MDA) restrictions on dividends and bonuses.\n- You want the buffer expressed as capital, using total risk-weighted assets and the buffer ratio.\n- You want to run a what-if with a different buffer ratio via `buffer_ratio`, which defaults to 2.5%.\n- You are screening payout capacity: dividend or bonus plans can be checked against the distribution constraint.\n\n- For the wider set of buffers taken together, `combined_buffer_requirement` is listed as the Combined Buffer Requirement (CBR).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

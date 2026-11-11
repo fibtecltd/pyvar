@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_portfolio_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4169256b2846867dcd86d51c57715222746207b5b0526aca41f84071e2541afc",
+      "source": "model",
+      "text": "`sector_default_rate_analysis` looks backward at observed data: given defaults and obligor counts per sector, it reports each sector's default rate, the obligor-weighted overall rate, and a lift for each sector (above 1 means it defaults more than the portfolio average). It answers \"where is distress concentrated in my portfolio?\"\n\n`credit_portfolio_optimisation` looks forward and is about allocation. You give it expected returns and expected loss rates per asset, plus optional `max_weight` and `risk_aversion`, and it works out weights that maximise return minus a penalty on expected loss. It answers \"how should I weight these assets?\" under those inputs and constraints.\n\nIn short, one diagnoses default experience by sector, the other chooses weights across assets. The sector analysis does not produce weights, and the optimiser does not compute default rates from observed defaults.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a83034d4c6b4e928259d332ea66aebba1f8695f731b967a6da3a955fd1d4002a",
+    "source": "model",
+    "text": "`sector_default_rate_analysis` (Sector Default Rate Analysis) looks at default experience across the sectors of a credit portfolio. For each sector it divides defaults by obligors to get a default rate, and it also computes an overall rate weighted by obligor count. It then gives each sector a lift, which is its rate relative to the portfolio average, so a lift above 1 means the sector defaults more than average. You supply `sector_defaults` and `sector_obligors` (obligors must be at least defaults), and optionally `sector_names` for labels.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0afacb67a23076451f8fce4dd4e8f1fa007867b48bea1515cce32f0c7e5daa8f",
+    "source": "model",
+    "text": "Use Sector Default Rate Analysis (`sector_default_rate_analysis`) when you want to see where defaults are concentrated across a portfolio:\n\n- You have default counts and obligor counts per sector (`sector_defaults`, `sector_obligors`) and want each sector's default rate.\n- You want an obligor-weighted overall rate as a portfolio-wide benchmark.\n- You want to see which sectors default more than average, using each sector's relative risk (lift above 1 means more than average).\n- You want readable output, since `sector_names` lets you label sectors instead of using the default labels starting with `sector_0`.\n- For a different need, `credit_stress_testing` is listed as a credit stress test that applies multiplicative PD/LGD shocks to the loss profile.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

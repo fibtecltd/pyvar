@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "default_correlation_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8b5b3fdce552816a47ed45af01d9ac254ee22199f3dff19f46b9262e6b3ccd80",
+      "source": "model",
+      "text": "`ratings_migration_matrix` answers \"how do obligors move between rating states over a period?\" It counts observed start-of-period and end-of-period ratings (`from_rating`, `to_rating`) and turns each row into a probability distribution across `n_states`, with default as the last state. `default_correlation_matrix` answers a different question: \"how likely are pairs of obligors to default together?\" It takes per-obligor default probabilities (`pd`) and an asset-correlation matrix (`asset_correlation`), then uses a Gaussian copula to produce pairwise default correlations. So the first describes how ratings change over time for a population, estimated from observed data, while the second describes joint default behaviour between specific obligors, derived from your inputs. They are complementary: one is about transitions between states, the other about co-movement of defaults.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6729c6246865d1bdf8dcbec35fd8bfe0e3ade7e3f70987fec8d9a8f81238eafa",
+    "source": "model",
+    "text": "`ratings_migration_matrix` (Ratings Migration Matrix) estimates a ratings-migration matrix using the cohort method. You give it each obligor's start-of-period rating index (`from_rating`), end-of-period rating index (`to_rating`), and the number of rating states (`n_states`, with default as the last state). It counts the observed transitions between states and divides each row by its total, so every row is a probability distribution. If no obligors started in a given state, that row is set to a self-transition, which is a modelling convention rather than an observed transition. This keeps the matrix row-stochastic and safe to chain into further calculations.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9054a8e0d8f987bf0e4bddf1a2ff8875de959e768aa3158dc3ae3447087b4129",
+    "source": "model",
+    "text": "Use the Ratings Migration Matrix (`ratings_migration_matrix`) when you want to see how credit ratings have moved over a period:\n\n- You have each obligor's start-of-period and end-of-period rating index (`from_rating` and `to_rating`) and want observed transitions turned into probabilities, using the cohort method.\n- You need a row-stochastic matrix, where each row sums to a probability distribution, to feed into further credit-risk calculations.\n- Your rating scale is a fixed set of states with default as the last one (`n_states`).\n- You're fine with a convention for unobserved starting states: any rating with no obligors gets a self-transition of 1, which is a modelling choice, not an observed result.\n\nIf you instead need pairwise default correlation from asset correlations, `default_correlation_matrix` is listed as doing that with a Gaussian copula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

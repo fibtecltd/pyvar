@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "rcsa_risk_identification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ef8c0d6c9c7576ccafd6c6b9672824a8d75af5c6f2beeb73b5c8ff1d82917452",
+      "source": "model",
+      "text": "`rcsa_control_effectiveness` answers \"how good is this control?\" It takes a `design_score` and an `operating_score`, each between 0 and 1, and blends them into one effectiveness score using a weighted average. The `design_weight` parameter sets how much design counts, and operating gets the remainder.\n\n`rcsa_risk_identification` answers \"is our risk register complete and well-formed, and what does it contain?\" It checks that each risk entry has a `risk_id` and a Basel `category`, then counts entries by category. It is validation and tallying rather than a numeric formula.\n\nSo the first scores a control, while the second checks and summarises the list of risks. They sit at different steps of the RCSA cycle: identification comes first, and control assessment comes later.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "42d831fcdacdcea07d92c0ef06907628ac23b0385ddae3b72a1520e1b54c4f7c",
+    "source": "model",
+    "text": "`rcsa_control_effectiveness` (RCSA Control Effectiveness) rolls two views of a control into one score between 0 and 1. The first is design effectiveness, meaning whether the control is well designed. The second is operating effectiveness, meaning whether it works as intended in practice. It takes a weighted average of `design_score` and `operating_score`. `design_weight` sets the weight on design (default 0.4), and operating gets the remainder, so you can tilt the score toward either view.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b2ecc9b24e5ebd45d2c6dc273598b475bb037ea6d5b0a84ebc4bc91dd64b0aa3",
+    "source": "model",
+    "text": "`rcsa_control_effectiveness` (RCSA Control Effectiveness) fits when you want one control score from two separate assessments.\n\n- You have a design score (is the control well-designed?) and an operating score (does it work as intended?), each between 0 and 1, and want a single combined figure.\n- You want to adjust how much design counts versus operation. `design_weight` defaults to 0.4, and the operating weight is 1 minus that.\n- You are running a risk and control self-assessment and want a simple, consistent way to summarise control strength across controls.\n- Different need: `rcsa_residual_risk_scoring` covers residual risk after control mitigation.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "return_attribution_brinson": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5f82ec50b3ee79681c6f3df57b6ad3cf21cd8ce434a88c634023e47aeb5c50df",
+      "source": "model",
+      "text": "`gics_sector_exposure` answers \"where is my money allocated?\" It sums position weights into GICS sector buckets, using `weights` and `sector_codes`, and reports each sector's share of the portfolio. Those shares add up to the total invested weight. It describes the portfolio at a point in time and needs no benchmark or returns.\n\n`return_attribution_brinson` answers \"why did I beat or trail the benchmark?\" It takes portfolio and benchmark weights and returns (`portfolio_weights`, `benchmark_weights`, `portfolio_returns`, `benchmark_returns`). It splits the active return into allocation, selection and interaction effects per segment, and these effects sum exactly to the total active return.\n\nIn short, the first reports exposure and the second explains performance relative to a benchmark.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6118c49b576d4b0d98b67ae6b21225a8422f491abd7e98257243aa1b1c32fa37",
+    "source": "model",
+    "text": "`gics_sector_exposure` (GICS Sector Exposure) rolls individual position weights up into GICS sector buckets and reports each sector's share of the portfolio. For each sector, it sums the weights of the holdings in that sector, so the shares add up to the total invested weight. You pass `weights`, the position weight for each holding, and `sector_codes`, the GICS sector label for each holding in the same order. It's a quick way to see where a portfolio's concentration sits by sector.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "182593e5feb324d2e35a779ddc6ddba5f2c72405e429159b197dc550b0457419",
+    "source": "model",
+    "text": "Use `gics_sector_exposure` (GICS Sector Exposure) when you want to see how a portfolio's weight is spread across sectors:\n\n- You have position weights per holding and a GICS sector label for each, in the same order, and want each sector's share of the portfolio.\n- You want to check concentration, for example whether a few sectors account for most of the invested weight.\n- You need a quick breakdown where the sector shares add up to the total invested weight.\n- You want a simple exposure snapshot, not a performance explanation.\n- For Brinson allocation/selection grouped by sector, `sector_attribution` is the related function.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

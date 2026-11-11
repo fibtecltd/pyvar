@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "scenario_expert_elicitation_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "34603ed215862192ee9342ad280093dbd226bda313f24e9a806bebc7e954917c",
+      "source": "model",
+      "text": "`scenario_severity_estimation` turns two expert judgments, a typical loss and a worst-case loss, into a lognormal severity distribution. It treats `typical_loss` as the median and solves for the spread (`sigma`) from `worst_case_loss` at `worst_case_percentile`. So it answers: \"What severity distribution fits these two expert anchor points?\"\n\n`scenario_expert_elicitation_model` starts from several experts' loss estimates (`expert_estimates`) and optionally their credibility weights (`expert_weights`). It combines them into a weighted consensus and reports how much the experts disagree. It answers: \"What do my experts collectively think, and how much do they agree?\"\n\nIn short, one fits a distribution from a single typical/worst-case pair, while the other pools many opinions into one figure with a dispersion measure. They can be used in sequence, but neither one calls the other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "58dec881a141800a2ee0992b563b3c3409fe20d386ce8428ac7f8878b9b445ce",
+    "source": "model",
+    "text": "`scenario_severity_estimation` (Scenario Severity Estimation) calibrates a lognormal loss severity from two expert judgments: a typical loss and a worst-case loss. It treats `typical_loss` as the lognormal median, so `mu` is the log of that value. It then solves for `sigma` from `worst_case_loss`, using the normal quantile at `worst_case_percentile` (default 0.99). This is the standard two-point expert calibration for operational risk scenarios. The worst-case loss must be larger than the typical loss, and the percentile must lie between 0.5 and 1.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f8e453abd97713d793922ecf30224960e92d20dca2121c06a3264e44186900e0",
+    "source": "model",
+    "text": "`scenario_severity_estimation` fits when you need a lognormal loss severity built from expert judgment rather than data:\n\n- You have two expert figures: a typical (median) loss, `typical_loss`, and a high-percentile worst-case loss, `worst_case_loss`.\n- You are building an operational risk scenario and need the severity's `mu` and `sigma` before modelling losses.\n- Historical loss data is thin, so a two-point expert calibration is the practical route.\n- You want to choose which percentile the worst case represents, using `worst_case_percentile` (it defaults to 0.99).\n- For a different need: `scenario_frequency_estimation` estimates a scenario's annual frequency (Poisson lambda), which pairs with a severity but does a different job.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

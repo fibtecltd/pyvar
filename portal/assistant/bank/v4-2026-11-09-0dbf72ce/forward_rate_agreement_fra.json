@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5ada2caca1c1f4a2ba964a6db3df3139d9f3f078859f17b7b3e7aa9883785367",
+      "source": "model",
+      "text": "`forward_rate_agreement_fra` values a forward rate agreement: it asks what the contract is worth today given the gap between the projected forward rate (`forward_rate`) and the contracted `fra_rate`. The long side pays fixed, and the value is zero when those two rates are equal. It scales that gap by `notional`, the accrual period (`end` minus `start`) and `discount_factor`.\n\n`total_return_swap_trs` values a total-return swap leg, so it asks what the leg is worth when one side receives an asset's period return (`asset_return`) and pays a financing cost (`financing_rate` times `accrual`). It has a `receive_total_return` flag for direction.\n\nThe key difference is what drives the value. The FRA depends on two interest rates, while the total-return swap depends on an asset's return against a financing rate. The FRA takes the accrual period from `start` and `end`, while the total-return swap takes `accrual` directly.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "48f134b8cd2a097385cf6d09afda79e153299878e03ce0383576cfb5416ba8ef",
+    "source": "model",
+    "text": "`forward_rate_agreement_fra` (Forward Rate Agreement FRA) gives the mark-to-market value of a forward rate agreement, where long means paying the fixed rate. It takes the `notional`, the contracted `fra_rate`, the projected `forward_rate`, the accrual window (`start` and `end`, in years) and the `discount_factor` to the settlement date. The value is the notional times the gap between forward and contracted rates, times the accrual period, times that discount factor. When the `fra_rate` equals the projected forward, the value is zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9ea42af7ff303d940e1fe5a67f74d369965678b589a54743cf21516323b72fc4",
+    "source": "model",
+    "text": "Use `forward_rate_agreement_fra` (Forward Rate Agreement FRA) when you need the mark-to-market value of a forward rate agreement:\n\n- You hold a FRA, where long means paying fixed, and want its current value given a contracted rate (`fra_rate`) and a projected `forward_rate`.\n- You already have the forward rate over the accrual period (`start` to `end`, in years) and the `discount_factor` to the end date, and want to turn them into a value on a given `notional`.\n- You want to check where a FRA sits relative to the market: its value is zero when the contracted rate equals the projected forward.\n- For a vanilla fixed-vs-float swap rather than a single forward period, `interest_rate_swap_irs_pricer` is listed as pricing a vanilla fixed-vs-float interest-rate swap.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

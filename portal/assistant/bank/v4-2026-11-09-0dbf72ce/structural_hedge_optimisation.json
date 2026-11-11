@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asset_liability_mismatch_index": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "55d7f5951b9ea074260e19c95fbdb0b20eccca0f2e518262914958191c79c735",
+      "source": "model",
+      "text": "`structural_hedge_optimisation` is for deciding how much of each hedge instrument to use: it solves for non-negative notionals, capped per instrument by `instrument_max_notional`, so the hedge's dollar-duration gets as close as possible to `equity_notional` times `target_duration`. It answers \"what hedge brings equity duration to my target?\" and solves this numerically with SciPy bounded least-squares rather than a closed-form formula.\n\n`asset_liability_mismatch_index` is a measuring tool. It takes asset and liability buckets (durations and amounts) and returns the absolute duration gap divided by total assets, which is zero when the book is perfectly immunised. It answers \"how far out of balance is my balance sheet?\"\n\nIn short, one proposes hedge sizes to hit a duration target, and the other scores the existing asset-liability duration gap.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0bfcc34a73e72e95305b38841d104aade5d946d4256913f19c2bc10493427a50",
+    "source": "model",
+    "text": "`structural_hedge_optimisation` (Structural Hedge Optimisation) works out how much to put into each hedge instrument so the hedge's dollar-duration lands as close as possible to a target for your equity. That target is `equity_notional` multiplied by `target_duration`. You supply the duration of each instrument in `instrument_durations` and a cap on each one's size in `instrument_max_notional`. It solves for non-negative notionals within those caps, using SciPy's bounded least-squares solver (`lsq_linear`) rather than a closed-form formula. \"As close as possible\" means the caps may stop it reaching the target exactly.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a80cca00aa43081644d68e94ae0753cbf39d017637dd70075d1797ef1f7d56bd",
+    "source": "model",
+    "text": "`structural_hedge_optimisation` (Structural Hedge Optimisation) fits when you need to steer the interest-rate sensitivity of your equity toward a chosen level.\n\n- You have a target equity duration in mind (`target_duration`) and want to see how a set of hedge instruments can get as close to it as possible.\n- Each instrument has a known duration (`instrument_durations`) and a cap on how much of it you can use (`instrument_max_notional`).\n- You want non-negative hedge sizes found numerically under those caps, rather than a closed-form allocation.\n- You know the equity notional to hedge (`equity_notional`) and want the hedge's dollar-duration matched to the target as closely as the caps allow.\n\n- For a different need: `asset_liability_mismatch_index` is listed as computing an asset-liability mismatch index from duration-weighted exposures.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

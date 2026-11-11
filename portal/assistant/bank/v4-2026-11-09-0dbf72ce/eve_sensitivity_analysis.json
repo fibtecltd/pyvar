@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_simulation_stress": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7597fa6975285ddd41bf92317c14edd172937ef4f17a8940a7e847ce9896fd18",
+      "source": "model",
+      "text": "`eve_sensitivity_analysis` asks how the present value of the balance sheet's net cashflows changes under each of the six IRRBB rate shocks, and it reports ΔEVE for every scenario plus the worst case. It discounts `net_cashflows` at `base_rates` by `times`, and its shocks (`parallel_bps`, `short_bps`, `long_bps`) are in basis points. `nii_simulation_stress` asks how near-term net interest income changes under a single parallel shock (`rate_shock`, as a decimal). It works from asset and liability balances and rates, and `asset_beta` and `liability_beta` let rates reprice only partly. In short, the first is a long-run value measure tied to BCBS d368, while the second is an earnings measure that returns stressed NII and the change versus baseline.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9f86eec01719e42249e7ccea852ddda509ae8a27c4ad6337963cd418c458fe16",
+    "source": "model",
+    "text": "`eve_sensitivity_analysis` (EVE Sensitivity Analysis) reports the change in economic value of equity (ΔEVE) under each of the six IRRBB rate shocks from BCBS d368, plus the worst case across them, which is the headline supervisory metric. You give it net (asset minus liability) cashflows per time bucket, the bucket times in years, and base zero rates as decimals. It discounts the cashflows at the base rates and at each shocked curve, then takes the difference. Shock sizes can be adjusted with `parallel_bps`, `short_bps` and `long_bps`, which default to 200, 300 and 150 bps.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "84e1a52714f44abcfb710243513fbd3a693d9590c35a6d3f5fc4d18ba68b9bbf",
+    "source": "model",
+    "text": "`eve_sensitivity_analysis` (EVE Sensitivity Analysis) fits when you need the interest rate risk in the banking book (IRRBB) view of how your economic value changes under rate shocks.\n\n- You want ΔEVE under each of the six prescribed IRRBB scenarios, plus the worst case, which is the headline supervisory metric under BCBS d368.\n- You have net (asset − liability) cashflows by time bucket, with bucket times and base zero rates, and want to see how rate moves change their present value.\n- You need to tune the shock sizes, using `parallel_bps`, `short_bps` and `long_bps`, to see how the results respond.\n- You are preparing regulatory-style ALM reporting inputs and want the worst-case scenario identified for you.\n\nIf you instead want a single EVE level, `economic_value_of_equity_eve` is listed as computing PV(assets) − PV(liabilities).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

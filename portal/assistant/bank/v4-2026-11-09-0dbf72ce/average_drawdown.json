@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f634c3923363fcee46040681a11fefd079e7a061db638e846da8197bd3a0fdbf",
+      "source": "model",
+      "text": "`average_drawdown` answers \"how deep is the typical dip below the prior peak?\" It takes the drawdown at each period, which is how far the value sits below its running peak as a fraction of that peak, and returns the mean of those magnitudes. `drawdown_duration` answers \"how long do the dips last?\" It counts consecutive periods spent below the prior peak and reports the longest run and the current underwater run.\n\nSo one measures depth averaged over the whole series, and the other measures time spent underwater. Both take the same inputs: `returns` and the optional `is_equity_curve` flag, which tells pyvar that `returns` is already a value series. If you want the single worst dip rather than the average, `maximum_drawdown` is the related function.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bd2be1932ea09f7bf5bbb8eb19057f275127fdc4144c6ef0b2d3f77972846523",
+    "source": "model",
+    "text": "`average_drawdown` (Average Drawdown) returns the mean magnitude of a portfolio's drawdown series. At each period it measures how far the value `V_t` sits below its running peak `P_t`, as a fraction of that peak. It then averages those drawdowns over all `T` periods. Unlike maximum drawdown, which looks only at the worst fall, it reflects how deep and how persistent the losses were across the whole history. You pass `returns` as per-period returns, or set `is_equity_curve` to True if you are supplying a value series directly.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cfc0f13174c4a38e68dbb2e95e8ebac7990081bfcddb2bdf165b30d8c820f99e",
+    "source": "model",
+    "text": "`average_drawdown` (Average Drawdown) fits when you want a typical measure of how far a portfolio sits below its prior peak, rather than just the worst case.\n\n- You want a sense of everyday underwater depth: it takes the mean of the drawdown series, so it reflects the whole history, not one dip.\n- You have either per-period returns or an equity curve: pass returns as `returns`, or set `is_equity_curve` to True if you're supplying a value series directly.\n- You're comparing strategies or funds on how persistently and deeply they sit below their highs.\n- You want a drawdown figure less dominated by a single extreme event than a peak-to-trough worst case.\n- If you need the single largest peak-to-trough decline instead, `maximum_drawdown` is listed as doing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

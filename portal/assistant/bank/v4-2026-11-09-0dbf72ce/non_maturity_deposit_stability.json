@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "prepayment_model_mortgages": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d61a4bfe93d786e1fc9d2bae09a01b1058a5d62789cb3a16658174dce9140d7e",
+      "source": "model",
+      "text": "`non_maturity_deposit_stability` asks how much of a deposit book is likely to stay put. From a history of balances (`balance_history`), it takes a low percentile at the chosen `confidence_level` as the stable floor, and treats whatever the current balance has above that as volatile. `prepayment_model_mortgages` asks a different question: how will a mortgage pool's cashflows unfold if borrowers prepay at a constant rate? It takes `principal`, `annual_rate`, `term_years` and `cpr`, then steps through interest, scheduled principal and prepayment month by month, and reports the weighted-average life. The first works on observed deposit history on the liability side, while the second projects loan cashflows on the asset side from an assumed prepayment speed. If you want a deposit run-off view rather than a stability floor, `behavioural_modelling_nmds` is a related function worth a look.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5de6c9c61694124ac77f1be8eb171e5b4a5d50e93e13530e89e13c8ca829e1c0",
+    "source": "model",
+    "text": "`non_maturity_deposit_stability` estimates the stable (core) portion of non-maturity deposits from a history of balances. It takes the low percentile of that history, set by `confidence_level`, as the stable floor, meaning the level the balance is expected to stay above with that probability. The volatile portion is whatever the current balance sits above that floor, and the stable fraction is the floor divided by the current balance. You supply `balance_history` (at least 2 observations) and optionally `confidence_level`, which defaults to 0.99 and must lie in [0.5, 1).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d81c062404e25708c0e85c81c62000000b2bc0b3d54344bc021f5b06cc80c23",
+    "source": "model",
+    "text": "`non_maturity_deposit_stability` fits when you need a data-driven split of deposit balances into stable and volatile parts:\n\n- You have a balance history for non-maturity deposits (at least 2 observations) and want the stable (core) portion as a low percentile of that history.\n- You want the volatile portion measured against the current balance, plus the stable share of that balance (`f_stable`).\n- You want to set how conservative the stable floor is using `confidence_level` (between 0.5 and 1, default 0.99).\n- You need a quick historical-percentile view rather than a run-off or behavioural model.\n\nFor modelling NMD run-off split into core and non-core, `behavioural_modelling_nmds` is the related function, according to pyvar's listing.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

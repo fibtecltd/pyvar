@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "973bbbe02daf5c8dea5bbe29696a4f21ee90c7be1022739cd5e63a5280278758",
+      "source": "model",
+      "text": "`tail_ratio` compares the size of a return distribution's right (gain) tail to its left (loss) tail, answering \"are my big up periods larger than my big down periods?\" It divides the absolute value of the upper quantile by the absolute value of the lower quantile, set by `tail`, which defaults to 0.05. A value above 1 means the gain tail is larger than the loss tail.\n\n`drawdown_duration` answers a different question: \"how long have I spent below a prior peak?\" It counts consecutive periods under the previous high and reports the longest and the current underwater runs.\n\nSo `tail_ratio` looks at the shape of the return distribution and ignores the order of returns. `drawdown_duration` follows returns through time, and its `is_equity_curve` option lets you pass a value series directly. Both take a `returns` input, but they describe different aspects of performance.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "49fadb11aedb50f46e60dd7094b9befd730da9e361a4f184a0273d36d94434a0",
+    "source": "model",
+    "text": "`tail_ratio` (Tail Ratio) compares the size of a return distribution's gain tail with its loss tail. It takes the absolute value of the upper quantile at `1 - tail` and divides it by the absolute value of the lower quantile at `tail`. A result above 1 means the right (gain) tail is larger than the left (loss) tail. You pass in `returns`, a 1-D array of per-period returns, and optionally `tail`, a probability between 0 and 0.5 that defaults to 0.05, meaning the 5%/95% tails. pyvar does the calculation for you.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d2f2c7832a7195d4ab0362a971d2e0ea2561525dd0b90dd001bd7ee85ae3b236",
+    "source": "model",
+    "text": "`tail_ratio` (Tail Ratio) fits when you want to compare how big your best outcomes are against your worst ones.\n\n- You want a quick read on return asymmetry: a value above 1 means the gain tail is larger than the loss tail.\n- You care about extremes rather than averages, since it compares the quantiles at `tail` and `1 - tail` of your `returns`.\n- You're comparing strategies or funds whose return distributions look different at the edges, using the same `tail` setting for each.\n- You want to adjust how far into the tails you look: `tail` defaults to 0.05 (the 5%/95% tails) and can be any value between 0 and 0.5.\n- If you want a measure built around the largest peak-to-trough decline instead, `maximum_drawdown` is listed in pyvar as the \"largest peak-to-trough decline\".",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

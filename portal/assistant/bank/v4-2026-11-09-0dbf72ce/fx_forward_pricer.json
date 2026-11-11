@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fx_option_pricer_garman_kohlhagen": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f3321b81d29d4f24b2c3fb70761fd3f39b71ef731fdcb5dfefc1ed2e1f442c31",
+      "source": "model",
+      "text": "`fx_forward_pricer` answers \"what forward rate should apply to this currency pair, and what is an existing forward worth?\" It takes `spot`, `rate_domestic`, `rate_foreign` and `tau`, and uses covered interest-rate parity to give the forward rate. If you pass `contracted_forward`, it also gives the mark-to-market value of a long-foreign position, scaled by `notional`.\n\n`fx_option_pricer_garman_kohlhagen` answers \"what is an FX option worth?\" It adds a `strike`, a volatility `sigma` and an `option_type` of call or put. It is Black-Scholes with the foreign rate acting like a continuous dividend yield.\n\nIn short, the forward pricer deals with a fixed future exchange and needs no volatility. The option pricer values the right, but not the obligation, to exchange, so it depends on `sigma`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f0c44d4bf277a0406d9c42349d204b552f0a866b69cbd193ee7a4cce354a5a01",
+    "source": "model",
+    "text": "`fx_forward_pricer` (FX Forward Pricer) gives you an FX forward rate and, optionally, the mark-to-market value of a contract, using covered interest-rate parity. The forward is the spot rate (`spot`, domestic per one foreign unit) grown at the difference between the continuous domestic and foreign rates (`rate_domestic`, `rate_foreign`) over `tau` years to delivery. If you also pass a `contracted_forward`, it values a long-foreign position as `notional` times the gap between the forward and the contracted rate, discounted at the domestic rate. The value is in domestic currency, and `notional` is in foreign currency and defaults to 1.0.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "09900d9acefd0a0bd7405c2f2032939e6061b407fbe7c980597b646b9e4b878a",
+    "source": "model",
+    "text": "`fx_forward_pricer` (the FX Forward Pricer) fits when you need a forward FX rate or the value of an existing forward contract:\n\n- You want the theoretical forward rate from spot and the domestic and foreign continuous rates, using covered interest-rate parity.\n- You hold a contracted forward and want its mark-to-market value in domestic currency. Supply `contracted_forward` along with `notional` to get it for a long-foreign position.\n- You want to see how different interest-rate gaps or times to delivery (`tau`) feed into the forward, since both are inputs.\n- For pricing an FX option rather than a forward, `fx_option_pricer_garman_kohlhagen` is listed as a Garman-Kohlhagen FX option price.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

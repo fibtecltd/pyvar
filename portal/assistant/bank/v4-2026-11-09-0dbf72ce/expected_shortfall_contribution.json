@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "conditional_var_es": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1efe9b05c364428c95fd8861d2fec4e2ac8d33c5de1267eca44c7f15160abc4e",
+      "source": "model",
+      "text": "`expected_shortfall_contribution` splits a portfolio's Expected Shortfall across its individual assets, while `conditional_var_es` gives a single ES figure for a portfolio from its return series. The first answers \"which assets drive the tail loss, and by how much?\" The second answers \"how large is the average loss beyond the VaR threshold for this portfolio?\"\n\nThe inputs differ accordingly. `expected_shortfall_contribution` takes a matrix of per-asset returns (`asset_returns`) plus `weights`, and averages each asset's loss over the scenarios where the portfolio breaches VaR. Those contributions add up to the total ES. `conditional_var_es` takes one series of historical portfolio `returns` and reports the mean loss beyond the VaR threshold, scaled by `portfolio_value`.\n\nBoth default `confidence_level` to 0.975.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b7cedd5dff0c65fd8a55a5bc922ced6abce482ea7f033317c42bac3c3b7864de",
+    "source": "model",
+    "text": "`expected_shortfall_contribution` (Expected Shortfall Contribution) splits a portfolio's expected shortfall into per-asset pieces. For each asset, it averages that asset's loss across exactly those scenarios where the portfolio's loss breaches VaR. You supply `asset_returns` (a scenarios-by-assets matrix), `weights`, `portfolio_value`, and optionally a `confidence_level`. The contributions add up to total ES, which is the additive allocation FRTB expects. That makes it useful for seeing which positions drive tail risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7c48705f78595b30a37538f94b0ca5d29813f0d833f17563d1c3e234ec770dad",
+    "source": "model",
+    "text": "`expected_shortfall_contribution` (Expected Shortfall Contribution) fits when you need to see which assets drive your portfolio's tail risk.\n\n- You want a per-asset breakdown of Expected Shortfall that adds up to the total ES, the additive allocation FRTB expects.\n- You have a scenario matrix of per-asset returns (`asset_returns`) and want contributions based on what each asset actually lost in the scenarios where the portfolio breached VaR.\n- You want to find which positions concentrate losses in bad scenarios, using your `weights` and `portfolio_value`.\n- You want to set the tail level yourself via `confidence_level`, which defaults to 0.975.\n- For a Gaussian-based Euler decomposition of ES instead of a scenario-based one, see `cvar_decomposition_euler`, which is listed as the Euler decomposition of Gaussian Expected Shortfall.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

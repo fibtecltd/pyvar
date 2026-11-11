@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "73a12d493acc6a7d0114a82f415cffe448533851e098911e97eee0b5c6ded5ef",
+      "source": "model",
+      "text": "`rebalancing_optimiser` answers the question \"given where my portfolio has drifted, which trades should I make to get back to my target weights without paying for needless churn?\" It takes `current_weights`, `target_weights` and `cost_bps`, skips trades that fall inside a no-trade band, and reports turnover and total transaction cost. `maximum_sharpe_ratio_portfolio` answers a different question: \"which weights give the best risk-adjusted return?\" It takes `mean_returns` and `cov_matrix` and finds the tangency portfolio, with weights summing to 1.\n\nSo the Sharpe function picks the target, while the rebalancing function works out how to move toward a target you already have. The two can work together, since the weights from one could serve as the `target_weights` of the other. If you give `rebalancing_optimiser` both `asset_volatility` and `risk_aversion`, it derives a per-asset band instead of using the single `no_trade_band` value.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0d53e1135dd643bddb49ddba37a9b957a66ee4e6b98f033eeb5a7f621a999713",
+    "source": "model",
+    "text": "The Rebalancing Optimiser (`rebalancing_optimiser`) works out the trades needed to move a portfolio from its `current_weights` to its `target_weights`. It skips any trade smaller than a no-trade band, so you avoid churn, and it reports the resulting turnover and total transaction cost based on `cost_bps`. By default the band is one absolute weight threshold (`no_trade_band`) applied to every asset. If you supply both `asset_volatility` and `risk_aversion`, it derives a separate band for each asset from the classic Constantinides / Davis & Norman asymptotic result, so bands widen with cost and volatility and narrow with higher risk aversion.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "836c02adff06818cd9e9babdc2b0061ca896e8bad1c218a7e7a7c03989ffe586",
+    "source": "model",
+    "text": "The Rebalancing Optimiser (`rebalancing_optimiser`) fits when you already have target weights and need to decide which trades are worth making.\n\n- You hold a portfolio that has drifted from its targets and want trades that skip small deviations, so you avoid churn.\n- You want to see turnover and total transaction cost for a rebalance, using per-asset `cost_bps`.\n- You prefer a simple, uniform threshold: set `no_trade_band` as one absolute weight cut-off for every asset.\n- You want bands that vary by asset: supply `asset_volatility` and `risk_aversion` together, and pyvar derives a per-asset band that widens with cost and volatility and narrows as risk aversion rises.\n- If you need the target weights themselves, `mean_variance_optimisation` is listed as Mean-variance (Markowitz) optimisation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

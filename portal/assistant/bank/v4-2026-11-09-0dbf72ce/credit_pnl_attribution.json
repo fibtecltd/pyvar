@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5c0fe5f07880df14a5247b47d1bbef04d0a34bc78f49394669e2cc0dbd7cdbc1",
+      "source": "model",
+      "text": "`credit_pnl_attribution` explains where credit P&L came from: it multiplies each name's `cs01_sensitivities` by its `spread_moves_bp` and sums them, so you can see the contribution of each issuer or curve. `pnl_attribution_test_frtb_pat` asks a different question: does the model-based P&L track the full-revaluation P&L well enough? It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`, and combines a Spearman rank correlation with the ratio of their volatilities to assign a Basel traffic-light zone. The first is a breakdown by name of a credit P&L figure, while the second is a pass/fail-style quality check on a pricing model, with thresholds set by the Basel Committee rather than by you. The inputs also differ: per-name sensitivities and spread moves for one, two P&L time series for the other.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3cb88403ce1ff7c59d80b74a95071c14cf275fd805ab3de02e7c2d6768f44790",
+    "source": "model",
+    "text": "`credit_pnl_attribution` breaks down credit P&L by issuer or curve, using the sum of each name's CS01 times its realised spread move in basis points. You supply `cs01_sensitivities` (the P&L per +1bp spread move for each name) and `spread_moves_bp` (the realised move per name). Because the total is additive across credit names, each name's contribution shows how much of the overall P&L it accounts for. You can also pass `name_labels` to label the names; otherwise they default to `name_0`, and so on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fbcee765425bf661e9d03386ff3a3bd2d2cbc77cdd78ce8cc8df53dd32c3e31e",
+    "source": "model",
+    "text": "`credit_pnl_attribution` fits when you want to break credit P&L down by issuer or curve after spreads have moved.\n\n- You already have a CS01 (P&L per +1bp spread move) for each credit name and the realised spread moves in basis points, and want to see each name's contribution.\n- You need a total credit P&L that adds up across names, since the total is the sum of CS01 times spread move for each one.\n- You want a per-name view of what drove credit P&L, optionally with your own `name_labels` instead of the default `name_0, ...`.\n- For rates P&L by key-rate tenor, `rates_pnl_attribution` is listed as the related function for interest-rate attribution.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "798b429d73a1618d40f46e899679d779fe629b9471326cf6915feae8ac9ca824",
+      "source": "model",
+      "text": "`treynor_ratio` asks how much annualised excess return a portfolio earned per unit of systematic risk, where risk is its beta against a market benchmark. It takes `returns` and `benchmark_returns`, plus an optional `risk_free` rate and `periods_per_year` for annualising. `drawdown_duration` asks a different question: how long the portfolio spent below its prior peak, reporting the longest and the current underwater run. It needs only `returns` (or an equity curve, via `is_equity_curve`) and has no benchmark or risk-free input. So `treynor_ratio` measures reward relative to market exposure, while `drawdown_duration` measures how long losses lasted, with no reference to the market or to return per unit of risk.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "826c8b367272fdc2601c9e71de83316ec75aa24e32d6f914c4f21e85d3dd530d",
+    "source": "model",
+    "text": "`treynor_ratio` (the Treynor Ratio) measures annualised excess return per unit of systematic risk, where that risk is the portfolio's beta against a market benchmark. You give it per-period `returns` for the portfolio and `benchmark_returns` for the market, and optionally a per-period `risk_free` rate (default 0.0). Beta is calculated as the covariance of the portfolio and benchmark returns divided by the benchmark's variance. The average per-period excess return is annualised using `periods_per_year` (default 252) and divided by that beta.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ac7ecc30927abab35aaae331cd60347ce1a5af6abf404de24439886adf28b66f",
+    "source": "model",
+    "text": "The Treynor Ratio (`treynor_ratio`) fits when you want to judge a portfolio's excess return relative to the market risk it carries:\n\n- You're evaluating a well-diversified portfolio, where systematic risk (beta) is the main concern rather than total volatility.\n- You have per-period portfolio returns (`returns`) and matching market returns (`benchmark_returns`) to measure beta against.\n- You want to compare portfolios against the same benchmark on excess return per unit of beta, setting `risk_free` and `periods_per_year` to suit your data.\n- You want the excess return annualised, so results sit on a yearly footing.\n- For a different need, `information_ratio` is listed as active return over tracking error.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

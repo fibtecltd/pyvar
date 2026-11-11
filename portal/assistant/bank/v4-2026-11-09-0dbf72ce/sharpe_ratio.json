@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "drawdown_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f306a3d3ad536ab9aa88932c8bad75f4fe894ee43e2f8bb111399989d78b70cd",
+      "source": "model",
+      "text": "`sharpe_ratio` answers \"how much excess return did I earn per unit of volatility?\" It divides mean excess return over `risk_free` by the standard deviation of those excess returns, then annualises with `periods_per_year`. `drawdown_duration` answers a different question: \"how long did I spend below a previous peak?\" It counts consecutive periods underwater and reports the longest run and the current one.\n\nThe two also look at different things. `sharpe_ratio` summarises the overall spread of returns, so a gain and a loss of the same size count equally. `drawdown_duration` only cares about the path of cumulative value, specifically how long it takes to get back to a prior high.\n\nTheir inputs differ too. `sharpe_ratio` takes per-period returns plus `risk_free`, `periods_per_year` and `ddof`. `drawdown_duration` takes returns or an equity curve, switched with `is_equity_curve`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cbd23e105227e7ff151a1d85716976c6c096bb474449608efade45aa46f49073",
+    "source": "model",
+    "text": "`sharpe_ratio` (Sharpe Ratio) computes an annualised Sharpe ratio from a series of per-period simple returns. It takes the mean excess return over the risk-free rate and divides it by the volatility of those excess returns, then scales by the square root of `periods_per_year`. You set `risk_free` per period, matching the period of `returns`, and `periods_per_year` defaults to 252 for daily data (12 for monthly). By default volatility is the population standard deviation (`ddof=0`); pass `ddof=1` for the sample version, which matters mainly for small samples.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "50c21bf602816e3d9859c22793809381c8046b2f610d7eb11b6c8fc5493d891d",
+    "source": "model",
+    "text": "Use `sharpe_ratio` (the Sharpe Ratio) when you want one annualised number for return earned per unit of total volatility.\n\n- You have a series of per-period simple returns and want to compare how efficiently different strategies or funds earn excess return over a risk-free rate.\n- Your returns are daily, monthly or another regular period. Set `periods_per_year` to match (252 for daily, 12 for monthly) and `risk_free` to the same per-period rate.\n- You want volatility treated as a population measure (the default `ddof=0`) or as a sample estimate with `ddof=1`. The choice matters mainly for small samples.\n- Total volatility, up and down moves alike, is the risk you care about.\n- If drawdowns are your concern instead, `calmar_ratio` is listed as annualised return over maximum drawdown.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

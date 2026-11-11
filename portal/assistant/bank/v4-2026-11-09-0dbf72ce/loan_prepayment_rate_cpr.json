@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "prepayment_model_mortgages": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d4882dfd5f9b3fa5db1b56e49d0334c89aa6bfde19a53dc6feab97c714bbf199",
+      "source": "model",
+      "text": "`loan_prepayment_rate_cpr` answers the question \"what is this prepayment rate in the other convention?\" It converts between single monthly mortality (`smm`) and the constant prepayment rate (`cpr`), and you provide exactly one of the two. `prepayment_model_mortgages` answers a bigger question: \"what cashflows and weighted-average life does a mortgage pool produce under a given CPR?\" It takes `principal`, `annual_rate`, `term_years` and `cpr`, then runs a month-by-month amortisation loop covering interest, scheduled principal and prepayment. The two connect because the mortgage model uses the same SMM-from-CPR relationship internally, while the conversion function only does that one step and produces no cashflows. Use the conversion for a rate, and the mortgage model for a projected pool.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5069047ece680973f678061c6f0af7c19c0f93295cde1733e644d0b84676284f",
+    "source": "model",
+    "text": "`loan_prepayment_rate_cpr` (Loan Prepayment Rate CPR) converts between single monthly mortality (SMM) and the constant prepayment rate (CPR), two common ways of expressing how quickly borrowers prepay loans. Give it `smm` to get CPR, using CPR = 1 − (1 − SMM)^12. Or give it `cpr` to get SMM, using SMM = 1 − (1 − CPR)^(1/12). Provide exactly one of the two, as decimals rather than percentages. It's useful in ALM and balance sheet work when you need to put monthly and annualised prepayment assumptions on the same basis.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f96bcf19d3391255d4f64cf160c2eb62c671c8e88753aca3c6149af30c3634c3",
+    "source": "model",
+    "text": "`loan_prepayment_rate_cpr` (Loan Prepayment Rate CPR) fits when you need to move between monthly and annualised prepayment rates:\n\n- You have a single monthly mortality (SMM) figure and want the equivalent annual constant prepayment rate (CPR). Pass it as `smm`.\n- You have an annual CPR and need the monthly SMM equivalent. Pass it as `cpr`.\n- You want your prepayment inputs on a consistent basis before using them elsewhere in balance sheet work. Provide exactly one of `smm` or `cpr`, not both.\n- Related function: `prepayment_model_mortgages` is listed as projecting mortgage cashflows under a constant CPR prepayment assumption, so it fits if you want cashflows rather than just a rate conversion.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

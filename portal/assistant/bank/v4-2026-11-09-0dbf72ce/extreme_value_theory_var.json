@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "component_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "36840b293da6f9a5e1ba36c53fd2f7b4dfd25905aa81343552060ca5f8ab727a",
+      "source": "model",
+      "text": "`extreme_value_theory_var` estimates how large a portfolio's loss could be at a high confidence level, by fitting a Generalised Pareto Distribution to the losses beyond a high threshold (set by `threshold_quantile`). It takes a single series of `returns` and focuses on the tail, reaching beyond the range of the observed sample. `component_var` asks a different question: given a portfolio's `weights`, `cov_matrix` and `portfolio_value`, how much of the total VaR does each position account for? It uses Euler allocation, so the position components add up exactly to the total VaR. In short, `extreme_value_theory_var` is about the size of the tail loss, and `component_var` is about where the risk comes from across positions. Both take a `confidence_level`, but they work from different inputs: historical returns for the first, and weights plus covariances for the second.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "498655ce62fcc0dced09caecd656fd8eb2942fd1b555af8baf5514ddee3bd381",
+    "source": "model",
+    "text": "`extreme_value_theory_var` (Extreme Value Theory VaR) estimates Value at Risk using the Peaks-Over-Threshold method. It takes your portfolio `returns`, picks a high loss threshold set by `threshold_quantile`, and fits a Generalised Pareto Distribution to the losses beyond it. It then reads the VaR at your chosen `confidence_level` from that fitted tail. Because the tail is modelled directly, it can capture behaviour beyond the range of the empirical sample, which is useful for very high confidence levels.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2b7bd3536ebf8c945f35ea5db3ed81c70289612eabc1e5654d67ab3088b5b0e3",
+    "source": "model",
+    "text": "`extreme_value_theory_var` (Extreme Value Theory VaR) fits a Generalised Pareto Distribution to the worst losses and reads VaR from that tail. It fits when:\n\n- You care about extreme losses far out in the tail, beyond what the sample's own observations cover directly.\n- You want a high confidence level that sits above your chosen threshold, using `confidence_level` and `threshold_quantile` together.\n- You have a 1-D array of portfolio returns with enough tail observations for the fit to be meaningful.\n- You want tail behaviour modelled explicitly instead of read straight from the empirical sample.\n\nIf you'd rather skip tail modelling and use the observed returns directly, `historical_simulation_var` is listed as non-parametric Historical Simulation VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

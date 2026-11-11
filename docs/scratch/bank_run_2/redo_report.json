@@ -1,0 +1,1380 @@
+{
+ "summary": {
+  "bank_version": "v4-2026-11-09-0dbf72ce",
+  "entries": 1154,
+  "redo_ids": 52,
+  "redo_found": 52,
+  "changed": 52,
+  "unchanged": 0,
+  "now_static": 0,
+  "now_not_faithful": 0,
+  "gate_notes_before": 61,
+  "gate_notes_after": 3,
+  "with_notes_after": 2,
+  "tries_histogram_after": {
+   "1": 48,
+   "2": 4,
+   "3": 0
+  },
+  "escalated_after": 0,
+  "mean_length_before": 747.1,
+  "mean_length_after": 721.6,
+  "longest_after": 926,
+  "outside_changed": [],
+  "redo_ids_not_in_bank": []
+ },
+ "rows": [
+  {
+   "id": "alm_stress_test:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    558,
+    521
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "alm_stress_test:compare:structural_hedge_optimisation",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    970,
+    924
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "asian_option_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    777,
+    758
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "basel_capital_addon_multiplier:compare:traffic_light_backtesting",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    831,
+    731
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "black_litterman_model:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    629,
+    638
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "black_litterman_model:compare:maximum_sharpe_ratio_portfolio",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    858,
+    878
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "bond_pricer_fixed_coupon:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    726,
+    714
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "bond_pricer_fixed_coupon:compare:bond_pricer_floating_rate",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    805,
+    776
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "callable_bond_pricer:compare:bond_pricer_floating_rate",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    884,
+    915
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "caplet_floorlet_pricer_black:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    475,
+    476
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "combined_stress_scenario:compare:market_wide_stress_scenario",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    798,
+    772
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "compound_option_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    945,
+    840
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "concentration_risk_hhi:compare:monte_carlo_portfolio_simulation",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    754,
+    779
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "conduct_risk_metric:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    501,
+    537
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "control_testing_effectiveness:compare:rcsa_risk_identification",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    891,
+    816
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "convertible_bond_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    748,
+    685
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "convexity:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    715,
+    756
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "cornish_fisher_var:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    572,
+    570
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "credit_default_swap_cds_pricer:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    851,
+    780
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "cva_sensitivity_cva_greeks:compare:counterparty_credit_risk_ccr_exposure",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    829,
+    855
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "downturn_lgd_adjustment:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    695,
+    646
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "egarch_volatility_model:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    831,
+    800
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "emir_clearing_obligation_check:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    967,
+    926
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "equity_swap_pricer:compare:total_return_swap_trs",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    778,
+    742
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "factor_return_attribution:compare:return_attribution_brinson",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    811,
+    778
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "frtb_ima_market_risk_capital:compare:frtb_sa_market_risk_capital",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    826,
+    827
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "frtb_pl_attribution_test:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    821,
+    705
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "funds_transfer_pricing_ftp:compare:ftp_curve_construction",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    770,
+    720
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "garch_11_volatility_forecast:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    569,
+    627
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "hull_white_short_rate_model:compare:vasicek_interest_rate_model",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    1019,
+    891
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "ifrs_9_stage_classification_pd_threshold:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    766,
+    774
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "ifrs_9_stage_classification_pd_threshold:compare:ifrs_9_scenario_weighted_ecl",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    775,
+    837
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irb_foundation_approach_capital:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    1
+   ],
+   "length": [
+    571,
+    479
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irb_foundation_approach_capital:compare:basel_standardised_approach_rwa",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    890,
+    843
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irrbb_six_standard_rate_shocks:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    621,
+    626
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irrbb_six_standard_rate_shocks:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    820,
+    671
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "irrbb_standardised_framework:compare:irrbb_six_standard_rate_shocks",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    859,
+    821
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "liquidity_adjusted_es:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    2
+   ],
+   "length": [
+    601,
+    566
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "liquidity_gap_analysis:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    671,
+    649
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "liquidity_gap_analysis:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    873,
+    796
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "loss_given_default_lgd_model:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    583,
+    622
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "nelson_siegel_curve_fit:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    824,
+    830
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "normal_inverse_gaussian_model:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    520,
+    614
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "oas_option_adjusted_spread:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    847,
+    760
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "parametric_delta_normal_var:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    559,
+    558
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "portfolio_beta:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    764,
+    666
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "rainbow_option_pricer:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    677,
+    659
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "repricing_maturity_profile:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    2,
+    0
+   ],
+   "length": [
+    581,
+    603
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "return_attribution_brinson:when",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    2,
+    2
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    0,
+    0
+   ],
+   "length": [
+    725,
+    634
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "risk_appetite_statement_oprisk:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    695,
+    685
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "spread_option_kirk_approximation:explain",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    604,
+    624
+   ],
+   "faithful": true,
+   "issues": []
+  },
+  {
+   "id": "unexpected_loss_ul_computation:compare:probability_of_default_pd_estimation",
+   "changed": true,
+   "source": [
+    "model",
+    "model"
+   ],
+   "tries": [
+    1,
+    1
+   ],
+   "escalated": [
+    false,
+    false
+   ],
+   "notes": [
+    1,
+    0
+   ],
+   "length": [
+    821,
+    822
+   ],
+   "faithful": true,
+   "issues": []
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration_balance_sheet": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2e5d60efa8dd85b678aa2744d6fb248f1e2ce0b175ffa55e35a52b3b90c242ba",
+      "source": "model",
+      "text": "`macaulay_duration_balance_sheet` gives the Macaulay duration of a cashflow stream: the present-value-weighted average time, in years, until the cashflows arrive, using a continuous `discount_rate`. It answers \"how long, on average, until this stream pays back?\" `modified_duration_balance_sheet` starts from that same Macaulay figure and divides it by `1 + y/m`, where `m` is the `frequency` parameter (compounding per year, default 1). It answers \"how sensitive is the value of this position to a change in the rate?\" With continuous discounting (a large `frequency`), the modified figure is approximately the Macaulay one, so the two differ most when `frequency` is small. Both take `cashflows`, `times` and `discount_rate`, and only the modified version also takes `frequency`.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "79ea5da26d80bf06801642bd77cf9fef6797d6896fc7d8ddf58fb4908d79ea69",
+    "source": "model",
+    "text": "`macaulay_duration_balance_sheet` (Macaulay Duration Balance Sheet) gives the Macaulay duration, in years, of a balance-sheet cashflow stream. It is the present-value-weighted average time of the cashflows, so it shows how far out the stream's value is concentrated. You supply `cashflows` (the amounts), `times` (when each occurs, in years) and `discount_rate` (a continuous rate as a decimal). Each cashflow is discounted continuously at that rate, and each time is weighted by its share of the total present value.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d16c4d270e1fbbc449a6fb360ba56f88c11d7711ee0d67132a4de56377060de",
+    "source": "model",
+    "text": "Use Macaulay Duration Balance Sheet (`macaulay_duration_balance_sheet`) when you want the weighted-average timing, in years, of a stream of balance-sheet cashflows.\n\n- You have a set of cashflow amounts (`cashflows`) with their times in years (`times`) and want a single duration figure for that stream.\n- You are happy to discount continuously at one flat rate, supplied as `discount_rate` in decimal form.\n- You want to see how far out the present-value-weighted cashflows sit, for example to compare the timing of assets and liabilities.\n- You want the Macaulay measure specifically, not a price-sensitivity measure.\n\nIf you need the modified version of duration for a balance-sheet position, `modified_duration_balance_sheet` is listed as the related function for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

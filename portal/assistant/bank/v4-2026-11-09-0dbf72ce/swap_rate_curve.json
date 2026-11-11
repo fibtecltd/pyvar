@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ois_curve_sonia_sofr": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "cc7cd5a1cacd27a1625ee01a1f3e3f2dd07d41e70110961a7343a1c13e7c45da",
+      "source": "model",
+      "text": "`swap_rate_curve` and `ois_curve_sonia_sofr` run in opposite directions. `swap_rate_curve` starts from a discount-factor curve (`discount_factors` and `maturities`) and returns the par swap rate for each tenor, which is the fixed rate that gives a par swap zero value. It answers: \"Given these discount factors, what par swap rates do they imply?\"\n\n`ois_curve_sonia_sofr` starts from quoted OIS rates (`ois_rates` and `maturities`) and builds the discount curve. It bootstraps the curve as for par swaps, using single-curve OIS discounting, and its formula also yields zero rates. It answers: \"Given these quoted OIS rates, what discount curve do they imply?\"\n\nBoth take `frequency` for the fixed-leg payment frequency, defaulting to 1 per year.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2bcb23b16a5bd9ed1766ec288a2fd2c06b66a85ef5cfaa189bb6c333014dd225",
+    "source": "model",
+    "text": "`swap_rate_curve` (Swap Rate Curve) takes a discount-factor curve and returns the par swap rate for each tenor, which is the fixed rate that gives a par swap zero value. For each maturity it takes one minus the discount factor at that maturity and divides by the sum of the accrual period times the discount factors up to that point. You supply `discount_factors` (descending in (0, 1]) and `maturities` in years (ascending). The optional `frequency` sets the fixed-leg payments per year, with a default of 1, and the accrual period is its reciprocal. It's useful for turning a discount curve into the swap rates that market quotes are usually expressed in.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3fb7391f78b9b49a68f0ef20bcb5146708c5016e9dbc6a45b37dce30483141e0",
+    "source": "model",
+    "text": "`swap_rate_curve` (Swap Rate Curve) fits when you already have a discount-factor curve and want the par swap rates it implies.\n\n- You have discount factors for a set of maturities and need the fixed rate at each tenor that gives a par swap zero value.\n- You want to turn a discount curve into quotes comparable with market swap rates.\n- Your fixed leg pays more than once a year: set `frequency` to match (it defaults to annual).\n- Your inputs are discount factors in `discount_factors` (descending, between 0 and 1) and ascending `maturities` in years.\n\n- If you instead want to build a discount curve from quoted OIS swap rates, `ois_curve_sonia_sofr` is listed as doing that for SONIA/SOFR curves, which is the reverse direction.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

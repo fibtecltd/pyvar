@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "asian_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "83c24a860de842f6856ac3c4d36b06118f0833c445df00b6990cc58198191ea4",
+      "source": "model",
+      "text": "`bermudan_option_pricer` answers \"what is an option worth if I can exercise early, but only on a few set dates?\" `asian_option_pricer` answers \"what is an option worth if its payoff depends on the average price over the life of the option?\" The Bermudan prices an exercise right using the Longstaff-Schwartz regression method, with exercise allowed only on an evenly spaced subset of the time grid set by `exercise_dates`. Its price lies between the European and American values. The Asian pricer simulates paths and averages the observed prices (`n_steps` sets the number of observations), then pays off against `strike` at maturity. Averaging reduces volatility, so an Asian option is worth less than the matching vanilla European option. Both use Monte Carlo and take the same core inputs (`spot`, `strike`, `rate`, `sigma`, `tau`). The Bermudan defaults to a put and the Asian to a call.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "63f29dcaf15f3c582f71688701f296431077c204c171231ff5e7506bd0d6d789",
+    "source": "model",
+    "text": "`bermudan_option_pricer` (the Bermudan Option Pricer) estimates the price of an option that can be exercised early, but only on a limited set of evenly spaced dates rather than at any time. It uses Longstaff-Schwartz Monte Carlo: simulated paths are stepped backward, and a regression decides at each allowed date whether exercising beats continuing. There is no closed form, so the result is a simulation estimate. The price sits between the European and American values. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can set `exercise_dates`, `option_type` (call or put), `div_yield` and optionally `greeks`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "df85bce939497bf49c2625a2b688c17262acff19ea24f19dedf5a7b0e4de8b9b",
+    "source": "model",
+    "text": "The Bermudan Option Pricer (`bermudan_option_pricer`) fits when an option can be exercised early, but only on certain set dates.\n\n- Use it for contracts with discrete exercise windows, where you set how many allowed dates there are with `exercise_dates`.\n- It suits cases with no closed-form answer: it uses Longstaff-Schwartz Monte Carlo, so you control the accuracy trade-off through `n_simulations` and `n_steps`.\n- It's useful as a sanity bracket, since the price lies between the European and American values.\n- Calls or puts are supported via `option_type`, with `div_yield` for a dividend-paying underlying. Set `greeks` to true if you also want delta, gamma, vega, theta and rho.\n- If the option can instead be exercised at any time, `american_option_lsm` is listed as the American option pricer using Longstaff-Schwartz Monte Carlo.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

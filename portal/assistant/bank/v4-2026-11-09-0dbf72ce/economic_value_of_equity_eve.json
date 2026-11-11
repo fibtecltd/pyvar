@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_simulation_stress": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "39eee6fb1879b4f0f2414c4c798de59fa49a1c2bc9babd1474842b03bc957b94",
+      "source": "model",
+      "text": "`economic_value_of_equity_eve` answers \"what is the economic value left for equity holders?\" It discounts every banking-book asset and liability cashflow at its own zero rate and returns the present value of assets minus the present value of liabilities. `nii_simulation_stress` answers \"how would near-term earnings change if rates shift?\" It applies a parallel `rate_shock` to asset and liability rates, scaled by `asset_beta` and `liability_beta`, and returns stressed net interest income plus the change versus baseline.\n\nThe inputs differ too. EVE takes cashflows, times and discount rates per bucket. The NII function takes balances and base rates per bucket, plus the shock and the betas. In short, EVE is a present-value view of the whole balance sheet, while `nii_simulation_stress` is an income view under a rate move.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3ed4f95f1ba945ca44e5622e4704920cc5b8fb6dabb38876f2608defd85dd77a",
+    "source": "model",
+    "text": "`economic_value_of_equity_eve` (Economic Value Of Equity EVE) calculates the residual economic value that accrues to equity holders, defined as the present value of assets minus the present value of liabilities. It discounts every banking-book cashflow using a continuously compounded zero rate for its bucket, following BCBS d368. You supply cashflows, cashflow times in years, and discount rates for both the asset side (`asset_cashflows`, `asset_times`, `asset_rates`) and the liability side (`liability_cashflows`, `liability_times`, `liability_rates`). Each is given per bucket, with rates as decimals.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5f509e3687b417b6f99193ef4746ad18e9db5977d913dd27b39017cfe94178df",
+    "source": "model",
+    "text": "Use Economic Value Of Equity EVE (`economic_value_of_equity_eve`) when you want the residual economic value to equity holders, meaning the present value of assets minus the present value of liabilities.\n\n- You have banking-book cashflows grouped into buckets, each with a cashflow amount, a time in years, and a discount zero rate (as a decimal), for both assets and liabilities.\n- You need a value-based view of interest rate risk in the banking book, in line with BCBS d368, rather than an earnings-based view.\n- You want to see how discounting all banking-book cashflows at your chosen rates feeds into one equity value figure.\n- You are building a base EVE that you can compare against other rate scenarios by changing `asset_rates` and `liability_rates`.\n\nFor EVE changes under each of the six IRRBB rate shocks, `eve_sensitivity_analysis` is listed as giving EVE sensitivity (ΔEVE) under those shocks.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

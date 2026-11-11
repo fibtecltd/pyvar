@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "market_wide_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "496713ea7cf1defafc01bc2f227c034290fc2aba497ff24851213466fdd01e34",
+      "source": "model",
+      "text": "`liquidity_stress_scenario` asks whether your available HQLA covers net stressed outflows once you apply run-off rates to each funding category. You give it `balances`, `runoff_rates`, `hqla` and optionally `inflows`. It sums the stressed outflows, subtracts inflows, and reports the surplus as HQLA minus that net figure.\n\n`market_wide_stress_scenario` asks a different question: how much does the liquid buffer itself shrink in a system-wide crisis? It takes `hqla_by_level` and `market_haircuts` to reduce each level's value for flight to quality and fire-sale discounts. It then compares that stressed HQLA with a single `outflow` figure you supply.\n\nIn short, the first stresses the funding side (outflows) and the second stresses the asset side (HQLA value). The first derives outflows from balances and run-off rates, while the second takes outflow as a ready-made input.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "aa71148fa9ad376ccfc539a8263ea3e6b71ef25decfa6f3ab9934f724616ab2b",
+    "source": "model",
+    "text": "`liquidity_stress_scenario` (Liquidity Stress Scenario) runs a single generic liquidity stress test. You give it the outstanding `balances` for each funding category and a stressed `runoff_rates` value for each, between 0 and 1. It multiplies each balance by its run-off rate and sums the results to get total stressed outflows. It then subtracts any stressed contractual `inflows` (optional, defaulting to zero) to get the net stressed outflow. Finally, it compares your available post-haircut `hqla` with that net figure, so you can see whether HQLA covers it and by how much (the surplus).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "699090163fa5a327d4b72d097544ac30b2b575186db033fc28be4fce1dd4c9e3",
+    "source": "model",
+    "text": "Use `liquidity_stress_scenario` (Liquidity Stress Scenario) when you want to test one generic stress case on a funding profile.\n\n- You have balances for each funding category and a run-off rate you choose for each one, and you want the stressed outflows.\n- You want to check whether your available HQLA (after haircuts) covers the net stressed outflow, with any stressed contractual inflows (`inflows`) netted off.\n- You want a simple surplus-or-shortfall view: HQLA minus net outflow.\n- You are setting your own scenario assumptions rather than using a predefined stress type.\n\nIf your case is specifically name-specific stress, `idiosyncratic_stress_scenario` is described as the name-specific stress scenario. For market-wide stress, `market_wide_stress_scenario` fits, and `combined_stress_scenario` is described as combining idiosyncratic and market-wide stress.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}
