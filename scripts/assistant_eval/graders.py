@@ -346,6 +346,24 @@ def _negated_question_identifiers(text: str, unknown: list[str], question: str) 
     return allowed
 
 
+def _flat(value: Any) -> Any:
+    """`value` with every newline inside a string turned into a space.
+
+    `source_text` dumps the record as JSON, which writes a newline as the two characters backslash and n, so
+    a number that starts a line of a description ("...expected\\n30-day run-off") follows a word character
+    and `check_numbers` does not see it as a number of the record. That wrongly fails the menu answer for
+    `retail_deposit_runoff_rate:explain` ("30-day") in every draw (12 catalogue descriptions have a number at
+    the start of a line). The menu graders are left as they were measured; typed grading flattens first.
+    """
+    if isinstance(value, str):
+        return value.replace("\n", " ")
+    if isinstance(value, list):
+        return [_flat(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _flat(v) for k, v in value.items()}
+    return value
+
+
 def grade_typed(
     answer: str,
     records: Mapping[str, dict[str, Any]],
@@ -386,7 +404,7 @@ def grade_typed(
 
     def known_source(extra: dict[str, Any]) -> dict[str, Any]:
         return {
-            "record": {"functions": list(records.values()), "page": page_function, **extra},
+            "record": _flat({"functions": list(records.values()), "page": page_function, **extra}),
             "siblings": [{"name": n, "summary": t} for n, t in (search_hits or {}).items()],
             "other": None,
         }

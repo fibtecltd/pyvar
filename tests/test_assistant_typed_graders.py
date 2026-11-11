@@ -238,3 +238,18 @@ def test_grade_row_rebuilds_the_tool_results_from_the_catalogue() -> None:
     }
     assert run_typed.grade_row(case, row, BY_NAME)["passed"]
     assert run_typed.grade_row(case, {**row, "status": "truncated"}, BY_NAME) is None
+
+
+def test_a_number_that_starts_a_line_of_a_description_is_known_to_the_typed_grader() -> None:
+    """The menu number check misses it (backslash-n glues the number to a word); typed grading does not."""
+    name = "retail_deposit_runoff_rate"
+    record = typed_tools.trim_record(BY_NAME[name])
+    assert "\n30-day" in record["description"]
+    answer = (
+        f"`{name}` returns the total expected 30-day run-off amount for the categories you pass."
+    )
+    menu_case = {"record": record, "siblings": [], "other": None}
+    assert graders.check_numbers(menu_case, answer) == [
+        "30"
+    ], "the menu grader's known false positive"
+    assert graders.grade_typed(answer, {name: record}, "?").checks["numbers_supported"]
