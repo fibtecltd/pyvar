@@ -31,10 +31,12 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from body_schema import inline_refs  # noqa: E402
+sys.path.insert(0, str(REPO))  # the kernel is the top-level package `assistant`
+
+from assistant.body_schema import inline_refs  # noqa: E402
+from assistant.records import DESCRIPTION_LIMIT, trim_record  # noqa: E402,F401  (re-exported)
 
 SEED = 20261107
-DESCRIPTION_LIMIT = 1500
 EXAMPLE_SCENARIOS = ("typical", "stress")
 
 
@@ -68,32 +70,6 @@ def group_index(specs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             for name in group["functions"]:
                 index[name] = {"group": group["title"], "members": list(group["functions"])}
     return index
-
-
-def trim_record(entry: dict[str, Any]) -> dict[str, Any]:
-    """The part of a catalogue entry a model is shown (and the only part it may rely on)."""
-    formula = entry.get("formula") or {}
-    return {
-        "name": entry["name"],
-        "display_name": entry["display_name"],
-        "domain": entry["domain_label"],
-        "summary": entry["summary"],
-        "description": (entry.get("description") or "")[:DESCRIPTION_LIMIT],
-        "parameters": [
-            {
-                "name": p["name"],
-                "type": p["type"],
-                "required": p["required"],
-                "default": p["default"],
-                "description": p.get("description"),
-            }
-            for p in entry["params"]
-        ],
-        "formula_latex": formula.get("formula_latex"),
-        "symbol_map": formula.get("symbol_map"),
-        "caveat": formula.get("caveat"),
-        "citation": formula.get("citation"),
-    }
 
 
 def _rank(name: str) -> str:

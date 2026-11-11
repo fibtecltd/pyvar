@@ -30,8 +30,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from body_schema import minimal_instance, validate
-from scrub import has_secret
+from assistant.body_schema import minimal_instance, validate
+from assistant.scrub import has_secret
 
 LENGTH_BOUNDS = {"explain": (150, 900), "when": (150, 1100), "compare": (200, 1200)}
 _ADVICE = re.compile(
