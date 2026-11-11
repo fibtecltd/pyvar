@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "sftr_securities_finance_report": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "f785ca120a807f7b804a1ee3b1cf6e42ad1185e373b51b222437891bacc1065b",
+      "source": "model",
+      "text": "`emir_trade_repository_report` checks a derivatives trade against EMIR's core reporting fields, while `sftr_securities_finance_report` does the same for securities financing transactions under SFTR. The first answers \"does this derivative trade have the required fields in valid form?\", looking at counterparty LEIs, the UTI, notional and asset class. It requires the notional to be positive and each LEI to be 20 characters. The second answers \"does this repo, securities lending, buy-sell back or margin lending transaction have its required fields?\", looking at counterparties, the UTI, collateral and the SFT type. It requires the SFT type to be one of those four and the collateral value to be zero or more. Both take a single mapping (`trade` or `transaction`) and check only a core subset of 6 fields, not the full schema.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "605ef78b1d04bca3bad47598f543c5507b046e4425c63ba9a3412898ece60959",
+    "source": "model",
+    "text": "`emir_trade_repository_report` (EMIR Trade Repository Report) builds and validates a trade report for EMIR trade repository submission. You pass a single `trade` mapping of EMIR field names to values, and it checks that the required core fields are present, that each counterparty LEI is 20 characters long, and that the notional is above zero. Those core fields cover counterparty LEIs, the UTI, notional and asset class. It returns whether the report is valid, any errors found, and a normalised version of the report. It checks only 6 core fields, not the roughly 200 fields in EMIR REFIT's full schema.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e77eb0882dbbacb0381ea0ff258b914372f44d30eddb13063731f37d0e1d80a3",
+    "source": "model",
+    "text": "`emir_trade_repository_report` (EMIR Trade Repository Report) fits when you want to check a trade's core reporting fields before submitting it.\n\n- You have a trade as a mapping of EMIR fields and want to confirm the required fields are present.\n- You want to check that counterparty LEIs are 20 characters long and that notional is above zero.\n- You want a normalised version of the report echoed back, along with any errors.\n- You need a quick check on the core fields (counterparty LEIs, UTI, notional, asset class). It covers 6 fields, not the full EMIR REFIT schema.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

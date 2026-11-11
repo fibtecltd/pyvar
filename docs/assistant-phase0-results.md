@@ -1106,3 +1106,23 @@ different need" (4 of them were in the first redo). The re-read sample was partl
 **Decision.** A second targeted rewrite of those 72 (`docs/assistant-bank-redo-2.json`) with one note: keep a pointer only if it says
 what question the related function answers that this one does not and it is a real next step, otherwise leave it out (the reader's
 wording is added for the CDS answer). Same mechanism and guarantees as the first redo; v4 and the pinned hashes do not change.
+
+**The second redo** (code `868746f`, data `31567db`; 74 s, $0.99, no failed call). Exactly the 72 named entries changed (73 bank files:
+72 function files and the manifest); none became static, 8 needed a second draft and 1 (`historical_simulation_var:when`) was
+escalated to Opus. "For a different need" went from 72 `when` answers to 0: in 45 the pointer was dropped and in 27 it was kept with
+the need stated ("If you need a daily view over a shorter window instead, `cash_flow_ladder_30_day` ..."). The mean length of the 72
+went from 784 to 688 characters. Two gate notes remain on them, both saying the answer names no sibling.
+
+**The second re-read.** 11 of the 72 (the CDS answer the reader had marked, the 2 with a gate note left, 5 whose pointer states a need,
+3 whose pointer was dropped; seed 20261113): 10 no wrong claim, 0 wrong claim, 1 unsure. The unsure one, `historical_simulation_var:when`,
+says "you also want CVaR alongside VaR". The entry's formula defines both VaR and CVaR, but its summary and description mention only VaR,
+so the entry alone does not confirm that CVaR is returned. The engine returns it (`cvar_pct` and `cvar_abs`, `engine/var_models.py`), so
+the claim is right and the catalogue entry under-describes the function; nothing was rewritten for it.
+
+**The bank committed here** is the one after the second redo: bank version `v4-2026-11-09-0dbf72ce`, 1,154 answers (1,152 model text,
+2 static), 385 files, 1,189,138 bytes, `check` clean (rc 0, static share 0.17%), `manifest.json` sha256 `070d6bc0...f5d6`. Built on
+the dev key for $18.36 in all ($16.53 first build with its smoke run, $0.82 and $1.01 for the two redos). The three states are on the scratch
+branches `data/assistant-bank-1` (`b64daae`), `-2` (`928d3ba`) and `-3` (`31567db`). Evidence on quality: a random read of 48 answers of the
+first build (3 wrong, all since rewritten) and 31 reads of rewritten answers (1 wrong, since rewritten; 1 unsure that the engine settles).
+No random read has been made of this final bank, whose 124 rewritten answers differ from the one that was sampled. If the 4% tolerance has
+to be shown for exactly this bank, that read is the missing evidence; the flag `assistant_enabled` stays off until it is decided.

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "18da1265fcffa827c1f4bcd06abb652e50c634de412459d7778fee47a7550837",
+      "source": "model",
+      "text": "`intragroup_liquidity_flow` looks at liquidity moving between entities inside a group: you give it `entity_positions` (provided minus received for each entity), and it nets them to show who is a net provider or receiver and how much liquidity is transferred internally. `deposit_stability_classification` instead looks at funding from customers: you give it a stability score per deposit in `deposit_features`, and it sorts each deposit as stable or less-stable using `stable_threshold`. So the first answers \"which group entities are supplying or drawing liquidity, and how much moves between them?\", while the second answers \"how sticky are these deposits, and what fraction counts as stable?\" The first works on entity-level net positions, the second on individual deposit scores. Stable deposits carry a lower LCR run-off, which is why that classification matters for liquidity measurement.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2590c1e803b77a6ce72f3d4ac1b6561642abf40280d3b6e975e9fe54c7638c8e",
+    "source": "model",
+    "text": "`intragroup_liquidity_flow` (Intragroup Liquidity Flow) nets the bilateral liquidity positions between entities in a group. You pass `entity_positions`, a mapping of each entity to its net position, meaning liquidity provided minus liquidity received. A positive value marks an entity as a net provider to the group, and a negative one marks it as a net receiver. From this it works out each entity's provider or receiver status and the total internal liquidity transferred, which is the sum of the positive positions. It also checks whether the group is balanced, meaning the positions sum to roughly zero.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c90ceb1735a91f4445f167c5859e83ec49e06976fd24774681d60297cec548b8",
+    "source": "model",
+    "text": "`intragroup_liquidity_flow` (Intragroup Liquidity Flow) fits when you need to see how liquidity moves between entities inside a group.\n\n- You have each entity's net position (provided minus received) and want to know who is a net provider and who is a net receiver.\n- You want the total internal liquidity transferred across the group, derived by netting bilateral positions.\n- You want to check whether the positions balance across the group, so provided and received liquidity offset.\n- Your input is a simple mapping of entity to net position, passed as `entity_positions`.\n\nIf your need is liquidity per currency instead, `fx_liquidity_risk_by_currency` is listed as computing the net position per significant currency.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

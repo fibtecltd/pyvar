@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1d7338cbba4eb69e6702737bbd12c9b37b5ab228e144b6b1db07168e16e7f119",
+      "source": "model",
+      "text": "`xva_aggregation` answers \"what is the total valuation adjustment?\" It takes components you've already computed (`cva`, `dva`, `fva`, `kva`, `mva`) and combines them as CVA - DVA + FVA + KVA + MVA, with costs positive and DVA entering as a benefit. `cva_sensitivity_cva_greeks` answers \"how much does CVA move when its inputs change?\" It starts from an expected exposure profile, `time_steps`, `discount_factors`, a `credit_spread` and a `recovery_rate`. From these it computes the base CVA, plus `cs01` (the change in CVA for a parallel bump in the credit spread) and `exposure_delta` (sensitivity to scaling the exposure profile). So the first is a summing step across adjustment types, while the second is a risk measure on CVA alone, useful for hedging. The first doesn't model exposures, and the second doesn't include DVA, FVA, KVA or MVA.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "07856c73386b00dbd8b4a4d6e1ec317ba39415de591e67fff1f0e4af3fb73dc6",
+    "source": "model",
+    "text": "`xva_aggregation` (XVA Aggregation) combines the separate XVA components into one total valuation adjustment. It takes `cva` as the required input, plus optional `dva`, `fva`, `kva` and `mva`, each defaulting to zero. The total is `cva - dva + fva + kva + mva`, using a sign convention where a positive total is a cost to the bank that reduces trade value. `dva` is a benefit, so it enters negatively. The adjusted price downstream is `risk_free_price - total_xva`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6effe15f26553438b732b574006d8bd8cac84e83761fbfe10625fe951f87de9e",
+    "source": "model",
+    "text": "`xva_aggregation` (XVA Aggregation) fits when you already have the separate adjustments and want one total.\n\n- You have a `cva` figure and, optionally, `dva`, `fva`, `kva` and `mva`, and need them combined into a single `total_xva`.\n- You want the sign convention applied for you: costs are positive, and `dva` is a benefit that enters negatively.\n- You're preparing the adjustment that is later subtracted from the risk-free price to get an adjusted price.\n- Some components don't apply to your trade: `dva`, `fva`, `kva` and `mva` default to zero, so you can leave them out.\n- To produce an individual component rather than combine them, `credit_valuation_adjustment_cva` is listed as the unilateral Credit Valuation Adjustment.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

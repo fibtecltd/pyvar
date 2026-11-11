@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_scenario_weighted_ecl": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "cad9cb730626a656122ce17ea46612915332b6cecdee75fed369f2f9591f53a2",
+      "source": "model",
+      "text": "`macroeconomic_overlays_ecl` answers \"how much should I scale one base ECL up or down given macro deviations, plus a management adjustment?\" It multiplies `base_ecl` by a factor built from `macro_factors` and `sensitivities` (floored at zero), then adds the `management_overlay`. `ifrs_9_scenario_weighted_ecl` instead answers \"what is the probability-weighted ECL across several scenarios such as base, upside and downside?\" It takes an ECL for each scenario in `scenario_ecls` and combines them using `scenario_weights`, which are normalised so they sum to one.\n\nIn short, the overlay function starts from a single base ECL and tilts it with sensitivities and a discretionary add-on. The scenario-weighted function starts from several already-computed scenario ECLs and averages them. The overlay's multiplicative structure is a bespoke internal design, not a published or regulatory formula.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "74e6b0f3208a4c36f8d1fe82dbfde964f06d02edb86c17ede3f34fe2f0a6cc15",
+    "source": "model",
+    "text": "`macroeconomic_overlays_ecl` (Macroeconomic Overlays ECL) adjusts a base expected credit loss for forward-looking macroeconomic conditions, reflecting the IFRS 9 expectation to include information a through-the-cycle model misses. It multiplies `base_ecl` by a factor of 1 plus the sum of each `sensitivities` value times its matching `macro_factors` deviation, floored at zero. It then adds a discretionary `management_overlay`, which can be negative, and floors the final ECL at zero. The multiplicative structure is pyvar's own design choice, not a published or regulatory formula.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d3f6ad7d1262319d3f7d07d6f804773ce062a72098abfe404dca42451a8d7f02",
+    "source": "model",
+    "text": "Use Macroeconomic Overlays ECL (`macroeconomic_overlays_ecl`) when you already have a base ECL and want to layer forward-looking information on top of it:\n\n- You have a model base-case ECL (`base_ecl`) reflecting through-the-cycle conditions and need to add projected macro deviations, such as GDP or unemployment, as IFRS 9 expects.\n- You can supply standardised macro deviations (`macro_factors`) and an ECL sensitivity to each one (`sensitivities`).\n- You want a discretionary post-model adjustment via `management_overlay`, which can be positive or negative.\n- You accept a bespoke internal design: the multiplicative structure is an implementation choice, not a published or regulatory formula.\n\nRelated function: `ifrs_9_scenario_weighted_ecl` is listed as computing probability-weighted ECL across forward-looking macro scenarios, which fits if you work from scenarios rather than factor sensitivities.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

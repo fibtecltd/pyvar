@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_iii_cet1_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b7d77e250ab3472b3635b337affcbbc3d841f48b4591fd59b48dda36507d51b8",
+      "source": "model",
+      "text": "`basel_iii_tier1_ratio` asks how much total Tier 1 capital (common equity plus additional Tier 1) a bank holds relative to its risk-weighted assets, while `basel_iii_cet1_ratio` asks the same about Common Equity Tier 1 capital alone. Both divide capital by `risk_weighted_assets`, so the difference lies in the numerator: `tier1_capital` for the first, `cet1_capital` for the second.\n\nThe minimums differ too: 6.0% for the Tier 1 ratio and 4.5% for the CET1 ratio, both under Basel III §50. Use `basel_iii_cet1_ratio` for the strictest, common-equity-only view, and `basel_iii_tier1_ratio` for the broader view that also counts additional Tier 1 instruments.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b7cf8df8aba3430c4967f0a8af066acae304f039baf51dc497f5ef0a18251e84",
+    "source": "model",
+    "text": "`basel_iii_tier1_ratio` (Basel III Tier1 Ratio) computes a bank's Tier 1 capital ratio, which is Tier 1 capital divided by total risk-weighted assets. You supply two inputs: `tier1_capital`, meaning CET1 plus additional Tier 1, and `risk_weighted_assets`. pyvar does the calculation and returns the ratio. The Basel III minimum for this ratio is 6.0% (§50), so you can set your result beside that figure.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ac5c117ef86fe75a9e0dc5cab32a11e389f1d640caac93d2bfdefea500ecb78a",
+    "source": "model",
+    "text": "Use `basel_iii_tier1_ratio` (Basel III Tier1 Ratio) when you want to see how much Tier 1 capital a bank holds relative to its risk-weighted assets:\n\n- You have a Tier 1 capital figure (CET1 plus additional Tier 1) and a total risk-weighted assets figure, and want the ratio of one to the other.\n- You are checking a bank's position against the Basel III minimum of 6.0% (Basel III §50).\n- You are building a regulatory or compliance workflow that needs the Tier 1 ratio specifically, via `tier1_capital` and `risk_weighted_assets`.\n- For a measure based on common equity alone, use `basel_iii_cet1_ratio`, which pyvar lists as the Basel III Common Equity Tier 1 (CET1) ratio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

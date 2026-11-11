@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_iii_tier1_ratio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "afc2cef6afd729db5b87df8a5e2ad622d54104122fb1dbf895451d7098dc383c",
+      "source": "model",
+      "text": "`basel_iii_leverage_ratio` divides `tier1_capital` by `total_exposure`, a non-risk-weighted measure covering on- and off-balance-sheet items, so it asks how much Tier 1 capital backs the bank's total exposure regardless of how risky the assets are. `basel_iii_tier1_ratio` divides `tier1_capital` by `risk_weighted_assets`, so it asks how much Tier 1 capital backs the bank's assets once each is weighted by its risk. Both use Tier 1 capital as the numerator; only the denominator changes. The leverage ratio has a minimum of 3.0%, while the Tier 1 ratio has a minimum of 6.0%. The leverage ratio gives a simple, risk-insensitive view, and the Tier 1 ratio gives a risk-sensitive one.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "08ae14090ad2787362ed8392e21c1e4cd39426015c778126e79b1c2b1c544ccb",
+    "source": "model",
+    "text": "`basel_iii_leverage_ratio` (Basel III Leverage Ratio) computes a bank's leverage ratio by dividing Tier 1 capital by the total exposure measure. That exposure measure is non-risk-weighted and covers both on- and off-balance-sheet items. You supply two inputs: `tier1_capital` and `total_exposure`. The Basel III minimum for this ratio is 3.0%, so the function is useful for comparing a bank's position against that minimum. It sits in the Regulatory & Compliance domain.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "77d223813bc289ac4db4103a033dbd7881668469849355a913a1ba5f8923a292",
+    "source": "model",
+    "text": "`basel_iii_leverage_ratio` (Basel III Leverage Ratio) fits when you want a capital measure that doesn't depend on risk weights.\n\n- You have Tier 1 capital and a total leverage exposure measure (on and off balance sheet) and want to relate them as `tier1_capital` / `total_exposure`.\n- You are comparing a bank's result against the 3.0% minimum associated with this ratio.\n- You want a simple backstop view alongside risk-based capital ratios, since the exposure measure is not risk-weighted.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

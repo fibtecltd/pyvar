@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "creditmetrics_portfolio_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3686743ab66fbac9234d2b1be7cfbc1c90e853e4334db0a10d0dea4120e72c90",
+      "source": "model",
+      "text": "`credit_var_monte_carlo` answers \"how large could losses on this portfolio get at a given confidence level, if defaults are correlated through one common factor?\" It simulates defaults, adds up `LGD * EAD` losses, and reports VaR, expected shortfall, Expected Loss and Unexpected Loss. `creditmetrics_portfolio_model` by default runs that same engine, with the same formula and code path, so its answer is the same kind of default-or-not loss distribution. The difference is that it can also take `transition_matrix`, `current_rating` and `state_loss_pct` together. It then asks a broader question: what happens to the portfolio when obligors migrate between rating states, not just default? Other differences are the defaults (asset correlation, confidence level, simulation count and seed) and the exposure argument name, `exposures` rather than `ead`. If you only care about default losses, `credit_var_monte_carlo` is the direct fit. If you want rating migration, use `creditmetrics_portfolio_model`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9adba745216c8e8dfc15e1190590f83a310be029779f2bd852434d9fb9f490b3",
+    "source": "model",
+    "text": "`credit_var_monte_carlo` (Credit VaR Monte Carlo) estimates portfolio credit risk by simulating correlated defaults under a one-factor Gaussian copula. Each obligor defaults when its latent asset value falls below a threshold set by its `pd`, and defaults are linked through a shared market factor driven by `asset_correlation`. Each path's loss is the sum of `lgd` times `ead` over the defaulted obligors. From the simulated losses, it reads the loss quantile at `confidence_level` as VaR and the mean loss beyond it as expected shortfall. It also reports Expected Loss as the simulation mean and Unexpected Loss as VaR minus EL.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c6e0fa13c39f45646f55ac3995bec99240c197144f419d6b49d6f4df90daeb65",
+    "source": "model",
+    "text": "Use Credit VaR Monte Carlo (`credit_var_monte_carlo`) when you want a simulated credit loss distribution for a portfolio of individual obligors:\n\n- You have per-obligor `pd`, `lgd` and `ead` and want losses aggregated from those obligors rather than from a single average.\n- You expect defaults to be correlated through a common market factor, set with `asset_correlation` (scalar or per obligor).\n- You want both the loss quantile (VaR) and the mean tail loss (ES / CVaR), plus Expected Loss and Unexpected Loss for an economic-capital view.\n- You want to tune the confidence level with `confidence_level` (default is the Basel 99.9%) and the number of paths with `n_simulations`, with `seed` for reproducible runs.\n\nIf you instead want an analytical large-homogeneous-portfolio calculation, `credit_var_analytical_vasicek` is listed as an analytical Vasicek Credit VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

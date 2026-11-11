@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ec3465426fb0cde8e7b1cbc5eba0a0e5e80bc9658e3a2e90df01cf819612e704",
+      "source": "model",
+      "text": "`asset_swap_spread` answers \"how many basis points of spread over the swap curve does this bond's cashflows offer relative to a reference price?\" It discounts the bond's `cashflows` at the `swap_rates`, compares that present value with par (`face_value`) by default, or with the dirty `bond_price` if `use_market_price=True`, and divides by the swap's fixed-leg annuity. `modified_duration` answers a different question: \"how sensitive is the bond's price to a change in its own yield?\" It takes a single `yield_rate` and gives Macaulay duration divided by (1 + y/m), used to approximate the percentage price change for a yield move. So the first is a spread-valuation measure built on a swap curve, while the second is a rate-sensitivity measure built on one yield. They also take different inputs: `asset_swap_spread` needs `swap_rates` and `face_value`, whereas `modified_duration` needs only `cashflows`, `times`, `yield_rate` and `frequency`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "23165f5fe29ebe892881427d72899a4d887094fe4a1ea6a8ea1cb743267a1772",
+    "source": "model",
+    "text": "`asset_swap_spread` (Asset Swap Spread) computes a par-par asset-swap spread in basis points. It discounts the bond's cashflows using the swap zero rates to get the bond's present value, subtracts a reference price, and divides by the swap's fixed-leg annuity (PV01). By default the reference price is `face_value` (par), and `bond_price` is accepted but ignored. Set `use_market_price=True` to use the bond's actual dirty price instead, which follows the standard market convention. The two versions differ unless the bond trades at par.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eddb5f16eedc97bafb0fa3be692cbef13a4a8de6cc2ed9186a647a7119848e16",
+    "source": "model",
+    "text": "The Asset Swap Spread (`asset_swap_spread`) fits when you want the par-par spread, in basis points, that ties a bond's present value to the swap's fixed-leg annuity.\n\n- You want to compare a bond's cashflows against a swap curve, using `cashflows`, `times` and `swap_rates`.\n- You want the par-referenced figure: leave `use_market_price` at its default, so `face_value` is the reference price and `bond_price` is ignored.\n- You want the standard market convention: set `use_market_price=True` so the actual dirty price is the reference.\n- You are looking at a bond trading away from par, where the two conventions differ. They agree only when the bond trades at par.\n- For a constant spread over the zero curve that reprices the bond, see `z_spread_calculator`.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

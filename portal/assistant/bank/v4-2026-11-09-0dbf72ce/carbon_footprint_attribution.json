@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "esg_score_integration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a670f29844cb50018e529000f86de3b4694269e609cffedd4d76a15c11988014",
+      "source": "model",
+      "text": "`carbon_footprint_attribution` answers \"how carbon-intensive is my portfolio, and how many emissions can I attribute to it?\" It gives the Weighted Average Carbon Intensity (WACI) and total financed emissions, using `weights`, `carbon_intensities` and `portfolio_value`. If you also supply `company_total_emissions` and `company_value`, it switches to the PCAF ownership-share method for financed emissions. `esg_score_integration` answers a different question: \"what is my portfolio's weighted ESG score, and could I tilt it to meet a minimum?\" It takes `weights` and `esg_scores`, and with `min_esg_score` and `cov_matrix` it solves a minimum-variance, long-only portfolio that meets that score floor. In short, the first measures emissions exposure, while the second scores ESG quality and can re-optimise weights.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e0a4c152706b42b79d4b22a58d196aaf3e33203c35204ce0dd2cc652d67899a7",
+    "source": "model",
+    "text": "`carbon_footprint_attribution` (Carbon Footprint Attribution) takes your portfolio weights, per-holding carbon intensities and portfolio value, and returns the Weighted Average Carbon Intensity (WACI) plus total financed emissions. The WACI follows TCFD's definition. By default, financed emissions scale each holding's intensity by its invested value, which does not match the TCFD/PCAF ownership-share method. If you also supply `company_total_emissions` and `company_value`, it switches to PCAF's ownership-share method, where each holding's emissions are your invested share of the company's value times its total emissions.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "57eaadb83c4e378ef3235c3116e5668a8a26dd5e0f73ea6ca08c8606f7062cac",
+    "source": "model",
+    "text": "Use Carbon Footprint Attribution (`carbon_footprint_attribution`) when you need the carbon side of a portfolio:\n\n- You want the Weighted Average Carbon Intensity (WACI) from your `weights` and `carbon_intensities`. It matches TCFD's WACI definition in either mode.\n- You want a quick financed-emissions figure from intensities and portfolio value alone. This is the default, but it does not match the ownership-share method used by TCFD/PCAF.\n- You need financed emissions on the PCAF ownership-share basis. Supply both `company_total_emissions` and `company_value` (EVIC or market cap, in the same currency unit as `portfolio_value`).\n- You want emissions attributed to individual holdings, with optional labels via `asset_names`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

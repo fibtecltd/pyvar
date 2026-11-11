@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frtb_ima_stressed_period_finder": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5e5d757ab65d240327cec616033323a41f88399e4f254a36c5a67c69198c87b5",
+      "source": "model",
+      "text": "`frtb_sa_residual_risk_addon` answers \"how much extra capital do instruments with residual risks not captured by the sensitivities-based method require?\" It sums each instrument's gross notional times its RRAO risk weight, using `notionals` and `rrao_weights`. `frtb_ima_stressed_period_finder` answers a different question: \"which stretch of history was the most stressed?\" It slides a window across your `returns` history and returns the start index whose Expected Shortfall is largest, controlled by `window` and `confidence_level`. The first is a standardised-approach capital add-on driven by notionals, while the second is an internal-models tool driven by return history. They don't feed each other, so you'd use the stressed period finder when calibrating stressed ES and the add-on when sizing the residual risk charge.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7beff0fde79249dcbbafa08fe7e1e4561b2cbe308f0af8ca4aa7886d3259a2f9",
+    "source": "model",
+    "text": "`frtb_sa_residual_risk_addon` (FRTB SA Residual Risk Add-On) calculates a simple notional-based charge for instruments whose risks the sensitivities-based method doesn't capture. It multiplies each instrument's gross notional by its RRAO risk weight and sums the results: RRAO = Σ notional_i · w_i. You supply two inputs: `notionals` (gross notional per instrument) and `rrao_weights` (the risk weight per instrument). The approach follows MAR23, with higher weights typically applied to exotic underlyings and lower ones otherwise.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0b73f21ddd9b9d521fb75db4b1a1a76b884fa4f9b29faeddc7421a316b49f731",
+    "source": "model",
+    "text": "`frtb_sa_residual_risk_addon` (FRTB SA Residual Risk AddOn) fits when you need the simple notional-based add-on under MAR23. Use it when:\n\n- Your portfolio holds instruments with residual risks that the sensitivities-based method doesn't capture, and you want the add-on for them.\n- You have a gross notional (`notionals`) and an RRAO risk weight (`rrao_weights`) for each instrument and want them combined as notional times weight, then summed.\n- You want a transparent calculation that needs no sensitivities or modelling, only notionals and prescribed weights. Exotic underlyings carry a higher weight than other instruments.\n- You are building the standardised-approach capital picture and need this add-on as one component.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

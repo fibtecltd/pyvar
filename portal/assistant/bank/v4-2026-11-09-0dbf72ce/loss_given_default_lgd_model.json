@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "probability_of_default_pd_estimation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ad4fa60377ad5a998c16063aba6a07aa1b0fbd1c4108f6110fcaf901c9045bc9",
+      "source": "model",
+      "text": "`loss_given_default_lgd_model` answers \"if a facility defaults, how much of the exposure is lost?\", while `probability_of_default_pd_estimation` answers \"how likely is it that obligors default?\". The LGD function takes `recovery_amounts` and `exposure_amounts` per defaulted facility, plus an optional `workout_cost_rate`. It returns an exposure-weighted loss share, clipped between 0 and 1. The PD function works from `n_defaults` and `n_obligors` per rating cohort, pools them into one default frequency, and applies a regulatory `floor` to the pooled estimate (CRR Art. 160/163). So LGD looks at severity after default, using recoveries and costs, and PD looks at frequency of default, using counts of obligors. In credit risk the two are separate ingredients, and `expected_loss_el_computation` combines them as `EL = PD * LGD * EAD`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afa481de2348f3dd362cf7b1a4bb3fa6a208ac9656df545b6fba79431f25f700",
+    "source": "model",
+    "text": "`loss_given_default_lgd_model` (Loss Given Default LGD Model) calculates workout LGD, which is one minus the recovery rate, net of workout costs. For each defaulted facility it subtracts workout costs (`workout_cost_rate` times exposure at default) from the recovered amount and divides by exposure to get a net recovery rate. It takes one minus that rate as the facility's LGD and clips it to the range 0 to 1. Those facility figures are then weighted by exposure to give one LGD for the sample. You supply `recovery_amounts` and `exposure_amounts` (above zero), and optionally `workout_cost_rate`, which defaults to 0.0.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "00254aeb9409856e6edf50b96f5bbb51a2ae27e8cb7fbce1c941e64f88c31f62",
+    "source": "model",
+    "text": "`loss_given_default_lgd_model` (Loss Given Default LGD Model) fits when you want a workout-based loss severity for defaulted exposures:\n\n- You have recovered amounts and exposure at default for a sample of defaulted facilities and want one exposure-weighted LGD across them.\n- You want workout costs reflected, using `workout_cost_rate` as a fraction of exposure at default, which is subtracted from recoveries.\n- You need an LGD bounded between zero and one, since each facility's result is clipped to that range.\n- You're building a credit risk figure that needs LGD as an input, such as in an expected loss calculation.\n\nIf you want the recovery rate itself from a defaulted-facility sample, `recovery_rate_estimation` is listed as estimating the recovery rate (1 - LGD).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "83c43be2666e1fa8e30aa09ffc93bf1f33c67e658b7f8a9a045ae087bd8331d8",
+      "source": "model",
+      "text": "`root_cause_analysis_template` answers \"which cause contributed most to an operational event?\" You give it `causal_factors`, a mapping of factors such as people, process, systems or external to non-negative contribution weights. It normalises those weights so they sum to 1 and names the dominant root cause. `escalation_threshold_calculation` answers a different question: \"who needs to hear about this loss?\" It takes a `loss_amount` and a `thresholds` mapping of level to minimum amount, then returns the triggered level with the numerically largest threshold. That makes it a rule-based lookup that relies on `thresholds` being ordered by severity. In short, the first function explains why something happened, while the second routes a loss to a governance tier.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "db4c3abddcf911fd2b518bed266a1e4d4969fa0bd9eb953e383ea406c0ea66dd",
+    "source": "model",
+    "text": "`root_cause_analysis_template` (Root Cause Analysis Template) is an operational risk function that turns raw causal-factor weights into a normalised attribution. You pass `causal_factors`, a mapping from each factor (for example people, process, systems or external) to a non-negative contribution weight. It rescales the weights so they sum to 1, so each factor's share is its weight divided by the total. It then identifies the dominant root cause, the factor with the largest share. This gives the quantitative backbone of an RCA template.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "607752bbd8b8b6b32d2590e2ab9afcfe5bd94a6953782ee1653de1cfc0cf9ca8",
+    "source": "model",
+    "text": "The Root Cause Analysis Template (`root_cause_analysis_template`) fits when you already have weights for causes and want them turned into shares:\n\n- You've scored contributions from causal factors such as people, process, systems or external events, and want them normalised so they sum to 1.\n- You need to identify which single root cause is dominant after an incident review.\n- You're building the quantitative section of an RCA template and want a consistent way to compare factors.\n- Your input is a mapping of `causal_factors` to non-negative weights.\n\nIf you instead want to summarise captured near-miss events, `near_miss_capture_framework` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

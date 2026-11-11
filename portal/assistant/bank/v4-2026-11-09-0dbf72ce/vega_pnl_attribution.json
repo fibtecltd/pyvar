@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2194683ae61f7965b51ef0c52353708c7fe640be982ba0233689541fc0b70a18",
+      "source": "model",
+      "text": "`vega_pnl_attribution` answers \"how much P&L came from a move in volatility?\" It multiplies portfolio vega (`vega`) by the realised volatility move (`vol_move`), giving one component of a P&L explanation.\n\n`pnl_attribution_test_frtb_pat` answers a different question: \"does my model-based P&L track the full-revaluation P&L well enough?\" It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`. It evaluates their Spearman rank correlation together with the ratio of their standard deviations, then assigns a Basel traffic-light zone. The thresholds are set by the Basel Committee and are not parameters you can change.\n\nSo the first explains a source of P&L, while the second tests the quality of a model's P&L as a whole.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "891a6b30a8d48f3195e55a2b1feb69d3e63638047253c4ed72724919f1df5d95",
+    "source": "model",
+    "text": "`vega_pnl_attribution` (Vega Pnl Attribution) computes the vega component of a portfolio's P&L, which is the portfolio's vega multiplied by a volatility move: ν · dσ. You supply two inputs: `vega`, the portfolio's sensitivity of value to volatility (∂V/∂σ), and `vol_move`, the realised volatility move dσ. The function returns the P&L attributed to that volatility change. In a P&L explain, this is the piece that isolates how much of the result comes from volatility moving, separate from other risk factors.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e871f143d8511bd4dbddcc03da5c1ce14d2786fd88b01c5f1ae6164834009c16",
+    "source": "model",
+    "text": "`vega_pnl_attribution` fits when you want the volatility part of a portfolio's P&L, calculated as vega times the realised volatility move (`vega` × `vol_move`).\n\n- You already have the portfolio vega (∂V/∂σ) and a realised volatility move dσ, and want to see how much P&L that move accounts for.\n- You're breaking a P&L explain into Greek components and need the vega piece on its own.\n- You want a simple first-order link between a change in volatility and its P&L effect, as part of market risk reporting.\n- For gamma, the related function `gamma_pnl_attribution` covers the convexity component, listed as ½ · Γ · dS².",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

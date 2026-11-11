@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_portfolio_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1350a30dba153ffa058cf8550ad6ad83d84d9a0f7aa23ee3e0f40d3b2ead2c8e",
+      "source": "model",
+      "text": "`sovereign_credit_risk_assessment` asks how creditworthy a country is: it takes five macro-fiscal inputs (`debt_to_gdp`, `fiscal_balance_pct`, `current_account_pct`, `fx_reserves_months`, `governance_score`) and returns a score from 0 to 100, where higher means stronger, plus an indicative default probability from a logistic transform. `credit_portfolio_optimisation` asks how to split money across credit assets: given `expected_returns` and `expected_losses` per asset, it finds weights that maximise return minus a risk-aversion-scaled expected loss, with weights summing to one and capped by `max_weight`. So the first scores a single borrower, while the second allocates across many. The sovereign model is a bespoke internal composite rather than a published rating-agency or IMF method. The optimiser uses a greedy allocation that is exact for its linear problem shape.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "63d0edd34b078a5a6b4ace2acc04c1ee33ef1aba1a1ef794e07dbe789d19842e",
+    "source": "model",
+    "text": "`sovereign_credit_risk_assessment` (Sovereign Credit Risk Assessment) turns five macro-fiscal indicators into a single creditworthiness score from 0 to 100, where higher means stronger. The inputs are `debt_to_gdp`, `fiscal_balance_pct`, `current_account_pct`, `fx_reserves_months` and `governance_score`. High debt and twin deficits pull the score down, while larger FX reserves and better governance push it up. The score is then converted into an indicative probability of default through a logistic transform. It is a bespoke internal composite model, not a replica of any rating-agency or IMF methodology.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8b5c4179b8d6e8ca2641e3844cf2edf6c8ac672ea6d58517f4c8c30cedac8811",
+    "source": "model",
+    "text": "Use Sovereign Credit Risk Assessment (`sovereign_credit_risk_assessment`) when you want a quick, indicative read on a country's creditworthiness from a few macro-fiscal inputs.\n\n- You have `debt_to_gdp`, `fiscal_balance_pct`, `current_account_pct`, `fx_reserves_months` and `governance_score`, and want them combined into one score where higher means stronger.\n- You want an indicative probability of default derived from that score, rather than a formal rating.\n- You want a transparent internal composite for comparing countries or tracking one over time. It is a bespoke internal model that doesn't match any published rating-agency or IMF method, so don't present it as one.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

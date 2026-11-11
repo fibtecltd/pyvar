@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "funding_tenor_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1a8b88ed433757d6ce8e40745f314cf7255f7406e77021f1687392520a1cfa56",
+      "source": "model",
+      "text": "`liquidity_var_liqvar` asks how large stressed net cash outflows could get: it simulates outflows from `base_outflow` and `outflow_vol`, then reads off the level not exceeded at the chosen `confidence_level`, much like market VaR but for liquidity. `funding_tenor_analysis` asks a structural question about the funding base: how long, on an amount-weighted basis, is the funding outstanding, and how much of it matures within 90 days? It takes `funding_amounts` and `tenors_days` for each tranche. The first looks forward at a potential outflow amount under random shocks, while the second describes how the existing funding is spread over time. Longer weighted tenor in the second means more stable funding, but it says nothing about outflow size, and the first says nothing about maturity profile.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "aaac22800cd48ed1f9521b659e6a3dbb738036146dbb382218ef3df744fb1a2f",
+    "source": "model",
+    "text": "`liquidity_var_liqvar` (Liquidity VaR, or LiqVaR) estimates how large stressed net cash outflows could get at a chosen confidence level, much like market VaR does for losses. It simulates outflows as `base_outflow` scaled by a normal random shock with relative volatility `outflow_vol`, floors them at zero, and reads off the quantile at `confidence_level`. You can also set `n_simulations` and `seed` for reproducibility. It returns an analytic normal quantile alongside (`liqvar_analytic`) so you can sanity-check the simulated figure against it.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1f728b0895ffd11ddafc798e8f2e7dda1f72160f42e7630f76266024a358f726",
+    "source": "model",
+    "text": "`liquidity_var_liqvar` (Liquidity VaR, LiqVaR) fits when you want a simulated view of how large stressed net cash outflows could get.\n\n- You have an expected net outflow (`base_outflow`) and a relative volatility (`outflow_vol`), and want the outflow level not exceeded at a chosen `confidence_level`, the liquidity analogue of market VaR.\n- You are comfortable modelling outflows as a normal shock around the expected level, floored at zero.\n- You want reproducible Monte Carlo output: `seed` and `n_simulations` let you repeat or refine a run, and an analytic normal quantile is also returned for validation.\n- You are exploring or validating a model rather than matching a regulatory reference, since it is cross-checked only against its own analytic counterpart.\n\nIf your need is different, `funding_tenor_analysis` is listed as covering weighted-average funding tenor and short-term reliance.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

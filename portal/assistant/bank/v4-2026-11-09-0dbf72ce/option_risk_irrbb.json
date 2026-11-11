@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "faab41f74148c6fa57a7af5456a6948f1df60372193f882532eb78190839b4c0",
+      "source": "model",
+      "text": "`option_risk_irrbb` answers \"how much are the embedded options in the balance sheet worth?\" You give it the present value of automatic options (such as caps, floors and optimally exercised prepayment options), the present value of behavioural options (such as early redemption and deposit withdrawal), and a `notional`. It adds the two option values into a total and divides by the `notional` to give an option-risk ratio.\n\n`irrbb_six_standard_rate_shocks` answers a different question: \"what do the six standard interest-rate shock curves look like?\" It takes `tenors` and builds the shocked curves from `parallel_bps`, `short_bps` and `long_bps`. These include the steepener and flattener, which combine scaled short and long shocks.\n\nSo one measures the value of embedded options, while the other constructs rate scenarios. Both cite BCBS d368.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a87d30dabceb8522b3f250fc8e156cd9b4f79115b7c3a0eccb65a0d9df3cb157",
+    "source": "model",
+    "text": "`option_risk_irrbb` (Option Risk IRRBB) measures the value of embedded options in a banking book, following the BCBS d368 framework for interest rate risk in the banking book. It separates automatic options, such as caps, floors and prepayment options exercised optimally, from behavioural options, such as early redemption and deposit withdrawal. You supply the present value of each type as `automatic_option_value` and `behavioural_option_value`. pyvar adds them to give total option risk, and divides that total by `notional` to give an option-risk ratio relative to your reference notional.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d7c9d5f0ec49c086879e8e3e77b8e0b88365d072d3919c748ef06f1ed19831e6",
+    "source": "model",
+    "text": "Use `option_risk_irrbb` (Option Risk IRRBB) when you need to size the value of embedded options in a banking-book interest-rate risk review:\n\n- You already have the present value of automatic options (caps, floors, optimally exercised prepayment options) and of behavioural options (early redemption, deposit withdrawal), and want them combined into one total.\n- You want that total expressed as a ratio to a reference amount, supplied through the `notional` parameter.\n- You are following the BCBS d368 split between automatic and behavioural options and want your inputs kept separate as `automatic_option_value` and `behavioural_option_value`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

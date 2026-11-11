@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "irrbb_six_standard_rate_shocks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "8613d8597ef2bd63475264d1bc95786d000aa43dc5d9e7c81b4a473d40b48964",
+      "source": "model",
+      "text": "`interest_rate_risk_capital_irrbb` answers the question \"does the bank's worst-case loss in economic value of equity breach the supervisory outlier test against Tier-1 capital?\" You give it a worst-case `worst_delta_eve`, your `tier1_capital` and optionally an `outlier_threshold`. It compares the decline with that threshold share of capital and reports the excess as the implied capital add-on.\n\n`irrbb_six_standard_rate_shocks` answers a different question: \"what do the six standard interest-rate shock curves look like?\" You supply `tenors` and, optionally, the shock sizes (`parallel_bps`, `short_bps`, `long_bps`), and it builds the parallel, steepener and flattener curves. It produces the scenarios, not a capital judgement.\n\nIn practice, the shocks function feeds the rate scenarios that produce a ΔEVE, and `interest_rate_risk_capital_irrbb` takes the worst of those results and tests it against capital. A related function, `irrbb_standardised_framework`, measures the worst ΔEVE across the six shocks.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "5b404c0c0a2a9f41aace992fbec5ed69c58ee40b74ca0f4d945189083c33498b",
+    "source": "model",
+    "text": "`interest_rate_risk_capital_irrbb` runs the IRRBB supervisory outlier test, which compares a bank's worst-case decline in economic value of equity (EVE) with its Tier-1 capital. You give it `worst_delta_eve` (negative for a loss) and `tier1_capital`, plus an optional `outlier_threshold` that defaults to 0.15, or 15%. It takes the size of the EVE decline and compares it with that threshold share of Tier-1 capital. Any excess over the threshold is returned as the implied capital, i.e. the breach amount, and the result is zero when there is no excess. It follows BCBS d368 Principle 12.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6feaec5669dff7ab0531eef406ea04bc96b5954daadcca62ab85630f7208cdd6",
+    "source": "model",
+    "text": "Use Interest Rate Risk Capital IRRBB (`interest_rate_risk_capital_irrbb`) when you need to check a bank's worst-case economic value of equity (EVE) loss against its Tier-1 capital:\n\n- You already have a worst-case ΔEVE figure and want to test it against the supervisory outlier threshold of 15% of Tier-1 capital, under BCBS d368 Principle 12.\n- You want the capital implied by a breach, which is the amount by which the EVE decline exceeds the threshold.\n- You want to try a different threshold by setting `outlier_threshold` (default 0.15) alongside `worst_delta_eve` and `tier1_capital`.\n- To produce the worst ΔEVE input, `irrbb_standardised_framework` is listed as the standardised EVE measure giving the worst ΔEVE across the six shocks.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

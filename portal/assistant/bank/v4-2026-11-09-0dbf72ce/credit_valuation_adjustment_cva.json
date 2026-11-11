@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c51cfa1d2e227b35af8b57ca8f56cc1d96e03b8753a4e8781f6d9db9f38e2c6c",
+      "source": "model",
+      "text": "`credit_valuation_adjustment_cva` answers \"what is the price of this counterparty's default risk?\" It takes an expected exposure profile, bucket end-times, discount factors, a credit spread and an optional recovery rate, and returns the unilateral CVA itself. `cva_sensitivity_cva_greeks` answers \"how much does that CVA move when inputs change?\" It computes the base CVA and adds two sensitivities: `cs01`, the change in CVA for a parallel bump in the credit spread, and `exposure_delta`, the sensitivity to a uniform scaling of the exposure profile. It takes the same inputs plus `spread_bump`, which sets the size of the CS01 shift. Use the first when you need the level of the adjustment, and the second when you need to see how exposed it is to spread and exposure changes, for example for hedging.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "bfb78af631fbbb76f5676f529ed6f7af70ae83f5ff071b14d6d8a4e629a83d51",
+    "source": "model",
+    "text": "`credit_valuation_adjustment_cva` (Credit Valuation Adjustment CVA) computes the unilateral CVA, which is the market price of a counterparty's default risk on a derivatives exposure. You supply the expected exposure per time bucket (`expected_exposure`), the bucket end-times (`time_steps`), risk-free `discount_factors`, and the counterparty's CDS spread (`credit_spread`). The loss given default is one minus `recovery_rate`, which is optional. It backs out a flat hazard rate from the spread using the credit-triangle approximation, then sums exposure times discount factor times the default probability in each bucket, scaled by loss given default.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6aeb686944cd197c67e038f534cb2c74623a195e9232d9c6ddadc8a5c7007adf",
+    "source": "model",
+    "text": "`credit_valuation_adjustment_cva` fits when you need to put a price on the risk that a counterparty defaults.\n\n- You already have an expected exposure profile (`expected_exposure`) by time bucket, plus matching `time_steps` and `discount_factors`, and want one CVA figure from them.\n- You have a counterparty CDS spread (`credit_spread`) and want default risk derived from it with a flat hazard rate, as in the credit-triangle approximation.\n- You want a one-sided view: only the counterparty's default is priced, not your own.\n- You want to vary the assumed recovery (`recovery_rate`, default 0.4) and see how the adjustment changes.\n- For your own default benefit, see `debt_valuation_adjustment_dva`, which is described as the symmetric own-default benefit.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

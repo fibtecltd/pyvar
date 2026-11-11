@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "displaced_diffusion_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "82adeeae4fd41f17b3a6ed2d3eb197a4e417197be55209df1e9f92a19922fb3c",
+      "source": "model",
+      "text": "`rough_volatility_rbergomi_model` prices a European option by Monte Carlo under a rough-volatility model, where variance is itself random and driven by a Hurst exponent (`hurst`) below 0.5. It answers: what is this option worth if volatility is rough and correlated with the spot (via `rho`)? `displaced_diffusion_model` answers a simpler question: what is the option worth if `spot + displacement` is lognormal with a single constant volatility `sigma`? It uses a closed-form Black-Scholes formula on shifted spot and strike, and reduces exactly to Black-Scholes when `displacement` is 0. So the first is a simulation with stochastic volatility, with controls like `n_simulations`, `seed`, an optional control variate and optional Greeks. The second is an instant analytic formula with no random volatility, and it offers a `div_yield` input.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a01106aa86c38eff6d850016d4a577f76cd5f5ff61fd3c2d6c57c3ab5dbabbe0",
+    "source": "model",
+    "text": "`rough_volatility_rbergomi_model` (Rough Volatility Rbergomi Model) prices a European call or put by Monte Carlo under the rough Bergomi model. In this model, variance is driven by a fractional process with a Hurst exponent below 0.5, and it is correlated with the spot through `rho`. You supply `spot`, `strike`, `rate` and `tau`, and can tune `xi` (forward variance), `eta` (vol-of-vol), `hurst`, `n_steps` and `n_simulations`. Optionally, `control_variate` reduces simulation noise, and `greeks` returns bump-and-reprice sensitivities.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "161a012a0f9d0bce04927f8e5b2f549b74429e2cf186226b21be6618a0d56c39",
+    "source": "model",
+    "text": "`rough_volatility_rbergomi_model` (Rough Volatility Rbergomi Model) prices a European call or put by Monte Carlo under rough volatility. It fits when:\n\n- You want volatility that behaves roughly, with a Hurst exponent `hurst` between 0 and 0.5, rather than a smooth or Markovian process.\n- You need a European option price with spot/vol correlation (`rho`) and vol-of-vol (`eta`) as explicit inputs.\n- You want Greeks (`greeks=True`) from bump-and-reprice on the same random draws. Here \"vega\" means sensitivity to `xi`, and this can't be combined with the control variate.\n- You want a lower-variance estimate at the same `n_simulations`. Set `control_variate=True`, which uses a Heston companion.\n- If you need a semi-analytic price under smooth stochastic volatility, `heston_stochastic_volatility_model` is listed as a Heston European option price (semi-analytic).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

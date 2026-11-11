@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "fama_french_3_factor_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ae876035ed3051a561faa278a9be8fd5afbb7428819fafa75115aa20137b8100",
+      "source": "model",
+      "text": "`principal_component_analysis` and `fama_french_3_factor_model` both work on return data, but they answer different questions. `principal_component_analysis` takes an asset return matrix (`returns_matrix`) and asks what the main independent sources of variation are. It eigendecomposes the covariance matrix and returns orthogonal components ordered by explained variance, with no outside factors needed. `fama_french_3_factor_model` asks how much of a portfolio's excess return is explained by the market, size (SMB) and value (HML) factors. It regresses `excess_returns` on a `factors` matrix and reports the intercept as the factor alpha. In short, the first discovers structure from the data itself, while the second measures exposure to factors you supply.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2afae8244757d21764c847b7b2ba6b0e1b9310a8b90ead0729c04d2c97443a4b",
+    "source": "model",
+    "text": "`principal_component_analysis` (Principal Component Analysis) takes a matrix of asset returns, with observations as rows and assets as columns, and breaks its covariance matrix into orthogonal principal components. It uses an eigendecomposition, and the components come back ordered by how much variance each explains. Each component's explained variance ratio is its eigenvalue divided by the sum of all eigenvalues. You pass the data as `returns_matrix`, and you can set `n_components` to limit how many components are returned; otherwise you get all of them. It is useful for seeing which common factors drive a portfolio's co-movement.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d6ee9a5db2caee660d370828411dd2df7b5d2d3bae70986db7480aca7cd843f3",
+    "source": "model",
+    "text": "Use Principal Component Analysis (`principal_component_analysis`) when you want to understand what drives a set of asset returns together:\n\n- You have a return matrix (observations by assets) and want to see the main independent patterns of co-movement, ordered by how much variance each explains.\n- You want to reduce many correlated assets to a few components; `n_components` lets you keep only the top ones instead of all of them.\n- You want to see how concentrated risk is, using each component's explained variance ratio.\n- You want orthogonal (uncorrelated) building blocks from the covariance structure of your assets.\n- If you instead want to group assets by how their returns move together, `correlation_clustering` does correlation-based clustering of assets.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "035f69b2329865b3aa8adcf21d0a92615bb3e7a60aea0c2b5e029323b7302f75",
+      "source": "model",
+      "text": "`dv01_pv01_bucketed` answers \"how much does the value of a fixed cashflow stream change if yields move by one basis point, and at which tenors does that exposure sit?\" It takes `cashflows`, `times`, a `flat_yield` and `bucket_indices`, then sums each cashflow's DV01 into `n_buckets` tenor buckets, so the bucket figures add up exactly to the total. `gamma_cross_gamma_matrix` answers a different question: how does a portfolio's second-order price sensitivity spread across its underlyings, including how pairs of underlyings interact? It takes `own_gammas` for the diagonal and an optional `cross_gammas` matrix, and returns a symmetric matrix that can be used to get gamma P&L for a shock vector. In short, the first measures first-order yield sensitivity by tenor, while the second assembles second-order sensitivity across underlyings.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "76528d833afbc38c94ae3e457a4caa380c2ee9343b4a3b441567266cb0c9a9a0",
+    "source": "model",
+    "text": "`dv01_pv01_bucketed` (DV01 PV01 Bucketed) measures how much the value of a fixed cashflow stream changes for a one basis point rise in yield, and splits that sensitivity across tenor buckets. You give it the `cashflows`, their `times` in years, a `flat_yield` (continuously compounded) for discounting, a `bucket_indices` entry assigning each cashflow to a bucket, and `n_buckets`. Each cashflow's DV01 is its amount times its time times its discount factor, scaled by 1e-4. The cashflow DV01s are summed within each bucket, and the bucket values add up exactly to the total DV01.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b4d4f831fce919e2bb74293fa32401787ed9be06ba874301e5948d4a4555ccda",
+    "source": "model",
+    "text": "`dv01_pv01_bucketed` fits when you want to see where a fixed cashflow stream's interest-rate sensitivity sits along the curve:\n\n- You have a known set of cashflows and times, and want the price change for a +1bp yield move split by tenor bucket.\n- You're comfortable discounting everything at one flat, continuously-compounded yield (`flat_yield`).\n- You want buckets that reconcile: the bucket DV01s sum exactly to the total.\n- You can assign each cashflow to a tenor bucket via `bucket_indices` and `n_buckets`.\n- For sensitivity to a credit spread move on a risky cashflow stream, `cs01_credit_spread` is listed as the related function.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration_balance_sheet": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "41f6b6cc9b563f6fc545e9eb6a9cb5ea5a5448b52061f4eb1b8009125a86e600",
+      "source": "model",
+      "text": "`convexity_gap` and `modified_duration_balance_sheet` answer different questions about a banking book's interest-rate sensitivity. `convexity_gap` asks how the convexity of assets compares with that of liabilities, scaled by the ratio of `total_liabilities` to `total_assets`. It is the second-order term that refines the duration-gap estimate of the change in economic value of equity, and it takes `asset_convexity`, `liability_convexity`, `total_assets` and `total_liabilities`.\n\n`modified_duration_balance_sheet` asks how sensitive a position's value is to a change in its discount rate, a first-order measure. It works from `cashflows`, `times`, `discount_rate` and an optional `frequency`, and it derives modified duration from Macaulay duration. In short, one gives first-order sensitivity of a position, the other gives the second-order correction at the balance-sheet level.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d9299f61928e734591efebd41498e50d123a2997d926ef38bd29f44689f4acf2",
+    "source": "model",
+    "text": "`convexity_gap` (Convexity Gap) computes the convexity gap of the banking book, which is the asset convexity minus liability convexity scaled by the ratio of total liabilities to total assets. You supply `asset_convexity`, `liability_convexity`, `total_assets` and `total_liabilities`. The result is the second-order term that refines the duration-gap estimate of the change in economic value of equity (EVE). That estimate is ΔEVE ≈ A(−DGAP·Δy + ½·CGAP·Δy²), so the convexity gap captures how EVE responds to larger yield moves beyond the linear duration effect.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fcede289a23414373ca596866fbd4c29a62106a2b70cab7647c6f76ed72df5ce",
+    "source": "model",
+    "text": "`convexity_gap` (Convexity Gap) fits when you want the second-order refinement of a banking-book interest rate estimate.\n\n- You already have a duration-gap estimate of the change in economic value of equity (EVE) and want to add the convexity term, `½·CGAP·Δy²`, so larger yield moves are captured better.\n- You have weighted convexity for assets (`asset_convexity`) and for liabilities (`liability_convexity`), plus `total_assets` and `total_liabilities`, and want to combine them into one balance-sheet measure.\n- You want to see how liability convexity, scaled by the liabilities-to-assets ratio, offsets asset convexity.\n- If you still need the duration gap itself, which this refinement builds on, `duration_gap_analysis` is the duration-gap analysis of the banking book.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "loss_data_collection_framework": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "75239da89d1a202f00c00fdc7c24596bc78a01f0781fddf6e89bd4a01a0766d0",
+      "source": "model",
+      "text": "`loss_event_classification_basel` answers \"which Basel II Level-1 event-type category does this loss belong to?\" You give it one `event_type` string, and it checks that against the seven Basel II categories (BCBS 128, Annex 9). It returns the category's ordinal index for downstream bucketing, or -1 if the string isn't a valid category. It is a membership lookup, not a numeric equation.\n\n`loss_data_collection_framework` answers \"which losses are big enough to report, and what do they add up to?\" You give it a list of `loss_events`, each with a `gross_amount`, plus a `reporting_threshold`. It keeps events at or above that threshold and summarises their count and total. The result is the internal loss dataset that feeds the LDA.\n\nIn short, one labels a single event by type, and the other filters and summarises a set of events by size.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3e4c5dcab4d250442b6e4a0636bcca341a40eb2eaa8bc3e55fc02721461b863e",
+    "source": "model",
+    "text": "`loss_event_classification_basel` (Loss Event Classification Basel) checks whether a loss event type you supply is one of the seven Basel II Level-1 event-type categories, as set out in BCBS 128, Annex 9. You pass a single string, `event_type`, which is the candidate category key. If it matches a category, the function returns that category's ordinal index, which you can use for downstream bucketing. If it doesn't match, it returns -1. It is a membership lookup against a fixed list, not a numeric calculation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "364b4917c6621893ab1b2f9d4fd22ee769ed0cfb07e7327cb3b92fed70721c72",
+    "source": "model",
+    "text": "`loss_event_classification_basel` fits when you need to tag an operational loss event with a Basel II Level-1 event type.\n\n- You have a candidate event-type key and want to check that it is one of the seven Basel II Level-1 categories.\n- You need the category's ordinal index so downstream steps can bucket losses by event type.\n- You want a quick validity check on event-type labels, since an unrecognised key returns -1.\n- You want a membership lookup rather than a numeric calculation. It does not compute any loss figure.\n- If your need is internal loss-data collection above a reporting threshold, `loss_data_collection_framework` is the related function for that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "90c1e5d492daa235f8de323a875feb47c0aa32f740650216a58471e9fc39f647",
+      "source": "model",
+      "text": "`yield_to_maturity` answers the question \"what single flat rate discounts this bond's cashflows back to the observed dirty `price`?\" You give it `price`, `cashflows`, `times` and optionally `frequency`, and it solves for the yield by Brent root-finding. `modified_duration` answers a different question: \"how sensitive is the bond's price to a small move in yield?\" It takes a yield (`yield_rate`) along with `cashflows`, `times` and `frequency`, and uses Macaulay duration divided by (1 + y/m) to approximate the percentage price change for a yield move. In short, `yield_to_maturity` turns a price into a yield, while `modified_duration` starts from a yield and describes price sensitivity. They are often used together: you can find the yield first, then pass it in as `yield_rate` to measure sensitivity.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8b413bb8fb1b0139d65e63565005c0f28ec66ffc52a10f920ea91f9af9abe33a",
+    "source": "model",
+    "text": "`yield_to_maturity` (Yield To Maturity) finds the single flat rate that discounts a bond's cashflows back to its observed dirty price. You supply the `price`, the `cashflows` amounts and their `times` in years, and it solves for the yield using Brent root-finding. The `frequency` parameter sets how many times per year the rate compounds, defaulting to 2. If the price was produced by `bond_pricer_fixed_coupon`, it recovers the input yield exactly.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "716769dba0b5751bfd80b04e404918352cdabaa96ba9a1a29e5be2a063566b82",
+    "source": "model",
+    "text": "`yield_to_maturity` fits when you have a bond's observed dirty price and want the single flat rate that discounts its cashflows back to that price.\n\n- You know the `price`, the `cashflows` and their `times` in years, and want the implied yield.\n- You want to check a yield against a price produced by `bond_pricer_fixed_coupon`, since the input yield is recovered exactly in that case.\n- You need to set the compounding convention with `frequency`, which defaults to 2 per year.\n- If your bond is assumed to be redeemed at its first call date rather than held to maturity, `yield_to_call` is listed as the yield under that redemption assumption.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

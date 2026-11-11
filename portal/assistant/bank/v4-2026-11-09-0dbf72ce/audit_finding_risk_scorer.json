@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "escalation_threshold_calculation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "29917349d04d9aee3558428984660b8a5d0564e8d1e7ab220c7755d2214877de",
+      "source": "model",
+      "text": "`audit_finding_risk_scorer` answers \"how risky is this outstanding audit finding?\" It takes `severity`, `likelihood` and `overdue_days`, multiplies severity by likelihood on the 5×5 scale, and adds an uplift for each 30-day block the remediation is overdue, capped at 25. `escalation_threshold_calculation` answers \"which governance tier should this loss go to?\" It takes a `loss_amount` and a `thresholds` mapping of level to minimum amount, then picks the triggered tier with the numerically largest threshold. The first produces a risk score for a finding, while the second is a rule-based lookup that routes a loss. The second also relies on `thresholds` being ordered consistently with severity.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "745c9ae048c2ca6495506e1a4d1d027677b9f18324ea5cb19b94469358acb844",
+    "source": "model",
+    "text": "The Audit Finding Risk Scorer (`audit_finding_risk_scorer`) scores an outstanding audit finding using its severity, its likelihood and how long remediation has been overdue. It starts with a base score of `severity` × `likelihood` on the 5×5 scale, where each input is rated 1-5. Each 30-day block of `overdue_days` then adds an uplift of 2 to that base score, and the adjusted score is capped at 25. It suits operational risk teams who want ageing to push neglected findings up a prioritisation list.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0e3aa675318ad825ed7c8ba4406ff8cf0eb5cc5495ac7e5eba3320f0b1ad606f",
+    "source": "model",
+    "text": "The Audit Finding Risk Scorer (`audit_finding_risk_scorer`) fits when you need to rank an open audit finding on a consistent scale:\n\n- You have a finding with a severity and a likelihood rating (each on the 5×5 scale) and want a base score from the two.\n- Remediation is late and you want ageing to count: `overdue_days` raises the score for each 30-day block past due, up to the 25 cap.\n- You need to compare outstanding findings side by side, since each gets one score on the same scale.\n- You want a simple, transparent calculation: severity × likelihood plus an overdue uplift, so the score is easy to explain.\n\nIf you instead want a 5×5 OpRisk heat-map distribution, `oprisk_heat_map_generator` is the related function that generates one.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

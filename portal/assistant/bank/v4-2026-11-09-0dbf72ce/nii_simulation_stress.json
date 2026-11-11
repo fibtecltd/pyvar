@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_sensitivity_rate_shock": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6714494c0140d8f60c2f67b634c11bbf27aa139dc6db37032fdff16bfa1369b9",
+      "source": "model",
+      "text": "`nii_simulation_stress` works bucket by bucket: you give it balances and base rates for each asset and liability bucket, plus a `rate_shock`, and it reprices each rate by its beta times the shock (`asset_beta`, `liability_beta`). It answers \"what would my stressed NII be, and how far does it move from baseline, if rates shift and pass-through is incomplete?\" `nii_sensitivity_rate_shock` is the quicker, aggregate version: it takes just `rate_sensitive_assets`, `rate_sensitive_liabilities` and a `rate_shock`, and applies the one-year repricing gap (RSA − RSL) times the shock. It answers \"given my repricing gap, roughly which way and how much does NII move?\" A positive gap gains NII when rates rise. Choose the first when you have bucket detail and want to model betas, and the second for a gap-based view.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cabe3c8c909e779199bbba0ccc8b72364b75d7d364b983554df691b3a3476f14",
+    "source": "model",
+    "text": "`nii_simulation_stress` (NII Simulation Stress) estimates net interest income under a parallel rate shock, using repricing betas to reflect incomplete pass-through. You give it balances and base rates for asset and liability buckets, plus a `rate_shock` as a decimal. Each asset rate moves by `asset_beta` times the shock, and each liability rate moves by `liability_beta` times the shock. The defaults are 1.0 for assets and 0.5 for liabilities, which reflects the weaker pass-through typical of deposits. It returns the stressed NII and the change versus baseline NII.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "0263ed4f4bf0649ec227e4980d97bb3e5a39fcac6c924ee8bae1a03969c3ba73",
+    "source": "model",
+    "text": "`nii_simulation_stress` (NII Simulation Stress) fits when you want to see how net interest income responds to a parallel rate shock.\n\n- You want stressed NII and the change versus baseline from a single shock, set with `rate_shock`.\n- Deposits or other liabilities don't pass rate moves through fully, so you want to set `liability_beta` (default 0.5) and `asset_beta` (default 1.0) separately.\n- You have balances and rates by asset and liability bucket and want each bucket to reprice by its beta times the shock.\n- You want a quick what-if on earnings, such as comparing different beta assumptions.\n- If you only need the current-rate projection with no shock, `nii_simulation_baseline` is listed as the baseline (current-rate) net-interest-income projection.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

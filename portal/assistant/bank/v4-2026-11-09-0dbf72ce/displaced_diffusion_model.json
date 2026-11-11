@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "local_volatility_dupire_model": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "74245549d1911593cbc4c772dfb8f1deae1befa6fdd35c462ccb24a63fc5373b",
+      "source": "model",
+      "text": "`displaced_diffusion_model` prices a single European option, while `local_volatility_dupire_model` works backwards from a grid of option prices to a volatility surface. The first answers \"what is this option worth if the shifted spot follows a lognormal process?\" You give it `spot`, `strike`, `rate`, `sigma`, `tau` and a `displacement`, and it applies Black-Scholes to the shifted spot and strike. With `displacement` at zero it reduces exactly to Black-Scholes.\n\n`local_volatility_dupire_model` answers \"what volatility at each strike and maturity is consistent with these observed call prices?\" It takes `strikes`, `maturities` and a `call_surface`, and uses finite differences of the Dupire equation to return a local volatility surface. In short, one is a pricing formula with a tunable shift, and the other extracts volatility from a price surface.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ee035513efe96922be1ec00115f17fdc1a5b11c334c1cccc18700f0083f7d64e",
+    "source": "model",
+    "text": "`displaced_diffusion_model` (Displaced Diffusion Model) prices a European call or put using a shifted lognormal process. It treats the underlying price plus a shift, `displacement`, as lognormal, which lets you move between lognormal behaviour and more normal-like dynamics. The price is Black-Scholes applied to the shifted spot and strike, and it matches plain Black-Scholes exactly when `displacement` is zero. You supply `spot`, `strike`, `rate`, `sigma`, `tau` and `displacement`, and optionally `option_type` (call by default) and `div_yield`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1c13b1c6c10b7a528391cbc49199a1e3cfd002b191e03db1fc39932965971072",
+    "source": "model",
+    "text": "The `displaced_diffusion_model` (Displaced Diffusion Model) prices a European call or put when you want something between lognormal and normal-like behaviour.\n\n- You want a simple, closed-form European option price where the shifted-lognormal dynamics of `(S + a)` are acceptable, controlled by `displacement`.\n- You want to move between lognormal and normal-like dynamics by changing `displacement`. At zero it reduces exactly to Black-Scholes, so it's a handy check against that baseline.\n- Your underlying pays a continuous dividend yield, which you can set with `div_yield`.\n- You need only a single price for given `spot`, `strike`, `rate`, `sigma` and `tau`, not a full volatility surface.\n\n- If you instead want an implied Black volatility, `sabr_volatility_model` is listed as giving SABR implied (lognormal/Black) volatility via Hagan's expansion.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_option_pricer": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "604ec8bbe83fcec5753567a603711390b224b1070187bf79e6bc52f0d3801e8d",
+      "source": "model",
+      "text": "`binomial_tree_option_pricer` prices an option by building a Cox-Ross-Rubinstein tree of up and down moves and working backwards from maturity. That lets it handle both European and American exercise through its `style` parameter, and its `n_steps` setting controls how fine the tree is. `monte_carlo_option_pricer` instead simulates many terminal prices under geometric Brownian motion and averages the discounted payoffs, but it covers European options only. So the tree answers \"what is this option worth, including the choice to exercise early?\", while Monte Carlo answers \"what is the average discounted payoff of a European option across simulated end prices?\" The tree is controlled by `n_steps`, while Monte Carlo uses `n_simulations` and a `seed` to make its random draws repeatable.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "ad6c69a625f840cf96a289e766debd674a9d645a29a34731ec1c4ad8ca95410b",
+    "source": "model",
+    "text": "The Binomial Tree Option Pricer (`binomial_tree_option_pricer`) prices an option using a Cox-Ross-Rubinstein binomial tree, which models the underlying as moving up or down at each time step and works backward from maturity to today. It handles both European and American exercise, and calls or puts, set through `style` and `option_type`. You supply `spot`, `strike`, `rate`, `sigma` and `tau`, and can optionally set `n_steps` and `div_yield`. For European options, the price converges to Black-Scholes as `n_steps` grows.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9a7345b0153282b4776c219b107ada0674949d765e396543e582c88526c64c4f",
+    "source": "model",
+    "text": "The Binomial Tree Option Pricer (`binomial_tree_option_pricer`) fits these situations:\n\n- You need a price for an American-style option, since it handles early exercise through the `style` parameter.\n- You want a European call or put price that approaches the Black-Scholes value as `n_steps` grows.\n- Your underlying pays a continuous dividend yield, which you can set with `div_yield`.\n- You want to see how the price is built step by step, backward through a tree of up and down moves.\n- For a closed-form European price, `black_scholes_european_option` is listed as the Black-Scholes-Merton price of a European option.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

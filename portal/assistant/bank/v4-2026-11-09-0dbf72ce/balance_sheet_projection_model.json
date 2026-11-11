@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "structural_hedge_optimisation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d913e6afec680226da4b917f3d7a627dd91ff15b63f6ac0831d60741b2dc2fdc",
+      "source": "model",
+      "text": "`balance_sheet_projection_model` answers \"how might my balance sheet and net interest income evolve over the next `n_years`?\" You give it opening `initial_assets` and `initial_liabilities`, growth rates for each side, plus `asset_yield` and `liability_cost`. It then projects assets, liabilities, equity (the residual) and NII for each year.\n\n`structural_hedge_optimisation` answers a different question: \"what hedge positions bring my equity duration close to a target?\" It takes a `target_duration`, the `instrument_durations`, a cap per instrument in `instrument_max_notional`, and the `equity_notional`. It then solves numerically for non-negative hedge notionals within those caps.\n\nIn short, the first is a forward-looking projection of balance sheet and earnings, while the second is an optimiser that sizes a hedge against a duration target.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "03883d2b12c722078ca157885c5c8730e750be2f70fd8451f93b6f59b2d8bd99",
+    "source": "model",
+    "text": "The Balance Sheet Projection Model (`balance_sheet_projection_model`) projects a balance sheet and net interest income forward over a horizon you set with `n_years`. You give it opening assets and liabilities (`initial_assets`, `initial_liabilities`), their annual growth rates (`asset_growth_rate`, `liability_growth_rate`), and the average `asset_yield` and `liability_cost`. Assets and liabilities grow geometrically each year, equity is the residual of the two, and NII for each year is assets times yield minus liabilities times cost. It returns the projected paths for these items, which is useful for seeing how a stated growth and rate scenario flows through to equity and NII.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b4ae3fe687a32965b854ecb09f46b2beeefe315d8af2da2dd727933baf025b74",
+    "source": "model",
+    "text": "The Balance Sheet Projection Model (`balance_sheet_projection_model`) fits when you want a simple forward view of a balance sheet and its net interest income.\n\n- You have opening assets and liabilities and want to see how they evolve over `n_years` under steady annual growth rates (`asset_growth_rate`, `liability_growth_rate`).\n- You want equity tracked as the residual of assets minus liabilities in each projected year.\n- You want yearly NII from an average `asset_yield` and `liability_cost`, to compare growth or pricing assumptions side by side.\n- You need a quick, transparent baseline path rather than a detailed, product-by-product forecast.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "oprisk_capital_allocation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "7ddd56ce60df2d12e07d2e55a2c7e2533e9f143d050dcfa97a95717e7ca3ea55",
+      "source": "model",
+      "text": "`basel_standardised_measurement_sma` answers \"how much operational risk capital does a bank need in total?\" It takes `business_indicator`, plus an optional `loss_component` and a `use_ilm` switch, and multiplies a size-based component by a multiplier that reflects the bank's loss history. `oprisk_capital_allocation` answers a different question: \"given a total capital figure, how should it be split across business lines?\" It takes `total_capital` and `business_line_risks`, then shares the total out in proportion to each line's standalone risk, so the pieces add back up to the total exactly. The two work in sequence. The first produces a firm-wide capital number, and the second can divide a total like that among business lines. It does not calculate the total itself.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7953ed0533980e68cfaff2e9c90a677bee641148251a28791ed84646fddccd2a",
+    "source": "model",
+    "text": "`basel_standardised_measurement_sma` computes Basel III Standardised Measurement Approach operational risk capital as the Business Indicator Component (BIC) multiplied by an Internal Loss Multiplier (ILM). The BIC is a piecewise-linear function of your `business_indicator`, with marginal coefficients of 12%, 15% and 18% across three buckets. The ILM scales that figure by the bank's loss history, using your `loss_component` (15 × average annual losses). The ILM is set to 1.0 if you pass `use_ilm=False`, if the business indicator is in the lowest bucket, or if BIC is non-positive. That is an explicit override in the code, not something the log formula produces.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "96527bd7324e09ae6531647bcf1e92ced3a64de3f5ae7922636ac677566f1bbe",
+    "source": "model",
+    "text": "`basel_standardised_measurement_sma` fits when you need Basel III Standardised Measurement Approach operational risk capital.\n\n- You have a Business Indicator (`business_indicator`) in base currency and want capital built from it through the piecewise-linear Business Indicator Component.\n- You want the bank's historical losses to scale the result: pass a `loss_component` and keep `use_ilm` on, so the Internal Loss Multiplier applies.\n- You want capital without loss-experience scaling: set `use_ilm` to False, which fixes the multiplier at 1.0. This also happens automatically for bucket-1 banks.\n- You want a transparent, formula-driven figure (BIC × ILM) rather than a model-based or scenario-based estimate.\n\nIf you need to split total operational risk capital across business lines, `oprisk_capital_allocation` is listed as allocating total OpRisk capital across business lines, pro-rata by risk.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

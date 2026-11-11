@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "intraday_liquidity_monitor": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "49078cbe3e10c3eb6dcdc416b24d1302ee7c0c4e7b8a4b81e5856446580f6342",
+      "source": "model",
+      "text": "`intraday_liquidity_stress_test` answers \"how bad does my peak liquidity need get if a fraction of expected inflows arrives late?\", while `intraday_liquidity_monitor` answers \"how did my intraday position actually move given the flows that occurred?\" The stress test takes `net_flows`, `opening_balance`, `delay_factor` and `inflow_delay_shock`. It removes the delayed share of positive flows and reports the stressed peak usage and whether the opening buffer plus any extra shock survives. The monitor takes `timestamps`, `net_flows` and `opening_balance`, and reports peak usage and the largest net debit position, of which only the net debit peak is the genuine BCBS 248 monitoring tool. The stress design is this codebase's own, set in the BCBS 248 context rather than prescribed by it.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d15d61ae7abdf189ecb2c92ce1bce307d64489229f90dc80a77f61d7c7512ea2",
+    "source": "model",
+    "text": "`intraday_liquidity_stress_test` (Intraday Liquidity Stress Test) stresses a day's intraday payment profile by delaying a fraction of the positive inflows, set by `delay_factor`, so those inflows drop out of the path and the peak liquidity need sharpens. You give it `net_flows` (credits positive, debits negative) at each step, plus the `opening_balance`, and optionally an `inflow_delay_shock` of extra liquidity reserved. It reports the stressed peak usage and whether the opening buffer plus any additional shock survives. This is pyvar's own internal stress design, set in the context of BCBS 248's intraday-liquidity monitoring framework, not a scenario BCBS 248 prescribes.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7896b5610df0554fdac14ca52cbec9cf203abac25d72a0750d9497c917c430ed",
+    "source": "model",
+    "text": "Use the Intraday Liquidity Stress Test (`intraday_liquidity_stress_test`) when you want to see how an intraday payment profile holds up if some incoming payments arrive late:\n\n- You have a path of net payment flows (credits positive, debits negative) and an opening balance, and want a stressed peak liquidity usage.\n- You want to test a delay of inflows with `delay_factor`, and optionally reserve extra liquidity against the shock with `inflow_delay_shock`.\n- You want to check whether the opening buffer plus any additional shock survives the stressed path.\n- You want an internal stress view in the BCBS 248 intraday-liquidity monitoring context. It is this codebase's own design, not a BCBS-prescribed scenario.\n- For a monitoring view rather than a stress, the related function `intraday_liquidity_monitor` is listed as an intraday liquidity monitor (BCBS 248).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

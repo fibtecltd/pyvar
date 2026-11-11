@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "3333ecbb0f4c188e22e246784cdff188ea761b8c104745d92b5814ee764d571f",
+      "source": "model",
+      "text": "`theta_carry_attribution` answers \"how much P&L came from the passage of time?\" It computes the carry component, `theta` times `time_step`, and can subtract a `funding_cost` over the same period. `pnl_attribution_test_frtb_pat` answers a different question: \"does my model-based P&L track my full-revaluation P&L well enough?\" It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`. It then combines their Spearman rank correlation with the ratio of their standard deviations to assign a Basel traffic-light zone. The first is a single-component calculation of P&L. The second is a pass/fail style test of the whole P&L model, using thresholds set by the Basel Committee that you can't change through parameters. You might use the carry function as one building block when explaining P&L, and the FRTB test to judge how well that explanation holds up against revaluation.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "96eb02267e90b8333c74a240870cbe31e12582c3264425e829022854b7bda7b3",
+    "source": "model",
+    "text": "`theta_carry_attribution` (Theta Carry Attribution) isolates the deterministic time-decay, or carry, part of a portfolio's P&L. It multiplies portfolio `theta` by the elapsed time `time_step` to get the decay over that period. You can optionally pass a `funding_cost`, the currency amount accrued over the same period, which is subtracted so the result is carry net of funding. The formula is Carry PnL = Θ·dt − FC, and `funding_cost` defaults to zero if you leave it out. Keep `theta` and `time_step` in the same time unit.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4f58ce4c7dd5477b3ab1b9b8811b671769dc54c307b472967c24916bfa32b23b",
+    "source": "model",
+    "text": "`theta_carry_attribution` (Theta Carry Attribution) fits when you want the deterministic time-decay part of P&L on its own.\n\n- You want to separate the carry from `theta` and `time_step` (`theta · dt`) from P&L driven by market moves.\n- You need carry net of financing: pass `funding_cost` to subtract the funding accrued over the same period.\n- You have a portfolio-level theta and an elapsed time, with `theta` expressed in the same unit as `time_step`.\n- For the market-move pieces, `gamma_pnl_attribution` is listed as the gamma (convexity) P&L component, and `vega_pnl_attribution` as the vega P&L component, `ν · dσ`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

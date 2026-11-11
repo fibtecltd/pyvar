@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ftp_curve_construction": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6c174b1d565c8bb0774f9f63b41f616f4888350a856d79621ae842fc9619c621",
+      "source": "model",
+      "text": "`funds_transfer_pricing_ftp` answers \"how is one deal's spread split up?\": from `notional`, `customer_rate`, `ftp_rate` and an optional `liquidity_premium`, it adds the premium to `ftp_rate` to get an all-in transfer rate, then measures the lending margin against that all-in rate. `is_asset` reverses the sign for a deposit. `ftp_curve_construction` answers \"what transfer rate belongs at each maturity?\": it takes `tenors`, `base_curve` and `liquidity_spreads` and adds the spread to the base rate at each tenor. The curve can feed the deal function's `ftp_rate`. Because the curve already contains a liquidity spread, also setting `liquidity_premium` could count liquidity twice, so use one or the other deliberately.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "88bbe04963acaa94cf7ff5d90545c1486115dcdcfe1aa598ad94472fce453e97",
+    "source": "model",
+    "text": "`funds_transfer_pricing_ftp` (Funds Transfer Pricing FTP) breaks a single deal into margin components, given its `notional`, `customer_rate` and matched-maturity `ftp_rate`. A `liquidity_premium` can be added on top of the FTP rate. For an asset (a loan, the default via `is_asset`), the lending unit's commercial margin is the customer rate less the all-in FTP rate, applied to the notional. For a liability (a deposit), the margin is the all-in FTP rate less the customer rate. It also returns the total spread, which is the absolute gap between the two rates times the notional.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4b867298e41c2b74cd30d1511c32376f5cf40013493a3ab89426df0224b53f93",
+    "source": "model",
+    "text": "`funds_transfer_pricing_ftp` (Funds Transfer Pricing FTP) fits when you want to break a single deal's pricing into margin components:\n\n- You have one loan (asset) or one deposit (liability) and want to see how its spread splits between the business unit and central treasury.\n- You already have a matched-maturity transfer rate for the deal (`ftp_rate`) and want to apply it to the customer rate (`customer_rate`) on a given `notional`.\n- You need a liquidity charge added to the transfer rate, using `liquidity_premium`, before judging the deal's commercial margin.\n- You want to compare an asset and a liability on the same footing by switching `is_asset`.\n\n- Building the transfer curve itself: `ftp_curve_construction` is listed as constructing a matched-maturity FTP curve, a base curve plus a liquidity spread.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

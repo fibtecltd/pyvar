@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e6f12f1cb9e701c9a0e3e59fb640344d525222f5d10c47041f5c2a9775c7f21a",
+      "source": "model",
+      "text": "`funding_cost_analysis` answers \"what does our funding base cost us?\" It takes the outstanding amount of each funding source (`funding_amounts`) and its annual rate (`funding_rates`), then returns the amount-weighted average cost and the total annual funding cost in currency terms. `deposit_stability_classification` answers a different question: \"which deposits are stable and which are less stable?\" It takes a stability score between 0 and 1 for each deposit (`deposit_features`) and compares each score with a cut-off (`stable_threshold`). Deposits at or above the cut-off count as stable, which carries lower LCR run-off, and the rest count as less-stable. The first is about the price of funding, and the second is about how reliable deposits are as funding. Their inputs differ too: amounts and rates versus stability scores.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cd2f60b83ee242f43c0e345df58ee9c20fef960e3a35f1eaa95651a915fb1ab7",
+    "source": "model",
+    "text": "`funding_cost_analysis` (Funding Cost Analysis) is a pyvar liquidity risk function that works out the amount-weighted average cost of a funding base. It also returns the total annual funding cost in currency terms. You give it `funding_amounts`, the outstanding amount of each funding source, and `funding_rates`, the annual rate per source as a decimal (for example 0.035 for 3.5%). It multiplies each amount by its rate and sums those products to get the total annual cost. Dividing that total by the sum of the amounts gives the weighted-average cost.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "72491644caf394518c30ed48ae38c0243eab903bebf02d32eb2d89b2b6d84a26",
+    "source": "model",
+    "text": "`funding_cost_analysis` (Funding Cost Analysis) fits when you want a single view of what your funding base costs.\n\n- You have several funding sources, each with an outstanding amount (`funding_amounts`) and an annual rate (`funding_rates`), and you want the amount-weighted average cost.\n- You need the total annual funding cost in currency terms, not just a percentage.\n- You want to see how the mix of funding sources drives overall cost, since larger sources weigh more heavily in the average.\n- Your rates are annual decimals, such as 0.035 for 3.5%.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

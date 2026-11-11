@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "nii_simulation_stress": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "510bc4e21a45074da15ec8262d2f5a4f91dc98f599852ed6f846d729296be27b",
+      "source": "model",
+      "text": "`nii_sensitivity_rate_shock` gives a quick, gap-based answer to the question \"how much does NII change if all rates move in parallel?\" It takes just three inputs: `rate_sensitive_assets`, `rate_sensitive_liabilities` and `rate_shock`. It multiplies the repricing gap (assets minus liabilities) by the shock, so a positive gap gains when rates rise.\n\n`nii_simulation_stress` asks \"what does NII look like under the shock once pass-through is incomplete?\" It works from balances and rates per asset and liability bucket, and applies `asset_beta` and `liability_beta` so that, for example, deposit costs can move less than the shock. It returns the stressed NII and the change versus baseline.\n\nIn short, use the first for a simple gap estimate and the second for a more detailed, bucket-level view with repricing betas.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1f699b1b1d78d55446648131e3f2f3feb4579a6f1a0895b83bb1e4e4572bed5a",
+    "source": "model",
+    "text": "`nii_sensitivity_rate_shock` (NII Sensitivity Rate Shock) estimates how net interest income changes when rates move in a parallel shift. It multiplies the cumulative one-year repricing gap, rate-sensitive assets minus rate-sensitive liabilities, by the shock. You supply `rate_sensitive_assets`, `rate_sensitive_liabilities` and `rate_shock` (as a decimal). A positive gap means NII gains when rates rise, and a negative gap means the opposite. The result is an approximation, and pyvar does the calculation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "81fb4006610d896ced644c03ee77badcc5d989626f8efbd3ae3727dfaedc1f6d",
+    "source": "model",
+    "text": "Use `nii_sensitivity_rate_shock` (NII Sensitivity Rate Shock) when you want a quick read on how net interest income responds to a parallel rate move:\n\n- You have the one-year repricing gap in hand: assets (`rate_sensitive_assets`) and liabilities (`rate_sensitive_liabilities`) that reprice within the horizon.\n- You want to test a single parallel move, set with `rate_shock` as a decimal.\n- You want a first-order approximation, `ΔNII ≈ (RSA − RSL) · Δrate`. A positive gap gains NII when rates rise.\n- You want a simple gap-based view rather than a full projection.\n\nIf you need stressed NII with repricing betas, `nii_simulation_stress` is listed as doing exactly that: stressed NII under a parallel rate shock with repricing betas.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

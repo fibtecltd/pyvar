@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "bond_pricer_floating_rate": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d9ed4dc3559ea5eefdb606a70a900688b99a3593b3754528212ba00b4ee3f84c",
+      "source": "model",
+      "text": "`zero_coupon_bond_pricer` answers \"what is a bond with a single payment at maturity worth today at one flat yield?\" You give it `face_value`, `yield_rate`, `maturity` and optionally `frequency` (default 2), and it discounts the redemption value back using `face / (1 + y/m)^(m·T)`.\n\n`bond_pricer_floating_rate` answers \"what is a floating-rate note worth, given projected forward rates?\" It prices a stream of coupons, each set from a `reference_rates` entry plus a `spread`, and discounts each cashflow with its own per-period `discount_rates` value, with `face_value` repaid at the end.\n\nSo the first has no coupons and one yield, while the second has rate-driven coupons and a discount curve. The floating-rate pricer also takes the number of periods from the length of `reference_rates`, and `maturity` must agree with it. Its default `frequency` is 4, versus 2 for the zero-coupon pricer.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "22a9bf31573f7622f283e945d018d1d2e3f585632c6a07b222118b489b8e38b5",
+    "source": "model",
+    "text": "The Zero Coupon Bond Pricer (`zero_coupon_bond_pricer`) prices a zero-coupon bond by discounting its single redemption payment back to today. It uses the formula face value divided by (1 + y/m) raised to the power m·T, where y is the annual yield, m the compounding frequency and T the years to maturity. You supply `face_value`, `yield_rate` (as a decimal) and `maturity` in years, and optionally `frequency`, which defaults to 2 compounding periods per year. pyvar does the calculation and returns the bond's price.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e5fe23e6af745341f05b4de96c5c705a882745894babc46792625e9c013edb54",
+    "source": "model",
+    "text": "The Zero Coupon Bond Pricer (`zero_coupon_bond_pricer`) fits when you need the present value of a single payment at maturity:\n\n- You hold or are analysing a bond that pays only its `face_value` at maturity, with no coupons along the way.\n- You have an annual yield (`yield_rate`, as a decimal) and a time to maturity in years (`maturity`), and want the price that follows from them.\n- You need to match a particular compounding convention: set `frequency` to the number of compounding periods per year (it defaults to 2).\n- You want a simple discounting building block, since the price is just the face value discounted at the given yield.\n\nIf your bond does pay coupons, `bond_pricer_fixed_coupon` is listed as pricing a fixed-coupon bond by discounting its cashflows at a flat yield.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

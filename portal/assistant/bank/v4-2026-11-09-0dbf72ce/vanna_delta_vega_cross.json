@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "gamma_cross_gamma_matrix": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "20ce6893f804ad296b7dec7923713d08ff0964b398f1995c6eaebfb5bffa238e",
+      "source": "model",
+      "text": "`vanna_delta_vega_cross` and `gamma_cross_gamma_matrix` both deal with second-order sensitivities, but they answer different questions. `vanna_delta_vega_cross` takes one option's inputs (`spot`, `strike`, `rate`, `sigma`, `tau`, and optionally `div_yield`) and gives its vanna, which shows how delta drifts as volatility moves, or equivalently how vega changes as spot moves. The value is the same for calls and puts. `gamma_cross_gamma_matrix` works at portfolio level. It takes each underlying's net gamma (`own_gammas`) plus optional `cross_gammas`, and assembles a symmetric matrix. Its diagonal holds each underlying's own gamma, and its off-diagonals hold the cross-gammas between underlyings. That matrix is used to express gamma P&L for a shock vector as `0.5 · ds' G ds`. In short, vanna asks \"how does delta react to volatility?\", while the gamma matrix asks \"how does value respond to joint moves in several underlyings' prices?\"",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "19a921219b9be193274206a41d1260823c4d008eff2f43877f53ba973c289b04",
+    "source": "model",
+    "text": "`vanna_delta_vega_cross` (Vanna Delta Vega Cross) returns vanna, the cross sensitivity ∂vega/∂S, which equals ∂Δ/∂σ. In practice it shows how an option's delta drifts as volatility moves, and how vega shifts as spot moves. It uses the Black-Scholes-style formula Vanna = −e^{-qτ} · φ(d1) · d2 / σ, and the value is the same for calls and puts. You supply `spot`, `strike`, `rate`, `sigma` (annualised volatility) and `tau` (years to maturity), with an optional continuous `div_yield`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a0f42b04f40ae14821edc0ef39a216d57be7a88ead1c0267eadb6648d21df481",
+    "source": "model",
+    "text": "`vanna_delta_vega_cross` (Vanna Delta Vega Cross) fits when you want to see how an option's delta and vega interact with volatility and spot.\n\n- You want to know how delta drifts when volatility moves, since vanna is ∂Δ/∂σ.\n- You want to know how vega changes as the underlying spot moves, since it is also ∂vega/∂S.\n- You are checking a hedge where a volatility shift could make a delta hedge go stale.\n- You want one figure that applies to both calls and puts, since vanna is identical for each. Inputs are `spot`, `strike`, `rate`, `sigma` and `tau`, with an optional `div_yield`.\n- For how delta changes with time to maturity instead, `charm_delta_decay` is listed as the sensitivity of delta to time to maturity (∂Δ/∂τ).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

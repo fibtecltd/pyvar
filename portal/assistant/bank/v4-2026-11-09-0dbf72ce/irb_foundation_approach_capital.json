@@ -1,0 +1,42 @@
+{
+  "compare": {
+    "basel_standardised_approach_rwa": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "beee75977b561d09abd50cd2e0ec5ae695a83c5d3ce6a5d7365e8ff64f5c1f50",
+      "source": "model",
+      "text": "`irb_foundation_approach_capital` asks what capital a bank needs when it supplies its own probability of default (`pd`) but uses supervisory loss given default, which depends on `seniority`. `basel_standardised_approach_rwa` asks what the risk-weighted assets are when a supervisory `risk_weight`, set by external rating or exposure class, is applied to the exposure after netting `credit_risk_mitigation`.\n\nThe IRB function is model-driven. It runs `pd`, `ead` and `maturity` through the Basel corporate correlation function and a maturity adjustment, then converts the resulting capital charge K into RWA. The standardised function is a lookup-and-multiply: `ead` minus mitigation, times the weight you pass in.\n\nSo the first suits a PD-based view of one exposure, and the second suits a rating-bucket view where you already know the weight.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": [
+        "RWA is described only as 'the prescribed factor times K times ead'; the record gives the factor as 12.5."
+      ]
+    },
+    "record_sha256": "6e7f54244a994f16c5a65522c63b47fec38af4a16fa890bbe442e83e7c2e34d1",
+    "source": "model",
+    "text": "`irb_foundation_approach_capital` calculates Basel Foundation IRB capital (CRE31) for one exposure. You supply `pd` and `ead`; LGD is supervisory: 45% for senior unsecured, 75% for subordinated, chosen via `seniority`. The `lgd` parameter is ignored unless `seniority` is custom. `maturity` defaults to 2.5 years, and the correlation is always the Basel corporate function of PD, with no override. It returns capital K and RWA, which is the prescribed factor times K times `ead`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c6b9922a31b242b85866febfb4dbcdf88782a1d776d93d115cfa9d70e3a6575a",
+    "source": "model",
+    "text": "`irb_foundation_approach_capital` (IRB Foundation Approach Capital) fits when you need Basel F-IRB capital for a single exposure.\n\n- Your bank has its own probability of default (`pd`) estimate, while LGD and maturity follow supervisory values.\n- The claim is senior unsecured or subordinated, set through `seniority`, so the supervisory LGD for that class applies.\n- You are happy with the Basel corporate correlation of PD, since this function offers no override for it.\n- You have an exposure amount (`ead`) and want capital `K` and risk-weighted assets under CRE31 and CRE32.\n- If you work under the Advanced approach rather than Foundation, `irb_advanced_approach_capital` is listed as Basel IRB Advanced-Approach capital (CRE31).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

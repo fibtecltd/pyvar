@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "frequency_distribution_fitting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ee26238e0900a7b1c0ee3ebcb5c8b03f89fff011f4dac57ebf4e463d81080531",
+      "source": "model",
+      "text": "`monte_carlo_oprisk_capital` answers \"how much operational risk capital is needed?\": you give it a Poisson event rate (`frequency_lambda`) and lognormal severity settings (`severity_mu`, `severity_sigma`), and it simulates annual losses over `n_years`. It then reads the loss quantile at `confidence_level` (OpVaR) and reports capital as that quantile minus expected loss, along with expected shortfall. `frequency_distribution_fitting` answers an earlier question: \"what event rate do my data support?\" You give it observed annual loss-event counts (`annual_event_counts`), and it estimates the Poisson rate as the sample mean. It also reports a dispersion ratio, where a value far above 1 hints that a negative-binomial might suit better. In practice, the fitting function can supply the rate that you then enter as `frequency_lambda` in the Monte Carlo function.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a41f4dee6321747c4e9f5ea078f8a22a19d1de16a08ac7fef79419f62fc42ea8",
+    "source": "model",
+    "text": "`monte_carlo_oprisk_capital` (Monte Carlo OpRisk Capital) simulates an operational risk loss distribution and returns regulatory capital. It builds annual losses by combining a Poisson event count (`frequency_lambda`) with lognormal severities (`severity_mu`, `severity_sigma`) over many simulated years (`n_years`). It reads the loss quantile at `confidence_level` as OpVaR (Basel AMA uses 99.9% over one year) and also reports expected shortfall. Capital is the unexpected loss, meaning OpVaR minus expected loss. Setting `seed` makes runs reproducible.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "eb9fa5b08b41037fc2b56e9455335520d808e965cd83c33d6f3a4454bf30df84",
+    "source": "model",
+    "text": "`monte_carlo_oprisk_capital` (Monte Carlo OpRisk Capital) fits when you already have assumed frequency and severity inputs and want a simulated capital figure.\n\n- You have a Poisson annual event rate (`frequency_lambda`) and lognormal severity parameters (`severity_mu`, `severity_sigma`) and want OpVaR and expected shortfall from them.\n- You need capital defined as unexpected loss, meaning OpVaR minus expected loss, at a chosen `confidence_level` (the Basel AMA default is 99.9%).\n- You want a reproducible simulation, using `seed` and `n_years` to control the run.\n- You want to test how capital responds to different frequency or severity assumptions.\n- If you only need the simulated aggregate annual loss distribution itself, `compound_loss_distribution` is listed as simulating that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

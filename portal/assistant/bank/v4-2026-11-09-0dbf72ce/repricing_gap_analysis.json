@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "static_gap_analysis": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1390858c4becb214a3a5523ca66e8f55f17d333bbe551e1d730ce9694bcc5f53",
+      "source": "model",
+      "text": "`repricing_gap_analysis` answers \"where in time does my balance sheet reprice, and how does the running total build up?\" It returns the gap for each time bucket (rate-sensitive assets minus rate-sensitive liabilities) plus the cumulative gap, which is what drives net interest income sensitivity. It also accepts optional `bucket_labels` so you can name the buckets.\n\n`static_gap_analysis` answers \"how do my rate-sensitive assets compare with my rate-sensitive liabilities at this point in time, assuming a frozen balance sheet?\" It gives the per-bucket gap and also a gap ratio, which is total rate-sensitive assets divided by total rate-sensitive liabilities. Both take the same two inputs, `bucket_assets` and `bucket_liabilities`.\n\nIn short, the first emphasises the cumulative gap across buckets, while the second emphasises the point-in-time view and the overall ratio.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "913341a7a7217f4bd3f73bacc01762e093f10d82c43350b50de55343b774c35e",
+    "source": "model",
+    "text": "`repricing_gap_analysis` (Repricing Gap Analysis) calculates the repricing gap for each time bucket, defined as rate-sensitive assets minus rate-sensitive liabilities. It also returns the cumulative gap, the running sum of those bucket gaps, which drives net interest income (NII) sensitivity. You supply `bucket_assets` and `bucket_liabilities`, the amounts repricing in each bucket, and can optionally add `bucket_labels` to name the buckets. It suits ALM and balance-sheet work where you want to see how repricing mismatches build up across time.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "afa626fbef4dd39d25e97e7f81c2ad93f59da3e9e392983557ffaa4639160016",
+    "source": "model",
+    "text": "Use Repricing Gap Analysis (`repricing_gap_analysis`) when you want to see how rate-sensitive assets and liabilities line up across time buckets:\n\n- You already have rate-sensitive assets and liabilities allocated to repricing buckets and want the gap per bucket (assets minus liabilities).\n- You want the cumulative gap, which drives net interest income (NII) sensitivity.\n- You want a clear view of where repricing mismatches sit along the time ladder, with optional `bucket_labels` to name the buckets.\n- Your inputs are `bucket_assets` and `bucket_liabilities` for each bucket.\n\nRelated function: `repricing_maturity_profile` allocates balances into repricing-time buckets, so it fits if you still need to build the buckets before running the gap.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

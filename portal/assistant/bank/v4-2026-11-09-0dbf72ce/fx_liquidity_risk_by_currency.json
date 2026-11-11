@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "deposit_stability_classification": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "b4ac62fcc4a108fb21773f058afb7852f49e7039df15d5fe62b1fcbd7976f9e9",
+      "source": "model",
+      "text": "`fx_liquidity_risk_by_currency` asks: in each currency, do inflows cover outflows? You give it `inflows_by_ccy` and `outflows_by_ccy`, and it returns the net gap per currency (inflows minus outflows). A significantly negative gap points to reliance on FX swap markets to fund the shortfall.\n\n`deposit_stability_classification` asks a different question: how sticky is each deposit? You give it `deposit_features`, a stability score per deposit between 0 and 1, and an optional `stable_threshold`. Deposits at or above the cut-off count as stable, which carries lower LCR run-off, and the rest as less-stable. It also gives the fraction of deposits classed as stable.\n\nIn short, the first looks at funding gaps by currency, while the second sorts deposits by how likely they are to stay.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "899340b747cf8a1196767cac0e378999e344d36279c1ad73b0e159155dcf2e6a",
+    "source": "model",
+    "text": "`fx_liquidity_risk_by_currency` (FX Liquidity Risk By Currency) works out the net liquidity gap in each significant currency, as inflows minus outflows. You give it two mappings, `inflows_by_ccy` and `outflows_by_ccy`, each keyed by currency. A significantly negative position in a currency suggests you rely on FX swap markets to fund the shortfall. That is a key vulnerability if those markets seize. It is useful for seeing where your currency funding dependence sits.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "3d0008518ea30058d465c665fae59524c76f14eefec3d2d5293435dca9f4b175",
+    "source": "model",
+    "text": "`fx_liquidity_risk_by_currency` (FX Liquidity Risk By Currency) fits when you want to see where a funding shortfall sits by currency:\n\n- You have inflow and outflow amounts for each significant currency and want the net gap (inflows minus outflows) per currency.\n- You want to spot currencies with a significant negative position, which signals reliance on FX swap markets to fund the shortfall.\n- You are assessing vulnerability if swap markets seize, since that is when those shortfalls become hard to fund.\n- You can supply `inflows_by_ccy` and `outflows_by_ccy` as mappings of currency to amount.\n\nIf you instead need the incremental margin call from widened repo haircuts, `repo_market_stress_haircut` is the related function for repo market stress.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

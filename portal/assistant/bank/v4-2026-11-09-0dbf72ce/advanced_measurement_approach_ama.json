@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "c39bbbb72e4854a416ec8b40a37270b0ef0e90a654b6a0601ce1715d2afb775d",
+      "source": "model",
+      "text": "`advanced_measurement_approach_ama` answers \"what AMA capital charge comes out of my own loss history?\", while `monte_carlo_oprisk_capital` answers \"what capital and expected shortfall result from loss-process parameters I already have?\". The AMA function takes raw history (`annual_event_counts` and `loss_amounts`), fits a Poisson frequency and lognormal severity internally, and then runs a Monte Carlo quantile. The Monte Carlo function skips the fitting: you supply `frequency_lambda`, `severity_mu` and `severity_sigma` directly, and it reports expected shortfall alongside OpVaR. Its capital is always OpVaR minus expected loss, whereas `advanced_measurement_approach_ama` has an `expected_loss_covered` switch: true gives OpVaR minus expected loss, false gives the full OpVaR. AMA is also retired for Basel III/IV regulatory capital, so it suits economic-capital work, internal scenario analysis and earlier-timeline jurisdictions.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "96241b38f2a522d968d3a66db7cc86c53686328f1f7c5325c0c7cdf62fa043a7",
+    "source": "model",
+    "text": "`advanced_measurement_approach_ama` computes an operational risk capital charge under the Advanced Measurement Approach, which Basel III/IV has retired in favour of the standardised measurement approach (`basel_standardised_measurement_sma`). pyvar keeps it for economic-capital work, internal scenario analysis and jurisdictions on earlier timelines. From your `annual_event_counts` and `loss_amounts`, it fits frequency and severity models and runs a Monte Carlo simulation to get OpVaR and expected loss. If `expected_loss_covered` is true, capital is OpVaR minus EL (floored at zero); otherwise it is the full OpVaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "87e022abbb6d85c788d19a04fdcea4299ee73f576f0de6f5b00f980e1f6999e8",
+    "source": "model",
+    "text": "`advanced_measurement_approach_ama` (Advanced Measurement Approach) fits a fairly narrow set of situations:\n\n- You need an economic-capital or internal scenario-analysis view of operational risk built from your own loss history (`annual_event_counts` and `loss_amounts`).\n- You work in a jurisdiction still on earlier timelines, where the AMA and its LDA internal model remain relevant.\n- You want to see how capital changes depending on whether expected loss is demonstrably covered in provisions, using `expected_loss_covered`.\n- Don't use it for Basel III/IV regulatory capital. The AMA is retired there and superseded by `basel_standardised_measurement_sma`.\n\nIf you only want the end-to-end Loss Distribution Approach capital estimate, `loss_distribution_approach_lda` is listed as doing that.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

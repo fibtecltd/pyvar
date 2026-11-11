@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "swap_rate_curve": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "38f77130ec6b58021d91ef64ecf8a80760d08e0cace3ff470a2b424bdff54129",
+      "source": "model",
+      "text": "`nelson_siegel_svensson_curve` fits a smooth six-parameter curve to yields you have observed, so it answers \"what curve shape best describes these market yields across maturities?\" You give it `maturities` and `yields` (plus optional starting values `tau1_init` and `tau2_init`), and it adds a second curvature hump to Nelson-Siegel for more complex term structures.\n\n`swap_rate_curve` goes the other way: it starts from a discount-factor curve and answers \"what fixed rate makes a par swap worth zero at each tenor?\" Its inputs are `discount_factors`, `maturities` and an optional `frequency` for fixed-leg payments per year.\n\nIn short, one fits a curve to observed yields, and the other derives par swap rates from discount factors you already have.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d8d2356f72c67c723a21509b4b4e1a784ba4f3cbc4056183d9d5a73abc680575",
+    "source": "model",
+    "text": "`nelson_siegel_svensson_curve` fits the six-parameter Nelson-Siegel-Svensson yield curve to observed market data. You give it `maturities` (in years, above zero) and the matching `yields` as decimals, and it fits a smooth curve through them. It extends the Nelson-Siegel model with a second curvature hump (`beta3`, `tau2`), which helps fit longer or more complex term structures. You can optionally set starting values for the decay parameters with `tau1_init` and `tau2_init`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a41a0e96b0112c7f14571f1ec53f79b6bd8e2c31a88f5ba7e37a29103b734a62",
+    "source": "model",
+    "text": "`nelson_siegel_svensson_curve` fits a six-parameter curve to observed yields, so it suits these situations:\n\n- You have observed maturities (in years) and yields (as decimals) and want a smooth curve through them.\n- The term structure is longer or more complex, where an extra curvature hump (`beta3`, `tau2`) can give a closer fit than basic Nelson-Siegel.\n- You want to steer the fit by setting starting points for the decay parameters with `tau1_init` and `tau2_init`.\n- You're comfortable with a fitted parametric curve rather than one built to pass exactly through quoted instruments.\n- For a simpler curve shape, `nelson_siegel_curve_fit` fits a Nelson-Siegel curve to observed yields.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

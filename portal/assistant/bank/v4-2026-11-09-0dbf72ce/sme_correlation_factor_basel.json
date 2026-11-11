@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "basel_standardised_approach_rwa": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1aeb7dde1874f82aa472d5e27b6bd9b5b93c31645b441f0286c65c5823f2e2a2",
+      "source": "model",
+      "text": "`sme_correlation_factor_basel` answers \"how correlated should a small or mid-sized corporate borrower's assets be treated as being?\" It takes a `pd` and `annual_sales_millions` and applies a firm-size reduction to the corporate asset correlation, which lowers the capital charge for smaller, more idiosyncratic borrowers. `basel_standardised_approach_rwa` answers a different question: \"how much risk-weighted assets does this exposure carry?\" It takes `ead`, a supervisory `risk_weight` and optional `credit_risk_mitigation`, nets the mitigation from the exposure, and multiplies by the risk weight. The first is one input to the internal-ratings-based (IRB) calculation, driven by default probability and firm size. The second is the simpler standardised approach, where the risk weight comes from the rating or exposure class rather than from a modelled `pd`.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c6484b6eefc78c7dcf771b9ea01a4eec96c9cdc7f02d52471a9fb6f235401650",
+    "source": "model",
+    "text": "`sme_correlation_factor_basel` (SME Correlation Factor Basel) applies the Basel firm-size adjustment to asset correlation for SME corporate exposures, as set out in CRE31.10. It starts from the corporate asset correlation, which depends on `pd`, and subtracts a size term based on `annual_sales_millions`. Sales are clamped to the €5m-€50m range, so smaller borrowers get a larger reduction. The effect is a lower capital charge for smaller, more idiosyncratic borrowers. You supply `pd` (in (0, 1]) and annual sales in € millions, and pyvar does the calculation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f1384309219a26703674b45ff2d74294b8bbf543909da11664d6318e9261437f",
+    "source": "model",
+    "text": "`sme_correlation_factor_basel` fits when you need the Basel asset correlation for an SME corporate exposure, adjusted for firm size.\n\n- Use it when the borrower is a corporate with annual sales between €5m and €50m, since the size adjustment is defined for that range (sales outside it are clamped to the ends).\n- Use it when you want to see how a smaller, more idiosyncratic borrower gets a lower correlation than a standard corporate, which lowers the capital charge.\n- Use it when you have a `pd` in (0, 1] and the borrower's `annual_sales_millions` in € millions.\n- Use it as the correlation step when working through CRE31.10.\n\nIf you need the maturity adjustment in the IRB formula, `maturity_adjustment_basel_irb` is listed as the Basel IRB maturity adjustment (CRE31.6).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

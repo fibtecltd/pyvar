@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ifrs_9_scenario_weighted_ecl": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5c3bc23abb6e4110c70805664389ee945c2edeaaefcc830d0add4b2363ea2627",
+      "source": "model",
+      "text": "`ifrs_9_lifetime_ecl_stage_2_3` answers the question \"how much loss do we expect over the whole remaining life of one exposure?\" It takes per-period `marginal_pd`, `lgd`, `ead` and `discount_factors`, multiplies them period by period, and sums the discounted results. The `stage` input (2 or 3) is only reported as metadata. `ifrs_9_scenario_weighted_ecl` answers a different question: \"how do I combine several ECL figures into one probability-weighted amount?\" It takes `scenario_ecls` and `scenario_weights`, normalises the weights, and returns their weighted sum. The first function builds a single ECL from the credit inputs across time, while the second blends ECLs that already exist across forward-looking scenarios such as base, upside and downside. They can work together: you could compute a lifetime ECL under each scenario, then pass those results to the scenario-weighted function.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cb83010b4a31373f44e2774b1df32cd73c8727885053fcf4f29d55f4ec81b4ec",
+    "source": "model",
+    "text": "`ifrs_9_lifetime_ecl_stage_2_3` calculates IFRS 9 lifetime Expected Credit Loss for Stage 2 and Stage 3 exposures. It sums discounted expected loss across all future periods: for each period it multiplies the marginal (per-period) default probability by `lgd`, `ead` and the discount factor. You supply `marginal_pd`, `lgd`, `ead` and `discount_factors` as per-period vectors. The optional `stage` parameter (2 or 3) is reported as metadata. For Stage 3, you pass a `marginal_pd` vector that reflects the already-defaulted position, with PD effectively 1 in the first period.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e5402c35124a6f511101c29fd8e96944a64184446f152775bf39703e53340386",
+    "source": "model",
+    "text": "`ifrs_9_lifetime_ecl_stage_2_3` fits when you need lifetime expected credit loss for exposures in IFRS 9 Stage 2 or Stage 3.\n\n- You already have per-period marginal default probabilities, LGD, EAD and discount factors, and want them combined into one discounted lifetime figure.\n- The exposure is Stage 2 or Stage 3, so loss is measured across all future periods rather than just the first year.\n- The exposure is already in default (Stage 3): you pass a marginal-PD vector that reflects this, with PD effectively 1 in the first period.\n- You want to record the reported stage as metadata via `stage`.\n- For Stage 1 (12-month) exposures, use `ifrs_9_12_month_ecl_stage_1`, which pyvar lists as the Stage 1 ECL function.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

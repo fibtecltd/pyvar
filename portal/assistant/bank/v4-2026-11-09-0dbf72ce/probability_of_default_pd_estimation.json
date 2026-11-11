@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_loss_el_computation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "4a847f2712406a0c3bd47d7a7d35385d75a0d5e8b6e8c0e1adeeda8f22b15e9e",
+      "source": "model",
+      "text": "`probability_of_default_pd_estimation` answers \"how likely is a borrower to default?\" It takes observed defaults and obligor counts per rating cohort (`n_defaults`, `n_obligors`), computes the pooled default frequency, and applies a regulatory floor (`floor`) to that estimate. `expected_loss_el_computation` answers \"how much do I expect to lose on this exposure?\" It takes a PD, a loss given default (`lgd`) and an exposure at default (`ead`), and multiplies them together as PD · LGD · EAD to give a currency amount. The two fit together: the PD from the first function can be the `pd` input to the second. The first estimates a probability from data, while the second combines that probability with loss severity and exposure size.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "57cfb967f7ad1f9809465e8da13890d296a62f2dbd5c710af1108e28e08aad95",
+    "source": "model",
+    "text": "`probability_of_default_pd_estimation` estimates a probability of default from observed default cohorts using the cohort (frequency) method. You give it `n_defaults`, the defaults seen in each rating cohort, and `n_obligors`, the obligors at risk at the start of each cohort. It computes the default frequency for each cohort, then an obligor-weighted pooled PD: total defaults divided by total obligors. The pooled figure is floored at `floor` (default 0.0003, the 3 bps regulatory floor for non-defaulted exposures under CRR Art. 160/163) and capped at 1.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "04f9eab5e701411842b55908108065f263a2b9ee87073fd732995778187990ca",
+    "source": "model",
+    "text": "`probability_of_default_pd_estimation` (Probability Of Default PD Estimation) fits when you want a PD from observed default history rather than a model.\n\n- You have default counts and obligor counts for each rating cohort (`n_defaults` and `n_obligors`) and want one pooled, obligor-weighted PD.\n- You want the per-cohort default frequencies alongside that pooled figure.\n- You need the regulatory floor applied to a non-defaulted exposure's PD, as in CRR Art. 160/163. You can change it with `floor` if your setting calls for a different value.\n- Your question is \"how often did obligors at risk default?\" in a cohort or frequency sense.\n\nIf you need a different credit-risk input, `loss_given_default_lgd_model` covers workout LGD as one minus the recovery rate, net of workout costs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

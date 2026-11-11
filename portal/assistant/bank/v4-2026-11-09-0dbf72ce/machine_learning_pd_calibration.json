@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "through_the_cycle_pd_adjustment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "180328fe3ff6b75f3ddb172e8b4c4418355a1911958e4ebf73e4c73b2e4e7a8c",
+      "source": "model",
+      "text": "`machine_learning_pd_calibration` answers the question \"how do I turn raw ML model scores into real probabilities of default?\" It takes `raw_scores` and observed `defaults`, then fits a Platt-scaling map, `PD = sigmoid(a * score + b)`, using a Newton-Raphson logistic solver. `through_the_cycle_pd_adjustment` answers a different question: \"how do I convert a point-in-time PD into a through-the-cycle PD that dampens the macro cycle?\" It needs no model scores or default history. Instead it takes `pit_pd` and `long_run_average_pd` and blends them in the probit domain, with `cyclicality` setting how far the result moves toward the long-run anchor. In short, the first fits a mapping from data to correct a model's output, while the second rescales an existing PD along the cycle.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "aedf323a159fa17876a3e31c94e6dfdb8c6b12ca0a842dd3828fe602f19092ae",
+    "source": "model",
+    "text": "`machine_learning_pd_calibration` (Machine Learning PD Calibration) turns raw, uncalibrated scores from classifiers such as gradient boosting or random forests into probabilities of default. It uses Platt scaling, fitting a one-dimensional logistic map, PD = sigmoid(a * score + b), so the output behaves like a true probability. You supply `raw_scores` and the binary `defaults` indicator, and you can tune `max_iter` and `tol` for the fit. The slope and intercept come from the same Newton-Raphson logistic solver used by `logistic_regression_pd_model`, applied to the single score feature. No scikit-learn or other ML library is involved.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fd6e6a87f75ef997de731236345251a6f87de4f1e8156f836d6719c9520660a2",
+    "source": "model",
+    "text": "Use Machine Learning PD Calibration (`machine_learning_pd_calibration`) when you have raw model scores and need them turned into usable default probabilities:\n\n- Your classifier, such as gradient boosting or a random forest, outputs uncalibrated scores that aren't true probabilities.\n- You have historical scores (`raw_scores`) paired with a binary default indicator (`defaults`) to fit the mapping on.\n- You want a simple one-dimensional logistic (Platt scaling) map, `PD = sigmoid(a * score + b)`, rather than a heavier method.\n- You prefer a fit with no machine learning library involved, since it runs on pyvar's own Newton-Raphson logistic solver, tunable with `max_iter` and `tol`.\n\nIf instead you want to model defaults from several explanatory variables, `logistic_regression_pd_model` is listed as fitting a logistic-regression PD model by Newton-Raphson (IRLS) MLE.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

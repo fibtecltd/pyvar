@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "correlation_matrix_historical": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "9c62a5e51f6e46644f24786de363b43bd6029d43e2a8cf3c790cafceb445d503",
+      "source": "model",
+      "text": "`dcc_garch_dynamic_correlation` answers \"what is the correlation between my assets right now, given recent shocks?\", while `correlation_matrix_historical` answers \"what was the average correlation over the whole sample?\". The historical function takes only `returns_matrix` and returns one Pearson correlation matrix, treating every observation the same. The DCC function standardises each series, then updates a quasi-correlation step by step using `a` (the news coefficient) and `b` (the persistence coefficient, with `a + b < 1`). It returns the terminal matrix R_T. If you set `a = b = 0`, it collapses to the constant unconditional correlation, which is the fixed, whole-sample view. Choose the historical one for a stable long-run picture, and the DCC one when you want correlation that evolves over time.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b103c1702dd3c5ab5f1e71f8efb65450637b5af3af342d5ca3626de56864cd0d",
+    "source": "model",
+    "text": "`dcc_garch_dynamic_correlation` (DCC GARCH Dynamic Correlation) estimates how correlations between assets change over time, following Engle's 2002 dynamic conditional correlation model, and returns the terminal correlation matrix R_T. You give it `returns_matrix`, a T-by-N matrix of observations on N assets. It standardises each series, then updates a quasi-correlation matrix using a news coefficient `a` (default 0.02) and a persistence coefficient `b` (default 0.95), with `a + b` required to be below 1. The result is normalised into a proper correlation matrix. Setting `a` and `b` to zero collapses it to the constant unconditional correlation.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f5b0c5e39439615dc17a665ebab9194e8f72436e3da2736fb1ac78cf1fe2032e",
+    "source": "model",
+    "text": "`dcc_garch_dynamic_correlation` (DCC GARCH Dynamic Correlation) fits when you want correlations between assets to change over time rather than stay fixed.\n\n- You have a `(T, N)` matrix of returns on several assets and want the latest correlation matrix, R_T, as of the end of the sample.\n- You expect correlations to react to recent shocks (`a`, the news coefficient) and to persist from period to period (`b`, the persistence coefficient, with `a` + `b` below 1).\n- You want a comparison against a constant correlation: setting `a` and `b` to 0 collapses it to the unconditional correlation.\n- Typical uses are market risk work such as portfolio risk or diversification, where today's correlations matter more than a long-run average.\n\nIf you only need a single, fixed correlation estimate, `correlation_matrix_historical` is listed as the historical (Pearson) correlation matrix of asset returns.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

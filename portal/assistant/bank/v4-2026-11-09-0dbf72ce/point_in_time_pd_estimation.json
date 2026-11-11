@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "through_the_cycle_pd_adjustment": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2e6acffb265f9cbbef70b32d27bab76118fd657442cf49f222b9e3e6a10394a8",
+      "source": "model",
+      "text": "`point_in_time_pd_estimation` answers \"what is the PD under current conditions?\" It takes a through-the-cycle PD (`ttc_pd`) and shifts it in the probit domain by a macro z-score (`macro_index`), scaled by `sensitivity`. Adverse conditions (negative `macro_index`) raise the PD, and good conditions lower it.\n\n`through_the_cycle_pd_adjustment` goes the other way and answers \"what is the cycle-neutral PD?\" It takes a point-in-time PD (`pit_pd`) and blends it toward a long-run anchor (`long_run_average_pd`). The weight is `cyclicality`, where 0 is pure point-in-time and 1 is pure through-the-cycle. That damping of the macro cycle is what makes TTC PDs useful for stable capital figures.\n\nBoth work in the probit domain, so results remain valid probabilities. The main difference is the input: the first needs a macro index, and the second needs a long-run average PD.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4745349044f230d11493e71480e0d67cbfbe5a24fc969c37e7048f583a73bacf",
+    "source": "model",
+    "text": "`point_in_time_pd_estimation` converts a through-the-cycle (TTC) probability of default into a point-in-time (PIT) one, using a standardised macroeconomic index. It takes the probit of `ttc_pd`, subtracts `sensitivity` times `macro_index`, and maps the result back through the normal CDF. A positive `macro_index` means good conditions and lowers the PD, while a negative one means adverse conditions and raises it. `sensitivity` sets how strongly the score loads on the macro factor and defaults to 1.0. It is the inverse of the TTC transform.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "915beb67d3f8f2c5f6f9b0cad556b32ccda09978bcd4c19edb99ad6b07a833d5",
+    "source": "model",
+    "text": "Use Point In Time PD Estimation (`point_in_time_pd_estimation`) when you want a PD that reflects current economic conditions rather than a long-run average.\n\n- You already have a through-the-cycle PD (`ttc_pd`) and want to adjust it for where the economy stands today.\n- You have a standardised macro index (`macro_index`, a z-score where positive means good conditions) to drive the shift, so adverse conditions raise the PD and good ones lower it.\n- You want to control how strongly the PD responds to the macro factor, using `sensitivity`, which is 1.0 by default.\n- You prefer a simple probit-domain shift over fitting a full model.\n\nIf you need to go the other way, from a point-in-time PD to a through-the-cycle PD, `through_the_cycle_pd_adjustment` is listed as converting a point-in-time PD to a through-the-cycle PD.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

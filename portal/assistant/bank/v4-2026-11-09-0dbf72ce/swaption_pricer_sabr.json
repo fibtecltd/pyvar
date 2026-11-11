@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "a8b29e3c6d8afeefd5cdabb0a931767f1a88a75958a9732c64946c6ddcadf245",
+      "source": "model",
+      "text": "`swaption_pricer_sabr` prices an option on an interest-rate swap, asking what a payer or receiver swaption struck at a given swap rate is worth. It gets its volatility from a SABR smile (via `alpha`, `beta`, `rho`, `nu`) and then applies the Black swaption formula using `forward_swap_rate`, `strike`, `expiry` and `annuity`. `total_return_swap_trs` values a total-return swap leg, asking what the exchange of an asset's period return against a financing rate is worth. It takes `asset_return`, `financing_rate`, `accrual` and `discount_factor`, and uses no volatility model. The first is an optional payoff, so the strike and volatility matter. The second is a linear swap payoff of `notional` times (asset return minus financing rate times accrual), discounted. `receive_total_return` sets which side you're on.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c13885cb2a5cb91482bd69f84cc6300e66572e6c505d5443540d193716dcdff3",
+    "source": "model",
+    "text": "`swaption_pricer_sabr` (Swaption Pricer SABR) prices a swaption using a SABR-implied Black volatility. It first computes the SABR lognormal vol for your forward swap rate, strike and expiry using Hagan's expansion, driven by the SABR inputs `alpha`, `beta`, `rho` and `nu`. That vol then goes into the Black swaption formula, and the price is scaled by `notional` and `annuity`. You can choose `\"payer\"` or `\"receiver\"` with `option_type`, which defaults to payer. The vol step is the same one described in pyvar's `sabr_volatility_model`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "9e2211d7c4d53c846b381b1721a3e06fd3c79ea414dfc35e10db4ba50d113791",
+    "source": "model",
+    "text": "Use Swaption Pricer SABR (`swaption_pricer_sabr`) when you want a swaption price that reflects the volatility smile rather than one flat vol:\n\n- You have SABR parameters (`alpha`, `beta`, `rho`, `nu`) and want the vol to depend on the `strike` relative to the `forward_swap_rate` and the `expiry`.\n- You are pricing a payer or receiver swaption (set with `option_type`) and can supply the `notional` and the `annuity`.\n- You want Hagan's expansion for the lognormal vol fed into the Black swaption formula, in one step.\n- You are comparing prices across strikes and want each one to use its own SABR-implied vol.\n\nIf you only have a single flat vol and no SABR calibration, `swaption_pricer_black` is listed as pricing a European swaption under the Black model.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

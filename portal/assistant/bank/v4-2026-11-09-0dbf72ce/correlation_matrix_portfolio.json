@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_portfolio_simulation": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "d28babcc836b715213b6dce4c5b9f6a2178928f376d644bf0b81ec9cdb32c685",
+      "source": "model",
+      "text": "`correlation_matrix_portfolio` answers the question \"how closely do my assets move together?\" You give it a `returns_matrix` of historical return series, and it returns the correlation matrix plus the average pairwise correlation across the assets. `monte_carlo_portfolio_simulation` answers a different question: \"what could my portfolio's profit and loss look like at the end of a horizon, and how bad could losses get?\" It takes `weights`, `mean_returns` and a `cov_matrix`, draws correlated random returns, compounds them over the `horizon`, and reports the simulated VaR and ES of terminal P&L at your `confidence_level`. In short, the first describes the dependence structure in observed data, while the second turns assumptions about means and covariances into a simulated loss distribution. The first needs no weights or portfolio value, whereas the second works from your portfolio's positions.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "88f8439ba97bedfdb4dabc122de5ba033e6df1aed5641cbe0aa89b10bc6ff63f",
+    "source": "model",
+    "text": "`correlation_matrix_portfolio` (Correlation Matrix Portfolio) takes a `returns_matrix`, an array with one row per observation and one column per asset, and computes the correlation matrix of those asset return series. Each entry is the pairwise correlation between two assets' returns. It also reports the average pairwise correlation, which is the mean of all the off-diagonal entries. That single figure gives a quick read on how closely the assets move together, which matters for judging diversification in a portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "52267d7ff92db27a0587e36fa3e74c44ac8b1ae85b5b5806985d8880974c66fc",
+    "source": "model",
+    "text": "`correlation_matrix_portfolio` fits when you want to see how the assets in a portfolio move together:\n\n- You have a return series for each asset and want the full pairwise correlation matrix in one step.\n- You want a single summary of how interconnected the portfolio is, using the average pairwise correlation (`ρ̄`).\n- You're checking how much real diversification a set of holdings offers, since lower correlations generally mean more diversification benefit.\n- You want a correlation view as an input to wider portfolio risk work.\n\nYou supply `returns_matrix`, with one row per observation and one column per asset.\n\n- If you want a diversification measure that compares weighted average volatility with portfolio volatility, `diversification_ratio` is listed as doing exactly that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

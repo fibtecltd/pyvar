@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "contagion_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "5d4b35b1c0488f1f9d68dcaa65ce3c071b19fb424b247133d1d98452da883947",
+      "source": "model",
+      "text": "`sensitivity_stress_profile` answers \"how does my P&L change as one risk factor moves across a range of shocks?\" It takes `exposures`, a `factor_index` and a `shock_grid`, holds all other factors flat, and returns the P&L at each shock. That makes it the building block of a stress ladder.\n\n`contagion_stress_scenario` answers \"if an initial shock hits some nodes or assets, how does it spread through a network?\" It uses a `contagion_matrix` to pass the shock on to connected nodes over a chosen number of `rounds`, and returns the cumulative shock.\n\nIn short, the first looks at one factor and many shock sizes, with no spillover. The second starts from one shock and follows how it travels between connected nodes. The first reports P&L, while the second reports the cumulative shock per node.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "601d81d4957ca6039aa1065ab53082a95f360277f683040c6e36d0485fb11499",
+    "source": "model",
+    "text": "`sensitivity_stress_profile` (Sensitivity Stress Profile) runs a one-factor stress: it moves a single risk factor across a grid of shock values while holding all other factors flat. For each shock it returns the resulting P&L, which is the factor's currency exposure multiplied by the shock. You supply `exposures` (currency P&L per unit factor move), `factor_index` (which factor to stress), and `shock_grid` (the shock values to apply). The output is a P&L profile for that one factor, the building block of a stress \"ladder\".",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "00a4de983612b2187ea2e71bb193f562d1b6d47e3fd16da16ae3ea61f373dedc",
+    "source": "model",
+    "text": "`sensitivity_stress_profile` (Sensitivity Stress Profile) fits when you want to see how one risk factor alone drives your P&L.\n\n- You want a stress \"ladder\": P&L across a grid of shocks (`shock_grid`) to a single factor, with all other factors held flat.\n- You want to isolate one factor's impact, chosen by `factor_index`, using your `exposures` (currency P&L per unit factor move).\n- You need a simple, transparent building block, since the P&L at each shock is just that factor's exposure times the shock.\n- You want to compare how results scale as one factor moves from small to large shocks.\n\nFor several factors moving together, `hypothetical_multi_factor_scenario` gives P&L under a single hypothetical multi-factor shock.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

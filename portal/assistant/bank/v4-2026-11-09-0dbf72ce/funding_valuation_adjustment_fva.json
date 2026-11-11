@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "cva_sensitivity_cva_greeks": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "2062d6d6500eeccae81f762840b5fbc5f69513bb9b94031fb0524967b62f135f",
+      "source": "model",
+      "text": "`funding_valuation_adjustment_fva` answers \"what does it cost the bank to fund an uncollateralised exposure?\", while `cva_sensitivity_cva_greeks` answers \"how much does counterparty credit risk value (CVA) move when inputs change?\". FVA takes a `funding_spread` over risk-free and applies it to the expected exposure in each time bucket, discounted and optionally weighted by `survival_probability`. The output is a single adjustment for the cost of funding.\n\n`cva_sensitivity_cva_greeks` starts from the counterparty's `credit_spread` and `recovery_rate` and computes a base CVA. It then reports `cs01`, the change in CVA for a 1 bp parallel bump in the credit spread, and `exposure_delta`, the sensitivity to a uniform scaling of the exposure profile. Both functions use the same exposure, time and discount inputs, but FVA is driven by the bank's own funding spread and the Greeks function by the counterparty's credit spread.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d4308eb7057f161916bcba9909d3ac8c1573376a55de1e07a38e4bdf862268a5",
+    "source": "model",
+    "text": "`funding_valuation_adjustment_fva` (Funding Valuation Adjustment, FVA) computes the cost of funding uncollateralised exposure. It takes the expected positive exposure for each time bucket, discounts it, and weights it by the bank's funding spread over risk-free. Each bucket's contribution is also multiplied by the length of that interval, and the contributions are summed. You supply `expected_exposure`, `time_steps`, `discount_factors` and `funding_spread`. You can optionally supply `survival_probability` to condition on counterparty survival. If you leave it out, it defaults to 1 in every bucket, so no default conditioning is applied.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "54765c43d2b01b89880b1779877e10dcfd0ecad00c2dd36cd9df638c473044e5",
+    "source": "model",
+    "text": "`funding_valuation_adjustment_fva` (Funding Valuation Adjustment) fits when you want to price the cost of funding uncollateralised exposure.\n\n- You have an expected positive exposure profile (`expected_exposure`) by time bucket and want the present value of the funding-spread carry on it.\n- You have a bank funding spread over risk-free (`funding_spread`) and discount factors to apply.\n- You want the cost conditional on counterparty survival: pass `survival_probability`. If you leave it out, it defaults to all-ones, so no default conditioning is applied.\n- You need a funding adjustment as one component of a wider valuation-adjustment view.\n- For funding the cost of posted initial margin, use `margin_valuation_adjustment_mva`, listed as the funding cost of posted initial margin.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

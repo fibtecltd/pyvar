@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pillar_2a_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "811f6ca9d2e616c0dc547a6200156dea992ea9ca879edd10fa42c9027d62591a",
+      "source": "model",
+      "text": "`srep_capital_add_on` starts from a supervisory Pillar 2A add-on ratio and answers: what capital amount does that ratio imply, and what is the Total SREP Capital Requirement (TSCR) once Pillar 1 is added? You give it `pillar1_requirement`, `pillar2a_addon_ratio` and `risk_weighted_assets`, and it multiplies the ratio by risk-weighted assets, then adds Pillar 1.\n\n`pillar_2a_capital` works the other way round. It answers: what is Pillar 2A capital when I add up the individual risk charges, such as credit concentration, IRRBB, pension and operational? You pass `risk_addons` and `risk_weighted_assets`, and it sums the add-ons and expresses the total as a ratio of risk-weighted assets.\n\nIn short, one converts a ratio into an amount and a TSCR, while the other builds the amount from components and derives the ratio.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7a5637310714a6d4e8123c627c87c764478eb9e8ade25ff904cbbdb210d26b0e",
+    "source": "model",
+    "text": "`srep_capital_add_on` (SREP Capital Add On) converts a supervisory Pillar 2A add-on ratio into a capital amount and then into the Total SREP Capital Requirement (TSCR). It takes three inputs: `pillar1_requirement` (the Pillar 1 capital requirement in currency), `pillar2a_addon_ratio` (the add-on as a fraction of RWA), and `risk_weighted_assets` (total RWA). The Pillar 2A capital is the ratio multiplied by RWA, and the TSCR is that amount added to the Pillar 1 requirement. It sits in pyvar's Regulatory & Compliance domain.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "a6b1def2de8a8222dcb93346e0dde602e43abf7d2a7fc82814ec91aaee310057",
+    "source": "model",
+    "text": "`srep_capital_add_on` (SREP Capital Add On) fits when you need to turn a supervisory Pillar 2A add-on into a capital amount.\n\n- You already have the Pillar 2A add-on as a fraction of risk-weighted assets (`pillar2a_addon_ratio`) and want it as a currency figure.\n- You want the Total SREP Capital Requirement (TSCR), which adds the Pillar 2A amount to your Pillar 1 requirement (`pillar1_requirement`).\n- You have total risk-weighted assets (`risk_weighted_assets`) on hand and want a capital view built from them.\n- Your starting point is a single ratio, not a list of separate risk add-ons.\n\nIf Pillar 2A is instead built up from individual risk add-ons, `pillar_2a_capital` is listed as the sum of those add-ons.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

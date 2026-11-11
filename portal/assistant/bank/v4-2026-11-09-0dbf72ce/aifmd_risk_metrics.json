@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "solvency_ii_scr_credit_risk": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "aa5a31e8737ed5a342624734acc780f4d6785250af065d60e1a56553589cf6aa",
+      "source": "model",
+      "text": "`aifmd_risk_metrics` answers \"how leveraged is this fund relative to its NAV?\" It takes gross exposure, commitment exposure and NAV, and returns leverage under the gross and commitment methods. It also flags a fund as \"substantially leveraged\" when commitment leverage exceeds 3x NAV. `solvency_ii_scr_credit_risk` answers a different question: \"how much capital is needed for counterparty default risk on Type 1 exposures?\" It takes exposures, loss given default and default probabilities per counterparty, then applies the prescribed tiered multiplier to the loss distribution's standard deviation. The first is an AIFMD reporting measure for funds, while the second is a Solvency II capital charge.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "7cddb13a225869ded3185c8c7028183039633961c77f713265d4454cd20fb7d9",
+    "source": "model",
+    "text": "`aifmd_risk_metrics` (AIFMD Risk Metrics) computes the leverage figures used in AIFMD Annex IV reporting. From `gross_exposure`, `commitment_exposure` and `net_asset_value`, it returns leverage under the gross method and the commitment method, each as a multiple of NAV, following Delegated Regulation 231/2013 Art. 7-8. It also flags a fund as \"substantially leveraged\" when commitment leverage exceeds 3x NAV. That flag is a simple threshold check, not AIFMD's full leverage-calculation methodology. You can optionally pass `var_pct`, the fund's VaR as a fraction of NAV, for reporting.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "44333d17b41a63f4e4696ebdf5b62068c96fe5676f5569063149e0dba1ea003c",
+    "source": "model",
+    "text": "`aifmd_risk_metrics` (AIFMD Risk Metrics) fits when you need leverage figures for an AIFMD Annex IV report.\n\n- You have a fund's gross exposure, commitment exposure and NAV, and want leverage under both the gross method and the commitment method, each as a multiple of NAV.\n- You want a quick \"substantially leveraged\" flag, which pyvar sets when commitment leverage exceeds 3x NAV. This is a simple threshold check, not AIFMD's full leverage-calculation methodology.\n- You want to include the fund's VaR, given as a fraction of NAV, alongside the leverage figures for reporting (the `var_pct` input is optional).\n- For a different regulatory need, `ucits_kiid_risk_indicator` is listed as the UCITS KIID Synthetic Risk and Reward Indicator (SRRI), 1-7.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "80b2ae4861fa333a73aa0382454ada4eecef367ccc930ad58e263a151bd165d8",
+      "source": "model",
+      "text": "`conditional_var_es` answers \"how large is the tail loss for my whole portfolio?\" You give it one series of historical portfolio `returns`, a `portfolio_value` and a `confidence_level`, and it gives the mean loss beyond the VaR threshold, which is always at least as large as VaR. `expected_shortfall_contribution` answers \"which assets make up that tail loss?\" It takes a matrix of per-asset returns (`asset_returns`) plus `weights`, finds the scenarios where the portfolio breaches VaR, and averages each asset's loss across exactly those scenarios. Those per-asset contributions add up to the total ES, so it is an allocation of the figure. Use the first for the portfolio-level number and the second to see where it comes from. Both default to a `confidence_level` of 0.975, the FRTB IMA setting.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2b5e5003063d8327010ab788334cb3a5dd54d2e6d065f2f11e558023e0481da1",
+    "source": "model",
+    "text": "`conditional_var_es` (Conditional VaR ES) computes Expected Shortfall from a series of historical portfolio returns. It turns the returns into losses, finds the VaR cutoff at your chosen `confidence_level`, and averages the losses at or beyond that cutoff. It then scales the result by `portfolio_value` to give an absolute figure in base currency. The default `confidence_level` is 0.975, the level used for the FRTB IMA capital metric, and ES is always at least as large as VaR.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "d06314d2909cff0e8beab776cab4788f8533565bacb18113033bad8339c5f720",
+    "source": "model",
+    "text": "`conditional_var_es` (Conditional VaR ES) fits when you have a history of portfolio returns and want a tail-loss figure from them.\n\n- You want Expected Shortfall, the mean loss beyond the VaR threshold, rather than VaR alone. It is always at least as large as VaR.\n- You are working toward the FRTB IMA capital metric, which is why `confidence_level` defaults to 0.975.\n- You have a 1-D series of historical returns (`returns`) and a current `portfolio_value`, and want the result in base currency terms.\n- You want to set your own tail level; `confidence_level` accepts values from 0.90 to 0.9999.\n- If you need to see ES at several confidence levels in one go, `es_at_multiple_confidence_levels` is listed as evaluating Expected Shortfall at several confidence levels at once.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

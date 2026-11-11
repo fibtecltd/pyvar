@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "maximum_sharpe_ratio_portfolio": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "689842b5d19b274432a27b269e2cba732abccbd3a5654b5aae848d7bc168286d",
+      "source": "model",
+      "text": "`minimum_variance_portfolio` asks \"which weights give the lowest possible portfolio variance?\", while `maximum_sharpe_ratio_portfolio` asks \"which weights give the best risk-adjusted return?\" The first needs only `cov_matrix`, because it minimises `w'Σw` with weights summing to 1 and ignores expected returns. The second also requires `mean_returns`, and it uses `risk_free` to maximise the annualised Sharpe ratio. In `minimum_variance_portfolio`, `mean_returns` and `risk_free` are optional and only used to report a Sharpe ratio, so they don't change the weights. Both functions bound weights to [0, 1] unless `allow_short` is set to true.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "2d14aff142c469ad549842f64d937cb5a01068a43010e08b5559179d66354036",
+    "source": "model",
+    "text": "`minimum_variance_portfolio` (Minimum Variance Portfolio) finds the global minimum-variance portfolio: the set of weights that minimises portfolio variance `w'Σw` given your `cov_matrix`, with weights summing to 1. If you set `allow_short` to true, it uses the closed-form solution `Σ⁻¹1 / (1'Σ⁻¹1)`. Otherwise, weights are bounded between 0 and 1 and it solves numerically with SLSQP. You can also pass `mean_returns`, plus `risk_free` and `periods_per_year`, to have a Sharpe ratio reported alongside the weights.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b76c204cd2ec4641e68f6f97d8ffd6ab5214eaa0c0f48b78ec4d1adf579b5105",
+    "source": "model",
+    "text": "`minimum_variance_portfolio` (Minimum Variance Portfolio) fits when your goal is the lowest-risk mix of assets, not the highest return.\n\n- You want the global minimum-variance portfolio: weights that minimise portfolio variance and sum to 1, using only a covariance matrix (`cov_matrix`) and no return forecasts.\n- You distrust expected-return estimates and prefer to rely on risk inputs alone. `mean_returns` is optional and only used to report a Sharpe ratio.\n- You need either a long-only result (the default, with weights bounded between 0 and 1) or one that permits shorting via `allow_short`, which uses a closed-form solution.\n- You want a low-risk baseline to compare other allocation approaches against.\n- If you instead want the tangency portfolio, `maximum_sharpe_ratio_portfolio` is listed as the maximum Sharpe ratio (tangency) portfolio.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

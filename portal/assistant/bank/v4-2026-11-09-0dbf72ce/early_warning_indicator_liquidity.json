@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "ilaap_internal_liquidity_metric": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "e7964607c950e95706eb03d4d9bd85d66090b6919470c842be5228d1eb9cd06c",
+      "source": "model",
+      "text": "`early_warning_indicator_liquidity` asks whether any of your liquidity warning signals are flashing. You give it current values and thresholds for each indicator, plus an optional direction for each (`higher_breach` or `lower_breach`, defaulting to `lower_breach`). It tests each one and rolls the triggers up into normal (0 triggers), watch (1-2) or alert (3 or more).\n\n`ilaap_internal_liquidity_metric` asks whether the institution is internally adequate on liquidity. It takes `counterbalancing_capacity`, `stressed_net_outflow` and `survival_days`, with an optional `minimum_survival_days`. It checks that the coverage ratio (capacity divided by stressed outflow) is at least 1 and that survival days meet the internal minimum. Both must hold.\n\nIn short, the first is a multi-indicator monitoring dashboard, and the second is a pass/fail adequacy test on coverage and survival horizon.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "99eeceeea06174dc3ae9ce93e468072c0e0ac5fea0487b1f8e6bd59c537c192e",
+    "source": "model",
+    "text": "`early_warning_indicator_liquidity` runs a liquidity early-warning dashboard: it checks each indicator you supply against its own threshold. You pass `indicators` (name to current value) and `thresholds` (name to threshold), and optionally `directions` to say whether a breach is `\"higher_breach\"` (value above threshold, like a funding spread) or `\"lower_breach\"` (value below threshold, like LCR). If you omit `directions`, every indicator defaults to `\"lower_breach\"`. The function then counts the triggered indicators and gives an aggregate signal: normal for 0 triggers, watch for 1-2, and alert for 3 or more.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "195cf51bfd3c0d9ae34a5e92ce473f379e19ed72987f4877a4a5c1319ab2e4ed",
+    "source": "model",
+    "text": "`early_warning_indicator_liquidity` fits when you want a quick dashboard view of several liquidity indicators against their limits.\n\n- You track a set of indicators, such as a funding spread or LCR, and want each one tested against its own threshold.\n- Your indicators breach in different directions: use `directions` to mark each as `\"higher_breach\"` or `\"lower_breach\"` (it defaults to `\"lower_breach\"` for all).\n- You want one aggregate signal: normal (0 triggers), watch (1-2) or alert (3 or more).\n- You want a simple logical breach check, not an arithmetic risk measure.\n- For mapping a single liquidity metric to a red/amber/green zone, `liquidity_risk_appetite_threshold` is listed as doing that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

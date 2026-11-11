@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "credit_default_swap_var": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "fa39638a03aee697a284e4a56877eec9f19c56dd835252f0497e174d5ee1c167",
+      "source": "model",
+      "text": "`cds_spread_to_pd_conversion` answers \"how likely is the reference entity to default by maturity, given the CDS spread?\" It takes `cds_spread`, `maturity` and an optional `recovery_rate`, then uses the credit-triangle hazard rate to return a cumulative default probability, along with the annualised marginal default rate. `credit_default_swap_var` answers a different question: \"how much could a single-name CDS position lose from spread moves at a chosen confidence level?\" It takes `notional`, `risky_annuity`, `spread_volatility`, `confidence_level` and `horizon_days`, and gives a parametric VaR based on the position's spread sensitivity. In short, the first turns a market spread into a default-probability view, while the second turns spread volatility into a potential mark-to-market loss figure. The two are not interchangeable, though you could use them side by side to look at the same credit name from both angles.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "704a24fdfbf1ef863372459f0947a78b076eca55a1e051ecdf1b937fbf141b30",
+    "source": "model",
+    "text": "`cds_spread_to_pd_conversion` (CDS Spread To PD Conversion) uses the credit-triangle approximation to turn a CDS par spread into a default probability. It first computes a hazard rate by dividing `cds_spread` by one minus `recovery_rate`. It then gives cumulative default probability to the horizon `maturity` as 1 − exp(−hazard × maturity). It also returns the annualised marginal default rate. You supply the spread as a decimal and the horizon in years, and `recovery_rate` is optional, defaulting to 0.4.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "85f6332b3310c9c862b4ca98b5b7a566be0343a1de04ce7ab02dc9d2eb176276",
+    "source": "model",
+    "text": "`cds_spread_to_pd_conversion` (CDS Spread To PD Conversion) fits when you want a quick default probability from a quoted CDS spread.\n\n- You have a CDS par spread and want the cumulative default probability to a chosen horizon, set with `maturity`.\n- You want a simple credit-triangle view with a single constant hazard rate, where `recovery_rate` is the only extra assumption (it defaults to 0.4).\n- You also want the annualised marginal default rate alongside the cumulative figure.\n- If you have spreads at several maturities and want a piecewise-constant hazard / survival curve instead of one flat rate, `credit_spread_curve_bootstrap` bootstraps one from CDS spreads.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

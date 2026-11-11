@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "traffic_light_backtesting": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "706738024a6777c39daafa5b2f8ce558902da8ad954bdd71bded526cd92a0403",
+      "source": "model",
+      "text": "`christoffersen_independence_test` asks whether VaR breaches are spread out or bunch together in time. It takes a single binary `breaches` sequence (1 = breach, 0 = no breach) and uses a likelihood-ratio test on a first-order Markov model, checked against a chi-squared critical value. `traffic_light_backtesting` asks a different question: how many breaches occurred over the Basel 250-day window, and which zone (green, yellow or red) does that count fall into? It takes `actual_returns` and `var_estimates`, counts the breaches itself, and assigns the zone using the Basel Committee's boundaries. So the traffic-light function looks at how many breaches there were, while the Christoffersen test looks at their timing and ignores the total. A model could land in the green zone and still show clustered breaches, or the reverse. If you want both views in one step, `combined_backtesting` pairs the Christoffersen test with the Kupiec test.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e120e581e88439afb5987604290ffe55291018040d6ee2aefb9b4159483116e3",
+    "source": "model",
+    "text": "The Christoffersen Independence Test (`christoffersen_independence_test`) checks whether VaR breaches are serially independent, meaning they don't cluster together in time. It is a likelihood-ratio test built on a first-order Markov transition model, and it is compared against a chi-squared distribution with 1 degree of freedom at the 95% critical value. You pass in a single argument, `breaches`, a binary sequence where 1 is a breach and 0 is no breach. pyvar derives the transition counts (n00, n01, n10, n11) from that sequence itself, so you don't supply them separately.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "cafaaa5ca15565c121a2c7f856b9826136183c00421811a0078a37ea452f37a7",
+    "source": "model",
+    "text": "Use the Christoffersen Independence Test (`christoffersen_independence_test`) when you want to check whether VaR breaches cluster in time rather than arrive independently.\n\n- You already have a binary sequence of breaches (1 = breach, 0 = no breach) and want to know whether one breach makes another more likely.\n- You care about serial dependence, not just how many breaches occurred. The test uses a first-order Markov transition model, so it looks at day-to-day patterns.\n- You want a likelihood-ratio test judged against a chi-squared critical value with 1 degree of freedom at 95%.\n- If you also want to test the overall breach rate alongside clustering, `combined_backtesting` is listed as a combined (conditional coverage) backtest using Kupiec plus Christoffersen.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

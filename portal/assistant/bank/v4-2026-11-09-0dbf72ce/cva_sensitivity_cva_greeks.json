@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "counterparty_credit_risk_ccr_exposure": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "1db79c5e54479e3043271b318da6a94a8f11995602b8183c073d04005488e497",
+      "source": "model",
+      "text": "`cva_sensitivity_cva_greeks` asks how much the credit valuation adjustment (CVA) moves when inputs change. It returns `cs01`, the CVA change for a parallel shift in the credit spread (1 bp by default via `spread_bump`), and `exposure_delta`, which is 0.01 times the base CVA. It takes an expected exposure profile (`expected_exposure`), `time_steps`, `discount_factors`, `credit_spread` and an optional `recovery_rate`.\n\n`counterparty_credit_risk_ccr_exposure` asks how large the exposure to a counterparty is, now and potentially in future. It adds the current exposure, `max(MtM - collateral, 0)`, to an `add_on` that covers potential future exposure. It takes `mark_to_market`, `add_on` and an optional `collateral`.\n\nIn short, the first measures how sensitive a pricing adjustment is, while the second gives a single exposure figure net of collateral.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "36f5d1d281da65c492327a5fd7ff6c4278cd07cacdad642d764ac286fbcdf189",
+    "source": "model",
+    "text": "`cva_sensitivity_cva_greeks` computes a counterparty's base CVA and two sensitivities to go with it. The first is `cs01`, the change in CVA for a parallel shift in the credit spread (1 bp by default, set via `spread_bump`), found by finite difference. It is the main CVA Greek for capital and hedging. The second is `exposure_delta`, the sensitivity to a 1% uniform scaling of the EPE profile, which is linear and equals CVA times 0.01. You supply `expected_exposure`, `time_steps`, `discount_factors` and `credit_spread`, plus an optional `recovery_rate` (default 0.4).",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "144176d1103e15b4937aaf0dc094c2923d7151c71a2c2cb052dd8f700b5693b6",
+    "source": "model",
+    "text": "`cva_sensitivity_cva_greeks` (CVA Sensitivity CVA Greeks) fits when you already have an exposure profile and want to see how CVA responds to changes.\n\n- You need `cs01`, the change in CVA for a parallel shift in the counterparty's credit spread, the dominant CVA Greek for capital and hedging.\n- You want to size a credit-spread hedge for a counterparty, using the spread sensitivity of CVA.\n- You want `exposure_delta`, the sensitivity to a uniform scaling of the EPE profile, to see how much CVA moves if exposures are scaled up or down.\n- You have EPE per bucket, bucket end-times, discount factors and a CDS spread ready, and can set `recovery_rate` and `spread_bump` if the defaults don't suit.\n\nIf you only need the CVA figure itself, not its sensitivities, `credit_valuation_adjustment_cva` is listed as the unilateral Credit Valuation Adjustment.",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

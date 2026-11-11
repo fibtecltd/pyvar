@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "idiosyncratic_stress_scenario": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "853b7bb2feda8dda9a5cf4507878a9602dc05618f70e07360962065d503a9a8e",
+      "source": "model",
+      "text": "`market_wide_stress_scenario` asks how much your liquidity buffer is still worth if the whole market seizes up. You give it HQLA market value by level (`hqla_by_level`), an extra stressed haircut for each level (`market_haircuts`), and a stressed net outflow (`outflow`). It cuts each level's value by its haircut, adds them up, and compares the total with the outflow to give a surplus.\n\n`idiosyncratic_stress_scenario` asks what happens when only your firm is in trouble, such as after a rating downgrade. It starts from your funding: `retail_deposits` and `wholesale_funding`, with run-off rates `retail_runoff` and `wholesale_runoff`. Those rates build the outflow, and the surplus is your available `hqla` minus that outflow.\n\nIn short, the market-wide function stresses the value of the assets, while the idiosyncratic one stresses the funding that leaves. `combined_stress_scenario` is the related function that covers both shocks together.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "6867443c97b6fe2d29b02780331a787b3e7d0942b98dc18813e5baad7afdcad8",
+    "source": "model",
+    "text": "`market_wide_stress_scenario` models a system-wide crisis in which the value you could raise from your high-quality liquid assets (HQLA) falls because market haircuts widen, as in a flight to quality or fire-sale discounts. You give it the market value of HQLA at each level (`hqla_by_level`), an additional stressed haircut for each level between 0 and 1 (`market_haircuts`), and the stressed net cash outflow over the horizon (`outflow`). It reduces each level's value by its haircut, sums them to get stressed HQLA, and subtracts the outflow to give a surplus. In short, it shows whether outflows can still be met from haircut-reduced HQLA.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "c7dc9d5f11756a9749ff763e3a1948208b40754bd979e4c096efee0b17a9ccf1",
+    "source": "model",
+    "text": "`market_wide_stress_scenario` fits when you want to see how a system-wide crisis affects your liquidity buffer:\n\n- You want to model a flight to quality or fire-sale conditions, where the market value you could raise from HQLA falls because market haircuts widen.\n- You have HQLA market values by level (for example L1, L2A, L2B) and a stressed haircut for each level, via `hqla_by_level` and `market_haircuts`.\n- You have a stressed net cash outflow for the horizon (`outflow`) and want to compare it with the haircut-reduced HQLA value, giving a surplus figure.\n- You want the stress to come from market conditions rather than from problems specific to your own institution.\n\nIf you need a name-specific crisis instead, `idiosyncratic_stress_scenario` is listed as the idiosyncratic (name-specific) stress scenario. For both kinds of stress together, `combined_stress_scenario` is listed as the combined idiosyncratic and market-wide scenario.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

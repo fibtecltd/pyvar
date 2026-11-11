@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "pnl_attribution_test_frtb_pat": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "36309dd65a5ab121be183cdaa61cc8d2113874f0d820ff4cab25bd4f89672946",
+      "source": "model",
+      "text": "`rates_pnl_attribution` explains where interest-rate P&L came from: it multiplies the P&L per +1bp at each key-rate tenor (`key_rate_sensitivities`) by the realised yield move at that tenor (`yield_moves_bp`) and sums across the ladder. Its question is \"how much of my rates P&L came from each tenor?\" `pnl_attribution_test_frtb_pat` answers a different question: \"does my risk model's P&L track the full-revaluation P&L closely enough?\" It takes two daily series, `risk_theoretical_pnl` and `hypothetical_pnl`, and compares them using a Spearman rank correlation and a volatility ratio. It then assigns a Basel traffic-light zone using thresholds set by the Basel Committee and not parameterised. So the first breaks P&L down by tenor, while the second tests the quality of a model's P&L against a benchmark.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "186d7be009674d84b7c80bcecd7e3714d4d23c618f597ea21804b31fd3daeb72",
+    "source": "model",
+    "text": "`rates_pnl_attribution` breaks interest-rate P&L down by key-rate tenor. For each tenor, you give it the P&L per +1bp move (`key_rate_sensitivities`) and the realised yield move in basis points (`yield_moves_bp`). It multiplies each pair and sums across the ladder, so total rates P&L is the sum of the tenor contributions. Because the contributions are additive, you can see how much each part of the curve added or subtracted. You can optionally pass `tenor_names` to label the tenors; otherwise they default to `tenor_0` and so on.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "68e7123a0eecad10fae336c05ad4c289770a757f080f3e0b497fcb9238185625",
+    "source": "model",
+    "text": "`rates_pnl_attribution` (Rates Pnl Attribution) fits when you want to break interest-rate P&L down by key-rate tenor.\n\n- You have P&L per +1bp move at each tenor (`key_rate_sensitivities`) and the realised yield move in basis points at each tenor (`yield_moves_bp`), and you want the total rates P&L as their sum across the ladder.\n- You want to see which parts of the curve drove the result, since the contributions are additive across tenors.\n- You want readable output, using `tenor_names` to label tenors instead of the default `tenor_0, ...`.\n- Other risk drivers, such as FX, credit or volatility, are handled separately, so you only need the rates piece.\n\nIf your need is different, `credit_pnl_attribution` covers credit P&L by issuer / curve, and `fx_pnl_attribution` covers FX P&L across currency pairs.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

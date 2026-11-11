@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "10024b617bef01f3eda8fc4c2f556e9a7fcfb659c296f67e4c1e5c15aceac1b6",
+      "source": "model",
+      "text": "`es_at_multiple_confidence_levels` answers the question \"how big is the portfolio's Expected Shortfall at several confidence levels side by side?\" You give it a single 1-D series of portfolio `returns`, a `portfolio_value`, and optionally a list of `confidence_levels`. It returns an ES for each level, which suits a dashboard that shows internal, FRTB and Basel figures together.\n\n`expected_shortfall_contribution` answers a different question: \"which assets drive the portfolio's ES?\" It takes a matrix of per-asset returns (`asset_returns`) and `weights`, and works at one `confidence_level`. For each asset it averages that asset's loss across the scenarios where the portfolio breaches VaR. By construction, those per-asset contributions add up to total ES.\n\nIn short, use the first function to compare ES across confidence levels, and the second to split ES across assets.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "1a6f9db4a610c9b9b3048fd4b5f71e3207d81911446646cca716105d6bceb324",
+    "source": "model",
+    "text": "`es_at_multiple_confidence_levels` (ES At Multiple Confidence Levels) calculates Expected Shortfall at several confidence levels in a single call. You give it a series of historical portfolio returns (`returns`), the current portfolio value in base currency (`portfolio_value`), and optionally a list of `confidence_levels`. For each level it averages the losses in the tail beyond that level's cut-off point. It suits limit dashboards that show internal, FRTB and Basel ES side by side, with defaults of 95%, 97.5% and 99%. Expected Shortfall never falls as confidence rises, so higher levels show equal or larger figures.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fe93357328ee1a3e35a246983026177236aee81a363f6485cac70fda25649409",
+    "source": "model",
+    "text": "`es_at_multiple_confidence_levels` (ES At Multiple Confidence Levels) fits when you want Expected Shortfall at several confidence levels in one call:\n\n- You're building a limit dashboard that shows internal (95%), FRTB (97.5%) and Basel (99%) ES side by side.\n- You have a history of portfolio returns (`returns`) and a current `portfolio_value`, and want results in base currency.\n- You want to see how tail risk grows as confidence rises. ES never decreases as confidence goes up, so the figures should line up in that order.\n- You want to choose your own set of levels through `confidence_levels`, each between 0.90 and 0.9999.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

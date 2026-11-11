@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "monte_carlo_oprisk_capital": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "76ca340c4b6d471b76643970754ea5785fc4e2de018cf4a8603b2fcff32a3030",
+      "source": "model",
+      "text": "`severity_distribution_fitting` answers \"what does the shape of my individual losses look like?\" You give it `loss_amounts` and a `distribution` (`\"lognormal\"` by default, or `\"gamma\"`, `\"weibull\"` or `\"gpd\"`), and it fits that family by maximum likelihood with location pinned at zero. `monte_carlo_oprisk_capital` answers \"how much capital does this loss profile imply?\" It takes a Poisson `frequency_lambda`, lognormal `severity_mu` and `severity_sigma`, and a `confidence_level`, then simulates `n_years` of aggregate losses. From that it reports OpVaR, expected shortfall and capital, which is OpVaR minus expected loss. The first works on raw loss data and describes severity only. The second takes already-chosen parameters and turns them into a capital figure, so the fitting step is typically what supplies `severity_mu` and `severity_sigma` for the lognormal case.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "65b47517bf003ae61f2b3d5c72b029189acd4723a89f422a42579dc5eb45b345",
+    "source": "model",
+    "text": "`severity_distribution_fitting` (Severity Distribution Fitting) fits a probability distribution to individual operational risk loss amounts, which you pass in as `loss_amounts` (strictly positive values). With the `distribution` parameter you choose lognormal (the default and the OpRisk industry standard), gamma, weibull or gpd, the Generalized Pareto model often used for the tail of large losses. Each family is fit by maximum likelihood with the location pinned at zero, so the fit stays on the positive support. For gpd, `mean_severity` comes back as `None` when the shape `xi` is 1 or higher, since the mean isn't finite then. Any other `distribution` value raises a `ValueError`.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "b5db7406b46ad07b1b48481d7dd616723d7a11e0583292b2fdc0d037484bdef6",
+    "source": "model",
+    "text": "Use Severity Distribution Fitting (`severity_distribution_fitting`) when you have individual loss amounts and want to model how large each loss is:\n\n- You have strictly positive, per-event loss amounts to pass as `loss_amounts` and want a fitted severity distribution.\n- You want the OpRisk industry-standard choice: the default `\"lognormal\"`. Use `\"gamma\"` for moderate, right-skewed losses, or `\"weibull\"` when you want a flexible hazard shape.\n- You are modelling the tail of large losses with threshold-exceedance methods: choose `\"gpd\"`. Its `mean_severity` is `None` when the shape `xi` is 1 or more.\n- Stick to those four families, since any other `distribution` value raises a `ValueError`.\n- Once you have a severity fit, `frequency_distribution_fitting` covers the other half of the picture: it fits a Poisson frequency distribution to annual loss-event counts.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

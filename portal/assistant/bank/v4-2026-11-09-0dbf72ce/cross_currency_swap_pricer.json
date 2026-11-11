@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "total_return_swap_trs": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "6cb7dfd9ed556fcbb7f89f95fc712209fa88a4b58213572bc34cef2b6db2a1ea",
+      "source": "model",
+      "text": "`cross_currency_swap_pricer` values a fixed-fixed cross-currency swap with notional exchange, so it answers \"what is this swap worth when one leg is paid in domestic currency and the other in foreign currency?\" It values each leg in its own currency (coupons plus final notional) using `df_dom` and `df_for`, converts the foreign leg at `fx_spot`, and nets the two. `total_return_swap_trs` answers a different question: \"what is one period of a total-return swap worth to the party receiving the asset's return and paying a financing rate?\" It takes `notional`, `asset_return`, `financing_rate`, `accrual` and a single `discount_factor`, with no FX conversion. In short, the first is about fixed coupons and exchange rates across two currencies, while the second is about the gap between an asset's return and its financing cost. Both have a direction flag, `pay_domestic` and `receive_total_return` respectively.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "84b01094660bb2a749fd6b7fb60d3eb23fd65a5e56c2225cb4d1fb58315a91c4",
+    "source": "model",
+    "text": "`cross_currency_swap_pricer` (Cross Currency Swap Pricer) prices a fixed-fixed cross-currency swap that includes notional exchange. It values each leg in its own currency, using the fixed coupons plus the final notional discounted with that currency's discount factors (`df_dom`, `df_for`) and the shared `accruals` schedule. It then converts the foreign leg to domestic terms at `fx_spot` (domestic per 1 unit foreign) and nets the two legs. The `pay_domestic` flag sets direction: true means you pay the domestic leg and receive the foreign leg, which is the default.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "74a0d8d247727653646077bd4ed362232a867790380879ad4cfc0f0454066e17",
+    "source": "model",
+    "text": "The Cross Currency Swap Pricer (`cross_currency_swap_pricer`) fits when you need to value a fixed-fixed swap whose legs are in two currencies, with notional exchanged at the end.\n\n- You hold or are considering a swap where one leg pays a fixed rate in your domestic currency and the other pays a fixed rate in a foreign currency.\n- You have discount factors for each currency (`df_dom`, `df_for`) and a shared payment schedule (`accruals`), and want the legs valued separately, converted at `fx_spot`, and netted.\n- You want to see the value from either side of the trade: `pay_domestic` set to true means paying the domestic leg and receiving the foreign one, and false reverses it.\n- You are working with the notionals (`notional_dom`, `notional_for`) and fixed rates (`fixed_rate_dom`, `fixed_rate_for`) as inputs, with notional exchange at maturity.\n\nIf you instead need a single-currency swap of fixed against floating, `interest_rate_swap_irs_pricer` is listed as pricing a vanilla fixed-vs-float interest-rate swap.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

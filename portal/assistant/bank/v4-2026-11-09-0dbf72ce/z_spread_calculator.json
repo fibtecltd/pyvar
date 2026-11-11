@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "19135e0bcb1cc208847d9e4d127a18e3a7b5cbf6fb0043fea962d9c7117013d0",
+      "source": "model",
+      "text": "`z_spread_calculator` answers \"what constant spread over the zero curve makes these cashflows add up to the observed dirty price?\" It takes the `price`, `cashflows`, `times` and `zero_rates`, and solves for the spread `z`. `modified_duration` answers a different question: \"how sensitive is the price to a change in yield?\" It takes `cashflows`, `times` and a `yield_rate`, and gives Macaulay duration divided by (1 + y/m), which approximates the percentage price change for a 1-unit yield move.\n\nIn short, the Z-spread is a spread measure that discounts each cashflow at its own zero rate plus `z`, while `modified_duration` is a rate-sensitivity measure built around a single yield. The Z-spread needs a market price and a zero curve as inputs, whereas `modified_duration` needs only the cashflows, their times and a yield.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "fdb5d73329849ee81de0ae8bb2b99159e9cee2764b264f7beffdcd91579d0730",
+    "source": "model",
+    "text": "`z_spread_calculator` (Z Spread Calculator) finds the Z-spread of a bond: the single constant spread you add to every point on the zero curve so that the discounted cashflows equal the bond's observed dirty price. You supply the `price`, the `cashflows`, their `times` in years, and the `zero_rates` for each cashflow as annualised decimals. `frequency` sets the compounding per year and defaults to 2. pyvar solves for the spread numerically, so you get a curve-consistent measure of credit or liquidity spread rather than one based on a single yield.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f32bdcc79b849ba7b9ca8e53f15d0fa1ce6c3b866486834c444e4a8501716d54",
+    "source": "model",
+    "text": "The Z Spread Calculator (`z_spread_calculator`) fits when you want one constant spread over a whole zero curve that reprices a bond.\n\n- You have an observed dirty price (`price`) and want the spread that makes the discounted cashflows match it.\n- You want to compare bonds on a spread over the zero (spot) curve, rather than a single flat yield, so each cashflow is discounted at its own `zero_rates` value plus the spread.\n- You have the bond's `cashflows`, their `times` in years, and a zero rate for each cashflow.\n- Your compounding convention differs from the default. Set `frequency` (it defaults to 2).\n\nIf you instead want the single flat rate that discounts cashflows to the price, `yield_to_maturity` is listed for that.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

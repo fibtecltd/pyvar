@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "modified_duration": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "88bf7a14e14a92fc23077b19315d0d92aea9556f90101f90b0a885ca04b48612",
+      "source": "model",
+      "text": "`duration_macaulay` answers \"how long, on average, do I wait for this bond's cashflows?\" It returns the present-value-weighted average time to the cashflows, in years. `modified_duration` answers \"how sensitive is the price to a change in yield?\" It takes the Macaulay figure and divides it by `1 + y/m`, where `y` is `yield_rate` and `m` is `frequency`. That result approximates the percentage price change for a 1-unit yield move as `ΔP/P ≈ −D_mod · Δy`. Both take the same inputs (`cashflows`, `times`, `yield_rate`, and an optional `frequency` that defaults to 2), so the difference lies in what the output means: a time measure versus a price-sensitivity measure.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "e33734f0dcfb3b08593ead4466711278d225cde6aaf2693ebd22196ee089bbe2",
+    "source": "model",
+    "text": "`duration_macaulay` computes Macaulay duration, the present-value-weighted average time to a bond's cashflows, expressed in years. You give it the `cashflows`, the `times` in years at which they occur, and an annual `yield_rate` as a decimal. Each cashflow is discounted at that yield, and each time is weighted by its share of the total present value. `frequency` sets the compounding per year and defaults to 2. It's a standard measure of how long a bondholder waits, in present-value terms, to be repaid.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "f9776456f2c0c37accb15c855d80773844d1ec62cd3a534f11ddc90c295d2245",
+    "source": "model",
+    "text": "`duration_macaulay` fits when you want the average time, in years, until a bond's cashflows arrive, weighted by their present values.\n\n- You have a known set of cashflows and their timing (`cashflows` and `times`), plus a single annual yield (`yield_rate`) to discount them at.\n- You want to describe how long money is effectively tied up in a bond, or compare that across bonds with different payment patterns.\n- Your cashflows compound at a regular frequency; `frequency` defaults to 2 per year and can be changed to match.\n- You want a building block for other duration measures.\n\nRelated function: `modified_duration` is listed as Macaulay duration divided by (1 + y/m).",
+    "tries": 2,
+    "writer": "claude-sonnet-5-5"
+  }
+}

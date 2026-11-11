@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "aifmd_risk_metrics": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "53037446ce3c390ddf6115795adcd00356042db6b2a32ea31682647398085f37",
+      "source": "model",
+      "text": "`solvency_ii_scr_credit_risk` answers the question of how much capital an insurer needs against counterparty default on Type 1 exposures. You give it `exposures`, `loss_given_default` and `default_probabilities` per counterparty. It builds a loss-spread figure (sigma) and applies the prescribed tiered multiplier, capped at the total loss given default. `aifmd_risk_metrics` answers the question of how leveraged an alternative investment fund is. It takes `gross_exposure`, `commitment_exposure` and `net_asset_value`, and returns leverage under the gross and commitment methods as multiples of NAV. It can also report an optional `var_pct`, and it flags a fund as \"substantially leveraged\" using a simple threshold. One measures default-loss capital for an insurer, the other measures fund leverage. The credit function's sigma covers only the intra-counterparty term, so the full Art. 201 result is at least as large as what it returns.",
+      "tries": 2,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "4bb75aa3d1e2d04db6827cee8821212a9a39960d6ca27e31f84f72fa1cc3df3d",
+    "source": "model",
+    "text": "`solvency_ii_scr_credit_risk` (Solvency II SCR Credit Risk) computes the capital charge for counterparty default risk on Type 1 exposures, following Delegated Regulation (EU) 2015/35 Art. 200(1)-(3). You supply `exposures`, `loss_given_default` and `default_probabilities` per counterparty. It turns these into loss-given-default amounts, sums them, and measures the standard deviation of the loss distribution. The charge is a tiered multiple of that deviation, set by the regulation and not a parameter, and it is capped at total loss-given-default once the deviation is large relative to the total. The deviation uses only each counterparty's own default variance, so the true Art. 201 result is at least as large as what the function returns.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "8b921de123fa758fbe58baaddb12b016c120b6f063a715d27b0ec94548ccdae3",
+    "source": "model",
+    "text": "Use Solvency II SCR Credit Risk (`solvency_ii_scr_credit_risk`) when your question fits one of these:\n\n- You need the Solvency II counterparty default capital charge for Type 1 exposures, following Delegated Regulation (EU) 2015/35 Art. 200(1)-(3).\n- You can supply exposure at default, LGD fraction and default probability for each counterparty (`exposures`, `loss_given_default`, `default_probabilities`).\n- You want the prescribed tiered multiplier on sigma, or the cap at total LGD, applied for you rather than set as a parameter.\n- You can accept an approximation: it uses only the intra-counterparty variance term and leaves out the inter-counterparty correlation term of Art. 201, so the true SCR is at least as large as the result.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}

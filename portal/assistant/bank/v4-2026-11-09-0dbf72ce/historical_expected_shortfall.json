@@ -1,0 +1,40 @@
+{
+  "compare": {
+    "expected_shortfall_contribution": {
+      "escalated": false,
+      "gate": {
+        "faithful": true,
+        "issues": []
+      },
+      "record_sha256": "ce0b1692dac86196ec80451b4b97a855236fded0529ecf56f22882a49173b711",
+      "source": "model",
+      "text": "`historical_expected_shortfall` answers \"how big is the average tail loss for my portfolio as a whole?\" You give it a 1-D series of historical portfolio `returns`, a `portfolio_value` and a `confidence_level`, and it averages the empirical tail losses directly, with no distributional assumption. The result is a single portfolio-level ES figure.\n\n`expected_shortfall_contribution` answers \"which assets are driving that tail loss?\" It takes a `(T, N)` matrix of `asset_returns` plus `weights`, finds the scenarios where the portfolio breaches VaR, and averages each asset's loss across exactly those scenarios. By construction, the per-asset contributions sum to the total ES.\n\nSo use the first for the overall number and the second to split it across holdings.",
+      "tries": 1,
+      "writer": "claude-sonnet-5-5"
+    }
+  },
+  "explain": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "aa4388852d05405c4b5961e6458cfd9ad769ed758e63e489c8b6b136df599391",
+    "source": "model",
+    "text": "`historical_expected_shortfall` (Historical Expected Shortfall) computes a non-parametric ES for a portfolio by averaging the empirical loss tail directly, with no distributional assumption. You give it a 1-D array of historical portfolio `returns`, the current `portfolio_value` in base currency, and optionally a `confidence_level` (default 0.975, allowed range 0.90 to 0.9999). It sorts the losses, finds the cutoff observation at that confidence level, and takes the mean of the losses from that point to the end of the sorted series. Its tail-mean definition is the same as `conditional_var_es`, just framed as historical-simulation ES.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  },
+  "when": {
+    "escalated": false,
+    "gate": {
+      "faithful": true,
+      "issues": []
+    },
+    "record_sha256": "61c0483e347ec1fb2e94b9a432bcc1ff2908e5b8f123861b55f9885efc83b2b1",
+    "source": "model",
+    "text": "`historical_expected_shortfall` (Historical Expected Shortfall) fits when you want a tail-risk figure straight from your own past data:\n\n- You have a 1-D series of historical portfolio returns and want the average loss in the worst tail, not just the cutoff point.\n- You'd rather not assume a distribution (such as normal), since the empirical tail is averaged directly.\n- You want a result in base currency, scaled by your current `portfolio_value`.\n- You want to choose how deep into the tail to look with `confidence_level`, which accepts values from 0.90 to 0.9999 and defaults to 0.975.\n- If you need ES at several confidence levels in one go, `es_at_multiple_confidence_levels` is listed as evaluating Expected Shortfall at several confidence levels at once.",
+    "tries": 1,
+    "writer": "claude-sonnet-5-5"
+  }
+}
