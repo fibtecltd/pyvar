@@ -941,3 +941,62 @@ $0.0077, not the $0.014 the plan assumed, so a $2 daily audit budget buys about 
 prompt and tool set, not tuned; nobody has read the 17 unexplained `shown_values_validated` failures or the judges'
 flags beyond their text. Typed questions stay off for release 1; a second iteration (validator, domain in search
 results, absence rule, a negation-aware advice check, an echo check that allows the stock decline) is the next step.
+
+### 9.19 Tier run C: regeneration with feedback, and Opus on the hard cases (2026-11-11)
+
+Plan: `docs/assistant-plan-tier-measurement.md`. Code commit `e1caaef` adds `run_eval.py --tries N` (a grader failure
+sends its flags back to the writer, up to N calls, as the bank pipeline would); the menu system prompt is unchanged
+(the sha256 of `prompts.py` in the summaries differs from earlier runs because the retry message for text actions was
+added; first-draft requests are identical). Prompt v4, effort low, dev key, $5.45 spent (total $21.96 of the $30).
+Data on the scratch branch `data/assistant-tier-run-3`, commit `3e61926`; all 12 files were checked against
+`SHA256SUMS` and every figure was recomputed from them. `docs/assistant-tier-run-3-flags.csv` has each case's tries,
+grader results and Opus verdict (no answers).
+
+**Up to 3 tries per case on the 308 menu cases (one fresh draw per writer).**
+
+| | Haiku 5.5 | Sonnet 5.5 |
+|---|---|---|
+| answers scored | 307 (1 truncated at max_tokens after 3 tries) | 308 |
+| first-try grader pass | 120/307 (39%) | 239/308 (78%) |
+| final grader pass | 306/307 | **308/308** |
+| writer calls per answer | 1: 120, 2: 183, 3: 4 | 1: 239, 2: 69, 3: 0 |
+| would fall back to static text | 1 (`kmv_merton_distance_to_default:when`, length) | **0** |
+| writer cost for the 308 | $0.149 | $2.016 (a single try cost $1.593 in 9.17) |
+| latency p50 / p95 per answer | 2.2 / 4.5 s | 2.6 / 3.7 s |
+| Opus judge, final answers | not run | 3 flagged of 308 (1.0%) |
+
+First-try pass rates match the earlier draws (Haiku 42% in 9.18, Sonnet 76% in 9.17), so they are stable. Regeneration
+with the failing checks as feedback clears the wording failures: of Haiku's 183 second tries only 4 needed a third,
+and Sonnet's 69 second tries all passed.
+
+**Opus on Sonnet's final answers.** 3 of 308 are flagged: `garch_11_volatility_forecast:explain` (says the function
+"fits" a GARCH model; it filters with supplied alpha and beta, flagged again as in 9.17), `expected_loss_el_computation:when`
+(a "use when" bullet that describes the sibling's job) and `irrbb_six_standard_rate_shocks:explain` (reads as if the
+default shock magnitudes already follow the 2024 recalibration, which the record lists as a limitation, and promises six
+curves while describing four). Regenerated answers are not worse: 1 of 69 flagged against 2 of 239 first-try answers.
+Opus lists issue notes on 11 answers it passes. Pooling this draw with the single draw of 9.17 gives 6 of 616 (1.0%)
+against Haiku's 21 of 616, one-sided Fisher p 0.0027, so rule M1 no longer rests on one draw.
+
+**Opus on the 8 persistent cases, 8 draws each (64 answers).** Opus judged all 64 faithful, and the detectors fire
+once, on `esg_score_integration:when`. This is Opus judging Opus (rule M3), so the 0 of 64 is not evidence on its own.
+Reading the one decisive sentence in each of the 8 `esg_score_integration:when` answers: the misreading that cost Sonnet
+5 flagged draws of 8 (that `min_esg_score` alone checks the portfolio against the floor; the record needs `cov_matrix`
+too) is absent from all 8 Opus answers, which say "supply `min_esg_score` with `cov_matrix`". Four of them also say the
+re-optimised weights can be compared with the current ones, a statement this judge flagged in two of Sonnet's draws,
+so the judge is not consistent about it. The graders fail 26 of the 64 Opus answers: 8 `cva_sensitivity_cva_greeks:when`,
+8 `retail_deposit_runoff_rate:explain` (the line-start defect), 4 each on `effective_duration_alm:when` and
+`black_scholes_european_option:when`, 1 each on `fx_forward_pricer:when` and `pillar_2a_capital:when`. The summary's
+`static_fallback: 26` is only this count, because the run had one try.
+
+**What this supports.** With the v4 prompt and the current graders, Sonnet as writer, up to two regenerations with the
+failing checks as feedback, and no static answers in 308 cases is workable: 22% of answers are written twice, the Opus
+flag rate stays at 1.0%, and a full bank would cost about $7.6 for the writer (1,154 answers at $0.0065) plus $7.7 for
+the Opus verdicts, about $15 a build before regenerating what the gate flags. Haiku with the same loop also passes the
+graders (306 of 307) for $0.56 a bank, but its first drafts are flagged three times as often (3.4% against 1.0%) and its
+regenerated answers have not been judged, so the saving of about $7 a build does not buy accuracy. For a gate flag the
+evidence for escalating to Opus is one case (`esg_score_integration:when`, above); the record of that function is the
+better fix.
+
+**What it does not show.** One fresh draw per writer; Haiku's final answers and Opus's answers beyond 8 cases were not
+judged by anyone other than Opus; regeneration was tested for grader failures only, not for gate flags; nobody has read
+the answers Opus flagged or the ones it passed with issue notes.
