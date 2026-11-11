@@ -144,8 +144,14 @@ def run_case(
     sleep: Callable[[float], None] = time.sleep,
     rng: random.Random | None = None,
     effort: str = EFFORT,
+    tries_setting: int | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Run one (case, rep). Returns ("result" | "error" | "skipped", row)."""
+    """Run one (case, rep). Returns ("result" | "error" | "skipped", row).
+
+    `tries_setting` unset keeps the Phase 0 rule: the example action gets MAX_EXAMPLE_TRIES calls, every
+    other action one. Set, it is the number of writer calls for every action: after a grader failure the
+    writer is called again with the failing flags, up to that many calls (what the bank pipeline would do).
+    """
     rng = rng or random.Random()
     deadline = time.monotonic() + case_timeout_s
     counters = {"retries": 0}
@@ -153,7 +159,7 @@ def run_case(
     cost = 0.0
     feedback: list[tuple[str, list[str]]] = []
     turns: list[dict[str, Any]] = []
-    tries = MAX_EXAMPLE_TRIES if case["intent"] == "example" else 1
+    tries = tries_setting or (MAX_EXAMPLE_TRIES if case["intent"] == "example" else 1)
     last: dict[str, Any] | None = None
     first_try_passed: bool | None = None
     attempt_count = 0
@@ -185,7 +191,7 @@ def run_case(
             verdict = grade(case, last["text"])
             if attempt == 0:
                 first_try_passed = verdict.passed
-            if verdict.passed or case["intent"] != "example":
+            if verdict.passed or (tries_setting is None and case["intent"] != "example"):
                 break
             feedback.append((last["text"], verdict.flags))
             turns.append({"role": "user", "content": "; ".join(verdict.flags)[:600]})
@@ -212,6 +218,7 @@ def run_case(
         "grade": final,
         "model_tries": attempt_count,
         "first_try_passed": first_try_passed,
+        "static_fallback": bool(final is not None and not final["passed"]),
         "usage": usage_total,
         "cost_usd": cost,
         "latency_s": last["latency"],
@@ -318,6 +325,20 @@ def code_provenance(
     }
 
 
+def _retry_counts(group: list[dict[str, Any]]) -> dict[str, Any]:
+    """First-try and final passes (n and N), the histogram of writer calls per answer, static fallbacks."""
+    first = [r for r in group if r.get("first_try_passed") is not None]
+    return {
+        "first_try_pass": {"n": sum(1 for r in first if r["first_try_passed"]), "N": len(first)},
+        "final_pass": {"n": sum(1 for r in group if r["grade"]["passed"]), "N": len(group)},
+        "model_tries": {
+            str(k): sum(1 for r in group if r.get("model_tries") == k)
+            for k in sorted({r["model_tries"] for r in group if r.get("model_tries") is not None})
+        },
+        "static_fallback": sum(1 for r in group if r.get("static_fallback")),
+    }
+
+
 def summarize(
     rows: list[dict[str, Any]],
     errors: list[dict[str, Any]],
@@ -325,6 +346,7 @@ def summarize(
     model: str,
     effort: str = EFFORT,
     provenance: dict[str, Any] | None = None,
+    tries: int | None = None,
 ) -> dict[str, Any]:
     """Per-intent pass rates with intervals, plus counts, tokens, cost and latency.
 
@@ -353,6 +375,7 @@ def summarize(
                 if not ok:
                     failed_checks[name] = failed_checks.get(name, 0) + 1
         entry["failed_checks"] = dict(sorted(failed_checks.items(), key=lambda kv: -kv[1]))
+        entry.update(_retry_counts(group))
         by_intent[intent] = entry
     latencies = [r["latency_s"] for r in rows if r["latency_s"] > 0]
     totals = {k: sum(r["usage"][k] for r in rows) for k in USAGE_KEYS}
@@ -361,6 +384,8 @@ def summarize(
         "writer_model": model,
         "served_models": sorted({str(r.get("served_model")) for r in rows}),
         "effort": effort,
+        "tries": tries,
+        "overall": _retry_counts(scored),
         "prompt_version": PROMPT_VERSION,
         "code": provenance if provenance is not None else code_provenance(),
         "cases_run": len(rows),
@@ -432,6 +457,13 @@ def main() -> int:
         choices=EFFORT_LEVELS,
         help=f"output_config.effort sent with every writer call (default {EFFORT}, as in every Phase 0 run)",
     )
+    parser.add_argument(
+        "--tries",
+        type=int,
+        default=None,
+        help="writer calls per answer for EVERY action (a grader failure sends its flags back); "
+        f"unset: {MAX_EXAMPLE_TRIES} for example values, 1 for the text actions",
+    )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--case-timeout", type=float, default=240.0)
     parser.add_argument("--max-usd", type=float, default=5.0, help="hard spend cap for this run")
@@ -442,6 +474,8 @@ def main() -> int:
     args = parser.parse_args()
 
     only = {a.strip() for a in args.only.split(",") if a.strip()} if args.only else None
+    if args.tries is not None and args.tries < 1:
+        parser.error("--tries must be at least 1")
     only_ids = {i.strip() for i in args.only_ids.split(",") if i.strip()} if args.only_ids else None
     try:
         cases = load_cases(args.cases, args.limit, only, only_ids)
@@ -483,6 +517,7 @@ def main() -> int:
                 budget=budget,
                 case_timeout_s=args.case_timeout,
                 effort=args.effort,
+                tries_setting=args.tries,
             )
         )
         with lock:
@@ -511,7 +546,9 @@ def main() -> int:
         if results_path.exists()
         else []
     )
-    summary = summarize(all_rows, errors, skipped, offline or args.model, args.effort)
+    summary = summarize(
+        all_rows, errors, skipped, offline or args.model, args.effort, tries=args.tries
+    )
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     if offline == "oracle":

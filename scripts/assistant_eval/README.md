@@ -79,7 +79,7 @@ python scripts/assistant_eval/judge.py --kind typed --cases $WORK/typed_cases.js
 `output_config.effort`. `summary.json` of every run records the writer model id, the model ids the API reported
 serving, the effort, `prompt_version`, and under `code` the git commit that last touched `prompts.py` and
 `graders.py`, whether they have uncommitted edits (`dirty`) and their sha256, so a run says which text produced it.
-`--only-ids` runs the named cases only (an id not in `--cases` is an error); `--reps N` repeats each case N times
+`--tries N` gives every action up to N writer calls: after a grader failure the flags go back to the writer (what the bank pipeline would do), `model_tries` counts the calls, `static_fallback` marks an answer that still fails, and `summary.json` reports first-try and final passes and the histogram of calls (unset: example values get 3 calls, text actions 1). `--only-ids` runs the named cases only (an id not in `--cases` is an error); `--reps N` repeats each case N times
 (draw numbers 0 to N-1). The judge samples draw 0 unless `--all-reps` is given.
 
 **Typed questions.** The set is `typed_cases.py` (templates over `portal/functions.json`: A how-to 50, B which
