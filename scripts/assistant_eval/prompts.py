@@ -133,33 +133,40 @@ def user_content(case: dict[str, Any]) -> str:
 
 
 def build_request(
-    case: dict[str, Any], feedback: list[tuple[str, list[str]]] | None = None
+    case: dict[str, Any],
+    feedback: list[tuple[str, list[str]]] | None = None,
+    effort: str = EFFORT,
 ) -> dict[str, Any]:
     """Keyword arguments for `client.messages.create`, minus `model`.
 
     Args:
         case: one menu selection from cases.py.
-        feedback: for the example action only, earlier attempts as (raw reply, validation errors), oldest
-            first. Each is replayed as an assistant turn plus a user turn asking for a corrected object.
+        feedback: earlier failed attempts as (raw reply, grader flags), oldest first. Each is replayed as an
+            assistant turn plus a user turn asking for a corrected answer (a corrected object for the example
+            action, whose wording is fixed; run_eval.py --tries sends it for the text actions too).
+        effort: the `output_config.effort` level; the default is the one every Phase 0 run used.
     """
     messages: list[dict[str, Any]] = [{"role": "user", "content": user_content(case)}]
     for reply, errors in feedback or []:
         bullet_list = "\n".join(f"- {e}" for e in errors[:8])
         messages.append({"role": "assistant", "content": reply})
-        messages.append(
-            {
-                "role": "user",
-                "content": (
-                    "That object did not fit the schema:\n"
-                    f"{bullet_list}\n"
-                    "Reply again with the corrected JSON object only."
-                ),
-            }
-        )
+        if case["intent"] == "example":  # these bytes are pinned by a test: do not reword
+            correction = (
+                "That object did not fit the schema:\n"
+                f"{bullet_list}\n"
+                "Reply again with the corrected JSON object only."
+            )
+        else:
+            correction = (
+                "That answer failed these checks:\n"
+                f"{bullet_list}\n"
+                "Write the answer again, fixing them and keeping every rule above."
+            )
+        messages.append({"role": "user", "content": correction})
     kind = "example" if case["intent"] == "example" else "text"
     return {
         "system": SYSTEM_PROMPT,
         "messages": messages,
         "max_tokens": MAX_TOKENS[kind],
-        "output_config": {"effort": EFFORT},
+        "output_config": {"effort": effort},
     }

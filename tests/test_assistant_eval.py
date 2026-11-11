@@ -12,6 +12,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import sys
@@ -395,6 +396,34 @@ def test_validation_feedback_is_replayed_as_a_corrective_turn() -> None:
     assert "missing required parameter 'hqla'" in request["messages"][-1]["content"]
 
 
+def test_the_example_request_after_a_failed_first_try_is_byte_for_byte_what_it_was() -> None:
+    """Pinned before --tries existed (sha256 of the request as JSON, sorted keys): v4 runs resend this."""
+    request = prompts.build_request(
+        make_case("example", "typical"),
+        [
+            (
+                '{"hqla": "x"}',
+                [
+                    "$.hqla: expected number, got str",
+                    "$: missing required parameter 'gross_outflows'",
+                ],
+            )
+        ],
+    )
+    digest = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+    assert digest == "1d3d80896063accd484f5cb1256af84ca0874aa154d22d7afd48c3e87cdc2909"
+
+
+def test_a_text_action_gets_a_correction_turn_with_the_failing_flags() -> None:
+    request = prompts.build_request(
+        make_case("explain"), [("Too long.", ["length 12 outside 150-900"])]
+    )
+    assert [m["role"] for m in request["messages"]] == ["user", "assistant", "user"]
+    assert request["messages"][1]["content"] == "Too long."
+    assert "length 12 outside 150-900" in request["messages"][2]["content"]
+    assert "JSON" not in request["messages"][2]["content"]
+
+
 # ── case builder ────────────────────────────────────────────────────────────────────────────────────
 
 
@@ -755,9 +784,81 @@ def test_text_tasks_state_a_character_budget_below_the_hard_limit_and_example_ta
 def test_the_run_summary_names_the_prompt_version() -> None:
     summary = run_eval.summarize([], [], 0, "m")
     assert summary["prompt_version"] == prompts.PROMPT_VERSION
+    pinned = "v4-2026-11-09"  # the candidate prompt (plan 1, decisions taken)
+    assert prompts.PROMPT_VERSION == pinned
+
+
+def test_effort_defaults_to_low_and_is_sent_when_asked() -> None:
+    case = make_case("explain")
+    assert prompts.build_request(case)["output_config"] == {"effort": "low"}
+    assert prompts.build_request(case, None, "high")["output_config"] == {"effort": "high"}
+    client = FakeClient([response(GOOD_EXPLAIN)])
+    run_eval.run_case(
+        client,
+        case,
+        "claude-haiku-5-5",
+        0,
+        budget=run_eval.Budget(5.0),
+        case_timeout_s=60.0,
+        effort="medium",
+    )
+    assert client.calls[0]["output_config"] == {"effort": "medium"}
+
+
+def test_the_summary_records_prompt_version_code_provenance_and_writer() -> None:
+    row = {
+        "intent": "explain",
+        "status": "ok",
+        "grade": {"passed": True, "checks": {}},
+        "first_try_passed": None,
+        "usage": dict.fromkeys(run_eval.USAGE_KEYS, 0),
+        "cost_usd": 0.0,
+        "latency_s": 1.0,
+        "retries": 0,
+        "served_model": "claude-sonnet-5-5-20261101",
+    }
+    summary = run_eval.summarize([row], [], 0, "claude-sonnet-5-5", "medium")
+    assert summary["writer_model"] == "claude-sonnet-5-5" and summary["effort"] == "medium"
+    assert summary["served_models"] == ["claude-sonnet-5-5-20261101"]
+    assert summary["prompt_version"] == prompts.PROMPT_VERSION
+    code = summary["code"]
+    assert set(code["sha256"]) == {"prompts.py", "graders.py"}
+    here = Path(run_eval.__file__).resolve().parent
+    import hashlib
+
     assert (
-        prompts.PROMPT_VERSION == "v4-2026-11-09"
-    ), "the candidate prompt (plan 1, decisions taken)"
+        code["sha256"]["prompts.py"]
+        == hashlib.sha256((here / "prompts.py").read_bytes()).hexdigest()
+    )
+    assert code["commit"] is None or len(code["commit"]) == 40
+
+
+def test_only_ids_runs_just_those_cases_and_a_typo_is_an_error(tmp_path: Path) -> None:
+    rows = [{"id": f"f{i}:explain", "intent": "explain"} for i in range(4)]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    kept = run_eval.load_cases(path, None, None, {"f3:explain", "f1:explain"})
+    assert [c["id"] for c in kept] == ["f1:explain", "f3:explain"]
+    with pytest.raises(ValueError, match="f9:explain"):
+        run_eval.load_cases(path, None, None, {"f1:explain", "f9:explain"})
+
+
+def test_only_ids_with_reps_makes_one_row_per_case_and_rep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cases = [make_case("explain"), make_case("when")]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(c) + "\n" for c in cases))
+    out = tmp_path / "out"
+    argv = ["run_eval.py", "--cases", str(path), "--out", str(out), "--oracle"]
+    argv += ["--only-ids", cases[1]["id"], "--reps", "3"]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert run_eval.main() == 0
+    rows = [json.loads(line) for line in (out / "results.jsonl").read_text().splitlines()]
+    assert sorted((r["case_id"], r["rep"]) for r in rows) == [(cases[1]["id"], i) for i in range(3)]
+    assert json.loads((out / "summary.json").read_text())["prompt_version"] == (
+        prompts.PROMPT_VERSION
+    )
 
 
 def test_only_keeps_the_listed_actions_before_the_limit(tmp_path: Path) -> None:
@@ -852,3 +953,108 @@ def test_a_disclaimer_that_uses_the_noun_guarantee_is_not_advice() -> None:
         "We guarantee the fit.",
     ):
         assert graders.grade(case, GOOD_EXPLAIN + " " + promise).checks["no_advice"] is False
+
+
+# ── --tries: regenerate with feedback for every action ─────────────────────────────────────────────────
+
+
+def run_tries(
+    case: dict[str, Any], script: list[Any], tries: int | None
+) -> tuple[dict[str, Any], FakeClient]:
+    client = FakeClient(script)
+    _, row = run_eval.run_case(
+        client,
+        case,
+        "claude-haiku-5-5",
+        0,
+        budget=run_eval.Budget(5.0),
+        case_timeout_s=60.0,
+        sleep=lambda _s: None,
+        rng=random.Random(1),
+        tries_setting=tries,
+    )
+    return row, client
+
+
+def test_a_menu_answer_that_fails_then_passes_is_regenerated_with_its_flags() -> None:
+    row, client = run_tries(
+        make_case("explain"), [response("Too short."), response(GOOD_EXPLAIN)], 3
+    )
+    assert row["model_tries"] == 2 and len(client.calls) == 2
+    assert row["first_try_passed"] is False and row["grade"]["passed"] is True
+    assert row["static_fallback"] is False
+    second = client.calls[1]["messages"]
+    assert [m["role"] for m in second] == ["user", "assistant", "user"]
+    assert "length" in second[-1]["content"]
+    assert row["cost_usd"] == pytest.approx(2 * (900 * 0.10 + 120 * 0.50) / 1e6)
+
+
+def test_a_menu_answer_that_never_passes_uses_every_try_and_is_a_static_fallback() -> None:
+    row, client = run_tries(make_case("explain"), [response("Short.")] * 3, 3)
+    assert row["model_tries"] == 3 and len(client.calls) == 3
+    assert row["static_fallback"] is True and row["grade"]["passed"] is False
+    assert row["first_try_passed"] is False
+    assert row["cost_usd"] == pytest.approx(3 * (900 * 0.10 + 120 * 0.50) / 1e6)
+    assert row["usage"]["input_tokens"] == 2700
+
+
+def test_a_passing_first_try_stops_and_is_not_a_fallback() -> None:
+    row, client = run_tries(make_case("explain"), [response(GOOD_EXPLAIN)], 3)
+    assert len(client.calls) == 1 and row["first_try_passed"] and not row["static_fallback"]
+
+
+def test_a_truncated_or_refused_reply_still_ends_the_loop() -> None:
+    row, client = run_tries(make_case("explain"), [response("The", stop="max_tokens")], 3)
+    assert len(client.calls) == 1 and row["status"] == "truncated" and not row["static_fallback"]
+    row, client = run_tries(make_case("explain"), [response("", stop="refusal")], 3)
+    assert len(client.calls) == 1 and row["status"] == "refusal"
+
+
+def test_tries_unset_keeps_one_call_for_text_and_three_for_example_values() -> None:
+    row, client = run_tries(make_case("explain"), [response("Short.")], None)
+    assert len(client.calls) == 1 and row["model_tries"] == 1 and row["static_fallback"] is True
+    row, client = run_tries(make_case("example", "typical"), [response("not json")] * 3, None)
+    assert len(client.calls) == 3 and row["model_tries"] == 3
+    row, client = run_tries(make_case("example", "typical"), [response("not json")] * 5, 5)
+    assert len(client.calls) == 5, "--tries applies to example values too"
+    row, client = run_tries(make_case("example", "typical"), [response("not json")], 1)
+    assert len(client.calls) == 1
+
+
+def test_the_summary_reports_first_try_and_final_passes_and_the_call_histogram() -> None:
+    rows = [
+        run_tries(make_case("explain"), [response(GOOD_EXPLAIN)], 3)[0],
+        run_tries(make_case("explain"), [response("Short."), response(GOOD_EXPLAIN)], 3)[0],
+        run_tries(make_case("explain"), [response("Short.")] * 3, 3)[0],
+    ]
+    summary = run_eval.summarize(rows, [], 0, "claude-haiku-5-5", tries=3)
+    assert summary["tries"] == 3 and summary["prompt_version"] == prompts.PROMPT_VERSION
+    explain = summary["by_intent"]["explain"]
+    assert explain["first_try_pass"] == {"n": 1, "N": 3}
+    assert explain["final_pass"] == {"n": 2, "N": 3}
+    assert explain["model_tries"] == {"1": 1, "2": 1, "3": 1} and explain["static_fallback"] == 1
+    assert summary["overall"] == {k: explain[k] for k in explain if k in summary["overall"]}
+    assert summary["cost_usd"] == pytest.approx(
+        round(6 * (900 * 0.10 + 120 * 0.50) / 1e6, 4), abs=1e-4
+    )
+    assert run_eval.summarize(rows, [], 0, "m")["tries"] is None
+
+
+def test_oracle_and_null_still_pass_all_and_none_with_tries_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cases = [make_case("explain"), make_case("when"), make_case("compare")]
+    cases += [make_case("example", s) for s in ("typical", "stress")]
+    path = tmp_path / "cases.jsonl"
+    path.write_text("".join(json.dumps(c) + "\n" for c in cases))
+    for flag in ("--oracle", "--null"):
+        argv = ["run_eval.py", "--cases", str(path), "--out", str(tmp_path / flag), flag]
+        monkeypatch.setattr(sys, "argv", [*argv, "--tries", "3"])
+        assert run_eval.main() == 0
+
+
+def test_tries_must_be_positive(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    argv = ["run_eval.py", "--cases", "c", "--out", str(tmp_path), "--tries", "0"]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        run_eval.main()

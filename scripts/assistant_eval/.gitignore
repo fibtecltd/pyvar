@@ -2,3 +2,5 @@
 # The numbers that matter are written up in docs/assistant-phase0-results.md.
 runs/
 *.jsonl
+# The hand-written typed-question cases are source, not output: tests and typed_cases.py read them.
+!typed_adversarial.jsonl

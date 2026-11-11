@@ -55,14 +55,65 @@ python scripts/assistant_eval/recall_check.py pick   --cases $WORK/cases.jsonl -
 python scripts/assistant_eval/recall_check.py export --cases $WORK/cases.jsonl --run $WORK/haiku_v4 > stage1.json
 python scripts/assistant_eval/recall_check.py build  --cases $WORK/cases.jsonl --answers stage1.json \
     --out check.html --key key.json            # --stage 2 on export for the second batch; keep key.json from the reader
+
+# 8. Tier measurement (docs/assistant-plan-tier-measurement.md): bigger writers, repeated draws
+python scripts/assistant_eval/run_eval.py --cases $WORK/cases.jsonl --out $WORK/opus_d1 \
+    --model claude-opus-5-5 --effort low --only explain,when,compare --max-usd 4.1
+python scripts/assistant_eval/run_eval.py --cases $WORK/cases.jsonl --out $WORK/sonnet_r3 \
+    --model claude-sonnet-5-5 --only-ids ID1,ID2 --reps 8 --max-usd 0.6    # the 8 persistent cases, 8 draws
+python scripts/assistant_eval/judge.py --cases $WORK/cases.jsonl --run $WORK/sonnet_r3 \
+    --all-reps --per-intent 1000 --max-usd 1.8                             # every draw, not only draw 0
+python scripts/assistant_eval/detectors.py --cases $WORK/cases.jsonl --run $WORK/sonnet_r3   # no model
+
+# 9. Typed questions (plan 1, sections 3 and 5): a model with three read-only tools answers typed text
+python scripts/assistant_eval/typed_cases.py --out $WORK/typed_cases.jsonl     # 260 cases, no app, no API
+python scripts/assistant_eval/run_typed.py --cases $WORK/typed_cases.jsonl --out $WORK/typed_oracle --oracle
+python scripts/assistant_eval/run_typed.py --cases $WORK/typed_cases.jsonl --out $WORK/typed_null --null
+python scripts/assistant_eval/run_typed.py --cases $WORK/typed_cases.jsonl --out $WORK/typed_haiku \
+    --model claude-haiku-5-5 --max-usd 0.3                                       # paid; --categories, --only-ids, --reps
+python scripts/assistant_eval/judge.py --kind typed --cases $WORK/typed_cases.jsonl --run $WORK/typed_haiku \
+    --in-scope-only --max-usd 3
 ```
+
+`--effort` (low, medium, high, xhigh, max; default low, the level of every Phase 0 run) is sent as
+`output_config.effort`. `summary.json` of every run records the writer model id, the model ids the API reported
+serving, the effort, `prompt_version`, and under `code` the git commit that last touched `prompts.py` and
+`graders.py`, whether they have uncommitted edits (`dirty`) and their sha256, so a run says which text produced it.
+`--only-ids` runs the named cases only (an id not in `--cases` is an error); `--reps N` repeats each case N times
+(draw numbers 0 to N-1). `--tries N` gives every action up to N writer calls: after a grader failure the flags go back
+to the writer (what the bank pipeline would do). `model_tries` counts the calls; `static_fallback` marks an answer whose
+final grade still fails (without `--tries` it simply equals the grader failures); `summary.json` reports first-try and
+final passes and the histogram of calls (unset: example values get 3 calls, text actions 1). A truncated or refused
+reply is counted under `truncated` or `refusal`, never as a static fallback. The `code` block of `summary.json` names
+the last commit that touched `prompts.py` or `graders.py`, which is not necessarily HEAD. The judge samples draw 0
+unless `--all-reps` is given.
+
+**Typed questions.** The set is `typed_cases.py` (templates over `portal/functions.json`: A how-to 50, B which
+function 35, C example values 30, D not in the record 30, I multi-function, long or non-English 11) plus
+`typed_adversarial.jsonl` (70 cases written by hand: E advice 15, F off-topic 14, G injection 14, H pasted keys 8,
+I ambiguous or non-English 19) and the generated rest of E to H (E 10, F 6, G 11, H 7): 260 in all, 175 in scope for
+the flag-rate rule (A to D, I). Every case has machine-checkable `expect` fields; nobody labels answers. The file
+is deterministic and its sha256 is pinned in `tests/test_assistant_typed.py` (a catalogue change fails that test
+on purpose: re-pin it with the reason). Tools run in-process (`typed_tools.py`, no network): `search_functions`,
+`get_function` (returns `cases.trim_record`), `propose_parameters` (validates type and required flags against
+the catalogue's parameter list, and its numeric bounds, which the catalogue does not state today). At most 4
+tool turns, then a last call with `tool_choice` none. The question is scrubbed (`scrub.py`: `pyvar_` keys, JWTs,
+`sk-ant-` keys, long hex) before any model call, and a question that still looks like a key is never sent.
+`graders.grade_typed` checks the final answer against the union of what the tools returned; `typed_oracle.py`
+and `--oracle`/`--null` prove it with no API (oracle 260 of 260, null 0 of 260).
+
+`detectors.py` holds one deterministic known-error detector for each of the 8 cases Opus flagged on two or more
+of four draws. Six rest on claims the results document describes; `conduct_risk_metric:compare:model_risk_assessment`
+and `esg_score_integration:when` are marked `hypothesis`, because the flags CSVs hold only F/P and the grader
+failure, not Opus's issue text. A clean detector result does not prove an answer correct: it only shows the
+known claim is absent.
 
 `--max-usd` is a hard cap: when reached, new cases are skipped (and counted as skipped, not failed). A run
 resumes where it stopped. Output per run: `results.jsonl`, `errors.jsonl`, `traces/`, `summary.json`, which
 names the `prompt_version` that produced it (`prompts.PROMPT_VERSION`; v1 was the first paid run, v2 states a
 character budget and three rules in each text task, v3 stops the guide using its own words, "the record" and
 "sibling", which a visitor cannot interpret, and a grader checks it, v4 withdraws the claim that the
-documentation lacks something, which Opus found false in 6 of 22 flagged answers, and a grader checks that too, v5 stops it crediting any statement to "pyvar's documentation" (7 of 21 flags over two v4 draws), and a grader checks that too). The judge's sample inside an action is in a fixed hash
+documentation lacks something, which Opus found false in 6 of 22 flagged answers, and a grader checks that too, v5 stops it crediting any statement to "pyvar's documentation" (7 of 21 flags over two v4 draws), and a grader checks that too). `prompts.py` carries v4 (`v4-2026-11-09`), the candidate: v5 was measured and not adopted (docs/assistant-phase0-results.md 9.14), though the `no_source_claims` grader it added stays. The judge's sample inside an action is in a fixed hash
 order, so `--per-intent 80` starts with the answers `--per-intent 40` judged: runs can be compared case by
 case. The judge overwrites `judgments.jsonl` in the run directory; copy it first if you want the old one.
 
