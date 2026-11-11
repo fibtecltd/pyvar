@@ -1,0 +1,71 @@
+{
+  "judged": 64,
+  "unparsed": 0,
+  "faithful": {
+    "n": 64,
+    "rate": 0.90625,
+    "ci95": [
+      0.81,
+      0.956
+    ]
+  },
+  "useful": {
+    "n": 64,
+    "rate": 1.0,
+    "ci95": [
+      0.943,
+      1.0
+    ]
+  },
+  "plausible_values": {
+    "n": 0,
+    "rate": null,
+    "ci95": [
+      0.0,
+      0.0
+    ]
+  },
+  "judge_cost_usd": 0.4557,
+  "flagged": [
+    {
+      "case_id": "pillar_2a_capital:when",
+      "issues": [
+        "Claims the function gives a breakdown of how each add-on contributes, but the record only describes a summed total and a ratio to RWA."
+      ]
+    },
+    {
+      "case_id": "esg_score_integration:when",
+      "issues": [
+        "The record does not say the function compares the ESG-constrained portfolio with the current weights. The optimisation is a plain minimum-variance solve that does not use the current weights.",
+        "The record does not say that passing min_esg_score alone checks the portfolio against the floor. The documented behaviour only uses min_esg_score together with cov_matrix."
+      ]
+    },
+    {
+      "case_id": "esg_score_integration:when",
+      "issues": [
+        "Says setting min_esg_score alone checks the portfolio against the floor; the record only describes min_esg_score being used together with cov_matrix for re-optimisation."
+      ]
+    },
+    {
+      "case_id": "esg_score_integration:when",
+      "issues": [
+        "Suggests supplying min_esg_score alone makes the function check the portfolio against the floor; the record only says min_esg_score is used, together with cov_matrix, for the constrained re-optimisation."
+      ]
+    },
+    {
+      "case_id": "esg_score_integration:when",
+      "issues": [
+        "The record never says min_esg_score alone checks a portfolio against the floor; it is only used with cov_matrix to run the optimisation.",
+        "Comparing current weights with the ESG-constrained alternative implies both are returned, which the record does not state."
+      ]
+    },
+    {
+      "case_id": "esg_score_integration:when",
+      "issues": [
+        "The record does not say that supplying min_esg_score alone checks compliance. It only describes the floor being enforced in the optimisation when cov_matrix is also given."
+      ]
+    }
+  ],
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}

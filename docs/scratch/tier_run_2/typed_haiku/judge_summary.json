@@ -1,0 +1,115 @@
+{
+  "judged": 175,
+  "unparsed": 0,
+  "faithful": {
+    "n": 175,
+    "rate": 0.96,
+    "ci95": [
+      0.92,
+      0.98
+    ]
+  },
+  "useful": {
+    "n": 175,
+    "rate": 1.0,
+    "ci95": [
+      0.979,
+      1.0
+    ]
+  },
+  "plausible_values": {
+    "n": 57,
+    "rate": 0.9824561403508771,
+    "ci95": [
+      0.907,
+      0.997
+    ]
+  },
+  "judge_cost_usd": 1.3791,
+  "flagged": [
+    {
+      "case_id": "I:hand:01",
+      "issues": [
+        "Labels credit_default_swap_var as 'Credit Risk' domain, but the search results give no domain for it.",
+        "Labels aifmd_risk_metrics as 'Regulatory & Compliance' domain, but the search results give no domain for it."
+      ]
+    },
+    {
+      "case_id": "I:hand:16",
+      "issues": [
+        "The claim that all of these functions are in the Market Risk domain is not supported by the search results, which contain no domain field.",
+        "The question is in Russian, but the answer is in English."
+      ]
+    },
+    {
+      "case_id": "C:gen:07",
+      "issues": [
+        "risk_aversion is the investor's single CRRA coefficient (gamma), but the example passes it as a per-asset object keyed only to EQ, with BOND missing.",
+        "That sample suggests gamma is set per asset and leaves it unclear what BOND's band would use, even though the validator accepted it."
+      ]
+    },
+    {
+      "case_id": "I:hand:02",
+      "issues": [
+        "The category labels (Derivatives & Pricing, ALM & Balance Sheet, Portfolio Analytics) do not appear in any tool result and look invented.",
+        "The function descriptions match the search summaries, and asking which one the visitor means is a reasonable reply to a vague question."
+      ]
+    },
+    {
+      "case_id": "I:hand:03",
+      "issues": [
+        "Says compute_breaches 'does not assign a zone', but its entry lists the green/yellow/red zones in both the description and the formula.",
+        "'Correctly sized' misdescribes combined_backtesting: it tests the breach count and clustering, not breach size."
+      ]
+    },
+    {
+      "case_id": "B:gen:20",
+      "issues": [
+        "The domain labels 'Portfolio Analytics' for concentration_risk_hhi and 'Credit Risk' for credit_concentration_risk_hhi are not in the tool results; search results give only name and summary.",
+        "Calling concentration_risk_hhi a 'portfolio-level version' goes beyond its summary."
+      ]
+    },
+    {
+      "case_id": "D:gen:03",
+      "issues": [
+        "The flat 'no GPU acceleration' claim is not backed by the entry, which says nothing about GPU or performance.",
+        "It should say the documentation does not mention GPU support rather than state it as fact."
+      ]
+    },
+    {
+      "case_id": "B:gen:29",
+      "issues": [
+        "The answer says the test submission was rejected because `breaches` must be an object rather than a plain list, but the tool results only show accepted=false and give no reason.",
+        "Telling the visitor a plain list is invalid input may mislead them, since the parameter type 'object' is generic and no rule excludes a list."
+      ]
+    }
+  ],
+  "by_category": {
+    "A": {
+      "judged": 50,
+      "flagged": 0
+    },
+    "B": {
+      "judged": 35,
+      "flagged": 2
+    },
+    "C": {
+      "judged": 30,
+      "flagged": 1
+    },
+    "D": {
+      "judged": 30,
+      "flagged": 1
+    },
+    "I": {
+      "judged": 30,
+      "flagged": 4
+    },
+    "in_scope": {
+      "judged": 175,
+      "flagged": 8
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}

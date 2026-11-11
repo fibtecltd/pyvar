@@ -1,0 +1,181 @@
+{
+  "kind": "typed",
+  "model": "claude-sonnet-5-5",
+  "writer_model": "claude-sonnet-5-5",
+  "served_models": [
+    "claude-sonnet-5-5"
+  ],
+  "effort": "low",
+  "typed_prompt_version": "t1-2026-11-11",
+  "code": {
+    "commit": "490d288c2ca7371448971c11b31520fae27759cc",
+    "dirty": false,
+    "sha256": {
+      "typed_prompts.py": "5d207b6f3e9a6a9eae89cab0580a66cf8ef388dca6549ec5cd13d69eb7354283",
+      "typed_tools.py": "acdba58fec4344a77a8994c746927ead8d3f2761c243ebdcb5874560474f135e",
+      "graders.py": "666e4cd12a9838b07db36f95e4f14412e6a43bbd8d08af743ee8d61721d80c63",
+      "run_typed.py": "87990feb2389f8448fda8167c7bf9e6be86e0ed83e8a127dadb679b71c13aebd"
+    }
+  },
+  "cases_run": 260,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_category": {
+    "A": {
+      "n": 50,
+      "graded": 50,
+      "grader_pass": 43,
+      "failed_checks": {
+        "mentions_function": 4,
+        "identifiers_known": 2,
+        "shown_values_validated": 1
+      },
+      "status": {
+        "ok": 50
+      },
+      "tool_turns_mean": 1.2,
+      "cost_per_case_usd": 0.010138
+    },
+    "B": {
+      "n": 35,
+      "graded": 35,
+      "grader_pass": 34,
+      "failed_checks": {
+        "names_an_expected_function": 1
+      },
+      "status": {
+        "ok": 35
+      },
+      "tool_turns_mean": 2.03,
+      "cost_per_case_usd": 0.015165
+    },
+    "C": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 10,
+      "failed_checks": {
+        "shown_values_validated": 17,
+        "mentions_function": 5,
+        "identifiers_known": 4,
+        "numbers_supported": 1,
+        "proposal_accepted": 1
+      },
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 2.3,
+      "cost_per_case_usd": 0.017138
+    },
+    "D": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 24,
+      "failed_checks": {
+        "no_support_claim": 5,
+        "identifiers_known": 1
+      },
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.009001
+    },
+    "E": {
+      "n": 25,
+      "graded": 25,
+      "grader_pass": 14,
+      "failed_checks": {
+        "no_advice": 7,
+        "mentions_function": 2,
+        "length_ok": 1,
+        "numbers_supported": 1
+      },
+      "status": {
+        "ok": 25
+      },
+      "tool_turns_mean": 0.8,
+      "cost_per_case_usd": 0.007998
+    },
+    "F": {
+      "n": 20,
+      "graded": 20,
+      "grader_pass": 20,
+      "failed_checks": {},
+      "status": {
+        "ok": 20
+      },
+      "tool_turns_mean": 0,
+      "cost_per_case_usd": 0.003236
+    },
+    "G": {
+      "n": 25,
+      "graded": 24,
+      "grader_pass": 20,
+      "failed_checks": {
+        "no_prompt_text": 2,
+        "length_ok": 1,
+        "identifiers_known": 1,
+        "non_empty": 1
+      },
+      "status": {
+        "ok": 24,
+        "refusal": 1
+      },
+      "tool_turns_mean": 0.8,
+      "cost_per_case_usd": 0.007595
+    },
+    "H": {
+      "n": 15,
+      "graded": 15,
+      "grader_pass": 13,
+      "failed_checks": {
+        "numbers_supported": 2
+      },
+      "status": {
+        "ok": 15
+      },
+      "tool_turns_mean": 1.13,
+      "cost_per_case_usd": 0.010043
+    },
+    "I": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 20,
+      "failed_checks": {
+        "english": 7,
+        "calls_a_lookup_tool": 2,
+        "no_advice": 1,
+        "names_an_expected_function": 1
+      },
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 1.67,
+      "cost_per_case_usd": 0.014577
+    }
+  },
+  "tokens": {
+    "input_tokens": 1018380,
+    "output_tokens": 82759,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "tokens_per_case": {
+    "input_tokens": 3916.8,
+    "output_tokens": 318.3,
+    "cache_read_input_tokens": 0.0,
+    "cache_creation_input_tokens": 0.0
+  },
+  "cost_usd": 2.8643,
+  "cost_per_case_usd": 0.011017,
+  "latency_end_to_end_s": {
+    "p50": 3.7,
+    "p95": 6.87
+  },
+  "latency_per_call_s": {
+    "p50": 1.57,
+    "p95": 2.82
+  }
+}

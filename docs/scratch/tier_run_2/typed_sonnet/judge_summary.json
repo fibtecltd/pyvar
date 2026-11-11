@@ -1,0 +1,119 @@
+{
+  "judged": 175,
+  "unparsed": 0,
+  "faithful": {
+    "n": 175,
+    "rate": 0.9485714285714286,
+    "ci95": [
+      0.905,
+      0.973
+    ]
+  },
+  "useful": {
+    "n": 175,
+    "rate": 0.9942857142857143,
+    "ci95": [
+      0.968,
+      0.999
+    ]
+  },
+  "plausible_values": {
+    "n": 43,
+    "rate": 1.0,
+    "ci95": [
+      0.918,
+      1.0
+    ]
+  },
+  "judge_cost_usd": 1.3378,
+  "flagged": [
+    {
+      "case_id": "I:hand:02",
+      "issues": [
+        "Puts effective_duration in a 'Derivatives & Pricing' category, which no tool result shows."
+      ]
+    },
+    {
+      "case_id": "C:gen:29",
+      "issues": [
+        "The tool results only show accepted: false, with no reason. The claim that the check rejected `returns` because it expects an object is unsupported speculation.",
+        "It gives no usable example for the required `returns` parameter, so the set is incomplete."
+      ]
+    },
+    {
+      "case_id": "C:gen:21",
+      "issues": [
+        "The only rejected attempt changed both parameters at once (a list of lists and n_components=2), so the tool results cannot say which one caused the rejection.",
+        "The answer states as fact that a plain number for n_components was rejected; the checked values do not support this.",
+        "Saying the list-of-lists form itself was rejected is likewise an over-attribution."
+      ]
+    },
+    {
+      "case_id": "B:gen:05",
+      "issues": [
+        "The advice to set annualisation_factor to match the intraday sampling frequency goes beyond the entry. The formula sums squared returns over the whole block, so m scales the block's variance, and scaling by intraday periods per year would likely overstate volatility.",
+        "The rest correctly describes realised_volatility, its formula and its parameters."
+      ]
+    },
+    {
+      "case_id": "B:gen:31",
+      "issues": [
+        "The category label '(Portfolio Analytics)' does not appear in any tool result."
+      ]
+    },
+    {
+      "case_id": "D:gen:07",
+      "issues": [
+        "Flatly states pyvar has no Excel export for calmar_ratio, but the tool results say nothing about export either way.",
+        "Should have said the function entry does not mention export, rather than giving a definitive 'No'."
+      ]
+    },
+    {
+      "case_id": "B:gen:33",
+      "issues": [
+        "The 'ALM & Balance Sheet domain' label and the display name 'FTP Curve Construction' do not appear in any tool result."
+      ]
+    },
+    {
+      "case_id": "I:gen:103",
+      "issues": [
+        "The claim that both functions are in the 'Derivatives & Pricing' domain is not supported by the search results, which contain no domain information.",
+        "Function entries were not retrieved; the descriptions rely only on the search summaries."
+      ]
+    },
+    {
+      "case_id": "B:gen:01",
+      "issues": [
+        "The answer places `effective_duration` in the 'Derivatives & Pricing' domain, but the search results do not give a domain for it."
+      ]
+    }
+  ],
+  "by_category": {
+    "A": {
+      "judged": 50,
+      "flagged": 0
+    },
+    "B": {
+      "judged": 35,
+      "flagged": 4
+    },
+    "C": {
+      "judged": 30,
+      "flagged": 2
+    },
+    "D": {
+      "judged": 30,
+      "flagged": 1
+    },
+    "I": {
+      "judged": 30,
+      "flagged": 2
+    },
+    "in_scope": {
+      "judged": 175,
+      "flagged": 9
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
