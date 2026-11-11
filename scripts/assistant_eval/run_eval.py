@@ -129,6 +129,7 @@ def call_model(
             "stop_reason": response.stop_reason,
             "served": served,
             "latency": latency,
+            "content": list(response.content),  # the blocks themselves, for a tool-use loop
         }
 
 
@@ -282,14 +283,16 @@ def _percentile(values: list[float], q: float) -> float:
     return ordered[min(len(ordered) - 1, int(q * len(ordered)))]
 
 
-def code_provenance(directory: Path = HERE) -> dict[str, Any]:
+def code_provenance(
+    directory: Path = HERE, files: tuple[str, ...] = PROVENANCE_FILES
+) -> dict[str, Any]:
     """Which prompts.py and graders.py produced a run: git commit, uncommitted edits, content hashes.
 
     The hashes need no git, so a run copied off the machine still says which text it used. `commit` is
     the last commit that touched either file (None outside a git checkout); `dirty` is True when either
     file differs from it, in which case the commit alone does not identify the code.
     """
-    paths = [str(directory / name) for name in PROVENANCE_FILES]
+    paths = [str(directory / name) for name in files]
 
     def git(*args: str) -> str | None:
         try:
@@ -310,8 +313,7 @@ def code_provenance(directory: Path = HERE) -> dict[str, Any]:
         "commit": commit,
         "dirty": bool(status) if status is not None else None,
         "sha256": {
-            name: hashlib.sha256((directory / name).read_bytes()).hexdigest()
-            for name in PROVENANCE_FILES
+            name: hashlib.sha256((directory / name).read_bytes()).hexdigest() for name in files
         },
     }
 
