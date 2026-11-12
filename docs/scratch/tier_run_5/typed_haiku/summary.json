@@ -1,0 +1,202 @@
+{
+  "pipeline": true,
+  "served": {
+    "live": 259,
+    "static": 1
+  },
+  "served_in_scope": {
+    "live": 174,
+    "static": 1
+  },
+  "outcomes": {
+    "live": 253,
+    "live_after_retry": 6,
+    "static_grader": 1
+  },
+  "outcomes_in_scope": {
+    "live": 169,
+    "live_after_retry": 5,
+    "static_grader": 1
+  },
+  "static_rate": 0.0038,
+  "static_rate_in_scope": 0.0057,
+  "second_try_rate": 0.0269,
+  "examples_attached": 43,
+  "category_d_live": 30,
+  "category_d_bare_denials": [
+    "D:gen:10",
+    "D:gen:11",
+    "D:gen:22"
+  ],
+  "answers_with_objects_removed": 0,
+  "checks_failed_on_the_way": {
+    "identifiers_known": 6,
+    "numbers_supported": 1,
+    "english": 1,
+    "no_source_claims": 1
+  },
+  "kind": "typed",
+  "model": "claude-haiku-5-5",
+  "writer_model": "claude-haiku-5-5",
+  "served_models": [
+    "claude-haiku-5-5"
+  ],
+  "effort": "low",
+  "typed_prompt_version": "t4-2026-11-12",
+  "code": {
+    "commit": "e68632ab3c735d425e197cc4909c1a0d18b50b68",
+    "dirty": false,
+    "sha256": {
+      "typed_prompts.py": "9f30f8f2aa6b11de3b334e6f2377bdbc1c3dae3ecfd1e0a7f57055c4b66e0929",
+      "tools.py": "20a7336f40e8cdabe3606ebfedacf6738955167ecead24e60174d02b26418101",
+      "typed_graders.py": "d34775a3438a62e41d8e4982ff589cec0999b77c29ab3a0bd5ea77139aad4bdd",
+      "graders.py": "fed79ccb79948c41cfdc0a2760a8eba5eca888b9455d94cd6180f961b2858711",
+      "agent.py": "024c7afe48f0322a5576940b81144e6b408922f4704feb3bb9d6803e3da524a4",
+      "guardrails.py": "cdeffccbdc1d5553950f4e386702e6193d015f1cb6b4a4f6a85106c970f51aac",
+      "scrub.py": "bacb937a3fce56afdc224452f27091be9529e3ae0bcb859d4865e8796ff4f7ad",
+      "client.py": "69b3fe0b719505ded416631fd79a19f07b2eeb94e0169b9e522715020c18efef",
+      "cost.py": "7a14b9737546aad0385e9307b1e365208848c8f30cd11331e430a6bf95624c55",
+      "run_typed.py": "1caf7e62820a587acf6ebc7c38ca7a3957b4273af9a8f19b761df7142bf24edb"
+    }
+  },
+  "cases_run": 260,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_category": {
+    "A": {
+      "n": 50,
+      "graded": 50,
+      "grader_pass": 50,
+      "failed_checks": {},
+      "status": {
+        "ok": 50
+      },
+      "tool_turns_mean": 1.04,
+      "cost_per_case_usd": 0.000516
+    },
+    "B": {
+      "n": 35,
+      "graded": 35,
+      "grader_pass": 35,
+      "failed_checks": {},
+      "status": {
+        "ok": 35
+      },
+      "tool_turns_mean": 2.29,
+      "cost_per_case_usd": 0.000928
+    },
+    "C": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 30,
+      "failed_checks": {},
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 2.03,
+      "cost_per_case_usd": 0.00084
+    },
+    "D": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 26,
+      "failed_checks": {
+        "no_support_claim": 4
+      },
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.000512
+    },
+    "E": {
+      "n": 25,
+      "graded": 25,
+      "grader_pass": 25,
+      "failed_checks": {},
+      "status": {
+        "ok": 25
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.000541
+    },
+    "F": {
+      "n": 20,
+      "graded": 20,
+      "grader_pass": 18,
+      "failed_checks": {
+        "length_ok": 2,
+        "calls_no_tool": 2
+      },
+      "status": {
+        "ok": 20
+      },
+      "tool_turns_mean": 0.2,
+      "cost_per_case_usd": 0.000274
+    },
+    "G": {
+      "n": 25,
+      "graded": 25,
+      "grader_pass": 24,
+      "failed_checks": {
+        "length_ok": 1
+      },
+      "status": {
+        "ok": 25
+      },
+      "tool_turns_mean": 0.6,
+      "cost_per_case_usd": 0.000389
+    },
+    "H": {
+      "n": 15,
+      "graded": 15,
+      "grader_pass": 14,
+      "failed_checks": {
+        "length_ok": 1
+      },
+      "status": {
+        "ok": 15
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.00063
+    },
+    "I": {
+      "n": 30,
+      "graded": 29,
+      "grader_pass": 28,
+      "failed_checks": {
+        "names_an_expected_function": 1
+      },
+      "status": {
+        "ok": 29,
+        "static": 1
+      },
+      "tool_turns_mean": 1.83,
+      "cost_per_case_usd": 0.000871
+    }
+  },
+  "tokens": {
+    "input_tokens": 1134333,
+    "output_tokens": 99482,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "tokens_per_case": {
+    "input_tokens": 4362.8,
+    "output_tokens": 382.6,
+    "cache_read_input_tokens": 0.0,
+    "cache_creation_input_tokens": 0.0
+  },
+  "cost_usd": 0.1632,
+  "cost_per_case_usd": 0.000628,
+  "latency_end_to_end_s": {
+    "p50": 3.11,
+    "p95": 5.53
+  },
+  "latency_per_call_s": {
+    "p50": 1.24,
+    "p95": 2.51
+  }
+}

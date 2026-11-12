@@ -1,0 +1,98 @@
+{
+  "judged": 174,
+  "unparsed": 0,
+  "faithful": {
+    "n": 174,
+    "rate": 0.9770114942528736,
+    "ci95": [
+      0.942,
+      0.991
+    ]
+  },
+  "useful": {
+    "n": 174,
+    "rate": 0.9942528735632183,
+    "ci95": [
+      0.968,
+      0.999
+    ]
+  },
+  "plausible_values": {
+    "n": 42,
+    "rate": 0.9523809523809523,
+    "ci95": [
+      0.842,
+      0.987
+    ]
+  },
+  "judge_cost_usd": 1.4424,
+  "flagged": [
+    {
+      "case_id": "C:gen:19",
+      "issues": [
+        "Says the function 're-prices the bond rather than using a formula'. In fact it takes prices that were re-priced elsewhere and applies D_eff = (P\u2212 \u2212 P+)/(2\u00b7P0\u00b7\u0394y)."
+      ]
+    },
+    {
+      "case_id": "B:gen:21",
+      "issues": [
+        "The example target loss of 5,000,000 is inconsistent with the other inputs. Exposures of about 1M/-0.5M with 2\u20133% factor vols give e'\u03a3e \u2248 5.25e8 (\u03c3 \u2248 22.9k), so the implied scenario magnitude is about 218 standard deviations. That is not a plausible stress scenario."
+      ]
+    },
+    {
+      "case_id": "I:hand:19",
+      "issues": [
+        "The answer claims pyvar does not back implied volatility out of Heston prices, but the tool results do not show this either way.",
+        "The rest is supported: the SABR and Heston parameters and outputs match the entries, and the per-maturity versus whole-surface point is textbook."
+      ]
+    },
+    {
+      "case_id": "A:gen:44",
+      "issues": [
+        "The answer says there are three optional values but lists only two, and the entry has only two (retail_runoff and wholesale_runoff)."
+      ]
+    },
+    {
+      "case_id": "I:hand:04",
+      "issues": [
+        "Lists binomial_tree_option_pricer for American options, but its summary only says 'Cox-Ross-Rubinstein binomial tree option price' and does not show American-exercise support."
+      ]
+    },
+    {
+      "case_id": "C:gen:24",
+      "issues": [
+        "The only example is an empty `report` object, which would fail the required-fields check, so it shows nothing useful in the Try it panel.",
+        "The question asks for concrete values, but the answer gives no sample field names or values (e.g. a 20-character LEI, a 12-character ISIN, positive price and quantity).",
+        "Saying the empty object was 'accepted as valid input' could be misread as the report itself being valid."
+      ]
+    }
+  ],
+  "by_category": {
+    "A": {
+      "judged": 50,
+      "flagged": 1
+    },
+    "B": {
+      "judged": 35,
+      "flagged": 1
+    },
+    "C": {
+      "judged": 30,
+      "flagged": 2
+    },
+    "D": {
+      "judged": 30,
+      "flagged": 0
+    },
+    "I": {
+      "judged": 29,
+      "flagged": 2
+    },
+    "in_scope": {
+      "judged": 174,
+      "flagged": 6
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
