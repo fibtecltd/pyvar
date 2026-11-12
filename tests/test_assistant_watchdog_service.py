@@ -416,15 +416,17 @@ class Recorder:
         self.spent.append(usd)
 
 
-def runner(
-    dog: Watchdog, recorder: Recorder, audit: Callable[..., AuditVerdict], limit: int = 2
-) -> AuditRunner:
-    return AuditRunner(dog, recorder.add_spend, limit, audit=audit)
+def runner(audit: Callable[..., AuditVerdict], limit: int = 2) -> AuditRunner:
+    return AuditRunner(limit, audit=audit)
 
 
-async def run_audit(run: AuditRunner, plan: AuditPlan) -> service.Effects | None:
+async def run_audit(
+    run: AuditRunner, plan: AuditPlan, dog: Watchdog, recorder: Recorder
+) -> service.Effects | None:
     return await run.run(
         plan,
+        watchdog=dog,
+        add_spend=recorder.add_spend,
         client=object(),  # type: ignore[arg-type]  # the stub audit never calls it
         model="claude-opus-5-5",
         question="q",
@@ -446,7 +448,7 @@ async def test_a_background_audit_judges_records_and_adds_the_price_to_the_days_
         seen.update(model=model, **kwargs)
         return verdict(True, cost=0.0082)
 
-    effects = await run_audit(runner(dog, recorder, audit), plan)
+    effects = await run_audit(runner(audit), plan, dog, recorder)
     assert effects is not None and recorder.spent == [0.0082]
     assert redis.lists[fn_key(FN, "hist")] == ["1"]
     assert seen["model"] == "claude-opus-5-5" and seen["answer"] == "a"
@@ -461,7 +463,7 @@ async def test_a_judge_that_fails_refunds_the_reservation_and_records_nothing() 
         raise RuntimeError("provider down")
 
     before = counter(metrics.AUDITS, result="error", pool="coverage")
-    assert await run_audit(runner(dog, recorder, audit), plan) is None
+    assert await run_audit(runner(audit), plan, dog, recorder) is None
     assert int(redis.strings[key("spent", DAY, "coverage")]) == 0
     assert recorder.spent == [] and fn_key(FN, "hist") not in redis.lists
     assert counter(metrics.AUDITS, result="error", pool="coverage") == before + 1
@@ -477,11 +479,11 @@ async def test_audits_beyond_the_per_task_limit_are_skipped_and_refunded_not_que
         time.sleep(0.05)
         return verdict(False)
 
-    run = runner(dog, recorder, slow, limit=1)
+    run = runner(slow, limit=1)
     first, second = await plan_for(dog, FN), await plan_for(dog, FN)
-    task = asyncio.create_task(run_audit(run, first))
+    task = asyncio.create_task(run_audit(run, first, dog, recorder))
     await asyncio.sleep(0.01)  # the first audit is now in its worker thread
-    skipped = await run_audit(run, second)
+    skipped = await run_audit(run, second, dog, recorder)
     await task
     assert skipped is None
     assert int(redis.strings[key("spent", DAY, "coverage")]) == round(
@@ -494,7 +496,7 @@ async def test_the_audit_never_raises_into_the_answer_path_when_redis_is_down() 
     recorder = Recorder()
     plan = await plan_for(dog, FN)
     redis.fail = True
-    effects = await run_audit(runner(dog, recorder, lambda *a, **k: verdict(True)), plan)
+    effects = await run_audit(runner(lambda *a, **k: verdict(True)), plan, dog, recorder)
     assert effects == service.Effects()  # record() failed open; the judge's price was still added
     assert recorder.spent == [0.0081]
 

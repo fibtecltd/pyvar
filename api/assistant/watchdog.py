@@ -48,7 +48,7 @@ import asyncio
 import datetime as dt
 import json
 import random
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -213,6 +213,12 @@ class Watchdog:
         except Exception as exc:  # noqa: BLE001
             self._failed("pinned_among", exc)
             return ()
+
+    async def not_pinned(self, functions: Sequence[str]) -> tuple[str, ...]:
+        """`functions` without the pinned ones, in order and without repeats. Fails open (all are kept)."""
+        names = tuple(dict.fromkeys(functions))
+        pinned = set(await self.pinned_among(names))
+        return tuple(n for n in names if n not in pinned)
 
     # ── after the answer: count it, decide, reserve ──────────────────────────────────────────────────
 
@@ -483,18 +489,15 @@ class Watchdog:
 
 
 class AuditRunner:
-    """Runs audits in the background, a few at a time per API task, holding the text only in memory."""
+    """Runs audits in the background, a few at a time per API task, holding the text only in memory.
+
+    One instance per process: it only counts how many audits are running, so the per-request watchdog and the
+    spend recorder are passed to `run`.
+    """
 
     def __init__(
-        self,
-        watchdog: Watchdog,
-        add_spend: Callable[[float], Any],
-        max_concurrent: int,
-        *,
-        audit: Callable[..., AuditVerdict] = audit_answer,
+        self, max_concurrent: int, *, audit: Callable[..., AuditVerdict] = audit_answer
     ) -> None:
-        self._watchdog = watchdog
-        self._add_spend = add_spend
         self._limit = max(1, max_concurrent)
         self._running = 0
         self._audit = audit
@@ -503,6 +506,8 @@ class AuditRunner:
         self,
         plan: AuditPlan,
         *,
+        watchdog: Watchdog,
+        add_spend: Callable[[float], Awaitable[Any]],
         client: ModelClient,
         model: str,
         question: str,
@@ -519,7 +524,7 @@ class AuditRunner:
         """
         if self._running >= self._limit:
             metrics.AUDITS.labels(result="skipped_busy", pool=plan.pool).inc()
-            await self._watchdog.release(plan)
+            await watchdog.release(plan)
             return None
         self._running += 1
         try:
@@ -537,10 +542,59 @@ class AuditRunner:
         except Exception as exc:  # noqa: BLE001 — the judge failed; the visitor never knows
             metrics.AUDITS.labels(result="error", pool=plan.pool).inc()
             logger.warning("assistant_audit_failed", error=type(exc).__name__)
-            await self._watchdog.release(plan)
+            await watchdog.release(plan)
             return None
         finally:
             self._running -= 1
         metrics.AUDIT_COST_USD.inc(verdict.cost)
-        await self._add_spend(verdict.cost)
-        return await self._watchdog.record(plan, verdict)
+        try:
+            await add_spend(verdict.cost)
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001 — AssistantStore.add_spend fails open itself; belt and braces
+            logger.warning("assistant_audit_spend_not_recorded", error=type(exc).__name__)
+        return await watchdog.record(plan, verdict)
+
+
+async def audit_after(
+    *,
+    watchdog: Watchdog,
+    runner: AuditRunner,
+    add_spend: Callable[[float], Awaitable[Any]],
+    client: ModelClient,
+    model: str,
+    question: str,
+    page_function: str | None,
+    answer_text: str,
+    evidence: Evidence,
+    attached: Mapping[str, Any] | None,
+    writer: str,
+    writer_probe: bool,
+    by_name: Mapping[str, dict[str, Any]],
+) -> None:
+    """The background task of one live answer: decide, then audit. Never raises.
+
+    The decision is taken here, a moment after the response left, from the same counts and draws it would use
+    in the request path; the question and the answer live only in this call.
+    """
+    try:
+        fetched = await watchdog.not_pinned(evidence.records)
+        plan = await watchdog.plan(functions=fetched, writer=writer, writer_probe=writer_probe)
+        if plan is None:
+            return
+        await runner.run(
+            plan,
+            watchdog=watchdog,
+            add_spend=add_spend,
+            client=client,
+            model=model,
+            question=question,
+            page_function=page_function,
+            answer=answer_text,
+            evidence=evidence,
+            attached=attached,
+            by_name=by_name,
+        )
+    except Exception as exc:  # noqa: BLE001 — a background task must not surface anywhere
+        metrics.WATCHDOG_ERRORS.labels(op="audit_after").inc()
+        logger.warning("assistant_watchdog_error", op="audit_after", error=type(exc).__name__)

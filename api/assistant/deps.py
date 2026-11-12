@@ -33,8 +33,11 @@ from api.assistant.store import (
     get_store,
     seconds_until_utc_midnight,
 )
-from assistant import tools
+from api.assistant.watchdog import AuditRunner, Watchdog, WatchdogConfig
+from api.assistant_bank import BANK_DIR
+from assistant import bank, tools
 from assistant.client import AnthropicClient, ModelCallError, ModelClient
+from assistant.watchdog import Rules
 from config import get_settings
 
 cfg = get_settings()
@@ -46,6 +49,7 @@ MODEL_TIERS = ("haiku", "sonnet", "opus", "fable")
 _client: ModelClient | None = None
 _catalogue: list[dict[str, Any]] | None = None
 _inflight = 0
+_runner: AuditRunner | None = None
 
 
 def refuse(
@@ -136,3 +140,48 @@ async def limit_concurrency() -> AsyncIterator[None]:
     finally:
         _inflight -= 1
         metrics.INFLIGHT.set(_inflight)
+
+
+def bank_namespace() -> str:
+    """The committed bank's version, which namespaces every function's watchdog state ("none" without one).
+
+    A catalogue release builds a new bank with a new version, so every function's window and pin start afresh
+    instead of the long tail being pinned together (plan section 13).
+    """
+    manifest = bank.read_manifest(BANK_DIR) or {}
+    version = str(manifest.get("bank_version", ""))
+    return version if version and set(version) <= bank.SAFE_VERSION_CHARS else "none"
+
+
+def watchdog_config() -> WatchdogConfig:
+    """The watchdog's numbers from the settings."""
+    return WatchdogConfig(
+        budget_usd=cfg.assistant_audit_budget_usd_day,
+        coverage_share=cfg.assistant_audit_coverage_share,
+        verdict_usd=cfg.assistant_audit_verdict_usd,
+        probe_share=cfg.assistant_degrade_probe_share,
+        rules=Rules(
+            allowance=cfg.assistant_cusum_allowance,
+            threshold=cfg.assistant_cusum_threshold,
+            pin_days=cfg.assistant_pin_days,
+            pin_days_max=cfg.assistant_pin_days * 4,
+        ),
+    )
+
+
+def get_watchdog(store: AssistantStore = Depends(get_store)) -> Watchdog | None:
+    """The watchdog for this request, or None while `assistant_watchdog_enabled` is off.
+
+    Built per request because it holds nothing but the Redis handle and the numbers; a test overrides it.
+    """
+    if not cfg.assistant_watchdog_enabled:
+        return None
+    return Watchdog(store.client, watchdog_config(), bank_namespace())
+
+
+def get_audit_runner() -> AuditRunner:
+    """The process-wide audit runner (it counts the audits running on this API task)."""
+    global _runner
+    if _runner is None:
+        _runner = AuditRunner(cfg.assistant_audit_max_concurrent)
+    return _runner

@@ -10,6 +10,35 @@ from __future__ import annotations
 from typing import Any
 
 
+class _FakePipeline:
+    """The transaction AssistantStore.add_spend opens: incrby and expire, applied on execute."""
+
+    def __init__(self, redis: FakeWatchRedis) -> None:
+        self.redis, self.ops = redis, []
+
+    async def __aenter__(self) -> _FakePipeline:
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        return None
+
+    def incrby(self, key: str, amount: int) -> _FakePipeline:
+        self.ops.append(("incrby", key, amount))
+        return self
+
+    def expire(self, key: str, seconds: int) -> _FakePipeline:
+        self.ops.append(("expire", key, seconds))
+        return self
+
+    async def execute(self) -> list[Any]:
+        for op, key, value in self.ops:
+            if op == "incrby":
+                await self.redis.incrby(key, value)
+            else:
+                await self.redis.expire(key, value)
+        return [True] * len(self.ops)
+
+
 class FakeWatchRedis:
     def __init__(self) -> None:
         self.strings: dict[str, str] = {}
@@ -98,6 +127,9 @@ class FakeWatchRedis:
         keep = bucket[start:] if start < 0 and stop == -1 else bucket[start : stop + 1]
         self.lists[key] = keep
         return True
+
+    def pipeline(self, transaction: bool = True) -> _FakePipeline:
+        return _FakePipeline(self)
 
     def all_keys(self) -> set[str]:
         return set(self.strings) | set(self.hashes) | set(self.lists)

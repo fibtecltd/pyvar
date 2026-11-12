@@ -94,6 +94,12 @@ GENERIC_TEXT = (
     "the portal (/), or ask about one function by name."
 )
 
+# Outcomes of an answer the WATCHDOG replaced with fixed text (api/assistant/watchdog.py): the function the
+# visitor asked about, or one the live answer cited, is pinned; or the writer is degraded.
+OUTCOME_PINNED = "static_pinned"
+OUTCOME_DEGRADED = "static_degraded"
+SUGGESTIONS = 3
+
 ExtraCheck = Callable[[str, str, ToolBox], list[str]]
 
 
@@ -188,6 +194,84 @@ def static_text(
     return (
         f"I couldn't give you a reliable answer to that, so here is what pyvar says about "
         f"`{function}`.\n\n{body}\n\nSee it in the catalogue: /{entry['domain_page']}#{function}"
+    )
+
+
+def suggestion_lines(catalogue: list[dict[str, Any]], question: str) -> list[tuple[str, str]]:
+    """Up to SUGGESTIONS catalogue functions closest to the question, as (name, one line about each).
+
+    The same word-overlap search the live agent's tool uses, with no model. Nothing of the question is echoed.
+    """
+    cleaned, _ = scrub_secrets(question)
+    hits = ToolBox(catalogue).search_functions({"query": cleaned})["results"][:SUGGESTIONS]
+    by_name = {e["name"]: e for e in catalogue}
+    return [
+        (
+            h["name"],
+            f"- `{h['name']}` ({h['display_name']}): {h['summary']} "
+            f"(/{by_name[h['name']]['domain_page']}#{h['name']})",
+        )
+        for h in hits
+    ]
+
+
+def static_answer(
+    question: str,
+    *,
+    catalogue: list[dict[str, Any]],
+    page_function: str | None,
+    bank_dir: Path | None,
+    outcome: str,
+    with_suggestions: bool = False,
+) -> Answer:
+    """An Answer made only of fixed text, for a question the watchdog will not give to a live model.
+
+    Args:
+        question: the visitor's question (used only to look up suggestions; never echoed).
+        catalogue: the entries of portal/functions.json.
+        page_function: the function page the visitor is on, or the pinned function to describe; anything not
+            in the catalogue is ignored.
+        bank_dir: the answer bank's root, or None.
+        outcome: `OUTCOME_PINNED` or `OUTCOME_DEGRADED`.
+        with_suggestions: add the closest functions to the question (the degraded writer's answer).
+
+    Returns:
+        An Answer with `source: "static"`, no model call and no cost.
+    """
+    by_name = {e["name"]: e for e in catalogue}
+    page = page_function if page_function in by_name else None
+    names: list[str] = [page] if page else []
+    if page:
+        body = static_text(by_name, page, bank_dir)
+    else:
+        body = (
+            "The assistant can't answer typed questions reliably right now."
+            if with_suggestions
+            else GENERIC_TEXT
+        )
+    if with_suggestions:
+        lines = suggestion_lines(catalogue, question)
+        if lines:
+            heading = "These functions look closest to what you asked:"
+            body = f"{body}\n\n{heading}\n" + "\n".join(line for _, line in lines)
+            names += [n for n, _ in lines if n not in names]
+        elif not page:
+            body = GENERIC_TEXT
+    return Answer(
+        text=body,
+        source=STATIC,
+        outcome=outcome,
+        functions=tuple(names[:5]),
+        suggested_parameters=None,
+        tries=0,
+        model_calls=0,
+        tool_turns=0,
+        cost=0.0,
+        latency_s=0.0,
+        served="",
+        failures=(),
+        scrubbed=0,
+        usage={},
     )
 
 
