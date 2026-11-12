@@ -386,3 +386,41 @@ def test_no_question_or_answer_text_reaches_a_log_line(
         "event", "log_level", "outcome", "source", "tries", "model_calls", "tool_turns", "cost_usd",
         "latency_s", "failures", "functions", "scrubbed", "model", "error",
     }  # fmt: skip
+
+
+# ── the evidence the measurement harness reads ───────────────────────────────────────────────────────────
+
+
+def test_the_answer_carries_the_names_and_calls_the_tools_produced_and_no_tool_text(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    search = ("search_functions", {"query": "historical simulation value at risk"})
+    client = ScriptedClient(tool_reply(search, GET), text_reply(good_answer(by_name)))
+    answer = ask(client, catalogue)
+    evidence = answer.evidence
+    assert [c["name"] for c in evidence.tool_calls] == ["search_functions", "get_function"]
+    assert all(c["ok"] for c in evidence.tool_calls)
+    assert evidence.records == (FUNCTION,) and FUNCTION in evidence.search_hits
+    assert evidence.proposals == ()
+    assert all(isinstance(name, str) and name in by_name for name in evidence.search_hits)
+    json.dumps(
+        {"calls": evidence.tool_calls, "records": evidence.records}
+    )  # plain data, no tool result text
+
+
+def test_a_static_answer_after_tool_use_still_carries_what_the_tools_returned(
+    catalogue: list[dict[str, Any]],
+) -> None:
+    client = ScriptedClient(tool_reply(GET), text_reply(BAD_DRAFT), text_reply(BAD_DRAFT))
+    answer = ask(client, catalogue)
+    assert answer.source == "static" and answer.evidence.records == (FUNCTION,)
+
+
+def test_no_model_call_means_empty_evidence(
+    catalogue: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(guardrails, "has_secret", lambda text: True)  # the safety net fires
+    client = ScriptedClient()
+    answer = ask(client, catalogue)
+    assert (answer.outcome, answer.model_calls) == ("static_secret", 0) and client.calls == []
+    assert answer.evidence == guardrails.Evidence()

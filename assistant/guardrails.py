@@ -80,6 +80,27 @@ ExtraCheck = Callable[[str, str, ToolBox], list[str]]
 
 
 @dataclass(frozen=True)
+class Evidence:
+    """What the tools returned for one question, as names and the model's own calls, never tool text.
+
+    The measurement harness (scripts/assistant_eval/run_typed.py) grades and judges the served answer against
+    exactly this evidence, so it needs it without re-running anything. The gateway ignores it. Nothing here is
+    logged.
+
+    Attributes:
+        tool_calls: every tool call as {"name", "input", "ok"}.
+        records: names of the functions `get_function` returned.
+        search_hits: names of the functions `search_functions` returned.
+        proposals: every `propose_parameters` call as {"name", "values", "ok"}.
+    """
+
+    tool_calls: tuple[dict[str, Any], ...] = ()
+    records: tuple[str, ...] = ()
+    search_hits: tuple[str, ...] = ()
+    proposals: tuple[dict[str, Any], ...] = ()
+
+
+@dataclass(frozen=True)
 class Answer:
     """The guarded answer to one question.
 
@@ -99,6 +120,7 @@ class Answer:
         failures: names of the checks that failed on the way (never text).
         scrubbed: key-like strings removed from the question.
         usage: token counts, all calls.
+        evidence: what the tools returned (names and calls); empty when no model was called.
     """
 
     text: str
@@ -115,6 +137,7 @@ class Answer:
     failures: tuple[str, ...]
     scrubbed: int
     usage: dict[str, int]
+    evidence: Evidence = Evidence()
 
 
 def bank_text(bank_dir: Path | None, function: str) -> str | None:
@@ -288,6 +311,16 @@ def answer_question(
             failures=tuple(dict.fromkeys(failures or [])),
             scrubbed=scrubbed,
             usage=dict(agent.usage) if agent else {},
+            evidence=(
+                Evidence(
+                    tool_calls=tuple(dict(c) for c in box.calls),
+                    records=tuple(sorted(box.records)),
+                    search_hits=tuple(sorted(box.search_hits)),
+                    proposals=tuple(dict(p) for p in box.proposals),
+                )
+                if box
+                else Evidence()
+            ),
         )
         logger.info(
             "typed_answer",
@@ -370,4 +403,4 @@ def answer_question(
     )
 
 
-__all__ = ["Answer", "ExtraCheck", "answer_question", "bank_text", "static_text"]
+__all__ = ["Answer", "Evidence", "ExtraCheck", "answer_question", "bank_text", "static_text"]

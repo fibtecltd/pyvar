@@ -18,7 +18,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   question or answer text in any log line or metric. The question scrub now also removes email
   addresses and long base64 runs. New runtime dependency `anthropic==2.6.0` (imported only by
   `assistant/client.py`). Design and status: `docs/assistant-plan-implementation.md`,
-  `docs/assistant-phase0-results.md` 9.25.
+  `docs/assistant-phase0-results.md` 9.25. The typed measurement harness
+  (`scripts/assistant_eval/run_typed.py`) now runs the shipped `answer_question` pipeline by default
+  (`--raw` keeps the first run's loop), so the next measurement run tests the code that ships (9.26).
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

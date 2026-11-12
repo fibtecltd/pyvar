@@ -262,6 +262,10 @@ AWS:        CELERY_BROKER_URL = sqs://
   quiet downgrade). Typed replies are English-only (decided 2026-11-12).
 - Tests use the scripted client (tests/assistant_typed_fakes.py) and dependency_overrides for the
   model client and the store; no test calls a model, Redis or AWS.
+- The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
+  change under assistant/ changes what the next paid run measures. Do not re-implement the answer
+  path in the harness; do not start a paid run from a session without being asked (caps are per
+  command, see docs/assistant-plan-tier-measurement.md).
 ```
 
 ---

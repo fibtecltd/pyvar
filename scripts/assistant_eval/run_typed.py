@@ -15,10 +15,23 @@ Reasoning (plan 1, section 3 item 5; the rules are run_eval.py's, applied to a t
 - Latency is reported per call and end to end (sum of the successful calls plus local tool time); time to
   first token is not measurable with the non-streaming client.
 
+Two ways to run a case against a model:
+- the PIPELINE (the default, `run_case_pipeline`): each question goes through
+  `assistant.guardrails.answer_question`, the function the gateway calls, with the production client, caps
+  (`DEFAULT_MAX_USD`, `DEFAULT_MAX_SECONDS`), checks, one retry and static fallback. Nothing about the answer
+  path is re-implemented here, so the run measures the shipped code. A served answer is "live" (the model's
+  text, which passed the production checks) or "static" (fixed text). Only live answers are graded against the
+  case's expectation and judged; static answers are counted, by outcome. An infrastructure failure (the client
+  gave up, a served-model mismatch, an auth or billing error) is an error row, never a static answer that
+  would hide it.
+- the RAW loop (`--raw`, `run_case`): the first run's harness (no guardrails, no retry), kept so its numbers can be
+  reproduced.
+
 Usage:
     python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --oracle   # no API
     python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --null     # no API
-    python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --model claude-haiku-5-5 --max-usd 0.3
+    python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --model claude-haiku-5-5 --max-usd 0.4
+    python scripts/assistant_eval/run_typed.py --cases typed_cases.jsonl --out DIR --raw --model claude-haiku-5-5 --max-usd 0.4
 """
 
 from __future__ import annotations
@@ -41,6 +54,7 @@ from cost import usage_cost
 from prompts import EFFORT
 from run_eval import (
     EFFORT_LEVELS,
+    REPO,
     USAGE_KEYS,
     Budget,
     CaseTimeout,
@@ -59,6 +73,15 @@ from typed_prompts import (
 )
 from typed_tools import ToolBox, load_catalogue, trim_record
 
+from assistant.agent import DEFAULT_MAX_SECONDS, DEFAULT_MAX_USD
+from assistant.client import (
+    DEFAULT_TIMEOUT_S,
+    AnthropicClient,
+    ModelCallError,
+    ModelClient,
+    Reply,
+)
+from assistant.guardrails import answer_question
 from assistant.typed_graders import grade_typed
 
 # the kernel files are read from assistant/ (run_eval.code_provenance); run_typed.py from this directory
@@ -67,8 +90,15 @@ PROVENANCE_FILES = (
     "tools.py",
     "typed_graders.py",
     "graders.py",
+    "agent.py",
+    "guardrails.py",
+    "scrub.py",
+    "client.py",
+    "cost.py",
     "run_typed.py",
 )
+BANK_DIR = REPO / "portal" / "assistant" / "bank"
+STATIC_STATUS = "static"
 
 
 def block_to_dict(block: Any) -> dict[str, Any]:
@@ -245,6 +275,159 @@ def run_case(
     return "result", row
 
 
+class RecordingClient:
+    """Wraps a `ModelClient` and remembers what the pipeline did with it, for one case.
+
+    The pipeline (`answer_question`) turns a client failure into static text, which is right for a visitor and
+    wrong for a measurement: an outage must not look like a model that declined. So the harness keeps the
+    exception that ended a call, the replies (latency per call) and the last request, from which the trace is
+    rebuilt. One instance per case; not shared between threads.
+    """
+
+    def __init__(self, inner: ModelClient) -> None:
+        self.inner = inner
+        self.replies: list[Reply] = []
+        self.last_request: dict[str, Any] | None = None
+        self.error: ModelCallError | None = None
+
+    def complete(self, model: str, request: dict[str, Any]) -> Reply:
+        self.last_request = request
+        try:
+            reply = self.inner.complete(model, request)
+        except ModelCallError as exc:
+            self.error = exc
+            raise
+        self.replies.append(reply)
+        return reply
+
+    def trace(self) -> list[dict[str, Any]]:
+        """The conversation of the last call (every earlier turn is in its request) plus its reply."""
+        if self.last_request is None:
+            return []
+        turns = [
+            {"role": m["role"], "content": m["content"]} for m in self.last_request["messages"]
+        ]
+        if self.replies and self.replies[-1].content:
+            turns.append({"role": "assistant", "content": list(self.replies[-1].content)})
+        return turns
+
+
+def error_class(client: RecordingClient) -> str:
+    """Why a client gave up: auth_or_billing (401, 403, a credit or billing message), served_model_mismatch,
+    or api_error (anything else, after the client's own retries)."""
+    exc = client.error
+    if type(exc).__name__ == "ServedModelMismatch":  # assistant.client's class, not run_eval's
+        return "served_model_mismatch"
+    cause = exc.__cause__ if exc is not None else None
+    status = getattr(cause, "status_code", None)
+    text = str(cause).lower()
+    if status in (401, 402, 403) or "credit" in text or "billing" in text:
+        return "auth_or_billing"
+    return "api_error"
+
+
+ClientFactory = Callable[[Callable[[float], None]], ModelClient]
+
+
+def run_case_pipeline(
+    make_client: ClientFactory,
+    case: dict[str, Any],
+    model: str,
+    rep: int,
+    *,
+    catalogue: list[dict[str, Any]],
+    budget: Budget,
+    bank_dir: Path | None = BANK_DIR,
+    max_usd: float = DEFAULT_MAX_USD,
+    max_seconds: float = DEFAULT_MAX_SECONDS,
+    effort: str = EFFORT,
+    sleep: Callable[[float], None] = time.sleep,
+) -> tuple[str, dict[str, Any]]:
+    """Run one (case, rep) through `answer_question`. Returns ("result" | "error" | "skipped", row).
+
+    Args:
+        make_client: builds the model client for this case, given the sleeper to use between retries (the
+            harness passes one that counts them); a test passes a scripted client.
+        case, model, rep: as in `run_case`.
+        catalogue, budget: as in `run_case`; the budget is charged the whole answer's cost afterwards.
+        bank_dir: the bank the static text is read from (the committed one by default).
+        max_usd, max_seconds: the per-question caps; the production defaults, so the run measures them.
+        effort: the `output_config.effort` level.
+        sleep: the real sleeper that the counting sleeper calls.
+
+    A "result" row has `status` "ok" for a live answer (graded against the case) and "static" for fixed
+    text (not graded: it is not model text). An error row means the provider failed for good.
+    """
+    if budget.exhausted():
+        return "skipped", {"case_id": case["id"], "rep": rep, "reason": "spend cap reached"}
+    started = time.monotonic()
+    retries = [0]
+
+    def counting_sleep(seconds: float) -> None:
+        retries[0] += 1
+        sleep(seconds)
+
+    client = RecordingClient(make_client(counting_sleep))
+    try:
+        answer = answer_question(
+            client,
+            model,
+            case["question"],
+            catalogue=catalogue,
+            page_function=case.get("page_function"),
+            bank_dir=bank_dir,
+            max_usd=max_usd,
+            max_seconds=max_seconds,
+            effort=effort,
+        )
+    except (
+        Exception
+    ) as exc:  # noqa: BLE001 - recorded with its class, never scored as a model failure
+        return "error", _error_row(case, rep, model, "api_error", exc, retries[0])
+    budget.add(answer.cost)
+    if answer.outcome == "static_error":  # the client gave up: an outage, not an answer
+        exc = client.error or ModelCallError("model call failed")
+        return "error", _error_row(case, rep, model, error_class(client), exc, retries[0])
+
+    live = answer.source == "live"
+    last = client.replies[-1] if client.replies else None
+    wall = time.monotonic() - started
+    row: dict[str, Any] = {
+        "case_id": case["id"],
+        "rep": rep,
+        "category": case["category"],
+        "in_scope": case["in_scope"],
+        "model": model,
+        "served_model": answer.served or model,
+        "status": "ok" if live else STATIC_STATUS,
+        "stop_reason": last.stop_reason if last else None,
+        "text": answer.text,
+        "grade": None,
+        "source": answer.source,
+        "outcome": answer.outcome,
+        "tries": answer.tries,
+        "failures": list(answer.failures),
+        "functions": list(answer.functions),
+        "scrubbed": answer.scrubbed,
+        "tool_turns": answer.tool_turns,
+        "tool_calls": [dict(c) for c in answer.evidence.tool_calls],
+        "records_seen": list(answer.evidence.records),
+        "search_hits": list(answer.evidence.search_hits),
+        "proposals": [dict(p) for p in answer.evidence.proposals],
+        "model_calls": answer.model_calls,
+        "usage": {k: int(answer.usage.get(k, 0)) for k in USAGE_KEYS},
+        "cost_usd": answer.cost,
+        "call_latencies_s": [round(r.latency, 3) for r in client.replies],
+        "latency_s": wall,  # what a visitor waits: retries and sleeps included
+        "wall_s": wall,
+        "retries": retries[0],
+        "trace": client.trace(),
+    }
+    if live:
+        row["grade"] = grade_row(case, row, {e["name"]: e for e in catalogue})
+    return "result", row
+
+
 def run_offline(
     case: dict[str, Any], rep: int, kind: str, catalogue: list[dict[str, Any]]
 ) -> tuple[str, dict[str, Any]]:
@@ -285,6 +468,41 @@ def run_offline(
     return "result", row
 
 
+def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """What only a pipeline run has: how answers were served, and why some fell back to static text.
+
+    Empty for a raw or offline run (their rows have no `source`). `first_draft_failures` counts, by check name,
+    the checks that failed on the way (the first draft, and the retry if there was one), over all rows.
+    """
+    piped = [r for r in rows if "source" in r]
+    if not piped:
+        return {}
+    in_scope = [r for r in piped if r["in_scope"]]
+    failures: dict[str, int] = {}
+    for r in piped:
+        for name in r["failures"]:
+            failures[name] = failures.get(name, 0) + 1
+
+    def counts(group: list[dict[str, Any]], key: str) -> dict[str, int]:
+        return {v: sum(1 for r in group if r[key] == v) for v in sorted({r[key] for r in group})}
+
+    return {
+        "pipeline": True,
+        "served": counts(piped, "source"),
+        "served_in_scope": counts(in_scope, "source"),
+        "outcomes": counts(piped, "outcome"),
+        "outcomes_in_scope": counts(in_scope, "outcome"),
+        "static_rate": round(sum(1 for r in piped if r["source"] == "static") / len(piped), 4),
+        "static_rate_in_scope": (
+            round(sum(1 for r in in_scope if r["source"] == "static") / len(in_scope), 4)
+            if in_scope
+            else 0.0
+        ),
+        "second_try_rate": round(sum(1 for r in piped if r["tries"] >= 2) / len(piped), 4),
+        "checks_failed_on_the_way": dict(sorted(failures.items(), key=lambda kv: -kv[1])),
+    }
+
+
 def summarize(
     rows: list[dict[str, Any]],
     errors: list[dict[str, Any]],
@@ -319,6 +537,7 @@ def summarize(
     calls = [x for r in rows for x in r["call_latencies_s"]]
     totals = {k: sum(r["usage"][k] for r in rows) for k in USAGE_KEYS}
     return {
+        **pipeline_block(rows),
         "kind": "typed",
         "model": model,
         "writer_model": model,
@@ -387,8 +606,25 @@ def main() -> int:
     parser.add_argument("--categories", default=None, help="comma-separated, from A to I")
     parser.add_argument("--effort", default=EFFORT, choices=EFFORT_LEVELS)
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--case-timeout", type=float, default=240.0)
+    parser.add_argument("--case-timeout", type=float, default=240.0, help="raw loop only")
     parser.add_argument("--max-usd", type=float, default=5.0, help="hard spend cap for this run")
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="the first run's loop (no guardrails, no retry) instead of the shipped pipeline",
+    )
+    parser.add_argument(
+        "--case-max-usd",
+        type=float,
+        default=DEFAULT_MAX_USD,
+        help="pipeline: dollars one question may spend (default: the production cap)",
+    )
+    parser.add_argument(
+        "--case-max-seconds",
+        type=float,
+        default=DEFAULT_MAX_SECONDS,
+        help="pipeline: seconds one question may take (default: the production cap)",
+    )
     parser.add_argument(
         "--oracle",
         action="store_true",
@@ -421,19 +657,29 @@ def main() -> int:
     if offline is None:
         import anthropic  # imported late: the tests and the offline baselines need no SDK
 
-        client = anthropic.Anthropic(max_retries=0, timeout=90.0)
+        client = anthropic.Anthropic(max_retries=0, timeout=90.0 if args.raw else DEFAULT_TIMEOUT_S)
+
+    def make_client(sleep: Callable[[float], None]) -> ModelClient:
+        # the production client over the one SDK client: same retries, served-model check and cost
+        return AnthropicClient(sdk_client=client, sleep=sleep)
+
     budget = Budget(args.max_usd)
     lock = threading.Lock()
     errors: list[dict[str, Any]] = []
     skipped = 0
+    stop = (
+        threading.Event()
+    )  # set on an auth or billing error: every later case is skipped, not retried
 
     def work(job: tuple[dict[str, Any], int]) -> None:
         nonlocal skipped
         case, rep = job
-        kind, row = (
-            run_offline(case, rep, offline, catalogue)
-            if offline
-            else run_case(
+        if offline:
+            kind, row = run_offline(case, rep, offline, catalogue)
+        elif stop.is_set():
+            kind, row = "skipped", {"case_id": case["id"], "rep": rep, "reason": "stopped"}
+        elif args.raw:
+            kind, row = run_case(
                 client,
                 case,
                 args.model,
@@ -443,7 +689,20 @@ def main() -> int:
                 case_timeout_s=args.case_timeout,
                 effort=args.effort,
             )
-        )
+        else:
+            kind, row = run_case_pipeline(
+                make_client,
+                case,
+                args.model,
+                rep,
+                catalogue=catalogue,
+                budget=budget,
+                max_usd=args.case_max_usd,
+                max_seconds=args.case_max_seconds,
+                effort=args.effort,
+            )
+        if kind == "error" and row["failure_class"] == "auth_or_billing":
+            stop.set()
         with lock:
             if kind == "result":
                 safe = case["id"].replace(":", "__").replace("/", "_")
