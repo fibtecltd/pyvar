@@ -72,6 +72,36 @@ _SUPPORT_VERB = re.compile(
 _FENCE = re.compile(r"```[A-Za-z0-9_-]*[ \t]*\n(.*?)\n?```", re.DOTALL)
 
 
+# A flat denial of a capability in the first two sentences ("No, ...", "X does not offer / support ...", "X has no
+# ... option") and, anywhere in the answer, the words that ground or hedge it ("nothing in them covers", "none of
+# its inputs", "does not appear", "not a parameter"). results 9.29: a DIAGNOSTIC only. As a gate the same pair of
+# patterns fired on 23 of 30 (Haiku) and 27 of 30 (Sonnet) category D answers of run D, and on declines in
+# categories E, G and H ("pyvar doesn't offer investment guidance"), so it was not made a check. The harness counts
+# it on category D, to show whether the t4 prompt rule removed the bare "No" that Opus flagged four times.
+_DENIAL = re.compile(
+    r"^\W*no\b|\b(?:does not|doesn't|do not|don't|cannot|can't)\s+(?:offer|support|provide|include|have)\b"
+    r"|\b(?:has|have|offers|provides|supports) no\b"
+    r"|\bno\s+(?:[\w`-]+\s+){0,3}(?:option|support|feature|capability)\b"
+    r"|\bnot (?:offered|supported|available)\b",
+    re.IGNORECASE,
+)
+_GROUNDING = re.compile(
+    r"\b(?:appears?|seems?|nothing in|nothing among|none of|show(?:s)? no|shows nothing"
+    r"|no (?:input|parameter|argument)s?\b|not (?:a|an) (?:input|parameter|argument)\b"
+    r"|(?:input|parameter|argument)s? (?:named|called))\b",
+    re.IGNORECASE,
+)
+
+
+def bare_denial(answer: str) -> bool:
+    """True if the answer opens with a flat denial of a capability and nothing in it grounds or hedges the denial.
+
+    A diagnostic for the harness (see above), not a grader check: it also matches legitimate declines.
+    """
+    head = " ".join(graders._sentences(answer.strip())[:2])
+    return bool(_DENIAL.search(head)) and not _GROUNDING.search(answer)
+
+
 def _is_workaround(sentence: str) -> bool:
     return bool(_WORKAROUND.search(sentence)) and not _SUPPORT_VERB.search(sentence)
 

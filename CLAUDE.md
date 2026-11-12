@@ -262,10 +262,13 @@ AWS:        CELERY_BROKER_URL = sqs://
   quiet downgrade). Typed replies are English-only (decided 2026-11-12).
 - Tests use the scripted client (tests/assistant_typed_fakes.py) and dependency_overrides for the
   model client and the store; no test calls a model, Redis or AWS.
-- Example input values are the gateway's, not the model's: the typed prompt (t3) forbids writing them,
+- Example input values are the gateway's, not the model's: the typed prompt (t4) forbids writing them,
   strip_example_objects takes any JSON object out of the model's text before it is graded, and the
   last accepted propose_parameters call is attached as suggested_parameters. What is graded must be what
   is served. Any change to typed_prompts.py changes its pinned sha256 (tests) and what the next run measures.
+  The t4 prompt also tells the model never to answer a capability question with a bare "No"; that is a prompt
+  rule, not a grader gate (typed_graders.bare_denial is a harness diagnostic only: as a gate it fired on most
+  category D answers and on honest declines, results 9.29).
 - The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
   change under assistant/ changes what the next paid run measures. Do not re-implement the answer
   path in the harness; do not start a paid run from a session without being asked (caps are per

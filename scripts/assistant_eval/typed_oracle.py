@@ -78,14 +78,17 @@ def oracle_run(case: dict[str, Any], catalogue: list[dict[str, Any]]) -> dict[st
         record = _fetch(box, expect["function"])
         values = _example_values(record)
         box.run("propose_parameters", {"name": expect["function"], "values": values})
-        # the correct agent does not write the values (prompt t3): the portal attaches the checked example
+        # the correct agent does not write the values (prompt t4): the portal attaches the checked example
         text = f"For `{record['name']}` ({record['display_name']}) try the example below."
     elif category == "D":
         record = _fetch(box, expect["function"])
         term = expect["absent_terms"][0]
         what = f"`{term}` parameter" if "_" in term else f"{term} option"
-        text = f"There is no {what} in `{record['name']}` ({record['display_name']}). " + (
-            f"It takes {_params(record)}."
+        # the correct agent does not answer with a bare "No" (prompt t4): it names what the function takes and
+        # says nothing in it covers the question
+        text = (
+            f"`{record['name']}` ({record['display_name']}) takes {_params(record)}. Nothing in its inputs "
+            f"or outputs covers the {what}, so pyvar does not appear to offer it."
         )
     elif category == "E":
         text = REFUSAL

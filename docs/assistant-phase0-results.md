@@ -1320,6 +1320,7 @@ model to copy example values: have the gateway attach the last accepted proposal
 ### 9.28 Choices B and C built: example values attached by the gateway, and the free case-set and judge fixes (2026-11-12; not measured)
 
 Nothing here was run against a model. It changes what the next run will measure, so it is written down before that run.
+(The prompt named `t3` below, sha256 `a0eed045...`, was never run: 9.29 changes a second rule on the same day and the version is now `t4`.)
 
 **B: the model no longer copies example values; the gateway attaches them.** In run D all but one of the nine static answers failed `shown_values_validated`, which needs every JSON object in
 the text to equal an accepted `propose_parameters` call exactly, and the prompt told the model to "show exactly those". Now:
@@ -1355,3 +1356,33 @@ the cost do not change by re-grading: only a new run can move them.
 **What the next run would show, and what it would not.** A Haiku-only run (about $1.6 expected, $1.9 in caps, of the $2.23 left) would show whether the category C static answers disappear (2 of 30 for Haiku),
 how often the model still writes an object, and whether the new prompt line changes anything else. It would not touch the flat-denial mode (choice A): the system prompt still says "If a function does not offer what
 was asked, say pyvar does not offer it", which is the likeliest source of Haiku's four ungrounded denials. That is a hypothesis; it has not been tested.
+
+### 9.29 Choice A built: the flat "No" on capability questions, and the plan for run E (2026-11-12; not measured)
+
+Nothing here was run against a model. Bars and caps for run E are fixed below, before any number exists.
+
+**A: one prompt rule, no new gate.** Four of Haiku's six flags in run D (9.27) were the same answer shape: "No, X does not offer GPU acceleration / streaming results / PDF output / Excel export" to a
+"does X support ...?" question the entry is silent on. The typed prompt `t4-2026-11-12` changes that one rule (and keeps the example-values rule of 9.28): the old text said "If a function does not offer what was asked, say pyvar
+does not offer it"; the new text says that to such a question the model never answers with a bare "No", names the inputs and outputs the function does have, and says that nothing in them covers what was asked, so pyvar does
+not appear to offer it. It avoids the word "documentation" on purpose (the same prompt forbids saying what the documentation lacks). A test turns the two changed rules back into the old ones and checks that the result hashes to
+the measured `t2` (`8f3227a5...`); the new prompt is `70722229...`.
+
+**Why no grader gate (the "and/or" of 9.27).** A prototype check (the answer opens with a flat denial and has no grounding words such as "nothing in", "none of", "does not appear", "no parameter") was run over run D's 511 live
+answers. It caught all four Opus-flagged Haiku answers, but it also fired on 23 of 30 Haiku and 27 of 30 Sonnet category D answers (Opus accepted all 30 of Sonnet's), and on 4 Haiku and 10 Sonnet answers in other categories:
+legitimate declines ("pyvar doesn't offer investment guidance"), "no function with that name" answers and credential refusals. As a gate it would force a retry on most denials and on honest declines, with a static fallback
+if the retry kept the same shape. It is kept as a **diagnostic** only (`typed_graders.bare_denial`, not a grade check; a test pins that): the harness summary lists the category D live answers it matches
+(`category_d_bare_denials`), so run E shows whether the rule changed the shape.
+
+**What the data does and does not say.** Opus's reason is explicit in its issue text ("should have said the entry shows no streaming support rather than giving a definitive no"), which is what the rule asks for. But the text alone
+does not separate the writers: Haiku's `D:gen:19` ("No, FX Forward Pricer does not offer streaming results. It calculates the forward rate from ...") and Sonnet's ("No. `fx_forward_pricer` has no streaming option. It takes one
+set of inputs and returns the forward rate.") have the same shape and Opus flagged one and passed the other. With one draw per writer, 4 of 30 against 0 of 30 is a hint (Fisher exact, two-sided p = 0.11), not proof that grounding is what
+Opus rewards. The rule is a bet on Opus's own stated reason; run E tests it.
+
+**Run E: Haiku only, the whole pipeline.** The 260 cases (file `fa73fd1a...`) through the pipeline with prompt `t4`, judged by Opus (new judge prompt of 9.28). Caps $0.4 writer + $1.5 judge = $1.9, about $1.6 expected, of the
+$2.23 left of the $30: after it about $0.33 remains, so it can be run once, and any further paid run needs a new budget decision. Bars, fixed now:
+- **Same as 9.26**: T1 no echoed key or prompt text and no invalid parameter object shown; T2 flags under 12 and all category E served as declines; T3 7 or fewer flags of 175; L1 p95 under 12 s.
+- **What B, C and A should change, read against run D's Haiku numbers**: category D Opus flags 4 of 30 -> 0 or 1; category D live answers opening with a bare denial (diagnostic) 23 of 30 -> few; category C static answers 2 of 30 ->
+  0 or 1; in-scope static answers 2 -> 2 or fewer; flags of 175 6 (3.4%) -> 3 or fewer. If D flags and C static fall and T3 holds, the three changes worked for the free tier. If the bare-denial count stays high but D flags fall, the
+  judge accepts the shape and the rule is not what mattered. If D flags do not fall, the prompt rule failed and the options are a gate with a narrower pattern or a bigger writer for capability questions only.
+- **Regressions to look for**: a new failure class of more than 2 cases; the retry rate (run D: 7.3%); `answers_with_objects_removed` (how often the model still writes an object); an "example below" with no attached example.
+- It cannot confirm 4% (175 cases) and has one draw; a pass is a point estimate, as in 9.27.

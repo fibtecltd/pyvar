@@ -22,37 +22,54 @@ from assistant import graders, tools, typed_graders, typed_prompts
 
 # ── the prompt and the tool block, pinned ─────────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT_SHA256 = "a0eed04557331c0699dd5bbc36690c03319a74140d091d3fe43c4c33f3b9449b"  # t3
+SYSTEM_PROMPT_SHA256 = "70722229a71d00917e008c590d7e1fb4a8c9e5afcc64a407904cc17b875f2d6a"  # t4
 T2_SYSTEM_PROMPT_SHA256 = (
     "8f3227a5173881e7a80af9db930a1228d4f0bef1648a3cf88dab16ba70a15959"  # t1 and t2, run D
 )
 TOOL_SPECS_SHA256 = "797762a97612f8b95aefa36ca3bc20ca25e10f4ff89811e1473d83a0c79d2e7a"
+# the two rules t4 changed, as they were in the measured t2 prompt
 T2_EXAMPLE_RULE = (
     "- Show example values only if propose_parameters accepted them, and show exactly those.\n"
 )
-T3_EXAMPLE_RULE = re.compile(
+T2_DENIAL_SENTENCE = (
+    "If a function does not offer what was asked, say pyvar does not offer it; "
+    "never invent a parameter or a capability."
+)
+# ... and as they are in t4
+T4_EXAMPLE_RULE = re.compile(
     r"- Never write example input values yourself.*?call it again\.\n", re.DOTALL
+)
+T4_DENIAL_SENTENCE = re.compile(
+    r"If you are asked whether a function supports something its entry does not show.*?"
+    r"Never invent a parameter or a capability\.",
+    re.DOTALL,
 )
 
 
 def test_the_typed_prompt_is_pinned() -> None:
-    assert typed_prompts.TYPED_PROMPT_VERSION == "t3-2026-11-12"
+    assert typed_prompts.TYPED_PROMPT_VERSION == "t4-2026-11-12"
     digest = hashlib.sha256(typed_prompts.TYPED_SYSTEM_PROMPT.encode()).hexdigest()
     assert digest == SYSTEM_PROMPT_SHA256
     assert (typed_prompts.MAX_TOOL_TURNS, typed_prompts.TYPED_MAX_TOKENS) == (4, 1500)
     assert "Always answer in English" in typed_prompts.TYPED_SYSTEM_PROMPT
 
 
-def test_t3_differs_from_the_measured_t2_prompt_in_exactly_one_rule() -> None:
+def test_t4_differs_from_the_measured_t2_prompt_in_exactly_two_rules() -> None:
     prompt = typed_prompts.TYPED_SYSTEM_PROMPT
-    assert len(T3_EXAMPLE_RULE.findall(prompt)) == 1
-    old = T3_EXAMPLE_RULE.sub(lambda _m: T2_EXAMPLE_RULE, prompt)
+    assert (
+        len(T4_EXAMPLE_RULE.findall(prompt)) == 1 and len(T4_DENIAL_SENTENCE.findall(prompt)) == 1
+    )
+    old = T4_EXAMPLE_RULE.sub(lambda _m: T2_EXAMPLE_RULE, prompt)
+    old = T4_DENIAL_SENTENCE.sub(lambda _m: T2_DENIAL_SENTENCE, old)
     assert (
         hashlib.sha256(old.encode()).hexdigest() == T2_SYSTEM_PROMPT_SHA256
     )  # run D's text, word for word
-    rule = T3_EXAMPLE_RULE.search(prompt).group(0)  # type: ignore[union-attr]
-    assert "propose_parameters" in rule and "the example below" in rule
+    example = T4_EXAMPLE_RULE.search(prompt).group(0)  # type: ignore[union-attr]
+    assert "propose_parameters" in example and "the example below" in example
+    denial = T4_DENIAL_SENTENCE.search(prompt).group(0)  # type: ignore[union-attr]
+    assert 'never answer with a bare "No"' in denial and "does not appear to offer it" in denial
     assert "Show example values" not in prompt  # the instruction to copy values is gone
+    assert "say pyvar does not offer it" not in prompt  # and so is the instruction to answer flatly
 
 
 def test_the_tool_block_is_pinned() -> None:

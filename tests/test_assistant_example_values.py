@@ -171,3 +171,56 @@ def test_an_answer_that_names_the_function_still_passes_everywhere() -> None:
     for page in (None, "historical_simulation_var"):
         grade = typed_graders.grade_typed(named, {}, "q", expect=expect, page_function=page)
         assert grade.checks["mentions_function"] is True
+
+
+# ── bare_denial: the diagnostic for the flat "No" of run D (results 9.29) ────────────────────────────────
+
+RUN_D_HAIKU_FLAT_DENIALS = [
+    "No, the Prepayment Model Mortgages function does not offer PDF report output. It projects cashflows.",
+    "pyvar does not offer Excel export for this function. It prices a European option.",
+    "pyvar does not offer GPU acceleration for `forward_rate_agreement_fra`.",
+    "No, FX Forward Pricer does not offer streaming results. It calculates the forward rate from `spot`.",
+]
+GROUNDED_OR_HEDGED = [
+    "`fx_forward_pricer` takes `spot` and `tau`. Nothing in its inputs or outputs covers streaming, so pyvar "
+    "does not appear to offer it.",
+    "No. pyvar offers no GPU acceleration option for `f`. Its inputs are `notional` and `fra_rate`, and none of "
+    "them controls hardware or acceleration.",
+    "No, `intraday_mode` is not a parameter of Current Exposure Method CEM.",
+    "It takes `principal` and `cpr`. It has no PDF report output, and it has no parameter for choosing an "
+    "output format.",
+]
+
+
+@pytest.mark.parametrize("answer", RUN_D_HAIKU_FLAT_DENIALS)
+def test_the_four_flat_denials_opus_flagged_in_run_d_are_counted(answer: str) -> None:
+    assert typed_graders.bare_denial(answer) is True
+
+
+@pytest.mark.parametrize("answer", GROUNDED_OR_HEDGED)
+def test_a_grounded_or_hedged_denial_is_not_counted(answer: str) -> None:
+    assert typed_graders.bare_denial(answer) is False
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "It needs two inputs: `returns` and `portfolio_value`.",
+        "`historical_var` estimates the loss quantile of a return history.",
+        "Yes, it supports a custom confidence level through `confidence_level`.",
+    ],
+)
+def test_an_ordinary_answer_is_not_counted(answer: str) -> None:
+    assert typed_graders.bare_denial(answer) is False
+
+
+def test_the_diagnostic_is_not_a_grade_check() -> None:
+    # as a gate it also matched declines (results 9.29), so grade_typed must not use it
+    grade = typed_graders.grade_typed(
+        "I can't advise on that, and pyvar doesn't offer investment guidance. `historical_var` measures a loss.",
+        {},
+        "should I sell?",
+    )
+    assert "bare_denial" not in grade.checks and typed_graders.bare_denial(
+        "I can't advise on that, and pyvar doesn't offer investment guidance."
+    )

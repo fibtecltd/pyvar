@@ -185,6 +185,25 @@ def test_the_summary_counts_attached_examples_and_answers_where_objects_were_rem
     assert (summary["examples_attached"], summary["answers_with_objects_removed"]) == (2, 1)
 
 
+def test_the_summary_lists_the_category_d_answers_that_open_with_a_bare_denial() -> None:
+    d_cases = [c for c in cases() if c["category"] == "D"][:2]
+    flat = "No, this function does not offer GPU acceleration. It is a plain calculation on the inputs you give it."
+    grounded = (
+        "This function takes the inputs you give it and returns one result. Nothing in its inputs or "
+        "outputs covers GPU acceleration, so pyvar does not appear to offer it."
+    )
+    results = [
+        run_one(ScriptedClient(text_reply(flat)), d_cases[0]),
+        run_one(ScriptedClient(text_reply(grounded)), d_cases[1]),
+    ]
+    assert [kind for kind, _ in results] == ["result", "result"]
+    rows = [row for _, row in results]
+    assert [row["source"] for row in rows] == ["live", "live"]
+    summary = run_typed.summarize(rows, [], 0, MODEL)
+    assert summary["category_d_live"] == 2
+    assert summary["category_d_bare_denials"] == [d_cases[0]["id"]]
+
+
 # ── static answers ───────────────────────────────────────────────────────────────────────────────────────
 
 

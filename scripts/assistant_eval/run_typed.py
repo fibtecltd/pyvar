@@ -82,7 +82,7 @@ from assistant.client import (
     Reply,
 )
 from assistant.guardrails import answer_question
-from assistant.typed_graders import grade_typed
+from assistant.typed_graders import bare_denial, grade_typed
 
 # the kernel files are read from assistant/ (run_eval.code_provenance); run_typed.py from this directory
 PROVENANCE_FILES = (
@@ -482,6 +482,8 @@ def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
     Empty for a raw or offline run (their rows have no `source`). `checks_failed_on_the_way` counts, by check
     name, the checks that failed on the way (the first draft, and the retry if there was one), over all rows.
     `examples_attached` is the answers that carry a validated example for the widget;
+    `category_d_bare_denials` is the category D live answers that open with an ungrounded flat denial (the mode
+    of results 9.27, counted with `typed_graders.bare_denial`, which is not a gate);
     `answers_with_objects_removed` is the answers where the model wrote a JSON object anyway.
     """
     piped = [r for r in rows if "source" in r]
@@ -510,6 +512,12 @@ def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "second_try_rate": round(sum(1 for r in piped if r["tries"] >= 2) / len(piped), 4),
         "examples_attached": sum(1 for r in piped if r.get("suggested_parameters")),
+        "category_d_live": sum(1 for r in piped if r["category"] == "D" and r["source"] == "live"),
+        "category_d_bare_denials": sorted(
+            r["case_id"]
+            for r in piped
+            if r["category"] == "D" and r["source"] == "live" and bare_denial(r["text"])
+        ),
         "answers_with_objects_removed": sum(1 for r in piped if r.get("removed_objects")),
         "checks_failed_on_the_way": dict(sorted(failures.items(), key=lambda kv: -kv[1])),
     }
