@@ -224,3 +224,107 @@ def test_the_diagnostic_is_not_a_grade_check() -> None:
     assert "bare_denial" not in grade.checks and typed_graders.bare_denial(
         "I can't advise on that, and pyvar doesn't offer investment guidance."
     )
+
+
+# ── F1: "Nothing in its inputs covers X" is a negation (results 9.31) ───────────────────────────────────
+
+RUN_E_GROUNDED_SENTENCES = [
+    ("Nothing in its inputs covers intraday time series or sub-daily granularity.", ["intraday"]),
+    (
+        "So the function is set up for a daily backtest window, and nothing in its inputs covers tick-by-tick data.",
+        ["tick"],
+    ),
+    ("Nothing in those inputs covers intraday data.", ["intraday"]),
+    (
+        "Nothing in those inputs or outputs covers webhooks, callbacks or notifications.",
+        ["webhook"],
+    ),
+]
+
+
+@pytest.mark.parametrize("sentence, terms", RUN_E_GROUNDED_SENTENCES)
+def test_the_grounded_sentence_the_t4_prompt_asks_for_is_not_a_support_claim(
+    sentence: str, terms: list[str]
+) -> None:
+    assert graders._NEGATION.search(sentence) is None  # the old rule flagged these in run E
+    assert unsupported_claims(sentence, terms) == []
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "It lacks any intraday option.",
+        "Intraday data is absent from its inputs.",
+        "Intraday handling is missing from the function.",
+        "The function is lacking intraday support.",
+        "Nowhere in its inputs is there intraday data.",
+    ],
+)
+def test_other_ways_of_saying_it_is_not_there_are_negations_too(sentence: str) -> None:
+    assert unsupported_claims(sentence, ["intraday"]) == []
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Yes, it supports intraday data.",
+        "Nothing stops it from handling intraday data.",
+        "Nothing is easier than passing intraday data to it.",
+        "It handles intraday data in the second input.",
+    ],
+)
+def test_the_wider_negation_does_not_hide_a_support_claim(sentence: str) -> None:
+    assert unsupported_claims(sentence, ["intraday"]) == ["intraday"]
+
+
+def test_the_wrapper_passes_a_category_d_answer_in_the_new_shape() -> None:
+    expect = {"absent_terms": ["intraday"], "function": "f", "like": "D"}
+    answer = (
+        "`f` takes `balances` and `rates`. Nothing in its inputs covers intraday data. "
+        "So pyvar does not appear to offer it."
+    )
+    grade = typed_graders.grade_typed(answer, {}, "q", expect=expect)
+    assert grade.checks["no_support_claim"] is True
+
+
+# ── F2: a reference to an example below the answer (results 9.31) ───────────────────────────────────────
+
+DANGLING_RUN_E = [
+    "I can check an example input set for you if you'd like. The checked example will appear below my answer.",
+    "I can show you the function's input format with the example below.",
+    "I can check an example input set for you, and the portal will show the checked example below.",
+    "It takes `pd` as an input. The example below shows the inputs it accepts.",
+]
+
+
+@pytest.mark.parametrize("text", DANGLING_RUN_E)
+def test_the_four_dangling_references_of_run_e_are_found(text: str) -> None:
+    assert typed_graders.refers_to_attached_example(text) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The example below has been checked, so you can use it as it is.",
+        "Use the attached example under this answer.",
+        "This example shown below is accepted by the validator.",
+        "Here the checked example appears beneath the answer.",
+    ],
+)
+def test_the_ways_the_prompt_teaches_the_reference_are_found_too(text: str) -> None:
+    assert typed_graders.refers_to_attached_example(text) is True
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "For example, `returns` must be a list of daily returns, as listed below.",
+        "An example of a stress scenario is a rating downgrade.",
+        "See the inputs listed below. Each is required.",
+        "The examples in the textbook use a 99% level.",
+        "It takes three inputs; the list below gives each one.",
+        "",
+    ],
+)
+def test_ordinary_use_of_the_word_example_is_not_a_reference(text: str) -> None:
+    assert typed_graders.refers_to_attached_example(text) is False

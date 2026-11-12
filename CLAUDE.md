@@ -269,6 +269,9 @@ AWS:        CELERY_BROKER_URL = sqs://
   The t4 prompt also tells the model never to answer a capability question with a bare "No"; that is a prompt
   rule, not a grader gate (typed_graders.bare_denial is a harness diagnostic only: as a gate it fired on most
   category D answers and on honest declines, results 9.29).
+- An answer that points at "the example below" while no propose_parameters call was accepted fails the check
+  example_not_attached (the retry is told to call the tool or drop the reference); the mirror case, values
+  written without an accepted call, fails example_without_check. Keep both in step with the t4 prompt wording.
 - The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
   change under assistant/ changes what the next paid run measures. Do not re-implement the answer
   path in the harness; do not start a paid run from a session without being asked (caps are per

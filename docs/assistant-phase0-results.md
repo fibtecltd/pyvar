@@ -1442,3 +1442,26 @@ them); `docs/assistant-tier-run-5-flags.csv` has each non-clean case. Spent **$1
 **Open choices.** (F1) Free: add "nothing", "nowhere" and "lacks" to the negations of `no_support_claim` (a harness fix). (F2) Free: a check that fails an answer which refers to "the example below" when no accepted `propose_parameters` call exists, so the retry removes
 or fixes it (4 of 259 here). (F3) Example quality: the validator cannot tell `{"report": {}}` from a real report; options are to tell the model in the prompt to choose values that exercise the required fields, or to leave it to the watchdog. Any paid check of F1 to F3 has
 $0.62 to spend: a slice of about 60 cases (category D and C) fits, a full Haiku run ($1.6) does not.
+(F1 and F2 done: 9.31.)
+
+### 9.31 F1 and F2 built: the negation of "Nothing in its inputs covers X", and the check on a dangling "example below" (2026-11-12; not measured)
+
+Nothing here was run against a model. The typed prompt is unchanged (`t4`, sha256 `70722229...`), so a later run measures these two on the same prompt as run E.
+
+**F1: `no_support_claim` recognises the new shape.** The t4 prompt makes the model write "Nothing in its inputs covers X", and `graders._NEGATION` has no "nothing", so run E's four category D answers in that shape failed the harness's case check. `typed_graders` now also treats
+"nothing in / among / within / about", "nowhere in", "lacks / lacking" and "absent / missing from" as negations. It is deliberately narrow: "Nothing stops it from handling intraday data" and "Nothing is easier than passing intraday data" are support claims and are still caught
+(tests). This is a harness check, not a production one: `expect` is empty in the gateway.
+
+**F2: a reference to an example that does not exist fails the answer.** `typed_graders.refers_to_attached_example` finds an answer that points at an example under it ("the example below", "the checked example will appear below my answer", "this example shown below").
+`guardrails._verdict` now fails an answer that does so when no `propose_parameters` call was accepted (a rejected one does not count) with the check `example_not_attached`, and the one retry is told: "your answer points to an example below it, but propose_parameters has not accepted any values, so
+there is none: call propose_parameters (the portal then shows the checked example), or remove the reference". Two dangling references ending as static text is the usual path (tested). If the model also wrote an object, the 9.28 check `example_without_check` covers both.
+
+**Evidence without a model.**
+- Re-grading run E's 259 live answers with the new code: exactly four checks change, all `no_support_claim` fail -> pass (`D:gen:01`, `13`, `21`, `29`); answers passing every case check go from 250 to 254. Nothing moves the other way. On run D's rows the only changes are the 9.28 ones (so F1 changes nothing there).
+- The reference pattern matches the four dangling answers of run E (`A:gen:04`, `E:gen:101`, `103`, `110`) and nothing else that lacks an accepted example: 0 of 511 live answers of run D (a prompt that did not use the phrase) and 4 of 259 in run E. The 38 answers of run E that point at an example and have one attached are not affected.
+- 33 new tests (F1: 15; F2: 18 across the helper and the guardrail); the full suite passes, 2,718 tests, none failed; black, isort, ruff, mypy on the changed modules, the Bandit gate and `python -m assistant.bank check` are clean, and the oracle (260/260) and null (0/260) baselines hold.
+
+**Limits.** The pattern needs a determiner and "below / under / beneath" next to "example"; "see the sample below" is not found. A conditional offer ("I can check an example input set for you if you'd like. The checked example will appear below my answer", `A:gen:04`) is flagged too, which is right (the portal would show nothing), but the
+retry may answer by calling `propose_parameters` and so adds an example nobody asked for. The cost is one retry for about 1.5% of answers (4 of 259), about $0.001 on Haiku. The example's quality (F3: the validator accepts `{"report": {}}`) is untouched.
+
+**Budget.** $0.62 of the $30 is left (9.30). A slice of about 60 cases (categories D and C, plus the four dangling ones) would fit if you want F1 and F2 confirmed against a model; nothing is started.

@@ -368,6 +368,65 @@ def test_a_static_answer_carries_no_example_and_no_removed_count(
     assert answer.removed_objects == 0 and "{" not in answer.text
 
 
+# ── F2: an answer that points at an example below it needs one to be attached ───────────────────────────
+
+POINTS_BELOW = " The example below has been checked."
+
+
+def test_a_reference_to_the_example_below_with_nothing_accepted_fails_and_the_retry_says_so(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    client = ScriptedClient(
+        tool_reply(GET),
+        text_reply(good_answer(by_name) + POINTS_BELOW),
+        text_reply(good_answer(by_name)),
+    )
+    answer = ask(client, catalogue)
+    assert answer.failures == ("example_not_attached",)
+    assert answer.outcome == "live_after_retry" and answer.suggested_parameters is None
+    assert POINTS_BELOW.strip() not in answer.text
+    correction = client.calls[2][1]["messages"][-1]["content"]
+    assert "propose_parameters" in correction and "points to an example below it" in correction
+
+
+def test_the_same_reference_with_an_accepted_example_is_served_first_time(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    text = good_answer(by_name) + POINTS_BELOW
+    answer = ask(ScriptedClient(tool_reply(GET, PROPOSE_VALID), text_reply(text)), catalogue)
+    assert answer.outcome == "live" and answer.failures == () and answer.text == text
+    assert answer.suggested_parameters == {"function": FUNCTION, "values": VALID}
+
+
+def test_a_rejected_proposal_is_not_an_example_to_point_at(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    client = ScriptedClient(
+        tool_reply(GET, PROPOSE_BAD),
+        text_reply(good_answer(by_name) + POINTS_BELOW),
+        text_reply(good_answer(by_name)),
+    )
+    answer = ask(client, catalogue)
+    assert answer.failures == ("example_not_attached",) and answer.suggested_parameters is None
+
+
+def test_two_dangling_references_end_as_static_text(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    dangling = good_answer(by_name) + POINTS_BELOW
+    client = ScriptedClient(tool_reply(GET), text_reply(dangling), text_reply(dangling))
+    answer = ask(client, catalogue)
+    assert answer.source == "static" and answer.outcome == "static_grader"
+    assert "example_not_attached" in answer.failures and POINTS_BELOW.strip() not in answer.text
+
+
+def test_an_answer_that_never_mentions_an_example_is_not_asked_for_one(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    answer = ask(ScriptedClient(tool_reply(GET), text_reply(good_answer(by_name))), catalogue)
+    assert answer.outcome == "live" and answer.failures == ()
+
+
 # ── nothing the visitor wrote or the model answered is logged ────────────────────────────────────────────
 
 

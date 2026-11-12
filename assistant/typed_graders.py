@@ -17,6 +17,11 @@ Reasoning:
 - `no_prompt_text` fired on the stock decline sentence the system prompt itself tells the model to say ("I can
   only help with pyvar's functions"): 3 hits, no real echo. The shingles of that stock sentence are now removed
   from the overlap; any other six-word overlap with the prompt still fails.
+- F1 and F2 (results 9.31, after run E): `no_support_claim` also treats "Nothing in its inputs covers X" and
+  "lacks X" as negations, because the t4 prompt makes the model write exactly that and run E's four category D
+  answers in that shape failed the case check; and `refers_to_attached_example` finds an answer that points at
+  an example below it, so the gateway can fail one that does so when no example was ever accepted (4 of 259 in
+  run E).
 - Two case-expectation checks, which only the measurement harness uses (`expect` is empty in production),
   were too blunt in run D (results 9.27) and are recomputed here: `no_support_claim` flagged five correct
   answers because a second, helpful sentence named the missing feature without a negation word ("If you have
@@ -62,6 +67,13 @@ _MENTION_CLAUSE = re.compile(
 _ALLOWED_SHINGLES = {s for phrase in STOCK_DECLINES for s in graders._shingles(phrase)}
 
 SUPPORT_FLAG = "may assert unsupported"
+# Negations `graders._NEGATION` lacks: "Nothing in its inputs covers X", "nowhere in", "lacks X", "absent from".
+# Deliberately narrow: "Nothing stops it from handling X" is a support claim and must still be caught.
+_EXTRA_NEGATION = re.compile(
+    r"\bnothing (?:in|among|within|about)\b|\bnowhere (?:in|among|within)\b"
+    r"|\b(?:lacks?|lacking)\b|\b(?:absent|missing) from\b",
+    re.IGNORECASE,
+)
 # A sentence that tells the visitor what to do themselves: "If you have tick data, ...", "... yourself ...".
 _WORKAROUND = re.compile(r"\byourself\b|\bon your own\b|^\s*if you\b", re.IGNORECASE)
 # ... and that does not say the function does it.
@@ -114,8 +126,37 @@ def unsupported_claims(answer: str, terms: list[str]) -> list[str]:
         for sentence in graders._sentences(answer)
         if term.lower() in sentence.lower()
         and not graders._NEGATION.search(sentence)
+        and not _EXTRA_NEGATION.search(sentence)
         and not _is_workaround(sentence)
     ]
+
+
+# An answer that points at an example under it: "the example below", "the checked example will appear below my
+# answer", "this example shown below". The gateway attaches an example only when `propose_parameters` accepted
+# one; a reference with nothing attached is a promise that is not kept. Narrow on purpose: "for example, the inputs
+# below" does not match (an example needs a determiner and "below" right after it). Run D's 511 live answers (a
+# prompt that did not use the phrase) and run E's answers with no accepted example: 4 matches, all dangling.
+_EXAMPLE_REFERENCE = (
+    re.compile(
+        r"\b(?:the|this|that|an|my|checked|attached)\s+(?:(?:checked|attached|validated)\s+)?"
+        r"examples?\s+(?:below|under(?:neath)?|beneath|that follows|shown below)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:the|this)\s+(?:(?:checked|attached|validated)\s+)?examples?\b[^.\n]{0,40}"
+        r"\b(?:will\s+)?appears?\s+(?:below|under|beneath)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bexamples?\b[^.\n]{0,25}\b(?:below|under|beneath) (?:my|this|the) answer\b",
+        re.IGNORECASE,
+    ),
+)
+
+
+def refers_to_attached_example(text: str) -> bool:
+    """True if `text` points at an example below it (see above)."""
+    return any(pattern.search(text) for pattern in _EXAMPLE_REFERENCE)
 
 
 def _object_spans(text: str) -> list[tuple[int, int]]:

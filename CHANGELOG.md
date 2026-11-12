@@ -24,7 +24,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   Example input values are now attached by the gateway (`suggested_parameters` is the last value set the
   validator accepted) instead of copied by the model, which is told not to write them (typed prompt t4) and
   whose text has any JSON object taken out before it is graded (9.28). The same prompt tells the model not to
-  answer a "does X support Y?" question with a bare "No" when the entry is silent (9.29).
+  answer a "does X support Y?" question with a bare "No" when the entry is silent (9.29). An answer that
+  points at "the example below" when no example was accepted now fails a check and is retried (9.31).
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

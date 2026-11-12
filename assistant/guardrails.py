@@ -18,7 +18,8 @@ Reasoning:
   what is served, and the validated example (the last `propose_parameters` call that was accepted) is attached as
   `suggested_parameters` for the widget to show. A model that wrote values without ever getting them accepted has
   promised an example that does not exist: that is a failed check ("example_without_check"), and the retry says
-  so. This replaces the old requirement that the model copy accepted values into its text exactly, which failed
+  so. The mirror case is a failed check too ("example_not_attached", results 9.31): the text points at "the example
+  below" but nothing was accepted, so nothing is attached. This replaces the old requirement that the model copy accepted values into its text exactly, which failed
   in all nine static answers of run D.
 - Static text comes first from the bank (the function's `explain` answer, a complete manifest only), else from
   the catalogue's summary, plus a catalogue link; the function is the page the visitor is on, else the first
@@ -51,7 +52,7 @@ from assistant.client import ModelCallError, ModelClient
 from assistant.prompts import EFFORT
 from assistant.scrub import has_secret, scrub_secrets
 from assistant.tools import ToolBox
-from assistant.typed_graders import grade_typed, strip_example_objects
+from assistant.typed_graders import grade_typed, refers_to_attached_example, strip_example_objects
 
 logger = structlog.get_logger()
 
@@ -73,6 +74,11 @@ STATUS_FLAGS = {
     "empty": "the reply was empty: write the answer",
 }
 NO_RETRY = frozenset({"budget", "timeout", "tool_limit"})
+EXAMPLE_NOT_ATTACHED = "example_not_attached"
+EXAMPLE_NOT_ATTACHED_FLAG = (
+    "your answer points to an example below it, but propose_parameters has not accepted any values, so there "
+    "is none: call propose_parameters (the portal then shows the checked example), or remove the reference"
+)
 EXAMPLE_WITHOUT_CHECK = "example_without_check"
 EXAMPLE_WITHOUT_CHECK_FLAG = (
     "you wrote example values without a propose_parameters call that accepted them: call propose_parameters, "
@@ -245,9 +251,13 @@ def _verdict(
     )
     failures = [name for name, ok in grade.checks.items() if not ok]
     flags = list(grade.flags)
-    if removed and _suggestion(box) is None:
-        failures.append(EXAMPLE_WITHOUT_CHECK)
-        flags.append(EXAMPLE_WITHOUT_CHECK_FLAG)
+    if _suggestion(box) is None:
+        if removed:
+            failures.append(EXAMPLE_WITHOUT_CHECK)
+            flags.append(EXAMPLE_WITHOUT_CHECK_FLAG)
+        elif refers_to_attached_example(text):
+            failures.append(EXAMPLE_NOT_ATTACHED)
+            flags.append(EXAMPLE_NOT_ATTACHED_FLAG)
     if extra_check is not None:
         extra = extra_check(question, text, box)
         if extra:
