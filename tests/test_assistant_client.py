@@ -271,3 +271,48 @@ def test_only_this_module_may_import_the_sdk() -> None:
             ):
                 importers.append(path.name)
     assert importers == ["client.py"]
+
+
+def test_a_reply_carries_its_blocks_as_plain_dicts_for_the_next_turn() -> None:
+    blocks = [
+        types.SimpleNamespace(type="thinking", thinking="private", signature="sig-1"),
+        types.SimpleNamespace(type="text", text="Let me look that up."),
+        types.SimpleNamespace(
+            type="tool_use", id="toolu_1", name="search_functions", input={"query": "var"}
+        ),
+        types.SimpleNamespace(type="redacted_thinking", data="opaque"),
+    ]
+    response = types.SimpleNamespace(
+        model="claude-haiku-5-5",
+        content=blocks,
+        stop_reason="tool_use",
+        usage=types.SimpleNamespace(input_tokens=10, output_tokens=5),
+    )
+    got = AnthropicClient(sdk_client=Sdk(response)).complete("claude-haiku-5-5", {"messages": []})
+    assert got.text == "Let me look that up."  # thinking and tool blocks are not text
+    assert got.content == (
+        {"type": "thinking", "thinking": "private", "signature": "sig-1"},
+        {"type": "text", "text": "Let me look that up."},
+        {
+            "type": "tool_use",
+            "id": "toolu_1",
+            "name": "search_functions",
+            "input": {"query": "var"},
+        },
+        {"type": "redacted_thinking", "data": "opaque"},
+    )
+    assert got.stop_reason == "tool_use"
+
+
+def test_an_unknown_block_is_dumped_without_nones_and_a_plain_reply_still_has_content() -> None:
+    class Strange:
+        type = "server_tool_use"
+
+        def model_dump(self, exclude_none: bool = False) -> dict[str, Any]:
+            assert exclude_none is True
+            return {"type": "server_tool_use", "id": "srv_1"}
+
+    assert client_module.block_dict(Strange()) == {"type": "server_tool_use", "id": "srv_1"}
+    assert client_module.block_dict(types.SimpleNamespace(type="other")) == {"type": "other"}
+    plain = AnthropicClient(sdk_client=Sdk(reply("hi"))).complete("claude-sonnet-5-5", {})
+    assert [b["type"] for b in plain.content] == ["thinking", "text"]

@@ -1,13 +1,13 @@
-"""A reference scrub for keys and tokens in a visitor's question (the eval's stand-in for plan 2's gateway).
+"""Removes keys and tokens from a visitor's question before any model call (used by assistant/guardrails.py).
 
 Reasoning:
 - The typed-question design (docs/assistant-plan-implementation.md, section on `assistant/scrub.py`) removes
-  secrets before any model call. Plan 1 category H needs that behaviour to be testable now, with no model,
-  so the eval carries a small scrub of its own. It is not the production module: plan 2 writes that one and
-  must pass the same cases.
+  secrets before any model call. The eval's category H tests it with no model, and the production path
+  (`guardrails.answer_question`) calls the same two functions, so what was measured is what ships.
 - Shapes, from the code that issues them: a pyvar API key is "pyvar_" + token_urlsafe(32), that is 43
   characters of [A-Za-z0-9_-]; a session token is a JWT (three dot-separated base64url segments, the first
   starting "eyJ"); an Anthropic key starts "sk-ant-". Long hex runs (a hash or a secret) are removed too.
+- Still to add before the gateway goes live (plan 3): email addresses and long base64 runs.
 - The marker is fixed text, so a scrubbed question is still a readable question.
 """
 

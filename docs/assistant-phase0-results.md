@@ -1157,3 +1157,27 @@ flagged. `no_prompt_text` flips on 1 Haiku and 2 Sonnet answers, the stock decli
 **Not measured.** None of this has been run against a model. Whether the typed targets T1 and T3 are met needs a second run (about $5.8
 expected, $7.5 in caps) once the agent loop and guardrails are in the kernel, and that run is a separate approval.
 
+### 9.24 The production agent loop and guardrails (2026-11-12; not measured)
+
+`assistant/agent.py` and `assistant/guardrails.py` are the typed path below the HTTP route, written on the `ModelClient` seam and tested with a
+scripted client (no model, no key, no network). `Reply` gained a backward-compatible `content` field (the reply's blocks as plain dicts) so the
+loop can send the model's own text, tool-call and thinking blocks back; the bank builder ignores it.
+
+`TypedAgent` is the harness loop moved over: the question, at most four tool turns, then a last call with tools off; plus a dollar cap
+(default $0.15, about ten times the measured Opus cost of a typed answer) and a wall-clock cap (30 s; the measured p95 is 7 s), both checked
+before every call and ending the loop with a status, not an exception. A revision continues the same conversation with the failed checks, so
+the tool results already fetched are kept. The visitor's question and the earlier turns the browser sends are data: angle brackets are escaped
+so they cannot close the `<question>` tag, and earlier turns go into the first user turn, never back as assistant turns, so a forged "assistant
+said" cannot steer the model. The harness did not escape, so the next run also measures the escaping.
+
+`answer_question` scrubs the question, runs the agent, grades the answer with `typed_graders.grade_typed` (English-only included), optionally asks a
+second reader (the enterprise gate), allows one retry that shows the model the failed checks, and otherwise serves static text, marked
+`source: "static"`: the function's `explain` answer from a complete bank, else the catalogue summary, plus a catalogue link. A refusal, a
+cut-off, an empty reply, a cap, the tool limit or a provider error all end there; the function never raises for a model problem and never returns
+text that failed its checks. The log line carries the outcome, tries, calls, tool turns, dollars, seconds and the names of failed checks, never
+the question, the answer or a tool result.
+
+**What is not verified.** Replaying the model's thinking and tool-call blocks as plain dicts has been checked only against the SDK's block shapes,
+not against the live API (no key here); the second measurement run is the first real test of it. Emails and long base64 runs are not yet scrubbed
+(plan 3); that comes with the gateway.
+

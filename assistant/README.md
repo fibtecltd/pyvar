@@ -14,6 +14,8 @@ measured. Design and numbers: `docs/assistant-plan-implementation.md`, `docs/ass
 | `tools.py` | the typed agent's three read-only tools and the `ToolBox` that remembers what they returned; `hit_view` is what a search hit shows |
 | `typed_prompts.py` | the typed system prompt (`t2-2026-11-12`, same words as the first typed run) and `build_typed_request` |
 | `typed_graders.py` | `grade_typed` with the stock-decline and quoting-refusal false positives fixed; wraps `graders.grade_typed`, which cannot change (the bank pins its hash) |
+| `agent.py` | `TypedAgent`: the tool loop for one visitor question (at most 4 tool turns, a dollar cap and a time cap, a `revise` that shows the model its failed checks); visitor text is escaped and only ever data |
+| `guardrails.py` | `answer_question`: scrub, agent, typed grade, one retry, then static text from the bank; returns an `Answer` (`source` live or static), never raises for a model problem, logs counts only |
 | `bank.py` | `python -m assistant.bank build\|check`: writes and checks the answer bank |
 | `cost.py`, `records.py`, `body_schema.py`, `scrub.py` | token prices and cost, `trim_record`, request-body checker, secret scrubber |
 

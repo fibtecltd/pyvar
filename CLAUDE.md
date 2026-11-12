@@ -59,6 +59,8 @@ pyvar/
 │   ├── tools.py               ← the typed agent's 3 read-only tools (search_functions, get_function, propose_parameters) + ToolBox
 │   ├── typed_prompts.py       ← the typed system prompt (t2-2026-11-12, pinned) and request builder
 │   ├── typed_graders.py       ← graders.grade_typed with the two first-run false positives fixed (graders.py itself is hash-pinned)
+│   ├── agent.py               ← the typed tool loop on ModelClient: <=4 tool turns, dollar and time caps, visitor text escaped as data
+│   ├── guardrails.py          ← answer_question: scrub -> agent -> typed grade -> one retry -> static fallback from the bank; never raises for a model problem
 │   └── bank.py                ← `python -m assistant.bank build|check`: writes and checks portal/assistant/bank/
 │
 ├── schemas/                   ← Pydantic v2 request/response models
