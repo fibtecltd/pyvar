@@ -342,6 +342,10 @@ class ApiStack(Stack):
                 # so this is safe to ship now as a real environment entry
                 # rather than omitted conditionally.
                 "GOOGLE_OAUTH_CLIENT_ID": cfg.google_oauth_client_id,
+                # Portal assistant menus: the app's assistant_enabled (config.py). Set only
+                # where cfg.assistant_enabled is True (dev), so another environment's task
+                # definition is unchanged and the app's default (off) applies there.
+                **({"ASSISTANT_ENABLED": "true"} if cfg.assistant_enabled else {}),
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).
