@@ -82,7 +82,7 @@ from assistant.client import (
     Reply,
 )
 from assistant.guardrails import answer_question
-from assistant.typed_graders import bare_denial, grade_typed
+from assistant.typed_graders import bare_denial, empty_required_values, grade_typed
 
 # the kernel files are read from assistant/ (run_eval.code_provenance); run_typed.py from this directory
 PROVENANCE_FILES = (
@@ -484,11 +484,14 @@ def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
     `examples_attached` is the answers that carry a validated example for the widget;
     `category_d_bare_denials` is the category D live answers that open with an ungrounded flat denial (the mode
     of results 9.27, counted with `typed_graders.bare_denial`, which is not a gate);
-    `answers_with_objects_removed` is the answers where the model wrote a JSON object anyway.
+    `answers_with_objects_removed` is the answers where the model wrote a JSON object anyway;
+    `examples_with_empty_required_values` is the case ids whose attached example gives a required parameter an
+    empty object, list or string or a bare placeholder word (results 9.32, F3; a diagnostic, not a check).
     """
     piped = [r for r in rows if "source" in r]
     if not piped:
         return {}
+    entries = {e["name"]: e for e in load_catalogue()}
     in_scope = [r for r in piped if r["in_scope"]]
     failures: dict[str, int] = {}
     for r in piped:
@@ -519,6 +522,15 @@ def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
             if r["category"] == "D" and r["source"] == "live" and bare_denial(r["text"])
         ),
         "answers_with_objects_removed": sum(1 for r in piped if r.get("removed_objects")),
+        "examples_with_empty_required_values": sorted(
+            r["case_id"]
+            for r in piped
+            if r.get("suggested_parameters")
+            and r["suggested_parameters"]["function"] in entries
+            and empty_required_values(
+                entries[r["suggested_parameters"]["function"]], r["suggested_parameters"]["values"]
+            )
+        ),
         "checks_failed_on_the_way": dict(sorted(failures.items(), key=lambda kv: -kv[1])),
     }
 

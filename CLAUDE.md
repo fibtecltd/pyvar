@@ -262,7 +262,7 @@ AWS:        CELERY_BROKER_URL = sqs://
   quiet downgrade). Typed replies are English-only (decided 2026-11-12).
 - Tests use the scripted client (tests/assistant_typed_fakes.py) and dependency_overrides for the
   model client and the store; no test calls a model, Redis or AWS.
-- Example input values are the gateway's, not the model's: the typed prompt (t4) forbids writing them,
+- Example input values are the gateway's, not the model's: the typed prompt (t4, t5) forbids writing them,
   strip_example_objects takes any JSON object out of the model's text before it is graded, and the
   last accepted propose_parameters call is attached as suggested_parameters. What is graded must be what
   is served. Any change to typed_prompts.py changes its pinned sha256 (tests) and what the next run measures.
@@ -272,6 +272,10 @@ AWS:        CELERY_BROKER_URL = sqs://
 - An answer that points at "the example below" while no propose_parameters call was accepted fails the check
   example_not_attached (the retry is told to call the tool or drop the reference); the mirror case, values
   written without an accepted call, fails example_without_check. Keep both in step with the t4 prompt wording.
+- The t5 prompt (t4 plus one rule) tells the model to give propose_parameters realistic, mutually consistent
+  values for every required parameter and never an empty object, an empty list or a placeholder; the validator
+  checks types and bounds only. typed_graders.empty_required_values is a harness diagnostic, not a gate. Measured
+  on a 77-case slice only (results 9.32), never on the full 260; keep t5 only if that slice does not regress.
 - The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
   change under assistant/ changes what the next paid run measures. Do not re-implement the answer
   path in the harness; do not start a paid run from a session without being asked (caps are per

@@ -22,7 +22,10 @@ from assistant import graders, tools, typed_graders, typed_prompts
 
 # ── the prompt and the tool block, pinned ─────────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT_SHA256 = "70722229a71d00917e008c590d7e1fb4a8c9e5afcc64a407904cc17b875f2d6a"  # t4
+SYSTEM_PROMPT_SHA256 = "7293b6e1b276457078b06159ac93def7e3891a3767aaf292b32a1b3bff7731bd"  # t5
+T4_SYSTEM_PROMPT_SHA256 = (
+    "70722229a71d00917e008c590d7e1fb4a8c9e5afcc64a407904cc17b875f2d6a"  # t4, run E
+)
 T2_SYSTEM_PROMPT_SHA256 = (
     "8f3227a5173881e7a80af9db930a1228d4f0bef1648a3cf88dab16ba70a15959"  # t1 and t2, run D
 )
@@ -34,6 +37,12 @@ T2_EXAMPLE_RULE = (
 T2_DENIAL_SENTENCE = (
     "If a function does not offer what was asked, say pyvar does not offer it; "
     "never invent a parameter or a capability."
+)
+# the one rule t5 added to t4 (F3 of results 9.30)
+T5_VALUES_RULE = re.compile(
+    r"- When you call propose_parameters, give every required parameter a value.*?"
+    r"as a worked example\.\n",
+    re.DOTALL,
 )
 # ... and as they are in t4
 T4_EXAMPLE_RULE = re.compile(
@@ -47,15 +56,27 @@ T4_DENIAL_SENTENCE = re.compile(
 
 
 def test_the_typed_prompt_is_pinned() -> None:
-    assert typed_prompts.TYPED_PROMPT_VERSION == "t4-2026-11-12"
+    assert typed_prompts.TYPED_PROMPT_VERSION == "t5-2026-11-12"
     digest = hashlib.sha256(typed_prompts.TYPED_SYSTEM_PROMPT.encode()).hexdigest()
     assert digest == SYSTEM_PROMPT_SHA256
     assert (typed_prompts.MAX_TOOL_TURNS, typed_prompts.TYPED_MAX_TOKENS) == (4, 1500)
     assert "Always answer in English" in typed_prompts.TYPED_SYSTEM_PROMPT
 
 
-def test_t4_differs_from_the_measured_t2_prompt_in_exactly_two_rules() -> None:
+def test_t5_differs_from_the_measured_t4_prompt_in_exactly_one_rule() -> None:
     prompt = typed_prompts.TYPED_SYSTEM_PROMPT
+    assert len(T5_VALUES_RULE.findall(prompt)) == 1
+    t4 = T5_VALUES_RULE.sub("", prompt)
+    assert hashlib.sha256(t4.encode()).hexdigest() == T4_SYSTEM_PROMPT_SHA256  # run E's text
+    rule = T5_VALUES_RULE.search(prompt).group(0)  # type: ignore[union-attr]
+    assert "every required parameter" in rule and "consistent with one another" in rule
+    assert "empty object" in rule and "placeholder" in rule
+    # the rule sits after the t4 rule that tells the model not to write values, and does not contradict it
+    assert prompt.index("Never write example input values yourself") < prompt.index(rule)
+
+
+def test_t4_differs_from_the_measured_t2_prompt_in_exactly_two_rules() -> None:
+    prompt = T5_VALUES_RULE.sub("", typed_prompts.TYPED_SYSTEM_PROMPT)  # back to t4's text
     assert (
         len(T4_EXAMPLE_RULE.findall(prompt)) == 1 and len(T4_DENIAL_SENTENCE.findall(prompt)) == 1
     )

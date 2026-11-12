@@ -450,3 +450,18 @@ def test_load_cases_filters_by_id_category_and_scope(tmp_path: Path) -> None:
     assert len(run_typed.load_cases(path, limit=3)) == 3
     with pytest.raises(ValueError, match="nope"):
         run_typed.load_cases(path, only_ids={"nope"})
+
+
+def test_the_run_f_slice_names_cases_that_exist() -> None:
+    """The 77 ids of run F (results 9.32): run E's 43 answers with an attached example, its 30 category D cases,
+    and the three E cases plus A:gen:04 whose answers pointed at an example nobody had attached."""
+    path = Path(__file__).resolve().parent.parent / "scripts" / "assistant_eval" / "slice_f_ids.txt"
+    ids = path.read_text().strip().split(",")
+    by_id = {c["id"]: c for c in built_cases()}
+    assert len(ids) == len(set(ids)) == 77 and ids == sorted(ids)
+    assert set(ids) <= set(by_id)
+    categories = sorted({by_id[i]["category"] for i in ids})
+    assert categories == ["A", "B", "C", "D", "E", "H"]
+    assert sum(by_id[i]["category"] == "C" for i in ids) == 30
+    assert sum(by_id[i]["category"] == "D" for i in ids) == 30
+    assert {"A:gen:04", "E:gen:101", "E:gen:103", "E:gen:110"} <= set(ids)

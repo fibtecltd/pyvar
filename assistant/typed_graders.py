@@ -114,6 +114,42 @@ def bare_denial(answer: str) -> bool:
     return bool(_DENIAL.search(head)) and not _GROUNDING.search(answer)
 
 
+# Example values that tell the visitor nothing (results 9.32, F3): a required parameter given an empty object, an
+# empty list, an empty string or a bare placeholder word. A DIAGNOSTIC only, like `bare_denial`: the validator
+# checks types and bounds, so run E's accepted `{"report": {}}` passed it. Numbers are never counted (0 and 1 are
+# legitimate values for some parameters), so it under-counts "placeholder" values such as 1 or 0 on purpose.
+_PLACEHOLDER_WORDS = frozenset(
+    {"string", "str", "value", "example", "test", "sample", "foo", "bar", "todo", "xxx", "..."}
+)
+
+
+def _is_empty_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip() or value.strip().lower() in _PLACEHOLDER_WORDS
+    if isinstance(value, dict):
+        return all(_is_empty_value(v) for v in value.values())
+    if isinstance(value, list):
+        return all(_is_empty_value(v) for v in value)
+    return False
+
+
+def empty_required_values(entry: dict[str, Any], values: dict[str, Any]) -> list[str]:
+    """Names of the required parameters whose example value is empty or a bare placeholder.
+
+    A diagnostic for the harness (results 9.32), not a check: it only reads a value the validator accepted.
+    A required parameter that is missing altogether is the validator's business and is not listed here.
+    """
+    return [
+        str(param["name"])
+        for param in entry.get("params", [])
+        if param.get("required")
+        and param["name"] in values
+        and _is_empty_value(values[param["name"]])
+    ]
+
+
 def _is_workaround(sentence: str) -> bool:
     return bool(_WORKAROUND.search(sentence)) and not _SUPPORT_VERB.search(sentence)
 

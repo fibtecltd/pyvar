@@ -185,6 +185,33 @@ def test_the_summary_counts_attached_examples_and_answers_where_objects_were_rem
     assert (summary["examples_attached"], summary["answers_with_objects_removed"]) == (2, 1)
 
 
+def test_the_summary_lists_the_cases_whose_attached_example_has_an_empty_required_value() -> None:
+    case = case_c()
+    name, values = case["page_function"], valid_values(case)
+    propose = ("propose_parameters", {"name": name, "values": values})
+    good = run_one(
+        ScriptedClient(
+            tool_reply(("get_function", {"name": name}), propose),
+            text_reply(good_answer(name) + " See the example below."),
+        ),
+        case,
+    )[1]
+    assert good["suggested_parameters"] == {"function": name, "values": values}
+    # run E, C:gen:24: an accepted `{"report": {}}`
+    empty = {
+        **good,
+        "case_id": "C:gen:24",
+        "suggested_parameters": {
+            "function": "mifid_ii_transaction_report_validator",
+            "values": {"report": {}},
+        },
+    }
+    summary = run_typed.summarize([good, empty], [], 0, MODEL)
+    assert summary["examples_attached"] == 2
+    assert summary["examples_with_empty_required_values"] == ["C:gen:24"]
+    assert run_typed.summarize([good], [], 0, MODEL)["examples_with_empty_required_values"] == []
+
+
 def test_the_summary_lists_the_category_d_answers_that_open_with_a_bare_denial() -> None:
     d_cases = [c for c in cases() if c["category"] == "D"][:2]
     flat = "No, this function does not offer GPU acceleration. It is a plain calculation on the inputs you give it."

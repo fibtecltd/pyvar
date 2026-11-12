@@ -328,3 +328,40 @@ def test_the_ways_the_prompt_teaches_the_reference_are_found_too(text: str) -> N
 )
 def test_ordinary_use_of_the_word_example_is_not_a_reference(text: str) -> None:
     assert typed_graders.refers_to_attached_example(text) is False
+
+
+# ── empty_required_values (F3, results 9.32): a diagnostic, not a check ─────────────────────────────────────
+
+
+def _entry(**required: bool) -> dict[str, object]:
+    return {"params": [{"name": n, "required": r, "type": "object"} for n, r in required.items()]}
+
+
+def test_an_empty_object_for_a_required_parameter_is_listed() -> None:
+    # run E, C:gen:24: the validator accepted this for mifid_ii_transaction_report_validator
+    assert typed_graders.empty_required_values(_entry(report=True), {"report": {}}) == ["report"]
+
+
+@pytest.mark.parametrize(
+    "value", [{}, [], "", "  ", "string", "Example", None, {"a": {}}, [[], {}], {"a": [""]}]
+)
+def test_empty_and_placeholder_values_are_listed(value: object) -> None:
+    assert typed_graders.empty_required_values(_entry(x=True), {"x": value}) == ["x"]
+
+
+@pytest.mark.parametrize(
+    "value", [0, 1, 0.0, False, "EUR", [1, 2, 3], {"a": 1}, {"a": {}, "b": 2}, [[], [1]]]
+)
+def test_a_real_value_is_never_listed_and_numbers_are_never_judged(value: object) -> None:
+    # 0 and 1 are legitimate values for some parameters, so numbers are left to the judge
+    assert typed_graders.empty_required_values(_entry(x=True), {"x": value}) == []
+
+
+def test_only_required_parameters_that_are_present_are_looked_at() -> None:
+    entry = _entry(a=True, b=False, c=True)
+    values = {
+        "a": [],
+        "b": {},
+    }  # b is optional; c is missing (the validator rejects that, not this)
+    assert typed_graders.empty_required_values(entry, values) == ["a"]
+    assert typed_graders.empty_required_values({}, {"a": []}) == []

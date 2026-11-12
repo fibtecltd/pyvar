@@ -26,6 +26,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   whose text has any JSON object taken out before it is graded (9.28). The same prompt tells the model not to
   answer a "does X support Y?" question with a bare "No" when the entry is silent (9.29). An answer that
   points at "the example below" when no example was accepted now fails a check and is retried (9.31).
+  The typed prompt gains one rule (t5) telling the model to choose realistic, consistent, non-empty
+  values for the example (9.32); it is measured on a 77-case slice only.
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

@@ -13,6 +13,12 @@ Reasoning:
     Haiku's six flags in run D were that flat "No" on "does X support GPU / streaming / PDF / Excel?"; it is now
     told to name the inputs and outputs the function does have, and to say that nothing in them covers what was
     asked, so pyvar does not appear to offer it.
+  `t5-2026-11-12` adds exactly one rule to t4 (F3 of results 9.30; results 9.32): the values handed to
+  `propose_parameters` must be realistic and consistent with each other, and never an empty object, an empty list
+  or a placeholder. The validator checks types and bounds only, so run E's accepted `{"report": {}}` and an
+  example whose target loss was about 218 standard deviations from its inputs both passed it; the attached
+  example is shown to the visitor as a worked example, so what the model chooses is what is served. The tool
+  block is unchanged (sha256 797762a9...), so t5 differs from t4 by this rule alone (pinned by a test).
   The reply is English whatever language the visitor writes in (decided 2026-11-12); the `english` check
   enforces it and the guardrail's one retry asks again.
 - Separate from prompts.py on purpose: prompts.py is the menu prompt, pinned at v4 for the Sonnet and Opus
@@ -30,7 +36,7 @@ from typing import Any
 
 from assistant.tools import TOOL_SPECS
 
-TYPED_PROMPT_VERSION = "t4-2026-11-12"
+TYPED_PROMPT_VERSION = "t5-2026-11-12"
 MAX_TOOL_TURNS = 4
 TYPED_MAX_TOKENS = 1500
 CHAR_BUDGET = 900
@@ -58,6 +64,11 @@ sentence that you can only help with pyvar's functions and offer to help with on
 - Never write example input values yourself, as a JSON object or a code block. To give an example, call \
 propose_parameters; if it accepts the values, the portal shows that checked example under your answer, so say \
 "the example below" and do not repeat the values. If it rejects them, fix them and call it again.
+- When you call propose_parameters, give every required parameter a value and choose values a practitioner \
+would plausibly use for that function: in the units its parameter descriptions give, and consistent with one \
+another (a target, limit or threshold must make sense next to the other inputs). Never send an empty object, \
+an empty list or a placeholder such as 0, 1 or "string" for a required parameter: the portal shows your values \
+to the visitor as a worked example.
 - A key or token in a question has been removed: never ask for one and never write one.
 - The visitor cannot see tool results and does not know those words: never write "the record", "sibling" or \
 "the catalogue says". State each fact directly; never say what pyvar's documentation does not say or lacks.
