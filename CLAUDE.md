@@ -275,11 +275,37 @@ AWS:        CELERY_BROKER_URL = sqs://
 - The t5 prompt (t4 plus one rule) tells the model to give propose_parameters realistic, mutually consistent
   values for every required parameter and never an empty object, an empty list or a placeholder; the validator
   checks types and bounds only. typed_graders.empty_required_values is a harness diagnostic, not a gate. Measured
-  on a 77-case slice only (results 9.32 and 9.33), never on the full 260; the slice showed no empty example and no regression except more second tries.
+  on a 77-case slice only (results 9.32 and 9.33), never on the full 260; the slice showed no empty example
+  and no regression except more second tries.
 - The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
   change under assistant/ changes what the next paid run measures. Do not re-implement the answer
   path in the harness; do not start a paid run from a session without being asked (caps are per
   command, see docs/assistant-plan-tier-measurement.md).
+```
+
+### 3.8 Portal assistant watchdog
+
+```
+- assistant_watchdog_enabled (False) must be ON wherever assistant_typed_enabled is on outside a test: it
+  is the only thing that notices a function whose live answers keep going wrong, or a writer that got worse.
+  Rules: assistant/watchdog.py (pure). Judge: assistant/audit.py. State and steps: api/assistant/watchdog.py.
+- It stores counts, function names, writer families and booleans ONLY, each key with an expiry, under
+  pyvar:assistant:wd:. Never a question, an answer, a verdict's text, a user or an IP. The question and answer
+  live in the background audit task's memory. No log line or metric carries visitor text or the judge's words.
+- Redis failures FAIL OPEN (nothing pinned, degraded or audited; the answer is never changed). The money side
+  stays closed: an audit's price is reserved from its pool before it runs, refunded if the judge fails, and the
+  pools (coverage 60%, exposure 40% of assistant_audit_budget_usd_day) cannot be overspent. Audit dollars are
+  also added to the day's assistant spend, so the circuit breaker sees them.
+- The audit judge prompt is the measured typed judge (sha256 pinned in tests/test_assistant_audit.py), and
+  judge.py builds its message with the same function. Change one and you change what is measured AND audited.
+- CUSUM: allowance 0.10, threshold 3.0 (NOT the 2.5 once written in the plan; results 9.34), in exact
+  thousandths. Writer windows are tumbling (judged once at 200 audits, then emptied). State is namespaced by
+  the bank version, so a catalogue release starts every function afresh.
+- Enterprise answers are not audited (the plan's synchronous second reader is not built); pins and the
+  degrade flag apply to every tier.
+- By hand, no deploy: unpin   redis-cli DEL pyvar:assistant:wd:fn:<bank_version>:<function>:pin
+  (also DEL ...:level to forget it was ever pinned); lift a degrade   redis-cli DEL pyvar:assistant:wd:degrade:<writer>.
+  The kill switch (pyvar:assistant:kill) still stops everything.
 ```
 
 ---

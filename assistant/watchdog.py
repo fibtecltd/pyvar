@@ -34,8 +34,8 @@ Reasoning:
     traffic gets at least 25% of the exposure pool, so a small tier's window fills in days, not weeks.
 - Writer window: 200 exposure audits of one writer, judged ONCE when they are all in and then emptied
   (tumbling, not sliding: judging a sliding window after every audit looks at the same data thousands of
-  times a month and multiplies the false alarm; tumbling keeps it near the plan's 0.07% per window, about 1%
-  a month at the plan's 110 exposure audits a day). A window above 8% degrades the writer (its answers become
+  times a month; at the plan's 110 exposure audits a day and a healthy 3.5% that is a 6.7% chance a month of a
+  false global alert, against 1.2% for tumbling windows, which keep the plan's 0.07% per window). A window above 8% degrades the writer (its answers become
   static text plus search results); while degraded 10% of its questions are still answered live and audited at
   100%, and 200 of those at 5% or less lift the degrade, else the next 200 decide again. No human step.
 - Only booleans are ever kept. An audit whose verdict could not be read is not a flag and not a pass: it is

@@ -28,6 +28,14 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   points at "the example below" when no example was accepted now fails a check and is retried (9.31).
   The typed prompt gains one rule (t5) telling the model to choose realistic, consistent, non-empty
   values for the example (9.32); it is measured on a 77-case slice only.
+- **Portal assistant: the watchdog (off)** — `assistant_watchdog_enabled` (false everywhere). Samples live
+  typed answers with the measured Opus judge (a daily audit budget, default $2, in a coverage pool and an
+  exposure pool), pins a function whose answers keep being flagged (CUSUM; 7 days, doubling to 28, then a
+  20-audit probe) so it serves fixed text, and degrades a writer whose 200-audit window is above 8% (fixed
+  text plus the closest functions, with 10% live probe traffic until 200 probes are at 5% or less). The route
+  checks Redis before the model call and after the answer; audits run in a background task after the
+  response; Redis failures fail open; only counts and booleans are stored. The plan's CUSUM threshold is
+  corrected from 2.5 to 3.0 (results 9.34). Enterprise answers are not audited yet.
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

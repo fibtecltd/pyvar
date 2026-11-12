@@ -102,10 +102,12 @@ async def ask(
     model = model_for(tier)
     writer = tier_label(model)
     catalogue = get_catalogue()
+    names = {entry["name"] for entry in catalogue}
+    page = body.function if body.function in names else None  # only a catalogue name reaches Redis
     answer: Answer | None = None
     probe = False
     if watchdog is not None:  # a pinned function or a degraded writer never reaches the model
-        standing = await watchdog.standing(body.function, writer)
+        standing = await watchdog.standing(page, writer)
         if standing.pinned:
             answer = static_answer(
                 body.question,
@@ -123,7 +125,7 @@ async def ask(
                 answer = static_answer(
                     body.question,
                     catalogue=catalogue,
-                    page_function=body.function,
+                    page_function=page,
                     bank_dir=BANK_DIR,
                     outcome=OUTCOME_DEGRADED,
                     with_suggestions=True,
@@ -137,7 +139,7 @@ async def ask(
                 model,
                 body.question,
                 catalogue=catalogue,
-                page_function=body.function,
+                page_function=page,
                 history=[(turn.q, turn.a) for turn in body.history],
                 bank_dir=BANK_DIR,
                 max_usd=cfg.assistant_max_usd_per_question,
@@ -197,7 +199,7 @@ async def ask(
             client=client,
             model=cfg.assistant_gate_model,
             question=body.question,
-            page_function=body.function,
+            page_function=page,
             answer_text=answer.text,
             evidence=answer.evidence,
             attached=answer.suggested_parameters,

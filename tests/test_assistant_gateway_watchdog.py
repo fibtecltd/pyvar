@@ -190,6 +190,21 @@ async def test_a_static_answer_is_never_audited(wd: WatchGateway) -> None:
     assert fn_key(FUNCTION, "hist") not in wd.redis.lists
 
 
+async def test_a_function_name_that_is_not_in_the_catalogue_never_reaches_redis(
+    wd: WatchGateway,
+) -> None:
+    ghost = "no_such_function"
+    wd.redis.strings[fn_key(ghost, "pin")] = "1"  # would read as pinned if the name were looked up
+    client = wd.use(
+        text_reply("I can only help with pyvar's functions. Ask me what one of them does.")
+    )
+    response = await wd.post({"question": "hi", "function": ghost})
+    assert (
+        response.status_code == 200 and len(client.calls) >= 1
+    )  # answered by the model, not pinned
+    assert response.json()["source"] == "live"
+
+
 # ── a pinned function the answer cites ───────────────────────────────────────────────────────────────────
 
 
