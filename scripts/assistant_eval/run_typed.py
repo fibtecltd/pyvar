@@ -38,7 +38,6 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cost import usage_cost
-from graders import grade_typed
 from prompts import EFFORT
 from run_eval import (
     EFFORT_LEVELS,
@@ -60,7 +59,16 @@ from typed_prompts import (
 )
 from typed_tools import ToolBox, load_catalogue, trim_record
 
-PROVENANCE_FILES = ("typed_prompts.py", "typed_tools.py", "graders.py", "run_typed.py")
+from assistant.typed_graders import grade_typed
+
+# the kernel files are read from assistant/ (run_eval.code_provenance); run_typed.py from this directory
+PROVENANCE_FILES = (
+    "typed_prompts.py",
+    "tools.py",
+    "typed_graders.py",
+    "graders.py",
+    "run_typed.py",
+)
 
 
 def block_to_dict(block: Any) -> dict[str, Any]:

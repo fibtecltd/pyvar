@@ -11,6 +11,9 @@ measured. Design and numbers: `docs/assistant-plan-implementation.md`, `docs/ass
 | `gate.py` | the model gate: `gate(client, case, text) -> Verdict` (faithful, issues, cost); `JUDGE_SYSTEM`, `judge_message`, `parse_verdict` |
 | `static_text.py` | the static answer built from the record: the floor under every bank entry |
 | `client.py` | `ModelClient` protocol and `AnthropicClient`; the **only** module that imports `anthropic` (inside the constructor) |
+| `tools.py` | the typed agent's three read-only tools and the `ToolBox` that remembers what they returned; `hit_view` is what a search hit shows |
+| `typed_prompts.py` | the typed system prompt (`t2-2026-11-12`, same words as the first typed run) and `build_typed_request` |
+| `typed_graders.py` | `grade_typed` with the stock-decline and quoting-refusal false positives fixed; wraps `graders.grade_typed`, which cannot change (the bank pins its hash) |
 | `bank.py` | `python -m assistant.bank build\|check`: writes and checks the answer bank |
 | `cost.py`, `records.py`, `body_schema.py`, `scrub.py` | token prices and cost, `trim_record`, request-body checker, secret scrubber |
 

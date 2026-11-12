@@ -56,6 +56,9 @@ pyvar/
 │   ├── client.py              ← ModelClient protocol + AnthropicClient (retries, served-model check, cost); the SDK is imported lazily here only
 │   ├── gate.py                ← the Opus gate: JUDGE_SYSTEM, judge_message, parse_verdict, gate() -> Verdict
 │   ├── static_text.py         ← the static answer built from the record (graders.oracle_text): the floor of the bank
+│   ├── tools.py               ← the typed agent's 3 read-only tools (search_functions, get_function, propose_parameters) + ToolBox
+│   ├── typed_prompts.py       ← the typed system prompt (t2-2026-11-12, pinned) and request builder
+│   ├── typed_graders.py       ← graders.grade_typed with the two first-run false positives fixed (graders.py itself is hash-pinned)
 │   └── bank.py                ← `python -m assistant.bank build|check`: writes and checks portal/assistant/bank/
 │
 ├── schemas/                   ← Pydantic v2 request/response models

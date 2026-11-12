@@ -40,7 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cost import usage_cost
 from run_eval import Budget, call_model, wilson
 from scrub import scrub_secrets
-from typed_tools import load_catalogue, trim_record
+from typed_tools import hit_view, load_catalogue, trim_record
 
 # JUDGE_SYSTEM, judge_message and parse_verdict moved to assistant/gate.py (PR 2); the same objects, re-exported
 # here so `judge.JUDGE_SYSTEM` and the other two names keep working. (`cost` above has put the repo root on sys.path.)
@@ -138,9 +138,9 @@ def typed_judge_message(
         parts.append(f"<page_function>{case['page_function']}</page_function>")
     records = [trim_record(by_name[n]) for n in row["records_seen"] if n in by_name]
     parts.append(f"<function_entries>{json.dumps(records, ensure_ascii=False)}</function_entries>")
-    hits = [
-        {"name": n, "summary": by_name[n]["summary"]} for n in row["search_hits"] if n in by_name
-    ]
+    # the same view the model was shown (name, display name, domain, summary), so a claim about a function's
+    # domain is judged against what the tools returned
+    hits = [hit_view(by_name[n]) for n in row["search_hits"] if n in by_name]
     parts.append(f"<search_results>{json.dumps(hits, ensure_ascii=False)}</search_results>")
     checked = [
         {"function": p["name"], "values": p["values"], "accepted": p["ok"]}

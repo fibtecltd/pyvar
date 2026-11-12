@@ -1126,3 +1126,34 @@ branches `data/assistant-bank-1` (`b64daae`), `-2` (`928d3ba`) and `-3` (`31567d
 first build (3 wrong, all since rewritten) and 31 reads of rewritten answers (1 wrong, since rewritten; 1 unsure that the engine settles).
 No random read has been made of this final bank, whose 124 rewritten answers differ from the one that was sampled. If the 4% tolerance has
 to be shown for exactly this bank, that read is the missing evidence; the flag `assistant_enabled` stays off until it is decided.
+
+### 9.23 The typed harness defects of 9.18, fixed in the production kernel (2026-11-12)
+
+The typed agent's tools, prompt and grader now live in `assistant/` (`tools.py`, `typed_prompts.py`, `typed_graders.py`) so the gateway and
+the eval share them; the old harness paths are shims. `graders.py` and `prompts.py` are untouched, because the committed bank pins their
+hashes (a change would mean a rebuild of about $16); the fixed typed grader is a wrapper in a new module.
+
+**Parameter validator.** The catalogue types 530 of its 1,577 parameters as `object`, mostly arrays in practice. The 9.18 validator rejected a
+real JSON list for them: for the 385 functions, valid example values (one list per `object` parameter) were refused for **249**; the new
+validator, which takes an object or an array for `object` and an array for `array`, refuses none. `propose_parameters` now also tells the
+model that an array parameter takes a JSON list.
+
+**Search hits.** The model was shown each hit's domain label, but nothing recorded it, so the grader and the judge could not tell a supported
+"this is a credit-risk function" from an invented one (4 of Haiku's 8 and 5 of Sonnet's 9 flags in 9.18). `tools.hit_view` is the single
+definition (name, display name, domain, summary); the ToolBox keeps what it showed and the typed judge message now carries it.
+
+**Grader.** Re-grading the stored answers of the 9.18 typed runs (the old grader reproduces every stored grade: 260 of 260 and 259 of 259):
+with the fix 6 Haiku grades and 10 Sonnet grades change, none from pass to fail. Haiku 202 to 208 passes, Sonnet 198 to 207. The changes are
+only in two checks. `no_advice` flips on 5 Haiku and 8 Sonnet answers (9.18 counted 5 and 7): each is a decline that quotes what it declines,
+for example "I can't advise on whether you should hold more capital" or "It says nothing about whether you should hold or sell". A phrase of
+advice is ignored only inside a mention clause ("whether", "if", "when", "what", "which", "how much") with a negation or refusal earlier in the
+same clause; "I can't give advice, but you should hold more capital" and "I can't say, but when you invest you should hold more" are still
+flagged. `no_prompt_text` flips on 1 Haiku and 2 Sonnet answers, the stock decline sentence the prompt itself asks for.
+
+**Prompt.** `t2-2026-11-12`: the system prompt text is the first run's word for word (sha256 `8f3227a5...`, pinned in
+`tests/test_assistant_typed_grader_fixes.py`); only the version and the tool block changed (sha256 `797762a9...`). Replies stay English-only
+(decided 2026-11-12); the `english` check enforces it and the guardrail's one retry asks again.
+
+**Not measured.** None of this has been run against a model. Whether the typed targets T1 and T3 are met needs a second run (about $5.8
+expected, $7.5 in caps) once the agent loop and guardrails are in the kernel, and that run is a separate approval.
+
