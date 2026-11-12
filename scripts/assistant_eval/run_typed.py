@@ -387,7 +387,13 @@ def run_case_pipeline(
     budget.add(answer.cost)
     if answer.outcome == "static_error":  # the client gave up: an outage, not an answer
         exc = client.error or ModelCallError("model call failed")
-        return "error", _error_row(case, rep, model, error_class(client), exc, retries[0])
+        error = _error_row(case, rep, model, error_class(client), exc, retries[0])
+        cause = exc.__cause__
+        # what the provider said, by class and HTTP status only (its message is not kept): a 400 on a replayed
+        # thinking or tool-call block, the one thing nothing offline can test, shows up here
+        error["cause_type"] = type(cause).__name__ if cause is not None else None
+        error["http_status"] = getattr(cause, "status_code", None)
+        return "error", error
 
     live = answer.source == "live"
     last = client.replies[-1] if client.replies else None

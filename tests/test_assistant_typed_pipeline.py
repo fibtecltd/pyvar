@@ -180,6 +180,8 @@ def test_a_client_that_gave_up_is_an_error_row_not_a_static_answer(
     kind, row = run_one(failing(cause), one_case("A"))
     assert kind == "error" and row["failure_class"] == failure_class
     assert "text" not in row
+    assert row["cause_type"] == "Http" and row["http_status"] == cause.status_code  # type: ignore[attr-defined]
+    assert "credit balance" not in json.dumps(row)  # the provider's message is not kept
 
 
 def test_a_served_model_mismatch_is_its_own_error_class() -> None:
