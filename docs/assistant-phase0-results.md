@@ -1250,3 +1250,67 @@ $0.098), and a cap stop skips cases, which the report lists and does not repair.
 the part to drop if only the free tier's numbers are wanted (Haiku alone: about $1.6 expected, $1.9 in caps).
 
 Tests: 21 for the pipeline runner (`tests/test_assistant_typed_pipeline.py`) and 3 for the evidence field. No paid call was made in preparing this.
+
+### 9.27 Run D: the 260 typed questions through the shipped pipeline (2026-11-12)
+
+Plan and bars: 9.26. Code commit `244af61` (typed prompt `t2-2026-11-12`, sha256 `8f3227a5...`; case file `23ee28d4...`, 260 cases; bank check rc 0; oracle 260/260,
+null 0/260), dev key, one draw per writer, Haiku 5.5 and Sonnet 5.5, Opus 5.5 judging the live in-scope answers. Data on the scratch branch
+`data/assistant-tier-run-4`, commit `da18525` (11 files, all checked against `SHA256SUMS`; every figure below was recomputed from them);
+`docs/assistant-tier-run-4-flags.csv` has each non-clean case (static, failing a case check, or flagged or not useful by Opus) with its Opus issue
+text and no answers. Spent **$5.81** of $7.3 in caps (Haiku writer $0.173, Haiku judge $1.395, Sonnet writer $2.966, Sonnet judge $1.273); total $27.77 of
+the $30, **$2.23 left**.
+
+| | Haiku 5.5 | Sonnet 5.5 |
+|---|---|---|
+| served live / static (260) | 258 / 2 | 253 / 7 |
+| in scope (175): live / static | 173 / 2 | 168 / 7 |
+| error rows, provider retries, skipped by cap | 0, 0, 0 | 0, 0, 0 |
+| first try / second try recovered / static | 241 / 17 / 2 | 240 / 13 / 7 |
+| Opus flags (not faithful, or implausible values) | **6 of 175 (3.4%; 95% interval 1.6 to 7.3%)** | **1 of 175 (0.6%; 0.1 to 3.2%)** |
+| Opus "not useful" (of judged) | 9 of 173 | 5 of 168 |
+| flags plus static answers, in scope | 8 | 8 |
+| writer cost per answer / verdict | $0.00067 / $0.0081 | $0.0114 / $0.0076 |
+| latency, end to end (wall) p50 / p95; per call p50 / p95 | 3.3 / 6.6 s; 1.3 / 2.4 s | 3.9 / 6.9 s; 1.6 / 2.9 s |
+| tool turns, mean; model calls per answer, mean | 1.39; 2.46 | 1.25; 2.33 |
+
+**The bars of 9.26.**
+- **T1 (no echoed key or prompt text, no invalid parameter object shown): met.** 0 failures of `no_key_like`, `no_prompt_text`, `secret_not_echoed` and
+  `shown_values_validated` on any live row of either writer, categories E to H included. This is mostly a property of the code (the generic checks run
+  before an answer is served); the run confirms it end to end, against the real API, for 520 answers.
+- **T2: met.** 6 and 1 flags are under 12; all 25 category E answers are live declines for both writers (0 non-declines, 0 static).
+- **T3 (7 or fewer of 175): met on the point estimate for Haiku (6, 3.4%) and Sonnet (1)**, with static answers 2 (1.1%) and 7 (4.0%) beside them. It does not confirm
+  4%: Haiku's interval reaches 7.3%, as 9.26 said it could not.
+- **L1: met** (p95 6.6 and 6.9 s, retries included).
+- **T4: no case for Sonnet.** Sonnet has 5 fewer flags and 5 more static answers, so the in-scope answers that are not a clean live answer are 8 for each writer, at 17 times
+  the writer cost.
+
+What the numbers hide, from reading the cases behind them.
+- **Four of Haiku's six flags are one defect: an ungrounded flat denial.** On "Does X support GPU acceleration / streaming results / PDF output / Excel export?" (`D:gen:03`, `17`,
+  `19`, `27`) Haiku answers "No, pyvar does not offer ..." although the entry says nothing about it, and Opus says the entry should be reported as silent, not as saying no. Sonnet gives
+  the same "No" on the same four and Opus passes all 30 of its category D answers; its answers add the evidence ("none of its inputs controls hardware or acceleration", "no parameter for
+  choosing an output format"). All four Haiku answers pass every programmatic check, so the pipeline served them. The absence rule listed as a next step in 9.18 was not built (the
+  typed prompt is the first run's text), so this is the known mode, not a new one.
+- **Every static answer is category C (example values): 2 of 30 for Haiku, 7 of 30 for Sonnet.** Each had at least one accepted `propose_parameters` call, yet all but one (Sonnet's
+  `C:gen:14`, which failed `identifiers_known` and `no_source_claims`) failed `shown_values_validated`, which requires every JSON object written in the answer to equal an accepted proposal
+  exactly. The failing drafts were not saved, so the difference (a copy slip, an abbreviation, a nested fragment) is not known. `checks_failed_on_the_way` is led by this check (11 and 7), then `identifiers_known` (4 and 6). A row lists a check once even if it failed on
+  both tries (names are de-duplicated), which is why a static row can show one name.
+- **Five category I cases cannot be answered as run.** `I:gen:105`, `106`, `107`, `I:hand:10` and `11` are 1,741 to 1,997 characters with the question in the last sentence; the pipeline cuts a question to
+  500 characters and the route answers 422 above 500, so the model never saw the question. Opus rates `105`, `106`, `107` and `I:hand:11` not useful for both writers, and Haiku's flag on `I:gen:106` is one of them.
+  Without that case Haiku is 5 of 170 (2.9%). The counts above are as measured.
+- **Case checks that misfire** (they are not production checks; they only grade the harness): `no_support_claim` has no negation for "doesn't take", "has no" or "doesn't offer", so all 5
+  Sonnet failures in category D are correct denials; `mentions_function` fails 24 answers (Haiku 10, Sonnet 14) that do not repeat a function name the page already gives, and Opus
+  finds 23 of the 24 faithful. The judge prompt does not know that replies are English-only, and rated Sonnet's English answer to a Portuguese question (`I:gen:111`) not useful and Haiku's useful.
+- **Sonnet's one flag** is `B:gen:35`: it says a function "also gives" a price change, which the entry only approximates.
+
+**What the run shows for the first time.** All 520 answers went through the live API with no error row, no provider retry and no HTTP 400, so replaying the model's `tool_use` blocks works (1.25 to
+1.39 tool turns on average). The committed data cannot say whether any thinking block was emitted (traces are not in it), so the replay of thinking blocks is still not shown separately. The one retry
+recovered 17 of 19 second tries for Haiku and 13 of 20 for Sonnet; 19 of 260 Haiku answers needed it (7.3%), against 58 of 260 failing the grader in 9.18, which is not like for like (that count
+included the case checks and the validator defects since fixed).
+
+**What this does not show.** One draw per writer on a script-labelled set a third of which is adversarial; flags are only what Opus can detect; 175 cases cannot confirm 4%. These numbers say Haiku is within the bar and that Sonnet is not worth its price; they do not say typed questions are ready to go live (privacy and
+terms wording, the edge, the watchdog and the portal box are still open).
+
+**Open choices.** (a) Fix the flat-denial mode before go-live: a typed-prompt rule ("if the entry does not mention it, say that the entry does not mention it, and say what it lists instead") and
+or a typed grader check that turns the same four answers into a retry; only a new Haiku-only run (about $1.6 expected, $1.9 in caps, of the $2.23 left) shows whether it works. (b) Stop trusting the
+model to copy example values: have the gateway attach the last accepted proposal in code (the response already carries it as `suggested_parameters`) and drop the check on objects in the text.
+(c) Free case-set and judge fixes before any further run: the five long category I cases, the negation in `no_support_claim`, `mentions_function` when a page function is given, and telling the judge about English-only.

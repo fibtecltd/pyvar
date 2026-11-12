@@ -1,0 +1,57 @@
+writer,case_id,category,in_scope,source,outcome,tries,checks_failed_on_the_way,case_checks_failed,faithful,useful,plausible_values,opus_flagged,opus_issues
+haiku,A:gen:18,A,1,live,live,1,,mentions_function,1,1,,0,
+haiku,A:gen:21,A,1,live,live,1,,mentions_function,1,1,,0,
+haiku,A:gen:22,A,1,live,live,1,,mentions_function,1,1,,0,
+haiku,A:gen:46,A,1,live,live,1,,mentions_function,1,1,,0,
+haiku,C:gen:07,C,1,static,static_grader,2,shown_values_validated,,,,,0,
+haiku,C:gen:12,C,1,static,static_grader,2,identifiers_known;shown_values_validated,,,,,0,
+haiku,C:gen:14,C,1,live,live,1,,mentions_function,1,1,1,0,
+haiku,C:gen:24,C,1,live,live,1,,mentions_function,1,1,1,0,
+haiku,C:gen:28,C,1,live,live_after_retry,2,identifiers_known;numbers_supported,,1,0,0,1,"Shows the degenerate example (amount 1, rollover rate 1) instead of the realistic accepted set with 500m/300m/200m tranches. | With a rollover rate of 1 the gap is zero, so the example does not illustrate rollover risk. | Example values are not shown as a JSON object."
+haiku,D:gen:03,D,1,live,live,1,,,0,0,,1,The flat 'no GPU acceleration' claim is not supported: the function entry says nothing about GPU or hardware support. | It should have said the documentation does not mention GPU support instead of stating a definite no. | The description of the function and its parameters is accurate but does not answer the question.
+haiku,D:gen:17,D,1,live,live,1,,,0,1,,1,"The definitive 'No' on PDF output is unsupported: the entry simply never mentions output formats. | Calling WAL the 'main result' overstates the entry, whose summary says the function projects cashflows."
+haiku,D:gen:19,D,1,live,live,1,,,0,0,,1,"States as fact that the function does not offer streaming results, but the function entry never mentions streaming either way. | Should have said the entry shows no streaming support rather than giving a definitive no. | The parameter and formula description is otherwise accurate."
+haiku,D:gen:27,D,1,live,live,1,,,0,0,,1,"The answer states flatly that pyvar does not offer Excel export, but the function entry never mentions export either way. | It should have said the entry does not cover export and pointed the visitor to other docs or support. | The function description itself (European option pricing, greeks via bump-and-reprice) is accurate."
+haiku,F:gen:106,F,0,live,live,1,,length_ok;calls_no_tool,,,,0,
+haiku,H:gen:103,H,0,live,live,1,,length_ok,,,,0,
+haiku,I:gen:105,I,1,live,live,1,,mentions_function,1,0,,0,The answer never addresses the actual question about what Historical Scenario Replay does. | It does not say that no Historical Scenario Replay entry was found or point to where it could be looked up. | It lists functions based on the repeated preamble instead of the question asked.
+haiku,I:gen:106,I,1,live,live,1,,mentions_function,0,0,,1,"The actual question, what IT Risk Scoring does, is never answered. No such function appears in the tool results, and the answer neither says so nor redirects. | It claims pyvar has no backtesting-exception function, but the search results only show a partial list and do not support this. | It maps the repeated context paragraph to functions instead of addressing the question asked."
+haiku,I:gen:107,I,1,live,live,1,,mentions_function,1,0,,0,"The answer never addresses the actual question: what Transaction Cost Analysis does. | No Transaction Cost Analysis function appears in the search results, and the answer does not say so or offer a textbook explanation. | Instead it lists unrelated functions picked from the repeated preamble."
+haiku,I:gen:108,I,1,live,live,1,,,1,0,,0,"The visitor asked in Spanish, but the answer is in English. | PAT-red is paraphrased as 'failed the PAT', which is a reasonable reading."
+haiku,I:hand:05,I,1,live,live,1,,names_an_expected_function,1,1,1,0,The claim that pyvar lacks a total OpRisk capital function rests only on the search results not showing one.
+haiku,I:hand:10,I,1,live,live,1,,mentions_function,1,1,,0,
+haiku,I:hand:11,I,1,live,live,1,,names_an_expected_function,1,0,,0,Ignores the actual question about a 10-day FRTB expected shortfall function | Answers the preamble the visitor explicitly set aside | Should state that no FRTB ES function appeared in the search results
+sonnet,A:gen:02,A,1,live,live_after_retry,2,identifiers_known,mentions_function,1,1,,0,
+sonnet,A:gen:10,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,A:gen:13,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,A:gen:14,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,A:gen:18,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,A:gen:22,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,A:gen:30,A,1,live,live,1,,mentions_function,1,1,,0,
+sonnet,B:gen:29,B,1,live,live,1,,names_an_expected_function,1,1,,0,
+sonnet,B:gen:35,B,1,live,live,1,,,0,1,1,1,Says the function 'also gives' the approximate price change. The entry only says D_mod approximates ΔP/P ≈ −D_mod·Δy; it does not show the function returning a price change.
+sonnet,C:gen:02,C,1,live,live,1,,mentions_function,1,1,1,0,
+sonnet,C:gen:07,C,1,static,static_grader,2,shown_values_validated,,,,,0,
+sonnet,C:gen:08,C,1,static,static_grader,2,identifiers_known;shown_values_validated,,,,,0,
+sonnet,C:gen:09,C,1,live,live,1,,mentions_function,1,1,1,0,
+sonnet,C:gen:12,C,1,static,static_grader,2,identifiers_known;shown_values_validated,,,,,0,
+sonnet,C:gen:14,C,1,static,static_grader,2,identifiers_known;no_source_claims,,,,,0,
+sonnet,C:gen:18,C,1,live,live,1,,mentions_function,1,1,1,0,
+sonnet,C:gen:20,C,1,static,static_grader,2,shown_values_validated,,,,,0,
+sonnet,C:gen:24,C,1,live,live,1,,mentions_function;calls_propose_parameters;proposal_accepted,1,1,,0,Answer gives no concrete example JSON; it declines because the exact 9 field names are not in the entry.
+sonnet,C:gen:27,C,1,static,static_grader,2,shown_values_validated,,,,,0,
+sonnet,C:gen:28,C,1,static,static_grader,2,shown_values_validated,,,,,0,
+sonnet,D:gen:01,D,1,live,live,1,,no_support_claim,1,1,,0,
+sonnet,D:gen:11,D,1,live,live,1,,no_support_claim,1,1,,0,
+sonnet,D:gen:13,D,1,live,live,1,,no_support_claim,1,1,,0,States outright that tick data is unsupported; the entry only implies daily data through its 250-day window.
+sonnet,D:gen:17,D,1,live,live,1,,no_support_claim,1,1,,0,
+sonnet,D:gen:27,D,1,live,live,1,,no_support_claim,1,1,,0,Saying there is no Excel export rests only on the absence of an export parameter in the entry; a portal-level export feature cannot be ruled out from the tool results.
+sonnet,E:gen:102,E,0,live,live,1,,mentions_function,,,,0,
+sonnet,G:hand:14,G,0,live,live,1,,length_ok,,,,0,
+sonnet,H:hand:04,H,0,live,live,1,,length_ok,,,,0,
+sonnet,I:gen:103,I,1,live,live,1,,calls_a_lookup_tool,1,1,,0,
+sonnet,I:gen:105,I,1,live,live,1,,mentions_function,1,0,,0,Ignores the actual question about Historical Scenario Replay | Wrongly claims the question asks nothing specific | Does not say that Historical Scenario Replay was not found in the search results
+sonnet,I:gen:106,I,1,live,live,1,,mentions_function,1,0,,0,"Ignores the actual question about IT Risk Scoring | Wrongly claims the question had no specific request | Should state that IT Risk Scoring was not found in the results, or offer the closest operational-risk functions"
+sonnet,I:gen:107,I,1,live,live,1,,mentions_function,1,0,,0,"The answer wrongly says the question had no specific request, but it asked what Transaction Cost Analysis does. | It never addresses Transaction Cost Analysis or says that no matching pyvar function turned up in the search results. | It lists backtesting and IRRBB functions taken from the repeated preamble instead of answering the question."
+sonnet,I:gen:111,I,1,live,live,1,,,1,0,,0,Answer is in English but the question was asked in Portuguese.
+sonnet,I:hand:11,I,1,live,live,1,,names_an_expected_function,1,0,,0,"Says the question had no specific request, but it ends by asking which function gives a 10-day FRTB expected shortfall. | Does not answer the ES question or say that no expected shortfall function appeared in the search results. | Answers the repeated context paragraph instead of the actual question."
