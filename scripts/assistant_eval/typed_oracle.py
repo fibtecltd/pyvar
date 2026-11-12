@@ -12,7 +12,6 @@ Reasoning:
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from typed_tools import ToolBox
@@ -79,7 +78,8 @@ def oracle_run(case: dict[str, Any], catalogue: list[dict[str, Any]]) -> dict[st
         record = _fetch(box, expect["function"])
         values = _example_values(record)
         box.run("propose_parameters", {"name": expect["function"], "values": values})
-        text = f"For `{record['name']}` ({record['display_name']}) try {json.dumps(values)}."
+        # the correct agent does not write the values (prompt t3): the portal attaches the checked example
+        text = f"For `{record['name']}` ({record['display_name']}) try the example below."
     elif category == "D":
         record = _fetch(box, expect["function"])
         term = expect["absent_terms"][0]

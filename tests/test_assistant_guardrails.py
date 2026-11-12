@@ -291,72 +291,81 @@ def test_an_unknown_page_is_ignored_and_history_is_cleaned(
     assert "q1" not in content and "q4" in content and "q5" in content
 
 
-# ── what the visitor is shown beyond the text ────────────────────────────────────────────────────────────
+# ── the example values: the gateway attaches them, the model does not write them ─────────────────────────
 
 VALID = {"returns": [0.01, -0.02, 0.005], "portfolio_value": 1000000, "confidence_level": 0.99}
+BAD = {"returns": "not a list", "portfolio_value": 1000000}
+PROPOSE_VALID = ("propose_parameters", {"name": FUNCTION, "values": VALID})
+PROPOSE_BAD = ("propose_parameters", {"name": FUNCTION, "values": BAD})
 
 
-def test_a_validated_example_the_answer_shows_becomes_the_suggested_parameters(
+def test_the_last_accepted_example_is_attached_even_when_the_text_does_not_repeat_it(
     catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
 ) -> None:
-    text = good_answer(by_name) + f" Example inputs: {json.dumps(VALID)}"
-    client = ScriptedClient(
-        tool_reply(GET, ("propose_parameters", {"name": FUNCTION, "values": VALID})),
-        text_reply(text),
-    )
+    text = good_answer(by_name) + " The example below shows typical inputs."
+    client = ScriptedClient(tool_reply(GET, PROPOSE_VALID), text_reply(text))
     answer = ask(client, catalogue)
-    assert answer.outcome == "live"
+    assert answer.outcome == "live" and answer.removed_objects == 0 and answer.text == text
     assert answer.suggested_parameters == {"function": FUNCTION, "values": VALID}
 
 
-def test_a_rejected_example_is_never_shown_as_a_suggestion(
+def test_an_object_the_model_writes_anyway_is_taken_out_of_the_text_and_the_checked_one_attached(
     catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
 ) -> None:
-    bad = {"returns": "not a list", "portfolio_value": 1000000}
-    text = good_answer(by_name) + f" Example inputs: {json.dumps(bad)}"
+    drifted = {**VALID, "confidence_level": 0.98}  # a copy slip: not what the tool accepted
+    text = good_answer(by_name) + f" Example inputs:\n```json\n{json.dumps(drifted)}\n```"
+    client = ScriptedClient(tool_reply(GET, PROPOSE_VALID), text_reply(text))
+    answer = ask(client, catalogue)
+    assert answer.outcome == "live" and answer.removed_objects == 1  # no static fallback, no retry
+    assert "{" not in answer.text and "0.98" not in answer.text and "```" not in answer.text
+    assert answer.suggested_parameters == {"function": FUNCTION, "values": VALID}
+    assert answer.tries == 1 and answer.model_calls == 2
+
+
+def test_what_is_graded_is_what_is_served(
+    catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
+) -> None:
+    # a number that only appears inside the removed object must not make the served text fail, and a number in
+    # the served text is checked as before
+    unsupported = good_answer(by_name) + " It converges in 7481 steps."
     client = ScriptedClient(
-        tool_reply(GET, ("propose_parameters", {"name": FUNCTION, "values": bad})),
-        text_reply(text),
+        tool_reply(GET, PROPOSE_VALID),
+        text_reply(unsupported + f" {json.dumps(VALID)}"),
         text_reply(good_answer(by_name)),
     )
     answer = ask(client, catalogue)
-    assert "shown_values_validated" in answer.failures
-    assert answer.outcome == "live_after_retry" and answer.suggested_parameters is None
+    assert "numbers_supported" in answer.failures and answer.outcome == "live_after_retry"
+    assert answer.text == good_answer(by_name)
 
 
-def test_the_functions_an_answer_is_about_follow_its_order(
+def test_values_written_without_an_accepted_proposal_are_a_failed_check_and_the_retry_says_so(
     catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
 ) -> None:
-    other = "expected_shortfall_contribution"
-    text = (
-        good_answer(by_name)
-        + f" For a breakdown by asset see `{other}` ({by_name[other]['display_name']}): "
-        + by_name[other]["summary"]
-    )
-    client = ScriptedClient(tool_reply(GET, ("get_function", {"name": other})), text_reply(text))
+    text = good_answer(by_name) + f" Example inputs: {json.dumps(VALID)}"
+    client = ScriptedClient(tool_reply(GET), text_reply(text), text_reply(good_answer(by_name)))
     answer = ask(client, catalogue)
-    assert answer.outcome == "live", answer.failures
-    assert answer.functions == (FUNCTION, other)
+    assert answer.failures == ("example_without_check",)
+    assert answer.outcome == "live_after_retry" and answer.suggested_parameters is None
+    correction = client.calls[2][1]["messages"][-1]["content"]
+    assert "propose_parameters" in correction and "never write the values yourself" in correction
 
 
-# ── the optional second reader (the enterprise gate) ─────────────────────────────────────────────────────
-
-
-def test_a_second_reader_that_objects_triggers_the_retry_and_one_that_agrees_does_not(
+def test_a_rejected_example_is_never_attached(
     catalogue: list[dict[str, Any]], by_name: dict[str, dict[str, Any]]
 ) -> None:
-    text = good_answer(by_name)
-    verdicts = iter([["the reader found an unsupported claim"], []])
-    client = ScriptedClient(tool_reply(GET), text_reply(text), text_reply(text))
-    answer = ask(client, catalogue, extra_check=lambda q, a, box: next(verdicts))
-    assert (answer.outcome, answer.failures) == ("live_after_retry", ("gate",))
-    assert "unsupported claim" in client.calls[2][1]["messages"][-1]["content"]
-    agree = ask(
-        ScriptedClient(tool_reply(GET), text_reply(text)),
-        catalogue,
-        extra_check=lambda q, a, box: [],
-    )
-    assert agree.outcome == "live"
+    client = ScriptedClient(tool_reply(GET, PROPOSE_BAD), text_reply(good_answer(by_name)))
+    answer = ask(client, catalogue)
+    assert answer.outcome == "live" and answer.suggested_parameters is None
+
+
+def test_a_static_answer_carries_no_example_and_no_removed_count(
+    catalogue: list[dict[str, Any]],
+) -> None:
+    text = BAD_DRAFT + f" {json.dumps(VALID)}"
+    client = ScriptedClient(tool_reply(GET, PROPOSE_VALID), text_reply(text), text_reply(text))
+    answer = ask(client, catalogue)
+    assert answer.source == "static" and answer.suggested_parameters is None
+    assert answer.removed_objects == 0 and "{" not in answer.text
 
 
 # ── nothing the visitor wrote or the model answered is logged ────────────────────────────────────────────
@@ -384,7 +393,7 @@ def test_no_question_or_answer_text_reaches_a_log_line(
     assert BAD_DRAFT not in emitted
     assert {k for e in events for k in e} <= {
         "event", "log_level", "outcome", "source", "tries", "model_calls", "tool_turns", "cost_usd",
-        "latency_s", "failures", "functions", "scrubbed", "model", "error",
+        "latency_s", "failures", "functions", "scrubbed", "removed_objects", "model", "error",
     }  # fmt: skip
 
 

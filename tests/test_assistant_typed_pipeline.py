@@ -124,6 +124,67 @@ def test_the_question_reaches_the_model_scrubbed_and_the_row_counts_what_was_rem
     assert row["scrubbed"] >= 1
 
 
+# ── example values: attached by the gateway, not written by the model ────────────────────────────────────
+
+
+def case_c() -> dict[str, Any]:
+    return one_case("C")
+
+
+def valid_values(case: dict[str, Any]) -> dict[str, Any]:
+    import typed_oracle  # the smallest values of the right type
+
+    return typed_oracle._example_values(tools.trim_record(BY_NAME[case["page_function"]]))
+
+
+def test_the_row_carries_the_attached_example_and_how_many_objects_were_removed() -> None:
+    case = case_c()
+    name, values = case["page_function"], valid_values(case)
+    text = good_answer(name) + f" Example:\n```json\n{json.dumps(values)}\n```"
+    client = ScriptedClient(
+        tool_reply(
+            ("get_function", {"name": name}),
+            ("propose_parameters", {"name": name, "values": values}),
+        ),
+        text_reply(text),
+    )
+    _, row = run_one(client, case)
+    assert row["source"] == "live" and row["removed_objects"] == 1
+    assert row["suggested_parameters"] == {"function": name, "values": values}
+    assert "{" not in row["text"]  # what is stored, graded and judged is what the visitor reads
+    assert row["grade"] is not None and row["grade"]["checks"]["shown_values_validated"] is True
+
+
+def test_a_row_without_a_proposal_has_no_example_and_nothing_removed() -> None:
+    case = one_case("A")
+    _, row = run_one(ScriptedClient(*live_script(case)), case)
+    assert row["suggested_parameters"] is None and row["removed_objects"] == 0
+
+
+def test_the_summary_counts_attached_examples_and_answers_where_objects_were_removed() -> None:
+    case = case_c()
+    name, values = case["page_function"], valid_values(case)
+    propose = ("propose_parameters", {"name": name, "values": values})
+    written = good_answer(name) + f" {json.dumps(values)}"
+    rows = [
+        run_one(
+            ScriptedClient(
+                tool_reply(("get_function", {"name": name}), propose), text_reply(written)
+            ),
+            case,
+        )[1],
+        run_one(
+            ScriptedClient(
+                tool_reply(("get_function", {"name": name}), propose),
+                text_reply(good_answer(name) + " Use the example below."),
+            ),
+            case,
+        )[1],
+    ]
+    summary = run_typed.summarize(rows, [], 0, MODEL)
+    assert (summary["examples_attached"], summary["answers_with_objects_removed"]) == (2, 1)
+
+
 # ── static answers ───────────────────────────────────────────────────────────────────────────────────────
 
 

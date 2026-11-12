@@ -224,6 +224,35 @@ async def test_an_anonymous_question_gets_a_live_answer_and_its_cost_is_recorded
     assert next(iter(gateway.redis.ttls.values())) == store_module.SPEND_TTL_SECONDS
 
 
+async def test_the_checked_example_is_attached_and_the_model_text_has_no_object(
+    gateway: Gateway, by_name: dict[str, dict[str, Any]]
+) -> None:
+    import json
+
+    values = {
+        "returns": [0.01, -0.02, 0.005, 0.0],
+        "portfolio_value": 1000000,
+        "confidence_level": 0.99,
+    }
+    written = (
+        good_answer(by_name)
+        + f" Example:\n```json\n{json.dumps({**values, 'confidence_level': 0.98})}\n```"
+    )
+    gateway.use(
+        tool_reply(
+            ("get_function", {"name": FUNCTION}),
+            ("propose_parameters", {"name": FUNCTION, "values": values}),
+        ),
+        text_reply(written, cost=0.002),
+    )
+    body = (await gateway.post()).json()
+    assert body["source"] == "live" and "{" not in body["answer"] and "0.98" not in body["answer"]
+    assert body["suggested_parameters"] == {
+        "function": FUNCTION,
+        "values": values,
+    }  # what the tool accepted
+
+
 async def test_a_failed_draft_is_served_as_static_text(
     gateway: Gateway, by_name: dict[str, dict[str, Any]]
 ) -> None:

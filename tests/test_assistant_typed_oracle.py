@@ -81,7 +81,9 @@ def test_each_category_is_checked_by_more_than_the_generic_checks() -> None:
 
 MUTATIONS: list[tuple[str, str, Callable[[dict[str, Any]], dict[str, Any]], str]] = [
     (
-        "A",
+        # category I has no page, so the answer must name the function itself; on its own page (category A)
+        # the page gives the name and the check is waived (results 9.28)
+        "I",
         "no function named",
         lambda c: {"text": "It takes some inputs and returns a result."},
         "mentions_function",
@@ -179,7 +181,13 @@ def test_breaking_one_thing_makes_the_case_fail_on_that_check(
         if c["category"] == category and (check != "english" or c["expect"].get("english"))
     ]
     if check == "mentions_function":
-        pool = [c for c in pool if c["expect"].get("like") == "A"]
+        pool = [
+            c
+            for c in pool
+            if c["expect"].get("like") == "A"
+            and c["expect"].get("function")
+            and not c.get("page_function")
+        ]
     if check == "names_an_expected_function":
         pool = [
             c

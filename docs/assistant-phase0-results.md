@@ -1297,9 +1297,10 @@ What the numbers hide, from reading the cases behind them.
 - **Five category I cases cannot be answered as run.** `I:gen:105`, `106`, `107`, `I:hand:10` and `11` are 1,741 to 1,997 characters with the question in the last sentence; the pipeline cuts a question to
   500 characters and the route answers 422 above 500, so the model never saw the question. Opus rates `105`, `106`, `107` and `I:hand:11` not useful for both writers, and Haiku's flag on `I:gen:106` is one of them.
   Without that case Haiku is 5 of 170 (2.9%). The counts above are as measured.
-- **Case checks that misfire** (they are not production checks; they only grade the harness): `no_support_claim` has no negation for "doesn't take", "has no" or "doesn't offer", so all 5
-  Sonnet failures in category D are correct denials; `mentions_function` fails 24 answers (Haiku 10, Sonnet 14) that do not repeat a function name the page already gives, and Opus
-  finds 23 of the 24 faithful. The judge prompt does not know that replies are English-only, and rated Sonnet's English answer to a Portuguese question (`I:gen:111`) not useful and Haiku's useful.
+- **Case checks that misfire** (they are not production checks; they only grade the harness): `no_support_claim` fires on any sentence that names the missing feature without a negation
+  word, and all 5 Sonnet failures in category D are a second, helpful sentence after a correct denial ("If you have tick data, you would need to aggregate it yourself ..."). (This entry first said the
+  negation list was too short; it is not: "doesn't" and "has no" are in it. Corrected in 9.28 after finding the sentences.) `mentions_function` fails 25 answers (Haiku 10, Sonnet 15): 19 are on a page
+  that already gives the name, 6 are the three truncated category I questions for each writer; Opus judged 24 of the 25 (one is category E, not judged) and found 23 faithful. The judge prompt does not know that replies are English-only, and rated Sonnet's English answer to a Portuguese question (`I:gen:111`) not useful and Haiku's useful.
 - **Sonnet's one flag** is `B:gen:35`: it says a function "also gives" a price change, which the entry only approximates.
 
 **What the run shows for the first time.** All 520 answers went through the live API with no error row, no provider retry and no HTTP 400, so replaying the model's `tool_use` blocks works (1.25 to
@@ -1313,4 +1314,44 @@ terms wording, the edge, the watchdog and the portal box are still open).
 **Open choices.** (a) Fix the flat-denial mode before go-live: a typed-prompt rule ("if the entry does not mention it, say that the entry does not mention it, and say what it lists instead") and
 or a typed grader check that turns the same four answers into a retry; only a new Haiku-only run (about $1.6 expected, $1.9 in caps, of the $2.23 left) shows whether it works. (b) Stop trusting the
 model to copy example values: have the gateway attach the last accepted proposal in code (the response already carries it as `suggested_parameters`) and drop the check on objects in the text.
-(c) Free case-set and judge fixes before any further run: the five long category I cases, the negation in `no_support_claim`, `mentions_function` when a page function is given, and telling the judge about English-only.
+(c) Free case-set and judge fixes before any further run: the five long category I cases, the helpful-sentence case in `no_support_claim`, `mentions_function` when a page function is given, and telling the judge about English-only.
+(Done: 9.28.)
+
+### 9.28 Choices B and C built: example values attached by the gateway, and the free case-set and judge fixes (2026-11-12; not measured)
+
+Nothing here was run against a model. It changes what the next run will measure, so it is written down before that run.
+
+**B: the model no longer copies example values; the gateway attaches them.** In run D all but one of the nine static answers failed `shown_values_validated`, which needs every JSON object in
+the text to equal an accepted `propose_parameters` call exactly, and the prompt told the model to "show exactly those". Now:
+- The typed prompt is `t3-2026-11-12`. It differs from the measured `t2` (sha256 `8f3227a5...`) in exactly one rule, pinned by a test that turns the new rule back into the old one and checks the hash:
+  the model is told never to write example values as a JSON object or code block, to call `propose_parameters`, and to say "the example below" when it accepts, because the portal shows the
+  checked example under the answer. New prompt sha256 `a0eed045...`; the tool block (`797762a9...`) is unchanged.
+- `assistant.typed_graders.strip_example_objects` takes any JSON object the model writes anyway out of the text **before** the text is graded, so what is graded is what is served. A fenced block goes whole; an
+  inline object goes with its backticks; a colon left dangling becomes a full stop; braces that are not JSON, empty objects and text with no object are untouched.
+- `Answer.suggested_parameters` (and the response field of the same name) is now the last `propose_parameters` call the validator accepted, whether or not the text mentions it. `Answer.removed_objects` counts
+  the objects taken out.
+- If the model wrote values but never had any accepted (nothing to attach), the check `example_without_check` fails and the retry says to call `propose_parameters` and not write the values. Without that, the
+  answer would promise an example that does not exist.
+- The harness rows carry `suggested_parameters` and `removed_objects`; the summary has `examples_attached` and `answers_with_objects_removed`, so the next run shows how often the model still writes an
+  object. The judge sees the attached example as `<attached_example>` under the answer, as the visitor does. The oracle's category C answer no longer writes the object.
+- Known gaps: an answer that says "the example below" without ever calling `propose_parameters` or writing an object is not caught by a check (the judge may notice); an object that was a description of a
+  parameter's structure, not an example, is removed too (the prose description stays); the example is attached even when its function is not the page's.
+
+**C: the free fixes.**
+- The five long category I questions (`I:gen:105` to `107`, `I:hand:10`, `I:hand:11`) were 1,741 to 1,997 characters; the pipeline cuts a question to 500 and the route answers 422 above 500. They now
+  fit (`long_question` repeats the preamble in whole repeats and leaves the real question at the end; the hand-written two have one repeat). `build_cases` refuses any question over `QUESTION_MAX` (500), a test
+  keeps that equal to the schema's, and the case file moved from `23ee28d4...` to **`fa73fd1aab476...`** (260 cases, same counts; oracle 260/260, null 0/260).
+- `no_support_claim` (recomputed in `typed_graders`; `graders.py` stays byte-identical, its hash pinned by the bank) no longer fires on a sentence that tells the visitor what to do themselves ("If you ...", "...
+  yourself") and says nothing about the function supporting it. "Yes, it supports tick data" and "It offers tick data if you pass it yourself" are still caught.
+- `mentions_function` is waived when the visitor's page is the expected function. It still applies with no page (category I) or another page.
+- The judge prompt now says that replies are English-only by design, that `<attached_example>` is shown under the answer, and that `plausible_values` covers it. Run D's verdicts and the next run's are therefore
+  not comparable on those two points (an English answer to a non-English question; "the example below").
+
+**Evidence without a model.** The 511 live answers of run D were re-graded with the new checks: 24 checks change, all from fail to pass, none the other way (`mentions_function` 7 Haiku and 12 Sonnet,
+`no_support_claim` 5 Sonnet), and no other check moves. Live answers passing every case check go from 244 to 251 of 258 (Haiku) and 228 to 244 of 253 (Sonnet). The 14 remaining Haiku and 9 Sonnet failures are the
+three truncated category I questions per writer (now fixed in the case set) and ordinary misses (`length_ok`, `names_an_expected_function`, `calls_propose_parameters`). The Opus flags, the static answers and
+the cost do not change by re-grading: only a new run can move them.
+
+**What the next run would show, and what it would not.** A Haiku-only run (about $1.6 expected, $1.9 in caps, of the $2.23 left) would show whether the category C static answers disappear (2 of 30 for Haiku),
+how often the model still writes an object, and whether the new prompt line changes anything else. It would not touch the flat-denial mode (choice A): the system prompt still says "If a function does not offer what
+was asked, say pyvar does not offer it", which is the likeliest source of Haiku's four ungrounded denials. That is a hypothesis; it has not been tested.

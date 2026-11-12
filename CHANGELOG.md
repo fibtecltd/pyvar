@@ -21,6 +21,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `docs/assistant-phase0-results.md` 9.25. The typed measurement harness
   (`scripts/assistant_eval/run_typed.py`) now runs the shipped `answer_question` pipeline by default
   (`--raw` keeps the first run's loop), so the next measurement run tests the code that ships (9.26).
+  Example input values are now attached by the gateway (`suggested_parameters` is the last value set the
+  validator accepted) instead of copied by the model, which is told not to write them (typed prompt t3) and
+  whose text has any JSON object taken out before it is graded (9.28).
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

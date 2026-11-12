@@ -104,6 +104,27 @@ def test_checked_values_and_search_results_are_shown_with_their_outcome() -> Non
     assert BY_NAME[name]["summary"] in message
 
 
+def test_the_judge_sees_the_example_the_portal_attaches_under_the_answer() -> None:
+    case = next(c for c in CASES if c["category"] == "C")
+    row = typed_row(case, "Here is the example below, checked by the tool.")
+    plain = judge.typed_judge_message(case, row, BY_NAME)
+    assert "<attached_example>" not in plain  # nothing attached, nothing shown
+    attached = {"function": case["page_function"], "values": {"amount": 500, "rate": 0.4}}
+    shown = judge.typed_judge_message(case, {**row, "suggested_parameters": attached}, BY_NAME)
+    assert f"<attached_example>{json.dumps(attached)}</attached_example>" in shown
+    assert shown.index("</answer>") < shown.index(
+        "<attached_example>"
+    )  # under the answer, as the visitor sees it
+    assert judge.typed_judge_message(case, {**row, "suggested_parameters": None}, BY_NAME) == plain
+
+
+def test_the_judge_is_told_about_the_attached_example_and_the_english_only_rule() -> None:
+    system = judge.JUDGE_TYPED_SYSTEM
+    assert "<attached_example>" in system and "the example below" in system
+    assert "in English whatever language the visitor writes in" in system
+    assert "never mark an answer unfaithful or not useful only because it is in English" in system
+
+
 def test_the_typed_verdict_prompt_asks_the_same_questions_in_the_same_json() -> None:
     for field_name in ("faithful", "useful", "plausible_values", "issues"):
         assert field_name in judge.JUDGE_TYPED_SYSTEM and field_name in judge.JUDGE_SYSTEM

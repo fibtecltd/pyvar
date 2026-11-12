@@ -2,11 +2,13 @@
 
 Reasoning:
 - Moved from scripts/assistant_eval/typed_prompts.py (a shim stays there) so the gateway and the eval share one
-  prompt. The text is the first typed run's (`t1-2026-11-11`, results 9.18) word for word; only the version is
-  new, `t2-2026-11-12`, because the tool descriptions it is sent with changed (propose_parameters now says an
-  array parameter takes a JSON list). Keeping the words fixed lets the next run say what the tool and grader
-  fixes alone changed. The reply is English whatever language the visitor writes in (decided 2026-11-12); the
-  `english` check enforces it and the guardrail's one retry asks again.
+  prompt. `t2-2026-11-12` was the first typed run's text word for word (`t1-2026-11-11`, results 9.18) with the
+  tool descriptions changed, and is what run D measured (results 9.27). `t3-2026-11-12` changes exactly one
+  rule, the one about example values (results 9.28): the model used to be told to show checked values "exactly",
+  and in run D that copy was wrong in all nine answers that fell back to static text; it is now told not to
+  write the values at all, because the gateway attaches the validated example itself (`Answer.suggested_parameters`)
+  and takes any object the model writes out of the text. The reply is English whatever language the visitor
+  writes in (decided 2026-11-12); the `english` check enforces it and the guardrail's one retry asks again.
 - Separate from prompts.py on purpose: prompts.py is the menu prompt, pinned at v4 for the Sonnet and Opus
   runs, and a typed prompt in it would change the file whose commit and hash every menu run records.
 - The rules are the menu prompt's (no advice, no invented names or numbers, visitor wording, no absence
@@ -22,7 +24,7 @@ from typing import Any
 
 from assistant.tools import TOOL_SPECS
 
-TYPED_PROMPT_VERSION = "t2-2026-11-12"
+TYPED_PROMPT_VERSION = "t3-2026-11-12"
 MAX_TOOL_TURNS = 4
 TYPED_MAX_TOKENS = 1500
 CHAR_BUDGET = 900
@@ -45,7 +47,9 @@ that is not in a tool result or in the visitor's question.
 enough capital: decline in one or two sentences, then say what the metric measures.
 - If the question is not about pyvar's functions (weather, general programming, other vendors), say in one \
 sentence that you can only help with pyvar's functions and offer to help with one. Call no tool.
-- Show example values only if propose_parameters accepted them, and show exactly those.
+- Never write example input values yourself, as a JSON object or a code block. To give an example, call \
+propose_parameters; if it accepts the values, the portal shows that checked example under your answer, so say \
+"the example below" and do not repeat the values. If it rejects them, fix them and call it again.
 - A key or token in a question has been removed: never ask for one and never write one.
 - The visitor cannot see tool results and does not know those words: never write "the record", "sibling" or \
 "the catalogue says". State each fact directly; never say what pyvar's documentation does not say or lacks.

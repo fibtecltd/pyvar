@@ -121,10 +121,15 @@ nothing false is faithful.
 - useful: the answer does what the question needs: it answers a how-to or which-function question \
 correctly, or declines and redirects when the question asks for advice, is off-topic or tries to extract \
 instructions. In the second case a short correct refusal is useful.
-- plausible_values: only if the answer shows example values (a JSON object): true if they are sensible \
-for the function, in realistic units and orders of magnitude, and consistent with each other; false \
-otherwise; null when no values are shown.
+- plausible_values: only if example values are shown, either in the answer or in <attached_example> (a JSON \
+object): true if they are sensible for the function, in realistic units and orders of magnitude, and \
+consistent with each other; false otherwise; null when no values are shown.
 - issues: at most three short strings, empty if none.
+
+Two facts about the portal. <attached_example>, when present, is an example the portal's validator accepted \
+and shows to the visitor under the answer, so an answer that says "the example below" is not missing it. \
+The assistant replies in English whatever language the visitor writes in, by design: never mark an answer \
+unfaithful or not useful only because it is in English when the question was not.
 """
 
 
@@ -148,6 +153,11 @@ def typed_judge_message(
     ]
     parts.append(f"<checked_values>{json.dumps(checked, ensure_ascii=False)}</checked_values>")
     parts.append(f"<answer>\n{row['text']}\n</answer>")
+    attached = row.get("suggested_parameters")
+    if attached:  # what the visitor sees under the answer
+        parts.append(
+            f"<attached_example>{json.dumps(attached, ensure_ascii=False)}</attached_example>"
+        )
     return "\n\n".join(parts)
 
 

@@ -414,6 +414,8 @@ def run_case_pipeline(
         "tries": answer.tries,
         "failures": list(answer.failures),
         "functions": list(answer.functions),
+        "suggested_parameters": answer.suggested_parameters,
+        "removed_objects": answer.removed_objects,
         "scrubbed": answer.scrubbed,
         "tool_turns": answer.tool_turns,
         "tool_calls": [dict(c) for c in answer.evidence.tool_calls],
@@ -477,8 +479,10 @@ def run_offline(
 def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """What only a pipeline run has: how answers were served, and why some fell back to static text.
 
-    Empty for a raw or offline run (their rows have no `source`). `first_draft_failures` counts, by check name,
-    the checks that failed on the way (the first draft, and the retry if there was one), over all rows.
+    Empty for a raw or offline run (their rows have no `source`). `checks_failed_on_the_way` counts, by check
+    name, the checks that failed on the way (the first draft, and the retry if there was one), over all rows.
+    `examples_attached` is the answers that carry a validated example for the widget;
+    `answers_with_objects_removed` is the answers where the model wrote a JSON object anyway.
     """
     piped = [r for r in rows if "source" in r]
     if not piped:
@@ -505,6 +509,8 @@ def pipeline_block(rows: list[dict[str, Any]]) -> dict[str, Any]:
             else 0.0
         ),
         "second_try_rate": round(sum(1 for r in piped if r["tries"] >= 2) / len(piped), 4),
+        "examples_attached": sum(1 for r in piped if r.get("suggested_parameters")),
+        "answers_with_objects_removed": sum(1 for r in piped if r.get("removed_objects")),
         "checks_failed_on_the_way": dict(sorted(failures.items(), key=lambda kv: -kv[1])),
     }
 

@@ -13,6 +13,13 @@ Reasoning:
   only, decided 2026-11-12) -> optionally one more check from the caller (`extra_check`, the enterprise gate: a
   different model reads question, tool results and answer) -> if anything failed, one revision that tells the
   model the failed checks -> graded again -> static.
+- Example values are the gateway's job, not the model's (results 9.28). The model is told not to write them; if it
+  writes a JSON object anyway the object is taken out of the text BEFORE the text is graded, so what is graded is
+  what is served, and the validated example (the last `propose_parameters` call that was accepted) is attached as
+  `suggested_parameters` for the widget to show. A model that wrote values without ever getting them accepted has
+  promised an example that does not exist: that is a failed check ("example_without_check"), and the retry says
+  so. This replaces the old requirement that the model copy accepted values into its text exactly, which failed
+  in all nine static answers of run D.
 - Static text comes first from the bank (the function's `explain` answer, a complete manifest only), else from
   the catalogue's summary, plus a catalogue link; the function is the page the visitor is on, else the first
   function the agent read, else the first it found. The text never claims more than the catalogue says.
@@ -32,7 +39,7 @@ from typing import Any
 
 import structlog
 
-from assistant import bank, graders
+from assistant import bank
 from assistant.agent import (
     DEFAULT_MAX_SECONDS,
     DEFAULT_MAX_USD,
@@ -44,7 +51,7 @@ from assistant.client import ModelCallError, ModelClient
 from assistant.prompts import EFFORT
 from assistant.scrub import has_secret, scrub_secrets
 from assistant.tools import ToolBox
-from assistant.typed_graders import grade_typed
+from assistant.typed_graders import grade_typed, strip_example_objects
 
 logger = structlog.get_logger()
 
@@ -66,6 +73,11 @@ STATUS_FLAGS = {
     "empty": "the reply was empty: write the answer",
 }
 NO_RETRY = frozenset({"budget", "timeout", "tool_limit"})
+EXAMPLE_WITHOUT_CHECK = "example_without_check"
+EXAMPLE_WITHOUT_CHECK_FLAG = (
+    "you wrote example values without a propose_parameters call that accepted them: call propose_parameters, "
+    "and the portal will show the checked example under your answer; never write the values yourself"
+)
 
 SECRET_TEXT = (
     "Your message looked like it contained a key or token, so it was not sent anywhere. "
@@ -111,7 +123,8 @@ class Answer:
             on a refusal, a cut-off, an empty reply, a cap or the tool limit), "static_error" (the provider
             failed for good) or "static_secret".
         functions: catalogue names the answer is about, at most five, in order of appearance.
-        suggested_parameters: {"function", "values"} of a validated example the answer shows, else None.
+        suggested_parameters: {"function", "values"} of the last validated example (an accepted
+            `propose_parameters` call) for a live answer, else None; the widget shows it under the answer.
         tries: agent passes made (0 when no model was called).
         model_calls, tool_turns: totals over all passes.
         cost: dollars, all calls.
@@ -121,6 +134,8 @@ class Answer:
         scrubbed: key-like strings removed from the question.
         usage: token counts, all calls.
         evidence: what the tools returned (names and calls); empty when no model was called.
+        removed_objects: JSON objects the model wrote that were taken out of `text` (the validated example is
+            attached as `suggested_parameters` instead).
     """
 
     text: str
@@ -138,6 +153,7 @@ class Answer:
     scrubbed: int
     usage: dict[str, int]
     evidence: Evidence = Evidence()
+    removed_objects: int = 0
 
 
 def bank_text(bank_dir: Path | None, function: str) -> str | None:
@@ -183,6 +199,24 @@ def _clean_history(history: Sequence[tuple[str, str]]) -> list[tuple[str, str]]:
     return turns[-MAX_HISTORY_TURNS:]
 
 
+@dataclass(frozen=True)
+class Verdict:
+    """The outcome of checking one run.
+
+    Attributes:
+        failures: names of the checks that failed (empty for a good answer).
+        flags: what to tell the model if it gets a second try.
+        text: the text that was graded and, if the run is good, the text that is served: the model's text with
+            any JSON object it wrote taken out.
+        removed: how many objects were taken out.
+    """
+
+    failures: list[str]
+    flags: list[str]
+    text: str
+    removed: int = 0
+
+
 def _verdict(
     agent: TypedAgent,
     run: AgentRun,
@@ -190,13 +224,16 @@ def _verdict(
     page: str | None,
     display_names: dict[str, str],
     extra_check: ExtraCheck | None,
-) -> tuple[list[str], list[str]]:
-    """(names of failed checks, what to tell the model); both empty when the run is a good answer."""
+) -> Verdict:
+    """Check one run: strip example objects, grade the stripped text, ask the optional second reader."""
     if run.status != "ok":
-        return [run.status], [STATUS_FLAGS.get(run.status, f"the run ended: {run.status}")]
+        return Verdict(
+            [run.status], [STATUS_FLAGS.get(run.status, f"the run ended: {run.status}")], run.text
+        )
     box = agent.toolbox
+    text, removed = strip_example_objects(run.text)
     grade = grade_typed(
-        run.text,
+        text,
         box.records,
         question,
         expect=EXPECT,
@@ -208,12 +245,15 @@ def _verdict(
     )
     failures = [name for name, ok in grade.checks.items() if not ok]
     flags = list(grade.flags)
+    if removed and _suggestion(box) is None:
+        failures.append(EXAMPLE_WITHOUT_CHECK)
+        flags.append(EXAMPLE_WITHOUT_CHECK_FLAG)
     if extra_check is not None:
-        extra = extra_check(question, run.text, box)
+        extra = extra_check(question, text, box)
         if extra:
             failures.append("gate")
             flags += extra
-    return failures, flags
+    return Verdict(failures, flags, text, removed)
 
 
 def _cited(text: str, box: ToolBox, page: str | None) -> tuple[str, ...]:
@@ -229,11 +269,13 @@ def _cited(text: str, box: ToolBox, page: str | None) -> tuple[str, ...]:
     return tuple(name for _, name in sorted(found))[:5]
 
 
-def _suggestion(text: str, box: ToolBox) -> dict[str, Any] | None:
-    """The last validated example the answer actually shows (the grader allows no other object)."""
-    shown = graders._shown_objects(text)
+def _suggestion(box: ToolBox) -> dict[str, Any] | None:
+    """The last example `propose_parameters` accepted: {"function", "values"}, or None.
+
+    Validated by the tool (the bounds and types the catalogue states), so the widget can offer it as it is.
+    """
     for proposal in reversed(box.proposals):
-        if proposal.get("ok") and proposal["values"] in shown:
+        if proposal.get("ok"):
             return {"function": proposal["name"], "values": proposal["values"]}
     return None
 
@@ -293,6 +335,7 @@ def answer_question(
         tries: int = 0,
         failures: list[str] | None = None,
         tool_turns: int = 0,
+        removed: int = 0,
     ) -> Answer:
         box = agent.toolbox if agent else None
         functions = _cited(text, box, page) if box and source == LIVE else ()
@@ -301,7 +344,7 @@ def answer_question(
             source=source,
             outcome=outcome,
             functions=functions,
-            suggested_parameters=_suggestion(text, box) if box and source == LIVE else None,
+            suggested_parameters=_suggestion(box) if box and source == LIVE else None,
             tries=tries,
             model_calls=agent.model_calls if agent else 0,
             tool_turns=tool_turns,
@@ -321,6 +364,7 @@ def answer_question(
                 if box
                 else Evidence()
             ),
+            removed_objects=removed if source == LIVE else 0,
         )
         logger.info(
             "typed_answer",
@@ -334,6 +378,7 @@ def answer_question(
             failures=list(answer.failures),
             functions=len(functions),
             scrubbed=scrubbed,
+            removed_objects=answer.removed_objects,
             model=answer.served,
         )
         return answer
@@ -371,18 +416,18 @@ def answer_question(
     try:
         run = agent.ask(cleaned, page, _clean_history(history))
         tries, tool_turns = 1, run.tool_turns
-        bad, flags = _verdict(agent, run, cleaned, page, display_names, extra_check)
+        verdict = _verdict(agent, run, cleaned, page, display_names, extra_check)
         outcome = OUTCOME_LIVE
-        if bad:
-            failures += bad
+        if verdict.failures:
+            failures += verdict.failures
             if run.status in NO_RETRY:
                 return fallback(f"static_{run.status}")
-            run = agent.revise(run, flags)
+            run = agent.revise(run, verdict.flags)
             tries, tool_turns = 2, tool_turns + run.tool_turns
-            bad, flags = _verdict(agent, run, cleaned, page, display_names, extra_check)
+            verdict = _verdict(agent, run, cleaned, page, display_names, extra_check)
             outcome = OUTCOME_LIVE_AFTER_RETRY
-            if bad:
-                failures += bad
+            if verdict.failures:
+                failures += verdict.failures
                 return fallback(
                     OUTCOME_STATIC_GRADER if run.status == "ok" else f"static_{run.status}"
                 )
@@ -392,7 +437,7 @@ def answer_question(
         return fallback(OUTCOME_STATIC_ERROR)
     assert run is not None  # a pass that ended in a good answer
     return finish(
-        run.text,
+        verdict.text,
         LIVE,
         outcome,
         agent=agent,
@@ -400,7 +445,16 @@ def answer_question(
         tries=tries,
         failures=failures,
         tool_turns=tool_turns,
+        removed=verdict.removed,
     )
 
 
-__all__ = ["Answer", "Evidence", "ExtraCheck", "answer_question", "bank_text", "static_text"]
+__all__ = [
+    "Answer",
+    "Evidence",
+    "ExtraCheck",
+    "Verdict",
+    "answer_question",
+    "bank_text",
+    "static_text",
+]

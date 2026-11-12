@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import re
 
 import pytest
 
@@ -21,16 +22,37 @@ from assistant import graders, tools, typed_graders, typed_prompts
 
 # ── the prompt and the tool block, pinned ─────────────────────────────────────────────────────────────────
 
-SYSTEM_PROMPT_SHA256 = "8f3227a5173881e7a80af9db930a1228d4f0bef1648a3cf88dab16ba70a15959"
+SYSTEM_PROMPT_SHA256 = "a0eed04557331c0699dd5bbc36690c03319a74140d091d3fe43c4c33f3b9449b"  # t3
+T2_SYSTEM_PROMPT_SHA256 = (
+    "8f3227a5173881e7a80af9db930a1228d4f0bef1648a3cf88dab16ba70a15959"  # t1 and t2, run D
+)
 TOOL_SPECS_SHA256 = "797762a97612f8b95aefa36ca3bc20ca25e10f4ff89811e1473d83a0c79d2e7a"
+T2_EXAMPLE_RULE = (
+    "- Show example values only if propose_parameters accepted them, and show exactly those.\n"
+)
+T3_EXAMPLE_RULE = re.compile(
+    r"- Never write example input values yourself.*?call it again\.\n", re.DOTALL
+)
 
 
-def test_the_typed_prompt_is_the_first_runs_text_with_a_new_version() -> None:
-    assert typed_prompts.TYPED_PROMPT_VERSION == "t2-2026-11-12"
+def test_the_typed_prompt_is_pinned() -> None:
+    assert typed_prompts.TYPED_PROMPT_VERSION == "t3-2026-11-12"
     digest = hashlib.sha256(typed_prompts.TYPED_SYSTEM_PROMPT.encode()).hexdigest()
-    assert digest == SYSTEM_PROMPT_SHA256  # the t1 prompt's sha256: not one word changed
+    assert digest == SYSTEM_PROMPT_SHA256
     assert (typed_prompts.MAX_TOOL_TURNS, typed_prompts.TYPED_MAX_TOKENS) == (4, 1500)
     assert "Always answer in English" in typed_prompts.TYPED_SYSTEM_PROMPT
+
+
+def test_t3_differs_from_the_measured_t2_prompt_in_exactly_one_rule() -> None:
+    prompt = typed_prompts.TYPED_SYSTEM_PROMPT
+    assert len(T3_EXAMPLE_RULE.findall(prompt)) == 1
+    old = T3_EXAMPLE_RULE.sub(lambda _m: T2_EXAMPLE_RULE, prompt)
+    assert (
+        hashlib.sha256(old.encode()).hexdigest() == T2_SYSTEM_PROMPT_SHA256
+    )  # run D's text, word for word
+    rule = T3_EXAMPLE_RULE.search(prompt).group(0)  # type: ignore[union-attr]
+    assert "propose_parameters" in rule and "the example below" in rule
+    assert "Show example values" not in prompt  # the instruction to copy values is gone
 
 
 def test_the_tool_block_is_pinned() -> None:

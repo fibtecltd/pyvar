@@ -1,4 +1,5 @@
-"""The typed-answer grader: `graders.grade_typed` with two false positives of the first typed run removed.
+"""The typed-answer grader: `graders.grade_typed` with the first run's false positives removed, and the helper
+that takes example values out of the model's text (results 9.28).
 
 Reasoning:
 - graders.py cannot change: the committed answer bank pins its sha256 (`assistant.bank.grader_sha256`), so any
@@ -16,12 +17,24 @@ Reasoning:
 - `no_prompt_text` fired on the stock decline sentence the system prompt itself tells the model to say ("I can
   only help with pyvar's functions"): 3 hits, no real echo. The shingles of that stock sentence are now removed
   from the overlap; any other six-word overlap with the prompt still fails.
+- Two case-expectation checks, which only the measurement harness uses (`expect` is empty in production),
+  were too blunt in run D (results 9.27) and are recomputed here: `no_support_claim` flagged five correct
+  answers because a second, helpful sentence named the missing feature without a negation word ("If you have
+  tick data, you would need to aggregate it yourself ..."); a sentence that tells the visitor what to do
+  themselves, and says nothing about the function supporting it, is no longer a support claim. And
+  `mentions_function` no longer fails an answer for not repeating a function name when the visitor is on that
+  function's own page (the page gives the name).
+- `strip_example_objects` is the other half of B (results 9.28): the model is no longer asked to copy checked
+  example values into its answer (it did so exactly wrong in all nine static answers of run D); it must not
+  write them, and any JSON object it writes anyway is taken out of the text before the text is graded and
+  served. The gateway attaches the validated example itself. What is graded is what is served.
 - Nothing else changes: same checks, same flags, same pass rule. `search_hits` is still name -> summary; the
   domain label the model saw is checked by the judge (`tools.hit_view`), not by a pattern.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -47,6 +60,79 @@ _MENTION_CLAUSE = re.compile(
     re.IGNORECASE,
 )
 _ALLOWED_SHINGLES = {s for phrase in STOCK_DECLINES for s in graders._shingles(phrase)}
+
+SUPPORT_FLAG = "may assert unsupported"
+# A sentence that tells the visitor what to do themselves: "If you have tick data, ...", "... yourself ...".
+_WORKAROUND = re.compile(r"\byourself\b|\bon your own\b|^\s*if you\b", re.IGNORECASE)
+# ... and that does not say the function does it.
+_SUPPORT_VERB = re.compile(
+    r"\b(?:supports?|handles?|offers?|provides?|includes?|accepts?|natively|built[- ]in)\b",
+    re.IGNORECASE,
+)
+_FENCE = re.compile(r"```[A-Za-z0-9_-]*[ \t]*\n(.*?)\n?```", re.DOTALL)
+
+
+def _is_workaround(sentence: str) -> bool:
+    return bool(_WORKAROUND.search(sentence)) and not _SUPPORT_VERB.search(sentence)
+
+
+def unsupported_claims(answer: str, terms: list[str]) -> list[str]:
+    """Terms the answer names in a sentence that neither negates them nor only tells the visitor what to do."""
+    return [
+        term
+        for term in terms
+        for sentence in graders._sentences(answer)
+        if term.lower() in sentence.lower()
+        and not graders._NEGATION.search(sentence)
+        and not _is_workaround(sentence)
+    ]
+
+
+def _object_spans(text: str) -> list[tuple[int, int]]:
+    """Spans of the outermost non-empty JSON objects in `text` (what `graders._shown_objects` finds)."""
+    decoder = json.JSONDecoder()
+    spans: list[tuple[int, int]] = []
+    index = text.find("{")
+    while index >= 0:
+        try:
+            value, end = decoder.raw_decode(text, index)
+        except json.JSONDecodeError:
+            index = text.find("{", index + 1)
+            continue
+        if isinstance(value, dict) and value:
+            spans.append((index, end))
+        index = text.find("{", end)
+    return spans
+
+
+def strip_example_objects(text: str) -> tuple[str, int]:
+    """`text` without the JSON objects the model wrote, and how many it wrote.
+
+    A fenced code block that holds an object goes whole; an inline object goes by itself, with the backticks
+    it sat in. A sentence that ended in a colon before a removed object ends in a full stop. Text with no
+    object comes back unchanged.
+    """
+    removed = 0
+
+    def drop_fence(match: re.Match[str]) -> str:
+        nonlocal removed
+        found = len(_object_spans(match.group(1)))
+        removed += found
+        return "" if found else match.group(0)
+
+    stripped = _FENCE.sub(drop_fence, text)
+    inline = _object_spans(stripped)
+    for start, end in reversed(inline):
+        stripped = stripped[:start] + stripped[end:]
+    removed += len(inline)
+    if not removed:
+        return text, 0
+    stripped = re.sub(r"`\s*`", "", stripped)
+    stripped = re.sub(r":[ \t]*(?=\n\s*\n|\s*$)", ".", stripped)
+    stripped = re.sub(r"[ \t]+\n", "\n", stripped)
+    stripped = re.sub(r"\n{3,}", "\n\n", stripped)
+    stripped = re.sub(r"[ \t]{2,}", " ", stripped)
+    return stripped.strip(), removed
 
 
 def _quoted_by_a_refusal(sentence: str, position: int) -> bool:
@@ -132,5 +218,18 @@ def grade_typed(
         flags = [f for f in flags if f != PROMPT_FLAG]
         if shared:
             flags.append(PROMPT_FLAG)
+
+    terms = list((expect or {}).get("absent_terms") or [])
+    if terms and "no_support_claim" in checks:
+        claims = unsupported_claims(answer, terms)
+        checks["no_support_claim"] = not claims
+        flags = [f for f in flags if not f.startswith(SUPPORT_FLAG)]
+        if claims:
+            flags.append(f"{SUPPORT_FLAG} {sorted(set(claims))}")
+
+    function = (expect or {}).get("function")
+    if function and page_function == function and "mentions_function" in checks:
+        checks["mentions_function"] = True  # the visitor is on that page: the page gives the name
+        flags = [f for f in flags if f != f"does not name {function}"]
 
     return Grade(all(checks.values()), checks, flags)
