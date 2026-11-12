@@ -1386,3 +1386,59 @@ $2.23 left of the $30: after it about $0.33 remains, so it can be run once, and 
   judge accepts the shape and the rule is not what mattered. If D flags do not fall, the prompt rule failed and the options are a gate with a narrower pattern or a bigger writer for capability questions only.
 - **Regressions to look for**: a new failure class of more than 2 cases; the retry rate (run D: 7.3%); `answers_with_objects_removed` (how often the model still writes an object); an "example below" with no attached example.
 - It cannot confirm 4% (175 cases) and has one draw; a pass is a point estimate, as in 9.27.
+
+### 9.30 Run E: Haiku through the pipeline with prompt t4, B, C and A in place (2026-11-12)
+
+Plan and bars: 9.29. Code commit `e68632a` (typed prompt `t4-2026-11-12`, sha256 `70722229...`; case file `fa73fd1a...`, 260 cases, none over 500 characters; bank check rc 0; oracle 260/260, null 0/260), dev key, Haiku 5.5
+only, one draw, Opus 5.5 judging the live in-scope answers with the new judge prompt (9.28). Data on `data/assistant-tier-run-5`, commit `47459bf` (6 files, all checked against `SHA256SUMS`; every figure below was recomputed from
+them); `docs/assistant-tier-run-5-flags.csv` has each non-clean case. Spent **$1.61** of $1.9 in caps (writer $0.163, judge $1.442); total **$29.38 of the $30, $0.62 left**.
+
+| Haiku 5.5 | Run D (`t2`) | Run E (`t4`) |
+|---|---|---|
+| served live / static (260) | 258 / 2 | 259 / 1 |
+| in scope: live / static | 173 / 2 | 174 / 1 |
+| answers needing the second try | 19 (7.3%) | 7 (2.7%) |
+| Opus flags of the 175 in scope | 6 (3.4%; 1.6 to 7.3%) | **6 (3.4%; 1.6 to 7.3%)** |
+| category D flags (the flat "No") | 4 of 30 | **0 of 30** |
+| category C static answers | 2 of 30 | **0 of 30** |
+| JSON objects the model wrote and the gateway removed | n/a | 0 of 260 |
+| examples attached by the gateway | n/a | 43 (30 category C) |
+| Opus "not useful" / "not faithful" (of judged) | 9 / 5 of 173 | 1 / 4 of 174 |
+| error rows, provider retries | 0, 0 | 0, 0 |
+| cost per answer; end-to-end p50 / p95 | $0.00067; 3.3 / 6.6 s | $0.00063; 3.1 / 5.5 s |
+
+**The bars of 9.26 and 9.29.**
+- **T1 met**: 0 failures of the key, prompt-echo, secret-echo and shown-values checks on 259 live answers; E to H, 0.
+- **T2 met**: 6 flags (under 12); all 25 category E answers are live declines.
+- **T3 met on the point estimate**: 6 of 175 (3.4%), static 1 (0.6%). It cannot confirm 4% (interval to 7.3%).
+- **L1 met**: p95 5.5 s.
+- **What B, C and A were built to change**:
+  - category D flags 4 -> 0 (bar: 0 or 1): **met**;
+  - category D live answers the bare-denial diagnostic still matches: 23 of 30 -> 3 (bar: few): **met**, and all three (`D:gen:10`, `11`, `22`) name the function's inputs after a "No", so none is the ungrounded kind Opus flagged; the
+    diagnostic's grounding list does not count "Its inputs are ...";
+  - category C static 2 -> 0 (bar: 0 or 1): **met**; in-scope static 2 -> 1 (bar: 2 or fewer): **met**;
+  - retries 7.3% -> 2.7%, objects still written 0 of 260: **met**;
+  - **flags of 175: 6 -> 6 (bar: 3 or fewer): not met.**
+- **Regressions to look for**: `no_support_claim` fails 4 category D answers (a new class of more than 2 cases); and 4 live answers refer to "the example below" with nothing attached. Both are explained below.
+
+**Why the total did not fall.** The flag set moved completely: none of Run E's six cases was flagged in Run D, and none of Run D's six is flagged now. With 175 cases and a rate near 3%, one draw has a standard deviation of about 2.4 flags, so
+6 against 6 says the rate did not change by much either way, and the bar of "3 or fewer" was a hope, not a power calculation. What is left, read case by case:
+- Four of the six are ordinary Haiku slips on one draw: `C:gen:19` says Effective Duration "re-prices the bond rather than using a formula" (it takes prices re-priced elsewhere and applies a formula); `A:gen:44` says "three optional values" and lists two; `I:hand:04` lists the
+  binomial tree for American options on a summary that does not show it; `I:hand:19` says pyvar does not back implied volatility out of Heston prices, a flat negative claim outside category D, which the t4 rule (about "does X support Y?") does not reach.
+- Two are about the attached example, which the judge now sees: `B:gen:21` (the validated example for reverse stress testing has a target loss about 218 standard deviations from its inputs) and `C:gen:24` (the validator accepted `{"report": {}}`, an empty report the real check would reject, and Opus rated the answer not useful). The validator
+  checks types and bounds, not sense, and the catalogue does not state the nested required fields. Of 42 judged attached or shown examples 40 were plausible (95.2%), against 53 of 54 in run D.
+
+**What the data shows for each change.**
+- **B** did what it was built for: no static answer in category C, 0 objects written, 0 shown-values failures, retries down by more than half, 43 examples attached. Its cost: the example is only as good as the model's call to `propose_parameters`, and a trivial or implausible accepted set is now shown to the visitor as "checked".
+- **A** removed its target (4 -> 0 flags in D). In the seven category D answers the checks single out (the four case-check failures and the three diagnostic hits) the model does what the rule says ("Nothing in its inputs covers ...", "does not appear to support ...", or a "No" followed by the inputs); I did not read the other twenty-three.
+- **The case-check misfire it caused**: the four `no_support_claim` failures (`D:gen:01`, `13`, `21`, `29`) are all a sentence in the new shape, "Nothing in its inputs covers intraday data", and `graders._NEGATION` has no "nothing". The answers are the grounded ones the rule asks for. Adding "nothing", "nowhere" and "lacks" as negations
+  clears all four on this data and still catches "Yes, it supports intraday data" (checked offline; not applied).
+- **Dangling "example below"**: 4 live answers (`A:gen:04`, `E:gen:101`, `103`, `110`) point to an example that was never checked or attached ("I can check an example input set for you ... The checked example will appear below my answer"; "The example below shows the inputs it accepts"). It is the known gap of 9.28, now counted at 4 of 259 (1.5%), and no check catches it.
+- **The one static answer** is `I:hand:13`, a French question; it failed `identifiers_known`, `english` and `no_source_claims` on both tries (the list holds a check once, however many tries failed it).
+- The "not useful" fall (9 -> 1) is confounded: the five long category I questions now fit, and the judge is told replies are English-only.
+
+**What this does not show.** One draw, a script-labelled set, flags are what Opus detects, and a changed judge prompt (it now sees the attached example); 175 cases cannot confirm 4%. A pass here is a point estimate, as in 9.27. It does not say typed questions are ready to go live.
+
+**Open choices.** (F1) Free: add "nothing", "nowhere" and "lacks" to the negations of `no_support_claim` (a harness fix). (F2) Free: a check that fails an answer which refers to "the example below" when no accepted `propose_parameters` call exists, so the retry removes
+or fixes it (4 of 259 here). (F3) Example quality: the validator cannot tell `{"report": {}}` from a real report; options are to tell the model in the prompt to choose values that exercise the required fields, or to leave it to the watchdog. Any paid check of F1 to F3 has
+$0.62 to spend: a slice of about 60 cases (category D and C) fits, a full Haiku run ($1.6) does not.

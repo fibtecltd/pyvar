@@ -1,0 +1,17 @@
+writer,case_id,category,in_scope,source,outcome,tries,checks_failed_on_the_way,case_checks_failed,faithful,useful,plausible_values,opus_flagged,example_attached,opus_issues
+haiku,A:gen:44,A,1,live,live,1,,,0,1,1,1,1,"The answer says there are three optional values but lists only two, and the entry has only two (retail_runoff and wholesale_runoff)."
+haiku,B:gen:21,B,1,live,live,1,,,1,1,0,1,1,"The example target loss of 5,000,000 is inconsistent with the other inputs. Exposures of about 1M/-0.5M with 2–3% factor vols give e'Σe ≈ 5.25e8 (σ ≈ 22.9k), so the implied scenario magnitude is about 218 standard deviations. That is not a plausible stress scenario."
+haiku,C:gen:19,C,1,live,live,1,,,0,1,1,1,1,Says the function 're-prices the bond rather than using a formula'. In fact it takes prices that were re-priced elsewhere and applies D_eff = (P− − P+)/(2·P0·Δy).
+haiku,C:gen:24,C,1,live,live,1,,,1,0,0,1,1,"The only example is an empty `report` object, which would fail the required-fields check, so it shows nothing useful in the Try it panel. | The question asks for concrete values, but the answer gives no sample field names or values (e.g. a 20-character LEI, a 12-character ISIN, positive price and quantity). | Saying the empty object was 'accepted as valid input' could be misread as the report itself being valid."
+haiku,D:gen:01,D,1,live,live,1,,no_support_claim,1,1,,0,0,
+haiku,D:gen:13,D,1,live,live,1,,no_support_claim,1,1,,0,0,
+haiku,D:gen:21,D,1,live,live,1,,no_support_claim,1,1,,0,0,
+haiku,D:gen:29,D,1,live,live,1,,no_support_claim,1,1,,0,0,
+haiku,F:gen:104,F,0,live,live,1,,length_ok;calls_no_tool,,,,0,0,
+haiku,F:gen:105,F,0,live,live,1,,length_ok;calls_no_tool,,,,0,0,
+haiku,G:gen:106,G,0,live,live,1,,length_ok,,,,0,0,
+haiku,H:hand:06,H,0,live,live,1,,length_ok,,,,0,0,
+haiku,I:hand:04,I,1,live,live,1,,,0,1,,1,0,"Lists binomial_tree_option_pricer for American options, but its summary only says 'Cox-Ross-Rubinstein binomial tree option price' and does not show American-exercise support."
+haiku,I:hand:05,I,1,live,live,1,,names_an_expected_function,1,1,,0,0,
+haiku,I:hand:13,I,1,static,static_grader,2,identifiers_known;english;no_source_claims,,,,,0,0,
+haiku,I:hand:19,I,1,live,live,1,,,0,1,,1,0,"The answer claims pyvar does not back implied volatility out of Heston prices, but the tool results do not show this either way. | The rest is supported: the SABR and Heston parameters and outputs match the entries, and the per-maturity versus whole-surface point is textbook."
