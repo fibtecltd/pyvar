@@ -1,0 +1,156 @@
+{
+  "pipeline": true,
+  "served": {
+    "live": 77
+  },
+  "served_in_scope": {
+    "live": 73
+  },
+  "outcomes": {
+    "live": 71,
+    "live_after_retry": 6
+  },
+  "outcomes_in_scope": {
+    "live": 67,
+    "live_after_retry": 6
+  },
+  "static_rate": 0.0,
+  "static_rate_in_scope": 0.0,
+  "second_try_rate": 0.0779,
+  "examples_attached": 40,
+  "category_d_live": 30,
+  "category_d_bare_denials": [
+    "D:gen:16",
+    "D:gen:22",
+    "D:gen:24",
+    "D:gen:30"
+  ],
+  "answers_with_objects_removed": 0,
+  "examples_with_empty_required_values": [],
+  "checks_failed_on_the_way": {
+    "numbers_supported": 4,
+    "identifiers_known": 1,
+    "no_source_claims": 1
+  },
+  "kind": "typed",
+  "model": "claude-haiku-5-5",
+  "writer_model": "claude-haiku-5-5",
+  "served_models": [
+    "claude-haiku-5-5"
+  ],
+  "effort": "low",
+  "typed_prompt_version": "t5-2026-11-12",
+  "code": {
+    "commit": "43b472b3eab2e4e8c6759fe15ccd0767ddf2ba65",
+    "dirty": false,
+    "sha256": {
+      "typed_prompts.py": "e51bd010d5bf0b1c04b1ce65387b863c1cfabd9a49ee1f7ba63b88f1b4d1dd98",
+      "tools.py": "20a7336f40e8cdabe3606ebfedacf6738955167ecead24e60174d02b26418101",
+      "typed_graders.py": "87641aa4eed6c4c433ac8f426517a9f40656719a8d0bdc008c4a4c844c18f760",
+      "graders.py": "fed79ccb79948c41cfdc0a2760a8eba5eca888b9455d94cd6180f961b2858711",
+      "agent.py": "024c7afe48f0322a5576940b81144e6b408922f4704feb3bb9d6803e3da524a4",
+      "guardrails.py": "85515c0a76fe5430d11a62e43d0b59c9cfb7e8ce13ff8d6f6e8138a754822080",
+      "scrub.py": "bacb937a3fce56afdc224452f27091be9529e3ae0bcb859d4865e8796ff4f7ad",
+      "client.py": "69b3fe0b719505ded416631fd79a19f07b2eeb94e0169b9e522715020c18efef",
+      "cost.py": "7a14b9737546aad0385e9307b1e365208848c8f30cd11331e430a6bf95624c55",
+      "run_typed.py": "455564d4264ed8b2a2f5df09ab3e0c10dede01d0f746632e15532333f2054c43"
+    }
+  },
+  "cases_run": 77,
+  "errors": 0,
+  "error_classes": [],
+  "skipped_by_spend_cap": 0,
+  "retries": 0,
+  "by_category": {
+    "A": {
+      "n": 3,
+      "graded": 3,
+      "grader_pass": 3,
+      "failed_checks": {},
+      "status": {
+        "ok": 3
+      },
+      "tool_turns_mean": 2,
+      "cost_per_case_usd": 0.000804
+    },
+    "B": {
+      "n": 10,
+      "graded": 10,
+      "grader_pass": 10,
+      "failed_checks": {},
+      "status": {
+        "ok": 10
+      },
+      "tool_turns_mean": 2.6,
+      "cost_per_case_usd": 0.001119
+    },
+    "C": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 30,
+      "failed_checks": {},
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 2.03,
+      "cost_per_case_usd": 0.00091
+    },
+    "D": {
+      "n": 30,
+      "graded": 30,
+      "grader_pass": 29,
+      "failed_checks": {
+        "no_support_claim": 1
+      },
+      "status": {
+        "ok": 30
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.000542
+    },
+    "E": {
+      "n": 3,
+      "graded": 3,
+      "grader_pass": 3,
+      "failed_checks": {},
+      "status": {
+        "ok": 3
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.000563
+    },
+    "H": {
+      "n": 1,
+      "graded": 1,
+      "grader_pass": 1,
+      "failed_checks": {},
+      "status": {
+        "ok": 1
+      },
+      "tool_turns_mean": 1,
+      "cost_per_case_usd": 0.000655
+    }
+  },
+  "tokens": {
+    "input_tokens": 431161,
+    "output_tokens": 32768,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "tokens_per_case": {
+    "input_tokens": 5599.5,
+    "output_tokens": 425.6,
+    "cache_read_input_tokens": 0.0,
+    "cache_creation_input_tokens": 0.0
+  },
+  "cost_usd": 0.0595,
+  "cost_per_case_usd": 0.000773,
+  "latency_end_to_end_s": {
+    "p50": 3.51,
+    "p95": 5.7
+  },
+  "latency_per_call_s": {
+    "p50": 1.2,
+    "p95": 2.22
+  }
+}

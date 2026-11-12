@@ -1,0 +1,50 @@
+{
+  "judged": 43,
+  "unparsed": 0,
+  "faithful": {
+    "n": 43,
+    "rate": 1.0,
+    "ci95": [
+      0.918,
+      1.0
+    ]
+  },
+  "useful": {
+    "n": 43,
+    "rate": 1.0,
+    "ci95": [
+      0.918,
+      1.0
+    ]
+  },
+  "plausible_values": {
+    "n": 40,
+    "rate": 1.0,
+    "ci95": [
+      0.912,
+      1.0
+    ]
+  },
+  "judge_cost_usd": 0.3664,
+  "flagged": [],
+  "by_category": {
+    "A": {
+      "judged": 3,
+      "flagged": 0
+    },
+    "B": {
+      "judged": 10,
+      "flagged": 0
+    },
+    "C": {
+      "judged": 30,
+      "flagged": 0
+    },
+    "in_scope": {
+      "judged": 43,
+      "flagged": 0
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
