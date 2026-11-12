@@ -1491,3 +1491,35 @@ Nothing here was run against a model. Filippo asked for the prompt line (F3) and
 **Decision.** t5 is kept if R1, R2, R3 and R4 all hold. If any fails, t5 is reverted to t4 (one commit; both hashes are pinned) and F3 is left to the watchdog. Either way, **t5 is never measured on the 260 cases** (the budget is spent), so the full-set figures of run E belong to t4 and a kept t5 rests on this slice plus the watchdog; that is said wherever the figures are quoted.
 
 **Limits.** The set is run E's attached answers, so it contains both examples that were flagged. The model may attach examples in other cases this time; those are judged if they fall in A, B or C and counted otherwise. Category D's judge flags under t5 are not measured. R2's thresholds are about no harm, not about an improvement.
+
+### 9.33 Run F: the 77-case slice with prompt t5 (2026-11-12)
+
+Haiku 5.5 through the shipped pipeline with `t5-2026-11-12` (sha256 `7293b6e1...`), 77 cases (`scripts/assistant_eval/slice_f_ids.txt`, sha256 `08a93179...`), Opus 5.5 judging categories A, B and C. Run by the agent session with the dev key from a prompt that pinned `43b472b`; data on `data/assistant-tier-run-6` (`2395a0d`; all files match their `SHA256SUMS`; scratch, do not merge). No error row, no HTTP 400, no provider retry, nothing skipped by a cap. Spent **$0.4259** ($0.0595 of the $0.08 cap for the run, $0.3664 of $0.45 for the judge): **$29.81 of the $30 in all, $0.19 left**. I recomputed every figure below from the stored rows; the agent applied no reading.
+
+| Run F, Haiku `t5`, 77 cases | Run E (`t4`) on the same 77 cases | Run F |
+|---|---|---|
+| served live / static | 77 / 0 | **77 / 0** |
+| attached examples (A / B / C) | 43 including H (2 / 10 / 30) | 40 (3 / 7 / 30) |
+| attached examples with an empty required value | 1 (`C:gen:24`) | **0** |
+| objects the model wrote | 0 | 0 |
+| answers needing the second try | 1 | 6 |
+| checks failed on the way | `numbers_supported` 1 | `numbers_supported` 4, `identifiers_known` 1, `no_source_claims` 1 |
+| Opus flags of the 43 judged (A, B, C) | 4 | **0** (faithful 43/43, useful 43/43, plausible values 40/40) |
+| category D live answers failing `no_support_claim` | 0 (after F1) | 1 (`D:gen:25`) |
+| category D `bare_denial` (diagnostic) | 0 | 4 (`D:gen:16`, `22`, `24`, `30`) |
+| end-to-end p50 / p95 | n/a | 3.5 / 5.7 s |
+| cost per case | $0.000735 | $0.000773 |
+
+**The readings of 9.32, applied as written.**
+- **R1 holds**: 0 of 40 attached examples has an empty required value (also recomputed from the rows with the diagnostic). `C:gen:24`, which was `{"report": {}}` in run E, now has a report object with four fields (`LEI`, `ISIN`, `price`, `quantity`).
+- **R2 holds**: 0 flags of 43 judged (bar: 4 or fewer) and 0 `plausible_values` failures of the 40 answers that have an example (bar: 1 or fewer). Not shown by this: `B:gen:21` (the 218-standard-deviation example) attached **no** example this time (the model never called `propose_parameters`), so that case was not retested; run E's other two flags (`A:gen:44`, `C:gen:19`) were ordinary slips that did not recur, which at 43 cases is noise, not an effect of `t5`.
+- **R3 holds**: 0 answers with an object removed; category C 30 of 30 live, 0 static.
+- **R4 holds in one clause and not in the other, by the letter.** `no_support_claim` fails on 1 of 30 category D answers (bar: 1 or fewer): `D:gen:25`, a correct answer ("takes a single snapshot of inputs rather than a live feed") that the harness check misreads, because "rather than" is not among its negations (not changed; see below). **`category_d_bare_denials` is not empty: 4**, where 9.32 said empty. I read the four answers: each says "No, X does not accept a `parameter` parameter", then names the function's real inputs and what it computes, so they are grounded in the entry. The diagnostic fires because its grounding patterns know "is not a parameter" and "nothing in its inputs" but not "does not accept a ... parameter". Run E's answers to the same four cases were the same in substance and used the older wording (`D:gen:16` "is not a parameter", `D:gen:24` "nothing in its inputs controls hardware"). The shape counts are equal: 18 of 30 category D answers open with "No," in both runs. So I read the four as a wording artifact of a diagnostic that 9.29 already said is not a gate, not as a return of the flat "No" (category D was not judged under `t5`, so no Opus verdict backs this up).
+- **R5 holds by construction and F2 was not exercised**: no served answer points at an example that is not attached (0 of 77, recomputed with the F2 pattern). In run E four answers did (`A:gen:04`, `E:gen:101`, `103`, `110`). Now `A:gen:04` has an attached example (the retry-free path I predicted for a conditional offer in 9.31: an example nobody asked for) and the three E answers no longer mention one. `example_not_attached` is in none of the checks failed on the way, so the F2 retry never fired: F2 is untested against a model, only the absence of the pattern in this draw is shown.
+- **R6 holds**: p95 5.7 s (bar 12 s); cost per case $0.000773 (run E on the same cases $0.000735).
+
+**One thing the readings did not cover: more second tries.** 6 of 77 answers needed the second try against 1 of 77 for run E on the same cases (Fisher two-sided p 0.12). The first-draft text is not stored, so I cannot say what the model wrote; the checks that failed were `numbers_supported` (`B:gen:27`, `C:gen:04`, `C:gen:29`; `C:gen:23` failed it in run E too), `identifiers_known` (`B:gen:21`) and `no_source_claims` (`D:gen:29`). All six were served live after the retry, none fell back to static text, so the visitor sees nothing but a longer wait. A plausible cause, which this run cannot confirm, is the model repeating chosen example numbers in its prose despite the rule not to repeat values.
+
+**The decision, and what I am not claiming.** By the letter of 9.32 the rule was "kept if R1 to R4 all hold", and the empty-`category_d_bare_denials` clause does not hold, so the letter says revert to `t4`. I do not recommend following the letter here: the clause measured wording, not behaviour (equal shapes, same content, a diagnostic documented as not a gate), and every reading that bears on `t5`'s purpose is met. **`t5` stays on the branch until Filippo says to revert; the revert is one commit and both hashes are pinned.** What the run shows is no harm on 77 cases and no empty example; it does not show that `t5` lowers the flag rate (0 of 43 against 4 of 43 is within noise: Fisher p 0.12 two-sided, and two of the four were not about examples), and `t5` is still never measured on the 260. The full-set figures of run E are `t4`'s.
+
+**Small items found, not changed.** (1) The harness check `no_support_claim` misreads "rather than X" and probably "instead of X" and "as opposed to X" as support claims (`D:gen:25`); like F1 it is a case check used only by the harness. (2) `bare_denial` could learn "does not accept"; it is a diagnostic. (3) The retry rate above is worth looking at in the watchdog's data. $0.19 is left; nothing is planned for it.

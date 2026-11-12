@@ -275,7 +275,7 @@ AWS:        CELERY_BROKER_URL = sqs://
 - The t5 prompt (t4 plus one rule) tells the model to give propose_parameters realistic, mutually consistent
   values for every required parameter and never an empty object, an empty list or a placeholder; the validator
   checks types and bounds only. typed_graders.empty_required_values is a harness diagnostic, not a gate. Measured
-  on a 77-case slice only (results 9.32), never on the full 260; keep t5 only if that slice does not regress.
+  on a 77-case slice only (results 9.32 and 9.33), never on the full 260; the slice showed no empty example and no regression except more second tries.
 - The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
   change under assistant/ changes what the next paid run measures. Do not re-implement the answer
   path in the harness; do not start a paid run from a session without being asked (caps are per
