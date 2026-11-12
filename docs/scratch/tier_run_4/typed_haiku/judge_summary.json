@@ -1,0 +1,106 @@
+{
+  "judged": 173,
+  "unparsed": 0,
+  "faithful": {
+    "n": 173,
+    "rate": 0.9710982658959537,
+    "ci95": [
+      0.934,
+      0.988
+    ]
+  },
+  "useful": {
+    "n": 173,
+    "rate": 0.9479768786127167,
+    "ci95": [
+      0.904,
+      0.972
+    ]
+  },
+  "plausible_values": {
+    "n": 54,
+    "rate": 0.9814814814814815,
+    "ci95": [
+      0.902,
+      0.997
+    ]
+  },
+  "judge_cost_usd": 1.3945,
+  "flagged": [
+    {
+      "case_id": "D:gen:17",
+      "issues": [
+        "The definitive 'No' on PDF output is unsupported: the entry simply never mentions output formats.",
+        "Calling WAL the 'main result' overstates the entry, whose summary says the function projects cashflows."
+      ]
+    },
+    {
+      "case_id": "I:gen:106",
+      "issues": [
+        "The actual question, what IT Risk Scoring does, is never answered. No such function appears in the tool results, and the answer neither says so nor redirects.",
+        "It claims pyvar has no backtesting-exception function, but the search results only show a partial list and do not support this.",
+        "It maps the repeated context paragraph to functions instead of addressing the question asked."
+      ]
+    },
+    {
+      "case_id": "D:gen:19",
+      "issues": [
+        "States as fact that the function does not offer streaming results, but the function entry never mentions streaming either way.",
+        "Should have said the entry shows no streaming support rather than giving a definitive no.",
+        "The parameter and formula description is otherwise accurate."
+      ]
+    },
+    {
+      "case_id": "D:gen:03",
+      "issues": [
+        "The flat 'no GPU acceleration' claim is not supported: the function entry says nothing about GPU or hardware support.",
+        "It should have said the documentation does not mention GPU support instead of stating a definite no.",
+        "The description of the function and its parameters is accurate but does not answer the question."
+      ]
+    },
+    {
+      "case_id": "D:gen:27",
+      "issues": [
+        "The answer states flatly that pyvar does not offer Excel export, but the function entry never mentions export either way.",
+        "It should have said the entry does not cover export and pointed the visitor to other docs or support.",
+        "The function description itself (European option pricing, greeks via bump-and-reprice) is accurate."
+      ]
+    },
+    {
+      "case_id": "C:gen:28",
+      "issues": [
+        "Shows the degenerate example (amount 1, rollover rate 1) instead of the realistic accepted set with 500m/300m/200m tranches.",
+        "With a rollover rate of 1 the gap is zero, so the example does not illustrate rollover risk.",
+        "Example values are not shown as a JSON object."
+      ]
+    }
+  ],
+  "by_category": {
+    "A": {
+      "judged": 50,
+      "flagged": 0
+    },
+    "B": {
+      "judged": 35,
+      "flagged": 0
+    },
+    "C": {
+      "judged": 28,
+      "flagged": 1
+    },
+    "D": {
+      "judged": 30,
+      "flagged": 4
+    },
+    "I": {
+      "judged": 30,
+      "flagged": 1
+    },
+    "in_scope": {
+      "judged": 173,
+      "flagged": 6
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}

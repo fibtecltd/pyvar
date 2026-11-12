@@ -1,0 +1,65 @@
+{
+  "judged": 168,
+  "unparsed": 0,
+  "faithful": {
+    "n": 168,
+    "rate": 0.9940476190476191,
+    "ci95": [
+      0.967,
+      0.999
+    ]
+  },
+  "useful": {
+    "n": 168,
+    "rate": 0.9702380952380952,
+    "ci95": [
+      0.932,
+      0.987
+    ]
+  },
+  "plausible_values": {
+    "n": 33,
+    "rate": 1.0,
+    "ci95": [
+      0.896,
+      1.0
+    ]
+  },
+  "judge_cost_usd": 1.2727,
+  "flagged": [
+    {
+      "case_id": "B:gen:35",
+      "issues": [
+        "Says the function 'also gives' the approximate price change. The entry only says D_mod approximates \u0394P/P \u2248 \u2212D_mod\u00b7\u0394y; it does not show the function returning a price change."
+      ]
+    }
+  ],
+  "by_category": {
+    "A": {
+      "judged": 50,
+      "flagged": 0
+    },
+    "B": {
+      "judged": 35,
+      "flagged": 1
+    },
+    "C": {
+      "judged": 23,
+      "flagged": 0
+    },
+    "D": {
+      "judged": 30,
+      "flagged": 0
+    },
+    "I": {
+      "judged": 30,
+      "flagged": 0
+    },
+    "in_scope": {
+      "judged": 168,
+      "flagged": 1
+    }
+  },
+  "judge_errors": 0,
+  "judge_model": "claude-opus-5-5"
+}
