@@ -9,6 +9,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Portal assistant: typed-question gateway (off)** — `POST /api/v1/assistant/ask` (`api/assistant/`),
+  registered but inert: it answers 503 `assistant_disabled` unless `assistant_enabled` and the new
+  `assistant_typed_enabled` are both true, and the second is false everywhere. When on: anonymous
+  or signed-in callers; an hourly per-IP quota for anonymous visitors and daily per-tier quotas
+  (enterprise included); a daily model-spend cap and a Redis kill switch (`pyvar:assistant:kill`)
+  that fail closed; concurrency slots; per-question dollar and time caps; Prometheus metrics; and no
+  question or answer text in any log line or metric. The question scrub now also removes email
+  addresses and long base64 runs. New runtime dependency `anthropic==2.6.0` (imported only by
+  `assistant/client.py`). Design and status: `docs/assistant-plan-implementation.md`,
+  `docs/assistant-phase0-results.md` 9.25.
 - **Every request parameter now has a description** — none of the 1,577 parameters of the 385
   endpoints had one in the OpenAPI schema, `portal/functions.json`, the Try-it panel or the skills'
   parameter tables, although the engine documents each argument in its `Args:` docstring section.

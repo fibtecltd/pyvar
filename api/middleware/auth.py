@@ -38,6 +38,8 @@ from config import get_settings
 
 cfg = get_settings()
 bearer_scheme = HTTPBearer()
+# Same header, but a request without one is let through as anonymous (get_optional_user).
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 # `aud` of the token POST /var/stream-token/{task_id} mints for the WebSocket stream route.
 STREAM_TOKEN_AUDIENCE = "pyvar-stream"
@@ -165,6 +167,21 @@ async def get_current_user(
     # reads the tier from here (an API key has no claims it could decode).
     request.state.pyvar_tier = payload.tier
     return payload
+
+
+async def get_optional_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+) -> TokenPayload | None:
+    """For routes open to anonymous visitors that give signed-in ones more (the assistant gateway).
+
+    No bearer credential -> None (anonymous). A credential that is present is validated exactly as
+    get_current_user does: a bad or expired one is a 401, never a quiet downgrade to anonymous, so a client
+    with a stale token learns about it, and a store outage while resolving an API key is a 503.
+    """
+    if credentials is None:
+        return None
+    return await get_current_user(request, credentials)
 
 
 async def _payload_from_api_key(request: Request, token: str) -> TokenPayload:

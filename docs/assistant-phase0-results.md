@@ -1178,6 +1178,37 @@ text that failed its checks. The log line carries the outcome, tries, calls, too
 the question, the answer or a tool result.
 
 **What is not verified.** Replaying the model's thinking and tool-call blocks as plain dicts has been checked only against the SDK's block shapes,
-not against the live API (no key here); the second measurement run is the first real test of it. Emails and long base64 runs are not yet scrubbed
-(plan 3); that comes with the gateway.
+not against the live API (no key here); the second measurement run is the first real test of it. (Emails and long base64 runs, not yet scrubbed
+here, were added with the gateway: see 9.25.)
 
+### 9.25 The gateway route (2026-11-12; not measured)
+
+`POST /api/v1/assistant/ask` (`api/assistant/`) is the door in front of `answer_question`. It is registered but inert: it answers 503
+`assistant_disabled` unless both `assistant_enabled` and the new `assistant_typed_enabled` are true, and the second is false in every
+environment. Nothing in the CDK stack changes.
+
+What it does, in the order it does it. (1) The switches, the kill switch and the day's spend are checked first, in one Redis round trip
+(`MGET`). Spend is kept in millionths of a dollar per UTC day; at or above `assistant_daily_budget_usd` (default $5) the route answers 503
+`assistant_budget` with `Retry-After` set to the time to 00:00 UTC. These reads **fail closed**: if Redis cannot be read the route answers 503
+`assistant_unavailable`, the opposite of the rate limiter, because this is the cost control for a paid API. Writing the spend after an answer
+fails open and is counted (`pyvar_assistant_spend_not_recorded_total`). (2) A concurrency slot (8 per API task, 503 `assistant_busy`). (3) The
+per-caller quota, taken only after the first two so a refused question uses none: anonymous visitors 10 an hour per IP, signed-in users 40 (free),
+200 (pro) or 500 (enterprise) a day; enterprise is not exempt. Counted before any model call. (4) `answer_question` in a worker thread, with the
+model chosen by tier from `assistant_model_free|pro|enterprise` (all Haiku 5.5 for now) and the caps of $0.15 and 30 s a question.
+
+A bearer credential is optional; one that is present is validated like on every other route (a bad one is a 401, not an anonymous question). The
+response carries the answer, `source` (`live` or `static`), the model **family** (never the id), the cited functions, a validated parameter
+example if the answer shows one, and a request id. A bug (an exception that is not a model failure) is logged with its stack and answered with the
+same 503 hint, not a bare 500. The scrub now also removes email addresses and base64 runs of 40 or more characters that mix upper case, lower case
+and a digit; every catalogue name, display name, summary and description passes through unchanged (tested).
+
+Nothing is logged that came from a visitor or a model: the `assistant_ask` line has the request id, tier, auth kind, outcome, source, model
+family, dollars, seconds and a count of functions, and a test fails if the question or the answer text appears in any captured line. Metrics:
+answers by source, outcome, tier and model family; refusals by reason; dollars by model family; answer seconds; in-flight; and the day's budget
+used as a ratio (alert at 0.8). The runtime dependency `anthropic==2.6.0` is now in `requirements.txt` (the pin the answers were measured with);
+the SDK is still imported only inside `AnthropicClient.__init__`.
+
+**Not measured, not on.** 54 gateway tests and 29 scrub tests use the scripted client and in-memory stand-ins; no model, key, Redis or AWS call
+was made. Before the box can appear: the second measurement run (separate approval, about $5.8 expected, $7.5 in caps), the privacy and terms
+wording, the edge secret and CDK, the watchdog and the portal box. The quotas, the $5 budget and the 8 slots are placeholders from the plan, not
+measured traffic.

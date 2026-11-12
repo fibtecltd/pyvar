@@ -215,6 +215,33 @@ class Settings(BaseSettings):
     assistant_escalation_model: str = "claude-opus-5-5"
     anthropic_api_key: SecretStr | None = None
 
+    # ── Portal assistant: typed questions (api/assistant/, plan section 4) ────────────────────────────
+    # POST /api/v1/assistant/ask answers only when BOTH assistant_enabled and assistant_typed_enabled are
+    # true; the second is off by default and nothing else turns it on. Until the privacy and terms pages
+    # name the model provider (plan 4.6) it must stay off outside a test. The key is the one above, read
+    # lazily by assistant/client.py, so a missing key never blocks the API from starting.
+    # Models by tier are config, not code. All three default to Haiku: the first typed run found no gain
+    # from Sonnet at 16 times the cost (results 9.18, rule T4); change a tier here once a ladder is decided.
+    assistant_typed_enabled: bool = False
+    assistant_model_free: str = "claude-haiku-5-5"
+    assistant_model_pro: str = "claude-haiku-5-5"
+    assistant_model_enterprise: str = "claude-haiku-5-5"
+    # Questions per visitor (placeholders from plan 4.5, not measured traffic): anonymous per IP per hour,
+    # signed-in per user per day. Counted before the model is called, so a refused question costs nothing.
+    assistant_quota_anon_per_hour: int = 10
+    assistant_quota_free_daily: int = 40
+    assistant_quota_pro_daily: int = 200
+    assistant_quota_enterprise_daily: int = 500
+    # Circuit breaker: when the day's recorded model spend (all tiers, UTC day) reaches this, the route
+    # answers 503 until midnight. Spend is added after each answer, so questions already in flight can
+    # overshoot it by at most assistant_max_concurrent x assistant_max_usd_per_question per API task.
+    # The spend is read from Redis before every question and, unlike the rate limiter, fails closed
+    # (api/assistant/store.py). Kill switch without a deploy: SET pyvar:assistant:kill 1 (DEL to undo).
+    assistant_daily_budget_usd: float = 5.0
+    assistant_max_usd_per_question: float = 0.15
+    assistant_max_seconds_per_question: float = 30.0
+    assistant_max_concurrent: int = 8  # answers in flight per API task; more get 503 busy
+
     # ── Billing (Phase A, item 5) ────────────────────────────────────────────
     # Stripe Checkout + webhook flow (api/routes/billing.py) that flips
     # User.tier to "pro" — see docs/plan-monetization-implementation.md.

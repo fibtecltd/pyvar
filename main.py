@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.routing import Match, Mount
 from starlette.types import Scope
 
+from api.assistant.routes import router as assistant_router
 from api.assistant_bank import BANK_DIR, BankStaticFiles
 from api.errors import request_validation_error_handler
 from api.middleware.rate_limit import enforce_compute_rate_limit
@@ -196,6 +197,12 @@ def create_app() -> FastAPI:
         alm_router,
     ):
         app.include_router(domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit)
+
+    # Portal assistant, typed questions (flag off by default: assistant_typed_enabled). Not a compute
+    # endpoint, so no enforce_compute_rate_limit; it carries its own dependencies in api/assistant/routes.py
+    # (switches and spend cap, concurrency, and a per-caller quota that applies to every tier). Open to
+    # anonymous callers; a bearer credential, if sent, is validated.
+    app.include_router(assistant_router, prefix=cfg.api_v1_prefix)
 
     # No prefix — matches portal/pyvar.js's `${API_BASE}/public/...` fetches.
     # Unauthenticated; the per-IP limit is applied per route inside public_data.py
