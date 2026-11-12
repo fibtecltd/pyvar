@@ -100,6 +100,10 @@ class AssistantStore:
             self._client = _build_client()
         return self._client
 
+    def client(self) -> Any:
+        """The async Redis client, built on first use (the watchdog shares it)."""
+        return self._redis()
+
     async def gate(self, now: dt.datetime | None = None) -> Gate:
         """The kill switch and today's spend, in one round trip.
 

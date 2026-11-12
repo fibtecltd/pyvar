@@ -242,6 +242,29 @@ class Settings(BaseSettings):
     assistant_max_seconds_per_question: float = 30.0
     assistant_max_concurrent: int = 8  # answers in flight per API task; more get 503 busy
 
+    # ── Portal assistant: the watchdog (assistant/watchdog.py, api/assistant/watchdog.py, plan section 8) ──
+    # Off by default, like the typed route. It must be ON wherever assistant_typed_enabled is on outside a
+    # test: it is the only thing that notices a function whose live answers keep going wrong, and a writer
+    # that got worse. Off, nothing is audited, pinned or degraded and no extra Redis key is touched.
+    # The audit budget is a hard daily bound on judge dollars (UTC day), split into a coverage pool (every
+    # function gets a few audits a day) and an exposure pool (a random sample for the writer windows).
+    # Audit dollars are also added to the day's assistant spend above, so the circuit breaker sees them.
+    # The CUSUM numbers are the measured ones (docs/assistant-phase0-results.md 9.34): allowance 0.10 and
+    # threshold 3.0 falsely pin a healthy function (3.5% flags) about 0.04 times a month at 7 audits a day.
+    assistant_watchdog_enabled: bool = False
+    assistant_audit_budget_usd_day: float = 2.0
+    assistant_audit_coverage_share: float = 0.6
+    assistant_audit_verdict_usd: float = (
+        0.0077  # planning price of one typed verdict (runs D to F: 0.0083)
+    )
+    assistant_audit_max_concurrent: int = (
+        2  # audits in flight per API task; more are skipped, not queued
+    )
+    assistant_cusum_allowance: float = 0.10
+    assistant_cusum_threshold: float = 3.0
+    assistant_pin_days: int = 7  # first pin; doubles on a repeat up to four times as long
+    assistant_degrade_probe_share: float = 0.10  # live probe traffic of a degraded writer
+
     # ── Billing (Phase A, item 5) ────────────────────────────────────────────
     # Stripe Checkout + webhook flow (api/routes/billing.py) that flips
     # User.tier to "pro" — see docs/plan-monetization-implementation.md.

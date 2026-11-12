@@ -32,9 +32,12 @@ Reasoning:
   * exposure: uniform random sampling at probability pool / (verdict cost x eligible answers a day), per
     writer. It gives an unbiased traffic-weighted rate and fills the writer windows. Every writer that has any
     traffic gets at least 25% of the exposure pool, so a small tier's window fills in days, not weeks.
-- Writer window: the flags of the last 200 exposure audits of one writer. A full window above 8% degrades the
-  writer (its answers become static text plus search results); while degraded 10% of its questions are still
-  answered live and audited at 100%, and 200 of those at 5% or less lift the degrade. No human step.
+- Writer window: 200 exposure audits of one writer, judged ONCE when they are all in and then emptied
+  (tumbling, not sliding: judging a sliding window after every audit looks at the same data thousands of
+  times a month and multiplies the false alarm; tumbling keeps it near the plan's 0.07% per window, about 1%
+  a month at the plan's 110 exposure audits a day). A window above 8% degrades the writer (its answers become
+  static text plus search results); while degraded 10% of its questions are still answered live and audited at
+  100%, and 200 of those at 5% or less lift the degrade, else the next 200 decide again. No human step.
 - Only booleans are ever kept. An audit whose verdict could not be read is not a flag and not a pass: it is
   dropped (and counted by the caller), never turned into a pin.
 """
@@ -236,7 +239,7 @@ def window_alert(flags: Sequence[bool], rules: Rules = DEFAULT_RULES) -> bool:
     """True if a FULL window of exposure audits has a flag rate above the alert rate.
 
     A window that is not full never alerts: 40 audits cannot tell 3.5% from 8%, and the plan's false-alarm
-    figure (0.07% at a true 3.5%) is for a full window of 200.
+    figure (0.07% at a true 3.5%) is for a full window of 200. The caller judges each window once.
     """
     window = flags[-rules.window_audits :]
     return len(window) >= rules.window_audits and flag_rate(window) > rules.alert_rate

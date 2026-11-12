@@ -47,3 +47,52 @@ UNEXPECTED_ERRORS = Counter(
     "pyvar_assistant_unexpected_errors",
     "Typed questions that ended in an unexpected exception (a bug, not a model problem)",
 )
+
+# ── the watchdog (api/assistant/watchdog.py): booleans, dollars and counts only; never a function's answer ──
+AUDITS = Counter(
+    "pyvar_assistant_audits",
+    "Audit verdicts on live typed answers, by result (passed|flagged|unparsed|error|skipped_budget|"
+    "skipped_busy) and pool (coverage|exposure|probe)",
+    ["result", "pool"],
+)
+AUDIT_COST_USD = Counter(
+    "pyvar_assistant_audit_cost_usd",
+    "Judge dollars spent on audits (also counted in the day's spend)",
+)
+AUDIT_BUDGET_RATIO = Gauge(
+    "pyvar_assistant_audit_budget_used_ratio",
+    "Audit dollars reserved today in a pool (coverage|exposure) divided by that pool's share of "
+    "assistant_audit_budget_usd_day, set at each reservation",
+    ["pool"],
+)
+PIN_EVENTS = Counter(
+    "pyvar_assistant_pin_events",
+    "Function pins: set_cusum|set_fast|repin (a probe failed)|unpin (a probe passed)",
+    ["event"],
+)
+PINNED_SERVED = Counter(
+    "pyvar_assistant_pinned_served",
+    "Questions answered with static text because the function was pinned, by when it was noticed "
+    "(before the model call, or after it for a function the answer cited)",
+    ["when"],
+)
+WRITER_DEGRADED = Gauge(
+    "pyvar_assistant_writer_degraded",
+    "1 while a writer's answers are static (global alert), else 0",
+    ["writer"],
+)
+DEGRADED_SERVED = Counter(
+    "pyvar_assistant_degraded_served",
+    "Questions of a degraded writer, by what was served (static|probe)",
+    ["writer", "kind"],
+)
+WINDOW_FLAG_RATE = Gauge(
+    "pyvar_assistant_window_flag_rate",
+    "Flag rate of a writer's last full window of 200 audits (exposure, or probe while degraded)",
+    ["writer", "window"],
+)
+WATCHDOG_ERRORS = Counter(
+    "pyvar_assistant_watchdog_errors",
+    "Watchdog operations that failed (Redis or the judge); the answer path is never affected",
+    ["op"],
+)
