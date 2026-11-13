@@ -162,6 +162,65 @@ def test_rbergomi_volterra_driver_matches_hand_calc():
     assert np.all(np.diff(driver) < 0.0)
 
 
+def test_rbergomi_weighted_driver_matches_the_original_per_path_formula():
+    """The lag weights are now computed once and shared; the driver must equal the original
+    arithmetic, `sum_k (t_now - k*dt)^(H-0.5) * z[k] * sqrt(dt)` with the gap recomputed at every
+    step, written out here as plain Python loops. Agreement is to rounding in the weights."""
+    from engine.deriv_stoch_vol import (
+        _rbergomi_volterra_driver,
+        _rbergomi_volterra_driver_weighted,
+        _rbergomi_volterra_weights,
+    )
+
+    hurst, dt, n_steps = 0.1, 0.02, 30
+    z_v = np.random.default_rng(3).standard_normal(n_steps)
+    expected = np.empty(n_steps)
+    for step in range(n_steps):
+        t_now = (step + 1) * dt
+        expected[step] = sum(
+            ((t_now - k * dt) ** (hurst - 0.5)) * z_v[k] * math.sqrt(dt) for k in range(step + 1)
+        )
+    weights = _rbergomi_volterra_weights(hurst, dt, n_steps)
+    np.testing.assert_allclose(weights, [((m + 1) * dt) ** (hurst - 0.5) for m in range(n_steps)])
+    np.testing.assert_allclose(
+        _rbergomi_volterra_driver_weighted(weights, z_v, dt), expected, rtol=1e-12
+    )
+    np.testing.assert_allclose(_rbergomi_volterra_driver(hurst, z_v, dt), expected, rtol=1e-12)
+
+
+@pytest.mark.parametrize("is_call", [True, False])
+def test_rbergomi_paths_match_a_vectorised_numpy_restatement(is_call):
+    """Per-path payoffs from the Numba kernel against the same model written with NumPy (the
+    Volterra driver as one matrix product), on identical normals. Guards the shared weights, the
+    shared discrete variance and the predictable-variance step together."""
+    from engine.deriv_stoch_vol import _rbergomi_paths
+
+    spot, strike, rate, tau = 100.0, 105.0, 0.02, 1.0
+    xi, eta, hurst, rho, n_steps, n_paths = 0.04, 1.5, 0.1, -0.7, 20, 3_000
+    rng = np.random.default_rng(5)
+    z_v, z_s = rng.standard_normal((n_paths, n_steps)), rng.standard_normal((n_paths, n_steps))
+
+    dt = tau / n_steps
+    weights = np.zeros((n_steps, n_steps))
+    for step in range(n_steps):
+        weights[step, : step + 1] = ((step + 1 - np.arange(step + 1)) * dt) ** (hurst - 0.5)
+    wv = (z_v @ weights.T) * math.sqrt(dt)
+    two_h = 2.0 * hurst
+    discrete_var = two_h * dt**two_h * np.cumsum(np.arange(1, n_steps + 1) ** (two_h - 1.0))
+    var = np.empty_like(z_v)
+    var[:, 0] = xi
+    var[:, 1:] = xi * np.exp(eta * math.sqrt(two_h) * wv[:, :-1] - 0.5 * eta**2 * discrete_var[:-1])
+    vol = np.sqrt(np.where(var > 0.0, var, 1e-12))
+    dw = rho * z_v + math.sqrt(1.0 - rho**2) * z_s
+    log_s = math.log(spot) + ((rate - 0.5 * var) * dt + vol * math.sqrt(dt) * dw).sum(axis=1)
+    st = np.exp(log_s)
+    payoff = np.maximum(st - strike, 0.0) if is_call else np.maximum(strike - st, 0.0)
+    expected = math.exp(-rate * tau) * payoff
+
+    got = _rbergomi_paths(spot, strike, rate, tau, xi, eta, hurst, rho, z_v, z_s, n_steps, is_call)
+    np.testing.assert_allclose(got, expected, rtol=1e-9, atol=1e-12)
+
+
 def test_variance_gamma_put_call_parity():
     c = variance_gamma_model(
         100.0, 100.0, 0.03, 1.0, n_simulations=200_000, option_type="call", seed=3

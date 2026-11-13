@@ -307,6 +307,43 @@ def local_volatility_dupire_model(
 
 
 @njit(cache=True)
+def _rbergomi_volterra_weights(hurst: float, dt: float, n_steps: int) -> np.ndarray:
+    """Lag weights ``(m*dt)^(H-0.5)`` for m = 1..n_steps, shared by every path.
+
+    ``out[m-1]`` is the weight of an increment drawn ``m`` steps before the
+    output time: the GAP to t_now divided by dt, so it is recomputed as t_now
+    moves on (the gap-based form that
+    tests/test_deriv_stoch_vol.py::test_rbergomi_volterra_driver_matches_hand_calc
+    protects), not frozen at the step where the increment was drawn.
+    """
+    out = np.empty(n_steps, dtype=np.float64)
+    for m in range(n_steps):
+        out[m] = ((m + 1) * dt) ** (hurst - 0.5)
+    return out
+
+
+@njit(cache=True)
+def _rbergomi_volterra_driver_weighted(
+    weights: np.ndarray, z_v: np.ndarray, dt: float
+) -> np.ndarray:
+    """Volterra driver for one path's normals from precomputed lag weights.
+
+    ``out[step] = sum over k <= step of weights[step - k] * z_v[k] * sqrt(dt)``,
+    summed in the same order and grouped the same way as the original
+    per-path formula, so results agree to rounding in the weights (about 1e-14).
+    """
+    n_steps = z_v.shape[0]
+    out = np.empty(n_steps, dtype=np.float64)
+    sqrt_dt = math.sqrt(dt)
+    for step in range(n_steps):
+        wv = 0.0
+        for k in range(step + 1):
+            wv += weights[step - k] * z_v[k] * sqrt_dt
+        out[step] = wv
+    return out
+
+
+@njit(cache=True)
 def _rbergomi_volterra_driver(hurst: float, z_v: np.ndarray, dt: float) -> np.ndarray:
     """Fractional Volterra driver W~(t_k), k=1..n_steps, for one path's normals.
 
@@ -329,21 +366,16 @@ def _rbergomi_volterra_driver(hurst: float, z_v: np.ndarray, dt: float) -> np.nd
     for a hand-computed impulse-response check that only the corrected
     (gap-based) formula passes.
 
-    O(n_steps^2) per path -- n_steps is small (default 50) so this is not a
-    bottleneck; _rbergomi_paths below calls this once per path inside its
-    parallel loop.
+    O(n_steps^2) per path. The lag weights (m*dt)^(H-0.5) do not depend on the
+    path, so _rbergomi_paths computes them once per call
+    (_rbergomi_volterra_weights) and uses _rbergomi_volterra_driver_weighted
+    for every path; this function does both for a single path and keeps the
+    original signature. Recomputing the power for every path inside the inner
+    loop made the kernel about 13 times slower than a NumPy version that
+    computed the weights once (docs/p7-numba-vs-numpy-results.md).
     """
-    n_steps = z_v.shape[0]
-    out = np.empty(n_steps, dtype=np.float64)
-    sqrt_dt = math.sqrt(dt)
-    for step in range(n_steps):
-        t_now = (step + 1) * dt
-        wv = 0.0
-        for k in range(step + 1):
-            gap = t_now - k * dt
-            wv += (gap ** (hurst - 0.5)) * z_v[k] * sqrt_dt
-        out[step] = wv
-    return out
+    weights = _rbergomi_volterra_weights(hurst, dt, z_v.shape[0])
+    return _rbergomi_volterra_driver_weighted(weights, z_v, dt)
 
 
 @njit(cache=True)
@@ -411,9 +443,12 @@ def _rbergomi_paths(
     # for why this exact discrete variance is used instead of the continuum
     # limit t_now^(2H).
     discrete_var = _rbergomi_discrete_variance(hurst, dt, n_steps)
+    # Also shared across all paths: the lag weights depend only on hurst, dt and
+    # n_steps, so they are computed once here and not once per path.
+    weights = _rbergomi_volterra_weights(hurst, dt, n_steps)
     out = np.empty(n_paths, dtype=np.float64)
     for p in prange(n_paths):
-        wv_path = _rbergomi_volterra_driver(hurst, z_v[p], dt)
+        wv_path = _rbergomi_volterra_driver_weighted(weights, z_v[p], dt)
         log_s = math.log(spot)
         for step in range(n_steps):
             # PREDICTABLE variance: wv_path[step] and discrete_var[step] both
