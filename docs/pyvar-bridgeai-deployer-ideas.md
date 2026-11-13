@@ -1,6 +1,6 @@
 # pyvar: BridgeAI deployer ideas
 
-**Draft, 12 November 2026.** Who could be the deployer in a BridgeAI Deployment Catalyst (AI for Decision Critical Systems) application for pyvar, and how to test a candidate quickly. The eligibility rules come from the competition's pages and briefing slides (UKRI, Innovate UK Business Connect and the competition page, read 12 November). **The names below are ideas from general knowledge. They have not been checked for size, sector, eligibility or interest, and none has been approached.** Read it with `docs/pyvar-funding-fit-swot.md`, which explains why BridgeAI is conditional for pyvar.
+**Draft, 12 November 2026.** Who could be the deployer in a BridgeAI Deployment Catalyst (AI for Decision Critical Systems) application for pyvar, and how to test a candidate quickly. The eligibility rules come from the competition's pages and briefing slides (UKRI, Innovate UK Business Connect and the competition page, read 12 November). **This note describes types of organisation, not named firms. Candidate names stay outside the repository, as in `docs/pyvar-validation-partners.md`. The types below come from general knowledge and have not been checked against any real organisation for size, sector, eligibility or interest.** Read it with `docs/pyvar-funding-fit-swot.md`, which explains why BridgeAI is conditional for pyvar.
 
 ## First, the fit question
 
@@ -33,14 +33,14 @@ From the competition pages and slides:
 
 ## Ideas, by type
 
-All of these are financial services, a listed sector. Most named firms are large, which means slow to commit; a mid-sized firm may decide faster.
+All of these are financial services, a listed sector. Large firms are slow to commit; a mid-sized firm may decide faster.
 
-| Type | Examples (unverified) | Why it might fit | What to check |
+| Type | Typical profile (general knowledge, unverified) | Why it might fit | What to check |
 | --- | --- | --- | --- |
-| Building societies and mid-sized banks that run their own liquidity, interest-rate and capital analysis | Skipton, Coventry, Leeds and Yorkshire building societies; Shawbrook, Paragon, Close Brothers, OakNorth | pyvar has liquidity ratio, ALM and interest-rate-risk functions; smaller treasury and risk teams may lack costly vendor tools | Size; who owns the risk tooling decision; model-risk governance for an AI-assisted tool |
-| Asset managers | Schroders, Jupiter, Ninety One, M&G | Market-risk and portfolio analytics functions | Whether their risk analysis is outsourced; data restrictions |
-| Digital banks and lenders | Zopa, Starling, Atom bank | Engineering-led teams that may adopt an API quickly | Whether they build risk tooling in-house |
-| UK public bodies in financial services | British Business Bank, UK Export Finance, National Wealth Fund | Eligible as public sector; credit and ALM analysis | Procurement and governance speed |
+| Building societies and mid-sized banks that run their own liquidity, interest-rate and capital analysis | Medium or large by balance sheet, with its own treasury and risk team | pyvar has liquidity ratio, ALM and interest-rate-risk functions; smaller treasury and risk teams may lack costly vendor tools | Size; who owns the risk tooling decision; model-risk governance for an AI-assisted tool |
+| Asset managers | Medium or large, with a risk or investment-analytics team | Market-risk and portfolio analytics functions | Whether their risk analysis is outsourced; data restrictions |
+| Digital banks and lenders | Medium, engineering-led | Engineering-led teams that may adopt an API quickly | Whether they build risk tooling in-house |
+| UK public bodies in financial services | Public sector, with lending or guarantee functions | Eligible as public sector; credit and ALM analysis | Procurement and governance speed |
 
 **Warm routes beat cold ones in the 26 days from 12 November.** Ask the adviser for three introductions to UK medium or large financial-services firms with a risk team; ask the owner's own network; and ask any user of the plugins or the API whether their employer could host a deployment (no named user is recorded).
 
@@ -78,6 +78,8 @@ Do not claim that pyvar is regulatory-grade or independently validated: the READ
 If there is no committed deployer and no yes on strand fit by then, do not submit a thin application.
 
 ## Tracking
+
+Keep names out of the repository: use a private copy of this table, or codes (C1, C2) here.
 
 | Candidate | Type | UK-registered and size | Sector | Contact (outside the repo) | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
