@@ -198,6 +198,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   re-run clean. MD-3 (the real Refinitiv adapter) and MD-4 (pipeline
   wiring) remain hard-gated behind decisions only Filippo can make.
 
+### Changed
+
+- **Portal assistant menus are on in prod** — `assistant_enabled` is now true in the "prod" override of `pyvar-cdk/config.py` as
+  well as "dev", so the prod API container gets `ASSISTANT_ENABLED=true` and the portal shows the "What it does / When to use it /
+  Compare with" buttons from the committed bank (1,154 answers, `v4-2026-11-09-0dbf72ce`). No model is called when a visitor clicks
+  and nothing is sent; the typed route stays off (`assistant_typed_enabled`, false everywhere) and so does the watchdog. Staging is
+  unchanged. Decided by Filippo on 2026-11-13 after checking the menus in dev; no random read of this exact bank has been made
+  (`docs/assistant-phase0-results.md` 9.22, 9.35). Prod deploys behind the pipeline's manual approval. To undo it, set the flag back to
+  `False` and deploy.
+
 ### Fixed
 
 - **Portal: every page now links to every page in plain HTML, and the home link is `/`** — Search

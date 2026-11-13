@@ -40,11 +40,11 @@ class PyvarConfig:
 
     # Portal assistant menus (docs/assistant-plan-implementation.md, section 9): the
     # "What it does / When to use it / Compare with" buttons that serve answers from the
-    # committed bank (portal/assistant/bank/). False everywhere except the "dev" override
-    # below. The app reads it as ASSISTANT_ENABLED (config.py assistant_enabled) and shows
-    # the widget only when it is true AND the bank's manifest is complete; no model is
+    # committed bank (portal/assistant/bank/). False everywhere except the "dev" and "prod"
+    # overrides below. The app reads it as ASSISTANT_ENABLED (config.py assistant_enabled) and
+    # shows the widget only when it is true AND the bank's manifest is complete; no model is
     # called when a visitor clicks. api_stack.py sets the environment variable only when
-    # this is True, so staging's and prod's task definitions are unchanged.
+    # this is True, so staging's task definition is unchanged.
     assistant_enabled: bool = False
 
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
@@ -215,8 +215,8 @@ class PyvarConfig:
                 aurora_max_acu=2.0,
                 result_retention_days=14,
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
-                # Portal assistant menus on in dev only (see assistant_enabled above); prod
-                # stays off until the plan's release criteria are met and it is decided.
+                # Portal assistant menus on in dev (see assistant_enabled above) and, since
+                # 2026-11-13, in prod.
                 assistant_enabled=True,
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
@@ -251,6 +251,12 @@ class PyvarConfig:
                 vpc_nat_gateways=2,  # 2 NAT GWs for full AZ independence
                 api_min_tasks=2,
                 api_max_tasks=20,
+                # Portal assistant menus (release 1: menus only). Decided by Filippo on
+                # 2026-11-13 (docs/assistant-phase0-results.md 9.35). No model is called and
+                # nothing is sent when a visitor clicks; the typed route stays off by its own
+                # flag (assistant_typed_enabled, false everywhere). To turn it off again, set
+                # this to False and deploy: the task definition then loses ASSISTANT_ENABLED.
+                assistant_enabled=True,
                 # worker_min_capacity intentionally omitted -- base class
                 # default of 0 (scale-to-zero) applies. PR #227/#228 had
                 # temporarily set this to 1 as a launch-window mitigation for
