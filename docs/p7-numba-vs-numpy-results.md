@@ -12,6 +12,11 @@ pricer, 1.7 times), at parity in one (the American option), and **slower in thre
 time, and in two functions a slow Numba stage costs more than the JIT saves. The speed of these functions is not, on this evidence, a result of the
 JIT.
 
+**Follow-up, same day: the two slow stages were fixed in the same pull request, and the result is in the last section.** The sort in the Monte Carlo VaR
+function now uses `np.sort`, and the rough Bergomi pricer computes its lag weights once. Measured again, end to end, Numba is faster than the plain-NumPy
+version in **three of five cases** (Asian 1.55x, rough Bergomi 1.69x, 10-day VaR 1.24x), at parity in two (1-day VaR 0.97x, American 0.97x) and slower in none.
+The sections below describe the code as it was measured first.
+
 ## Method
 
 **Equivalence before timing.** Every baseline receives the identical pre-drawn random numbers as the Numba code, and the script refuses to time anything
@@ -88,9 +93,9 @@ that `p7-numba-profiling-results.md` reports for the whole `run_monte_carlo_var`
   or about anything outside the compute kernels (W2 to W5 of the plan).
 - **No pure-Python baseline.** `NUMBA_DISABLE_JIT=1` would be a strawman and was not run.
 
-## Opportunities this exposes (not done here)
+## Opportunities this exposed (both made in the same pull request; see the last section)
 
-Each would be its own change to `engine/` with its own tests, and so would start a CodePipeline run. None touches regulatory logic.
+Each is a change to `engine/` with its own tests, and so starts a CodePipeline run when merged. Neither touches regulatory logic.
 
 1. `run_monte_carlo_var`: replace the Numba sort with `np.sort` (the loss distribution is identical). Estimated from the stage timings, not measured: the 1-day
    call would fall from about 13.3 ms to about 5.2 ms.
@@ -103,7 +108,7 @@ Each would be its own change to `engine/` with its own tests, and so would start
 `docs/plan-swot-engineering-integration.md` is updated with these results. In short: do not present speed over vectorised NumPy as the innovation, because the
 evidence does not support it end to end. The GitHub description ("385+ JIT-accelerated functions for fast VaR and Monte Carlo simulations") and the README's
 "JIT-compiled" wording, and the published technical deep dive's cold and warm timings (1.083 s and 0.007 s for `run_monte_carlo_var`), are accurate as statements about the kernels and as raw timings, but
-a reader can take them to mean the JIT is why the functions are fast; they deserve a wording review. The README's count of JIT functions is a separate open item.
+a reader can take them to mean the JIT is why the functions are fast; they deserve a wording review, which Filippo deferred on 2026-11-13 (left unchanged for now). The README's count of JIT functions is a separate open item.
 
 ## Reproducing it
 
@@ -113,3 +118,33 @@ python scripts/p7_vs_numpy.py --repeats 21 --json docs/p7-numba-vs-numpy-results
 
 It needs the repository's requirements and four to eight minutes on a 4-core machine. Absolute times depend on the machine; the ratios and the equivalence
 checks are the result.
+
+## After the two changes (measured 2026-11-13, raw numbers in `docs/p7-numba-vs-numpy-results-after.json`)
+
+**What changed in `engine/`.** (1) `run_monte_carlo_var` sorts the losses in place with NumPy; the Numba helper `_sorted_losses`, whose only caller it was, is removed.
+(2) `_rbergomi_paths` computes the lag weights once per call (`_rbergomi_volterra_weights`) and every path uses them (`_rbergomi_volterra_driver_weighted`);
+`_rbergomi_volterra_driver` keeps its signature as a thin wrapper, so the existing hand-calculation test of the gap-based weights applies unchanged.
+
+**Outputs.** The VaR loss distribution is bit for bit identical on 12 reference arrays (1, 5 and 10 days, antithetic on and off, 50,000 values each). The rough Bergomi
+per-path payoffs differ by at most 3.7e-15 relative over six reference cases (three Hurst exponents, call and put), which is rounding in the weights; the public function's
+outputs, Greeks included, were identical at 8 decimals in the cases compared. Because the differences are about 1e-15, a rounded 8-decimal price could in principle change in its last
+digit in a rare case; none did here.
+
+**End to end**, the public Numba function, warm, milliseconds, median (interquartile range), against the first measurement:
+
+- `run_monte_carlo_var`, 1 day: 13.28 before, **5.66** (5.32 to 5.98) after, 2.3 times faster. Against the plain-NumPy version, 0.29x before and 0.97x after: parity.
+  The stage timings predicted about 5.2 ms.
+- `run_monte_carlo_var`, 10 days: 30.86 before, **19.81** (19.57 to 20.04) after, 1.6 times faster; against NumPy 0.78x before, 1.24x after.
+- `rough_volatility_rbergomi_model`: 781.0 before, **210.4** (198.4 to 222.1) after, 3.7 times faster; against NumPy 0.41x before, 1.69x after.
+- `asian_option_pricer` and `american_option_lsm` are unchanged code.
+
+**Kernel only**, rough Bergomi (`_rbergomi_paths`): one thread 2,056 before and **102.6** after (20 times faster); four cores 625 before and **40.3** after (15.5 times faster). It is now 1.8 times
+(one thread) and 4.6 times (four cores) faster than the NumPy baseline, where it was 13 and 4 times slower.
+
+**Run-to-run noise.** The two runs were hours apart on a shared virtual machine. The unchanged functions moved by up to 19% end to end (Asian 175.8 to 208.8 ms, American 421.7 to
+434.2 ms), and the NumPy baselines moved too (the 1-day VaR baseline from 3.85 to 5.50 ms). Only differences far larger than that are findings: the VaR and rough Bergomi
+improvements are 1.6 to 3.7 times, and the Asian and American results are the control.
+
+**What is still true.** Numba is not faster than vectorised NumPy end to end in every case: the American option is at parity (the NumPy regression dominates it), and in every function the
+random draws are a large share of the time. The first-call (compile) costs are unchanged in kind: 2,138 ms for the VaR kernel's first call in a fresh process (threading-layer start-up included),
+1,437 ms for rough Bergomi.

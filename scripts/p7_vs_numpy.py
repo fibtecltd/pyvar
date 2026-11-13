@@ -98,6 +98,8 @@ def _max_rel_diff(a: Any, b: Any) -> float:
 def _build_cases(np: Any) -> list[dict[str, Any]]:
     """Import the engine (after NUMBA_* variables are set) and build every case."""
     sys.path.insert(0, str(ROOT))
+    from numba import njit
+
     from engine.deriv_options_exotic import (
         _gbm_full_paths,
         _gbm_path_stats,
@@ -109,11 +111,17 @@ def _build_cases(np: Any) -> list[dict[str, Any]]:
     from engine.montecarlo import (
         _draw_random_shocks,
         _simulate_paths,
-        _sorted_losses,
         run_monte_carlo_var,
     )
 
     cases: list[dict[str, Any]] = []
+
+    @njit(cache=False)
+    def numba_sort_reference(pnl: Any) -> Any:
+        """The sort run_monte_carlo_var used before 2026-11-13, kept only to show why it was replaced."""
+        losses = -pnl
+        losses.sort()
+        return losses
 
     # 1. Monte Carlo VaR: horizon 1 (the API default) and 10 (where the kernel does more work) ----------
     returns = np.random.default_rng(0).normal(0.0003, 0.012, 252)
@@ -154,7 +162,9 @@ def _build_cases(np: Any) -> list[dict[str, Any]]:
                     "random draw (np.random.randn)": lambda h=horizon: _draw_random_shocks(
                         N_SIMS, h, False
                     ),
-                    "sort, Numba (_sorted_losses)": lambda p=pnl: _sorted_losses(p),
+                    "sort, Numba (the helper the function used to call)": lambda p=pnl: numba_sort_reference(
+                        p
+                    ),
                     "sort, np.sort(-pnl)": lambda p=pnl: np.sort(-p),
                     "loss_dist list conversion (.tolist())": lambda sl=sorted_losses: sl.tolist(),
                 },

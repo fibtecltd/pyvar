@@ -1,6 +1,6 @@
 # Plan: AI-assisted verification of pyvar by Claude Code (Opus 5.5)
 
-**Status: draft, 2026-11-13.** Decided by Filippo on 2026-11-13: the pilot function is `historical_expected_shortfall`, and the work runs in Filippo's own environment. Not yet decided: the human who signs off (section 8). Proposed, not approved: the budget (section 7).
+**Status: draft, 2026-11-13; on hold.** Filippo put the pilot on hold on 2026-11-13: no pilot work is done until he says to resume. Decided by him earlier that day: the pilot function is `historical_expected_shortfall`, and the work runs in Filippo's own environment. Not yet decided: the human who signs off (section 8). Proposed, not approved: the budget (section 7).
 
 ## 1. What this is, and what it is not
 
@@ -88,6 +88,7 @@ The pilot only, one function. Tier 1 is not budgeted here. Prices are the repo's
 
 | Decision | Status |
 | --- | --- |
+| Whether to run the pilot now | **On hold** (Filippo, 2026-11-13) |
 | Pilot function | **Decided** (Filippo, 2026-11-13): `historical_expected_shortfall` |
 | Where it runs | **Decided** (Filippo, 2026-11-13): in his own environment |
 | Human sign-off | **Open**: Filippo will share who signs off later; to be named before step 4 |

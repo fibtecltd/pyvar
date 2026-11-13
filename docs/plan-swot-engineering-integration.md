@@ -11,8 +11,9 @@ Every component is mainstream and widely used. A reviewer will not accept any of
 **Update 2026-11-13 (W1: `docs/p7-numba-vs-numpy-results.md`).** A comparator now exists for the compute kernels, and it takes *speed over vectorised
 NumPy* out of the claim. The compiled kernels are 2 to 14 times faster than NumPy where per-path computation dominates, but **end to end, Numba is faster
 than a plain-NumPy version of the same function in one of five measured cases, at parity in one and slower in three** (Monte Carlo VaR, where a Numba sort
-costs 11.5 times a NumPy sort, and rough Bergomi, whose kernel recomputes path-independent weights). So the draft wording above must not be read as a JIT
-speed advantage. What remains defensible is the architecture around the kernels (scale-to-zero on Spot, marginal cost flat in volume, the data contract),
+costs 11.5 times a NumPy sort, and rough Bergomi, whose kernel recomputes path-independent weights). Two engine fixes made in the same pull request (the VaR sort, the rough Bergomi weights) moved that to **faster in 3 of 5, parity in 2, slower in none**
+(Asian 1.55x, rough Bergomi 1.69x, 10-day VaR 1.24x). So the draft wording above must still not be read as a JIT speed advantage: the margins are small, the
+random draws dominate several functions, and one machine and one size were measured. What remains defensible is the architecture around the kernels (scale-to-zero on Spot, marginal cost flat in volume, the data contract),
 and for those there is still no comparator (W2 to W5, W6). With no comparator, the numbers show what pyvar does, not that it does it better or at lower cost
 than the alternatives; that is why this is not yet "a real innovation" in an assessor's terms.
 
@@ -48,7 +49,7 @@ The orchestration decisions that carry the claim, each with its evidence level:
 | API reliability and latency | `p9-soak-test-status.md`: 579 canary invocations, 0 errors, ALB p95 3.9 to 6.2 ms | Measured | A p95 of a few milliseconds is far below any Monte Carlo job, so this is a light endpoint, not compute |
 | Spot interruption safety | Design (`CLAUDE.md` 3.2) | Not measured | No drill |
 | Throughput scaling | None (`locustfile.py` exists) | Not measured | |
-| Faster than plain NumPy | `p7-numba-vs-numpy-results.md` (W1): four functions against equivalent vectorised baselines, one 4-core machine, 21 repeats | Measured: kernels 2 to 14 times faster where per-path work dominates; **end to end faster in 1 of 5 cases, parity in 1, slower in 3** | One machine and one size; not production hardware |
+| Faster than plain NumPy | `p7-numba-vs-numpy-results.md` (W1): four functions against equivalent vectorised baselines, one 4-core machine, 21 repeats | Measured: kernels 2 to 20 times faster where per-path work dominates; end to end, first run **faster in 1 of 5, parity in 1, slower in 3**; after two engine fixes (same PR) **faster in 3, parity in 2, slower in none** | One machine and one size; not production hardware |
 | Better than alternatives on cost or efficiency | None | Not measured | No on-demand, Lambda or other comparison anywhere in the repository |
 
 ## 4. Where it goes in the SWOT, and what it changes
@@ -84,5 +85,5 @@ W1 first (free, offline, and the missing comparator). Then W2 and W3 when someon
 | Who pulls W2 to W5 from AWS | **Decided** (2026-11-13): a delegated agent with an assigned prompt (read-only on prod; the drill and the load test only in dev) |
 | Run W1 now | **Done** (2026-11-13): `docs/p7-numba-vs-numpy-results.md` |
 | Baselines against NumPy only, no vendor names | **Applied** in W1 |
-| Review the "JIT-accelerated" wording in the GitHub description and the README | **Open** (see the W1 results) |
-| Make the two engine changes W1 exposes (`np.sort` in the VaR function; lag weights computed once in rough Bergomi) | **Open**: each is its own change to `engine/` with tests, and starts a CodePipeline run |
+| Review the "JIT-accelerated" wording in the GitHub description and the README | **Deferred** (Filippo, 2026-11-13): leave it unchanged for now |
+| Make the two engine changes W1 exposes (`np.sort` in the VaR function; lag weights computed once in rough Bergomi) | **Decided and made** (Filippo, 2026-11-13), in PR #428; they change `engine/`, so merging that PR starts a CodePipeline run |
