@@ -298,8 +298,8 @@ AWS:        CELERY_BROKER_URL = sqs://
   also added to the day's assistant spend, so the circuit breaker sees them.
 - The audit judge prompt is the measured typed judge (sha256 pinned in tests/test_assistant_audit.py), and
   judge.py builds its message with the same function. Change one and you change what is measured AND audited.
-- CUSUM: allowance 0.10, threshold 3.0 (NOT the 2.5 once written in the plan; results 9.34), in exact
-  thousandths. Writer windows are tumbling (judged once at 200 audits, then emptied). State is namespaced by
+- CUSUM: allowance 0.10, threshold 3.0 (NOT the 2.5 once written in the plan; Filippo kept 3.0 on
+  2026-11-13, results 9.34), in exact thousandths. Writer windows are tumbling (judged once at 200 audits, then emptied). State is namespaced by
   the bank version, so a catalogue release starts every function afresh.
 - Enterprise answers are not audited (the plan's synchronous second reader is not built); pins and the
   degrade flag apply to every tier.
