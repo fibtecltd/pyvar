@@ -69,6 +69,7 @@ The eight images in `assets/headers/` come from `python scripts/generate_article
 **Text on the image:** "1,154 answers, written before you clicked." and, small, "0 model calls when you do."
 **Why it fits:** the article is about an assistant whose answers are static files read on a click, with no model in the request path; the counts (1,154 answers, 2 static) come from the bank's manifest.
 **Alt text:** Three buttons leading to a single small file, with a crossed-out box marked model call, above a row of 1,154 squares of which two are highlighted as static answers.
+**Candidate received 2026-11-13, not used as it stands:** a 3D illustration of an assistant character beside a capability grid and a chat in which a typed request ("Show me a risk analysis for my portfolio") gets generated code, a chart and a table of figures (VaR 12.5%, ES 16.8%, Sharpe 1.32). It shows what this article says the assistant does not do: take typed requests (the typed box is off everywhere), run analyses, write code or return figures, and the figures and the code (`px` and `pv` aliases, a `pv.risk.analyze` call) are invented, not from pyvar. The tiles "Stay Compliant", "Deploy Anywhere" and "Instantly" claim more than the article does. Its style (blue and orange 3D) also differs from the house style above. The character, logo and colours can stay if the chat, code, chart, table and capability tiles are replaced with the three menu buttons, one real answer and the counts above.
 
 ## Placement
 

@@ -10,8 +10,9 @@
 <!-- BEFORE PUBLISHING (delete this block):
  1. Add the header image (see header-images.md, idea 6) and uncomment it above.
  2. The section "What the second read found" reports the 40-answer read of the final bank (results 9.37) with both tallies.
-    It depends on a re-classification that is the author's, not the reader's: CONFIRM IT (or change the section to the
-    as-marked tally alone) before publishing. If you read more answers first, update the section with the combined result.
+    The re-classification was confirmed by Filippo on 2026-11-13. A second read of 40 more answers, with a corrected
+    sheet, is decided (`scripts/assistant_read_sheet.py`): when it is done, update this section with the combined 80
+    (results 9.38) before publishing.
  3. Re-run the three checks in "Check it yourself" the day you publish; the bank version and counts must match.
  4. Medium drops tables; this article has none on purpose. -->
 
@@ -150,13 +151,13 @@ model's guess is wrong, so we treat 3 of 40 as a warning, not a pass. Our gate, 
 record, passed all three first time.
 
 So, after our re-check: **none of the seven flagged answers is false, and three of them go beyond what the writer was shown.** Three caveats. The
-re-classification (4 wrong to 0 wrong) is ours, not the reader's, and was made by the same people who made the sheet defect.
+re-classification (4 wrong to 0 wrong) is ours, not the reader's: the people who made the sheet defect made it, and Fibtec's owner confirmed it.
 The sheet checks claims against the record, so it could not catch a claim the record supports but the engine contradicts, and we
 did not check the other 33 answers against the engine. And
 40 answers is a small sample: even 0 wrong in 40 would only put the upper end of a 95% interval at 8.8%, so 4% is not proven.
-We have the menus on in production, and the choices from here are written in the repository (results 9.37): read 40 more with
-a corrected sheet, give the writer the outputs and validation rules of each function and rebuild, or switch the menus off, which
-is a one-line change.
+We have the menus on in production. We are reading 40 more answers with a corrected sheet, and the repository
+(results 9.37) records what else is open: giving the writer the outputs and validation rules of each function and rebuilding, or
+switching the menus off, which is a one-line change.
 
 ## What we chose not to ship
 
