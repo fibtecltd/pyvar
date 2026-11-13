@@ -1629,6 +1629,30 @@ So, after the re-check: **0 of the 7 flagged contradicted by the engine; 3 of 40
 - 40 new answers, seed 20261132, from the 1,114 served answers that were not in the first 40 (their ids are in `docs/assistant-bank-read-1-ids.json`); the sample is not stratified, as before.
 - Every function an answer names, its own and any other (the one a comparison is against and every backticked function name in the text), is shown with its **full** catalogue record, and the sheet marks the point in a description beyond which the writer was not shown the text (10 functions have descriptions over 1,500 characters).
 - Three marks instead of two: **Supported**, **Contradicted** (the record says the opposite) and **Not in the records** (neither confirmed nor contradicted). The author then checks each "not in the records" claim against the engine and reports the two kinds separately, so the result is not forced to choose between them.
-- The result will be added as 9.38, with the combined 80 (0 contradicted in 80 would put the upper end of the 95% interval at 4.6%; the 4% tolerance is only shown by a sample large enough to exclude it, and 80 is not).
+- The result is in 9.38, with the combined 80: 0 contradicted, upper end of the 95% interval 4.6% (the 4% tolerance is only shown by a sample large enough to exclude it, and 80 is not).
 
 9.35's open condition (a random read of the final bank) is met in form by the first read; the second is the fix for the sheet's defect, not a second opinion on the same answers.
+
+
+### 9.38 The second read: 40 more answers with the corrected sheet, and the combined 80 (2026-11-13; no model called)
+
+**What was read.** 40 answers drawn with `random.Random(20261132).sample(...)` from the 1,114 served answers of bank `v4-2026-11-09-0dbf72ce` that were not in the first read (`scripts/assistant_read_sheet.py`, `docs/assistant-bank-read-1-ids.json`): 14 explain, 18 when, 8 compare. Each answer was shown with the full catalogue record of its own function and of every function it names, with the point marked beyond which the writer was not shown a description, and three marks: Supported, Contradicted, Not in the records. Filippo read them.
+
+**Result (Filippo): Supported 40 of 40, Contradicted 0, Not in the records 0.**
+
+**Combined with the first read (9.37), after the confirmed re-classification: 80 answers, 77 supported, 0 contradicted, 3 not in the record (all three true in the engine).**
+
+| | Answers | Contradicted | Not in the record | 95% interval for a contradicted claim |
+| --- | --- | --- | --- | --- |
+| First read (9.37, confirmed re-classification) | 40 | 0 | 3 | 0% to 8.8% |
+| Second read (this section) | 40 | 0 | 0 | 0% to 8.8% |
+| Combined | 80 | 0 | 3 | **0% to 4.6%** |
+
+**What that does and does not show.**
+- 0 contradicted in 80 is no sign of trouble, and it is the bar the plan's section 12 sets (0 errors in the sample). It does not prove the 4% tolerance: if the true rate were 4%, 80 clean answers would still turn up one time in 26 (0.96^80 = 0.038), and the upper end of the interval, 4.6%, is just above 4%. The tolerance is "not contradicted", not shown.
+- "Not in the record" is a different measure and is not zero: 3 of 80 (3.8%, interval 1.3% to 10.5%), all in the first read. None appeared in the second, which is the sample size of one more draw, not evidence that the mechanism is gone: the writer still sees no "returns" field or validation rules (9.37), so an answer about outputs can still go beyond its record.
+- **The read checks claims against the catalogue record, not against the engine.** A claim the record supports but the engine contradicts would pass. The engine was checked only for the three first-read answers above.
+
+**A mechanical cross-check of the second read (author, after the read).** For both samples, every backticked name in an answer was looked up in the records shown. It has low recall by construction: on the first sample it flagged `collateral_value` and `sft_type` in the `sftr_securities_finance_report` answer (the validation claim of 9.37) and nothing for the other two unsupported answers, whose outputs are written in plain words ("alpha", "discount factors and zero rates"), and it flagged an equity-swap formula string that the record supports. On the second sample it flagged one phrase, `spot + displacement`, in the rough Bergomi against displaced diffusion comparison; the displaced-diffusion record defines it (`Price = BS(S + a, K + a, ...)`, "prices (S + a) as a lognormal"), so it is supported. The check therefore found nothing the reader missed, and it is not a substitute for reading.
+
+**Decision for the plan.** The read the plan asks for has now been made on the final bank (two reads, 80 answers, corrected sheet), with no contradicted claim. The menus stay on. What stays open is the writer's blind spot (outputs and validation rules are not in the catalogue record): richer records and a rebuild (9.37, option 3) are optional and not started, and the read should be repeated for each release.

@@ -1,6 +1,6 @@
 # The AI assistant that never answers live: how pyvar explains 385 risk functions without a model in the request path
 
-*Every answer in pyvar.com's new assistant was written ahead of time, checked by code and gated by a second model, and a sample of them was read by a person, twice. Here is what that found, what broke on the way, and what we chose not to ship.*
+*Every answer in pyvar.com's new assistant was written ahead of time, checked by code and gated by a second model, and three samples of them (48, 40 and 40 answers) were read by a person. Here is what that found, what broke on the way, and what we chose not to ship.*
 
 <!-- Header image: idea 6 in header-images.md. To be added by Filippo as assets/headers/header-pyvar-assistant.png when finalising for Medium. -->
 
@@ -9,10 +9,9 @@
 
 <!-- BEFORE PUBLISHING (delete this block):
  1. Add the header image (see header-images.md, idea 6) and uncomment it above.
- 2. The section "What the second read found" reports the 40-answer read of the final bank (results 9.37) with both tallies.
-    The re-classification was confirmed by Filippo on 2026-11-13. A second read of 40 more answers, with a corrected
-    sheet, is decided (`scripts/assistant_read_sheet.py`): when it is done, update this section with the combined 80
-    (results 9.38) before publishing.
+ 2. The section "What reading the final bank found" reports the two reads of the final bank (results 9.37 and 9.38):
+    80 answers, 0 contradicted, 3 not in the record. Filippo confirmed the re-classification and made the second read
+    on 2026-11-13. If you read more answers before publishing, update its numbers.
  3. Re-run the three checks in "Check it yourself" the day you publish; the bank version and counts must match.
  4. Medium drops tables; this article has none on purpose. -->
 
@@ -125,10 +124,11 @@ assistant that reads the record and trips over a gap in it is doing a useful job
 There were smaller breakages too. One answer wrote its bullet points with `**bold**` markers, and the widget showed the raw
 asterisks. It now renders them. Three answers had small grammar slips ("a internal", "a earlier"), which the gate had noted without failing them.
 
-## What the second read found
+## What reading the final bank found
 
-The first read was of the first build. After two rewrite passes, 124 answers in the final bank differ from the ones that were
-sampled, so on 13 November 2026 a person read 40 more, drawn at random from all 1,154 served answers of the final bank. The
+The first read (above) was of the first build. After two rewrite passes, 124 answers in the final bank differ from the ones that were
+sampled, so on 13 November 2026 a person read 40 more, drawn at random from all 1,154 served answers of the final bank, and then
+40 more again with a corrected sheet. The
 sheet's rule was strict: a claim is wrong if the record contradicts it **or if it names an input, default, output or function
 the record does not support**, and the reader was told not to use outside knowledge to forgive one.
 
@@ -150,14 +150,21 @@ filled in what it knew. It was right three times in three here. That is the same
 model's guess is wrong, so we treat 3 of 40 as a warning, not a pass. Our gate, a second model reading each answer against the
 record, passed all three first time.
 
-So, after our re-check: **none of the seven flagged answers is false, and three of them go beyond what the writer was shown.** Three caveats. The
-re-classification (4 wrong to 0 wrong) is ours, not the reader's: the people who made the sheet defect made it, and Fibtec's owner confirmed it.
-The sheet checks claims against the record, so it could not catch a claim the record supports but the engine contradicts, and we
-did not check the other 33 answers against the engine. And
-40 answers is a small sample: even 0 wrong in 40 would only put the upper end of a 95% interval at 8.8%, so 4% is not proven.
-We have the menus on in production. We are reading 40 more answers with a corrected sheet, and the repository
-(results 9.37) records what else is open: giving the writer the outputs and validation rules of each function and rebuilding, or
-switching the menus off, which is a one-line change.
+So, after our re-check: **none of the seven flagged answers is false, and three of them go beyond what the writer was shown.** The
+re-classification (4 wrong to 0 wrong) is ours, not the reader's: the people who made the sheet defect made it, and Fibtec's owner
+confirmed it.
+
+**The second read fixed the sheet.** Forty new answers, none from the first forty, each shown with the full catalogue record of
+its own function and of every function it names, and three marks instead of two: supported, contradicted, and not in the records.
+**All 40 were supported.** Together, the two reads cover 80 of the 1,154 answers: **0 contradicted, 77 supported, and 3 not in the
+record**, all three from the first read.
+
+What that does not show. 0 contradicted in 80 puts the upper end of a 95% interval at 4.6%, just above our 4% tolerance, so the
+tolerance is not contradicted, and it is not proven: if the true rate were 4%, 80 clean answers would still turn up about one time
+in 26. The reads check claims against the catalogue record, not against the engine, so a claim the record supports but the engine
+contradicts would pass. And the "not in the record" kind is not gone: the writer still sees no "what it returns" field and no
+validation rules, so an answer can still go beyond what it was shown. Giving it those and rebuilding the bank is an option we have
+not taken. The menus are on in production, and switching them off is a one-line change.
 
 ## What we chose not to ship
 
@@ -210,6 +217,7 @@ and switched on only when the numbers say it should be.
 - `portal/assistant/bank/` and its `manifest.json` (this repository): the 1,154 answers and their counts.
 - `portal/assistant.js` (this repository): what the widget sends and how it fails.
 - `docs/assistant-phase0-results.md`, sections 9.19 to 9.22 (the build and the first read), 9.27 to 9.30 (typed measurement), 9.35
-  (production switch-on), 9.36 (the six-question check) and 9.37 (the 40-answer read of the final bank).
+  (production switch-on), 9.36 (the six-question check) and 9.37 and 9.38 (the two reads of the final bank).
+- `scripts/assistant_read_sheet.py`: draws the sample for a read and writes the sheet.
 - `docs/assistant-plan-implementation.md` (this repository): the release plan, its decisions and its open items.
 - The live site, `/public/config` and `/assistant/bank/…`, checked on 2026-11-13.
