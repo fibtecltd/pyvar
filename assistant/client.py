@@ -9,9 +9,11 @@ Reasoning:
 - `ModelClient` is the small seam the bank builder and the gate are written against. A test passes a fake that
   answers from the record; only `AnthropicClient` costs money.
 - The retry, served-model and cost rules are those of scripts/assistant_eval/run_eval.py::call_model (the
-  harness measured them). They are duplicated here, not imported: assistant/ must not depend on scripts/, and
-  call_model returns SDK content blocks for the typed tool loop, which this client does not need.
+  harness measured them). They are duplicated here, not imported: assistant/ must not depend on scripts/.
   tests/test_assistant_client.py pins that the two retryable-status sets stay equal.
+- The typed-question agent (assistant/agent.py) needs the model's tool calls and must send the model's own
+  blocks back on the next turn, so a Reply also carries `content`: the reply's blocks as plain dicts (text,
+  tool_use, thinking, redacted_thinking), nothing from the SDK's classes. The bank builder ignores it.
 - The key comes from `get_settings().anthropic_api_key` (a SecretStr) and goes straight to the SDK. It is not
   stored on the object (no attribute, no repr), not put in an exception, and never logged; log lines carry
   the model id, the attempt number and the HTTP status only, never a prompt or an answer.
@@ -74,6 +76,7 @@ class Reply:
         served: the model id that served the call.
         latency: seconds taken by the successful request alone (retries and sleeps excluded).
         cost: dollars, from `usage` at the served model's rate.
+        content: the reply's blocks as plain dicts, in order, ready to be sent back as an assistant turn.
     """
 
     text: str
@@ -82,6 +85,7 @@ class Reply:
     served: str
     latency: float
     cost: float
+    content: tuple[dict[str, Any], ...] = ()
 
 
 class ModelClient(Protocol):
@@ -96,6 +100,31 @@ def is_retryable(exc: BaseException) -> bool:
     """True for a transient failure: a retryable HTTP status or a connection or timeout error."""
     status = getattr(exc, "status_code", None)
     return status in RETRYABLE_STATUS or type(exc).__name__ in RETRYABLE_NAMES
+
+
+def block_dict(block: Any) -> dict[str, Any]:
+    """One SDK content block as a plain dict, in the form the Messages API accepts back as input."""
+    kind = getattr(block, "type", None)
+    if kind == "text":
+        return {"type": "text", "text": str(block.text)}
+    if kind == "tool_use":
+        tool_input = block.input if isinstance(block.input, dict) else {}
+        return {
+            "type": "tool_use",
+            "id": str(block.id),
+            "name": str(block.name),
+            "input": tool_input,
+        }
+    if kind == "thinking":
+        return {
+            "type": "thinking",
+            "thinking": str(block.thinking),
+            "signature": str(getattr(block, "signature", "")),
+        }
+    if kind == "redacted_thinking":
+        return {"type": "redacted_thinking", "data": str(block.data)}
+    dump = getattr(block, "model_dump", None)
+    return dict(dump(exclude_none=True)) if callable(dump) else {"type": str(kind)}
 
 
 def _settings_key() -> str | None:
@@ -212,4 +241,5 @@ class AnthropicClient:
                 served=served,
                 latency=latency,
                 cost=usage_cost(model, usage),
+                content=tuple(block_dict(block) for block in response.content),
             )

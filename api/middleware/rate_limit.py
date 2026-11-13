@@ -65,6 +65,12 @@ Reasoning:
   every 15 minutes to refresh the homepage demo — kept distinct from
   "enterprise" (rather than reusing it) so that scheduled job's calls don't
   pollute real customer-tier usage analytics in api_usage/var_jobs.
+- enforce_assistant_rate_limit (POST /api/v1/assistant/ask, api/assistant/routes.py) is the one limiter here
+  that applies to every tier, enterprise included: each question can spend real money on a paid model API, so
+  nobody is exempt, and the quotas differ by tier instead. An anonymous visitor is counted per IP per hour
+  (the portal's box works without signing in); a signed-in user, by session or API key, per user per day by
+  tier. The count is taken before any model call, so a refused question costs nothing. Like the others it
+  fails open on a Redis error; the gateway's separate spend cap (api/assistant/store.py) fails closed.
 - Monthly usage limits (item 5 §8 follow-on): Pro accounts additionally face
   a monthly request-count cap (config.py's rate_limit_pro_monthly_requests),
   checked here as a second `limits` item with its own "compute-monthly"
@@ -91,7 +97,8 @@ from redis.retry import Retry
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from api.middleware.auth import TokenPayload, get_current_user
+from api.assistant.metrics import REFUSED
+from api.middleware.auth import TokenPayload, get_current_user, get_optional_user
 from api.middleware.billing_lifecycle import (
     DOWNGRADE_MONTHLY_REQUEST_LIMIT,
     EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
@@ -262,3 +269,46 @@ async def enforce_register_rate_limit(request: Request) -> None:
 
     if not allowed:
         _raise_rate_limited(item, client_ip, "register")
+
+
+def assistant_tier(user: TokenPayload | None) -> str:
+    """The assistant's view of a caller: "anon", "free", "pro" or "enterprise".
+
+    The service tier "internal" counts as enterprise; an unknown tier counts as free (the same default
+    TokenPayload.max_simulations uses).
+    """
+    if user is None:
+        return "anon"
+    if user.tier in ("enterprise", "internal"):
+        return "enterprise"
+    return "pro" if user.tier == "pro" else "free"
+
+
+async def enforce_assistant_rate_limit(
+    request: Request,
+    user: TokenPayload | None = Depends(get_optional_user),
+) -> None:
+    """Per-IP hourly quota for anonymous callers, per-user daily quota by tier for signed-in ones."""
+    tier = assistant_tier(user)
+    if user is None:
+        client_ip = get_trusted_client_ip(request)
+        item = limits.parse(f"{cfg.assistant_quota_anon_per_hour}/hour")
+        identifiers = (client_ip, "assistant-anon")
+    else:
+        daily = {
+            "free": cfg.assistant_quota_free_daily,
+            "pro": cfg.assistant_quota_pro_daily,
+            "enterprise": cfg.assistant_quota_enterprise_daily,
+        }[tier]
+        item = limits.parse(f"{daily}/day")
+        identifiers = (user.user_id, "assistant")
+
+    try:
+        allowed = _limiter.limiter.hit(item, *identifiers)
+    except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+        logger.warning("Rate limit storage unavailable — allowing request", exc_info=True)
+        return
+
+    if not allowed:
+        REFUSED.labels(reason="quota", tier=tier).inc()
+        _raise_rate_limited(item, *identifiers)

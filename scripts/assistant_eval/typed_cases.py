@@ -82,6 +82,18 @@ LONG_CONTEXT = (
     "our risk committee meets every month to review limits, backtesting exceptions, funding plans and "
     "capital buffers. "
 )
+# The longest question the gateway accepts (schemas/assistant.py::QUESTION_MAX; tests/test_assistant_typed.py keeps
+# the two equal). Run D (results 9.27) had five cases of 1,741 to 1,997 characters: the pipeline cuts a question to
+# 500 characters and the route answers 422 above that, so the model never saw the question at the end.
+QUESTION_MAX = 500
+
+
+def long_question(tail: str) -> str:
+    """The longest `LONG_CONTEXT` preamble, in whole repeats, that leaves `tail` inside QUESTION_MAX."""
+    repeats = max(1, (QUESTION_MAX - len(tail)) // len(LONG_CONTEXT))
+    return LONG_CONTEXT * repeats + tail
+
+
 NON_ENGLISH = [
     "¿Qué hace {display} y qué datos necesita?",
     "Que fait {display} et quelles données faut-il fournir ?",
@@ -321,9 +333,9 @@ def build_i(catalogue: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "max_len": 1200,
         }
         out.append(_case("I", 100 + i + 1, question, expect, None))
-    for i in range(4, 7):  # very long
+    for i in range(4, 7):  # as long as the route allows, with the question at the end
         entry = chosen[i]
-        question = LONG_CONTEXT * 8 + f"Given all that, what does {entry['display_name']} do?"
+        question = long_question(f"Given all that, what does {entry['display_name']} do?")
         expect = {
             "function": entry["name"],
             "must_call_any": ["get_function", "search_functions"],
@@ -366,6 +378,9 @@ def build_cases(
         + build_i(catalogue)
         + adversarial
     )
+    too_long = sorted(c["id"] for c in cases if len(c["question"]) > QUESTION_MAX)
+    if too_long:
+        raise ValueError(f"questions longer than the gateway accepts ({QUESTION_MAX}): {too_long}")
     return sorted(cases, key=lambda c: (CATEGORIES.index(c["category"]), c["id"]))
 
 

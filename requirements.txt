@@ -26,6 +26,10 @@ celery>=5.3.6
 redis>=5.0.3
 pycurl>=7.45.0
 
+# ── Portal assistant (typed questions) ───────────────────────
+anthropic==2.6.0              # assistant/client.py only (imported lazily); same pin as
+                               # scripts/assistant_eval/requirements.txt, the version the answers were measured with
+
 # ── Storage ───────────────────────────────────────────────────
 sqlalchemy>=2.0.28
 asyncpg>=0.29.0

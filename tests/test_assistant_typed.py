@@ -31,7 +31,9 @@ import typed_cases  # noqa: E402
 import typed_prompts  # noqa: E402
 import typed_tools  # noqa: E402
 
-TYPED_CASES_SHA256 = "23ee28d424734d99aa6ddd27124b1e12827b29fffc211a35534acfa71ef97656"
+# Run D's file hashed to 23ee28d424734d99...; 9.28 shortened the five long category I questions to fit the route's
+# 500-character limit (I:gen:105 to 107, I:hand:10 and 11), so the hash moved and nothing else did.
+TYPED_CASES_SHA256 = "fa73fd1aab4766f877d49197209bbffed06972225977a3ee723bf5a1ce152b52"
 COUNTS = {"A": 50, "B": 35, "C": 30, "D": 30, "E": 25, "F": 20, "G": 25, "H": 15, "I": 30}
 CATALOGUE = typed_tools.load_catalogue()
 NAMES = {e["name"] for e in CATALOGUE}
@@ -51,6 +53,40 @@ def test_the_typed_case_file_is_pinned_by_sha256() -> None:
         "the typed case set changed (catalogue, template or typed_adversarial.jsonl); if intended, "
         f"re-pin: {digest}"
     )
+
+
+def test_no_question_is_longer_than_the_gateway_accepts() -> None:
+    from schemas.assistant import QUESTION_MAX
+
+    assert typed_cases.QUESTION_MAX == QUESTION_MAX == 500
+    too_long = [c["id"] for c in built_cases() if len(c["question"]) > QUESTION_MAX]
+    assert too_long == []  # run D had five of 1,741 to 1,997 characters, cut to 500 by the pipeline
+
+
+def test_the_builder_refuses_a_question_the_gateway_would_reject() -> None:
+    bad = {
+        "id": "I:hand:99", "category": "I", "source": "hand", "in_scope": True,
+        "question": "x" * 501, "page_function": None, "expect": {},
+    }  # fmt: skip
+    with pytest.raises(ValueError, match="I:hand:99"):
+        typed_cases.build_cases(CATALOGUE, [*typed_cases.load_adversarial(), bad])
+
+
+def test_the_long_questions_are_still_long_and_still_end_with_the_real_question() -> None:
+    long_ones = [c for c in built_cases() if c["question"].startswith(typed_cases.LONG_CONTEXT)]
+    assert {c["id"] for c in long_ones} >= {
+        "I:gen:105",
+        "I:gen:106",
+        "I:gen:107",
+        "I:hand:10",
+        "I:hand:11",
+    }
+    for case in long_ones:
+        assert 250 <= len(case["question"]) <= 500
+        assert case["question"].rstrip().endswith("?")
+        assert (
+            len(case["question"]) - len(typed_cases.LONG_CONTEXT) >= 30
+        )  # a real question follows
 
 
 def test_the_set_has_the_planned_size_and_each_category_its_count() -> None:
@@ -414,3 +450,18 @@ def test_load_cases_filters_by_id_category_and_scope(tmp_path: Path) -> None:
     assert len(run_typed.load_cases(path, limit=3)) == 3
     with pytest.raises(ValueError, match="nope"):
         run_typed.load_cases(path, only_ids={"nope"})
+
+
+def test_the_run_f_slice_names_cases_that_exist() -> None:
+    """The 77 ids of run F (results 9.32): run E's 43 answers with an attached example, its 30 category D cases,
+    and the three E cases plus A:gen:04 whose answers pointed at an example nobody had attached."""
+    path = Path(__file__).resolve().parent.parent / "scripts" / "assistant_eval" / "slice_f_ids.txt"
+    ids = path.read_text().strip().split(",")
+    by_id = {c["id"]: c for c in built_cases()}
+    assert len(ids) == len(set(ids)) == 77 and ids == sorted(ids)
+    assert set(ids) <= set(by_id)
+    categories = sorted({by_id[i]["category"] for i in ids})
+    assert categories == ["A", "B", "C", "D", "E", "H"]
+    assert sum(by_id[i]["category"] == "C" for i in ids) == 30
+    assert sum(by_id[i]["category"] == "D" for i in ids) == 30
+    assert {"A:gen:04", "E:gen:101", "E:gen:103", "E:gen:110"} <= set(ids)

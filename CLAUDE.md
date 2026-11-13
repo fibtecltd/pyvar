@@ -1,6 +1,6 @@
 # CLAUDE.md — pyvar.com project context
 # Read this file in full before making any changes to this codebase.
-# Last updated: April 2026 (assistant bank section added November 2026)
+# Last updated: April 2026 (assistant bank and typed-question gateway sections added November 2026)
 
 ---
 
@@ -52,14 +52,20 @@ pyvar/
 │   ├── cost.py                ← token prices and cost from the API's usage block
 │   ├── body_schema.py         ← small JSON-Schema checker for request bodies
 │   ├── records.py             ← trim_record: the part of a catalogue entry a model is shown
-│   ├── scrub.py               ← removes pyvar keys, JWTs and other key-like strings from text
+│   ├── scrub.py               ← removes pyvar keys, JWTs, long hex and base64 runs and email addresses from text before any model call
 │   ├── client.py              ← ModelClient protocol + AnthropicClient (retries, served-model check, cost); the SDK is imported lazily here only
 │   ├── gate.py                ← the Opus gate: JUDGE_SYSTEM, judge_message, parse_verdict, gate() -> Verdict
 │   ├── static_text.py         ← the static answer built from the record (graders.oracle_text): the floor of the bank
+│   ├── tools.py               ← the typed agent's 3 read-only tools (search_functions, get_function, propose_parameters) + ToolBox
+│   ├── typed_prompts.py       ← the typed system prompt (t2-2026-11-12, pinned) and request builder
+│   ├── typed_graders.py       ← graders.grade_typed with the two first-run false positives fixed (graders.py itself is hash-pinned)
+│   ├── agent.py               ← the typed tool loop on ModelClient: <=4 tool turns, dollar and time caps, visitor text escaped as data
+│   ├── guardrails.py          ← answer_question: scrub -> agent -> typed grade -> one retry -> static fallback from the bank; never raises for a model problem
 │   └── bank.py                ← `python -m assistant.bank build|check`: writes and checks portal/assistant/bank/
 │
 ├── schemas/                   ← Pydantic v2 request/response models
 │   ├── var.py                 ← VaRRequest, VaRResult, JobResponse
+│   ├── assistant.py           ← AskRequest / AskResponse for POST /api/v1/assistant/ask
 │   ├── auth.py                ← sign-in and API key request/response models
 │   └── derivatives.py         ← Request/response models for derivatives pricers, incl. Greek
 │                                  fields (delta/gamma/vega/theta/rho) on greeks=True pricers
@@ -73,11 +79,13 @@ pyvar/
 │
 ├── api/                       ← FastAPI routes and middleware
 │   ├── assistant_bank.py      ← cached manifest read for /public/config + BankStaticFiles (Cache-Control) for /assistant/bank/
+│   ├── assistant/             ← typed-question gateway, POST /api/v1/assistant/ask (flag off): routes.py, deps.py (switches, spend cap, slots, model client), store.py (Redis spend + kill switch), metrics.py
 │   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}  WS /var/stream/{id}  POST /var/stream-token/{id}
 │   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
 │   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
 │   ├── middleware/api_keys.py ← key hashing, Redis-cached lookup, failed-attempt throttle
 │   ├── middleware/usage.py    ← api_usage rows, allowlisted X-Pyvar-Client label
+│   ├── middleware/rate_limit.py ← compute quota, public/register per-IP quotas, enforce_assistant_rate_limit (every tier)
 │   ├── responses.py           ← orjson response class
 │   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
 │
@@ -223,12 +231,81 @@ AWS:        CELERY_BROKER_URL = sqs://
   (PROMPT_VERSION and prompt_sha256) and graders.py (grader_sha256: any byte, formatting included).
   The drift tests in tests/test_assistant_bank.py fail until the bank is rebuilt, and SKIP while
   portal/assistant/bank/manifest.json is absent.
-- Only assistant/client.py may import `anthropic`, and only inside AnthropicClient.__init__. The API
-  never calls a model for the bank; do not add `anthropic` to requirements.txt for it.
+- Only assistant/client.py may import `anthropic`, and only inside AnthropicClient.__init__. The bank
+  build never runs in the API. `anthropic==2.6.0` is in requirements.txt only for the typed gateway
+  (3.7); keep it equal to scripts/assistant_eval/requirements.txt, the version the answers were measured with.
 - The key is `anthropic_api_key` (SecretStr, config.py). Never log it; never log answer text.
 - /assistant/bank/ is a static mount (api/assistant_bank.py), registered before the portal catch-all
   and NOT a reserved API prefix. The widget shows only if assistant_enabled AND the manifest is
   complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers.
+```
+
+### 3.7 Portal assistant typed-question gateway
+
+```
+- POST /api/v1/assistant/ask (api/assistant/) is OFF by default: it answers only when BOTH
+  assistant_enabled and assistant_typed_enabled are true. Do not turn the second on in any
+  environment until the privacy and terms pages name the model provider (plan 4.6) and the second
+  measurement run has been approved and read (docs/assistant-phase0-results.md).
+- Dependency order is fixed (routes.py): require_available (switches, kill switch, daily spend cap)
+  -> limit_concurrency -> enforce_assistant_rate_limit -> handler. A question refused at any step
+  must cost the visitor no quota and cost no model call. Keep that order.
+- Cost controls: the day's spend (Redis, micro-dollars, UTC day) and the kill switch key
+  `pyvar:assistant:kill` are read before every question and FAIL CLOSED (503 assistant_unavailable).
+  This is the opposite of the rate limiter, on purpose: it protects a paid external API. Recording
+  the spend after an answer fails open and is counted. The quota applies to every tier, enterprise
+  included.
+- Never log, store or put in a metric a visitor's question, an earlier turn, an answer or a tool
+  result. Logs and metrics carry ids, tiers, outcomes, dollars and seconds only. Never return a model
+  id in a response (model_tier is the family only).
+- Anonymous callers are allowed; a bearer credential that is present must validate (401, never a
+  quiet downgrade). Typed replies are English-only (decided 2026-11-12).
+- Tests use the scripted client (tests/assistant_typed_fakes.py) and dependency_overrides for the
+  model client and the store; no test calls a model, Redis or AWS.
+- Example input values are the gateway's, not the model's: the typed prompt (t4, t5) forbids writing them,
+  strip_example_objects takes any JSON object out of the model's text before it is graded, and the
+  last accepted propose_parameters call is attached as suggested_parameters. What is graded must be what
+  is served. Any change to typed_prompts.py changes its pinned sha256 (tests) and what the next run measures.
+  The t4 prompt also tells the model never to answer a capability question with a bare "No"; that is a prompt
+  rule, not a grader gate (typed_graders.bare_denial is a harness diagnostic only: as a gate it fired on most
+  category D answers and on honest declines, results 9.29).
+- An answer that points at "the example below" while no propose_parameters call was accepted fails the check
+  example_not_attached (the retry is told to call the tool or drop the reference); the mirror case, values
+  written without an accepted call, fails example_without_check. Keep both in step with the t4 prompt wording.
+- The t5 prompt (t4 plus one rule) tells the model to give propose_parameters realistic, mutually consistent
+  values for every required parameter and never an empty object, an empty list or a placeholder; the validator
+  checks types and bounds only. typed_graders.empty_required_values is a harness diagnostic, not a gate. Measured
+  on a 77-case slice only (results 9.32 and 9.33), never on the full 260; the slice showed no empty example
+  and no regression except more second tries.
+- The measurement harness (scripts/assistant_eval/run_typed.py) calls answer_question itself, so any
+  change under assistant/ changes what the next paid run measures. Do not re-implement the answer
+  path in the harness; do not start a paid run from a session without being asked (caps are per
+  command, see docs/assistant-plan-tier-measurement.md).
+```
+
+### 3.8 Portal assistant watchdog
+
+```
+- assistant_watchdog_enabled (False) must be ON wherever assistant_typed_enabled is on outside a test: it
+  is the only thing that notices a function whose live answers keep going wrong, or a writer that got worse.
+  Rules: assistant/watchdog.py (pure). Judge: assistant/audit.py. State and steps: api/assistant/watchdog.py.
+- It stores counts, function names, writer families and booleans ONLY, each key with an expiry, under
+  pyvar:assistant:wd:. Never a question, an answer, a verdict's text, a user or an IP. The question and answer
+  live in the background audit task's memory. No log line or metric carries visitor text or the judge's words.
+- Redis failures FAIL OPEN (nothing pinned, degraded or audited; the answer is never changed). The money side
+  stays closed: an audit's price is reserved from its pool before it runs, refunded if the judge fails, and the
+  pools (coverage 60%, exposure 40% of assistant_audit_budget_usd_day) cannot be overspent. Audit dollars are
+  also added to the day's assistant spend, so the circuit breaker sees them.
+- The audit judge prompt is the measured typed judge (sha256 pinned in tests/test_assistant_audit.py), and
+  judge.py builds its message with the same function. Change one and you change what is measured AND audited.
+- CUSUM: allowance 0.10, threshold 3.0 (NOT the 2.5 once written in the plan; Filippo kept 3.0 on
+  2026-11-13, results 9.34), in exact thousandths. Writer windows are tumbling (judged once at 200 audits, then emptied). State is namespaced by
+  the bank version, so a catalogue release starts every function afresh.
+- Enterprise answers are not audited (the plan's synchronous second reader is not built); pins and the
+  degrade flag apply to every tier.
+- By hand, no deploy: unpin   redis-cli DEL pyvar:assistant:wd:fn:<bank_version>:<function>:pin
+  (also DEL ...:level to forget it was ever pinned); lift a degrade   redis-cli DEL pyvar:assistant:wd:degrade:<writer>.
+  The kill switch (pyvar:assistant:kill) still stops everything.
 ```
 
 ---
