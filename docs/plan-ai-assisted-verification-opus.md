@@ -90,7 +90,7 @@ The pilot only, one function. Tier 1 is not budgeted here. Prices are the repo's
 | --- | --- |
 | Pilot function | **Decided** (Filippo, 2026-11-13): `historical_expected_shortfall` |
 | Where it runs | **Decided** (Filippo, 2026-11-13): in his own environment |
-| Human sign-off | **Open**: to be named before step 4 |
+| Human sign-off | **Open**: Filippo will share who signs off later; to be named before step 4 |
 | Budget | **Proposed**: $30 hard cap, $15 checkpoint (section 7) |
-| Source excerpt for ES | **Open**: chosen by the spec author |
+| Source excerpt for ES | **Open**: Filippo will share it later; chosen by the spec author |
 | How funding documents describe it | Section 1 wording; not "independent" |

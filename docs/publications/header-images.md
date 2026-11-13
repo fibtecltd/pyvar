@@ -1,6 +1,6 @@
 # Header images for the Medium articles
 
-Every article should open with a header image directly under its title and subtitle. Eleven have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
+Every article should open with a header image directly under its title and subtitle. Eleven have one (an image file in the repository); the other six have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
 
 ## Status
 
@@ -22,6 +22,7 @@ Every article should open with a header image directly under its title and subti
 | `pyvar-local-release-medium-article.md` | Idea 3 |
 | `pyvar-full-docker-medium-article.md` | Idea 4 |
 | `pyvar-post-launch-lessons-medium-article.md` | Idea 5 |
+| `pyvar-assistant-medium-article.md` | Idea 6 |
 
 The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. Seven are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. The eighth, the overview article's, is a picture (a dot-matrix bell curve, source in `assets/headers/source/`); the overview's fact tiles are its second image, `assets/overview/at-a-glance.png`. Medium takes PNG or JPG, not SVG.
 
@@ -61,6 +62,13 @@ The eight images in `assets/headers/` come from `python scripts/generate_article
 **Text on the image:** "Seven pull requests. One feature that never ran." with "v0.2.0" on the flag.
 **Why it fits:** the article is a checkable account of the seven pull requests after launch and what one of them taught the team about deployment.
 **Alt text:** A timeline of seven pull requests, numbers 326 to 332, ending at a flag for version 0.2.0, with one tile marked as the feature that never deployed.
+
+### 6. The assistant that never answers live
+
+**Concept:** three outlined buttons ("What it does", "When to use it", "Compare with") on the left, an arrow to one small slate file tile labelled "one 3 KB file", and a clay-outlined box crossed out on the right labelled "model call". A thin strip under the arrow shows the 1,154 answers as a row of small squares, two of them in clay for the two static answers.
+**Text on the image:** "1,154 answers, written before you clicked." and, small, "0 model calls when you do."
+**Why it fits:** the article is about an assistant whose answers are static files read on a click, with no model in the request path; the counts (1,154 answers, 2 static) come from the bank's manifest.
+**Alt text:** Three buttons leading to a single small file, with a crossed-out box marked model call, above a row of 1,154 squares of which two are highlighted as static answers.
 
 ## Placement
 
