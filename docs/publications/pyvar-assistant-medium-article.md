@@ -1,6 +1,6 @@
 # The AI assistant that never answers live: how pyvar explains 385 risk functions without a model in the request path
 
-*Every answer in pyvar.com's new assistant was written ahead of time, checked by code, gated by a second model and read by a person. Here is what broke on the way, and what we chose not to ship.*
+*Every answer in pyvar.com's new assistant was written ahead of time, checked by code and gated by a second model, and a sample of them was read by a person, twice. Here is what that found, what broke on the way, and what we chose not to ship.*
 
 <!-- Header image: idea 6 in header-images.md. To be added by Filippo as assets/headers/header-pyvar-assistant.png when finalising for Medium. -->
 
@@ -9,8 +9,9 @@
 
 <!-- BEFORE PUBLISHING (delete this block):
  1. Add the header image (see header-images.md, idea 6) and uncomment it above.
- 2. The section "What nobody has read yet" says the random read of the final bank is not on the record. If the 40-answer
-    read has been done by the time you publish, update that section with its result.
+ 2. The section "What the second read found" reports the 40-answer read of the final bank (results 9.37) with both tallies.
+    It depends on a re-classification that is the author's, not the reader's: CONFIRM IT (or change the section to the
+    as-marked tally alone) before publishing. If you read more answers first, update the section with the combined result.
  3. Re-run the three checks in "Check it yourself" the day you publish; the bank version and counts must match.
  4. Medium drops tables; this article has none on purpose. -->
 
@@ -123,15 +124,39 @@ assistant that reads the record and trips over a gap in it is doing a useful job
 There were smaller breakages too. One answer wrote its bullet points with `**bold**` markers, and the widget showed the raw
 asterisks. It now renders them. Three answers had small grammar slips ("a internal", "a earlier"), which the gate had noted without failing them.
 
-## What nobody has read yet
+## What the second read found
 
-Here is the part we are not going to round off. After those two rewrite passes, 124 answers in the final bank differ from the
-ones that were sampled. No random read has been made of the **final** bank, so the tolerance we set ourselves (published answers may contain a wrong
-claim in at most 4% of cases) has not been shown for exactly this bank, and the plan's own bar, a person reading at least 40
-random answers per release, is not on the record for it. Even a clean read of 40 would not prove the 4%: if the true rate were
-4%, a sample of 40 would still show no error one time in five. We switched the menus on in production on 13 November 2026 after checking them in the development
-environment. We think the checks above make the risk small, and we have written the gap down in the repository (results 9.22
-and 9.35) with a one-line rollback.
+The first read was of the first build. After two rewrite passes, 124 answers in the final bank differ from the ones that were
+sampled, so on 13 November 2026 a person read 40 more, drawn at random from all 1,154 served answers of the final bank. The
+sheet's rule was strict: a claim is wrong if the record contradicts it **or if it names an input, default, output or function
+the record does not support**, and the reader was told not to use outside knowledge to forgive one.
+
+**As marked: 33 answers with no wrong claim, 4 with a wrong claim and 3 unsure.** By the bar we had set ourselves (0 wrong in
+40), that is a miss. We did not round it off, and we did not switch anything off on the strength of it alone either; we checked
+the seven.
+
+Four of the seven flags came from **a defect in our own read sheet**. It showed the full record for the answer's own function
+but only a one-line summary for the *other* functions the answer names, and no record at all for a related function named in a
+"when to use it" answer. A claim about a sibling could not be checked from the sheet even where the catalogue supports it.
+With the full records, all four are supported.
+
+The other three are more interesting. One says the Fama-French five-factor regression has an intercept and is estimated by
+ordinary least squares and returns "fitted alpha and factor loadings". One says the OIS curve function returns discount factors
+and zero rates. One says the securities-financing report checks that the transaction type is one of the valid types and that
+the collateral value is not negative. **All three are true**, and we confirmed it in the engine code. None of them was in the
+record the writing model was shown: the catalogue entry has no "what it returns" field and no validation rules, so the model
+filled in what it knew. It was right three times in three here. That is the same mechanism that produces a wrong claim when the
+model's guess is wrong, so we treat 3 of 40 as a warning, not a pass. Our gate, a second model reading each answer against the
+record, passed all three first time.
+
+So, after our re-check: **none of the seven flagged answers is false, and three of them go beyond what the writer was shown.** Three caveats. The
+re-classification (4 wrong to 0 wrong) is ours, not the reader's, and was made by the same people who made the sheet defect.
+The sheet checks claims against the record, so it could not catch a claim the record supports but the engine contradicts, and we
+did not check the other 33 answers against the engine. And
+40 answers is a small sample: even 0 wrong in 40 would only put the upper end of a 95% interval at 8.8%, so 4% is not proven.
+We have the menus on in production, and the choices from here are written in the repository (results 9.37): read 40 more with
+a corrected sheet, give the writer the outputs and validation rules of each function and rebuild, or switch the menus off, which
+is a one-line change.
 
 ## What we chose not to ship
 
@@ -183,7 +208,7 @@ and switched on only when the numbers say it should be.
 
 - `portal/assistant/bank/` and its `manifest.json` (this repository): the 1,154 answers and their counts.
 - `portal/assistant.js` (this repository): what the widget sends and how it fails.
-- `docs/assistant-phase0-results.md`, sections 9.19 to 9.22 (the build and the reads), 9.27 to 9.30 (typed measurement), 9.35
-  (production switch-on) and 9.36 (the six-question check).
+- `docs/assistant-phase0-results.md`, sections 9.19 to 9.22 (the build and the first read), 9.27 to 9.30 (typed measurement), 9.35
+  (production switch-on), 9.36 (the six-question check) and 9.37 (the 40-answer read of the final bank).
 - `docs/assistant-plan-implementation.md` (this repository): the release plan, its decisions and its open items.
 - The live site, `/public/config` and `/assistant/bank/…`, checked on 2026-11-13.
