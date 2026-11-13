@@ -49,17 +49,6 @@ def _simulate_paths(
     return pnl
 
 
-@njit(cache=True)
-def _sorted_losses(pnl: np.ndarray) -> np.ndarray:
-    """
-    Convert P&L array to sorted loss array (losses are positive values).
-    Sorting inside JIT avoids a Python round-trip.
-    """
-    losses = -pnl  # flip sign: loss = negative P&L
-    losses.sort()  # in-place ascending sort
-    return losses
-
-
 def _draw_random_shocks(n_simulations: int, horizon_days: int, antithetic: bool) -> np.ndarray:
     """Pre-draw N(0,1) shocks in pure Python, per CLAUDE.md RULE 3.
 
@@ -129,8 +118,11 @@ def run_monte_carlo_var(
     # Run the JIT-compiled parallel simulation
     pnl = _simulate_paths(returns, random_shocks, horizon_days)
 
-    # Sort losses inside JIT (avoids Python round-trip)
-    sorted_losses = _sorted_losses(pnl)
+    # Sort with NumPy, outside the JIT region. A Numba sort of the same 100,000 values measured
+    # 11.5x slower than NumPy's (8.8 ms against 0.77 ms): NumPy sorts floats with vector
+    # instructions where the CPU has them. See docs/p7-numba-vs-numpy-results.md.
+    sorted_losses = -pnl  # flip sign: loss = negative P&L (a new array; pnl is not modified)
+    sorted_losses.sort()  # in-place ascending sort
 
     # Compute VaR at confidence level
     var_idx = int(np.floor(confidence_level * n_simulations))

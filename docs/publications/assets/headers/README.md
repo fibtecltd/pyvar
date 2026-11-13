@@ -1,8 +1,8 @@
 # Header images
 
-8 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
+9 header images, one per article, each directly under the title and subtitle. The Medium-ready HTML in `../../medium-ready/` already embeds them; use this list to drag a file to its position if Medium does not carry an image across on paste. Medium takes PNG/JPG only (no SVG).
 
-Regenerate every image with `python scripts/generate_article_headers.py` (needs `matplotlib`; the picture header also needs `pillow`, which matplotlib installs). Seven are fact tiles, and every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
+Regenerate images 1 to 8 with `python scripts/generate_article_headers.py` (needs `matplotlib`; the picture header also needs `pillow`, which matplotlib installs). Seven are fact tiles, and every number in them is read from the code when they are drawn: the plugin manifest, the function catalogue, the skill specs, `config.py`, the `pyvar-client` and `pyvar-jupyter` packages and `pyvar-full/docker-compose.yml`.
 
 The other articles' headers, and ideas for the five that have none, are in `../../header-images.md`.
 
@@ -63,3 +63,11 @@ The other articles' headers, and ideas for the five that have none, are in `../.
 - **Alt text:** A bell curve drawn as a dot-matrix of circles, red-brown along the left tail, ochre at the peak and slate along the right tail, on a cream background, with the pyvar logo and name small in the top-left corner.
 
 The tiles that used to be this header are now the article's second image, `../overview/at-a-glance.png`, with the pyvar logo and each plan's call limits (`python scripts/generate_overview_figures.py`).
+
+## 9. `header-pyvar-assistant.png`
+
+- **Article:** `pyvar-assistant-medium-article.md`
+- **Where:** under the title and subtitle, with a caption
+- **What it is:** a hand-edited illustration, not a generated fact tile: the 3D picture Filippo supplied (kept as `source/assistant-header-original.webp`), with only the wrong parts changed. The character, logo, layout, colours and bell curve are the original; the text, the chat, the chart and the table were replaced (what and why: `../../header-images.md`, idea 6). It is not rebuilt by `generate_article_headers.py`.
+- **Caption:** Three questions per function, answered from files written before you click.
+- **Alt text:** An assistant character beside a grid of eight facts about the assistant (385 functions across 8 risk domains; 1,154 answers written in advance; three questions per function; compare with a related function; 0 model calls when you click; one 3 KB file per function; checked by code and a second model; open source) and a short exchange: a click on What it does for the Kupiec POF Test returns a pre-written answer, a grid of 1,154 dots shows 1,152 model-written answers and 2 static ones, and a table compares the Kupiec test with the Basel traffic light.

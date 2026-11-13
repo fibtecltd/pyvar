@@ -208,6 +208,12 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   (`docs/assistant-phase0-results.md` 9.22, 9.35). Prod deploys behind the pipeline's manual approval. To undo it, set the flag back to
   `False` and deploy.
 
+- **Engine performance: two functions no longer slower than plain NumPy** — found by the new `scripts/p7_vs_numpy.py` (`docs/p7-numba-vs-numpy-results.md`).
+  `run_monte_carlo_var` sorts its losses with NumPy instead of a Numba helper that was 11 times slower (1-day call 13.3 to 5.7 ms on a 4-core machine; the loss
+  distribution is bit for bit unchanged on 12 reference arrays), and the rough Bergomi pricer computes its lag weights once instead of once per path (the pricer 781 to
+  210 ms; its kernel 15 to 20 times faster; per-path payoffs differ by at most 3.7e-15 relative). No VaR or ES definition and no regulatory threshold changed; new tests
+  re-derive both from independent NumPy code. The changed kernels recompile on the first call after a deploy.
+
 ### Fixed
 
 - **Portal: every page now links to every page in plain HTML, and the home link is `/`** — Search

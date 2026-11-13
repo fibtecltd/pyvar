@@ -1,6 +1,6 @@
 # Header images for the Medium articles
 
-Every article should open with a header image directly under its title and subtitle. Eleven have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
+Every article should open with a header image directly under its title and subtitle. Twelve have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
 
 ## Status
 
@@ -22,6 +22,7 @@ Every article should open with a header image directly under its title and subti
 | `pyvar-local-release-medium-article.md` | Idea 3 |
 | `pyvar-full-docker-medium-article.md` | Idea 4 |
 | `pyvar-post-launch-lessons-medium-article.md` | Idea 5 |
+| `pyvar-assistant-medium-article.md` | Included: `assets/headers/header-pyvar-assistant.png` (a hand-edited illustration, idea 6 below) |
 
 The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. Seven are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. The eighth, the overview article's, is a picture (a dot-matrix bell curve, source in `assets/headers/source/`); the overview's fact tiles are its second image, `assets/overview/at-a-glance.png`. Medium takes PNG or JPG, not SVG.
 
@@ -61,6 +62,20 @@ The eight images in `assets/headers/` come from `python scripts/generate_article
 **Text on the image:** "Seven pull requests. One feature that never ran." with "v0.2.0" on the flag.
 **Why it fits:** the article is a checkable account of the seven pull requests after launch and what one of them taught the team about deployment.
 **Alt text:** A timeline of seven pull requests, numbers 326 to 332, ending at a flag for version 0.2.0, with one tile marked as the feature that never deployed.
+
+### 6. The assistant that never answers live (done, 2026-11-13)
+
+**What was done.** Filippo supplied a 3D illustration of an assistant character. Instead of regenerating it, only the parts that were wrong for this article were edited in place; the character, the pyvar logo, the layout, the colours, the speech bubble and the bell curve are the original, and so are the name plaque and the icons. The original is kept in `assets/headers/source/assistant-header-original.webp`; the result is `assets/headers/header-pyvar-assistant.png` (1536 x 1024).
+
+**What was wrong, and what it says now** (every number is in the article and the committed bank):
+- *Speech bubble* (said "unlock the power of Pyvar ... my capabilities"): "I explain what a function does, when to use it, and how it differs from another one:".
+- *Eight capability tiles* (math and statistics, Python, plugins, compute engine, data, compliance, deploy anywhere: none of which the assistant does): "385 functions across 8 risk domains", "1,154 answers written in advance", "Three questions: What, when, compare.", "Compare with… a related function.", "0 model calls when you click.", "One 3 KB file per function, static.", "Checked by code and a second model.", "Open source, Apache-2.0."
+- *The chat* (a typed request, "I'll run the analysis", generated code, a chart and a table of invented figures): the two user bubbles are now the clicks "What it does: Kupiec POF Test" and "Compare with: Basel traffic light"; the code block holds the real start of the Kupiec answer, verbatim from the bank ("kupiec_pof_test ... checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies."); the chart is the bank as 1,154 dots (1,152 model-written, 2 static, as in the manifest); the table compares the two functions in the words of the real comparison answer ("rate vs expected", "count into a zone").
+- *Top tagline*: "INSTANTLY" became "EXPLAINED". *Bottom tagline*: "Ask. Analyze. Achieve." became "Ask. Understand. Apply.", with "Answers written before you click." under it.
+
+**Kept on purpose.** The plaque "Pyvar Assistant, Your AI guide to Pyvar" (the answers are written by models, and the article says so). The image still looks like a conversation; the user bubbles are labelled as the menu clicks they stand for, and the article describes the three controls.
+
+**Caption and alt text** are in `assets/headers/README.md`, entry 9. Edited with Pillow in the original's own typefaces (Inter for the text, JetBrains Mono for the answer panel); not rebuilt by `generate_article_headers.py`.
 
 ## Placement
 

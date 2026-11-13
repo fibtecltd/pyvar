@@ -1575,7 +1575,84 @@ stays off everywhere; so does the watchdog.
 **What the evidence does and does not cover.** 9.22 left one condition open: no random read has been made of the final bank, whose 124
 rewritten answers differ from the one that was sampled, and the 4% tolerance has therefore not been shown for exactly this bank. Plan
 section 12 asks for a random read of at least 40 served answers. A person's checks in dev are not that read, and nothing on the record
-shows it was done. The prod deploy waits behind the pipeline's manual approval gate (`pipeline_stack.py`), which is the point to do it;
+shows it was done (the 40-answer read was made later the same day: 9.37). The prod deploy waits behind the pipeline's manual approval gate (`pipeline_stack.py`), which is the point to do it;
 a 40-answer sample sheet (seeded, drawn from the committed bank) is the way to do it without calling a model. If the read finds a wrong
 claim, the rollback is one line: set `assistant_enabled` back to `False` in the prod override and deploy; the task definition then
 loses `ASSISTANT_ENABLED` and the widget disappears (`/public/config` reports it off).
+
+### 9.36 Six typed questions through the shipped pipeline, and the decision on the capability-claim guard (2026-11-13; $0.0043)
+
+**The run.** A delegated agent in Filippo's environment ran six questions through the shipped `answer_question` pipeline (typed prompt `t5-2026-11-12`) on `claude-haiku-5-5`: four written for this check (`A:six:01` parameters of the LCR function; `C:six:02` example values for the asset encumbrance ratio; `D:six:03` "Does Sharpe Ratio support intraday data?"; `I:six:06` a French question) and two from the hand-written set (`E:hand:03` "Our LCR is 96%. Are we OK?"; `H:hand:01` a deliberately fake key in the question). All six were served live on the first try: 0 retries, 0 errors, 30,187 input and 2,664 output tokens, $0.0043 of a $0.10 cap. The free `--oracle` run passed 6 of 6 and `--null` passed 0 of 6 before it. This is a spot check of six cases, not a measurement.
+
+**Reading, against `portal/functions.json`.** Five passed: the LCR parameters, defaults and the BCBS 238 section 69 citation match; the example for the encumbrance ratio (250 million against 1,000 million) is attached and sensible; the E answer declines to give a verdict and explains the formula; the French question got a live English answer whose example gives 520 / (400 − min(120, 300)) = 1.857; the H answer does not contain the key. The H pass shows the scrub works (`scrubbed=1`: the model never saw the key), not that the model would refuse to echo it. **`D:six:03` failed.** The answer says Sharpe Ratio "doesn't have a data-frequency setting" and then that "intraday returns can be passed in as long as they are in that form". The record never mentions intraday data or frequency, and `periods_per_year` is described as "Annualisation factor (252 daily, 12 monthly)", so the first sentence contradicts the second and the second is a capability claim the record does not support. The substance may well be true; the record does not say so.
+
+**Why the pipeline served it.** The production grader runs with `EXPECT = {"english": True}`. `no_support_claim` needs the phantom term from a case's `absent_terms`, which only the measurement harness knows, so the check cannot run in production. The harness flagged the answer ("may assert unsupported ['intraday']"), which on reading is a true positive; the earlier flags of that check in 9.27 and 9.30 were misfires, fixed in 9.28 and 9.31. One case gives no rate.
+
+**Decision (Filippo, 2026-11-13).** Leave it to the watchdog's Opus audit for now, and plan a production guard later. The watchdog must be on wherever the typed route is on (both are off everywhere), so nothing catches this class of answer today because no typed answer is served. The guard, not built: for questions shaped "Does X support Y?", extract Y from the question and run `no_support_claim` on it in the production grader. It needs measuring before it ships: its false positives on the 260-case set, with the five misfires of 9.27 as the regression cases. This does not bear on the menus switched on in prod (9.35), which call no model.
+
+### 9.37 The random read of the final bank: 40 answers, 7 flagged, and a defect in the sheet (2026-11-13; no model called)
+
+**What was read.** 40 answers drawn with `random.Random(20261131).sample(...)` from all 1,154 served answers of bank `v4-2026-11-09-0dbf72ce` (explain, when and compare mixed, not stratified), as a sheet showing each answer under the catalogue record of its function. Filippo read them. The rule printed on the sheet: *a claim is wrong if the record contradicts it, or if it names an input, default, output or function the record does not support; "unsure" is for a claim the record neither confirms nor contradicts; do not use outside knowledge to forgive a claim the record does not support.* The reader applied that rule as written. The sheet generator was an inline script and is not in the repository; the seed, the method and the seven flagged ids below are the record.
+
+**As marked: 33 no wrong claim, 4 wrong claim, 3 unsure.** By the sheet's own rule that is a miss of the plan's bar (section 12: 0 of 40 keeps Opus as the gate, "any error reopens the question"). 4 of 40 has a 95% Wilson interval of 4.0% to 23.1%; counting the three unsure as well (7 of 40) it is 8.7% to 31.9%. It does not by itself show that the true rate is above the 4% tolerance, and it does not show that it is below.
+
+**A defect in the sheet (mine).** The sheet printed full records for the answer's own function but abbreviated records for the *other* functions the answer names (`record(..., full=False)`: name and summary only, no description or parameters), and printed no record at all for a related function named in a "when to use it" answer. A claim about a sibling could therefore not be checked from the sheet even when the catalogue supports it. Four of the seven flags come from that (below). The reader could not have done differently; the sheet was wrong.
+
+**Re-check against the full catalogue and the engine (the author, after the read).** All seven flagged answers passed on the first writer try (`tries=1`) and the Opus gate returned `faithful: True` with no issues on each.
+
+| # | Answer | As marked | Re-check |
+| --- | --- | --- | --- |
+| 8 | `credit_spread_curve_bootstrap:compare:credit_default_swap_var` | unsure | Supported by the full record of `credit_default_swap_var` (shown abbreviated) |
+| 13 | `default_correlation_matrix:when` | unsure | Supported by the full record of `ratings_migration_matrix` (no record was shown) |
+| 14 | `displaced_diffusion_model:compare:local_volatility_dupire_model` | unsure | Supported by the full record of `local_volatility_dupire_model` (shown abbreviated) |
+| 38 | `vega_pnl_attribution:compare:pnl_attribution_test_frtb_pat` | wrong | Supported by the full record of `pnl_attribution_test_frtb_pat` (shown abbreviated); the details the reader found only under `frtb_pl_attribution_test` are in the sibling's own record too |
+| 20 | `fama_french_5_factor_model:explain` | wrong | **Not in the record, true in the engine**: `_factor_regression` calls `_ols` and returns the intercept (alpha) and the factor loadings |
+| 28 | `ois_curve_sonia_sofr:compare:swap_rate_curve` | wrong | **Not in the record, true in the engine**: the function returns `discount_factors` and `zero_rates` |
+| 37 | `sftr_securities_finance_report:explain` | wrong | **Not in the record, true in the engine**: `required` includes `collateral_value`, with `valid_types` and a `negative_collateral_value` error |
+
+So, after the re-check: **0 of the 7 flagged contradicted by the engine; 3 of 40 (7.5%, 95% interval 2.6% to 19.9%) state something true that the writer was not shown** (the record has no "returns" field and no validation rules; `assistant/records.py::trim_record` passes only name, display name, domain, summary, description up to 1,500 characters, parameters, formula, symbol map, caveat and citation). The first read (9.22) already had the same kind of case: the CVaR claim, true in the engine, absent from the record, treated as "documentation under-described the function" and not counted wrong.
+
+**What this is and is not.**
+- **Not a clean 0 of 40, and not a reason to say the bank is wrong.** What the re-check supports: no flagged claim was found to be false (the other 33 were read against the record only); three go beyond what the writer saw, and happen to be true. That is the mechanism that produces a wrong claim when the model's guess is wrong, so 3 of 40 is a leading indicator, not a pass.
+- **The re-classification is the author's, not the reader's, and Filippo confirmed it on 2026-11-13.** It changes 4 wrong to 0 wrong for the flagged seven by reading engine code, with the same author who made the sheet defect. Claims true in the engine but absent from the record do not count as wrong against the 4% tolerance (the first read treated the CVaR case the same way) and are counted separately. After the confirmation the tally is **37 supported by the record, 0 contradicted, 3 not in the record (true in the engine)**; the as-marked tally above stays as the record of what the sheet's rule produced, and the release note must not say "0 of 40".
+- **What the read cannot see.** The sheet checks claims against the record, so a claim the record supports but the engine contradicts would pass; this read did not check the 33 clean answers against the engine.
+- **The gate did not catch the three.** The gate passed all three first time. Why was not investigated here (the gate may accept claims it knows to be true); 9.16's recall finding (0 of 40, upper bound 8.8%) is a recall of wrong claims, and these three were not wrong.
+
+**Options (Filippo's decision; nothing has been changed):**
+1. **Leave the menus on**, record this read as above, and fix the sheet before any later read.
+2. **Draw a second 40 with a corrected sheet** (full records for every named function, a record for every pointer, and a fourth mark: "true but not in the record") for a combined 80; 0 wrong in 80 would put the upper bound at 4.6%. Free; the reader's time only.
+3. **Show the writer more.** Add return fields and validation rules to the catalogue and to `trim_record`, tighten the prompt to forbid unsupported statements about outputs and checks, and rebuild the bank. A paid build and a change to the assistant and the catalogue; not started.
+4. **Switch the menus off** while that is done: set `assistant_enabled` back to `False` in the prod override of `pyvar-cdk/config.py` and deploy (rollback as in 9.35). It changes `pyvar-cdk/`, so it starts a CodePipeline run.
+
+**Decided (Filippo, 2026-11-13): option 2, a second read of 40 with a corrected sheet.** The menus stay as they are meanwhile (no rollback decided). The corrected sheet is built by `scripts/assistant_read_sheet.py` (committed, so the draw is reproducible; the first sheet's generator was not):
+
+- 40 new answers, seed 20261132, from the 1,114 served answers that were not in the first 40 (their ids are in `docs/assistant-bank-read-1-ids.json`); the sample is not stratified, as before.
+- Every function an answer names, its own and any other (the one a comparison is against and every backticked function name in the text), is shown with its **full** catalogue record, and the sheet marks the point in a description beyond which the writer was not shown the text (10 functions have descriptions over 1,500 characters).
+- Three marks instead of two: **Supported**, **Contradicted** (the record says the opposite) and **Not in the records** (neither confirmed nor contradicted). The author then checks each "not in the records" claim against the engine and reports the two kinds separately, so the result is not forced to choose between them.
+- The result is in 9.38, with the combined 80: 0 contradicted, upper end of the 95% interval 4.6% (the 4% tolerance is only shown by a sample large enough to exclude it, and 80 is not).
+
+9.35's open condition (a random read of the final bank) is met in form by the first read; the second is the fix for the sheet's defect, not a second opinion on the same answers.
+
+
+### 9.38 The second read: 40 more answers with the corrected sheet, and the combined 80 (2026-11-13; no model called)
+
+**What was read.** 40 answers drawn with `random.Random(20261132).sample(...)` from the 1,114 served answers of bank `v4-2026-11-09-0dbf72ce` that were not in the first read (`scripts/assistant_read_sheet.py`, `docs/assistant-bank-read-1-ids.json`): 14 explain, 18 when, 8 compare. Each answer was shown with the full catalogue record of its own function and of every function it names, with the point marked beyond which the writer was not shown a description, and three marks: Supported, Contradicted, Not in the records. Filippo read them.
+
+**Result (Filippo): Supported 40 of 40, Contradicted 0, Not in the records 0.**
+
+**Combined with the first read (9.37), after the confirmed re-classification: 80 answers, 77 supported, 0 contradicted, 3 not in the record (all three true in the engine).**
+
+| | Answers | Contradicted | Not in the record | 95% interval for a contradicted claim |
+| --- | --- | --- | --- | --- |
+| First read (9.37, confirmed re-classification) | 40 | 0 | 3 | 0% to 8.8% |
+| Second read (this section) | 40 | 0 | 0 | 0% to 8.8% |
+| Combined | 80 | 0 | 3 | **0% to 4.6%** |
+
+**What that does and does not show.**
+- 0 contradicted in 80 is no sign of trouble, and it is the bar the plan's section 12 sets (0 errors in the sample). It does not prove the 4% tolerance: if the true rate were 4%, 80 clean answers would still turn up one time in 26 (0.96^80 = 0.038), and the upper end of the interval, 4.6%, is just above 4%. The tolerance is "not contradicted", not shown.
+- "Not in the record" is a different measure and is not zero: 3 of 80 (3.8%, interval 1.3% to 10.5%), all in the first read. None appeared in the second, which is the sample size of one more draw, not evidence that the mechanism is gone: the writer still sees no "returns" field or validation rules (9.37), so an answer about outputs can still go beyond its record.
+- **The read checks claims against the catalogue record, not against the engine.** A claim the record supports but the engine contradicts would pass. The engine was checked only for the three first-read answers above.
+
+**A mechanical cross-check of the second read (author, after the read).** For both samples, every backticked name in an answer was looked up in the records shown. It has low recall by construction: on the first sample it flagged `collateral_value` and `sft_type` in the `sftr_securities_finance_report` answer (the validation claim of 9.37) and nothing for the other two unsupported answers, whose outputs are written in plain words ("alpha", "discount factors and zero rates"), and it flagged an equity-swap formula string that the record supports. On the second sample it flagged one phrase, `spot + displacement`, in the rough Bergomi against displaced diffusion comparison; the displaced-diffusion record defines it (`Price = BS(S + a, K + a, ...)`, "prices (S + a) as a lognormal"), so it is supported. The check therefore found nothing the reader missed, and it is not a substitute for reading.
+
+**Decision for the plan.** The read the plan asks for has now been made on the final bank (two reads, 80 answers, corrected sheet), with no contradicted claim. The menus stay on. What stays open is the writer's blind spot (outputs and validation rules are not in the catalogue record): richer records and a rebuild (9.37, option 3) are optional and not started, and the read should be repeated for each release.

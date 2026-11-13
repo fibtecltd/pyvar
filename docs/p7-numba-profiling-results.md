@@ -2,6 +2,9 @@
 
 Profiling complete, no optimisation needed.
 
+**See also (2026-11-13):** `docs/p7-numba-vs-numpy-results.md` compares these kernels and their public functions with equivalent vectorised
+NumPy baselines. The timings below are accurate; that document says what the JIT buys relative to NumPy.
+
 **Reproducing this benchmark (Tier 3 #5):** `python scripts/p7_bench.py` --
 fully local and offline, no AWS credentials needed. Inputs are fixed (a
 seeded RNG for the return series, literal `n_simulations`/`n_years` per
