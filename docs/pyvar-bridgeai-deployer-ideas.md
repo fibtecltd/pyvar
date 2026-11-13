@@ -42,7 +42,7 @@ All of these are financial services, a listed sector. Most named firms are large
 | Digital banks and lenders | Zopa, Starling, Atom bank | Engineering-led teams that may adopt an API quickly | Whether they build risk tooling in-house |
 | UK public bodies in financial services | British Business Bank, UK Export Finance, National Wealth Fund | Eligible as public sector; credit and ALM analysis | Procurement and governance speed |
 
-**Warm routes beat cold ones in 26 days.** Ask the adviser for three introductions to UK medium or large financial-services firms with a risk team; ask the owner's own network; and ask any user of the plugins or the API whether their employer could host a deployment (no named user is recorded).
+**Warm routes beat cold ones in the 26 days from 12 November.** Ask the adviser for three introductions to UK medium or large financial-services firms with a risk team; ask the owner's own network; and ask any user of the plugins or the API whether their employer could host a deployment (no named user is recorded).
 
 ## Screening a candidate in one call
 
@@ -69,7 +69,7 @@ Do not claim that pyvar is regulatory-grade or independently validated: the READ
 | Date (2026) | Step |
 | --- | --- |
 | 13 to 16 Nov | First calls to candidates; ask the adviser for introductions |
-| 17 Nov | Innovate UK support advises contact at least 15 working days before closing |
+| 17 Nov | Innovate UK advises contacting its support team (support@iuk.ukri.org) at least 15 working days before closing, for accessibility and general support; this is not the strand-fit channel |
 | 18 Nov | Go/no-go, a suggested date: is there a deployer willing to commit, and does the strand fit look plausible? |
 | 24 Nov | Last day to email BridgeAI@iuk.ukri.org about strand fit |
 | About 27 Nov | A suggested date for a written commitment and a named contact from the deployer, to leave a week to write |

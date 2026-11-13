@@ -38,4 +38,4 @@ A bank's model-validation team or a model-risk consultancy could contribute real
 
 ## Next step
 
-A 30-minute call in the next two weeks to test the question, then a decision on whether to draft the project outline together. The proposal window is about 16 weeks, so a consortium and a plan would have to be agreed within roughly ten.
+A 30-minute call by 27 November 2026 to test the question, then a decision on whether to draft the project outline together. The proposal window is about 16 weeks from 12 November 2026, so a consortium and a plan would have to be agreed within roughly ten.

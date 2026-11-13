@@ -47,7 +47,7 @@ await page.pdf({
   path: path.join(outDir, 'pyvar-funding-fit-swot.pdf'), format: 'A4', printBackground: true,
   displayHeaderFooter: true,
   headerTemplate: '<span></span>',
-  footerTemplate: '<div style="font:8px Helvetica,Arial,sans-serif;color:#777;width:100%;padding:0 16mm;display:flex;justify-content:space-between"><span>pyvar: funding fit SWOT · version 1 · 12 November 2026</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>',
+  footerTemplate: '<div style="font:8px Helvetica,Arial,sans-serif;color:#777;width:100%;padding:0 16mm;display:flex;justify-content:space-between"><span>pyvar: funding fit SWOT · version 1 · revised 13 November 2026</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>',
   margin: { top: '18mm', bottom: '18mm', left: '16mm', right: '16mm' },
 });
 await browser.close();

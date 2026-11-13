@@ -1,7 +1,7 @@
 export default () => <claude.Visualize data-claude-component='programme-map' sources={{rows:{kind:'data', data:[
 {slug:'bridgeai', name:'BridgeAI', low:100, high:200, held:2, asked:7, when:'closes 8 Dec 2026', side:'r', hue:1, dy:0},
 {slug:'eurostars', name:'Eurostars', low:306, high:306, held:1, asked:4, when:'closes 4 Mar 2027', side:'l', hue:2, dy:-22},
-{slug:'eic', name:'EIC Accelerator', low:2125, high:2125, held:1, asked:6, when:'next full cut-off 17 Mar 2027', side:'r', hue:3, dy:0}
+{slug:'eic', name:'EIC Accelerator', low:2125, high:2125, held:1, asked:6, when:'full proposals from 20 Jan 2027', side:'r', hue:3, dy:0}
 ]}}}>{({rows, datum}) => {
 const left = 84, y0 = 96, w = 636, h = 236;
 const lo = Math.log(70), hi = Math.log(3500);
