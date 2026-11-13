@@ -1,12 +1,12 @@
-"""tests/test_cdk_assistant_flag.py — the portal assistant is switched on in dev only, by one environment entry.
+"""tests/test_cdk_assistant_flag.py — the portal assistant menus are switched on in dev and prod, by one environment entry.
 
 Reasoning:
 - The assistant's menu widget shows when the app's `assistant_enabled` setting (config.py) is true AND the
   committed answer bank is complete. The setting defaults to False. pyvar-cdk/config.py carries a per-environment
-  `assistant_enabled`, true only in the "dev" override, and api_stack.py turns it into the container variable
-  ASSISTANT_ENABLED=true only where it is true. Prod and staging therefore get no new variable: their task
-  definitions do not change and no rolling deploy is caused there (checked by synthesizing every template before
-  and after: only pyvar-dev-api differs, by that one entry).
+  `assistant_enabled`, true only in the "dev" and "prod" overrides, and api_stack.py turns it into the container
+  variable ASSISTANT_ENABLED=true only where it is true. Staging therefore gets no new variable: its task
+  definition does not change and no rolling deploy is caused there. Prod was switched on by a decision of
+  2026-11-13 (docs/assistant-phase0-results.md 9.35); only the typed route, a different flag, stays off everywhere.
 - Same approach as tests/test_cdk_worker_env.py: the CDK code is read, not run, so aws-cdk-lib is not needed in
   the application test environment. pyvar-cdk/config.py has no CDK import, so it is loaded under its own module
   name (the application's config.py has the same file name).
@@ -44,12 +44,12 @@ def _cdk_config() -> ModuleType:
     return module
 
 
-def test_only_dev_has_the_assistant_on() -> None:
+def test_dev_and_prod_have_the_assistant_menus_on_and_staging_does_not() -> None:
     config = _cdk_config()
     flags = {
         env: config.PyvarConfig.for_env(env).assistant_enabled for env in ("dev", "staging", "prod")
     }
-    assert flags == {"dev": True, "staging": False, "prod": False}
+    assert flags == {"dev": True, "staging": False, "prod": True}
 
 
 def test_the_default_is_off_so_a_new_environment_starts_without_the_assistant() -> None:
@@ -65,7 +65,7 @@ def test_the_api_container_gets_the_variable_only_where_the_flag_is_true() -> No
     assert re.search(
         r'\*\*\(\{"ASSISTANT_ENABLED": "true"\} if cfg\.assistant_enabled else \{\}\)', source
     ), "api_stack.py must add ASSISTANT_ENABLED=true only when cfg.assistant_enabled is true"
-    # never a literal "false" entry: that would change prod's and staging's task definitions
+    # never a literal "false" entry: that would change staging's task definition
     assert '"ASSISTANT_ENABLED": "false"' not in source
 
 

@@ -1560,3 +1560,22 @@ The plan's false-pin column is what 3.0 gives; its line "31, 12, 6 audited answe
 **Not built, on purpose.** (1) The dev-only switch that corrupts one function's answers (section 12): shipping answer-corrupting code in the production image is worse than the check it enables; the seeded simulations stand in, and a staging-only injection can be added with the first deploy if wanted. (2) CDK alarms (`alerts_stack.py`; infra PR: audit spend near the budget, writers degraded, pins set, watchdog errors). (3) Seeding pins from the bank build's failed list. (4) The enterprise audit. **Unmeasured:** the real verdict price on typed answers (run E's judge averaged $0.0083; the budget uses $0.0077), real audit volume per function, and how often a real function is pinned. Redis cost: two round trips in the request path (one `MGET` before the model call, one after a live answer) and roughly fifteen to twenty in the background task.
 
 **Decided (Filippo, 2026-11-13): keep the threshold at 3.0**, not the plan's 2.5 (which would accept 0.10 false pins a month at 7 audits a day). Nothing else in the watchdog was a decision: its numbers are the plan's.
+
+### 9.35 Menus switched on in prod (2026-11-13; no model called)
+
+**Decision.** Filippo decided on 2026-11-13 to move the assistant to prod, after checking cases in dev himself ("they are good"). The
+record does not say which cases or how many. The change is `assistant_enabled=True` in the "prod" override of `pyvar-cdk/config.py`
+(`api_stack.py` turns it into `ASSISTANT_ENABLED=true` on the API container); staging is unchanged.
+
+**What it switches on.** The menu widget only: the three buttons ("What it does", "When to use it", "Compare with") that read one static
+file per function from the committed bank (`v4-2026-11-09-0dbf72ce`, 1,154 answers, 2 static). No model is called, the visitor types and
+sends nothing, and no key is needed. The typed route (`POST /api/v1/assistant/ask`) is a separate flag, `assistant_typed_enabled`, and
+stays off everywhere; so does the watchdog.
+
+**What the evidence does and does not cover.** 9.22 left one condition open: no random read has been made of the final bank, whose 124
+rewritten answers differ from the one that was sampled, and the 4% tolerance has therefore not been shown for exactly this bank. Plan
+section 12 asks for a random read of at least 40 served answers. A person's checks in dev are not that read, and nothing on the record
+shows it was done. The prod deploy waits behind the pipeline's manual approval gate (`pipeline_stack.py`), which is the point to do it;
+a 40-answer sample sheet (seeded, drawn from the committed bank) is the way to do it without calling a model. If the read finds a wrong
+claim, the rollback is one line: set `assistant_enabled` back to `False` in the prod override and deploy; the task definition then
+loses `ASSISTANT_ENABLED` and the widget disappears (`/public/config` reports it off).
