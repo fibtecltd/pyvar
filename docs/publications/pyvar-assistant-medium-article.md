@@ -2,18 +2,18 @@
 
 *Every answer in pyvar.com's new assistant was written ahead of time, checked by code and gated by a second model, and three samples of them (48, 40 and 40 answers) were read by a person. Here is what that found, what broke on the way, and what we chose not to ship.*
 
-<!-- Header image: idea 6 in header-images.md. To be added by Filippo as assets/headers/header-pyvar-assistant.png when finalising for Medium. -->
+![An assistant character beside a grid of eight facts about the assistant (385 functions across 8 risk domains; 1,154 answers written in advance; three questions per function; compare with a related function; 0 model calls when you click; one 3 KB file per function; checked by code and a second model; open source) and a short exchange: a click on What it does for the Kupiec POF Test returns a pre-written answer, a grid of 1,154 dots shows 1,152 model-written answers and 2 static ones, and a table compares the Kupiec test with the Basel traffic light.](./assets/headers/header-pyvar-assistant.png)
+*Three questions per function, answered from files written before you click.*
 
 **Author:** Fibtec Limited
 **Status:** draft for Medium, written 2026-11-13
 
 <!-- BEFORE PUBLISHING (delete this block):
- 1. Add the header image (see header-images.md, idea 6) and uncomment it above.
- 2. The section "What reading the final bank found" reports the two reads of the final bank (results 9.37 and 9.38):
+ 1. The section "What reading the final bank found" reports the two reads of the final bank (results 9.37 and 9.38):
     80 answers, 0 contradicted, 3 not in the record. Filippo confirmed the re-classification and made the second read
     on 2026-11-13. If you read more answers before publishing, update its numbers.
- 3. Re-run the three checks in "Check it yourself" the day you publish; the bank version and counts must match.
- 4. Medium drops tables; this article has none on purpose. -->
+ 2. Re-run the three checks in "Check it yourself" the day you publish; the bank version and counts must match.
+ 3. Medium drops tables; this article has none on purpose. -->
 
 > **A note on "verified facts only":** every number in this article is checkable against the pyvar repository
 > (`portal/assistant/bank/`, `docs/assistant-phase0-results.md`, `docs/assistant-plan-implementation.md`) or against the live

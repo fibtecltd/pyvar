@@ -1,6 +1,6 @@
 # Header images for the Medium articles
 
-Every article should open with a header image directly under its title and subtitle. Eleven have one (an image file in the repository); the other six have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
+Every article should open with a header image directly under its title and subtitle. Twelve have one (an image file in the repository); the other five have an idea below, written so a designer, or `scripts/generate_article_headers.py`, can build it. Every number in an idea comes from the article it is for.
 
 ## Status
 
@@ -22,7 +22,7 @@ Every article should open with a header image directly under its title and subti
 | `pyvar-local-release-medium-article.md` | Idea 3 |
 | `pyvar-full-docker-medium-article.md` | Idea 4 |
 | `pyvar-post-launch-lessons-medium-article.md` | Idea 5 |
-| `pyvar-assistant-medium-article.md` | Idea 6 |
+| `pyvar-assistant-medium-article.md` | Included: `assets/headers/header-pyvar-assistant.png` (a hand-edited illustration, idea 6 below) |
 
 The eight images in `assets/headers/` come from `python scripts/generate_article_headers.py`. Seven are fact tiles in the house style (slate and clay on white, the same grid as the plugins-end-to-end header), and each number is read from the code when the image is drawn. The eighth, the overview article's, is a picture (a dot-matrix bell curve, source in `assets/headers/source/`); the overview's fact tiles are its second image, `assets/overview/at-a-glance.png`. Medium takes PNG or JPG, not SVG.
 
@@ -63,39 +63,19 @@ The eight images in `assets/headers/` come from `python scripts/generate_article
 **Why it fits:** the article is a checkable account of the seven pull requests after launch and what one of them taught the team about deployment.
 **Alt text:** A timeline of seven pull requests, numbers 326 to 332, ending at a flag for version 0.2.0, with one tile marked as the feature that never deployed.
 
-### 6. The assistant that never answers live
+### 6. The assistant that never answers live (done, 2026-11-13)
 
-**Concept:** three outlined buttons ("What it does", "When to use it", "Compare with") on the left, an arrow to one small slate file tile labelled "one 3 KB file", and a clay-outlined box crossed out on the right labelled "model call". A thin strip under the arrow shows the 1,154 answers as a row of small squares, two of them in clay for the two static answers.
-**Text on the image:** "1,154 answers, written before you clicked." and, small, "0 model calls when you do."
-**Why it fits:** the article is about an assistant whose answers are static files read on a click, with no model in the request path; the counts (1,154 answers, 2 static) come from the bank's manifest.
-**Alt text:** Three buttons leading to a single small file, with a crossed-out box marked model call, above a row of 1,154 squares of which two are highlighted as static answers.
-**Candidate received 2026-11-13, not used as it stands:** a 3D illustration of an assistant character beside a capability grid and a chat in which a typed request ("Show me a risk analysis for my portfolio") gets generated code, a chart and a table of figures (VaR 12.5%, ES 16.8%, Sharpe 1.32). It shows what the article says the assistant does not do: take typed requests (the typed box is off everywhere), run analyses, write code or return figures, and the figures and the code (`px` and `pv` aliases, a `pv.risk.analyze` call) are invented, not from pyvar. The tiles "Stay Compliant", "Deploy Anywhere" and "Instantly" claim more than the article does. Its style (blue and orange 3D) also differs from the house style above. The regeneration brief below keeps what is good about it.
+**What was done.** Filippo supplied a 3D illustration of an assistant character. Instead of regenerating it, only the parts that were wrong for this article were edited in place; the character, the pyvar logo, the layout, the colours, the speech bubble and the bell curve are the original, and so are the name plaque and the icons. The original is kept in `assets/headers/source/assistant-header-original.webp`; the result is `assets/headers/header-pyvar-assistant.png` (1536 x 1024).
 
-#### Regeneration brief for idea 6 (2026-11-13)
+**What was wrong, and what it says now** (every number is in the article and the committed bank):
+- *Speech bubble* (said "unlock the power of Pyvar ... my capabilities"): "I explain what a function does, when to use it, and how it differs from another one:".
+- *Eight capability tiles* (math and statistics, Python, plugins, compute engine, data, compliance, deploy anywhere: none of which the assistant does): "385 functions across 8 risk domains", "1,154 answers written in advance", "Three questions: What, when, compare.", "Compare with… a related function.", "0 model calls when you click.", "One 3 KB file per function, static.", "Checked by code and a second model.", "Open source, Apache-2.0."
+- *The chat* (a typed request, "I'll run the analysis", generated code, a chart and a table of invented figures): the two user bubbles are now the clicks "What it does: Kupiec POF Test" and "Compare with: Basel traffic light"; the code block holds the real start of the Kupiec answer, verbatim from the bank ("kupiec_pof_test ... checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies."); the chart is the bank as 1,154 dots (1,152 model-written, 2 static, as in the manifest); the table compares the two functions in the words of the real comparison answer ("rate vs expected", "count into a zone").
+- *Top tagline*: "INSTANTLY" became "EXPLAINED". *Bottom tagline*: "Ask. Analyze. Achieve." became "Ask. Understand. Apply.", with "Answers written before you click." under it.
 
-**Goal.** One image that tells a reader of the article what the assistant is: three fixed questions on a function's page, answered from a file written in advance. It must not suggest typing, live analysis, code, results, compliance or speed claims.
+**Kept on purpose.** The plaque "Pyvar Assistant, Your AI guide to Pyvar" (the answers are written by models, and the article says so). The image still looks like a conversation; the user bubbles are labelled as the menu clicks they stand for, and the article describes the three controls.
 
-**Keep from the candidate.** The assistant character (brown wavy hair, round glasses, navy blazer, friendly open-hand gesture), the pyvar logo top left, the light background with soft blue glow, the palette (navy, mid blue, one orange accent) and the bell curve with the orange tail along the bottom.
-
-**Remove.** The chat panel (typed requests, "Sure! I'll run the analysis"), the code block, the line chart, the results table and every number in them, the eight capability tiles, the tagline "MATHEMATICS / STATISTICS / INSTANTLY", "Ask. Analyze. Achieve." and the speech bubble "unlock the power of Pyvar".
-
-**Layout (16:9, 1600 x 900 px, at least 1400 px wide for Medium; keep 80 px clear on every side).**
-1. Left third: the character, standing, gesturing toward the centre. Small speech bubble: "Pick a function, then one of three questions."
-2. Centre: a clean interface card, the widget as it is on the site: a function name (`kupiec_pof_test`), then **three controls**, two buttons labelled "What it does" and "When to use it" and one dropdown labelled "Compare with…"; the first is selected, and under it an answer panel with two or three lines of text (below).
-3. Right third: a thin arrow from the card to one small file tile labelled "one 3 KB file", and beside it a box with a model or spark icon crossed out, labelled "model call".
-4. Bottom: a thin band of **exactly 1,154** tiny squares (for example two rows of 577), two of them in the orange accent for the two static answers. Draw it with a script or in the design tool, not with the generator: a generator cannot count, and a band of 60 squares with two orange would show static answers as 3% of the bank when they are 0.17%. Headline under the band: "1,154 answers, written before you clicked." and under it, smaller, "0 model calls when you do."
-
-**Text that goes on the image (exact; every number is in the article).** "What it does", "When to use it", "Compare with…", "one 3 KB file", "model call", "1,154 answers, written before you clicked.", "0 model calls when you do.", "2 static" (small, beside the orange squares). Answer panel, verbatim from the bank (`kupiec_pof_test`, explain): "...checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies." No other numbers, formulas, percentages or code.
-
-**Practical advice.** Image generators garble small text. Generate the picture without any text (ask for blank panels and empty labels), then add every string above in a design tool in one clean font, and place the logo from the repository. This also keeps the on-image text identical to the article.
-
-**Prompt to paste into the image generator (picture only, no text).**
-
-> A clean, friendly 16:9 illustration for a technical article. On the left, a smiling woman in a navy blazer, with brown wavy hair and round glasses, gestures with an open hand toward the centre; a small empty speech bubble beside her. In the centre, a modern software interface card with a blank title bar, two empty rounded buttons and one empty dropdown, the first button highlighted, and a white answer panel with three blank grey lines of placeholder text. To its right, a thin arrow leading to one small, simple file icon, and next to it a small box with a sparkle or chip icon crossed out by a diagonal line. A soft bell-curve line with an orange tail runs along the bottom. Light white and pale blue background with a soft glow; palette navy, mid blue and one orange accent; soft studio lighting, subtle shadows, a polished 3D-illustration look. No text, no letters, no numbers, no charts, no code, no chat messages anywhere.
-
-**Check the result before using it.** (1) No invented figures, charts, code or chat anywhere. (2) Every word on it is one of the strings above, spelled exactly, after you have added them. (3) The third control is a dropdown, not a button, as on the site. (4) The band has exactly 1,154 squares and exactly two orange ones, drawn by you and not by the generator. (5) 1,154, 3 KB and "0 model calls" match the article's counts on the day of publishing (`/public/config` and the bank manifest). (6) The file is under about 1 MB. (7) If Medium's or the generator's terms ask for a note that the image was made with AI, add it to the caption.
-
-**File, caption and alt text.** Save as `assets/headers/header-pyvar-assistant.png`, then uncomment the image line in the article. Caption: "Three questions, answered from files written before you clicked." Alt text: "A friendly assistant character beside a function page with three controls (What it does, When to use it, Compare with) that lead to a single small file, with a crossed-out box marked model call, above a row of squares for the 1,154 pre-written answers, two of them highlighted as static answers."
+**Caption and alt text** are in `assets/headers/README.md`, entry 9. Edited with Pillow in the original's own typefaces (Inter for the text, JetBrains Mono for the answer panel); not rebuilt by `generate_article_headers.py`.
 
 ## Placement
 
