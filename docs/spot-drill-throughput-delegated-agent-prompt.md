@@ -6,23 +6,19 @@
 
 What the owner still has to provide (the INPUTS block): a read-only dev database role (or "none"); a pre-created FIS template for Spot interruption (or "none"); and whether the agent's source IP is exempt from the WAF rate rule (otherwise the load goes through the queue directly, which adds audit rows with `user_id` "unknown" in dev and leaves the API and the WAF unmeasured). The agent's AWS role also needs `secretsmanager:GetSecretValue` on the dev JWT secret; without it the agent stops.
 
-The prompt, as the agent should read it:
+The prompt, as the agent should read it (4,756 bytes):
 
 ---
 
-TASK: in the pyvar DEV environment only, measure W4 (is a job lost or duplicated when a Spot worker dies mid-job?) and W5 (jobs per minute against the number of workers). Report what the trials show and no more.
+TASK: in pyvar DEV only, measure W4 (is a job lost or duplicated when a Spot worker dies mid-job?) and W5 (jobs per minute against the number of workers). Report what the trials show, no more.
 
-INPUTS (the owner fills these in; if one is missing, STOP and tell me which)
-- PYVAR_DEV_DB_RO_URL: a read-only role on the dev database (SELECT on var_jobs and api_usage), or "none".
-- FIS_TEMPLATE: id of a pre-created FIS template using aws:ec2:send-spot-instance-interruptions on the dev workers, or "none". You do not create IAM roles or templates.
-- LOAD_MODE: "api" only if I state your source IP is exempt from the WAF rate rule (100 requests per 300 s per IP, which polling also uses); otherwise "queue".
-There is no token input: you mint your own in STEP 0.
+INPUTS (the owner fills these in; if one is missing, STOP and say which)
+- PYVAR_DEV_DB_RO_URL: read-only role on the dev database (SELECT on var_jobs, api_usage), or "none".
+- FIS_TEMPLATE: id of a pre-created FIS template (aws:ec2:send-spot-instance-interruptions on the dev workers), or "none". Never create IAM roles or templates.
+- LOAD_MODE: "api" only if I say your IP is exempt from the WAF rate rule (100 requests per 300 s per IP, polling included); otherwise "queue".
 
-STEP 0: YOUR TOKEN (the one secret you may read, once)
-Mint exactly one API token for the dev API, valid for 24 hours, and use it for every API call in this task. Never run scripts/chaos_test.sh.
-- Source: the dev JWT signing secret, named pyvar/dev/jwt-secret, region eu-west-1 (a plain string; the dev API checks tokens against it). Read it once, by that exact name. If the read is denied or the name does not exist, STOP and say so; do not widen your access or look for another way in. Never list secrets, never read any other, never touch pyvar/prod/jwt-secret.
-- Claims: sub internal-w4w5-agent, tier internal, iat now, exp now + 86400 s (24 hours, never longer, never without exp). Tier internal, not pro, on purpose: pro is capped at 500 requests a day and 2,000,000 simulations a month (about 20 jobs of 100,000), which would stop W5 and would be counted as customer usage. internal is the tier pyvar's own scheduled jobs use: exempt from both caps, up to 500,000 simulations, and kept apart from customer tiers in the usage tables.
-- Mint it with exactly this (stdlib HS256; the secret travels through a pipe, never a command-line argument, a file or the screen):
+STEP 0, YOUR TOKEN (the only secret you may read, once)
+Mint one dev API token valid for 24 hours. Read secret pyvar/dev/jwt-secret (eu-west-1) once, by that name; if denied or missing, STOP and do not widen access. Never touch any other secret, prod included. Claims: sub internal-w4w5-agent, tier internal (not pro: its monthly caps would stop W5), iat now, exp now+86400. Run exactly:
 
 set -o pipefail
 TOKEN=$(aws secretsmanager get-secret-value --secret-id pyvar/dev/jwt-secret --region eu-west-1 --query SecretString --output text | python3 -c '
@@ -39,30 +35,26 @@ sig = b64(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).d
 print(f"{head}.{body}.{sig}")
 ') || { echo "MINT FAILED"; TOKEN=""; }
 
-- Check, without printing the token: it is not empty, it has three dot-separated parts, and its decoded payload shows exp minus iat = 86400. If any check fails, STOP.
-- Never print, log, write to a file, commit or put in the report the secret or the token. Keep the token in a shell variable of your session only. In the report give the sub, the tier and the expiry time, nothing else about it.
-- Mint once. If it expires before you finish, or a call answers 401, STOP and report how far you got; do not mint a second one. A token cannot be revoked; the 24 hours are its only limit (rotating the secret is the only other way, and that is not yours to do).
-- Use: header "Authorization: Bearer $TOKEN", against the dev API only, https://dev.pyvar.com (pyvar-cdk/config.py, api_base_url), path /api/v1/var/compute. Never send it to pyvar.com or www.pyvar.com. It is needed for the calibration job and the W4 trials (a few requests), and for W5 when LOAD_MODE is "api".
-- When you finish or stop, unset TOKEN and say that it stays valid until its expiry time.
+Check without printing: not empty, three dot-separated parts, exp minus iat = 86400; else STOP. Never print, log, save or report the secret or token; keep the token in a shell variable only; report just sub, tier and expiry. Mint once: if it expires or a call returns 401, STOP and report. Use it only as "Authorization: Bearer $TOKEN" against https://dev.pyvar.com (calibration, W4, and W5 if LOAD_MODE is api), never against pyvar.com. At the end unset TOKEN.
 
 RULES
-- Dev only. Before anything, check the account, region, group `pyvar-dev-workers` and queue `pyvar-dev-var-jobs.fifo`. If any name contains prod, STOP.
-- Record the group's min, max and desired now (expected 0, 5, 0). Restore them in a finally block, whatever happens. Never exceed max 5. Estimated spend cap $5 (Spot about $0.087 an hour).
-- No changes to IAM, security groups, WAF, queues, CDK or any prod resource. No secret reads other than the one in STEP 0. Stop at once if a message reaches the dead-letter queue unexpectedly, a name looks like prod, or a call is denied (do not work around it).
-- Calibrate first: run one job warm; choose n_simulations so the job takes 20 to 30 s on a dev worker (the queue's visibility timeout is 60 s and must exceed the runtime).
+- Dev only. First check the account, region, group pyvar-dev-workers and queue pyvar-dev-var-jobs.fifo; if any name contains prod, STOP.
+- Record the group's min, max, desired now (expected 0, 5, 0); restore them in a finally block whatever happens. Never exceed max 5. Spend cap about $5 (Spot about $0.087 an hour).
+- No changes to IAM, security groups, WAF, queues, CDK or prod. No secret reads besides STEP 0. Never run scripts/chaos_test.sh. Stop at once on an unexpected message in the dead-letter queue, a prod-looking name, or a denied call (do not work around it).
+- Calibrate first: one warm job; choose n_simulations so it runs 20 to 30 s (the queue's 60 s visibility timeout must exceed the runtime).
 
 W4 (at least 5 trials per arm; state n)
-Submit the calibrated job (fixed seed; first compute its expected result once). Watch /pyvar/dev/worker for the task's received line; about 10 s later kill that worker's instance.
-- Arm A, hard kill, no drain: ec2 terminate-instances on that instance.
-- Arm B, graceful: autoscaling terminate-instance-in-auto-scaling-group (the 60 s drain hook runs).
-- Arm C, only if FIS_TEMPLATE is set: the Spot interruption with its 2-minute notice.
-Per trial record: task id, arm, kill time, whether a result arrived and equals the expected one, seconds to result, how many times the worker log shows the task received and succeeded, the number of var_jobs rows for the task id (if DB read access), DLQ depth after. Wait up to 10 minutes per trial. "Exactly once" means one recorded result; report separately how many times it executed (redelivery is expected).
+Submit the calibrated job (fixed seed; compute the expected result once first). When /pyvar/dev/worker logs it received, wait about 10 s, then kill that worker:
+- A, hard: ec2 terminate-instances.
+- B, graceful: autoscaling terminate-instance-in-auto-scaling-group (60 s drain hook runs).
+- C, only if FIS_TEMPLATE is set: Spot interruption with its 2-minute notice.
+Per trial: task id, arm, kill time, result arrived and equal to expected, seconds to result, times the worker log shows the task received and succeeded, var_jobs rows for the id (if DB access), DLQ depth after. Wait up to 10 min per trial. "Exactly once" = one recorded result; report executions separately (redelivery is expected).
 
-W5 (workers 1, 2 and 4; fewer if the group cannot reach them)
-For each N: set min = desired = N, wait until N workers have logged ready, send one warm-up job each. Then submit M = max(60, 30 x N) jobs of 100,000 simulations, 1 day, back to back.
-- LOAD_MODE api: POST /api/v1/var/compute with the token; poll sparsely. Rows in api_usage carry tier internal, so they can be told apart.
-- LOAD_MODE queue: dispatch with the repository's own Celery code (see api/routes/var.py), not hand-made messages; read completions from worker logs (Logs Insights). Say that this adds audit rows with user_id "unknown" in dev, and that the API and the WAF are not measured.
-Per step record: workers ready, jobs completed, first enqueue to last completion, throughput over the middle 60% of jobs, worker runtime p50 and p95, instance-hours used. Efficiency = throughput(N) / (N x throughput(1)). Then restore the group.
+W5 (workers 1, 2, 4; fewer if unreachable)
+Per N: set min = desired = N, wait for N workers ready, one warm-up job each. Then M = max(60, 30 x N) jobs of 100,000 simulations, 1 day, back to back.
+- api: POST /api/v1/var/compute with the token, poll sparsely.
+- queue: dispatch with the repository's own Celery code (api/routes/var.py); read completions from worker logs (Logs Insights). Say this adds audit rows with user_id "unknown" and leaves the API and WAF unmeasured.
+Per step: workers ready, jobs completed, first enqueue to last completion, throughput over the middle 60% of jobs, worker runtime p50 and p95, instance-hours. Efficiency = throughput(N) / (N x throughput(1)). Then restore the group.
 
 REPORT
-Tables for W4 (per arm: n, lost, duplicated executions, seconds to result) and W5 (per N), the token's sub, tier and expiry, the restored group values, what you could not do and why, spend (estimate), and everything you got wrong. Say plainly where n is small. Keep ids, hostnames and secrets out of the report body.
+Tables: W4 (per arm: n, lost, duplicated executions, seconds to result), W5 (per N); token sub, tier, expiry; restored group values; what you could not do and why; spend (estimate); everything you got wrong. Say where n is small. No ids, hostnames or secrets in the body.
