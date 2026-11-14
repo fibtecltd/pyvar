@@ -546,10 +546,10 @@ function _renderSearchResults(matches) {
   el.innerHTML = matches.slice(0, 30).map(({ item }) => `
     <a class="search-result" style="--rc:${item.domain_color}" href="${item.domain_page}#${item.name}">
       <div class="search-result-top">
-        <span class="search-result-domain">${item.domain_label}</span>
-        <span class="search-result-name">${item.display_name}</span>
+        <span class="search-result-domain">${_escapeHtml(item.domain_label)}</span>
+        <span class="search-result-name">${_escapeHtml(item.display_name)}</span>
       </div>
-      <div class="search-result-summary">${item.summary}</div>
+      <div class="search-result-summary">${_catalogueInline(item.summary)}</div>
     </a>
   `).join('');
 }
@@ -647,9 +647,9 @@ async function initDomainGrid(domainSlug) {
         : `Showing all ${items.length} functions`;
     }
     grid.innerHTML = shown.map((f, i) => `
-      <div class="fn-card" id="${f.name}" data-fn="${f.name}" style="animation-delay:${i * 0.02}s" role="button" tabindex="0" aria-label="Try ${f.display_name}">
-        <div class="fn-name">${f.display_name}</div>
-        <div class="fn-desc">${f.summary}</div>
+      <div class="fn-card" id="${f.name}" data-fn="${f.name}" style="animation-delay:${i * 0.02}s" role="button" tabindex="0" aria-label="Try ${_escapeHtml(f.display_name)}">
+        <div class="fn-name">${_escapeHtml(f.display_name)}</div>
+        <div class="fn-desc">${_catalogueInline(f.summary)}</div>
         <div class="fn-try">Try it →</div>
       </div>
     `).join('');
@@ -703,6 +703,78 @@ function _escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ── Catalogue text ─────────────────────────────────────────────────────────────────────────────────
+// A function's summary, description, parameter help and formula notes come from its engine docstring
+// (portal/functions.json), which is written in reStructuredText-style markup: ``code``, `code`,
+// :func:`~pkg.module.name`, *emphasis*, blank-line paragraphs, "* " bullets, a trailing "::" before an
+// indented literal block, and a leading [REGULATORY] or [LIMITATION] tag. The page shows that markup as
+// the few elements it stands for instead of as raw characters. Everything is escaped first and only the
+// elements built here are added, so catalogue text is never parsed as HTML.
+// (tests/test_portal_catalogue_text.py runs this block under node against every catalogue entry.)
+// <catalogue-text>
+function _catalogueInline(text) {
+  const spans = [];
+  const keep = code => { spans.push(code); return `\u0000${spans.length - 1}\u0000`; };
+  let s = String(text == null ? '' : text);
+  s = s.replace(/:(?:func|class|meth|mod|attr|data|ref|doc|math):`~?([^`]+)`/g, (_, ref) => keep(ref.split('.').pop()));
+  s = s.replace(/``([^`]+)``/g, (_, code) => keep(code));
+  s = s.replace(/`([^`\n]+)`/g, (_, code) => keep(code));
+  s = _escapeHtml(s);
+  s = s.replace(/(^|[\s(])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?=$|[\s).,;:!?])/g, '$1<em>$2</em>');
+  s = s.replace(/ -- /g, ' \u2014 ');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code class="cat-code">${_escapeHtml(spans[i])}</code>`);
+}
+
+// True while a ``code`` or `code` span is still open at the end of the text, so a line that starts with "* "
+// inside a span (a product written across two lines) is read as its continuation and not as a bullet.
+function _catalogueOpenCode(text) {
+  if ((text.match(/``/g) || []).length % 2) return true;
+  return (text.replace(/``/g, '').match(/`/g) || []).length % 2 === 1;
+}
+
+function _catalogueBlocksHtml(text) {
+  const lines = String(text == null ? '' : text).replace(/\r/g, '').split('\n');
+  const bullet = /^(\s*)([*\u2022-]|\d+[.)])\s+(.*)$/;
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (!lines[i].trim()) { i++; continue; }
+    const first = bullet.exec(lines[i]);
+    if (first) {
+      const ordered = /\d/.test(first[2]);
+      const items = [];
+      while (i < lines.length) {
+        const m = bullet.exec(lines[i]);
+        if (m && /\d/.test(m[2]) === ordered) { items.push([m[3].trim()]); i++; }
+        else if (items.length && /^\s{2,}\S/.test(lines[i])) { items[items.length - 1].push(lines[i].trim()); i++; }
+        else break;
+      }
+      const tag = ordered ? 'ol' : 'ul';
+      out.push(`<${tag}>${items.map(it => `<li>${_catalogueInline(it.join(' '))}</li>`).join('')}</${tag}>`);
+      continue;
+    }
+    const para = [];
+    while (i < lines.length && lines[i].trim() && (!bullet.test(lines[i]) || _catalogueOpenCode(para.join(' ')))) { para.push(lines[i].trim()); i++; }
+    let text = para.join(' ');
+    const literal = /::$/.test(text);
+    if (literal) text = text.replace(/\s*::$/, /\s::$/.test(text) ? '' : ':');
+    let tag = '';
+    const t = /^\[([A-Z][A-Z ]*)\]\s*/.exec(text);
+    if (t) { tag = `<span class="tryit-tag">${_escapeHtml(t[1])}</span> `; text = text.slice(t[0].length); }
+    if (text || tag) out.push(`<p>${tag}${_catalogueInline(text)}</p>`);
+    if (literal) {
+      while (i < lines.length && !lines[i].trim()) i++;
+      const block = [];
+      while (i < lines.length && (!lines[i].trim() || /^\s{2,}\S/.test(lines[i]))) { block.push(lines[i]); i++; }
+      while (block.length && !block[block.length - 1].trim()) block.pop();
+      const indent = Math.min(...block.filter(l => l.trim()).map(l => l.match(/^\s*/)[0].length));
+      if (block.length) out.push(`<pre class="cat-pre">${_escapeHtml(block.map(l => l.slice(indent)).join('\n'))}</pre>`);
+    }
+  }
+  return out.join('');
+}
+// </catalogue-text>
+
 function _tryitFieldHtml(p) {
   // is_percentage (portal/functions.json, scripts/data/percentage_params.json):
   // a hint only -- the field still takes a decimal (0.99, not 99), matching
@@ -715,7 +787,7 @@ function _tryitFieldHtml(p) {
   // it is placed in HTML, so it is escaped; aria-describedby makes a screen reader read it with the field.
   const hintId = `tryit-hint-${p.name}`;
   const hint = p.description
-    ? `<span class="tryit-hint" id="${hintId}">${_escapeHtml(p.description)}</span>`
+    ? `<span class="tryit-hint" id="${hintId}">${_catalogueInline(p.description)}</span>`
     : '';
   const attr = `data-param="${p.name}"${hint ? ` aria-describedby="${hintId}"` : ''}`;
   if (p.type === 'boolean') {
@@ -786,10 +858,10 @@ async function _renderFormula(fn) {
     }).join('') + '</div>';
   }
   if (f.citation) {
-    html += `<div class="tryit-formula-citation">${_escapeHtml(f.citation)}</div>`;
+    html += `<div class="tryit-formula-citation">${_catalogueInline(f.citation)}</div>`;
   }
   if (f.caveat) {
-    html += `<div class="tryit-formula-caveat">⚠ ${_escapeHtml(f.caveat)}</div>`;
+    html += `<div class="tryit-formula-caveat">⚠ ${_catalogueInline(f.caveat)}</div>`;
   }
   el.innerHTML = html;
 }
@@ -838,12 +910,12 @@ function openTryItPanel(fn, triggerEl) {
     <div class="tryit-card" style="--rc:${fn.domain_color}">
       <div class="tryit-header">
         <div>
-          <div class="tryit-domain">${fn.domain_label}</div>
-          <div class="tryit-title">${fn.display_name}</div>
+          <div class="tryit-domain">${_escapeHtml(fn.domain_label)}</div>
+          <div class="tryit-title">${_escapeHtml(fn.display_name)}</div>
         </div>
         <button type="button" class="tryit-close" id="tryitClose" aria-label="Close try-it panel">Esc</button>
       </div>
-      <div class="tryit-desc">${fn.summary}${fn.description ? ' — ' + fn.description.replace(/\n/g, ' ') : ''}</div>
+      <div class="tryit-desc"><p class="tryit-summary">${_catalogueInline(fn.summary)}</p>${_catalogueBlocksHtml(fn.description)}</div>
       ${_formulaBlockHtml(fn)}
       <div id="assistantSlot" class="assistant-slot" data-fn="${fn.name}"></div>
       <div class="tryit-jwt-row">
