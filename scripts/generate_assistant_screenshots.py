@@ -14,7 +14,10 @@ Reasoning:
   whose claims are all in the description that is on screen above it.
 - Medium takes PNG or JPG. Tooling dependency of this script only:  pip install playwright  (it
   launches the Chromium it finds; pass --chromium PATH for a browser installed elsewhere). The site
-  must be reachable, or pass --site http://127.0.0.1:8077 for a local copy of portal/.
+  must be reachable, or pass --site http://127.0.0.1:8077 for a local copy of portal/
+  (python -m http.server 8077 --directory portal), which shows a portal change before it is deployed.
+  A static server has no /public/config, so for a local site the script answers that one request with
+  what the live site reports, built from the committed manifest.
 
 Usage (repo root):
     python scripts/generate_assistant_screenshots.py
@@ -117,6 +120,14 @@ async def capture(shot: Shot, site: str, out: Path, chromium: str | None) -> Pat
         viewport = ViewportSize(width=VIEWPORT_WIDTH, height=VIEWPORT_HEIGHT)
         context = await browser.new_context(viewport=viewport, device_scale_factor=2)
         page = await context.new_page()
+        if site.startswith(("http://127.0.0.1", "http://localhost")):
+            config_body = json.dumps({"assistant_enabled": True, "assistant_bank_version": version})
+            await page.route(
+                "**/public/config",
+                lambda route: route.fulfill(
+                    status=200, content_type="application/json", body=config_body
+                ),
+            )
         url = f"{site.rstrip('/')}/{domain_page(shot.function)}#{shot.function}"
         await page.goto(url, wait_until="networkidle")
         await page.wait_for_selector("#tryitPanel.open")
