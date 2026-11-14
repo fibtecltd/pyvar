@@ -216,6 +216,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Portal: function text shows as text, and the pages fit a phone** — (1) The Try-it panel, the
+  function cards, the search results, the parameter hints and the formula notes put the engine
+  docstring markup on the page raw: ``` ``code`` ``` with its double backticks (266 of the 385
+  functions), `:func:` roles (14), `*emphasis*` stars (20), bullets run into one paragraph, a
+  literal block as a line of prose, and the summary joined to the description by a dash after a full
+  stop. `portal/pyvar.js` now turns that markup into the few elements it stands for (`_catalogueInline`,
+  `_catalogueBlocksHtml`: code, emphasis, paragraphs, lists, a literal block, a `[REGULATORY]` tag),
+  escaping first, so catalogue text can no longer be parsed as HTML (the summary, the display name and the
+  domain label used to be placed in `innerHTML` unescaped). `tests/test_portal_catalogue_text.py` runs it
+  under node against every summary, description, parameter hint and formula note in
+  `portal/functions.json`. The catalogue file is unchanged, so the assistant bank's `catalogue_sha256`
+  still matches. (2) At phone width (390 px) 12 of the 20 pages were wider than the screen: the bar
+  held "by fibtec.co.uk" next to Search and Get API key, the domain pages kept their two-column hero and
+  their three-column card rows, and a few long code names and one diagram had a fixed width. The bar
+  drops the Fibtec link below 600 px, the hero and the inline card grids stack to one column, and the
+  rest is allowed to shrink or wrap; all 20 pages now fit from 360 px up (two pages still
+  overflow by 13 to 26 px at 320 px). Desktop is unchanged.
 - **Portal: every page now links to every page in plain HTML, and the home link is `/`** — Search
   Console showed 15 of the 19 sitemap pages never crawled ("Discovered - currently not indexed") and
   one "alternate page" (`/index.html`). The nav and footer are written by `document.write` scripts,
