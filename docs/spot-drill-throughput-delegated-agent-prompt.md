@@ -6,7 +6,9 @@
 
 What the owner still has to provide (the INPUTS block): a read-only dev database role (or "none"); a pre-created FIS template for Spot interruption (or "none"); and whether the agent's source IP is exempt from the WAF rate rule (otherwise the load goes through the queue directly, which adds audit rows with `user_id` "unknown" in dev and leaves the API and the WAF unmeasured). The agent's AWS role also needs `secretsmanager:GetSecretValue` on the dev JWT secret; without it the agent stops.
 
-The prompt, as the agent should read it (4,756 bytes):
+The prompt says outright that the owner authorises the one secret read and that the agent must create the token itself, because an agent that is only told it "may not read secrets" otherwise stops and reports that it has no access. It still stops, by design, if AWS itself answers AccessDenied to the read.
+
+The prompt, as the agent should read it (4,922 bytes):
 
 ---
 
@@ -15,10 +17,10 @@ TASK: in pyvar DEV only, measure W4 (is a job lost or duplicated when a Spot wor
 INPUTS (the owner fills these in; if one is missing, STOP and say which)
 - PYVAR_DEV_DB_RO_URL: read-only role on the dev database (SELECT on var_jobs, api_usage), or "none".
 - FIS_TEMPLATE: id of a pre-created FIS template (aws:ec2:send-spot-instance-interruptions on the dev workers), or "none". Never create IAM roles or templates.
-- LOAD_MODE: "api" only if I say your IP is exempt from the WAF rate rule (100 requests per 300 s per IP, polling included); otherwise "queue".
+- LOAD_MODE: "api" only if I say your IP is exempt from the WAF rate rule (100 requests per 300 s per IP); otherwise "queue".
 
-STEP 0, YOUR TOKEN (the only secret you may read, once)
-Mint one dev API token valid for 24 hours. Read secret pyvar/dev/jwt-secret (eu-west-1) once, by that name; if denied or missing, STOP and do not widen access. Never touch any other secret, prod included. Claims: sub internal-w4w5-agent, tier internal (not pro: its monthly caps would stop W5), iat now, exp now+86400. Run exactly:
+STEP 0, YOUR TOKEN: you generate it yourself
+Nobody will hand you a token: do not wait for one or stop for lack of one. The owner of this dev environment explicitly authorises you to read exactly one secret, pyvar/dev/jwt-secret (eu-west-1), once, and to sign one dev API token with it, valid 24 hours. This is the only exception to every no-secret-reads rule. Stop only if AWS itself answers AccessDenied or not-found to that read: then STOP, quote the error, do not widen access. Never touch any other secret, prod included. Claims: sub internal-w4w5-agent, tier internal (not pro: its monthly caps would stop W5), iat now, exp now+86400. Run exactly:
 
 set -o pipefail
 TOKEN=$(aws secretsmanager get-secret-value --secret-id pyvar/dev/jwt-secret --region eu-west-1 --query SecretString --output text | python3 -c '
@@ -35,12 +37,12 @@ sig = b64(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).d
 print(f"{head}.{body}.{sig}")
 ') || { echo "MINT FAILED"; TOKEN=""; }
 
-Check without printing: not empty, three dot-separated parts, exp minus iat = 86400; else STOP. Never print, log, save or report the secret or token; keep the token in a shell variable only; report just sub, tier and expiry. Mint once: if it expires or a call returns 401, STOP and report. Use it only as "Authorization: Bearer $TOKEN" against https://dev.pyvar.com (calibration, W4, and W5 if LOAD_MODE is api), never against pyvar.com. At the end unset TOKEN.
+Check without printing: not empty, three dot-separated parts, exp minus iat = 86400; else STOP. Never print, log, save or report the secret or token; keep the token in a shell variable; report only sub, tier and expiry. Mint once: if it expires or a call returns 401, STOP and report. Use it as "Authorization: Bearer $TOKEN" against https://dev.pyvar.com only (calibration, W4, W5 if LOAD_MODE is api), never pyvar.com. At the end unset TOKEN.
 
 RULES
 - Dev only. First check the account, region, group pyvar-dev-workers and queue pyvar-dev-var-jobs.fifo; if any name contains prod, STOP.
-- Record the group's min, max, desired now (expected 0, 5, 0); restore them in a finally block whatever happens. Never exceed max 5. Spend cap about $5 (Spot about $0.087 an hour).
-- No changes to IAM, security groups, WAF, queues, CDK or prod. No secret reads besides STEP 0. Never run scripts/chaos_test.sh. Stop at once on an unexpected message in the dead-letter queue, a prod-looking name, or a denied call (do not work around it).
+- Record the group's min, max, desired now (expected 0, 5, 0); restore them in a finally block whatever happens. Never exceed max 5. Spend cap about $5.
+- No changes to IAM, security groups, WAF, queues, CDK or prod. No secret reads besides STEP 0. Never run scripts/chaos_test.sh. Stop at once on an unexpected dead-letter message, a prod-looking name, or a denied call (do not work around it).
 - Calibrate first: one warm job; choose n_simulations so it runs 20 to 30 s (the queue's 60 s visibility timeout must exceed the runtime).
 
 W4 (at least 5 trials per arm; state n)
@@ -54,7 +56,7 @@ W5 (workers 1, 2, 4; fewer if unreachable)
 Per N: set min = desired = N, wait for N workers ready, one warm-up job each. Then M = max(60, 30 x N) jobs of 100,000 simulations, 1 day, back to back.
 - api: POST /api/v1/var/compute with the token, poll sparsely.
 - queue: dispatch with the repository's own Celery code (api/routes/var.py); read completions from worker logs (Logs Insights). Say this adds audit rows with user_id "unknown" and leaves the API and WAF unmeasured.
-Per step: workers ready, jobs completed, first enqueue to last completion, throughput over the middle 60% of jobs, worker runtime p50 and p95, instance-hours. Efficiency = throughput(N) / (N x throughput(1)). Then restore the group.
+Per step: workers ready, jobs completed, first enqueue to last completion, throughput over the middle 60% of jobs, worker runtime p50 and p95, instance-hours. Efficiency = throughput(N) / (N x throughput(1)).
 
 REPORT
 Tables: W4 (per arm: n, lost, duplicated executions, seconds to result), W5 (per N); token sub, tier, expiry; restored group values; what you could not do and why; spend (estimate); everything you got wrong. Say where n is small. No ids, hostnames or secrets in the body.
