@@ -24,13 +24,23 @@ So the assistant never answers live.
 
 ## What you see
 
-Open any function on the site, for example [Kupiec POF Test](https://www.pyvar.com/domain-market-risk.html#kupiec_pof_test), and open its Try-it panel. Under it are three fixed controls: **What it does**, **When to use it** and a **Compare with…** menu of related functions. Click the first and you get this, word for word:
+Open any function on the site, for example [Kupiec POF Test](https://www.pyvar.com/domain-market-risk.html#kupiec_pof_test), and open its Try-it panel. Under the formula, a box called **About this function** holds three controls: **What it does**, **When to use it** and a **Compare with…** menu of related functions. Click the first and the answer appears in place, word for word from the bank:
 
-> `kupiec_pof_test` (the Kupiec Proportion-of-Failures test) checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies. It runs a likelihood-ratio test of the observed breach rate, `n_breaches` divided by `n_observations`, against the expected rate of one minus `confidence_level`. …
+![The pyvar.com page for the Kupiec POF Test in the Market risk domain, open in its Try-it panel. Under the description and the formula, the About this function box has three controls: What it does, selected, When to use it, and a Compare with menu. Below them is the answer: kupiec_pof_test, the Kupiec Proportion-of-Failures test, checks whether the number of VaR breaches in a backtest is consistent with what your VaR confidence level implies; it runs a likelihood-ratio test of the observed breach rate against the expected rate of one minus confidence_level, compares the statistic with a chi-squared distribution with 1 degree of freedom, uses the 95% critical value, defaults confidence_level to 0.99 and uses a simplified one-sided form when there are no breaches or every observation is a breach. A label under the answer reads From the pyvar catalogue.](./assets/assistant/portal-kupiec-what-it-does.png)
 
-Pick the Basel traffic light in the menu and the comparison ends with this line:
+*Kupiec POF Test on pyvar.com, What it does. The answer is a stored file; nothing was generated when it was clicked.*
 
-> In short, the Kupiec test judges whether the breach rate matches the expected one, while the traffic light sorts a breach count into a zone.
+**When to use it** says which situations a function fits, and names a related function when another one fits better. Here is the Liquidity Coverage Ratio in the Liquidity risk domain:
+
+![The pyvar.com page for the Liquidity Coverage Ratio in the Liquidity risk domain, with the formula for capped inflows, net outflows and the ratio. In the About this function box, When to use it is selected. The answer says the function fits when you want a Basel III short-term liquidity measure and lists four situations: comparing high-quality liquid assets with expected 30-day stressed outflows; having gross outflows and gross inflows and needing inflows capped as BCBS 238 section 69 sets out; testing how a different inflow cap changes the ratio, with a default of 0.75; and reporting or reviewing liquidity coverage. It ends by pointing to net_stable_funding_ratio_nsfr for longer-term funding.](./assets/assistant/portal-lcr-when-to-use-it.png)
+
+*Liquidity Coverage Ratio, When to use it.*
+
+**Compare with…** puts two functions side by side. Here, Risk Parity Portfolio against maximum Sharpe ratio in the Portfolio analytics domain:
+
+![The pyvar.com page for the Risk Parity Portfolio in the Portfolio analytics domain. In the About this function box the Compare with menu has maximum_sharpe_ratio_portfolio selected. The answer says risk parity asks how to spread risk evenly and uses only the covariance matrix, while maximum Sharpe asks which mix gives the best risk-adjusted return and needs mean returns as well; that mean returns only feed a reported Sharpe figure in risk parity; that maximum Sharpe has an allow_short option while risk parity is long-only; and that risk_free and periods_per_year affect only the reported Sharpe in risk parity but feed the objective in maximum Sharpe.](./assets/assistant/portal-risk-parity-compare.png)
+
+*Risk Parity Portfolio, compared with maximum Sharpe ratio.*
 
 There are **1,154 such answers**: 385 for "What it does", 385 for "When to use it" and 384 for "Compare with…". The median is 741 characters.
 
@@ -71,7 +81,7 @@ curl -s https://www.pyvar.com/public/config
 #   "assistant_enabled": true, "assistant_bank_version": "v4-2026-11-09-0dbf72ce"
 
 curl -s https://www.pyvar.com/assistant/bank/v4-2026-11-09-0dbf72ce/kupiec_pof_test.json
-#   the exact answers quoted above (keys: explain, when, compare)
+#   the exact answers shown above (keys: explain, when, compare)
 ```
 
 The whole bank is in the repository under `portal/assistant/bank/`. Count the answers and you get 1,154, with `source` fields of `model` (1,152) and `static` (2). The two reads and the checks behind every number are in `docs/assistant-phase0-results.md`.
@@ -92,4 +102,5 @@ Try it on any function page at [pyvar.com](https://www.pyvar.com).
 - `portal/assistant.js`: what the widget sends and how it fails.
 - `docs/assistant-phase0-results.md`, sections 9.37 and 9.38: the two reads of the bank.
 - `scripts/assistant_read_sheet.py`: draws the sample for a read.
+- `scripts/generate_assistant_screenshots.py`: takes the portal screens above from the live site, after checking that the answer on screen is the committed bank's.
 - The live site, `/public/config` and `/assistant/bank/…`, checked on 2026-11-14.
