@@ -77,6 +77,31 @@ def test_loss_dist_is_sorted(synthetic_returns):
     assert losses == sorted(losses), "Loss distribution must be sorted ascending"
 
 
+@pytest.mark.parametrize("horizon", [1, 10])
+def test_loss_dist_equals_an_independent_numpy_derivation(synthetic_returns, horizon):
+    """The model is loss = -(horizon*mu + sigma*sum of N(0,1) shocks), sorted ascending.
+
+    Re-derived here with plain NumPy from the same seeded draws (no Numba, no engine helpers), so it
+    pins the whole path from shocks to the sorted distribution: the sort moved from a Numba helper to
+    NumPy and the numbers must not have changed. The two agree to rounding, not bit for bit: the
+    engine takes mean and standard deviation inside Numba, which sums in a different order from
+    NumPy and moves the last bits (about 1e-19 on mu and 1e-18 on sigma), so the tolerance is
+    absolute, 1e-15 on losses of order 0.01 (a relative one would blow up on losses near zero).
+    """
+    n, seed = 20_000, 11
+    result = run_monte_carlo_var(
+        synthetic_returns, portfolio_value=1e6, horizon_days=horizon, n_simulations=n, seed=seed
+    )
+    np.random.seed(seed)
+    shocks = np.random.randn(n, horizon)
+    mu, sigma = np.mean(synthetic_returns), np.std(synthetic_returns)
+    expected = np.sort(-(mu + sigma * shocks).sum(axis=1))
+    np.testing.assert_allclose(np.array(result["loss_dist"]), expected, rtol=0.0, atol=1e-15)
+    var_idx = int(np.floor(0.99 * n))
+    assert result["var_pct"] == pytest.approx(round(float(expected[var_idx]), 6), abs=1e-6)
+    assert result["cvar_pct"] == pytest.approx(round(float(expected[var_idx:].mean()), 6), abs=1e-6)
+
+
 def test_deterministic_with_seed(synthetic_returns):
     """Same seed → same result."""
     r1 = run_monte_carlo_var(synthetic_returns, portfolio_value=1e6, n_simulations=10_000, seed=7)

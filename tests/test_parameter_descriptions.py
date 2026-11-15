@@ -182,7 +182,15 @@ def test_the_portal_catalogue_carries_the_same_descriptions() -> None:
 
 def test_the_try_it_panel_shows_the_description_escaped() -> None:
     source = (REPO / "portal" / "pyvar.js").read_text()
-    assert "_escapeHtml(p.description)" in source, "a description must be escaped before it is HTML"
+    # a description goes through the catalogue-text formatter, which escapes it before adding its own tags
+    # (tests/test_portal_catalogue_text.py runs it against every description)
+    assert (
+        "_catalogueInline(p.description)" in source
+    ), "a description must be formatted, and so escaped"
+    body = source[
+        source.index("function _catalogueInline") : source.index("function _catalogueOpenCode")
+    ]
+    assert "_escapeHtml(s)" in body, "the formatter must escape before it adds its own tags"
     assert 'aria-describedby="${hintId}"' in source, "a screen reader should read it with the field"
     assert ".tryit-hint" in (REPO / "portal" / "pyvar.css").read_text()
 

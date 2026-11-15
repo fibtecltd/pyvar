@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scripts/build_medium_html.py — the Medium-ready HTML of an article (streaming, overview).
+"""scripts/build_medium_html.py — the Medium-ready HTML of an article (streaming, overview, assistant).
 
 Reasoning:
 - Medium's editor drops pasted <table> elements, so every markdown table of the article is drawn
@@ -52,6 +52,13 @@ ARTICLES = {
             "streaming-results-measures-table",
             "Measured on dev.pyvar.com",
             [0.40, 0.60],
+        ),
+    },
+    "pyvar-assistant-medium-article": {
+        "Status today": (
+            "assistant-status-table",
+            "The assistant at a glance",
+            [0.30, 0.70],
         ),
     },
     "pyvar-overview-medium-article": {
