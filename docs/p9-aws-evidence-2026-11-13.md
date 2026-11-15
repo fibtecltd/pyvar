@@ -1,6 +1,6 @@
 # AWS evidence for the SWOT integration claim: cost per job and latency (W2, W3), 2026-11-13
 
-**Status: W2 done, W3 done in part, W4 and W5 not run.** Source: a delegated agent in Filippo's environment, working from the prompt in `docs/plan-swot-engineering-integration.md` (section 5, W2 to W5). Its report is the source of every AWS figure below; where this document adds something, it says so. Where a figure was not re-checked against AWS by the author, it is the agent's.
+**Status: W2 done, W3 done in part; W4 and W5 were not run on 2026-11-13 and were run once, in dev, on 2026-11-14 (section 7).** Source: a delegated agent in Filippo's environment, working from the prompt in `docs/plan-swot-engineering-integration.md` (section 5, W2 to W5). Its report is the source of every AWS figure below; where this document adds something, it says so. Where a figure was not re-checked against AWS by the author, it is the agent's.
 
 **Nothing was changed in prod or dev.** The agent's AWS calls were read-only (Cost Explorer, CloudWatch metrics, CloudWatch Logs Insights, Auto Scaling activity history, SQS metrics). It sent no messages, terminated no instance, made no API call to either environment, and did not touch the dev Auto Scaling group (recorded as min 0, max 5, desired 0). Cost Explorer API calls are billed at about $0.01 each; the agent estimates about $0.08 in total (not checked on the bill).
 
@@ -65,7 +65,7 @@ Also: 582 worker launches in 30 days (19.4 a day), 154.6 prod instance-hours, an
 - The instance lifetime of about 18 minutes for a 6-second job is consistent with the scale-in rule in `pyvar-cdk/stacks/compute_stack.py`: capacity follows target tracking on queue depth, and AWS's target tracking waits for a long run of consecutive low readings before it scales in. The agent did not trace this and the author did not test it; it is the first thing to look at if cost per job matters. The agent also saw a constant 304 s launch-activity duration in the Auto Scaling history and did not investigate what sets it.
 - 79 s to a ready worker is in line with the "about 90 s" in the design comment.
 
-## 4. W4 and W5: not run
+## 4. W4 and W5: not run (as of 2026-11-13; both run on 2026-11-14, see section 7)
 
 **W4, Spot interruption drill (dev).** Not run, deliberately. Dev is the Auto Scaling group `pyvar-dev-workers` (min 0, max 5, desired 0) and the queue `pyvar-dev-var-jobs.fifo` (visibility timeout 60 s, three receives before the dead-letter queue; the agent's reading of the live queues). Reasons:
 
@@ -79,9 +79,11 @@ Also: 582 worker launches in 30 days (19.4 a day), 154.6 prod instance-hours, an
 
 ## 5. What the evidence changes in the SWOT plan
 
-Applied to `docs/plan-swot-engineering-integration.md` in the same pull request: the draft wording, the evidence ledger (cost per job, monthly cost, first job after idle, API latency, Spot safety, throughput), the weaknesses, W2 to W5 status and the decisions table. In short: cost is mostly fixed and the variable part is about $0.02 to $0.03 a job, not a fraction of a cent; the first job after idle takes about three minutes at the median and nearly every job is first; the interruption and throughput claims remain unmeasured.
+Applied to `docs/plan-swot-engineering-integration.md` in the same pull request: the draft wording, the evidence ledger (cost per job, monthly cost, first job after idle, API latency, Spot safety, throughput), the weaknesses, W2 to W5 status and the decisions table. In short: cost is mostly fixed and the variable part is about $0.02 to $0.03 a job, not a fraction of a cent; the first job after idle takes about three minutes at the median and nearly every job is first; the interruption and throughput claims remained unmeasured (both were measured on 2026-11-14: section 7).
 
 ## 6. What W4, W5 and per-domain percentiles need (Filippo's decisions)
+
+*Update 2026-11-14: W4 and W5 were run without the pro-tier credential, the database role, the FIS template or an allow-listed load source (section 7 says what that cost the evidence). The agent minted its own 24-hour token with the owner's explicit authorisation. Per-domain percentiles, the dedicated read-only AWS role, the cost-allocation tags and the optional steps are still open.*
 
 | Need | Why | Suggestion |
 | --- | --- | --- |
@@ -97,3 +99,77 @@ Applied to `docs/plan-swot-engineering-integration.md` in the same pull request:
 ## 7. What the agent got wrong along the way (as reported)
 
 It first read the dead-letter queue's attributes for the prod queue and re-read both queues by exact name; a first SQS reconstruction counted zero-minute datapoints as sends and was discarded; its log-query guard let two raw Celery lines through (a boot line with an internal hostname and a task-received line with a task id, neither a secret nor personal data) and was fixed. Its intermediate files are in `/tmp/w3` and `/tmp/ce_*.json` in its own environment, with timestamps and instance ids and no secrets, and are not in this repository.
+
+## 7. W4 and W5, run on 2026-11-14
+
+**Status: both run once, in dev only, as a first pass.** Source: a second delegated agent, working from `docs/spot-drill-throughput-delegated-agent-prompt.md` (same pull request). Its report is the source of every figure in this section. Its raw output is on its own machine (`/tmp/w4w5`) and is not in the repository, and the author has not re-checked any figure against AWS. Where this section adds something, it says so (the sub-section "Checked against the code").
+
+**Scope.** Dev only; nothing in prod; no change to IAM, security groups, WAF, queues or CDK. The Auto Scaling group `pyvar-dev-workers` was pinned (min = max = desired = N, never above 5) during W5 and ended at its recorded values, min 0, max 5, desired 0, with no instances and an empty queue and dead-letter queue; the scaling policy raised desired back to 1 on its own after several restores (alarm lag) and it returned to 0 each time. Estimated spend: 21 Spot instances, 1.42 instance-hours, about $0.12, plus under $0.05 for everything else (the agent's estimate; not checked on the bill).
+
+**Settings of this pass:** no database access, no FIS template, load through the queue and not the API. So there are no `var_jobs` row counts, no arm with a real 2-minute Spot notice, and W5 measures neither the API nor the WAF.
+
+**The token.** With the owner's explicit authorisation the agent read the dev JWT signing secret once and signed one token: `sub` `internal-w4w5-agent`, tier `internal`, issued 2026-11-14 17:50:14 UTC, expiring 2026-11-15 17:50:14 UTC. It cannot be revoked before then (rotating the dev secret is the only way). Per the agent it was held in memory in one local process, forwarded only to the dev API, and never printed or stored; a scan found it in no file.
+
+### Calibration
+
+A 20 to 30 s job was not reachable with the parameters the API accepts.
+
+| Settings | Warm runtime |
+| --- | --- |
+| n = 100,000, 1 day | 0.16 to 0.27 s |
+| n = 500,000, 1 day | 0.29 s |
+| n = 500,000, 50 days | 0.86 s |
+| n = 500,000, 125 days | 1.78 s |
+| n = 500,000, 250 days | 3.27, 3.28, 3.30 s |
+
+The agent used n = 500,000 and `horizon_days` = 250 (about 3.28 s warm), the longest job the API accepts. The first job on a fresh worker takes 4.6 to 4.8 s because of JIT compilation. Each W4 job had a unique portfolio value with the same seed, because the API's result cache answers identical requests without running anything; the expected result was computed once, and the percentages, mu, sigma and n match exactly across jobs.
+
+### W4: is a job lost or duplicated when the worker dies mid-job?
+
+| Arm | n (valid) | Lost | Duplicated executions | Seconds to result |
+| --- | --- | --- | --- | --- |
+| A: hard kill (`ec2 terminate-instances`) | 5 | 5 | 0 seen | no result: the API reports failure at 10.3 to 10.4 s |
+| B: graceful (Auto Scaling terminate, drain hook) | 5 | 0 | 0 (received once, succeeded once, each) | 10.3 to 10.5 s |
+
+- **Arm A:** every job was reported as failed, with "Worker exited prematurely: signal 15 (SIGTERM)". None was redelivered, and the queue and the dead-letter queue were empty afterwards. A client polling sees a quick failure, not a hang. The dying instance shipped no log lines, so "0 duplicated" means none visible. A replacement worker was ready 60 to 194 s after the kill.
+- **Arm B:** all 5 jobs finished once on the original worker, about 1.9 s after the terminate call, and all 5 results equal the expected one. The replacement was ready 86 to 111 s after the call.
+- **Timing:** every kill landed 1.31 to 1.32 s after the queue showed the job in flight, which is 40% of 3.28 s, measured from the queue and not from the log line (the log lags by several seconds, longer than the whole job). "Seconds to result" is limited by the agent's polling (about 6 s).
+- **Small and narrow:** n = 5 per arm, one kill timing. A discarded first run had a second hard kill at 1.71 s after in-flight; that job was redelivered and succeeded and is not counted. So "5 of 5 lost" applies to kills at about 1.3 s, and the data cannot say how often a hard kill loses a job in general.
+- **Not tested:** the real 2-minute Spot notice (arm C needs a FIS template; none was supplied).
+
+### W5: throughput against the number of workers (queue mode)
+
+| N | Jobs completed | First enqueue to last completion | Throughput, middle 60% | Worker runtime p50 / p95 | Instance-hours | Efficiency |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 60/60 | 10.2 s | 352 jobs/min | 0.154 / 0.186 s | 0.019 | 1.00 |
+| 2 | 60/60 | 11.0 s | 364 jobs/min | 0.152 / 0.190 s | 0.054 | 0.52 |
+| 4 | 120/120 | 27.0 s | 251 jobs/min | 0.152 / 0.195 s | 0.151 | 0.18 |
+
+- Workers were ready after 42, 76 and 81 s for N = 1, 2 and 4. The group was pinned at N each step, because otherwise the queue-depth scaling policy would have added workers.
+- **Serial execution:** measured from true execution intervals, no two jobs overlapped at any step. The gap between consecutive jobs was about 11 to 12 ms, and jobs were spread about evenly across workers but never ran at the same moment. Throughput is therefore about 1 / (0.152 + 0.011 s), roughly 6 jobs per second, whatever N is, and N = 4 is lower.
+- **Job size:** the jobs take about 0.15 s, so this measures the queue path, not CPU scaling.
+- **Small:** one run per N, each over a window of 10 to 27 s. The agent dispatched with kombu 5.7.0; the API's own kombu version may differ.
+- The agent's report says queue mode "added about 251 `var_jobs` rows with user_id 'unknown'" and that jobs above 10,000 simulations wrote an estimated 300 or so result objects to the dev S3 bucket. The first statement is probably wrong (see below); the second was not verified.
+
+### Checked against the code (author; not part of the agent's report)
+
+All at release `c52e056`, the code running in dev.
+
+- **Why arm A lost its jobs.** `tasks/var_task.py` sets `task_acks_late=True` and nothing sets `task_reject_on_worker_lost`. In Celery 5.6.3's `Request.on_failure` (read in the installed source, not run), a task whose worker process is lost is acknowledged and marked failed unless `reject_on_worker_lost` is set, even with late acknowledgement. That fits "signal 15, failed, not redelivered". The deployed Celery version was not checked (`requirements.txt` has `celery>=5.3.6`).
+- **Why throughput did not rise.** kombu's SQS transport (5.6.2 here) sends `MessageGroupId` "default" when a message carries none (`kombu/transport/SQS.py`), and no `MessageGroupId` is set anywhere in the repository. A FIFO queue releases one in-flight message per group, so every job would run one at a time whatever the worker count, which matches the serial execution. `pyvar-cdk/stacks/queue_stack.py` says Celery uses the task name as the group; kombu's code says otherwise. This is a hypothesis: the agent did not read queue messages (receiving them changes their receive counts), and the deployed image's kombu version was not checked. If it holds, API-submitted jobs are serialised too.
+- **Sentry errors during W5.** Two events (dev, 2026-11-14 18:41:10 and 18:41:22 UTC, release `c52e056`): `IntegrityError ... null value in column "portfolio_value" of relation "var_jobs"`. Queue-mode jobs have no submission row, so the worker's fallback INSERT ran, and it left out four NOT NULL columns, so the database refused it. The jobs themselves succeeded. This is fixed in this pull request (`tasks/var_task.py`, `tests/test_var_task.py`). Consequence: queue-mode jobs most likely wrote no `var_jobs` rows at all (inferred from the code and the events; the row count was not checked, since there was no database access). The failed write ran inside each job after the timed engine call, so it may account for part of the 11 to 12 ms gap; it cannot explain jobs never overlapping.
+
+### What the agent reported getting wrong
+
+- A first POST with a 12.5 KB body was blocked by the managed 8 KB body-size WAF rule. The agent confirmed that from read-only WAF samples, shrank the body to about 3 KB and continued, without touching the origin secret or the WAF. This was a judgement call against the prompt's rule to stop on a denied call.
+- A second identical request was answered from the API cache; each request was then made unique.
+- The first W4 driver classified trials from the victim's logs (lost after a fast kill) and would have picked arm A forever; it was stopped and its two trials discarded into a separate file. An interrupt was sent to three processes, one of them the agent's own tool call; no harm followed.
+- An equality tolerance of 1e-9 was too tight for cent-rounded amounts and was changed to 1e-6.
+- Trial 8 started on an instance that had just been killed (the group still listed it as in service); its job ran normally on the replacement, and an EC2 running check was added.
+- The first W5 driver counted two jobs "executing at once" at N = 2 and N = 4 from the "received" log line; from execution intervals the figure is 1.
+
+### What this changes, and what is open
+
+- **Spot safety:** graceful termination held (5 of 5); an abrupt loss of the worker lost the job and reported it failed (5 of 5, one timing); a real Spot notice was not tested. These statements say or imply that late acknowledgement makes an interrupted Spot instance's job only delayed: `CLAUDE.md` 3.2, `portal/guide-technical-deepdive.html` (line 92), `docs/publications/pyvar-technical-deepdive-medium-article.md` (line 79) and the comment at `pyvar-cdk/stacks/compute_stack.py` line 429. They are **not changed** in this pull request: the right wording depends on the decision below.
+- **Decisions for the owner, open:** (1) set `task_reject_on_worker_lost` so an abruptly lost job is redelivered (the trade is possible redelivery loops and double execution, which the visibility timeout and the job's determinism limit); (2) give each message its own group id so jobs can run in parallel, after confirming the deployed kombu version and the cause; (3) then correct the four texts above and re-run W4 and W5.
+- **A second pass would add:** a read-only role on `var_jobs`/`api_usage` (row counts, duplicate check), a FIS template (the real 2-minute notice), an allow-listed source (API-mode load, which also measures the WAF), several kill timings and a larger n.

@@ -17,6 +17,10 @@ Reasoning:
   NOT write a terminal audit status, only the final success/failure does —
   the guarantee that keeps Celery retries (same task_id, up to max_retries)
   from producing duplicate or flapping audit rows.
+- The INSERT fallback of _write_terminal_audit is ALSO run against a real in-memory SQLite
+  table (the pattern of tests/test_api_keys.py): the bug it guards against (dev, 2026-11-14)
+  was an INSERT that left out NOT NULL columns, which a fake session cannot notice because
+  only the database enforces the constraint.
 - write_result_to_s3 (storage/s3.py) is mocked at its tasks.var_task import
   site — never a real S3/MinIO call, same never-hit-a-real-backing-service
   rule.
@@ -28,9 +32,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from celery.exceptions import Retry
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import tasks.var_task as var_task_module
 from config import get_settings
+from storage.models import Base, VaRJob
 from tasks.var_task import _publish_job_event, _write_terminal_audit, compute_var_task
 
 cfg = get_settings()
@@ -131,15 +140,113 @@ def test_write_terminal_audit_success_updates_existing_row():
 
 def test_write_terminal_audit_missing_row_falls_back_to_insert():
     """If no submission row exists (should not happen on the normal path),
-    the completion write still lands rather than being silently lost."""
+    the completion write still lands rather than being silently lost — with the
+    request columns (NOT NULL in var_jobs) taken from the task payload."""
     fake_session = FakeSyncSession(update_rowcount=0)
     with patch_sync_sessionmaker(fake_session):
-        _write_terminal_audit("task-2", "failure", duration_ms=500, error_message="boom")
+        _write_terminal_audit(
+            "task-2", "failure", duration_ms=500, error_message="boom", payload=PAYLOAD
+        )
 
     assert fake_session.committed is True
     assert len(fake_session.added) == 1
-    assert fake_session.added[0].task_id == "task-2"
-    assert fake_session.added[0].user_id == "unknown"
+    row = fake_session.added[0]
+    assert row.task_id == "task-2"
+    assert row.user_id == "unknown"
+    assert row.portfolio_value == 1_000_000.0
+    assert row.n_simulations == 1000
+    # Not in PAYLOAD: the same defaults compute_var_task hands the engine.
+    assert row.confidence_level == 0.99
+    assert row.horizon_days == 1
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [None, {}, {"returns": [0.001] * 30}, {"portfolio_value": None}, {"portfolio_value": "n/a"}],
+    ids=["none", "empty", "no-portfolio-value", "null-portfolio-value", "non-numeric"],
+)
+def test_write_terminal_audit_missing_row_without_usable_payload_inserts_nothing(payload, caplog):
+    """Without a portfolio_value the NOT NULL columns cannot be filled, so no INSERT is
+    attempted (it could only fail); the gap is logged as an error and nothing is raised."""
+    fake_session = FakeSyncSession(update_rowcount=0)
+    with caplog.at_level("ERROR", logger="tasks.var_task"), patch_sync_sessionmaker(fake_session):
+        _write_terminal_audit(
+            "task-4", "success", duration_ms=5, result=MOCK_RESULT, payload=payload
+        )
+
+    assert fake_session.added == []
+    assert any("cannot supply the request columns" in r.getMessage() for r in caplog.records)
+
+
+# ── _write_terminal_audit against a real table ───────────────────────────────
+
+
+@pytest.fixture
+def real_var_jobs():
+    """A real (in-memory SQLite) var_jobs table behind the sync sessionmaker the task uses."""
+    engine = create_engine(
+        "sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
+    )
+    Base.metadata.create_all(engine, tables=[VaRJob.__table__])
+    maker = sessionmaker(engine, expire_on_commit=False)
+    with patch("tasks.var_task.get_sync_sessionmaker", return_value=maker):
+        yield maker
+    engine.dispose()
+
+
+def test_var_jobs_refuses_a_row_without_the_request_columns(real_var_jobs):
+    """Why _submission_columns exists: the table rejects the row the fallback used to build."""
+    with real_var_jobs() as session:
+        session.add(VaRJob(task_id="task-5", user_id="unknown", status="success"))
+        with pytest.raises(IntegrityError, match="NOT NULL"):
+            session.commit()
+
+
+def test_fallback_insert_is_accepted_by_the_real_table(real_var_jobs):
+    """Regression (Sentry, dev 2026-11-14): a task queued without the API has no submission
+    row; the completion write must create one that the database accepts."""
+    _write_terminal_audit("task-6", "success", duration_ms=116, result=MOCK_RESULT, payload=PAYLOAD)
+
+    with real_var_jobs() as session:
+        row = session.execute(select(VaRJob).where(VaRJob.task_id == "task-6")).scalar_one()
+    assert (row.user_id, row.tier, row.status) == ("unknown", "free", "success")
+    assert (row.portfolio_value, row.n_simulations) == (1_000_000.0, 1000)
+    assert (row.confidence_level, row.horizon_days) == (0.99, 1)
+    assert (row.var_pct, row.var_abs, row.duration_ms) == (0.028, 28_000.0, 116)
+    assert row.completed_at is not None
+
+
+def test_a_submission_row_is_updated_not_duplicated(real_var_jobs):
+    """The normal path: the API's pending row is updated in place, and the payload plays no part."""
+    with real_var_jobs() as session:
+        session.add(
+            VaRJob(
+                task_id="task-7",
+                user_id="u-1",
+                tier="pro",
+                status="pending",
+                portfolio_value=5.0,
+                n_simulations=2000,
+                confidence_level=0.95,
+                horizon_days=10,
+            )
+        )
+        session.commit()
+
+    _write_terminal_audit("task-7", "success", duration_ms=9, result=MOCK_RESULT, payload=PAYLOAD)
+
+    with real_var_jobs() as session:
+        rows = session.execute(select(VaRJob)).scalars().all()
+    assert len(rows) == 1
+    assert (rows[0].user_id, rows[0].tier, rows[0].status) == ("u-1", "pro", "success")
+    assert (rows[0].portfolio_value, rows[0].horizon_days) == (5.0, 10)  # untouched
+
+
+def test_missing_row_and_no_payload_leaves_the_table_empty(real_var_jobs):
+    _write_terminal_audit("task-8", "failure", duration_ms=1, error_message="boom")  # no raise
+
+    with real_var_jobs() as session:
+        assert session.execute(select(func.count()).select_from(VaRJob)).scalar_one() == 0
 
 
 def test_write_terminal_audit_db_error_is_swallowed():
@@ -177,6 +284,28 @@ def test_compute_var_task_success_writes_terminal_audit_once():
     assert isinstance(duration_ms, int) and duration_ms >= 0
     assert len(fake_session.executed) == 1
     mock_self.retry.assert_not_called()
+
+
+def test_compute_var_task_passes_its_payload_to_the_audit_write():
+    """The INSERT fallback needs the payload; both terminal paths must hand it over."""
+    with (
+        patch("engine.montecarlo.run_monte_carlo_var", return_value=MOCK_RESULT),
+        patch("tasks.var_task._emit_job_metric"),
+        patch("tasks.var_task._publish_job_event"),
+        patch("tasks.var_task._write_terminal_audit") as audit,
+    ):
+        raw_task_run(make_mock_self(), payload=PAYLOAD)
+    assert audit.call_args.kwargs["payload"] is PAYLOAD
+
+    with (
+        patch("engine.montecarlo.run_monte_carlo_var", side_effect=ValueError("permanent")),
+        patch("tasks.var_task._emit_job_metric"),
+        patch("tasks.var_task._publish_job_event"),
+        patch("tasks.var_task._write_terminal_audit") as audit,
+        pytest.raises(ValueError, match="permanent"),
+    ):
+        raw_task_run(make_mock_self(retries=2, max_retries=2), payload=PAYLOAD)
+    assert audit.call_args.kwargs["payload"] is PAYLOAD
 
 
 def test_compute_var_task_mid_retry_does_not_write_terminal_audit():

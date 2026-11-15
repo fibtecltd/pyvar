@@ -216,6 +216,17 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Worker: the `var_jobs` completion write works when the job has no submission row** — When a task is
+  put on the queue without going through the API (a load test, a replay), the worker finds no `pending`
+  row to update and falls back to inserting one (`tasks/var_task.py`, `_write_terminal_audit`). That
+  insert left out `portfolio_value`, `n_simulations`, `confidence_level` and `horizon_days`, which are
+  `NOT NULL`, so the database refused it every time: the job itself succeeded, but its completion was
+  never recorded and Sentry got a "var_jobs completion audit write failed" error for each such job (seen
+  in dev during the throughput run of 2026-11-14). The fallback now fills those four columns
+  from the task payload, with the defaults the engine call uses, and when the payload has no usable
+  `portfolio_value` it logs that plainly instead of attempting an insert that cannot succeed. The path
+  through the API is unchanged, since the API writes the row first. The old test used a fake session and
+  could not see the constraint; the fallback is now also run against a real in-memory table.
 - **Portal: function text shows as text, and the pages fit a phone** — (1) The Try-it panel, the
   function cards, the search results, the parameter hints and the formula notes put the engine
   docstring markup on the page raw: ``` ``code`` ``` with its double backticks (266 of the 385

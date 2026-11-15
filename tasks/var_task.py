@@ -101,7 +101,37 @@ def _emit_job_metric(metric_name: str, dimensions: list[dict[str, str]]) -> None
 # Celery preserves self.request.id across self.retry() calls, so every retry
 # of one job targets the same row — no duplicate audit rows are possible by
 # construction. The INSERT fallback below only fires if the row is missing
-# (defensive; should not happen once the submission write path is live).
+# (defensive; should not happen once the submission write path is live — it
+# does happen when a task is put on the queue without going through the API,
+# e.g. a load test). It fills var_jobs' NOT NULL request columns from the task
+# payload; before that it inserted a row without them, which the database
+# always refused, so a missing row was never recorded (dev, 2026-11-14).
+
+
+def _submission_columns(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    """The NOT NULL request-parameter columns of a var_jobs row, read from a task payload.
+
+    Mirrors the submission-side INSERT in api/routes/var.py. The defaults are the ones
+    compute_var_task passes to the engine, so the row records what was actually run.
+
+    Args:
+        payload: The task's payload dict (a VaRRequest as a dict), or None.
+
+    Returns:
+        portfolio_value, n_simulations, confidence_level and horizon_days, or None when the
+        payload is missing or has no usable portfolio_value (the one field with no default).
+    """
+    if not payload:
+        return None
+    try:
+        return {
+            "portfolio_value": float(payload["portfolio_value"]),
+            "n_simulations": int(payload.get("n_simulations", cfg.default_n_simulations)),
+            "confidence_level": float(payload.get("confidence_level", 0.99)),
+            "horizon_days": int(payload.get("horizon_days", 1)),
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def _write_terminal_audit(
@@ -111,6 +141,7 @@ def _write_terminal_audit(
     duration_ms: int,
     result: dict[str, Any] | None = None,
     error_message: str | None = None,
+    payload: dict[str, Any] | None = None,
 ) -> None:
     """Best-effort UPDATE of the var_jobs row for task_id to its terminal state.
 
@@ -127,6 +158,9 @@ def _write_terminal_audit(
         result: VaRResult dict (success only) — scalar fields are persisted,
             loss_dist is not (see VaRJob's inline-scalars-only design).
         error_message: Exception string (failure only).
+        payload: The task's payload. Used only by the INSERT fallback, to fill the NOT NULL
+            request columns (portfolio_value, n_simulations, confidence_level, horizon_days)
+            when no submission row exists.
     """
     values: dict[str, Any] = {
         "status": status,
@@ -154,8 +188,18 @@ def _write_terminal_audit(
                 # user_id is unknown here (the task payload carries compute
                 # inputs only, not the caller identity — see the module note
                 # on why tier isn't propagated either); "unknown" flags this
-                # as the defensive fallback path, not a real audit gap.
-                session.add(VaRJob(task_id=task_id, user_id="unknown", **values))
+                # as the defensive fallback path, not a real audit gap. The
+                # request columns are NOT NULL, so they come from the payload;
+                # without them the insert cannot succeed, so say so instead.
+                columns = _submission_columns(payload)
+                if columns is None:
+                    logger.error(
+                        "var_jobs has no submission row and the task payload cannot supply "
+                        "the request columns to create one — completion not recorded",
+                        extra={"task_id": task_id, "status": status},
+                    )
+                else:
+                    session.add(VaRJob(task_id=task_id, user_id="unknown", **columns, **values))
             session.commit()
     except Exception:  # noqa: BLE001 — audit write must never crash the worker
         logger.error(
@@ -350,6 +394,7 @@ def compute_var_task(self: Task, payload: dict) -> dict:
             "success",
             duration_ms=duration_ms,
             result=result,
+            payload=payload,
         )
         _publish_job_event(task_id, "success")
         return result
@@ -373,6 +418,7 @@ def compute_var_task(self: Task, payload: dict) -> dict:
                 "failure",
                 duration_ms=int((time.perf_counter() - started) * 1000),
                 error_message=str(exc),
+                payload=payload,
             )
             _publish_job_event(task_id, "failure")
             raise exc
