@@ -89,6 +89,11 @@ Exit codes: 0 done, 2 refused by a guard or bad arguments, 3 the secret could no
 
 **What it cannot do.** A token cannot be revoked before it expires; the ledger tells you what is
 outstanding, and rotating the secret is the only emergency stop (section 2). Tier `internal` is meant for
-Fibtec's own tools, tests and load runs. A token is not tied to a person or an account, so it is the wrong
-thing to give to a third party: for them the right tool is an account-bound, revocable, finite-tier API
-key, which needs a design of its own (the access-request and plugin key proposals).
+Fibtec's own tools, tests and load runs. It is also the only credential the service-only routes check:
+`/internal/suppress-email` and `/internal/token-report` test nothing but `tier == "internal"`
+(`api/routes/internal.py:57` and `:98`), and the authentication in front of them accepts API keys as well
+as session tokens (`api/middleware/auth.py:155`, the tier of a key read from the database). Anyone holding
+an `internal` token, or an API key on an account whose tier is `internal`, can mark any e-mail address as
+suppressed and so stop sign-in links reaching it. A token is not tied to a person or an account, so it is
+the wrong thing to give to a third party: for them the right tool is an account-bound, revocable,
+finite-tier API key (`docs/plan-academic-access.md`, `docs/plan-anonymous-plugin-keys.md`).

@@ -276,7 +276,11 @@ def run_mint(args: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     if args.tier == "internal":
-        print("Tier internal bypasses every quota: keep it to Fibtec's own tools.", file=sys.stderr)
+        print(
+            "Tier internal bypasses every quota AND may call the service-only /internal routes "
+            "(for example suppressing an e-mail address): keep it to Fibtec's own tools.",
+            file=sys.stderr,
+        )
     return 0
 
 
