@@ -222,6 +222,17 @@ def _record_deployed_hash_step(
 # deletes UNTAGGED images after 30 days, so a $SHORT_SHA tag from an
 # arbitrarily old commit remains pullable indefinitely.
 _IMAGE_RELEVANT_PATHS = _PORTAL_RELEVANT_PATHS + ("portal",)
+# Images kept in each API repository (the newest by push time, tagged or not). The repositories are not CDK
+# resources (api_stack.py imports them), so the pipeline sets this policy itself on every image build. A tag that
+# falls out of the newest ECR_KEEP_NEWEST can no longer be pulled: keep the prod approval within that many builds.
+_ECR_KEEP_NEWEST = 30
+_ECR_LIFECYCLE_POLICY = (
+    '{"rules":[{"rulePriority":1,"description":"Keep the newest '
+    + str(_ECR_KEEP_NEWEST)
+    + ' images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":'
+    + str(_ECR_KEEP_NEWEST)
+    + '},"action":{"type":"expire"}}]}'
+)
 _IMAGE_HASH_SSM_PARAM = "/pyvar/pipeline/last-image-relevant-hash"
 _IMAGE_TAG_SSM_PARAM = "/pyvar/pipeline/last-image-tag"
 
@@ -318,6 +329,16 @@ def _image_build_commands(cfg: PyvarConfig, dev_ecr_uri: str, prod_ecr_uri: str)
             f"{body_reuse}\nelse\n{body_build}\nfi"
         ),
         "set +e",
+        # Keep the newest _ECR_KEEP_NEWEST images in each repository. Deliberately OUTSIDE the set -e block above
+        # and on every execution (also when the image is reused): a policy that cannot be set must never block a
+        # deploy, and the run that first carries this change reuses the image the previous run built. put replaces
+        # the policy, so repeating it is harmless.
+        f"aws ecr put-lifecycle-policy --repository-name pyvar-dev-api --region {cfg.region} "
+        f"--lifecycle-policy-text '{_ECR_LIFECYCLE_POLICY}' "
+        '|| echo "WARNING: could not set the ECR lifecycle policy on pyvar-dev-api"',
+        f"aws ecr put-lifecycle-policy --repository-name pyvar-prod-api --region {cfg.region} "
+        f"--lifecycle-policy-text '{_ECR_LIFECYCLE_POLICY}' "
+        '|| echo "WARNING: could not set the ECR lifecycle policy on pyvar-prod-api"',
     ]
 
 
@@ -1122,6 +1143,7 @@ class PipelineStack(Stack):
                     "ecr:UploadLayerPart",
                     "ecr:CompleteLayerUpload",
                     "ecr:BatchGetImage",
+                    "ecr:PutLifecyclePolicy",
                 ],
                 resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-dev-api"],
             )
@@ -1142,6 +1164,7 @@ class PipelineStack(Stack):
                     "ecr:UploadLayerPart",
                     "ecr:CompleteLayerUpload",
                     "ecr:BatchGetImage",
+                    "ecr:PutLifecyclePolicy",
                 ],
                 resources=[f"arn:aws:ecr:{cfg.region}:{cfg.account}:repository/pyvar-prod-api"],
             )

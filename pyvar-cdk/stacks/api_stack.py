@@ -16,8 +16,9 @@ Reasoning:
 - Target-tracking auto-scaling at 60% CPU: if average CPU across tasks
   exceeds 60%, Fargate adds tasks. 60% leaves headroom for traffic spikes
   without over-provisioning.
-- The ECR lifecycle policy deletes untagged images older than 30 days
-  to prevent runaway storage costs from CI/CD pipelines.
+- The ECR repositories are not created here. The pipeline's image step creates them and sets a lifecycle
+  policy that keeps the newest 30 images (pipeline_stack.py, _ECR_LIFECYCLE_POLICY), so storage does not grow
+  with every deploy.
 - Two ALB listeners:
     • HTTPS:443 — ACM cert for pyvar.com; TLS termination for direct clients.
       Default-denies all traffic (403) since CloudFront, not browsers, is the

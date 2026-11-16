@@ -1,8 +1,8 @@
 """tests/test_cdk_aurora_floor.py — prod's Aurora minimum capacity is 0.5 ACU, and the prod writer's CPU is watched.
 
 Reasoning:
-- Both prod instances sat at the capacity floor in 99.3% to 99.5% of the 1,118 hours from 2026-10-01
-  (docs/p9-aws-evidence-2026-11-13.md, section 10), so the floor is what is billed. pyvar-cdk/config.py
+- Over the 14 days to 2026-11-16 the two prod instances averaged 1.01 and 1.02 ACU
+  (docs/p9-aws-evidence-2026-11-13.md, section 12), so the floor is what is billed. pyvar-cdk/config.py
   lowers prod's `aurora_min_acu` from 1.0 to 0.5, the value dev has always run. The change is measured
   before and after (docs/plan-aurora-floor-measurement.md) and rolls back by setting 1.0 again.
 - data_stack.py adds a writer CPU alarm in prod only. The alerts topic belongs to alerts_stack and is

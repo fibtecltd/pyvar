@@ -207,9 +207,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- **Prod's Aurora minimum capacity is 0.5 ACU, not 1.0, and the prod writer's CPU is watched** — Both prod
-  instances sat at the capacity floor in 99.3% to 99.5% of the 1,118 hours from 2026-10-01, so the floor is what
-  is billed (about $51 a month per instance at 0.5). `aurora_min_acu` for prod in `pyvar-cdk/config.py` goes from
+- **The API image repositories keep their newest 30 images** — Nothing set a lifecycle policy on `pyvar-dev-api`
+  or `pyvar-prod-api` (the prod repository held 157 images; the `api_stack.py` docstring described a policy that did
+  not exist). The repositories are created outside CDK, so the pipeline's image step now runs
+  `aws ecr put-lifecycle-policy` for both on every image build (keep the newest 30, tagged or not), and the Synth
+  role gains `ecr:PutLifecyclePolicy` on both. A tag older than the newest 30 builds can no longer be pulled, so the
+  prod approval must not fall more than 30 image builds behind. Test: `tests/test_cdk_ecr_lifecycle.py`. The
+  pipeline updates itself first and restarts once (not verified for this change).
+- **The home page no longer shows "99.97% uptime"** — it was fixed text with no source anywhere in the repository
+  (the Terms disclaim availability). Test: `tests/test_portal_no_uptime_claim.py`.
+- **Prod's Aurora minimum capacity is 0.5 ACU, not 1.0, and the prod writer's CPU is watched** — Over the 14 days to
+  2026-11-16 the two prod instances averaged 1.01 and 1.02 ACU (about $208 a month against $204 pinned at 1.0), so the
+  floor is what is billed (about $51 a month per instance at 0.5). `aurora_min_acu` for prod in `pyvar-cdk/config.py` goes from
   1.0 to 0.5, the value dev has always run; the maximum (16) is unchanged and prod keeps its reader as the
   failover target. `DataStack` adds an alarm in prod only (`pyvar-prod-aurora-writer-cpu`: writer CPU at or above
   85% for 15 minutes, a placeholder). Measured before and after with a read-only prompt, with rollback rules, in
@@ -232,6 +241,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The API and the workers use the same celery, kombu and their dependencies** — `requirements.txt` pinned
+  `celery>=5.3.6` and nothing else on the message path, so the API image built on 2026-11-15 took kombu 5.7.0 and
+  celery 5.7.0 while the worker AMIs (dev 2026-07-10, prod 2026-08-08) kept kombu 5.6.2 and celery 5.6.3
+  (read from the build logs; `docs/p9-aws-evidence-2026-11-13.md`, section 11). celery 5.6.3, kombu 5.6.2,
+  billiard 4.2.4, amqp 5.3.1 and vine 5.1.0 are now pinned to the workers' versions. The matching pins in
+  `pyvar-cdk/stacks/ami_stack.py` wait for an intended AMI bake: changing that file starts a prod bake. Test:
+  `tests/test_requirements_message_path_pins.py`. Merging rebuilds the API image, so it starts a pipeline run.
 - **A job whose worker is lost is retried once, not failed** — With late acknowledgement alone, Celery
   acknowledges the task of a worker process that is lost mid-job (a SIGTERM during an instance's shutdown, an
   out-of-memory kill) and marks it failed. The dev drill of 2026-11-14 lost 5 of 5 jobs that way, though a
