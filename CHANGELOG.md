@@ -9,6 +9,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Aurora reader is one flag per environment** — `aurora_reader_enabled` in `pyvar-cdk/config.py`
+  (default true) decides whether `DataStack` builds the cluster's serverless reader. Only `dev` sets it
+  false. Reason: a reader bills the cluster's minimum capacity all month and the application connects
+  only to the cluster (writer) endpoint. `cdk synth` before and after, this flag alone: the dev data stack loses
+  `AuroraReader` and nothing else; prod and every other stack are byte-identical. Prod keeps its
+  reader, which is also its failover target. Test: `tests/test_cdk_aurora_reader_flag.py`.
+
 - **Portal assistant: typed-question gateway (off)** — `POST /api/v1/assistant/ask` (`api/assistant/`),
   registered but inert: it answers 503 `assistant_disabled` unless `assistant_enabled` and the new
   `assistant_typed_enabled` are both true, and the second is false everywhere. When on: anonymous
@@ -200,6 +207,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Prod's Aurora minimum capacity is 0.5 ACU, not 1.0, and the prod writer's CPU is watched** — Both prod
+  instances sat at the capacity floor in 99.3% to 99.5% of the 1,118 hours from 2026-10-01, so the floor is what
+  is billed (about $51 a month per instance at 0.5). `aurora_min_acu` for prod in `pyvar-cdk/config.py` goes from
+  1.0 to 0.5, the value dev has always run; the maximum (16) is unchanged and prod keeps its reader as the
+  failover target. `DataStack` adds an alarm in prod only (`pyvar-prod-aurora-writer-cpu`: writer CPU at or above
+  85% for 15 minutes, a placeholder). Measured before and after with a read-only prompt, with rollback rules, in
+  `docs/plan-aurora-floor-measurement.md`. `cdk synth` against master: the prod data stack changes `MinCapacity`
+  1 to 0.5 and gains the alarm, nothing else. Merging starts a pipeline run; the prod change waits at the manual
+  approval. Tests: `tests/test_cdk_aurora_floor.py`.
 - **Portal assistant menus are on in prod** — `assistant_enabled` is now true in the "prod" override of `pyvar-cdk/config.py` as
   well as "dev", so the prod API container gets `ASSISTANT_ENABLED=true` and the portal shows the "What it does / When to use it /
   Compare with" buttons from the committed bank (1,154 answers, `v4-2026-11-09-0dbf72ce`). No model is called when a visitor clicks
@@ -216,6 +232,33 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **A job whose worker is lost is retried once, not failed** — With late acknowledgement alone, Celery
+  acknowledges the task of a worker process that is lost mid-job (a SIGTERM during an instance's shutdown, an
+  out-of-memory kill) and marks it failed. The dev drill of 2026-11-14 lost 5 of 5 jobs that way, though a
+  gracefully drained worker finished all 5. `task_reject_on_worker_lost` is now on (`tasks/var_task.py`), so
+  the task is requeued instead; kombu's SQS transport requeues the same message, so its receive count carries
+  on, and the queue's receive limit (`queue_dlq_max_receive_count`, `pyvar-cdk/config.py`) goes from 3 to 2:
+  the first delivery plus one retry, then the dead-letter queue, so a job that keeps killing its worker is
+  tried twice and not looped. Tests pin both settings and kombu's requeue behaviour
+  (`tests/test_cdk_queue_retry.py`, `tests/test_kombu_sqs_assumptions.py`); the W4 drill is to be re-run as
+  the acceptance test. Merging changes the queue's redrive policy, so it starts a pipeline run.
+- **Queued jobs run in parallel: each message is in a SQS message group of its own** — The queue is FIFO and
+  kombu puts a message that names no group into the single group `default`; SQS FIFO delivers one in-flight
+  message per group, so jobs ran one at a time at any worker count (dev, 2026-11-14: 352, 364 and 251 jobs a
+  minute at 1, 2 and 4 workers). A real message sent from this repository to the dev queue carried
+  `MessageGroupId = default`. A `before_task_publish` handler (`tasks/var_task.py`) now sets the group to the task
+  id, in the API at submission and in a worker on retry; it applies only to an SQS broker, so the Redis broker of
+  local development is untouched. One message waiting out its visibility timeout (a lost worker, a poison job)
+  no longer holds the other jobs back. Tests follow Celery's real publish path into kombu's SQS `_put` on kombu
+  5.6.2 (the dev workers' baked image) and 5.7.0 (an unpinned API build) (`tests/test_sqs_message_group.py`). To be
+  measured by the second W4/W5 pass; merging starts a pipeline run.
+- **The API refuses to start in a hosted environment on a public or short signing secret** — `config.py`
+  falls back to the public string `change-me-in-production` when `JWT_SECRET` is missing, and whoever holds the
+  signing secret can sign a token of any tier. AWS always injects the real secret, but nothing stopped the API
+  starting without it. `require_real_signing_secret` (called first in the API's start-up, `main.lifespan`) now
+  raises when `APP_ENV` is `dev`, `staging`, `prod` or `production` and the secret is the default or under 32
+  characters; local runs (`development`) and CI (`test`) are not checked. It is deliberately not part of
+  Settings validation: the Celery workers are not given the secret and run on the fallback by design.
 - **Worker: the `var_jobs` completion write works when the job has no submission row** — When a task is
   put on the queue without going through the API (a load test, a replay), the worker finds no `pending`
   row to update and falls back to inserting one (`tasks/var_task.py`, `_write_terminal_audit`). That

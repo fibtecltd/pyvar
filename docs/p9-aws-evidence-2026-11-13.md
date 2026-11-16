@@ -173,3 +173,73 @@ All at release `c52e056`, the code running in dev.
 - **Spot safety:** graceful termination held (5 of 5); an abrupt loss of the worker lost the job and reported it failed (5 of 5, one timing); a real Spot notice was not tested. These statements say or imply that late acknowledgement makes an interrupted Spot instance's job only delayed: `CLAUDE.md` 3.2, `portal/guide-technical-deepdive.html` (line 92), `docs/publications/pyvar-technical-deepdive-medium-article.md` (line 79) and the comment at `pyvar-cdk/stacks/compute_stack.py` line 429. They are **not changed** in this pull request: the right wording depends on the decision below.
 - **Decisions for the owner, open:** (1) set `task_reject_on_worker_lost` so an abruptly lost job is redelivered (the trade is possible redelivery loops and double execution, which the visibility timeout and the job's determinism limit); (2) give each message its own group id so jobs can run in parallel, after confirming the deployed kombu version and the cause; (3) then correct the four texts above and re-run W4 and W5.
 - **A second pass would add:** a read-only role on `var_jobs`/`api_usage` (row counts, duplicate check), a FIS template (the real 2-minute notice), an allow-listed source (API-mode load, which also measures the WAF), several kill timings and a larger n.
+
+## 8. Fixed-cost inventory, run on 2026-11-16
+
+**Status: done, read-only.** Source: a third delegated agent working from `docs/aws-inventory-delegated-agent-prompt.md`. Its report is the source of every figure here; the full report (`/tmp/inv/REPORT.md`) is on its own machine and not in the repository, and the author has not re-checked any figure against AWS. The agent changed nothing, made 106 logged read-only calls (plus about 270 unlogged ones, below) and 4 of its 30 Cost Explorer calls; one call was denied (resource-level Cost Explorer data is an opt-in on the payer account) and it did not work around it. It ran as an IAM user named for the CDK deployer, which probably has write rights.
+
+**Tags.** `Project` and `Environment` were activated for billing on 2026-11-16 (about 11:50 UTC) and activation is not retroactive: a group-by-tag call for October puts all $1,262.38 under a blank `Project`. Spend from 2026-11-16 onward can be split by tag; October cannot. `CostComponent` has been active since 2026-08-04; `Owner` and `ManagedBy` are inactive.
+
+**The nine lines.** They come to $977.03, 77.4% of October's $1,262.38; every billed figure matched Cost Explorer. The product columns are the agent's estimates: each billed line allocated by a counted or measured quantity (published unit prices times billed quantities reproduce the lines), not billed per resource.
+
+| Line | October $ | pyvar prod | pyvar dev | other | unknown | Error of the derived quantity |
+| --- | --- | --- | --- | --- | --- | --- |
+| Aurora ACU hours | 314.37 | 209.95 | 104.42 | 0 | 0 | -0.02% |
+| ElastiCache | 208.32 | 104.16 | 104.16 | 0 | 0 | 0% |
+| VPC endpoint hours | 163.68 | 81.84 | 81.84 | 0 | 0 | 0%; the split assumes symmetry |
+| NAT hours | 107.14 | 71.43 | 35.71 | 0 | 0 | 0% |
+| Fargate | 55.16 | 36.76 | 18.40 | 0 | 0 | +0.12% |
+| ALB | 37.50 | 18.75 | 18.75 | 0 | 0 | 0% |
+| WAF | 36.18 | 10.00 | 18.13 | 8.00 (tengrade) | 0.05 | 0% |
+| CloudWatch | 28.62 | 9.95 | 9.95 | 2.70 | 6.01 | not bounded |
+| Public IPv4 | 26.06 | 14.89 | 11.17 | 0 | 0 | -0.07% |
+| **Total** | **977.03** | **557.73** (57.1%) | **402.53** (41.2%) | **10.70** (1.1%) | **6.06** (0.6%) | |
+
+- **Almost nothing is shared.** Prod and dev each have their own VPC, NAT, cache, Aurora cluster and ALB; the other products own none of these except one WAF ACL (tengrade) and some CloudWatch metrics and alarms. What cannot be split is part of CloudWatch, one RDS OS-metrics log group used by both clusters, and about $0.12 of residuals.
+- **CloudWatch is the weakest estimate.** The $28.62 is custom-metric billing ($25.93, mostly ECS Container Insights, enabled on the two pyvar clusters only) plus alarms ($2.70). The agent split the eu-west-1 metrics by today's metric counts (116 non-AWS metrics, 96 of them Container Insights) and could not reconcile that to the 80.4 billed metric-months. The "unknown" $6.01 is us-east-1's $4.34, where no custom metric exists today, plus $1.67 of pyvar metrics with no environment dimension.
+- **Idle-looking.** Both Aurora readers (prod and dev) had 0 connections every day of October but bill the minimum capacity: about $105 for prod and $52 for dev, roughly half the Aurora line. They are promotion-tier-1 instances, so probably a deliberate failover target; intent cannot be read from AWS. The prod API ECR repository has no lifecycle policy and holds 157 images (ECR billed $17.46, not one of the nine lines). The agent found no unassociated Elastic IPs, running EC2 instances or EBS volumes, and nothing in the other 15 regions.
+- **Outside the nine lines, not split:** tax $210.40, EC2 Spot $30.46, ECR $17.46, Secrets Manager $11.77, CodePipeline $3.58, CodeBuild $2.65.
+- **Untagged:** 4 Elastic IPs (all on ALB interfaces, 2 prod and 2 dev, product inferred), 99 of 143 log groups in eu-west-1 and all 8 in us-east-1, 23 of 39 secrets, and the default VPC (which holds nothing that costs money).
+- **What the agent reported getting wrong:** a truncated tag sweep (fixed; final count 1,070 rows); ECS settings printed as absent before it asked for them; the Tagging API missed 4 CloudFront distributions that do carry `Project` and listed 3 EBS volumes that do not exist (every "untagged" claim was re-checked directly); throttled log-group lookups briefly printed "4 of 99 tagged" (after a sequential retry, 0 of 99); about 270 read-only calls ran outside its logging wrapper; and the premise given to it (tags inactive) was out of date.
+
+**What this changes.** The README's "real prod invoice" of $900 to $1,000 is the whole account (prod, dev and other products). For the nine fixed lines pyvar prod is an estimated $558 and dev an estimated $403, so dev's fixed footprint is about 72% of prod's. Do not restate a prod cost from this: wait for a month of tagged spend. New cost questions are in `docs/open-points-and-proposals-2026-11-16.md`, D2 to D4.
+
+
+## 9. The message group of a real dev message, checked on 2026-11-16
+
+An agent put ONE job on the dev queue with the repository's own dispatch (`compute_var_task.apply_async`, from an export of `7e35bbc`), read it back and deleted it before any worker ran it.
+
+| Item | Observed |
+| --- | --- |
+| MessageGroupId | `default` |
+| MessageDeduplicationId | a random UUID, not the task id |
+| ApproximateReceiveCount | 1 on the first receive, 2 on the second |
+| Queue | FIFO, `FifoThroughputLimit` perQueue, visibility timeout 60 s, `maxReceiveCount` 3 (this branch's change makes it 2) |
+| kombu / celery of the dispatch | 5.6.2 / 5.6.3 |
+| kombu / celery on the dev workers | 5.6.2 / 5.6.3, read from the pip summary of the latest dev Image Builder build (1.0.251, 2026-07-10); not confirmed that a running worker uses that image |
+| kombu / celery in the dev API container | not determinable (no Docker on the agent's host, ECS Exec off) |
+
+- **What it settles.** A message sent by this code under kombu 5.6.2 goes to the single group `default`; with SQS FIFO that allows one in-flight message at a time, which matches 352, 364 and 251 jobs a minute at 1, 2 and 4 workers. The throughput claim itself was not re-measured.
+- **What it does not settle.** The API's own sends were not observed. The API image tagged `7e35bbc` was built on 2026-11-15 from unpinned requirements (`celery>=5.3.6`, no kombu pin, no lock file); kombu 5.7.0 was released on 2026-11-03, so the API very likely runs 5.7.0 while the workers run 5.6.2 (inference). The agent read kombu 5.7.0's SQS transport and found the same `default` fallback; the local test on this branch reproduces both versions.
+- **A flaw in the prompt, mine.** `--visibility-timeout 0` returns a receipt handle that is already expired, so the delete failed. The agent received once more with 30 s and deleted it (receive count 2 of 3, no dead-letter message). The queue and the dead-letter queue ended at 0.
+- **What the agent reported getting wrong:** the second receive above; a dev worker launched at 13:51Z by the scale-from-zero alarm, so it waited read-only until the group reached 0 at 14:09Z before sending (the message sat about 35 s); extras beyond the prompt (a 5 s short poll, a scrubbed environment with the result backend disabled, the 5.7.0 wheels read as text, ECR metadata and the Image Builder log); minor slips (an `-I` import, a recorder that blocked SQS calls twice, an account id printed in working output, not in the report).
+
+## 10. Are the two Aurora readers idle? Checked on 2026-11-16
+
+Read-only agent run (CloudWatch hourly from 2026-10-01 00:00Z to 2026-11-16 14:00Z, Performance Insights, RDS events, security group). No call was denied. Both clusters are Aurora PostgreSQL 16.13, serverless v2, one writer (tier 0) and one reader (tier 1) each, all available; prod 1 to 16 ACU, dev 0.5 to 2 ACU.
+
+| | Prod reader | Dev reader |
+| --- | --- | --- |
+| Hours with client connections | 0 of 1,118 | 0 of 1,118 |
+| Performance Insights active-session load, last 167 hours | 0 in 10,020 of 10,020 one-minute points | same |
+| Receive / transmit peak | 0.8 to 0.9 KB/s | 0.8 to 0.9 KB/s |
+| Average ACU, share of hours at the minimum | 1.0144, 99.3% | 0.5017, 99.2% |
+| Replica lag (average, peak) | about 16 ms, 11.4 s | about 16 ms, 21.0 s |
+| ACU-hours over the window, cost at $0.14 | 1,134.1 (floor 1,118.0), $158.77 | 560.9 (floor 559.0), $78.53 |
+| Monthly (average ACU x 730 h x $0.14) | about $103.67 | about $51.28 |
+
+- **Verdict: both IDLE** by the prompt's definition. Their writers had connections in every one of the 1,118 hours (maximum 9 in prod, 10 in dev) and were the only instances with write IOPS, so the current writers were the writers throughout; no failover or promotion event in the 14 days RDS keeps (2026-11-02 onward; the same query returned 56 routine snapshot events, so the empty result is real).
+- **Who could reach a reader:** one security group per cluster, one ingress rule (TCP 5432) whose only sources are the API tasks' and the Celery workers' security groups. No CIDR sources.
+- **Unexplained, with no connection or load behind them:** dev reader CPU above 50% in 117 hours (43 of them at 22:00 UTC on weekdays); prod reader scaled to 16 ACU at about 02:00 UTC on 10-10, 10-24 and 11-07 (14 days apart, inside its Saturday maintenance window 02:36 to 03:06 UTC; no RDS event was recorded for 11-07); the dev reader reads about 15 rows/s against 2.3 on prod's. Cause unproven.
+- **Cannot be excluded:** a connection shorter than the sampling interval (CloudWatch about one minute; Performance Insights about one second, from the agent's memory, not confirmed); VPC flow logs were not read; Performance Insights keeps 7 days, so before 2026-11-09 only CloudWatch applies. The metrics measure use, not failover readiness.
+- **What the agent reported getting wrong:** a first Performance Insights window of 5 days instead of 7 (date arithmetic), and a first pull that silently kept only the last 350 points of each call, so its first "0 load" covered about 24% of minutes (redone in 340-minute chunks, not reported); a noisy 122-row printout; a failed jq attempt it did not use; extra read-only metrics beyond the prompt (WriteIOPS, DBLoad, NetworkTransmit, Performance Insights counters); the partial current hour dropped.

@@ -162,6 +162,9 @@ AWS:        CELERY_BROKER_URL = sqs://
   If a new simulation type takes longer, update BOTH the Celery task
   timeout AND the SQS queue visibility timeout in the CDK stack.
 - worker_prefetch_multiplier=1 — Monte Carlo is CPU-bound. Never increase.
+- Each message is published in its own SQS message group (MessageGroupId = task id, the
+  before_task_publish handler in tasks/var_task.py). Without it kombu uses one group "default" and
+  a FIFO queue runs one job at a time. Do not remove it; tests/test_sqs_message_group.py pins it.
 - max_tasks_per_child=100 — prevents memory leaks from Numba compiled objects.
 ```
 

@@ -112,6 +112,11 @@ class PyvarConfig:
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause
     aurora_max_acu: float = 8.0  # scales to handle batch audit log writes
+    # One serverless reader per cluster (the failover target, second AZ). A reader bills the
+    # cluster's minimum capacity all month (about $0.14 per ACU-hour) whether or not anything
+    # connects to it, and the application only uses the cluster (writer) endpoint. Default True:
+    # a new environment keeps the reader, and only an environment that sets False loses it.
+    aurora_reader_enabled: bool = True
 
     # ── ElastiCache Serverless ────────────────────────────────────────────────
     cache_max_ecpu_per_second: int = 5_000  # cap to prevent runaway costs
@@ -121,7 +126,10 @@ class PyvarConfig:
 
     # ── SQS ───────────────────────────────────────────────────────────────────
     queue_visibility_timeout_seconds: int = 60  # must exceed max simulation runtime
-    queue_dlq_max_receive_count: int = 3  # retry 3 times before DLQ
+    # Deliveries before a message goes to the DLQ: the first plus ONE retry. With Celery's
+    # task_reject_on_worker_lost (tasks/var_task.py) a job whose worker was lost is requeued on the same
+    # SQS message, so this bounds the retries. Was 3 (two retries).
+    queue_dlq_max_receive_count: int = 2
 
     # ── Scaling thresholds (SQS messages → desired workers) ──────────────────
     scale_steps: list = field(
@@ -213,6 +221,7 @@ class PyvarConfig:
                 worker_max_capacity=5,
                 aurora_min_acu=0.5,
                 aurora_max_acu=2.0,
+                aurora_reader_enabled=False,  # dev has no failover need; saves about $52/month
                 result_retention_days=14,
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Portal assistant menus on in dev (see assistant_enabled above) and, since
@@ -272,7 +281,11 @@ class PyvarConfig:
                 # end-to-end (vs. 401.5s before) -- reverted here now that the
                 # mitigation is no longer needed.
                 worker_max_capacity=20,
-                aurora_min_acu=1.0,
+                # 2026-11-16: 1.0 -> 0.5. Both prod instances sat at the floor in 99.3% to 99.5% of the
+                # 1,118 hours from 2026-10-01, so the floor is what is billed (about $51 a month per
+                # instance). Dev has run at 0.5 throughout. Measured before and after: see
+                # docs/plan-aurora-floor-measurement.md. Rollback: set this back to 1.0 and deploy.
+                aurora_min_acu=0.5,
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
                 ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity

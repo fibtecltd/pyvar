@@ -46,7 +46,7 @@ from api.routes.public_data import router as public_data_router
 from api.routes.regulatory import router as regulatory_router
 from api.routes.var import close_job_done_bus
 from api.routes.var import router as var_router
-from config import get_settings
+from config import get_settings, require_real_signing_secret
 from observability.setup import setup_observability
 
 cfg = get_settings()
@@ -95,6 +95,9 @@ class _PortalStaticMount(Mount):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown logic."""
+
+    # First, before any work: a hosted API must not run on the public default signing secret.
+    require_real_signing_secret(cfg)
 
     # Warm up the Numba JIT compiler with a tiny dummy run.
     # First call compiles; subsequent calls hit the cache.
