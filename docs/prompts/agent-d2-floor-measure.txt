@@ -1,0 +1,19 @@
+TASK: measure pyvar PROD's Aurora cluster before and after its minimum capacity went from 1.0 to 0.5 ACU, and report both windows side by side. Report what you see; do not recommend or change anything. Run it start to finish; the owner cannot answer questions.
+
+SETTINGS (fixed values given here; they are NOT environment variables, so never stop for them)
+- Read-only AWS calls on PROD only: CloudWatch get-metric-data and describe-alarm-history, CloudFormation describe-stacks and describe-stack-events, RDS describe-db-clusters, describe-db-instances and describe-events, Performance Insights reads. Never connect to the database. Read no secret. Change nothing.
+- Cluster: the one tagged Project=pyvar in the stack pyvar-prod-data. Alarms: pyvar-prod-api-latency-p95, pyvar-prod-api-5xx, pyvar-prod-aurora-writer-cpu (the last may not exist before the change). ALB: the one of the pyvar-prod API.
+- Stop at once on a denied call (do not work around it); say which one.
+
+STEPS
+1. Read the cluster's ServerlessV2ScalingConfiguration. MinCapacity 1.0 means BASELINE mode: window = the last 14 full days. MinCapacity 0.5 means AFTER mode: T = when the data stack's cluster update finished (describe-stack-events); AFTER window = T to the last full hour; BEFORE window = the 14 days before T. If AFTER is under 7 days, say "too early" and still report.
+2. For the writer and the reader instance, per window, hourly (period 3600): CPUUtilization (Average, Maximum), FreeableMemory (Minimum, Average), ServerlessDatabaseCapacity (Average, Maximum), DatabaseConnections (Maximum), and ReadLatency, WriteLatency, CommitLatency (Maximum) if published (say which are not). Report: mean of the hourly averages, the highest hourly maximum, the p99 of the hourly CPU maxima, the lowest FreeableMemory, and the share of hours above the minimum capacity.
+3. The same figures for the hours of each instance's own weekly maintenance window (PreferredMaintenanceWindow from describe-db-instances), per window.
+4. What a client would feel: ALB TargetResponseTime (p95, highest hourly value) and HTTPCode_Target_5XX_Count (sum) per window; the number and times of ALARM transitions of the three alarms per window.
+5. RDS events since T (14 days kept): any reboot, failover, restart or configuration change, for the cluster and each instance.
+6. Cost: the sum of the hourly average ServerlessDatabaseCapacity of both instances times $0.14 per ACU-hour (an estimate), per window, and the monthly equivalent (average ACU x 730 x $0.14).
+
+REPORT
+- One table, BEFORE against AFTER (or the baseline alone), per instance.
+- Anything that moved the wrong way: CPU, lowest memory, latency, 5xx, alarms, events. "None seen" if none.
+- What you could not see, and everything you got wrong. No ids, hostnames or secrets in the body.

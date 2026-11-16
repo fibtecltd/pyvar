@@ -12,7 +12,7 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 - **Aurora reader is one flag per environment** — `aurora_reader_enabled` in `pyvar-cdk/config.py`
   (default true) decides whether `DataStack` builds the cluster's serverless reader. Only `dev` sets it
   false. Reason: a reader bills the cluster's minimum capacity all month and the application connects
-  only to the cluster (writer) endpoint. `cdk synth` before and after: the dev data stack loses
+  only to the cluster (writer) endpoint. `cdk synth` before and after, this flag alone: the dev data stack loses
   `AuroraReader` and nothing else; prod and every other stack are byte-identical. Prod keeps its
   reader, which is also its failover target. Test: `tests/test_cdk_aurora_reader_flag.py`.
 
@@ -207,6 +207,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Prod's Aurora minimum capacity is 0.5 ACU, not 1.0, and the prod writer's CPU is watched** — Both prod
+  instances sat at the capacity floor in 99.3% to 99.5% of the 1,118 hours from 2026-10-01, so the floor is what
+  is billed (about $51 a month per instance at 0.5). `aurora_min_acu` for prod in `pyvar-cdk/config.py` goes from
+  1.0 to 0.5, the value dev has always run; the maximum (16) is unchanged and prod keeps its reader as the
+  failover target. `DataStack` adds an alarm in prod only (`pyvar-prod-aurora-writer-cpu`: writer CPU at or above
+  85% for 15 minutes, a placeholder). Measured before and after with a read-only prompt, with rollback rules, in
+  `docs/plan-aurora-floor-measurement.md`. `cdk synth` against master: the prod data stack changes `MinCapacity`
+  1 to 0.5 and gains the alarm, nothing else. Merging starts a pipeline run; the prod change waits at the manual
+  approval. Tests: `tests/test_cdk_aurora_floor.py`.
 - **Portal assistant menus are on in prod** — `assistant_enabled` is now true in the "prod" override of `pyvar-cdk/config.py` as
   well as "dev", so the prod API container gets `ASSISTANT_ENABLED=true` and the portal shows the "What it does / When to use it /
   Compare with" buttons from the committed bank (1,154 answers, `v4-2026-11-09-0dbf72ce`). No model is called when a visitor clicks

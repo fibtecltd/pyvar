@@ -34,6 +34,22 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | C5 `var_jobs` rows stuck pending | New (from the C1 result) | Seven rows from 2026-11-14; not yet looked at |
 | F1, F2 housekeeping | Not discussed | Open; F1: nine commits, only `docs/`, `scripts/`, `tests/`, ready to open |
 
+## Decisions, second round (later on 2026-11-16, the owner)
+
+| Point | Decision | State |
+| --- | --- | --- |
+| The four "ready" items (PR #432, A5 + B1 + B2, D2 dev flag, F1 docs and scripts) | Fold into ONE PR | Built on this branch: `fix(deps)` black bump, A5 + B1, B2, D2; PR #432 closed as folded in once the new PR is open |
+| G2 workers clone master | Option 3: leave it; a merge to master is a worker release | Written into the PR description; no work |
+| D2 idle readers | Option 3: remove the dev reader and lower prod's minimum capacity to 0.5 ACU, with measuring | In the combined PR: flag, 0.5 ACU, a prod writer CPU alarm, `docs/plan-aurora-floor-measurement.md` and a before/after prompt |
+| G3 static uptime text | Recommendation: remove the item now | Queued for the second PR |
+| G1 unpinned kombu | Recommendation: read the API's real versions, then pin | Prompt to write after the combined PR; pin in the second PR |
+| A3 plugin keys | To be rediscussed if the better path does not improve the nine plugins' status; then option 1 (trial lane) with guardrails | On hold |
+| A6 free-tier limits | Recommendation: 10 to 20 requests a day, as the first row of A1's table | Builds with A1 |
+| C5 rows stuck pending | Option 3: a reconciler or a dead-letter handler | Design first, after the combined PR |
+| D4 ECR lifecycle | Recommendation: keep the newest 30 images | Queued for the second PR |
+| D3 dev's fixed footprint | Option 4: scale dev's stateful services down when idle | Research first (what can pause or scale to zero); no change yet |
+| F2 local scratch | Clear it any time | Done conservatively (only what is merged, pushed or regenerable) |
+
 ## A. New high-priority work
 
 ### A1. A shared tier policy (prerequisite for A2 and A3)

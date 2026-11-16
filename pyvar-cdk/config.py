@@ -281,7 +281,11 @@ class PyvarConfig:
                 # end-to-end (vs. 401.5s before) -- reverted here now that the
                 # mitigation is no longer needed.
                 worker_max_capacity=20,
-                aurora_min_acu=1.0,
+                # 2026-11-16: 1.0 -> 0.5. Both prod instances sat at the floor in 99.3% to 99.5% of the
+                # 1,118 hours from 2026-10-01, so the floor is what is billed (about $51 a month per
+                # instance). Dev has run at 0.5 throughout. Measured before and after: see
+                # docs/plan-aurora-floor-measurement.md. Rollback: set this back to 1.0 and deploy.
+                aurora_min_acu=0.5,
                 aurora_max_acu=16.0,
                 result_retention_days=365,  # compliance retention
                 ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity

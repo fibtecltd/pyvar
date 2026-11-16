@@ -20,10 +20,13 @@ from __future__ import annotations
 
 import aws_cdk as cdk
 from aws_cdk import Duration, RemovalPolicy, Stack
+from aws_cdk import aws_cloudwatch as cloudwatch
+from aws_cdk import aws_cloudwatch_actions as cw_actions
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_elasticache as elasticache
 from aws_cdk import aws_rds as rds
 from aws_cdk import aws_s3 as s3
+from aws_cdk import aws_sns as sns
 from constructs import Construct
 from stacks.network_stack import SecurityGroups
 
@@ -103,6 +106,42 @@ class DataStack(Stack):
             enable_performance_insights=True,
             performance_insight_retention=rds.PerformanceInsightRetention.DEFAULT,  # 7 days free
         )
+
+        # ── Prod writer CPU alarm (measuring the lowered capacity floor) ───────
+        # Prod's minimum capacity went from 1.0 to 0.5 ACU (pyvar-cdk/config.py). The ALB latency and 5xx
+        # alarms (alerts_stack.py) already report what a client would feel; this one watches the writer
+        # itself: average CPU of the writer instance at or above 85% for 15 minutes in a row. The threshold
+        # is a placeholder, not tuned: the baseline is an hourly maximum of 80% over 46 days at 1.0 ACU
+        # (docs/plan-aurora-floor-measurement.md). The alerts topic is owned by alerts_stack and is
+        # referenced by its deterministic ARN, as queue_stack.py does, to avoid a dependency cycle.
+        # It follows the INSTANCE that is the writer today: after a failover it would watch the other one.
+        if cfg.env_name == "prod":
+            alerts_topic = sns.Topic.from_topic_arn(
+                self,
+                "AlertsTopicImported",
+                self.format_arn(service="sns", resource=f"pyvar-{cfg.env_name}-alerts"),
+            )
+            cloudwatch.Alarm(
+                self,
+                "AuroraWriterCpuAlarm",
+                alarm_name=f"pyvar-{cfg.env_name}-aurora-writer-cpu",
+                alarm_description=(
+                    "Aurora writer average CPU at or above 85% for 15 minutes: the lowered capacity "
+                    "floor (0.5 ACU) may be too small, or a query is heavy"
+                ),
+                metric=cloudwatch.Metric(
+                    namespace="AWS/RDS",
+                    metric_name="CPUUtilization",
+                    dimensions_map={"DBInstanceIdentifier": self.aurora.instance_identifiers[0]},
+                    statistic="Average",
+                    period=Duration.minutes(5),
+                ),
+                threshold=85,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                evaluation_periods=3,
+                datapoints_to_alarm=3,  # 3 of 3 => consecutive
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            ).add_alarm_action(cw_actions.SnsAction(alerts_topic))
 
         # ── ElastiCache Serverless Redis ───────────────────────────────────────
         # L1 construct — ElastiCache Serverless not yet in L2 at time of writing
