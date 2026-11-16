@@ -19,10 +19,12 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | B2 group id | Recommendation (confirm first, then a group per message); prompt requested | Prompt delivered in chat; the fix follows its result |
 | B3 public Spot wording | Leave it | Closed |
 | B4 second W4/W5 pass | Recommendation: after B1 and B2, as their acceptance test | Waiting for B1 and B2 |
-| C1 dev check of the fix | Prompt requested | Prompt delivered in chat |
+| C1 dev check of the fix | Prompt requested | Prompt run: the agent had no read path to the dev database (second round below) |
 | C2 prod "Succeeded" | The owner approved it ("it has always been me") | Closed |
 | C3 AWS access for agents | Keep on hold | On hold |
 | C4 Dependabot | Prompt requested | Prompt delivered in chat |
+| D2 idle Aurora readers | If both are proved idle this is the highest priority (second round) | Read-only evidence prompt written; dev-only CDK flag built and synthesised, not pushed |
+| A6 free-tier limits | Review them and consider about twice as much (second round) | Limits listed and options below; owner to choose |
 | D1 cost tags | Tags activated; inventory run | Outcome in `docs/p9-aws-evidence-2026-11-13.md` section 8; new points D2 to D4 below; README wording after a month of tagged data |
 | E1 Medium article | Close the point; the owner will write another article | Closed |
 | E2 typed assistant | Recommendation: keep off; one legal-text pass with A2 | Kept off |
@@ -102,6 +104,55 @@ Note `APP_ENV` is `dev` or `prod` in AWS, `development` locally and `test` in CI
 
 **Recommendation: 1.**
 
+### A6. Free-tier limits: review and a doubling
+**Recap.** What a free account gets today (master `7e35bbc`):
+
+| Limit | Value | Applies to | Where |
+| --- | --- | --- | --- |
+| Compute requests | 10 a day, one bucket for all 386 compute endpoints | per account (session or key) | `config.py` `rate_limit_free_daily`; `api/middleware/rate_limit.py` |
+| Simulations per VaR request | 10,000 (the schema minimum is 1,000) | per request | `api/middleware/auth.py` `max_simulations` |
+| Default when omitted | 10,000, which must never exceed the free cap | per request | `config.py` `default_n_simulations` |
+| Result kept inline | up to 10,000 simulations; above that the result goes to S3 | per request | `config.py` `s3_result_offload_threshold`, set equal to the free cap on purpose |
+| Return observations, horizon, confidence | 30 to 10,000; 1 to 250 days; 0.90 to 0.9999 | every tier | `schemas/var.py` |
+| Monthly caps | none for free (Pro only: 5,000 requests, 2,000,000 simulations) | per account | `config.py` |
+| API keys | 5 active, 50 in all | per account | `config.py` |
+| Wrong-key attempts | 30 a minute | | `config.py` |
+| Sign-in link | valid 30 minutes; one per 5 minutes | per address | `config.py` |
+| Registration | 5 an hour | per IP | `rate_limit_register_per_hour` |
+| Public status files, no account | 60 an hour | per IP | `rate_limit_unauth_per_hour` |
+| Assistant questions | 10 an hour (no account, per IP); 40 a day (free account); a $5 a day budget across all tiers | | `config.py` |
+| Edge, every caller | 100 requests per 5 minutes per IP; 6,000 per 5 minutes in total | | `pyvar-cdk/stacks/edge_stack.py` |
+
+For comparison Pro has 500 requests a day and 100,000 simulations. The daily and simulation numbers are
+repeated in about 20 places (README, the portal REST guide, the tier table SVGs, the Medium articles, the
+plugin example generator and some architecture notes), so a change is mostly a text change.
+
+**What is not known.** How many free accounts reach the cap. The config comment itself says no traffic data
+exists, and `api_usage` deliberately keeps no user id. Rate-limited requests are recorded (status 429), so the
+owner can read the pressure without a user id:
+
+```sql
+SELECT date_trunc('day', created_at) AS day,
+       count(*) FILTER (WHERE status BETWEEN 200 AND 299) AS ok,
+       count(*) FILTER (WHERE status = 429)               AS limited
+FROM api_usage
+WHERE tier = 'free' AND created_at >= now() - interval '30 days'
+GROUP BY 1 ORDER BY 1;
+```
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Daily requests only: 10 to 20 | One value; no coupling; Pro stays 25 times ahead | An account farmed for free requests yields twice as much; only the per-IP registration limit and the disposable-domain list stand against that |
+| 2. Requests and simulations: 20 a day and 20,000 | Looks generous | Monte Carlo error falls with the square root of the simulations, so doubling them improves it by about 29%; the offload threshold must also move to 20,000 or every free result starts going to S3 with a different response shape; inline results get twice as large |
+| 3. Double everything, assistant included | One rule | The assistant is limited by its $5 a day budget, so a bigger per-user quota only exhausts the budget sooner; the typed route is off |
+| 4. Leave it and measure a month first | Decides with data | The cap is the first thing a new user meets, and the delay costs a month |
+
+**Recommendation: 1**, as the first value in A1's tier-policy table, so the numbers and the texts come from one
+place. Compute is not the cost driver (arithmetic: 1,000 accounts each using all 20 requests is about 14 a minute
+over a day, against the 251 to 364 queued jobs a minute the W4/W5 runs completed); the fixed footprint is (D2, D3).
+It is a code change under `config.py`, so a pipeline run. Do not touch the nine plugins that are held for review;
+the generated texts are regenerated with `scripts/sync_skills.py` as `CLAUDE.md` section 10 says.
+
 ## B. Findings from the W4/W5 run
 
 ### B1. Jobs lost when a worker dies abruptly
@@ -160,16 +211,18 @@ graceful termination and not for an abrupt loss.
 ## C. Verification and governance
 
 ### C1. Check the fallback-insert fix on dev
-**Recap.** Merged as PR #429. The agent saw no failure lines in 5 queue-dispatched jobs, against 251 before.
-Database rows and Sentry were not seen. One more scale-up in dev (task `ad8148f5`) is probably the hourly demo
-publisher (inference).
+**Recap.** Merged as PR #429. The first dev run saw no failure lines in 5 queue-dispatched jobs, against 251
+before. The second run (the C1 prompt) could not go further: `PYVAR_DEV_DB_RO_URL` was unset, ECS Exec is off on
+`pyvar-dev-api`, Sentry variables were unset, and it ran no query. So no database row has been seen.
 
 | Option | Pros | Cons |
-|---|---|---|
-| 1. You run the SQL and look at Sentry | Authoritative, a few minutes | Needs your database path |
-| 2. A read-only database role for the agent | Repeatable; also serves B4 | A new credential and IAM work |
+| --- | --- | --- |
+| 1. You run SQL A and B (given in chat) and look at Sentry | Authoritative; a few minutes | Needs your database path |
+| 2. Set `PYVAR_DEV_DB_RO_URL` for the agent | Repeatable; also serves B4 | A credential for a read-only role, which has to be created first |
+| 3. Turn on ECS Exec on dev | No new credential | A CDK change and a pipeline run; opens a shell path into dev |
+| 4. Accept the indirect evidence | No work | The fix is tested and no failure lines appeared, but a row in `var_jobs` is the proof |
 
-**Recommendation: 1 now** (the query is in the earlier report; add `ad8148f5%` to it), then resolve the Sentry issue.
+**Recommendation: 1 now**; 2 only if B4 will need the same read path.
 
 ### C2. Prod stage showed "Succeeded"
 **Recap.** The pipeline has a manual approval step before prod and it is on in code
@@ -215,19 +268,36 @@ prod invoice" figure ($900 to $1,000) is account-wide.
 **Recommendation: 1 and 3 now; change the README wording after one full month of tagged data.**
 
 
-### D2. Two idle Aurora readers (about $157 a month)
+### D2. Two idle Aurora readers (about $157 a month): now the highest priority if proved idle
 **Recap.** From the inventory (`docs/p9-aws-evidence-2026-11-13.md` section 8): both clusters have a reader
-with 0 connections on every day of October, billing the minimum capacity: about $105 for prod and $52 for dev,
-roughly half the Aurora line. They look like deliberate failover targets (promotion tier 1); intent cannot be
-read from AWS.
+with 0 connections on every day of October, billing the cluster minimum: about $105 for prod and $52 for dev
+(arithmetic: 1.0 and 0.5 ACU x 730 hours x $0.14). Code facts, checked on `7e35bbc`: the application connects only
+to the host in the database secret (the cluster endpoint); no code uses a reader endpoint; each reader is one
+`scale_with_writer` instance with promotion tier 1; its CloudFormation `DeletionPolicy` is `Delete` in both
+environments, so removing it from CDK deletes it cleanly.
+
+**Proof, not yet run.** `agent_d2_aurora_readers_prompt.txt` (3,468 bytes, read-only, CloudWatch hourly from
+1 October: connections, CPU, read IOPS, capacity, replica lag; Performance Insights load; failover events;
+security-group sources; cost). It returns IDLE, USED or INCONCLUSIVE per reader.
+
+**Change, ready and not pushed.** Branch `infra/aurora-reader-flag` (`048526f`): `aurora_reader_enabled` in
+`pyvar-cdk/config.py`, default true, false only in dev; `DataStack` builds its readers list from it; test
+`tests/test_cdk_aurora_reader_flag.py`. `cdk synth` against master: the dev data stack loses `AuroraReader` and
+nothing else; the prod data stack and every other stack are byte-identical. It is under `pyvar-cdk/`, so
+merging it starts a pipeline run (`CLAUDE.md` section 8.1); `infra/*` needs the synth diff in the PR, which I have.
+
+An idle reader is not an unneeded one: it is the failover target. The two readers are different decisions.
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| 1. Remove both readers | Saves about $157 a month | No warm failover target: after a writer failure a new instance has to be created, which typically takes minutes (not verified for these clusters) |
-| 2. Remove the dev reader only | Saves about $52; dev needs no failover | Prod keeps paying for its target |
-| 3. Keep both | Failover readiness | About $157 a month for an unused instance |
+| 1. Remove the dev reader only | Saves about $52; dev needs no failover; no prod change | Prod keeps its cost |
+| 2. Remove both | Saves about $157 | Prod has no warm failover target: after a writer failure a new instance has to be created, which typically takes minutes (not verified for these clusters) |
+| 3. Keep prod's reader and lower prod's minimum capacity from 1.0 to 0.5 ACU | Halves the reader's bill and the writer's floor (about $102 in all) | Not verified how prod behaves with the lower floor under bursts; a deliberate setting that has no stated reason |
+| 4. Keep both | Failover readiness | About $157 a month for instances nothing queries |
 
-**Recommendation: 2**, and decide prod once you have said what outage the service should tolerate.
+**Recommendation:** run the proof; if dev is IDLE, merge the dev flag (option 1); decide prod once you have said
+what outage the service should tolerate. If prod's reader is IDLE and you accept minutes of recovery, set
+`aurora_reader_enabled=False` for prod in a second PR, which waits at the prod manual approval.
 
 ### D3. Dev's fixed footprint
 **Recap.** Dev is an estimated $403 of the nine lines, about 72% of prod's $558, because it has its own VPC,
