@@ -96,8 +96,18 @@ def test_stdout_is_the_token_alone_and_stderr_holds_the_summary(monkeypatch, cap
     assert out == token + "\n" and token.count(".") == 2
     payload = auth.decode_token_payload(token)
     assert (payload.user_id, payload.tier) == ("load-test-1", "internal")
-    assert "expires=" in err and "env=dev" in err and "cannot be revoked" in err
+    assert "expires=" in err and "env=dev" in err and "cannot revoke a token" in err
     assert token not in err and SECRET not in err and SECRET not in out
+
+
+def test_every_token_carries_a_unique_jti(monkeypatch, capsys):
+    first = mint.decode_unverified(
+        run(["--env", "dev", "--secret-stdin"], monkeypatch, capsys)[1].strip()
+    )
+    second = mint.decode_unverified(
+        run(["--env", "dev", "--secret-stdin"], monkeypatch, capsys)[1].strip()
+    )
+    assert first["jti"] != second["jti"]
 
 
 def test_the_default_lifetime_is_one_day_and_the_default_label_names_env_and_tier(
@@ -178,6 +188,8 @@ def test_the_ledger_records_the_token_without_holding_it(tmp_path, monkeypatch, 
     text = ledger.read_text(encoding="utf-8")
     record = json.loads(text.splitlines()[0])
     assert record["env"] == "dev" and record["sub"] == "ledger-1" and record["tier"] == "internal"
+    assert record["event"] == "minted"
+    assert record["jti"] == mint.decode_unverified(token)["jti"] and len(record["jti"]) == 16
     assert record["fingerprint"] == mint.fingerprint(token) and len(record["fingerprint"]) == 12
     assert token not in text and SECRET not in text
     assert stat.S_IMODE(os.stat(ledger).st_mode) == 0o600

@@ -55,9 +55,11 @@ Reasons that do justify it: a suspected leak of the secret, or a person with rea
 `config.py:24` falls back to the public string `change-me-in-production` when `JWT_SECRET` is missing.
 In AWS the secret is always injected, so the hosted environments are fine, but nothing makes the API
 refuse to start outside development with that default or with a short secret. If a task were ever
-started without the injection, anyone could sign an `internal` token for it. A start-up check (refuse
-when `APP_ENV` is not `development` and the secret is the default or shorter than 32 characters) is a
-few lines in `config.py` or the `main.py` start-up; it changes application code, so merging it starts a
+started without the injection, anyone could sign an `internal` token for it. A start-up check is a few
+lines in `config.py` or the `main.py` start-up: refuse to start when `APP_ENV` is a hosted value (`dev`,
+`staging`, `prod`: `config.py:75-77` says the live values are the short forms) and the secret is the
+default or shorter than 32 characters. It must not key on "not development": local runs use
+`development` and CI runs with `APP_ENV=test` (`config.py:352`); it changes application code, so merging it starts a
 pipeline run. It is proposed here and not implemented.
 
 ## 4. Signing a token on demand: `scripts/mint_internal_token.py`
@@ -81,14 +83,15 @@ one secret). Python standard library only.
 | Secret checks | Refuses an empty or short (under 32 characters) secret and the public default. |
 | Secret handling | Read through the AWS CLI into memory, passed on a pipe, never an argument; never printed or written. |
 | Output | The token alone on stdout, a one-line summary on stderr, so `TOKEN=$(...)` captures just the token. |
-| Ledger | Appends who, when, environment, label, tier, expiry and a 12-character fingerprint of the token to `~/.pyvar/minted-tokens.jsonl` (mode 0600; `--ledger`, `$PYVAR_TOKEN_LEDGER`, `--no-ledger`). Never the token or the secret. |
+| Ledger | Appends who, when, environment, label, tier, expiry, the token's unique id (`jti`) and a 12-character fingerprint of the token to `~/.pyvar/minted-tokens.jsonl` (mode 0600; `--ledger`, `$PYVAR_TOKEN_LEDGER`, `--no-ledger`). Never the token or the secret. |
 | Label | `--sub` (3 to 64 characters of a-z, 0-9, `.`, `_`, `-`), generated if omitted, so a token can be told apart in logs and in `var_jobs.user_id`. |
 
 Exit codes: 0 done, 2 refused by a guard or bad arguments, 3 the secret could not be read or is unusable.
 `--secret-stdin` takes the secret from standard input instead (offline use, tests).
 
-**What it cannot do.** A token cannot be revoked before it expires; the ledger tells you what is
-outstanding, and rotating the secret is the only emergency stop (section 2). Tier `internal` is meant for
+**What it cannot do.** A token cannot be revoked before it expires. The ledger tells you what is
+outstanding (`scripts/revoke_internal_token.py list`), and rotating the secret is the only emergency
+stop (section 2; `revoke_internal_token.py runbook --env <env>` prints the steps). Tier `internal` is meant for
 Fibtec's own tools, tests and load runs. It is also the only credential the service-only routes check:
 `/internal/suppress-email` and `/internal/token-report` test nothing but `tier == "internal"`
 (`api/routes/internal.py:57` and `:98`), and the authentication in front of them accepts API keys as well
@@ -97,3 +100,30 @@ an `internal` token, or an API key on an account whose tier is `internal`, can m
 suppressed and so stop sign-in links reaching it. A token is not tied to a person or an account, so it is
 the wrong thing to give to a third party: for them the right tool is an account-bound, revocable,
 finite-tier API key (`docs/plan-academic-access.md`, `docs/plan-anonymous-plugin-keys.md`).
+
+## 5. Revoking, and the other token types
+
+Four commands share `scripts/token_tools.py` (secret handling, signing, the ledger, a small HTTP
+client that only talks to the environment's own address or to loopback):
+
+| Token type | What it is | Mint | Revoke | Does the API enforce the revoke? |
+|---|---|---|---|---|
+| Internal or session JWT | HS256 token; the tier is a claim | `scripts/mint_internal_token.py` | `scripts/revoke_internal_token.py` (`list`, `revoke`, `runbook`) | **No.** The API checks signature and expiry only. `revoke` records the decision and exits 4 ("recorded, not enforced") while any matching token is still valid; the real cancel is rotating the secret (`runbook`). |
+| API key (`pyvar_...`) | Database row, hashed, tier from the account, 1-year expiry | `scripts/mint_api_key.py` | `scripts/revoke_api_key.py` (`list`, `revoke`) | **Yes, at once** (the route sets `revoked_at` and drops the Redis entry); the script re-reads the list and says "revoked" only when the API confirms. |
+| Stream token | 60-second, one-task WebSocket token | the API only | expires | n/a |
+| Anonymous key, academic grant, admin token | proposals only | see `docs/plan-anonymous-plugin-keys.md`, `docs/plan-academic-access.md` | the plans' own commands | not built |
+
+`mint_api_key.py` creates a key for an **existing, verified account** through the API's own route, with a
+10-minute session token it signs for that account (or one you already hold). The key has the tier of
+that account, read from the database; the command cannot create an account or an `internal` key.
+
+Options for cancelling an internal JWT before it expires, for when a day is too long:
+
+| Option | For | Against |
+|---|---|---|
+| A. Short expiry, rotate the secret in an emergency (today) | Nothing to build; the default is 1 day | A leak can only be answered by signing everyone out |
+| B. A revocation list in the API (deny by `jti`, kept in Redis, checked after the signature) | Cancels one token; the tokens already carry `jti` | A Redis read on every JWT request (cacheable); a fail-open or fail-closed choice when Redis is down; code in `api/middleware/auth.py`, so a pipeline run |
+| C. Replace long-lived internal use with database-backed keys | Revocable, listable, tied to an account | Needs the admin routes proposed in `docs/plan-academic-access.md` to create an internal-tier account |
+
+Recommendation: A for anything meant to last a day or less; C for anything meant to last longer;
+B only if per-token cancellation of JWTs is needed and C is not built.
