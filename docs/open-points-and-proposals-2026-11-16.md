@@ -38,7 +38,7 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 
 | Point | Decision | State |
 | --- | --- | --- |
-| The four "ready" items (PR #432, A5 + B1 + B2, D2 dev flag, F1 docs and scripts) | Fold into ONE PR | Built on this branch: `fix(deps)` black bump, A5 + B1, B2, D2; PR #432 closed as folded in once the new PR is open |
+| The four "ready" items (PR #432, A5 + B1 + B2, D2 dev flag, F1 docs and scripts) | Fold into ONE PR | **Merged 2026-11-16 as PR #433 (`864f58f`)**, CI green (15 checks); PR #432 closed as folded in. Pipeline run, dev deploy and prod approval follow; then B4 (W4 re-run) and the Aurora AFTER measurement |
 | G2 workers clone master | Option 3: leave it; a merge to master is a worker release | Written into the PR description; no work |
 | D2 idle readers | Option 3: remove the dev reader and lower prod's minimum capacity to 0.5 ACU, with measuring | In the combined PR: flag, 0.5 ACU, a prod writer CPU alarm, `docs/plan-aurora-floor-measurement.md` and a before/after prompt |
 | G3 static uptime text | Recommendation: remove the item now | Queued for the second PR |
@@ -364,15 +364,21 @@ NAT, endpoints, cache, Aurora and ALB.
 
 **Recommendation: 1 for now; revisit with a month of tagged data (D1).**
 
-### D4. No lifecycle policy on the prod API image repository
-**Recap.** 157 images, ECR billed $17.46 in October (not one of the nine lines).
+### D4. No lifecycle policy on the API image repositories
+**Recap.** The prod repository holds 157 images and ECR billed $17.46 in October. **Correction to the first plan:** the
+repositories are not CDK resources. `api_stack.py` imports them by name ("lifecycle rules ... are managed on the repo
+itself, not here") and the pipeline's Synth step creates `pyvar-prod-api` with `aws ecr describe-repositories ... ||
+aws ecr create-repository`; `pyvar-dev-api` is also created outside the stack. The `api_stack.py` docstring says a
+lifecycle policy deletes untagged images after 30 days; nothing in the repository sets one (searched `pyvar-cdk/`).
+**Decision (owner): keep the newest 30 images** (the recommendation).
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| 1. Keep the newest 30 images, expire the rest | Small, safe saving; tidy | Rollback beyond 30 builds needs a rebuild; a CDK change, so a pipeline run |
-| 2. Leave it | No work | The count grows with every deploy |
+| 1. The pipeline sets the policy each run: `aws ecr put-lifecycle-policy` (keep the newest 30 images) for both repositories in the Synth step, with `ecr:PutLifecyclePolicy` added to the Synth role for both repositories | In code, idempotent, survives a recreated repository | A change to `pipeline_stack.py` (the pipeline updates itself), IAM, and a pipeline run; rollback past 30 builds needs a rebuild |
+| 2. The owner applies the policy once with the CLI (an agent prompt) | No pipeline run; immediate | Not in code; a recreated repository loses it |
+| 3. Leave it | No work | The count grows with every deploy |
 
-**Recommendation: 1.**
+**Recommendation: 1 in the second PR** (and fix the stale docstring). Option 2 meanwhile if you want the saving at once.
 
 ## E. Content and product
 
@@ -411,23 +417,20 @@ it is waiting for and I will propose options.
 
 ## G. Found while confirming B2
 
-### G1. Dependencies are not pinned, so the API and the workers can run different kombu versions
-**Recap.** `requirements.txt` pins `celery>=5.3.6` and nothing for kombu, with no lock file; the API image
-installs whatever is newest at build time. The workers' packages are baked into the Image Builder AMI (dev build
-1.0.251 of 2026-07-10: kombu 5.6.2, celery 5.6.3). The API image tagged `7e35bbc` was built on 2026-11-15, after
-kombu 5.7.0 (2026-11-03) and celery 5.7.0 (2026-11-05), so it very likely runs 5.7.0 (inference; the agent could
-not read it). Producer and consumer on different minor versions have not been shown to fail, and one message
-format check passed; it is a reproducibility risk, not a known fault.
+### G1. Dependencies are not pinned, so the API and the workers run different kombu versions
+**Fact (build logs, `docs/p9-aws-evidence-2026-11-13.md` section 11).** Dev and prod run the same API image
+(identical digest, built 2026-11-15): kombu 5.7.0, celery 5.7.0, billiard 4.3.2, amqp 5.4.2, vine 5.1.0. The workers
+run the AMIs of 2026-07-10 (dev) and 2026-08-08 (prod): kombu 5.6.2, celery 5.6.3, billiard 4.2.4, amqp 5.3.1, vine 5.1.0.
+One minor version apart in both environments. `requirements.txt` pins `celery>=5.3.6` and nothing else on this path.
+**Decision (owner): read the versions, then pin** (the recommendation).
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| 1. Pin celery and kombu (and the other message-path packages) in `requirements.txt` to the worker AMI's versions | Same behaviour in both places; one-line change | A pipeline run; the pins must be moved together with the next AMI bake |
-| 2. A full lock file for the API image and the AMI recipe | Reproducible builds everywhere | Larger change; the AMI recipe installs from inline pip lines (`ami_stack.py`), which would have to read the same file |
-| 3. Read the API's real versions first (ECS Exec on dev for one `pip show`, or a one-off task of the migrate family) and decide after | Facts before a change | Another agent run |
-| 4. Leave it | No work | The two sides drift further with every build |
+| 1. Pin the API to the workers' versions in `requirements.txt` (celery 5.6.3, kombu 5.6.2, billiard 4.2.4, amqp 5.3.1, vine 5.1.0) | One file; no AMI bake; restores the combination that ran until 2026-11-15; B2's handler is tested on both versions | The pins also have to go into `ami_stack.py`'s inline pip lines at the next bake, and changing that file starts a prod AMI bake (`CLAUDE.md` 11), so that part waits for an intended bake |
+| 2. Move the workers to 5.7.0 instead (a rebake) | Newest versions everywhere | A bake in both environments; untested on workers |
+| 3. A lock file read by the API image and the AMI recipe | Reproducible everywhere | Larger; the recipe installs from inline pip lines |
 
-**Recommendation: 3, then 1.** The C1 prompt's mechanism (a one-off run of the `pyvar-dev-migrate` task
-definition, which has the API's image) can print `pip show kombu celery` at no cost.
+**Recommendation: 1 now (second PR); the matching `ami_stack.py` pins with the next intended bake.**
 
 ### G2. Workers run the code of the default branch at the moment they boot
 **Recap (from `pyvar-cdk/stacks/compute_stack.py`, not observed live).** With the baked AMI the worker's user data
