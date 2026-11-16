@@ -173,3 +173,34 @@ All at release `c52e056`, the code running in dev.
 - **Spot safety:** graceful termination held (5 of 5); an abrupt loss of the worker lost the job and reported it failed (5 of 5, one timing); a real Spot notice was not tested. These statements say or imply that late acknowledgement makes an interrupted Spot instance's job only delayed: `CLAUDE.md` 3.2, `portal/guide-technical-deepdive.html` (line 92), `docs/publications/pyvar-technical-deepdive-medium-article.md` (line 79) and the comment at `pyvar-cdk/stacks/compute_stack.py` line 429. They are **not changed** in this pull request: the right wording depends on the decision below.
 - **Decisions for the owner, open:** (1) set `task_reject_on_worker_lost` so an abruptly lost job is redelivered (the trade is possible redelivery loops and double execution, which the visibility timeout and the job's determinism limit); (2) give each message its own group id so jobs can run in parallel, after confirming the deployed kombu version and the cause; (3) then correct the four texts above and re-run W4 and W5.
 - **A second pass would add:** a read-only role on `var_jobs`/`api_usage` (row counts, duplicate check), a FIS template (the real 2-minute notice), an allow-listed source (API-mode load, which also measures the WAF), several kill timings and a larger n.
+
+## 8. Fixed-cost inventory, run on 2026-11-16
+
+**Status: done, read-only.** Source: a third delegated agent working from `docs/aws-inventory-delegated-agent-prompt.md`. Its report is the source of every figure here; the full report (`/tmp/inv/REPORT.md`) is on its own machine and not in the repository, and the author has not re-checked any figure against AWS. The agent changed nothing, made 106 logged read-only calls (plus about 270 unlogged ones, below) and 4 of its 30 Cost Explorer calls; one call was denied (resource-level Cost Explorer data is an opt-in on the payer account) and it did not work around it. It ran as an IAM user named for the CDK deployer, which probably has write rights.
+
+**Tags.** `Project` and `Environment` were activated for billing on 2026-11-16 (about 11:50 UTC) and activation is not retroactive: a group-by-tag call for October puts all $1,262.38 under a blank `Project`. Spend from 2026-11-16 onward can be split by tag; October cannot. `CostComponent` has been active since 2026-08-04; `Owner` and `ManagedBy` are inactive.
+
+**The nine lines.** They come to $977.03, 77.4% of October's $1,262.38; every billed figure matched Cost Explorer. The product columns are the agent's estimates: each billed line allocated by a counted or measured quantity (published unit prices times billed quantities reproduce the lines), not billed per resource.
+
+| Line | October $ | pyvar prod | pyvar dev | other | unknown | Error of the derived quantity |
+| --- | --- | --- | --- | --- | --- | --- |
+| Aurora ACU hours | 314.37 | 209.95 | 104.42 | 0 | 0 | -0.02% |
+| ElastiCache | 208.32 | 104.16 | 104.16 | 0 | 0 | 0% |
+| VPC endpoint hours | 163.68 | 81.84 | 81.84 | 0 | 0 | 0%; the split assumes symmetry |
+| NAT hours | 107.14 | 71.43 | 35.71 | 0 | 0 | 0% |
+| Fargate | 55.16 | 36.76 | 18.40 | 0 | 0 | +0.12% |
+| ALB | 37.50 | 18.75 | 18.75 | 0 | 0 | 0% |
+| WAF | 36.18 | 10.00 | 18.13 | 8.00 (tengrade) | 0.05 | 0% |
+| CloudWatch | 28.62 | 9.95 | 9.95 | 2.70 | 6.01 | not bounded |
+| Public IPv4 | 26.06 | 14.89 | 11.17 | 0 | 0 | -0.07% |
+| **Total** | **977.03** | **557.73** (57.1%) | **402.53** (41.2%) | **10.70** (1.1%) | **6.06** (0.6%) | |
+
+- **Almost nothing is shared.** Prod and dev each have their own VPC, NAT, cache, Aurora cluster and ALB; the other products own none of these except one WAF ACL (tengrade) and some CloudWatch metrics and alarms. What cannot be split is part of CloudWatch, one RDS OS-metrics log group used by both clusters, and about $0.12 of residuals.
+- **CloudWatch is the weakest estimate.** The $28.62 is custom-metric billing ($25.93, mostly ECS Container Insights, enabled on the two pyvar clusters only) plus alarms ($2.70). The agent split the eu-west-1 metrics by today's metric counts (116 non-AWS metrics, 96 of them Container Insights) and could not reconcile that to the 80.4 billed metric-months. The "unknown" $6.01 is us-east-1's $4.34, where no custom metric exists today, plus $1.67 of pyvar metrics with no environment dimension.
+- **Idle-looking.** Both Aurora readers (prod and dev) had 0 connections every day of October but bill the minimum capacity: about $105 for prod and $52 for dev, roughly half the Aurora line. They are promotion-tier-1 instances, so probably a deliberate failover target; intent cannot be read from AWS. The prod API ECR repository has no lifecycle policy and holds 157 images (ECR billed $17.46, not one of the nine lines). The agent found no unassociated Elastic IPs, running EC2 instances or EBS volumes, and nothing in the other 15 regions.
+- **Outside the nine lines, not split:** tax $210.40, EC2 Spot $30.46, ECR $17.46, Secrets Manager $11.77, CodePipeline $3.58, CodeBuild $2.65.
+- **Untagged:** 4 Elastic IPs (all on ALB interfaces, 2 prod and 2 dev, product inferred), 99 of 143 log groups in eu-west-1 and all 8 in us-east-1, 23 of 39 secrets, and the default VPC (which holds nothing that costs money).
+- **What the agent reported getting wrong:** a truncated tag sweep (fixed; final count 1,070 rows); ECS settings printed as absent before it asked for them; the Tagging API missed 4 CloudFront distributions that do carry `Project` and listed 3 EBS volumes that do not exist (every "untagged" claim was re-checked directly); throttled log-group lookups briefly printed "4 of 99 tagged" (after a sequential retry, 0 of 99); about 270 read-only calls ran outside its logging wrapper; and the premise given to it (tags inactive) was out of date.
+
+**What this changes.** The README's "real prod invoice" of $900 to $1,000 is the whole account (prod, dev and other products). For the nine fixed lines pyvar prod is an estimated $558 and dev an estimated $403, so dev's fixed footprint is about 72% of prod's. Do not restate a prod cost from this: wait for a month of tagged spend. New cost questions are in `docs/open-points-and-proposals-2026-11-16.md`, D2 to D4.
+

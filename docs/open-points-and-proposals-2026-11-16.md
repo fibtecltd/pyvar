@@ -6,6 +6,30 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 `docs/internal-tokens-and-signing-secrets.md`, `docs/plan-academic-access.md`,
 `docs/plan-anonymous-plugin-keys.md`, `docs/p9-aws-evidence-2026-11-13.md` (section 7).
 
+## Decisions of 2026-11-16 (the owner)
+
+| Point | Decision | State |
+| --- | --- | --- |
+| A1 shared tier policy | Option 1 (recommendation) | Next to build; not started |
+| A2 education access | Option 2, lean first version, after A1 | Queued behind A1 |
+| A3 plugin keys | Anonymous keys rejected: "nothing represents a win here"; look for other options | Options in `docs/plan-plugin-keyless-access-options.md`; owner to choose |
+| A4 cancelling internal tokens | Recommendation: short expiry, database-backed keys for longer use | Scripts done (`0b40cdc`); nothing more to build |
+| A5 start-up secret guard | Option 1 | Built on `fix/lost-worker-retry-and-secret-guard`, no PR yet |
+| B1 lost workers | Option 1 "with only one retry" | Built on the same branch (`task_reject_on_worker_lost`, receive limit 2), no PR yet |
+| B2 group id | Recommendation (confirm first, then a group per message); prompt requested | Prompt delivered in chat; the fix follows its result |
+| B3 public Spot wording | Leave it | Closed |
+| B4 second W4/W5 pass | Recommendation: after B1 and B2, as their acceptance test | Waiting for B1 and B2 |
+| C1 dev check of the fix | Prompt requested | Prompt delivered in chat |
+| C2 prod "Succeeded" | The owner approved it ("it has always been me") | Closed |
+| C3 AWS access for agents | Keep on hold | On hold |
+| C4 Dependabot | Prompt requested | Prompt delivered in chat |
+| D1 cost tags | Tags activated; inventory run | Outcome in `docs/p9-aws-evidence-2026-11-13.md` section 8; new points D2 to D4 below; README wording after a month of tagged data |
+| E1 Medium article | Close the point; the owner will write another article | Closed |
+| E2 typed assistant | Recommendation: keep off; one legal-text pass with A2 | Kept off |
+| E3 "JIT-accelerated" | Leave it | Closed |
+| E4 pilot sign-off, ES source | Not discussed | On hold |
+| F1, F2 housekeeping | Not discussed | Open |
+
 ## A. New high-priority work
 
 ### A1. A shared tier policy (prerequisite for A2 and A3)
@@ -189,6 +213,44 @@ prod invoice" figure ($900 to $1,000) is account-wide.
 | 3. Run the read-only inventory prompt (already written) | Free; maps the nine fixed lines to products now | An estimate, not a bill |
 
 **Recommendation: 1 and 3 now; change the README wording after one full month of tagged data.**
+
+
+### D2. Two idle Aurora readers (about $157 a month)
+**Recap.** From the inventory (`docs/p9-aws-evidence-2026-11-13.md` section 8): both clusters have a reader
+with 0 connections on every day of October, billing the minimum capacity: about $105 for prod and $52 for dev,
+roughly half the Aurora line. They look like deliberate failover targets (promotion tier 1); intent cannot be
+read from AWS.
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Remove both readers | Saves about $157 a month | No warm failover target: after a writer failure a new instance has to be created, which typically takes minutes (not verified for these clusters) |
+| 2. Remove the dev reader only | Saves about $52; dev needs no failover | Prod keeps paying for its target |
+| 3. Keep both | Failover readiness | About $157 a month for an unused instance |
+
+**Recommendation: 2**, and decide prod once you have said what outage the service should tolerate.
+
+### D3. Dev's fixed footprint
+**Recap.** Dev is an estimated $403 of the nine lines, about 72% of prod's $558, because it has its own VPC,
+NAT, endpoints, cache, Aurora and ALB.
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Leave it | No work; dev mirrors prod | About $400 a month |
+| 2. Turn off ECS Container Insights on dev | Removes part of the custom-metric charge (the CloudWatch line is $28.62, mostly Container Insights on the two clusters) | Less dev observability; the saving is small and the split is the weakest estimate |
+| 3. Slim dev down: endpoints in one availability zone, review the NAT | Endpoints are $82 a month in dev; a single zone would roughly halve that | Dev no longer matches prod's network; needs a CDK change per environment |
+| 4. Scale dev's stateful services down when idle | Largest possible saving | Not checked whether these services can pause, and cold starts on the next use |
+
+**Recommendation: 1 for now; revisit with a month of tagged data (D1).**
+
+### D4. No lifecycle policy on the prod API image repository
+**Recap.** 157 images, ECR billed $17.46 in October (not one of the nine lines).
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Keep the newest 30 images, expire the rest | Small, safe saving; tidy | Rollback beyond 30 builds needs a rebuild; a CDK change, so a pipeline run |
+| 2. Leave it | No work | The count grows with every deploy |
+
+**Recommendation: 1.**
 
 ## E. Content and product
 
