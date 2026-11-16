@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from typing import Any, cast
 
 from celery import Celery, Task
+from celery.signals import before_task_publish
 from sqlalchemy import CursorResult, update
 
 from config import get_settings
@@ -308,6 +309,47 @@ celery_app.conf.update(
     redis_backend_health_check_interval=30,
     redis_retry_on_timeout=True,
 )
+
+
+# ── One SQS message group per job ─────────────────────────────────
+# The queue is FIFO. kombu's SQS transport puts a message that names no group into the single group
+# "default" (kombu/transport/SQS, _put), and SQS FIFO hands out only one in-flight message per group.
+# So however many workers run, one job at a time ran: the dev load test of 2026-11-14 completed 352,
+# 364 and 251 jobs a minute at 1, 2 and 4 workers, and a dev message sent by this code carried
+# MessageGroupId "default" (docs/p9-aws-evidence-2026-11-13.md, section 7). It also meant that one
+# message waiting out its visibility timeout (a lost worker, a poison job) held every other job back.
+# The queue's FIFO ordering is not used: jobs are independent. Giving each message its own group (the
+# job's id) lifts the limit and isolates a stuck message to itself. Both kombu 5.6.2 (the dev workers'
+# baked image) and 5.7.0 (an unpinned API build) read the group from the message properties.
+# tests/test_sqs_message_group.py pins this against Celery's real publish path.
+
+
+def _is_sqs_broker() -> bool:
+    """True when the app publishes through SQS (the group only means something there)."""
+    return str(celery_app.conf.broker_url or "").startswith("sqs")
+
+
+@before_task_publish.connect
+def _one_message_group_per_job(
+    headers: dict[str, Any] | None = None,
+    properties: dict[str, Any] | None = None,
+    **_: Any,
+) -> None:
+    """Put the message in a group of its own: MessageGroupId = the task id.
+
+    Runs in whichever process publishes: the API at submission, and a worker when a task is retried.
+    A retry keeps the task id, so it waits only for its own original message to be acknowledged, which
+    happens as soon as the failed attempt returns. A group already set on the message is kept.
+
+    Args:
+        headers: The Celery message headers; protocol 2 carries the task id under "id".
+        properties: The message properties Celery hands to the producer; modified in place.
+    """
+    if properties is None or not headers or not _is_sqs_broker():
+        return
+    task_id = headers.get("id")
+    if task_id:
+        properties.setdefault("MessageGroupId", str(task_id))
 
 
 # ── Task ──────────────────────────────────────────────────────────────────────

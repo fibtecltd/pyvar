@@ -6,8 +6,9 @@ Reasoning:
   would reset and a poison job could loop forever. This pins the behaviour, against a mocked SQS client.
 - It also records the cause of the flat throughput measured on 2026-11-14 (docs/p9-aws-evidence-2026-11-13.md,
   section 7): a message sent with no MessageGroupId goes to the FIFO group "default", and SQS FIFO lets only one
-  message per group be in flight. The repository sets no group, and kombu is not pinned (requirements.txt:
-  celery>=5.3.6), so the version that is deployed decides; this test documents the installed one.
+  message per group be in flight. tasks/var_task.py now gives each job its own group (tests/test_sqs_message_group.py);
+  the test here keeps what kombu does with a message that names none. kombu is not pinned (requirements.txt:
+  celery>=5.3.6), so the version that is deployed decides; these tests document the installed one.
 - The Channel constructor makes a real AWS call (ListQueues), so it is skipped, and only `_put` is run.
 """
 

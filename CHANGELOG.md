@@ -226,6 +226,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   tried twice and not looped. Tests pin both settings and kombu's requeue behaviour
   (`tests/test_cdk_queue_retry.py`, `tests/test_kombu_sqs_assumptions.py`); the W4 drill is to be re-run as
   the acceptance test. Merging changes the queue's redrive policy, so it starts a pipeline run.
+- **Queued jobs run in parallel: each message is in a SQS message group of its own** — The queue is FIFO and
+  kombu puts a message that names no group into the single group `default`; SQS FIFO delivers one in-flight
+  message per group, so jobs ran one at a time at any worker count (dev, 2026-11-14: 352, 364 and 251 jobs a
+  minute at 1, 2 and 4 workers). A real message sent from this repository to the dev queue carried
+  `MessageGroupId = default`. A `before_task_publish` handler (`tasks/var_task.py`) now sets the group to the task
+  id, in the API at submission and in a worker on retry; it applies only to an SQS broker, so the Redis broker of
+  local development is untouched. One message waiting out its visibility timeout (a lost worker, a poison job)
+  no longer holds the other jobs back. Tests follow Celery's real publish path into kombu's SQS `_put` on kombu
+  5.6.2 (the dev workers' baked image) and 5.7.0 (an unpinned API build) (`tests/test_sqs_message_group.py`). To be
+  measured by the second W4/W5 pass; merging starts a pipeline run.
 - **The API refuses to start in a hosted environment on a public or short signing secret** — `config.py`
   falls back to the public string `change-me-in-production` when `JWT_SECRET` is missing, and whoever holds the
   signing secret can sign a token of any tier. AWS always injects the real secret, but nothing stopped the API
