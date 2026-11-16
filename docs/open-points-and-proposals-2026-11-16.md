@@ -24,7 +24,7 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | C2 prod "Succeeded" | The owner approved it ("it has always been me") | Closed |
 | C3 AWS access for agents | Keep on hold | On hold |
 | C4 Dependabot | Prompt requested | Prompt delivered in chat |
-| D2 idle Aurora readers | If both are proved idle this is the highest priority (second round) | Read-only evidence prompt written; dev-only CDK flag built and synthesised, not pushed |
+| D2 idle Aurora readers | If both are proved idle this is the highest priority (second round) | Both IDLE (evidence section 10); dev-only CDK flag built and synthesised, not pushed; waiting for the go-ahead and the prod decision |
 | A6 free-tier limits | Review them and consider about twice as much (second round) | Limits listed and options below; owner to choose |
 | D1 cost tags | Tags activated; inventory run | Outcome in `docs/p9-aws-evidence-2026-11-13.md` section 8; new points D2 to D4 below; README wording after a month of tagged data |
 | E1 Medium article | Close the point; the owner will write another article | Closed |
@@ -284,9 +284,13 @@ to the host in the database secret (the cluster endpoint); no code uses a reader
 `scale_with_writer` instance with promotion tier 1; its CloudFormation `DeletionPolicy` is `Delete` in both
 environments, so removing it from CDK deletes it cleanly.
 
-**Proof, not yet run.** `agent_d2_aurora_readers_prompt.txt` (3,468 bytes, read-only, CloudWatch hourly from
-1 October: connections, CPU, read IOPS, capacity, replica lag; Performance Insights load; failover events;
-security-group sources; cost). It returns IDLE, USED or INCONCLUSIVE per reader.
+**Proof, run 2026-11-16: both readers are IDLE** (full table in `docs/p9-aws-evidence-2026-11-13.md` section 10).
+Zero client connections in all 1,118 hours from 1 October, zero Performance Insights load in 10,020 of 10,020
+one-minute points over the last 7 days, no result traffic, and no failover event in the 14 days RDS keeps. Cost,
+at the average ACU: about $103.67 a month for the prod reader and $51.28 for the dev reader. Only the API and the
+workers can reach a reader's port. Caveats: a connection shorter than the sampling interval cannot be excluded
+(VPC flow logs were not read), and both readers show CPU and capacity bursts, in the maintenance window for prod,
+that nothing explains. The metrics measure use, not failover readiness.
 
 **Change, ready and not pushed.** Branch `infra/aurora-reader-flag` (`048526f`): `aurora_reader_enabled` in
 `pyvar-cdk/config.py`, default true, false only in dev; `DataStack` builds its readers list from it; test
@@ -303,9 +307,11 @@ An idle reader is not an unneeded one: it is the failover target. The two reader
 | 3. Keep prod's reader and lower prod's minimum capacity from 1.0 to 0.5 ACU | Halves the reader's bill and the writer's floor (about $102 in all) | Not verified how prod behaves with the lower floor under bursts; a deliberate setting that has no stated reason |
 | 4. Keep both | Failover readiness | About $157 a month for instances nothing queries |
 
-**Recommendation:** run the proof; if dev is IDLE, merge the dev flag (option 1); decide prod once you have said
-what outage the service should tolerate. If prod's reader is IDLE and you accept minutes of recovery, set
-`aurora_reader_enabled=False` for prod in a second PR, which waits at the prod manual approval.
+**Recommendation: remove the dev reader now (option 1)**; the evidence is as solid as these metrics get and dev
+needs no failover. **Decide prod together with G3**: the home page states "99.97% uptime", and a warm failover
+target is the only thing that keeps that sentence honest. Either keep the reader and the sentence, or drop
+both; the Terms already disclaim availability. If prod's reader goes, set `aurora_reader_enabled=False` for prod
+in a second PR, which waits at the prod manual approval.
 
 ### D3. Dev's fixed footprint
 **Recap.** Dev is an estimated $403 of the nine lines, about 72% of prod's $558, because it has its own VPC,
@@ -401,6 +407,21 @@ approval. It also means the A5/B1/B2 branch affects workers as soon as it is mer
 | 3. Leave it, and treat a merge to master as a prod worker release | No work | Merge discipline carries a release risk, and the prod approval does not cover workers |
 
 **Recommendation: 1.** Decide it before the A5/B1/B2 PR is merged, so that the merge is a conscious worker release.
+
+### G3. "99.97% uptime" on the home page is static text
+**Recap.** `portal/index.html` line 169 shows "99.97% uptime" in the status bar as fixed HTML. I found no source
+for it in the repository (searched the portal and the docs; I did not look at any external monitor). The Terms
+(`portal/terms.html`) say availability is not guaranteed, and "SLA guarantees" appear only for Enterprise via
+fibtec.co.uk. It matters for D2: it is the one published availability claim.
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Replace it with a measured figure (from a monitor or the status data) | True and current | Needs a measurement source; none is known |
+| 2. Remove the item | No unsupported claim | Less reassurance on the page |
+| 3. Leave it | No work | A number with no source next to a service that has no failover guarantee |
+
+**Recommendation: 2 now, 1 when a measurement exists.** A text change under `portal/` (outside the 8 excluded
+directories, so a pipeline run).
 
 ## F. Housekeeping
 

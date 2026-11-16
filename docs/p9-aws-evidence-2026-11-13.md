@@ -223,3 +223,23 @@ An agent put ONE job on the dev queue with the repository's own dispatch (`compu
 - **What it does not settle.** The API's own sends were not observed. The API image tagged `7e35bbc` was built on 2026-11-15 from unpinned requirements (`celery>=5.3.6`, no kombu pin, no lock file); kombu 5.7.0 was released on 2026-11-03, so the API very likely runs 5.7.0 while the workers run 5.6.2 (inference). The agent read kombu 5.7.0's SQS transport and found the same `default` fallback; the local test on this branch reproduces both versions.
 - **A flaw in the prompt, mine.** `--visibility-timeout 0` returns a receipt handle that is already expired, so the delete failed. The agent received once more with 30 s and deleted it (receive count 2 of 3, no dead-letter message). The queue and the dead-letter queue ended at 0.
 - **What the agent reported getting wrong:** the second receive above; a dev worker launched at 13:51Z by the scale-from-zero alarm, so it waited read-only until the group reached 0 at 14:09Z before sending (the message sat about 35 s); extras beyond the prompt (a 5 s short poll, a scrubbed environment with the result backend disabled, the 5.7.0 wheels read as text, ECR metadata and the Image Builder log); minor slips (an `-I` import, a recorder that blocked SQS calls twice, an account id printed in working output, not in the report).
+
+## 10. Are the two Aurora readers idle? Checked on 2026-11-16
+
+Read-only agent run (CloudWatch hourly from 2026-10-01 00:00Z to 2026-11-16 14:00Z, Performance Insights, RDS events, security group). No call was denied. Both clusters are Aurora PostgreSQL 16.13, serverless v2, one writer (tier 0) and one reader (tier 1) each, all available; prod 1 to 16 ACU, dev 0.5 to 2 ACU.
+
+| | Prod reader | Dev reader |
+| --- | --- | --- |
+| Hours with client connections | 0 of 1,118 | 0 of 1,118 |
+| Performance Insights active-session load, last 167 hours | 0 in 10,020 of 10,020 one-minute points | same |
+| Receive / transmit peak | 0.8 to 0.9 KB/s | 0.8 to 0.9 KB/s |
+| Average ACU, share of hours at the minimum | 1.0144, 99.3% | 0.5017, 99.2% |
+| Replica lag (average, peak) | about 16 ms, 11.4 s | about 16 ms, 21.0 s |
+| ACU-hours over the window, cost at $0.14 | 1,134.1 (floor 1,118.0), $158.77 | 560.9 (floor 559.0), $78.53 |
+| Monthly (average ACU x 730 h x $0.14) | about $103.67 | about $51.28 |
+
+- **Verdict: both IDLE** by the prompt's definition. Their writers had connections in every one of the 1,118 hours (maximum 9 in prod, 10 in dev) and were the only instances with write IOPS, so the current writers were the writers throughout; no failover or promotion event in the 14 days RDS keeps (2026-11-02 onward; the same query returned 56 routine snapshot events, so the empty result is real).
+- **Who could reach a reader:** one security group per cluster, one ingress rule (TCP 5432) whose only sources are the API tasks' and the Celery workers' security groups. No CIDR sources.
+- **Unexplained, with no connection or load behind them:** dev reader CPU above 50% in 117 hours (43 of them at 22:00 UTC on weekdays); prod reader scaled to 16 ACU at about 02:00 UTC on 10-10, 10-24 and 11-07 (14 days apart, inside its Saturday maintenance window 02:36 to 03:06 UTC; no RDS event was recorded for 11-07); the dev reader reads about 15 rows/s against 2.3 on prod's. Cause unproven.
+- **Cannot be excluded:** a connection shorter than the sampling interval (CloudWatch about one minute; Performance Insights about one second, from the agent's memory, not confirmed); VPC flow logs were not read; Performance Insights keeps 7 days, so before 2026-11-09 only CloudWatch applies. The metrics measure use, not failover readiness.
+- **What the agent reported getting wrong:** a first Performance Insights window of 5 days instead of 7 (date arithmetic), and a first pull that silently kept only the last 350 points of each call, so its first "0 load" covered about 24% of minutes (redone in 340-minute chunks, not reported); a noisy 122-row printout; a failed jq attempt it did not use; extra read-only metrics beyond the prompt (WriteIOPS, DBLoad, NetworkTransmit, Performance Insights counters); the partial current hour dropped.
