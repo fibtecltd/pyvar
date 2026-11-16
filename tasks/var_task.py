@@ -279,6 +279,14 @@ celery_app.conf.update(
     result_expires=cfg.celery_result_ttl,
     worker_prefetch_multiplier=1,  # one task at a time per worker (CPU-bound)
     task_acks_late=True,  # only ack after task completes (safe retry)
+    # A worker process lost mid-job (SIGTERM during an instance's shutdown, an OOM kill) is, by
+    # Celery's default, acknowledged and its task marked FAILED even with late acknowledgement: the
+    # dev drill of 2026-11-14 lost 5 of 5 jobs that way (docs/p9-aws-evidence-2026-11-13.md, section
+    # 7). True requeues the task instead. kombu's SQS transport requeues the SAME message (it changes
+    # the message's visibility), so its receive count carries on, and the queue's redrive policy
+    # (pyvar-cdk/config.py: queue_dlq_max_receive_count = 2) allows exactly one redelivery before the
+    # dead-letter queue: a job that keeps killing its worker is tried twice, not forever.
+    task_reject_on_worker_lost=True,
     worker_max_tasks_per_child=100,  # recycle workers to prevent memory leak
     # Result-backend (Redis/ElastiCache) socket tuning — Sentry issue
     # cdb4c0e5 (dev, 2026-09-03): api/routes/var.py's get_var_result reads

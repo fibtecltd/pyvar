@@ -10,6 +10,14 @@ from urllib.parse import quote
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The signing secret config.py falls back to when JWT_SECRET is not set. Public, so it must never
+# sign anything in a hosted environment (see require_real_signing_secret).
+PUBLIC_DEFAULT_JWT_SECRET = "change-me-in-production"
+MIN_SIGNING_SECRET_LENGTH = 32
+# APP_ENV values of the deployed environments: CDK injects cfg.env_name ("dev", "staging", "prod"),
+# not the long forms the app_env default implies. Local runs use "development", CI uses "test".
+HOSTED_ENVS = frozenset({"dev", "staging", "prod", "production"})
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -21,7 +29,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # ── Security ───────────────────────────────────────────────────────────────
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str = PUBLIC_DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 60
     # Email verification link (api/routes/auth.py) expires after this long —
@@ -441,6 +449,33 @@ class Settings(BaseSettings):
         }
         self.public_base_url = base_url_by_env.get(self.app_env, "http://localhost:8000")
         return self
+
+
+def require_real_signing_secret(settings: Settings) -> None:
+    """Refuse to serve in a hosted environment with a public or short JWT signing secret.
+
+    Whoever holds the signing secret can sign a token of any tier, including `internal`, so the
+    API must not start with the public fallback or a weak value. This is called by the API's
+    start-up only: workers do not verify tokens, are not given the secret and run on the fallback by
+    design, so it must not be part of Settings validation. Local runs ("development") and CI
+    ("test") are not hosted and are not checked.
+
+    Args:
+        settings: The settings to check.
+
+    Raises:
+        RuntimeError: if app_env names a hosted environment and the secret is the public default or
+            shorter than MIN_SIGNING_SECRET_LENGTH. The message never contains the secret.
+    """
+    if settings.app_env not in HOSTED_ENVS:
+        return
+    secret = settings.jwt_secret.strip()
+    if secret == PUBLIC_DEFAULT_JWT_SECRET or len(secret) < MIN_SIGNING_SECRET_LENGTH:
+        raise RuntimeError(
+            f"JWT_SECRET is the public default or shorter than {MIN_SIGNING_SECRET_LENGTH} "
+            f"characters in APP_ENV={settings.app_env!r}: refusing to start. In AWS it is injected "
+            "from Secrets Manager (pyvar/<env>/jwt-secret); check the task definition."
+        )
 
 
 @lru_cache

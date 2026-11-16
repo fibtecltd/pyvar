@@ -216,6 +216,23 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **A job whose worker is lost is retried once, not failed** — With late acknowledgement alone, Celery
+  acknowledges the task of a worker process that is lost mid-job (a SIGTERM during an instance's shutdown, an
+  out-of-memory kill) and marks it failed. The dev drill of 2026-11-14 lost 5 of 5 jobs that way, though a
+  gracefully drained worker finished all 5. `task_reject_on_worker_lost` is now on (`tasks/var_task.py`), so
+  the task is requeued instead; kombu's SQS transport requeues the same message, so its receive count carries
+  on, and the queue's receive limit (`queue_dlq_max_receive_count`, `pyvar-cdk/config.py`) goes from 3 to 2:
+  the first delivery plus one retry, then the dead-letter queue, so a job that keeps killing its worker is
+  tried twice and not looped. Tests pin both settings and kombu's requeue behaviour
+  (`tests/test_cdk_queue_retry.py`, `tests/test_kombu_sqs_assumptions.py`); the W4 drill is to be re-run as
+  the acceptance test. Merging changes the queue's redrive policy, so it starts a pipeline run.
+- **The API refuses to start in a hosted environment on a public or short signing secret** — `config.py`
+  falls back to the public string `change-me-in-production` when `JWT_SECRET` is missing, and whoever holds the
+  signing secret can sign a token of any tier. AWS always injects the real secret, but nothing stopped the API
+  starting without it. `require_real_signing_secret` (called first in the API's start-up, `main.lifespan`) now
+  raises when `APP_ENV` is `dev`, `staging`, `prod` or `production` and the secret is the default or under 32
+  characters; local runs (`development`) and CI (`test`) are not checked. It is deliberately not part of
+  Settings validation: the Celery workers are not given the secret and run on the fallback by design.
 - **Worker: the `var_jobs` completion write works when the job has no submission row** — When a task is
   put on the queue without going through the API (a load test, a replay), the worker finds no `pending`
   row to update and falls back to inserting one (`tasks/var_task.py`, `_write_terminal_audit`). That

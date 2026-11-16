@@ -121,7 +121,10 @@ class PyvarConfig:
 
     # ── SQS ───────────────────────────────────────────────────────────────────
     queue_visibility_timeout_seconds: int = 60  # must exceed max simulation runtime
-    queue_dlq_max_receive_count: int = 3  # retry 3 times before DLQ
+    # Deliveries before a message goes to the DLQ: the first plus ONE retry. With Celery's
+    # task_reject_on_worker_lost (tasks/var_task.py) a job whose worker was lost is requeued on the same
+    # SQS message, so this bounds the retries. Was 3 (two retries).
+    queue_dlq_max_receive_count: int = 2
 
     # ── Scaling thresholds (SQS messages → desired workers) ──────────────────
     scale_steps: list = field(

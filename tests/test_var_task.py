@@ -407,6 +407,16 @@ def test_compute_var_task_s3_offload_failure_falls_back_to_inline():
     assert result["loss_dist"] == LARGE_MOCK_RESULT["loss_dist"]
 
 
+# ── a lost worker process: one redelivery, not a failure ──────────────────────
+
+
+def test_celery_requeues_a_task_whose_worker_process_is_lost():
+    """Dev drill 2026-11-14: without this, an abrupt shutdown acknowledged and FAILED the job (5 of 5)."""
+    conf = var_task_module.celery_app.conf
+    assert conf.task_reject_on_worker_lost is True
+    assert conf.task_acks_late is True
+
+
 # ── _publish_job_event: Redis URL ───────────────────────────────────────────────
 
 
