@@ -308,9 +308,9 @@ An idle reader is not an unneeded one: it is the failover target. The two reader
 | 4. Keep both | Failover readiness | About $157 a month for instances nothing queries |
 
 **Recommendation: remove the dev reader now (option 1)**; the evidence is as solid as these metrics get and dev
-needs no failover. **Decide prod together with G3**: the home page states "99.97% uptime", and a warm failover
-target is the only thing that keeps that sentence honest. Either keep the reader and the sentence, or drop
-both; the Terms already disclaim availability. If prod's reader goes, set `aurora_reader_enabled=False` for prod
+needs no failover. **Decide prod together with G3**: the home page states "99.97% uptime", and a published uptime
+figure leans on a warm failover target (the sentence has no source today either way, G3). Either keep the
+reader and settle the sentence, or drop the reader and the sentence; the Terms already disclaim availability. If prod's reader goes, set `aurora_reader_enabled=False` for prod
 in a second PR, which waits at the prod manual approval.
 
 ### D3. Dev's fixed footprint
