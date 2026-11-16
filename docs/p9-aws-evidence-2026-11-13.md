@@ -204,3 +204,22 @@ All at release `c52e056`, the code running in dev.
 
 **What this changes.** The README's "real prod invoice" of $900 to $1,000 is the whole account (prod, dev and other products). For the nine fixed lines pyvar prod is an estimated $558 and dev an estimated $403, so dev's fixed footprint is about 72% of prod's. Do not restate a prod cost from this: wait for a month of tagged spend. New cost questions are in `docs/open-points-and-proposals-2026-11-16.md`, D2 to D4.
 
+
+## 9. The message group of a real dev message, checked on 2026-11-16
+
+An agent put ONE job on the dev queue with the repository's own dispatch (`compute_var_task.apply_async`, from an export of `7e35bbc`), read it back and deleted it before any worker ran it.
+
+| Item | Observed |
+| --- | --- |
+| MessageGroupId | `default` |
+| MessageDeduplicationId | a random UUID, not the task id |
+| ApproximateReceiveCount | 1 on the first receive, 2 on the second |
+| Queue | FIFO, `FifoThroughputLimit` perQueue, visibility timeout 60 s, `maxReceiveCount` 3 (this branch's change makes it 2) |
+| kombu / celery of the dispatch | 5.6.2 / 5.6.3 |
+| kombu / celery on the dev workers | 5.6.2 / 5.6.3, read from the pip summary of the latest dev Image Builder build (1.0.251, 2026-07-10); not confirmed that a running worker uses that image |
+| kombu / celery in the dev API container | not determinable (no Docker on the agent's host, ECS Exec off) |
+
+- **What it settles.** A message sent by this code under kombu 5.6.2 goes to the single group `default`; with SQS FIFO that allows one in-flight message at a time, which matches 352, 364 and 251 jobs a minute at 1, 2 and 4 workers. The throughput claim itself was not re-measured.
+- **What it does not settle.** The API's own sends were not observed. The API image tagged `7e35bbc` was built on 2026-11-15 from unpinned requirements (`celery>=5.3.6`, no kombu pin, no lock file); kombu 5.7.0 was released on 2026-11-03, so the API very likely runs 5.7.0 while the workers run 5.6.2 (inference). The agent read kombu 5.7.0's SQS transport and found the same `default` fallback; the local test on this branch reproduces both versions.
+- **A flaw in the prompt, mine.** `--visibility-timeout 0` returns a receipt handle that is already expired, so the delete failed. The agent received once more with 30 s and deleted it (receive count 2 of 3, no dead-letter message). The queue and the dead-letter queue ended at 0.
+- **What the agent reported getting wrong:** the second receive above; a dev worker launched at 13:51Z by the scale-from-zero alarm, so it waited read-only until the group reached 0 at 14:09Z before sending (the message sat about 35 s); extras beyond the prompt (a 5 s short poll, a scrubbed environment with the result backend disabled, the 5.7.0 wheels read as text, ECR metadata and the Image Builder log); minor slips (an `-I` import, a recorder that blocked SQS calls twice, an account id printed in working output, not in the report).

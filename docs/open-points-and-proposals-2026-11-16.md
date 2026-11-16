@@ -16,7 +16,8 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | A4 cancelling internal tokens | Recommendation: short expiry, database-backed keys for longer use | Scripts done (`0b40cdc`); nothing more to build |
 | A5 start-up secret guard | Option 1 | Built on `fix/lost-worker-retry-and-secret-guard`, no PR yet |
 | B1 lost workers | Option 1 "with only one retry" | Built on the same branch (`task_reject_on_worker_lost`, receive limit 2), no PR yet |
-| B2 group id | Recommendation (confirm first, then a group per message); prompt requested | Prompt delivered in chat; the fix follows its result |
+| B2 group id | Recommendation (confirm first, then a group per message); prompt requested | Confirmed on dev (evidence section 9); per-message group built and tested on the A5/B1 branch, no PR yet |
+| G1, G2 dependency drift, workers clone master | New, found while confirming B2 | Options below; owner to choose |
 | B3 public Spot wording | Leave it | Closed |
 | B4 second W4/W5 pass | Recommendation: after B1 and B2, as their acceptance test | Waiting for B1 and B2 |
 | C1 dev check of the fix | Prompt requested | Prompt run: the agent had no read path to the dev database (second round below) |
@@ -170,19 +171,25 @@ takes the graceful path, so the exposure is mainly crashes and no-notice failure
 **Recommendation: 1, accepted by a W4 re-run (n of at least 10, several kill timings).**
 
 ### B2. Throughput did not rise with workers
-**Recap.** 352, 364 and 251 jobs a minute at 1, 2 and 4 workers, no two jobs overlapping. Likely cause:
-every message in one FIFO group (kombu sends group `default` when none is set; nothing in the repo sets
-one). A hypothesis, not proven. First step in any case: confirm the deployed kombu version and read one dev
-message's group id.
+**Recap.** 352, 364 and 251 jobs a minute at 1, 2 and 4 workers, no two jobs overlapping. **Confirmed on dev
+(`docs/p9-aws-evidence-2026-11-13.md` section 9):** a real message sent by this repository's dispatch carried
+`MessageGroupId = default`. One FIFO group means one in-flight message, so jobs ran one at a time. Not observed:
+the API's own sends (its kombu is probably 5.7.0, the workers' 5.6.2; both fall back to `default` by source reading).
+
+**Built** on `fix/lost-worker-retry-and-secret-guard` as its own commit: a `before_task_publish` handler in
+`tasks/var_task.py` sets `MessageGroupId` to the task id (SQS broker only; the API at submission, a worker on
+retry). Tests follow Celery's real publish path into kombu's SQS `_put` on kombu 5.6.2 and 5.7.0, and fail if the
+handler is disabled (`tests/test_sqs_message_group.py`). One message stuck in its visibility timeout no longer
+holds the other jobs back. The throughput gain is **not yet measured**: that is B4.
 
 | Option | Pros | Cons |
 |---|---|---|
-| 1. A group id per message | Workers run in parallel; ordering is not needed | Needs the mechanism confirmed in dev; FIFO ordering lost (unused) |
+| 1. A group id per message (built) | Workers run in parallel; a stuck message blocks only itself; ordering was never used | FIFO ordering lost; a retry waits only for its own original message to be acknowledged |
 | 2. A group per user | A heavy user cannot occupy every worker | One user's jobs run one at a time; more design |
-| 3. A standard (non-FIFO) queue | Simplest scaling | A new queue and CDK change; CLAUDE.md 3.2 rewritten; duplicates and no ordering |
-| 4. Leave it | No work; about 1,200 jobs a month today | The scaling claim stays unproven; autoscaling adds idle workers |
+| 3. A standard (non-FIFO) queue | Simplest scaling | A new queue and CDK change; `CLAUDE.md` 3.2 rewritten; duplicates and no ordering |
+| 4. Leave it | No work; about 1,200 jobs a month today | Autoscaling adds workers that cannot run in parallel |
 
-**Recommendation: confirm first, then 1.**
+**Decision taken (2026-11-16): confirm first, then 1.** Confirmed; 1 is built and waits for the PR.
 
 ### B3. Public texts that imply a lost Spot job is only delayed
 **Recap.** Four places: `CLAUDE.md` 3.2, the live `portal/guide-technical-deepdive.html` (line 92), the
@@ -357,6 +364,43 @@ cases, level in 2, slower in none, so speed over NumPy is not a JIT advantage in
 ### E4. Pilot sign-off and the ES source
 **Recap.** On hold; this session holds no detail beyond that. **Recommendation:** leave it on hold; tell me what
 it is waiting for and I will propose options.
+
+## G. Found while confirming B2
+
+### G1. Dependencies are not pinned, so the API and the workers can run different kombu versions
+**Recap.** `requirements.txt` pins `celery>=5.3.6` and nothing for kombu, with no lock file; the API image
+installs whatever is newest at build time. The workers' packages are baked into the Image Builder AMI (dev build
+1.0.251 of 2026-07-10: kombu 5.6.2, celery 5.6.3). The API image tagged `7e35bbc` was built on 2026-11-15, after
+kombu 5.7.0 (2026-11-03) and celery 5.7.0 (2026-11-05), so it very likely runs 5.7.0 (inference; the agent could
+not read it). Producer and consumer on different minor versions have not been shown to fail, and one message
+format check passed; it is a reproducibility risk, not a known fault.
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Pin celery and kombu (and the other message-path packages) in `requirements.txt` to the worker AMI's versions | Same behaviour in both places; one-line change | A pipeline run; the pins must be moved together with the next AMI bake |
+| 2. A full lock file for the API image and the AMI recipe | Reproducible builds everywhere | Larger change; the AMI recipe installs from inline pip lines (`ami_stack.py`), which would have to read the same file |
+| 3. Read the API's real versions first (ECS Exec on dev for one `pip show`, or a one-off task of the migrate family) and decide after | Facts before a change | Another agent run |
+| 4. Leave it | No work | The two sides drift further with every build |
+
+**Recommendation: 3, then 1.** The C1 prompt's mechanism (a one-off run of the `pyvar-dev-migrate` task
+definition, which has the API's image) can print `pip show kombu celery` at no cost.
+
+### G2. Workers run the code of the default branch at the moment they boot
+**Recap (from `pyvar-cdk/stacks/compute_stack.py`, not observed live).** With the baked AMI the worker's user data
+runs `git clone` of the repository's default branch into `/opt/pyvar` at every boot, with the packages already on
+the image. So a worker that starts after a merge runs that merge, in prod too, whether or not the pipeline has
+passed the prod manual approval for the same commit: the prod API and the prod workers can run different code for
+a while. The stack's own comment marks the clone as a stop-gap ("TODO: remove when Hypothesis C replaces git
+clone"). A change to `tasks/` therefore reaches new workers at once, while a change to the API waits for the
+approval. It also means the A5/B1/B2 branch affects workers as soon as it is merged.
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Clone the commit the pipeline deployed (a tag or SHA passed to the launch template) | Workers and API stay in step; rollback is a tag | A CDK change, the commit must be known to the stack, a pipeline run |
+| 2. Bake the code into the image or ship it in the container image | The deployed artefact is what runs | Larger change; a rebake per release |
+| 3. Leave it, and treat a merge to master as a prod worker release | No work | Merge discipline carries a release risk, and the prod approval does not cover workers |
+
+**Recommendation: 1.** Decide it before the A5/B1/B2 PR is merged, so that the merge is a conscious worker release.
 
 ## F. Housekeeping
 
