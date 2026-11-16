@@ -77,13 +77,18 @@ class DataStack(Stack):
             serverless_v2_min_capacity=cfg.aurora_min_acu,
             serverless_v2_max_capacity=cfg.aurora_max_acu,
             writer=rds.ClusterInstance.serverless_v2("Writer"),
-            readers=[
-                # One reader in the second AZ for read-heavy query offload
-                rds.ClusterInstance.serverless_v2(
-                    "Reader",
-                    scale_with_writer=True,  # reader scales with writer — cost-efficient
-                ),
-            ],
+            readers=(
+                [
+                    # One reader in the second AZ: the failover target. The application does
+                    # not use a reader endpoint. cfg.aurora_reader_enabled=False drops it.
+                    rds.ClusterInstance.serverless_v2(
+                        "Reader",
+                        scale_with_writer=True,  # reader scales with writer — cost-efficient
+                    ),
+                ]
+                if cfg.aurora_reader_enabled
+                else []
+            ),
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
             security_groups=[sgs.aurora],

@@ -9,6 +9,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Aurora reader is one flag per environment** — `aurora_reader_enabled` in `pyvar-cdk/config.py`
+  (default true) decides whether `DataStack` builds the cluster's serverless reader. Only `dev` sets it
+  false. Reason: a reader bills the cluster's minimum capacity all month and the application connects
+  only to the cluster (writer) endpoint. `cdk synth` before and after: the dev data stack loses
+  `AuroraReader` and nothing else; prod and every other stack are byte-identical. Prod keeps its
+  reader, which is also its failover target. Test: `tests/test_cdk_aurora_reader_flag.py`.
+
 - **Portal assistant: typed-question gateway (off)** — `POST /api/v1/assistant/ask` (`api/assistant/`),
   registered but inert: it answers 503 `assistant_disabled` unless `assistant_enabled` and the new
   `assistant_typed_enabled` are both true, and the second is false everywhere. When on: anonymous

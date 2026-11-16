@@ -112,6 +112,11 @@ class PyvarConfig:
     # ── Aurora Serverless v2 ──────────────────────────────────────────────────
     aurora_min_acu: float = 0.5  # minimum — ~$45/month; 0 would need Aurora SV2 pause
     aurora_max_acu: float = 8.0  # scales to handle batch audit log writes
+    # One serverless reader per cluster (the failover target, second AZ). A reader bills the
+    # cluster's minimum capacity all month (about $0.14 per ACU-hour) whether or not anything
+    # connects to it, and the application only uses the cluster (writer) endpoint. Default True:
+    # a new environment keeps the reader, and only an environment that sets False loses it.
+    aurora_reader_enabled: bool = True
 
     # ── ElastiCache Serverless ────────────────────────────────────────────────
     cache_max_ecpu_per_second: int = 5_000  # cap to prevent runaway costs
@@ -216,6 +221,7 @@ class PyvarConfig:
                 worker_max_capacity=5,
                 aurora_min_acu=0.5,
                 aurora_max_acu=2.0,
+                aurora_reader_enabled=False,  # dev has no failover need; saves about $52/month
                 result_retention_days=14,
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Portal assistant menus on in dev (see assistant_enabled above) and, since
