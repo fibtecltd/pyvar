@@ -20,10 +20,10 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | G1, G2 dependency drift, workers clone master | New, found while confirming B2 | Options below; owner to choose |
 | B3 public Spot wording | Leave it | Closed |
 | B4 second W4/W5 pass | Recommendation: after B1 and B2, as their acceptance test | Waiting for B1 and B2 |
-| C1 dev check of the fix | Prompt requested | Prompt run: the agent had no read path to the dev database (second round below) |
+| C1 dev check of the fix | Prompt requested | Done: five fallback rows seen in `var_jobs`, no failure line since 2026-11-14; closed apart from the Sentry issue (owner) |
 | C2 prod "Succeeded" | The owner approved it ("it has always been me") | Closed |
 | C3 AWS access for agents | Keep on hold | On hold |
-| C4 Dependabot | Prompt requested | Prompt delivered in chat |
+| C4 Dependabot | Prompt requested | PR #432 open (black 26.10.1, two manifests); CI green except one job still running at the last look; not merged |
 | D2 idle Aurora readers | If both are proved idle this is the highest priority (second round) | Both IDLE (evidence section 10); dev-only CDK flag built and synthesised, not pushed; waiting for the go-ahead and the prod decision |
 | A6 free-tier limits | Review them and consider about twice as much (second round) | Limits listed and options below; owner to choose |
 | D1 cost tags | Tags activated; inventory run | Outcome in `docs/p9-aws-evidence-2026-11-13.md` section 8; new points D2 to D4 below; README wording after a month of tagged data |
@@ -31,7 +31,8 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | E2 typed assistant | Recommendation: keep off; one legal-text pass with A2 | Kept off |
 | E3 "JIT-accelerated" | Leave it | Closed |
 | E4 pilot sign-off, ES source | Not discussed | On hold |
-| F1, F2 housekeeping | Not discussed | Open |
+| C5 `var_jobs` rows stuck pending | New (from the C1 result) | Seven rows from 2026-11-14; not yet looked at |
+| F1, F2 housekeeping | Not discussed | Open; F1: nine commits, only `docs/`, `scripts/`, `tests/`, ready to open |
 
 ## A. New high-priority work
 
@@ -217,20 +218,16 @@ graceful termination and not for an abrupt loss.
 
 ## C. Verification and governance
 
-### C1. Check the fallback-insert fix on dev
-**Recap.** Merged as PR #429. The first dev run saw no failure lines in 5 queue-dispatched jobs, against 251
-before. The second run (the C1 prompt) could not go further: `PYVAR_DEV_DB_RO_URL` was unset, ECS Exec is off on
-`pyvar-dev-api`, Sentry variables were unset, and it ran no query. So no database row has been seen.
-
-| Option | Pros | Cons |
-| --- | --- | --- |
-| 1. You run SQL A and B (given in chat) and look at Sentry | Authoritative; a few minutes | Needs your database path |
-| 2. Set `PYVAR_DEV_DB_RO_URL` for the agent | Repeatable; also serves B4 | A credential for a read-only role, which has to be created first |
-| 3. Turn on ECS Exec on dev | No new credential | A CDK change and a pipeline run; opens a shell path into dev |
-| 4. Accept the indirect evidence | No work | The fix is tested and no failure lines appeared, but a row in `var_jobs` is the proof |
-| 5. One run of the existing one-off task `pyvar-dev-migrate` with its command replaced by a read-only script | No ECS Exec, no new credential, no infrastructure change; the agent does it unattended; a fraction of a cent | The task runs with the migration task's database credentials (the cluster's admin user), so read-only rests on the script's own `READ ONLY` transaction and on its text, not on a role; the default command is a migration, so the prompt asserts the override before running; the agent needs `ecs:RunTask` and `iam:PassRole`, which is not known |
-
-**Recommendation: 5 now** (prompt `agent_c1_dbcheck_prompt.txt`, 4,947 bytes; the script was run against a throwaway local Postgres with the real `VaRJob` table: four result sets came back, and a `DELETE` inside the transaction was refused). Option 1 stays the surest if you would rather not hand the agent a task run. Option 2 only if B4 will need the same read path.
+### C1. Check the fallback-insert fix on dev: done
+**Result (2026-11-16, one run of the `pyvar-dev-migrate` task with a read-only script, about 29 s, exit 0).** The five
+jobs sent straight to the queue on 2026-11-15 left five `var_jobs` rows with `user_id = unknown` and status
+`success`, all in the 18:00 UTC hour. No failure rows of any kind in the last three days. The worker log shows 251
+"audit write failed" lines, all in the 2026-11-14 18:00 hour, and none since; "cannot supply the request columns"
+appears 0 times. The worker group did log activity in the 18:00 hour of 11-15 (51 events, 5 of them "VaR computation
+complete"), so the silence is meaningful. The fix reached dev between 16:22Z (merge) and 16:47Z (API deployment);
+whether the worker that ran the five jobs (launched 18:38:44Z) cloned the merge is inferred from its launch time,
+not seen. The agent made no other change and recorded the run as a single authorisation, not a standing path to the
+database. **Left for you:** look at the Sentry issue and resolve it. The mechanism stays available for G1.
 
 ### C2. Prod stage showed "Succeeded"
 **Recap.** The pipeline has a manual approval step before prod and it is on in code
@@ -250,15 +247,40 @@ products; only resource names kept them away from prod.
 
 **Recommendation: 1 now; 3 as a planned project, decided with D1's results.**
 
-### C4. Two high-severity Dependabot alerts
-**Recap.** GitHub reported them in a push; not yet looked at.
+### C4. Two high-severity Dependabot alerts: PR #432 is open
+**Recap.** Both alerts are one advisory (GHSA-cg8m-r9f2-5wm2) on two manifests: `black` 26.5.1 in the dev extras of
+`pyvar-client` and `pyvar-jupyter`, first patched 26.10.1. PR #432 changes those two lines and nothing else. The PR's
+reachability reading: the flaw is in Black's GitHub Action (`use_pyproject`), the repository does not use that action,
+and `black` is only run as a command-line formatter. Its before-and-after local runs are identical (root 2,882
+passed, client 447, jupyter 33). At the last look every GitHub check had passed except one `Tests (Python 3.11)` job
+still running; the merge state read "blocked" (a required check pending, or a review rule).
+
+**Pipeline note (`CLAUDE.md` 8.1), stated before any merge:** `pyvar-client/` is one of the 8 excluded directories
+but `pyvar-jupyter/` is not, so merging **will trigger a CodePipeline run** for a change to a development extra.
 
 | Option | Pros | Cons |
-|---|---|---|
-| 1. You send the two package names; one separate PR bumps them | Targeted | A pipeline run if requirements change |
-| 2. Turn on automatic security-update PRs | Ongoing | More PRs and CI runs |
+| --- | --- | --- |
+| 1. Merge #432 alone, once the last check is green | Closes both alerts; smallest change | A pipeline run for two dev-extra lines |
+| 2. Merge it right before the A5/B1/B2 PR so one pipeline run carries both | Possibly one run instead of two | Only if the pipeline supersedes a queued run, which I have not verified; couples two unrelated changes' timing |
+| 3. Leave it open | No run | Two high alerts stay open (not reachable, so low urgency) |
 
-**Recommendation: 1 now, then consider 2.**
+**Recommendation: 1.** The alerts are not reachable; the cost is one pipeline run either way.
+
+### C5. `var_jobs` rows left at "pending"
+**Recap.** The C1 run showed 7 `var_jobs` rows created on 2026-11-14 by the API (not fallback rows) still `pending`
+after more than an hour. The agent did not look into them. Likely cause (inference, not checked): jobs whose worker was
+lost during the W4 drill, which never reached the terminal write. After B1 a job lost twice goes to the dead-letter
+queue, which updates nothing, so the same state will recur for jobs that exhaust their one retry. `var_jobs` is an
+audit log (`CLAUDE.md` 3.3: never delete rows).
+
+| Option | Pros | Cons |
+| --- | --- | --- |
+| 1. Look first: a read-only run listing the seven rows (ids, created, tier, size) | Facts before a change; same mechanism as C1, one new authorisation | Another agent run |
+| 2. One reviewed UPDATE marking those seven as failed ("worker lost, W4 drill") | Clean audit trail | A write to an audit table, by hand; your call |
+| 3. A reconciler that marks rows pending beyond a limit as failed, or a dead-letter handler | Fixes the recurring case | New code and design; sensible after B4 shows how often it happens |
+| 4. Leave them | No work | Misleading rows; any count of pending jobs is wrong |
+
+**Recommendation: 1 now; 2 if they are the drill's; 3 after B4.**
 
 ## D. Money and measurement
 
