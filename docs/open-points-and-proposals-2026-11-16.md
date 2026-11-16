@@ -221,8 +221,9 @@ before. The second run (the C1 prompt) could not go further: `PYVAR_DEV_DB_RO_UR
 | 2. Set `PYVAR_DEV_DB_RO_URL` for the agent | Repeatable; also serves B4 | A credential for a read-only role, which has to be created first |
 | 3. Turn on ECS Exec on dev | No new credential | A CDK change and a pipeline run; opens a shell path into dev |
 | 4. Accept the indirect evidence | No work | The fix is tested and no failure lines appeared, but a row in `var_jobs` is the proof |
+| 5. One run of the existing one-off task `pyvar-dev-migrate` with its command replaced by a read-only script | No ECS Exec, no new credential, no infrastructure change; the agent does it unattended; a fraction of a cent | The task runs with the migration task's database credentials (the cluster's admin user), so read-only rests on the script's own `READ ONLY` transaction and on its text, not on a role; the default command is a migration, so the prompt asserts the override before running; the agent needs `ecs:RunTask` and `iam:PassRole`, which is not known |
 
-**Recommendation: 1 now**; 2 only if B4 will need the same read path.
+**Recommendation: 5 now** (prompt `agent_c1_dbcheck_prompt.txt`, 4,947 bytes; the script was run against a throwaway local Postgres with the real `VaRJob` table: four result sets came back, and a `DELETE` inside the transaction was refused). Option 1 stays the surest if you would rather not hand the agent a task run. Option 2 only if B4 will need the same read path.
 
 ### C2. Prod stage showed "Succeeded"
 **Recap.** The pipeline has a manual approval step before prod and it is on in code
