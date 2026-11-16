@@ -52,22 +52,39 @@ def other_app() -> Celery:
     return app
 
 
+@pytest.fixture
+def connection(other_app: Celery) -> Iterator[Any]:
+    """An explicit memory connection.
+
+    Celery prefers the CELERY_BROKER_URL environment variable (CI sets it to Redis) over the `broker=` the app
+    was given, so a test that relied on the app's own broker would publish to Redis and record nothing.
+    """
+    with other_app.connection_for_write("memory://") as conn:
+        yield conn
+
+
 def _group(entry: dict[str, Any]) -> Any:
     return entry["message"]["properties"].get("MessageGroupId")
 
 
-def test_each_job_gets_its_own_group_equal_to_its_task_id(published, other_app) -> None:
+def test_each_job_gets_its_own_group_equal_to_its_task_id(published, other_app, connection) -> None:
     with patch.object(var_task, "_is_sqs_broker", return_value=True):
-        other_app.tasks["group_test.noop"].apply_async(args=[1], task_id="job-aaa")
-        other_app.tasks["group_test.noop"].apply_async(args=[2], task_id="job-bbb")
+        other_app.tasks["group_test.noop"].apply_async(
+            args=[1], task_id="job-aaa", connection=connection
+        )
+        other_app.tasks["group_test.noop"].apply_async(
+            args=[2], task_id="job-bbb", connection=connection
+        )
     assert [_group(m) for m in published] == ["job-aaa", "job-bbb"]
     assert all(m["queue"] == "group-test.fifo" for m in published)
 
 
-def test_no_group_is_added_when_the_broker_is_not_sqs(published, other_app) -> None:
+def test_no_group_is_added_when_the_broker_is_not_sqs(published, other_app, connection) -> None:
     """The test environment's broker is the Redis URL, so the real check is False."""
     assert var_task._is_sqs_broker() is False
-    other_app.tasks["group_test.noop"].apply_async(args=[1], task_id="job-aaa")
+    other_app.tasks["group_test.noop"].apply_async(
+        args=[1], task_id="job-aaa", connection=connection
+    )
     assert _group(published[0]) is None
 
 
@@ -106,12 +123,14 @@ def test_a_missing_properties_dict_is_tolerated() -> None:
         var_task._one_message_group_per_job(headers={"id": "job-1"}, properties=None)
 
 
-def test_the_group_reaches_sqs_send_message(published, other_app) -> None:
+def test_the_group_reaches_sqs_send_message(published, other_app, connection) -> None:
     """The message Celery publishes, handed to kombu's SQS `_put`, is sent with that group."""
     pytest.importorskip("boto3")
     sqs_module = pytest.importorskip("kombu.transport.SQS")
     with patch.object(var_task, "_is_sqs_broker", return_value=True):
-        other_app.tasks["group_test.noop"].apply_async(args=[1], task_id="job-sqs")
+        other_app.tasks["group_test.noop"].apply_async(
+            args=[1], task_id="job-sqs", connection=connection
+        )
     message = published[0]["message"]
 
     with patch.object(sqs_module.Channel, "__init__", lambda self, *a, **k: None):

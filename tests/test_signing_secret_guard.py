@@ -73,13 +73,18 @@ def test_whitespace_does_not_make_a_short_secret_long_enough():
         require_real_signing_secret(settings("prod", " " * 10 + "abc" + " " * 40))
 
 
-def test_settings_themselves_still_load_in_a_hosted_env_with_the_default():
-    """The workers run like this: the guard must not live in Settings validation."""
+def test_settings_themselves_still_load_in_a_hosted_env_with_the_default(monkeypatch):
+    """The workers run like this: the guard must not live in Settings validation.
+
+    CI sets JWT_SECRET for the whole run, so the variable is removed to see the fallback.
+    """
+    monkeypatch.delenv("JWT_SECRET", raising=False)
     loaded = Settings(app_env="prod")
     assert loaded.jwt_secret == PUBLIC_DEFAULT_JWT_SECRET
 
 
-def test_the_default_is_the_public_constant():
+def test_the_default_is_the_public_constant(monkeypatch):
+    monkeypatch.delenv("JWT_SECRET", raising=False)
     assert Settings().jwt_secret == PUBLIC_DEFAULT_JWT_SECRET
 
 

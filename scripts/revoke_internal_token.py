@@ -100,7 +100,7 @@ def rotation_runbook(env: str, region: str = DEFAULT_REGION) -> str:
 
     Returns plain text for a person to read; nothing in it is executed here.
     """
-    secret_id = f"pyvar/{env}/jwt-secret"
+    store_entry = f"pyvar/{env}/jwt-secret"  # the NAME of a Secrets Manager entry, not its value
     cluster, service = f"pyvar-{env}", f"pyvar-{env}-api"
     generate = (
         'python3 -c \'import secrets,string;print("".join(secrets.choice('
@@ -119,7 +119,7 @@ jobs may fail once; do it in a quiet period.
 
 2. Put a new 64-character secret in place (generated here, never shown; no trailing newline):
      {generate} \\
-       | aws secretsmanager put-secret-value --secret-id {secret_id} --region {region} \\
+       | aws secretsmanager put-secret-value --secret-id {store_entry} --region {region} \\
            --secret-string file:///dev/stdin
 
 3. Make the API read it (the containers take the secret when they start):

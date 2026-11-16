@@ -277,7 +277,10 @@ def api_request(
     if data is not None:
         request.add_header("Content-Type", "application/json")
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+        # The scheme and host were checked above: https, or a loopback host only.
+        with urllib.request.urlopen(
+            request, timeout=timeout
+        ) as response:  # noqa: S310  # nosec B310
             status, raw = response.status, response.read()
     except urllib.error.HTTPError as exc:
         status, raw = exc.code, exc.read()
