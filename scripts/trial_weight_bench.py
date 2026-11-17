@@ -425,13 +425,19 @@ async def _client() -> AsyncIterator[tuple[Any, dict[str, str]]]:
     async def _no_usage_row(*_args: Any, **_kwargs: Any) -> None:
         return None
 
+    # Silence log output while measuring, and put the previous setting back: logging.disable is
+    # process-wide, and a test suite that imports this module must not lose caplog for what runs later.
+    previous_disable = logging.root.manager.disable
     logging.disable(logging.CRITICAL)
-    headers = {"Authorization": f"Bearer {create_access_token('trial-bench', 'enterprise')}"}
-    with patch("api.middleware.usage._persist_usage", _no_usage_row):
-        async with AsyncClient(
-            transport=ASGITransport(app=create_app()), base_url="http://bench"
-        ) as client:
-            yield client, headers
+    try:
+        headers = {"Authorization": f"Bearer {create_access_token('trial-bench', 'enterprise')}"}
+        with patch("api.middleware.usage._persist_usage", _no_usage_row):
+            async with AsyncClient(
+                transport=ASGITransport(app=create_app()), base_url="http://bench"
+            ) as client:
+                yield client, headers
+    finally:
+        logging.disable(previous_disable)
 
 
 async def _timed_post(

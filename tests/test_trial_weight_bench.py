@@ -243,6 +243,26 @@ def test_the_compile_counter_sees_a_kernel_compile_exactly_once() -> None:
     assert bench._numba_compiles() == after_first
 
 
+def test_the_benchmark_leaves_logging_as_it_found_it() -> None:
+    # logging.disable is process-wide. Left on, it made a later test that reads caplog fail in CI
+    # (tests/test_var_jobs_reconciler.py::test_the_loop_survives_an_error_and_keeps_going).
+    import logging
+
+    bench = _bench()
+    before = logging.root.manager.disable
+    logging.disable(logging.NOTSET)
+    try:
+
+        async def inside() -> int:
+            async with bench._client():
+                return int(logging.root.manager.disable)
+
+        assert asyncio.run(inside()) == logging.CRITICAL
+        assert logging.root.manager.disable == logging.NOTSET
+    finally:
+        logging.disable(before)
+
+
 def test_the_warm_pass_calls_the_real_route_and_reports_percentiles() -> None:
     bench = _bench()
     body = json.loads(bench.CURATED.read_text(encoding="utf-8"))[_CHEAP_ROUTE]
