@@ -2,7 +2,22 @@
 
 Decision of 2026-11-17 (A3): the owner takes the risk of giving a first result with no registration and asks for a
 throttle that bounds the abuse. A Fable research subagent designed it (read-only, 28 tool calls); I re-read the claims
-marked **checked** against the repository and AWS's pages; the rest is the subagent's reading. Nothing is built.
+marked **checked** against the repository and AWS's pages; the rest is the subagent's reading. Nothing is built; the owner's decisions are in the next section.
+
+## Decisions of 2026-11-17 (the owner)
+
+The owner accepted the recommendations in this document, so the trial-ticket lane is the chosen design (the anonymous
+per-install keys of `docs/plan-anonymous-plugin-keys.md` stay rejected) and PR 0 below is opened. Four points the
+acceptance did not name are recorded here as the working defaults, each easy to change before PR 1 is written:
+
+| Point | Working default | Why |
+| --- | --- | --- |
+| First-use friction alone justifies the build | Yes, accepted; the nine held plugins' directory flag is **not** expected to clear | The owner's rule was to rediscuss if the status of the nine did not improve; the proposal states plainly that it will not, and the owner went ahead |
+| Sizing | 260 tickets and 2,500 units a day, as written | The compute bound is the same for any size; the numbers only set how much real use fits |
+| L6 per-IP counters | Built, behind `trial_ip_counter_enabled`, **off until a short privacy note is written** | An IP prefix is personal data under UK GDPR even as a keyed hash; the note belongs with the A2 and A3 legal-text pass (register, section E2) |
+| `CLAUDE.md` 3.5 paragraph | **Not edited in PR 0 or yet.** PR 1 carries it only after the owner says so in terms | `CLAUDE.md` is the owner's file and 3.5 is a security rule; a general "recommendations accepted" does not name it |
+
+PRs 1 to 3 wait for the p95 measurement below. Nothing in this PR changes code, settings or infrastructure.
 
 ## What the proposal is, and how it differs from the rejected design
 
@@ -87,7 +102,7 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 
 | PR | Change | Pipeline run |
 | --- | --- | --- |
-| 0 | This design; a query that measures per-function p95 for the weights | no |
+| 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
 | 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**needs your explicit go**); off until the Redis key is set | yes |
 | 2 `feat(mcp)` 0.3.0 | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
 | 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |

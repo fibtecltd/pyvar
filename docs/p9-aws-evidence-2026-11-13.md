@@ -284,3 +284,27 @@ Read-only agent run of `docs/prompts/agent-d2-floor-measure.txt` in BASELINE mod
 - **Outliers, no cause attributed:** both instances reached 16 ACU in the same hour on 2026-11-03 10Z (writer CPU 80%, free memory down to 5.99 GiB, reader CPU 97.6% with no connections, no RDS event, ALB p95 0.039 s that hour). Hours above the minimum cluster at fixed UTC hours: the writer's at 00, 06, 13 and 20Z daily (plus 05Z on 11 days), the reader's at 11Z daily (plus 22Z and 02Z). On 11-14 neither instance went above 2 ACU.
 - **Not visible:** `FreeableMemory` reads about 29 GiB at a 1 ACU floor, so it is not bounded by the current capacity's memory (the agent reads it as relative to the 16 ACU maximum; not checked against documentation). Memory pressure at 0.5 ACU therefore will not show in that metric. Hourly resolution cannot place a spike inside its hour. The events query has no known-positive control. Alarm history cannot be listed with the allowed calls.
 - **What the agent reported getting wrong:** a first analysis multiplied CommitLatency by 1000 (it is published in milliseconds; read and write latency in seconds), corrected; reads beyond the three named alarms and across several prod stacks; dev metadata visible in the listings but only prod queried; two notes written to its own memory folder.
+
+## 13. ElastiCache Serverless data size, last 14 full days (2026-11-03 to 2026-11-17, 336 hourly buckets)
+
+Read-only agent run of the prompt written on 2026-11-17 (describe-serverless-caches, list-metrics and get-metric-data only; no call was denied; no hours were missing in any series). Both caches are Redis 7.1 serverless caches (dev created 2026-06-22, prod 2026-08-08), maximum 10 GB and 5,000 ECPU a second, snapshot retention 0; they are the only serverless caches in the account. `BytesUsedForCache` is published in Bytes (unit checked).
+
+| Measure | pyvar-dev | pyvar-prod |
+| --- | --- | --- |
+| Highest hourly maximum | 1,390,143 B (1.33 MB), 2026-11-14 18Z | 79,864 B (0.076 MB), 2026-11-11 10Z |
+| Mean of hourly averages | 46,987 B | 42,828 B |
+| p99 of hourly maxima | 86,411 B (nearest rank 89,594 B) | 58,102 B |
+| Hours above 80 MB / 100 MB | 0 / 0 | 0 / 0 |
+| Lowest hourly maximum | 52,637 B | 52,639 B |
+| `CurrItems`, highest hourly maximum | 335 | 10 |
+| Evictions | 0 in every hour | 0 in every hour |
+| Share of the 10 GB maximum at the peak | 0.0129% | 0.0007% |
+| Trend in the 14 daily highs (slope, 95% interval) | +27,368 B/day (-23,331 to +78,067): none | +61 B/day (-994 to +1,116): none |
+| Cost per month at 730 h: Redis 1 GB minimum / Valkey 0.1 GB minimum | $102.20 / $6.86 | $102.20 / $6.86 |
+
+- **Shape.** Both caches sit at a floor of about 52 KB with 2 items. Dev went from 2 items to 335 at about 18:46Z on 2026-11-14, held about 1.39 MB and was back at 2 items by 20:00Z; prod's peak is a 4-to-10-item bump on 2026-11-11 10Z to 11Z. Both peaks were read at one-minute resolution and equal the hourly maximum. (Inference, not checked: dev's burst falls on the day of the W4 and W5 runs, section 7.)
+- **Cost.** Storage is billed at the minimum, not at the observed average (0.00004 GB), so the whole difference is $95.34 a month for each cache; ECPU cost is a fraction of a cent on either engine. October's $104.16 per cache used 744 hours; the 730-hour figure above is $102.20.
+- **The agent's two judgement calls.** Valkey's minimum was stated as 100 MB but its own formula gave 0.1 GB (102.4 MB), which it followed (reading it as 100 MB gives $6.70 a cache); hours per month were 730 as specified.
+- **Verdicts as defined in the prompt:** pyvar-dev FITS; pyvar-prod FITS.
+- **Not visible:** AWS's metered data stored against `BytesUsedForCache`, and whether Valkey counts the same bytes; October's billed amount (no billing call was allowed); key types and contents (the dev burst fits keys with a one-hour expiry, which is a guess); size within an hour except the two peak hours; some one-minute readings far below the usual floor (127 B in prod's peak hour, 4,972 B in dev's), unexplained and without effect on the maximums; future load.
+- **What the agent reported getting wrong:** nothing that changed a figure. Scripts and data were left outside the repository and a short memory note was saved.
