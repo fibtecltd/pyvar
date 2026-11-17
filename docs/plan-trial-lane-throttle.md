@@ -17,7 +17,7 @@ acceptance did not name are recorded here as the working defaults, each easy to 
 | L6 per-IP counters | Built, behind `trial_ip_counter_enabled`, **off until a short privacy note is written** | An IP prefix is personal data under UK GDPR even as a keyed hash; the note belongs with the A2 and A3 legal-text pass (register, section E2) |
 | `CLAUDE.md` 3.5 paragraph | **Not edited in PR 0 or yet.** PR 1 carries it only after the owner says so in terms | `CLAUDE.md` is the owner's file and 3.5 is a security rule; a general "recommendations accepted" does not name it |
 
-PRs 1 to 3 wait for the p95 measurement below. Nothing in this PR changes code, settings or infrastructure.
+PRs 1 to 3 wait for the owner's choice on the p95 result (section "The p95 run and what it changes"). Nothing in this plan's PR 0 changes the A3 lane's code, settings or infrastructure; PR #435 also carries the separate dev cache-engine change (`docs/plan-dev-idle-savings.md`).
 
 ## What the proposal is, and how it differs from the rejected design
 
