@@ -43,7 +43,7 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | D2 idle readers | Option 3: remove the dev reader and lower prod's minimum capacity to 0.5 ACU, with measuring | In the combined PR: flag, 0.5 ACU, a prod writer CPU alarm, `docs/plan-aurora-floor-measurement.md` and a before/after prompt |
 | G3 static uptime text | Recommendation: remove the item now | Queued for the second PR |
 | G1 unpinned kombu | Recommendation: read the API's real versions, then pin | Prompt to write after the combined PR; pin in the second PR |
-| A3 plugin keys | To be rediscussed if the better path does not improve the nine plugins' status; then option 1 (trial lane) with guardrails | On hold |
+| A3 plugin keys | Take the risk and mitigate it with a throttle (2026-11-17); offer a proposal | Proposal in `docs/plan-trial-lane-throttle.md` (a trial-ticket lane with nine throttle layers, three PRs); owner to choose between it and anonymous keys, and to say whether first-use friction alone justifies it |
 | A6 free-tier limits | Recommendation: 10 to 20 requests a day, as the first row of A1's table | Builds with A1 |
 | C5 rows stuck pending | Option 3: a reconciler or a dead-letter handler | Design first, after the combined PR |
 | D4 ECR lifecycle | Recommendation: keep the newest 30 images | Queued for the second PR |
