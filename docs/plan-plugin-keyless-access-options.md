@@ -84,7 +84,7 @@
 
 ## 7. Recommendation: option 2, staged
 
-1. **Now, no pipeline run.** Use **Contact Anthropic** in the portal on one held plugin. Put the design note in `docs/` (excluded directory). Spike locally: a FastAPI `/mcp` with OAuth against `claude mcp add --transport http` and against a plugin-declared `url`, to settle the [A] items before any commitment.
+1. **Now, no pipeline run.** (Closed 2026-11-17: four e-mails to the directory team, no reply.) Use **Contact Anthropic** in the portal on one held plugin. Put the design note in `docs/` (excluded directory). Spike locally: a FastAPI `/mcp` with OAuth against `claude mcp add --transport http` and against a plugin-declared `url`, to settle the [A] items before any commitment.
 2. **Server behind a flag (run 1), enable in dev then prod (run 2).** Verify with a manually added server. No file under `plugins/` changes, so the nine stay byte-identical and nothing is re-scanned.
 3. **`pyvar-mcp` 0.3.0 as an `http` plugin in our own marketplace (run 3)**, and submit `/mcp` as an MCP connector. Connector review needs a `title` and `readOnlyHint` on every tool and names of at most 64 characters **[V]**.
 4. **Only if needed:** the trial lane on `/mcp`, if measured sign-in drop-off justifies a drainable pool; reword the skills when the holds clear; option 3 only if stage 1's spike fails.

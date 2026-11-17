@@ -1,0 +1,28 @@
+TASK: in pyvar DEV only, re-run W4 and W5 as the acceptance test of two fixes: B1 (a job whose worker is lost is redelivered once, not reported failed) and B2 (each queue message has its own group id, so jobs can run in parallel). The first pass (2026-11-14) lost 5 of 5 jobs on a hard kill and ran jobs one at a time. Report what the trials show, no more. Run it start to finish; the owner cannot answer questions.
+
+SETTINGS (fixed values; NOT environment variables, never stop for them)
+- FIS_TEMPLATE = none: skip the real Spot-notice arm. LOAD_MODE = queue (the WAF limits API requests per IP).
+- Spend cap about $5. Group pyvar-dev-workers: record min, max, desired now (expected 0, 5, 0), restore them in a finally block, never exceed max 5. Queue pyvar-dev-var-jobs.fifo. If any name contains prod, STOP. No changes to IAM, security groups, WAF, queues or CDK. Never run scripts/chaos_test.sh. Stop at once on a denied call (do not work around it), a prod-looking name, or an unexpected dead-letter message.
+
+STEP 0, TOKEN. The owner authorises you to read exactly one secret, pyvar/dev/jwt-secret (eu-west-1), once, and sign one dev API token with it: copy the STEP 0 snippet verbatim from docs/spot-drill-throughput-delegated-agent-prompt.md in github.com/fibtecltd/pyvar (master), changing sub to internal-b4-agent and the lifetime to 10800 seconds (3 hours). Keep it in memory only, never on disk, in argv, logs or the report. Check exp minus iat = 10800 or STOP.
+
+STEP 1, STATE (read-only; report it first)
+- Dev API: image tag and start time. Workers: the release or commit in the newest worker log stream (workers clone master at boot).
+- ElastiCache serverless cache pyvar-dev: engine and version (expected valkey 7.x).
+- Queue: RedrivePolicy maxReceiveCount (expected 2), VisibilityTimeout (expected 60), DLQ depth.
+- B2 check: with the group at 0 workers, dispatch 3 jobs with the repository's own Celery code (clone pyvar at the commit the API runs; pip install celery==5.6.3 kombu==5.6.2; import tasks.var_task so its publish handler is active). Receive them with --message-system-attribute-names MessageGroupId --visibility-timeout 30, never delete. Report whether the 3 group ids differ. They reappear after 30 s and run as the first warm-up jobs.
+
+W4 (calibrated job: n_simulations 500000, horizon_days 250, about 3.3 s warm, fixed seed, one unique portfolio_value per job; compute the expected result once)
+When /pyvar/dev/worker logs "received", wait 20%, 40% or 70% of the runtime (at least 4 trials per timing for arm A, at least 5 for B), then kill that worker:
+- A, hard: ec2 terminate-instances. Expected after B1: redelivered and succeeds once, not reported failed.
+- B, graceful: autoscaling terminate-instance-in-auto-scaling-group.
+Per trial: task id, arm, kill timing, result arrived and equal to expected, seconds to result, times the log shows received and succeeded, receive count if visible, DLQ depth after. Wait up to 10 minutes per trial. Say which trials were lost, delayed or duplicated; state n.
+
+W5 (N = 1, 2, 4 workers)
+Per N: min = desired = N, wait for N ready, one warm-up job each. Then two loads, back to back each: (a) M = max(60, 30 x N) jobs of 100000 simulations, 1 day; (b) 8 x N jobs of the calibrated W4 size. Per load: workers ready, completed, first enqueue to last completion, throughput over the middle 60% of jobs, worker runtime p50 and p95, the maximum number of jobs executing at the same moment (from execution intervals, not the received line), instance-hours. Efficiency = throughput(N) / (N x throughput(1)).
+
+STEP 2, DATABASE (one run, at the end)
+The owner authorises ONE run of ONE Fargate task from the existing family pyvar-dev-migrate, its command replaced by a read-only script, as the C1 check did (network from describe-services pyvar-dev-api; pin the revision). Pass your task ids in the overrides environment as TASK_IDS (comma-separated, at most 200). Command ["python","-c",SCRIPT]; assert before running: command[0]=="python", command[1]=="-c", the text contains "READ ONLY" and neither "upgrade" nor "alembic". SCRIPT: import asyncio, os; from sqlalchemy import text; from storage.session import get_sessionmaker; IDS=[i for i in os.environ["TASK_IDS"].split(",") if i][:200]; open one session; execute "SET TRANSACTION READ ONLY" and "SET LOCAL statement_timeout = '10s'"; print rows of SELECT status, (user_id = 'unknown') AS fallback, count(*) FROM var_jobs WHERE task_id = ANY(:ids) GROUP BY 1, 2 ORDER BY 1, 2 with {"ids": IDS}; rollback. Counts only. If the run-task response does not show the override starting "python","-c", stop-task.
+
+REPORT
+STEP 1 findings; W4 per arm and timing (n, lost, delayed, duplicated, seconds to result); W5 per N and load against the first pass (352, 364, 251 jobs a minute); STEP 2 counts; token sub, tier, expiry; restored group values; what you could not do; spend (estimate); everything you got wrong. Say where n is small. No ids, hostnames or secrets.

@@ -308,3 +308,20 @@ Read-only agent run of the prompt written on 2026-11-17 (describe-serverless-cac
 - **Verdicts as defined in the prompt:** pyvar-dev FITS; pyvar-prod FITS.
 - **Not visible:** AWS's metered data stored against `BytesUsedForCache`, and whether Valkey counts the same bytes; October's billed amount (no billing call was allowed); key types and contents (the dev burst fits keys with a one-hour expiry, which is a guess); size within an hour except the two peak hours; some one-minute readings far below the usual floor (127 B in prod's peak hour, 4,972 B in dev's), unexplained and without effect on the maximums; future load.
 - **What the agent reported getting wrong:** nothing that changed a figure. Scripts and data were left outside the repository and a short memory note was saved.
+
+## 14. Per-function request timings on dev, for the A3 trial lane (2026-11-17)
+
+Read-only agent run of `docs/prompts/agent-a3-p95-measure.txt`: one Fargate one-off of `pyvar-dev-migrate` (the agent pinned revision 204, the one "latest ACTIVE" resolved to), command overridden to the script, exit code 0, the migration did not run. `api_usage` on dev holds 190,603 rows from 2026-07-16 to 2026-11-17.
+
+| Group (status 200, last 30 days, at least 5 rows) | Rows | p50 / p95 / max (ms) |
+| --- | --- | --- |
+| `internal` / `token-report` (a database read, not a lane function) | 30 | 135 / 168 / 220 |
+| `var` / `compute` (queue dispatch time only) | 2,302 | 41 / 61 / 653 |
+| `var` / `result/<task id>` (582 groups, one polling route per job) | 5 to 43 each | p50 2 to 6; p95 3 to 81; highest max 716 |
+| Groups with fewer than 5 successful rows (not split by domain) | 60 | not reported |
+
+- **Reading:** dev has no usable timings for any domain function. Outside the `var` domain, one group reached 5 rows and one reached 20; the 60 groups below 5 rows cannot be split by domain, so how many are domain functions is not known. Nothing was extrapolated. Prod's `api_usage` was not read (it needs its own authorisation).
+- **Facts about the mechanism that the run and a follow-up read of the repository showed** (not the agent's report): the migrate task is 0.25 vCPU and 512 MB (`pyvar-cdk/stacks/api_stack.py`), a quarter of what a timing on the API's 0.5 vCPU would need to be compared with; the image is `COPY . .` with no `.dockerignore`, so anything under `scripts/` ships in the image of the build that deployed it; the Dockerfile pre-bakes the Numba cache for **one** kernel (`run_monte_carlo_var`) and the lifespan warm-up runs only that one, so any other `@njit(cache=True)` kernel compiles or loads on its first call in each new API task.
+- **Safety checks the agent reported:** names scanned for "prod" (none); `DB_*` secrets read by name only; the default command is the migration and the image has no ENTRYPOINT, so the override replaced it; all three required assertions passed, plus two extras (no write keywords, exactly three SELECTs); one `run-task` call; failures empty.
+- **Spend:** about $0.0003 (72 s at 0.25 vCPU and 0.5 GB, Fargate list prices assumed, not read from a bill).
+- **What the agent reported getting wrong:** nothing that changed a figure. Disclosed: it pinned the revision instead of the bare family name; the "verbatim" output in its report was abridged to keep job ids out of the body (the full file stayed on its machine); it added two safety assertions.
