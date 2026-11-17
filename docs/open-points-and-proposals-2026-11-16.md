@@ -10,7 +10,7 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 
 | Point | Decision | State |
 | --- | --- | --- |
-| A1 shared tier policy | Option 1 (recommendation) | Next to build; not started |
+| A1 shared tier policy | Option 1 (recommendation) | Built in PR #434 (`api/tiers.py`; behaviour pinned before and after); A2 builds on it |
 | A2 education access | Option 2, lean first version, after A1 | Queued behind A1 |
 | A3 plugin keys | Anonymous keys rejected: "nothing represents a win here"; look for other options | Options in `docs/plan-plugin-keyless-access-options.md`; owner to choose |
 | A4 cancelling internal tokens | Recommendation: short expiry, database-backed keys for longer use | Scripts done (`0b40cdc`); nothing more to build |
@@ -25,7 +25,7 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | C3 AWS access for agents | Keep on hold | On hold |
 | C4 Dependabot | Prompt requested | PR #432 open (black 26.10.1, two manifests); CI green except one job still running at the last look; not merged |
 | D2 idle Aurora readers | If both are proved idle this is the highest priority (second round) | Both IDLE (evidence section 10); dev-only CDK flag built and synthesised, not pushed; waiting for the go-ahead and the prod decision |
-| A6 free-tier limits | Review them and consider about twice as much (second round) | Limits listed and options below; owner to choose |
+| A6 free-tier limits | Review them and consider about twice as much (second round) | Decided: option 1 (daily requests only, 10 to 20); built with A1 in PR #434 |
 | D1 cost tags | Tags activated; inventory run | Outcome in `docs/p9-aws-evidence-2026-11-13.md` section 8; new points D2 to D4 below; README wording after a month of tagged data |
 | E1 Medium article | Close the point; the owner will write another article | Closed |
 | E2 typed assistant | Recommendation: keep off; one legal-text pass with A2 | Kept off |
@@ -352,17 +352,21 @@ reader and settle the sentence, or drop the reader and the sentence; the Terms a
 in a second PR, which waits at the prod manual approval.
 
 ### D3. Dev's fixed footprint
-**Recap.** Dev is an estimated $403 of the nine lines, about 72% of prod's $558, because it has its own VPC,
-NAT, endpoints, cache, Aurora and ALB.
+**Decision (owner): option 4, scale dev's stateful services down when idle.** Research done (`docs/plan-dev-idle-savings.md`,
+2026-11-17), nothing built. Findings: Aurora can auto-pause at 0 ACU (engine 16.13 qualifies) but not while any user
+connection is open, and both the API's connection pool and the 15-minute demo publisher keep dev awake; ElastiCache
+Serverless cannot pause, but **Valkey's 100 MB minimum against Redis's 1 GB would save about $95 a month in dev and the
+same in prod** (October billed $104.16 for each cache, exactly the 1 GB minimum); endpoints to one AZ about $40; Container
+Insights off about $6 to $10; the Fargate schedule about $12.
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| 1. Leave it | No work; dev mirrors prod | About $400 a month |
-| 2. Turn off ECS Container Insights on dev | Removes part of the custom-metric charge (the CloudWatch line is $28.62, mostly Container Insights on the two clusters) | Less dev observability; the saving is small and the split is the weakest estimate |
-| 3. Slim dev down: endpoints in one availability zone, review the NAT | Endpoints are $82 a month in dev; a single zone would roughly halve that | Dev no longer matches prod's network; needs a CDK change per environment |
-| 4. Scale dev's stateful services down when idle | Largest possible saving | Not checked whether these services can pause, and cold starts on the next use |
+| 1. Measure both caches' data size, then dev cache to Valkey (about $95, in place per CloudFormation) | Largest saving; one property; independent of hours used | Rollback only 7.2 to 7.1 on the engine; client and result-backend behaviour untested; prod follows only after dev |
+| 2. Dev endpoints to one AZ and Container Insights off (about $46 to $50) | One change each; no app change | Less dev observability and one AZ of endpoint resilience |
+| 3. Aurora pause + Fargate schedule + stop the 15-minute publisher in dev (about $46 to $55) | Real idle saving | Three coupled changes and the pool; 15 s wait on the first request of a day; demo data in dev goes stale |
+| 4. Leave it | No work | About $400 a month |
 
-**Recommendation: 1 for now; revisit with a month of tagged data (D1).**
+**Recommendation: 1 first (a measurement prompt, then dev), 2 next, 3 last.** Prod's cache is the same question and the same size of saving.
 
 ### D4. No lifecycle policy on the API image repositories
 **Recap.** The prod repository holds 157 images and ECR billed $17.46 in October. **Correction to the first plan:** the

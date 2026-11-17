@@ -9,6 +9,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
+  cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
+  `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of
+  them without a trace. Each tier is now one `TierPolicy` row built from the settings; every one of those places reads
+  it, an unknown tier still gets the free limits but logs a warning once per name, and a test fails if any other
+  `api/` module reads a per-tier setting. Behaviour for `free`, `pro`, `enterprise`, `internal` and an unknown tier is
+  unchanged and was pinned by `tests/test_tier_limits_behaviour.py` before the change; `tests/test_tier_policy.py`
+  covers the table. The admin gate (`internal`) and the Free/Pro billing transitions are roles, not limits, and stay
+  where they were. A new tier (the education tier, A2) is now a new row plus its tests.
+- **A reconciler closes `var_jobs` rows that never ended** — A row still `pending` after an hour (the worker was
+  lost before the retry rule, or the job was dead-lettered, which updates nothing; the W4 drill left seven) is
+  marked `failure` with the reason, by a loop in each API task in hosted environments only (`storage/reconcile.py`,
+  started in `main.lifespan`; `VAR_JOBS_RECONCILE_ENABLED=false` turns it off). It touches only old `pending` rows,
+  never deletes, and a worker that finishes later still overwrites the mark with the true result. No new
+  infrastructure. Tests: `tests/test_var_jobs_reconciler.py`.
 - **Aurora reader is one flag per environment** — `aurora_reader_enabled` in `pyvar-cdk/config.py`
   (default true) decides whether `DataStack` builds the cluster's serverless reader. Only `dev` sets it
   false. Reason: a reader bills the cluster's minimum capacity all month and the application connects
@@ -207,6 +222,12 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Free tier: 20 compute requests a day, not 10** — `rate_limit_free_daily` (the owner's decision A6, 2026-11-16).
+  Simulations per request stay at 10,000 (the S3 offload threshold and the default are tied to it), registration,
+  key and assistant limits are unchanged. Texts updated: the README, the tier table image on the portal, the
+  architecture skill, the plugin examples (regenerated from a real run: 20 succeed, the 21st gets 429) and the
+  example generator, which now reads the limit from the settings. The Medium article drafts under
+  `docs/publications/` still say 10 and need the owner's pass. Pro stays at 500 a day.
 - **The API image repositories keep their newest 30 images** — Nothing set a lifecycle policy on `pyvar-dev-api`
   or `pyvar-prod-api` (the prod repository held 157 images; the `api_stack.py` docstring described a policy that did
   not exist). The repositories are created outside CDK, so the pipeline's image step now runs
