@@ -120,6 +120,15 @@ class PyvarConfig:
 
     # ── ElastiCache Serverless ────────────────────────────────────────────────
     cache_max_ecpu_per_second: int = 5_000  # cap to prevent runaway costs
+    # "redis" or "valkey". ElastiCache Serverless bills a minimum of data stored: 1 GB on Redis OSS, 100 MB
+    # on Valkey. The caches here hold under 2 MB (docs/p9-aws-evidence-2026-11-13.md section 13), so the
+    # minimum is the whole bill: about $102 a month on Redis against about $7 on Valkey. Default "redis":
+    # an environment moves only when its override says so (dev first, prod after dev has run cleanly).
+    cache_engine: str = "redis"
+    # Major version sent with the engine; None leaves the property out. AWS supports rolling back ONLY
+    # from Valkey 7.2 to Redis OSS 7.1, so the first move is to "7"; a later bump to 8 or 9 is a
+    # separate change (and ends the rollback path).
+    cache_major_engine_version: str | None = None
 
     # ── S3 ────────────────────────────────────────────────────────────────────
     result_retention_days: int = 90  # delete old Parquet results after 90 days
@@ -222,6 +231,10 @@ class PyvarConfig:
                 aurora_min_acu=0.5,
                 aurora_max_acu=2.0,
                 aurora_reader_enabled=False,  # dev has no failover need; saves about $52/month
+                # Valkey 7.2 in place of Redis OSS 7.1 (about $95/month; owner decision 2026-11-17).
+                # In place: same cache name, same endpoint; CloudFormation lists Engine as "No interruption".
+                cache_engine="valkey",
+                cache_major_engine_version="7",
                 result_retention_days=14,
                 worker_use_baked_ami=True,  # AMI pipeline live — use baked AMI (P6)
                 # Portal assistant menus on in dev (see assistant_enabled above) and, since

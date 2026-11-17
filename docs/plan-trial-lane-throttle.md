@@ -12,7 +12,7 @@ acceptance did not name are recorded here as the working defaults, each easy to 
 
 | Point | Working default | Why |
 | --- | --- | --- |
-| First-use friction alone justifies the build | Yes, accepted; the nine held plugins' directory flag is **not** expected to clear | The owner's rule was to rediscuss if the status of the nine did not improve; the proposal states plainly that it will not, and the owner went ahead |
+| First-use friction alone justifies the build | Yes, accepted; the nine held plugins' directory flag is **not** expected to clear (reasons in "What I add") | The owner's rule was to rediscuss if the status of the nine did not improve; the proposal states plainly that it will not, and the owner went ahead |
 | Sizing | 260 tickets and 2,500 units a day, as written | The compute bound is the same for any size; the numbers only set how much real use fits |
 | L6 per-IP counters | Built, behind `trial_ip_counter_enabled`, **off until a short privacy note is written** | An IP prefix is personal data under UK GDPR even as a keyed hash; the note belongs with the A2 and A3 legal-text pass (register, section E2) |
 | `CLAUDE.md` 3.5 paragraph | **Not edited in PR 0 or yet.** PR 1 carries it only after the owner says so in terms | `CLAUDE.md` is the owner's file and 3.5 is a security rule; a general "recommendations accepted" does not name it |
@@ -103,12 +103,46 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 | PR | Change | Pipeline run |
 | --- | --- | --- |
 | 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
-| 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**needs your explicit go**); off until the Redis key is set | yes |
+| 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**needs your explicit go**, text below); the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
 | 2 `feat(mcp)` 0.3.0 | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
 | 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
 
 Enabling in dev and then prod is `trial_ctl.py on`, with no run. PR 3 can ship before or after enabling: without it L5
 uses the shared "unknown" bucket and the application layers still bound cost.
+
+## Proposed `CLAUDE.md` 3.5 text (not applied; it goes into PR 1 only on the owner's explicit go)
+
+Checked on 2026-11-17 against `api/middleware/auth.py` with python-jose, the library in use. A ticket with `aud`
+"pyvar-trial" is refused by a decoder that names no audience (every HTTP route through `decode_token_payload`) and by the
+stream decoder (`audience="pyvar-stream"`), both with `JWTClaimsError`. **The converse needs an explicit check:** a decoder that
+names an audience still accepts a token with **no** `aud` (a session JWT), and refuses a stream token. The trial decoder
+must therefore require the claim to be present and equal, and the paragraph below says so; PR 1 carries a test for
+each of the four tokens (ticket, session JWT, API key, stream token) against the trial routes, and for the ticket
+against a normal route and the stream route.
+
+Insert after the stream-token bullet and before "Design, settings and failure modes", inside the same code block (the new
+bullets use the file's wording and 100-column wrapping; route names are fixed in PR 1):
+
+```
+- The no-sign-up trial lane (the routes under /api/v1/trial/) accepts only a trial ticket: a signed
+  token with `aud` "pyvar-trial", a random `jti`, a 72 h life and no tier, issued with no users or
+  api_keys row. Every other route must keep refusing it (decode_token_payload does, by that claim),
+  and the trial routes must REQUIRE `aud` to be present and equal to "pyvar-trial" (python-jose lets
+  a token with no `aud` through a decoder that names one, so a session JWT would pass), which also
+  refuses an API key and a stream token. Do not drop the `aud`, do not accept a ticket in
+  get_current_user, and never give a ticket a tier claim or any way to raise one.
+- The trial lane runs only functions on its whitelist, inline, and never enqueues a job. Its global
+  compute and issuance budgets FAIL CLOSED, the opposite of the key cache above: if Redis cannot be
+  read, or the `pyvar:trial:on` key is absent, the lane is OFF and answers 429 `trial_exhausted`,
+  never a pass.
+- The per-IP counter holds only an HMAC of the IP prefix under a daily-rotating secret, in Redis with
+  a 26 h TTL. Never log it, never write it to Postgres, and leave it off unless
+  `trial_ip_counter_enabled` is set (after the privacy note exists).
+- Design, budgets and failure modes: docs/plan-trial-lane-throttle.md.
+```
+
+The same PR adds `api/middleware/trial.py` and `api/routes/trial.py` to the section 2 layout, as section 10 requires for any
+new module.
 
 ## Red team (one afternoon)
 
@@ -122,10 +156,24 @@ answer stays remote MCP with sign-in (the keyless options document's option 2), 
 
 ## What I add
 
-- **The nine held plugins' status probably does not change.** The ticket sits in a file on the user's machine, which is
-  still "a credential from the user's machine" to the directory scan. This lane improves first use (no registration
-  step), not the flag. Per the owner's rule ("rediscuss A3 if it does not improve the status of the nine plugins"),
-  this needs an explicit yes that first-use friction alone is worth building for.
+- **The nine held plugins' status is not expected to change, and the reason is not the ticket file.** (An earlier
+  version of this bullet said the ticket in `install.json` would still read as "a credential from the user's machine"
+  to the directory scan; that tied a different risk to the nine and is withdrawn.) What the repository's own records
+  say (`docs/plan-plugin-marketplace-status-and-submission.md` sections 5 and 6):
+  - The nine (the eight domain skills and `pyvar-arch-observability`) were held on 2026-10-31 under the rule "Update adds
+    credential forward", for their **own text**: the setup sections told Claude to look for `PYVAR_API_KEY` in the
+    environment, and the architecture skill showed a Secrets Manager call. They contain no code.
+  - The hold is **at plugin level, not by version**: it stayed after 1.2.0 removed the wording, "Publish update" returns
+    "Needs the directory team", and `liquidity-risk` gives the same result for the same bytes with nothing left to
+    reword. Only the directory team can lift it; the one route the records name is "Contact Anthropic" in the portal, and
+    it has not been tried.
+  - The lane changes the API and `pyvar-mcp` only. The nine stay byte-identical (the standing rule is not to change
+    `plugins/` for them, because each changed version adds a review row), so nothing the hold depends on moves.
+  - Separately, `pyvar-mcp` is a `uvx` launcher, which the directory holds for review whatever it stores.
+  - **The file does matter for a different listing:** if `pyvar-mcp` 0.3.0 is ever resubmitted, a file-to-bearer-to-network
+    path may draw a new finding (rated medium, unverified: `docs/plan-anonymous-plugin-keys.md` section 2). The plan
+    there is not to resubmit until the nine holds clear; users reach 0.3.0 through `pyvar-marketplace` meanwhile.
+  So the lane improves first use for everyone who installs through the marketplace, and does nothing for the flag.
 - **Edge fees are the one uncapped line** and the lane adds a target, not a new exposure.
 - The existing aggregate WAF rule lets any botnet block everyone today; this PR plan does not change that.
 

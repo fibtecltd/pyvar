@@ -6,7 +6,7 @@ Reasoning:
   with no cold start, unlike Aurora Serverless v1.
   min_acu=0.5 means ~$45/month at rest; auto-scales to max_acu during
   end-of-day batch audit writes.
-- ElastiCache Serverless Redis removes instance management entirely.
+- ElastiCache Serverless (Redis OSS or Valkey, cfg.cache_engine) removes instance management entirely.
   We cap max_ecpu_per_second to prevent runaway costs from a misconfigured
   cache invalidation loop.
 - S3 Intelligent-Tiering automatically moves old Parquet simulation results
@@ -152,10 +152,14 @@ class DataStack(Stack):
             subnet_ids=vpc.select_subnets(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED).subnet_ids,
         )
 
+        # The logical ID "RedisServerless" and the cache name stay as they are whatever the engine:
+        # changing either would make CloudFormation REPLACE the cache (new endpoint, empty data), while
+        # a changed `engine` on the same ID and name is an in-place update.
         self.cache = elasticache.CfnServerlessCache(
             self,
             "RedisServerless",
-            engine="redis",
+            engine=cfg.cache_engine,
+            major_engine_version=cfg.cache_major_engine_version,
             serverless_cache_name=f"pyvar-{cfg.env_name}",
             description="pyvar result cache and rate limiting",
             subnet_ids=vpc.select_subnets(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED).subnet_ids,

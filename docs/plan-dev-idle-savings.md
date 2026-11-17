@@ -62,6 +62,40 @@ Dev costs about $403 a month of the nine fixed lines (`docs/p9-aws-evidence-2026
 The recommended items together would take roughly $190 to $235 off dev's $403 (the subagent's arithmetic, with the
 cache and traffic assumptions above); the prod cache change would come on top.
 
+## Dev cache to Valkey: what AWS documents (read 2026-11-17), and what was built
+
+**Decision (owner, 2026-11-17): yes, dev first.** Built in the pull request that carries this file: `cache_engine="valkey"` and
+`cache_major_engine_version="7"` in dev's override in `pyvar-cdk/config.py`, passed to the cache in `pyvar-cdk/stacks/data_stack.py`;
+the logical ID `RedisServerless` and the name `pyvar-dev` are unchanged. `cdk synth` of the whole app before and after: dev differs in
+exactly two lines (`Engine` "redis" to "valkey", `MajorEngineVersion` absent to "7"), all 17 prod templates are identical.
+
+What the AWS pages say (ElastiCache User Guide "Upgrading engine versions including cross engine upgrades" and "Version Management";
+the CloudFormation `AWS::ElastiCache::ServerlessCache` page; the `ModifyServerlessCache` API and CLI references):
+
+- CloudFormation: `Engine` and `MajorEngineVersion` both say "Update requires: No interruption"; `ServerlessCacheName` says "Replacement".
+  `Engine` allows `valkey`, `redis` and `memcached`; `MajorEngineVersion` is "an integer (for example, 7, 8, or 9), not a decimal".
+  The page does not say whether a Redis cache may be switched to Valkey this way.
+- The API (`ModifyServerlessCache`) takes `Engine` ("the options are valkey, memcached or redis") and `MajorEngineVersion`; the User Guide
+  has a section "Upgrading a Redis OSS serverless cache to Valkey with the CLI": `aws elasticache modify-serverless-cache
+  --serverless-cache-name myCluster --engine valkey --major-engine-version 9`.
+- "All aspects of your application, including the endpoint DNS name, will remain unchanged"; "minimal downtime" (stated in general, not
+  separately for serverless); major version upgrades of serverless caches are "performed without downtime to your application".
+- **Rollback: "ElastiCache only supports rolling back from Valkey 7.2 to Redis OSS 7.1."** That is why dev goes to major version 7
+  and not 8 or 9; a later bump is its own change and ends the rollback path. Any user group on the cache must use engine type REDIS
+  (none exists here).
+- One search result (not read: the page refused the fetch) reports a bug when a serverless cache is moved Redis, Valkey, Redis,
+  Valkey in a row. This change does not do a round trip, and rolling back and forward again should be avoided.
+
+**Not verified, and what happens if it is wrong.** The pages do not state that **7** is a valid target for a serverless Redis OSS 7.1
+cache (the only value they show is 9, in the CLI example, and a console parameter group named for 8), nor that CloudFormation can make
+this particular change in place. If the API refuses, the dev data stack update fails and CloudFormation rolls it back to Redis; nothing
+else in the stack changes in that update. If it accepts, expect the cache to be briefly unavailable ("minimal downtime"); the dev API
+reads and writes the cache for the Celery result backend and rate limits, so dev may see errors for that period. Prod is untouched.
+
+**After the dev deploy:** `aws elasticache describe-serverless-caches` should show engine `valkey` and version 7.x on the same endpoint;
+dev smoke checks as usual; `BytesUsedForCache` keeps its name and dimension (`clusterId`) for Valkey (documented). Billing shows the
+change from the next full day (storage minimum 0.1 GB against 1 GB). Prod follows only after dev has run cleanly, as a one-line override.
+
 ## What was not verified
 
 Data stored in each cache; NAT, endpoint and Aurora storage volumes; the CDK release that added
