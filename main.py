@@ -15,6 +15,8 @@ Reasoning:
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -46,8 +48,10 @@ from api.routes.public_data import router as public_data_router
 from api.routes.regulatory import router as regulatory_router
 from api.routes.var import close_job_done_bus
 from api.routes.var import router as var_router
-from config import get_settings, require_real_signing_secret
+from config import HOSTED_ENVS, get_settings, require_real_signing_secret
 from observability.setup import setup_observability
+from storage.reconcile import run_reconciler
+from storage.session import get_sessionmaker
 
 cfg = get_settings()
 
@@ -109,7 +113,25 @@ async def lifespan(app: FastAPI):
     dummy_returns = np.random.randn(30) * 0.01
     run_monte_carlo_var(dummy_returns, portfolio_value=1.0, n_simulations=1_000, seed=0)
 
+    # Close var_jobs rows that never reached a terminal state (storage/reconcile.py): hosted environments only,
+    # so tests and local runs never open a database connection for it.
+    reconciler: asyncio.Task[None] | None = None
+    if cfg.var_jobs_reconcile_enabled and cfg.app_env in HOSTED_ENVS:
+        reconciler = asyncio.create_task(
+            run_reconciler(
+                get_sessionmaker(),
+                interval_seconds=cfg.var_jobs_reconcile_interval_seconds,
+                older_than_seconds=cfg.var_jobs_pending_timeout_seconds,
+            ),
+            name="var-jobs-reconciler",
+        )
+
     yield
+
+    if reconciler is not None:
+        reconciler.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await reconciler
 
     # Shutdown: stop the shared job-done subscriber (DB connections, Sentry flush, etc. TBD).
     await close_job_done_bus()
@@ -175,7 +197,7 @@ def create_app() -> FastAPI:
     # Service-only ("internal" tier) endpoints — never called by a human/
     # browser. No enforce_compute_rate_limit dependency: not a compute
     # endpoint, and "internal" tier is already unconditionally exempt from
-    # rate limiting regardless (api/middleware/rate_limit.py::_EXEMPT_TIERS).
+    # rate limiting regardless (api/tiers.py (daily_requests is None)).
     app.include_router(internal_router, prefix=cfg.api_v1_prefix)
 
     # Rate limiting (#146): var_router applies enforce_compute_rate_limit
