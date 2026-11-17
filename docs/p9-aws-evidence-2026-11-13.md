@@ -243,3 +243,44 @@ Read-only agent run (CloudWatch hourly from 2026-10-01 00:00Z to 2026-11-16 14:0
 - **Unexplained, with no connection or load behind them:** dev reader CPU above 50% in 117 hours (43 of them at 22:00 UTC on weekdays); prod reader scaled to 16 ACU at about 02:00 UTC on 10-10, 10-24 and 11-07 (14 days apart, inside its Saturday maintenance window 02:36 to 03:06 UTC; no RDS event was recorded for 11-07); the dev reader reads about 15 rows/s against 2.3 on prod's. Cause unproven.
 - **Cannot be excluded:** a connection shorter than the sampling interval (CloudWatch about one minute; Performance Insights about one second, from the agent's memory, not confirmed); VPC flow logs were not read; Performance Insights keeps 7 days, so before 2026-11-09 only CloudWatch applies. The metrics measure use, not failover readiness.
 - **What the agent reported getting wrong:** a first Performance Insights window of 5 days instead of 7 (date arithmetic), and a first pull that silently kept only the last 350 points of each call, so its first "0 load" covered about 24% of minutes (redone in 340-minute chunks, not reported); a noisy 122-row printout; a failed jq attempt it did not use; extra read-only metrics beyond the prompt (WriteIOPS, DBLoad, NetworkTransmit, Performance Insights counters); the partial current hour dropped.
+
+## 11. kombu and celery in the API images and the worker AMIs, from build logs (2026-11-16)
+
+Read-only agent run. Every version comes from build-log text (CodeBuild for the API, Image Builder for the workers); nothing was inspected inside an image or an AMI.
+
+| Env | Component | Image or AMI | kombu | celery | billiard | amqp | vine | redis | boto3 | pycurl | urllib3 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| dev | API | tag `7e35bbc`, built 2026-11-15 | 5.7.0 | 5.7.0 | 4.3.2 | 5.4.2 | 5.1.0 | 8.1.0 | 1.44.3 | 7.49.0 | 2.8.0 |
+| prod | API | the same image (identical digest in both repositories) | 5.7.0 | 5.7.0 | 4.3.2 | 5.4.2 | 5.1.0 | 8.1.0 | 1.44.3 | 7.49.0 | 2.8.0 |
+| dev | workers | `pyvar-dev-worker-2026-07-10T03-14-10.669Z` (the only AVAILABLE dev build; four earlier ones failed) | 5.6.2 | 5.6.3 | 4.2.4 | 5.3.1 | 5.1.0 | 8.0.1 | 1.43.45 | 7.47.0 | 2.7.0 |
+| prod | workers | the two AVAILABLE builds of 2026-08-08 (identical to each other) | 5.6.2 | 5.6.3 | 4.2.4 | 5.3.1 | 5.1.0 | 8.1.0 | 1.43.67 | 7.47.0 | 2.7.0 |
+
+- **Different in both environments, by one minor version** on kombu and celery: the API is on 5.7.0, the workers on 5.6.x. It is the first API build to be on 5.7.0 (built 2026-11-15; the release was 2026-11-03), so the API ran 5.6.x until then (inference from the release dates; not read from older builds).
+- **One image serves both environments:** the pipeline built it once and pushed it to the dev repository (16:37Z) and the prod repository (16:39Z); deployed to dev at 16:47Z and prod at 17:17Z on 2026-11-15.
+- **The worker boot script** only does `git clone` and runs no pip (read from the repo, not from a live launch template).
+- **Not determinable:** which AMI each launch template uses now (an earlier session's note says dev the 2026-07-10 AMI and prod the 2026-08-08 AMI); PyPI patch releases between these versions; the release dates.
+- **What the agent reported getting wrong:** one unlisted read-only call (`ecs list-clusters`); a withdrawn inference from the gitignored `cdk.context.json`; the CodeBuild project name taken from an August handoff document and confirmed with `list-builds-for-project`; one harmless parse crash.
+
+## 12. Prod Aurora baseline at the 1.0 ACU floor, last 14 full days (2026-11-02 to 2026-11-16, 336 hourly buckets)
+
+Read-only agent run of `docs/prompts/agent-d2-floor-measure.txt` in BASELINE mode (the cluster still reads MinCapacity 1.0; the last data-stack update, 2026-11-13, touched only CDKMetadata).
+
+| Measure | Writer | Reader |
+| --- | --- | --- |
+| CPU: mean of hourly averages; highest hourly maximum | 2.77%; 80.0% | 2.36%; 97.6% |
+| CPU: p99 of the hourly maxima | 19.1% to 19.7% | 25.0% to 27.3% |
+| FreeableMemory: lowest hourly minimum; mean | 5.99 GiB; 29.1 GiB | 6.07 GiB; 29.1 GiB |
+| ACU: mean of hourly averages; highest hourly maximum | 1.011; 16 | 1.024; 16 |
+| Hours with any datapoint above the 1.0 minimum | 77 of 336 (22.9%) | 63 of 336 (18.8%) |
+| DatabaseConnections: highest hourly maximum | 6 | 0 in all 336 hours |
+| CommitLatency: highest hourly maximum (milliseconds) | 5.06 ms, otherwise about 1 ms or less | 0.85 ms |
+| Read and write latency: highest hourly maximum | 0 and 0.45 ms | 0 and 0 |
+| Saturday maintenance-window hours (two Saturdays) | 05:30 to 06:00 UTC: CPU up to 59.5%, ACU up to 16 | 02:36 to 03:06 UTC: CPU up to 45.3%, ACU up to 16 |
+
+- **Client side (the prod ALB):** hourly p95 response time peaked at 1.38 s (2026-11-13, 72 requests that hour); over the whole window p95 was 0.057 s and p99 0.256 s. One 5xx in 16,444 requests (2026-11-14 03Z). Zero ALARM transitions in 30 days for `pyvar-prod-api-latency-p95`, `pyvar-prod-api-5xx` and `pyvar-prod-aurora-writer-cpu` (the last did not exist yet).
+- **RDS events (14 days):** none for the cluster or either instance.
+- **Cost (hourly average ACU x $0.14, compute only):** writer 339.6 ACU-hours, $47.55; reader 344.0, $48.16; both $95.70 in the window. Average capacity across both is 2.0345 ACU, about $207.93 a month; both pinned at 1.0 would be $204.40.
+- **The earlier "99.3% to 99.5% of hours at the minimum" (section 10, 1,118 hours) and today's "77 of 336 hours above it" count differently** (today counts any hour with a datapoint above 1.0). The averages agree (1.01 ACU), and billing follows the average, so the cost basis stands; the share of time at the floor cannot be resolved from hourly data.
+- **Outliers, no cause attributed:** both instances reached 16 ACU in the same hour on 2026-11-03 10Z (writer CPU 80%, free memory down to 5.99 GiB, reader CPU 97.6% with no connections, no RDS event, ALB p95 0.039 s that hour). Hours above the minimum cluster at fixed UTC hours: the writer's at 00, 06, 13 and 20Z daily (plus 05Z on 11 days), the reader's at 11Z daily (plus 22Z and 02Z). On 11-14 neither instance went above 2 ACU.
+- **Not visible:** `FreeableMemory` reads about 29 GiB at a 1 ACU floor, so it is not bounded by the current capacity's memory (the agent reads it as relative to the 16 ACU maximum; not checked against documentation). Memory pressure at 0.5 ACU therefore will not show in that metric. Hourly resolution cannot place a spike inside its hour. The events query has no known-positive control. Alarm history cannot be listed with the allowed calls.
+- **What the agent reported getting wrong:** a first analysis multiplied CommitLatency by 1000 (it is published in milliseconds; read and write latency in seconds), corrected; reads beyond the three named alarms and across several prod stacks; dev metadata visible in the listings but only prod queried; two notes written to its own memory folder.

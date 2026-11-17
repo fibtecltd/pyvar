@@ -94,6 +94,7 @@ from api.middleware.billing_lifecycle import (
 from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
 from api.routes.caching import cache_check, write_result_to_cache
+from api.tiers import policy_for
 from config import get_settings
 from schemas.var import (
     JobResponse,
@@ -222,8 +223,9 @@ async def submit_var(
     # rate_limit module object, not `from ... import _limiter` directly, so
     # tests/conftest.py's autouse fixture (which patches
     # api.middleware.rate_limit._limiter) is picked up here too.
-    if user.tier == "pro":
-        sim_item = limits.parse(f"{cfg.rate_limit_pro_monthly_simulations}/month")
+    policy = policy_for(user.tier)
+    if policy.monthly_simulations is not None:
+        sim_item = limits.parse(f"{policy.monthly_simulations}/month")
         try:
             sim_allowed = rate_limit_module._limiter.limiter.hit(
                 sim_item, user.user_id, "var-simulations-monthly", cost=body.n_simulations
@@ -241,8 +243,7 @@ async def submit_var(
                 downgrade_reason=DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
                 event_type=EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
                 detail=(
-                    f"Exceeded {cfg.rate_limit_pro_monthly_simulations:,} "
-                    "simulations this billing period."
+                    f"Exceeded {policy.monthly_simulations:,} " "simulations this billing period."
                 ),
             )
             raise HTTPException(

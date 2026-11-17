@@ -104,13 +104,12 @@ from api.middleware.billing_lifecycle import (
     EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
     downgrade_for_monthly_limit,
 )
+from api.tiers import policy_for
 from config import get_settings
 from storage.redis_client import redis_url
 
 cfg = get_settings()
 logger = logging.getLogger(__name__)
-
-_EXEMPT_TIERS = {"enterprise", "internal"}
 
 # One shared Limiter for both authenticated and unauthenticated checks — its
 # key_func is only used if slowapi's own decorator API is ever reached for,
@@ -178,11 +177,11 @@ async def enforce_compute_rate_limit(
     docstring for why a fixed "compute" scope (not per-endpoint) is what
     makes this one shared bucket per user rather than 386 separate ones.
     """
-    if user.tier in _EXEMPT_TIERS:
+    policy = policy_for(user.tier)
+    if policy.daily_requests is None:  # exempt from the quota (enterprise, internal)
         return
 
-    daily_cap = cfg.rate_limit_pro_daily if user.tier == "pro" else cfg.rate_limit_free_daily
-    item = limits.parse(f"{daily_cap}/day")
+    item = limits.parse(f"{policy.daily_requests}/day")
 
     try:
         allowed = _limiter.limiter.hit(item, user.user_id, "compute")
@@ -193,7 +192,7 @@ async def enforce_compute_rate_limit(
     if not allowed:
         _raise_rate_limited(item, user.user_id, "compute")
 
-    if user.tier != "pro":
+    if policy.monthly_requests is None:
         return
 
     # Monthly request-count cap, Pro only (config.py's own comment explains
@@ -201,7 +200,7 @@ async def enforce_compute_rate_limit(
     # simulation-count cap which only VaR can measure). A distinct "compute-
     # monthly" scope, not "compute" above, keeps this a separate bucket from
     # the daily one even though both key off the same user_id.
-    monthly_item = limits.parse(f"{cfg.rate_limit_pro_monthly_requests}/month")
+    monthly_item = limits.parse(f"{policy.monthly_requests}/month")
     try:
         monthly_allowed = _limiter.limiter.hit(monthly_item, user.user_id, "compute-monthly")
     except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
@@ -215,9 +214,7 @@ async def enforce_compute_rate_limit(
             user_id=user.user_id,
             downgrade_reason=DOWNGRADE_MONTHLY_REQUEST_LIMIT,
             event_type=EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
-            detail=(
-                f"Exceeded {cfg.rate_limit_pro_monthly_requests:,} requests " "this billing period."
-            ),
+            detail=(f"Exceeded {policy.monthly_requests:,} requests " "this billing period."),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -274,14 +271,11 @@ async def enforce_register_rate_limit(request: Request) -> None:
 def assistant_tier(user: TokenPayload | None) -> str:
     """The assistant's view of a caller: "anon", "free", "pro" or "enterprise".
 
-    The service tier "internal" counts as enterprise; an unknown tier counts as free (the same default
-    TokenPayload.max_simulations uses).
+    The service tier "internal" counts as enterprise; an unknown tier counts as free (api/tiers.py).
     """
     if user is None:
         return "anon"
-    if user.tier in ("enterprise", "internal"):
-        return "enterprise"
-    return "pro" if user.tier == "pro" else "free"
+    return policy_for(user.tier).assistant_group
 
 
 async def enforce_assistant_rate_limit(
@@ -295,12 +289,7 @@ async def enforce_assistant_rate_limit(
         item = limits.parse(f"{cfg.assistant_quota_anon_per_hour}/hour")
         identifiers = (client_ip, "assistant-anon")
     else:
-        daily = {
-            "free": cfg.assistant_quota_free_daily,
-            "pro": cfg.assistant_quota_pro_daily,
-            "enterprise": cfg.assistant_quota_enterprise_daily,
-        }[tier]
-        item = limits.parse(f"{daily}/day")
+        item = limits.parse(f"{policy_for(user.tier).assistant_daily}/day")
         identifiers = (user.user_id, "assistant")
 
     try:

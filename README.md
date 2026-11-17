@@ -24,7 +24,7 @@ list. Not independently validated for regulatory use — see
 
 ## Using pyvar.com
 
-The hosted API at <https://www.pyvar.com> is free to try (10 calls a day on the free tier).
+The hosted API at <https://www.pyvar.com> is free to try (20 calls a day on the free tier).
 Sign in at <https://www.pyvar.com#get-api-key> with Google or an emailed link, then create an
 API key on the dashboard. A key starts with `pyvar_`, is shown once, lasts a year and can be
 revoked there. Send it as `Authorization: Bearer pyvar_...`, or set `PYVAR_API_KEY`.

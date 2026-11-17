@@ -22,7 +22,15 @@ python-multipart>=0.0.9
 stripe>=9.0.0                  # api/routes/billing.py
 
 # ── Task queue ────────────────────────────────────────────────
-celery>=5.3.6
+# Pinned to the versions the worker AMIs were baked with (dev 2026-07-10, prod 2026-08-08): the API and the
+# workers exchange messages through kombu, and an unpinned build on 2026-11-15 put the API on 5.7.0 while the
+# workers stayed on 5.6.x (docs/p9-aws-evidence-2026-11-13.md, section 11). Move these together with the
+# pins in pyvar-cdk/stacks/ami_stack.py at the next intended AMI bake.
+celery==5.6.3
+kombu==5.6.2
+billiard==4.2.4
+amqp==5.3.1
+vine==5.1.0
 redis>=5.0.3
 pycurl>=7.45.0
 

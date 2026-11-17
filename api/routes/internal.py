@@ -13,7 +13,7 @@ Reasoning:
   "internal" is already an established TokenPayload.tier value (minted by
   pyvar-cdk/lambda/public_data_publisher/handler.py's hand-rolled service
   JWT) and is already unconditionally exempt from rate limiting
-  (api/middleware/rate_limit.py::_EXEMPT_TIERS) — this endpoint follows the
+  (api/tiers.py (daily_requests is None)) — this endpoint follows the
   same pattern, just also rejecting any non-internal tier outright since
   this one mutates account state rather than only reading it.
 - No enforce_compute_rate_limit dependency: this isn't a compute endpoint,

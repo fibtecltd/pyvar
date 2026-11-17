@@ -649,6 +649,10 @@ async def ex_api_gateway() -> list[Example]:
     import jwt as pyjwt
 
     from api.middleware.auth import create_access_token
+    from config import get_settings
+
+    # The free tier's daily quota, read from the settings so this example stays true when it changes.
+    free_daily = get_settings().rate_limit_free_daily
 
     returns = generate_gbm_returns(252, seed=5).tolist()
     payload = {
@@ -706,7 +710,7 @@ async def ex_api_gateway() -> list[Example]:
     lines: list[str] = []
     last: Any = None
     async with gateway_client() as client:
-        for i in range(11):
+        for i in range(free_daily + 1):
             path, body = bodies[i % 2]
             last = await client.post(path, json=body, headers={"Authorization": f"Bearer {carol}"})
             lines.append(f"request {i + 1:>2}  {path.rsplit('/', 1)[-1]:<34} -> {last.status_code}")
@@ -719,16 +723,16 @@ async def ex_api_gateway() -> list[Example]:
         "single shared 'compute' bucket, so the count carries across routes.",
         [
             Step(
-                "11 requests as a free-tier user",
+                f"{free_daily + 1} requests as a free-tier user",
                 "free-tier token, alternating:\n  "
                 + "\n  ".join(p.rsplit("/", 1)[-1] for p, _ in bodies),
                 "\n".join(lines),
                 result_lang="text",
             )
         ],
-        f"The free tier allows 10 compute requests per day. Requests 1 to 10 succeed across both endpoints; "
-        f"request 11 is refused with {last.status_code} and a Retry-After of about a day, rather than being "
-        f"counted per route.",
+        f"The free tier allows {free_daily} compute requests per day. Requests 1 to {free_daily} succeed across "
+        f"both endpoints; request {free_daily + 1} is refused with {last.status_code} and a Retry-After of about "
+        f"a day, rather than being counted per route.",
     )
     return [ex1, ex2]
 
