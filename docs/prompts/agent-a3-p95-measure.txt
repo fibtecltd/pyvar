@@ -1,0 +1,58 @@
+TASK: in pyvar DEV only, read the api_usage table and report how long each function's successful requests take (count, p50, p95, max). The numbers set the per-call weights of the A3 trial lane (docs/plan-trial-lane-throttle.md). Report what you see, no more. Run it start to finish; the owner cannot answer questions.
+
+WHY: the trial lane may run only functions whose p95 is 1 second or less, and each function's weight is ceil(p95 ms / 50). api_usage holds one row per request: domain, function_name, duration_ms, status, created_at (no user data). For inline routes duration_ms is the compute time; for routes that dispatch to the queue (domain "var") it is only the dispatch time, so ignore those.
+
+SETTINGS (fixed values given here; they are NOT environment variables, so never stop for them)
+- The owner authorises ONE action beyond reads: ONE run of ONE Fargate task from the existing task-definition family pyvar-dev-migrate, its command replaced by the script below. No ECS Exec, no service change, no scaling, no IAM or CDK change.
+- Read no secret: the platform injects DB_* into that task. The script opens a READ ONLY transaction, runs three SELECTs, prints aggregates only, rolls back. Use it verbatim.
+- Dev only: cluster pyvar-dev. If any name contains prod, STOP. Stop at once on a denied call (do not work around it); say which one.
+
+SCRIPT
+import asyncio
+from sqlalchemy import text
+from storage.session import get_sessionmaker
+
+QUERIES = {
+    "api_usage coverage": """
+        SELECT min(created_at), max(created_at), count(*) FROM api_usage""",
+    "per function, status 200, last 30 days, at least 5 rows (ms)": """
+        SELECT domain, function_name, count(*) AS n,
+               round(percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms)::numeric, 0) AS p50,
+               round(percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms)::numeric, 0) AS p95,
+               max(duration_ms) AS max_ms
+        FROM api_usage WHERE status = 200 AND created_at >= now() - interval '30 days'
+        GROUP BY 1, 2 HAVING count(*) >= 5 ORDER BY p95 DESC""",
+    "functions seen in 30 days with fewer than 5 successful rows": """
+        SELECT count(*) FROM (SELECT 1 FROM api_usage
+          WHERE status = 200 AND created_at >= now() - interval '30 days'
+          GROUP BY domain, function_name HAVING count(*) < 5) t""",
+}
+
+
+async def main():
+    async with get_sessionmaker()() as session:
+        await session.execute(text("SET TRANSACTION READ ONLY"))
+        await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+        for name, query in QUERIES.items():
+            rows = (await session.execute(text(query))).all()
+            print("##", name, flush=True)
+            for row in rows:
+                print("  ", tuple(str(v) for v in row), flush=True)
+            if not rows:
+                print("   (no rows)", flush=True)
+        await session.rollback()
+
+
+asyncio.run(main())
+
+STEPS
+1. describe-task-definition pyvar-dev-migrate (latest ACTIVE): note the container name, the default command (a MIGRATION: python scripts/db.py upgrade), the awslogs group; describe-services pyvar-dev-api: copy networkConfiguration (subnets, securityGroups, assignPublicIp).
+2. Build the overrides file with python3 json.dumps: containerOverrides[0] = that container name, command ["python","-c",<script text>]. ASSERT before running: command[0]=="python", command[1]=="-c", the text contains "READ ONLY" and neither "upgrade" nor "alembic". If any assertion fails, DO NOT RUN: the default command would migrate the database.
+3. aws ecs run-task --cluster pyvar-dev --task-definition pyvar-dev-migrate --launch-type FARGATE --count 1 with that network configuration and --overrides file://... Once only. In the response check the command override starts "python","-c"; if not, stop-task at once and report. If it will not start, stop and report the exact denial.
+4. aws ecs wait tasks-stopped; read exitCode and stoppedReason; read the output from the awslogs group, stream pyvar-migrate/<container>/<task id>. If exitCode is not 0, give the last 15 log lines, host and password redacted.
+
+REPORT
+- The script output verbatim.
+- Of the functions listed: how many have p95 of 1000 ms or less, and the ten slowest by p95.
+- One plain sentence on whether dev has enough rows to size the weights ("enough" = at least 20 rows for the function). If most functions have under 20 rows, say so; do not extrapolate.
+- Spend (estimate) and everything you got wrong. No ids, hostnames or secrets in the body.

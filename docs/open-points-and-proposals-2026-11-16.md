@@ -43,12 +43,23 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | D2 idle readers | Option 3: remove the dev reader and lower prod's minimum capacity to 0.5 ACU, with measuring | In the combined PR: flag, 0.5 ACU, a prod writer CPU alarm, `docs/plan-aurora-floor-measurement.md` and a before/after prompt |
 | G3 static uptime text | Recommendation: remove the item now | Queued for the second PR |
 | G1 unpinned kombu | Recommendation: read the API's real versions, then pin | Prompt to write after the combined PR; pin in the second PR |
-| A3 plugin keys | To be rediscussed if the better path does not improve the nine plugins' status; then option 1 (trial lane) with guardrails | On hold |
+| A3 plugin keys | Take the risk and mitigate it with a throttle (2026-11-17); offer a proposal | Proposal in `docs/plan-trial-lane-throttle.md`; **accepted 2026-11-17** (see the third round below) |
 | A6 free-tier limits | Recommendation: 10 to 20 requests a day, as the first row of A1's table | Builds with A1 |
 | C5 rows stuck pending | Option 3: a reconciler or a dead-letter handler | Design first, after the combined PR |
 | D4 ECR lifecycle | Recommendation: keep the newest 30 images | Queued for the second PR |
 | D3 dev's fixed footprint | Option 4: scale dev's stateful services down when idle | Research first (what can pause or scale to zero); no change yet |
 | F2 local scratch | Clear it any time | Done conservatively (only what is merged, pushed or regenerable) |
+
+
+## Decisions, third round (2026-11-17, the owner)
+
+| Point | Decision | State |
+| --- | --- | --- |
+| PR #434 | Merge | **Merged 2026-11-17.** Its pipeline run and the dev checks (free tier 20 a day, ECR lifecycle policy, reconciler first run) are the owner's to watch; not visible from the session |
+| A3 plugin keys | "Your recommendations are accepted": the trial-ticket lane, with the throttle in `docs/plan-trial-lane-throttle.md` | PR 0 (docs and the p95 prompt) opened; PRs 1 to 3 wait for the p95 measurement. Working defaults recorded in the plan: 260 tickets and 2,500 units a day; L6 built but off until a privacy note exists; the `CLAUDE.md` 3.5 paragraph needs the owner's explicit go |
+| D3 ElastiCache data size | Prompt requested and run | Both caches fit Valkey's 100 MB minimum by a very wide margin (evidence section 13: dev peak 1.33 MB, prod 0.076 MB, no evictions) |
+| D3 dev cache to Valkey | **Yes, dev first** | Built in PR #435: dev only, in place (same ID and name), Valkey major version 7 because AWS supports rollback only from 7.2; synth shows exactly two lines changed in dev and prod identical. Merging **starts a pipeline run** and the dev deploy performs the switch. Prod follows only after dev has run cleanly (`docs/plan-dev-idle-savings.md`) |
+| #435 scope | "Keep it open and fold more deliverables into it" | Now: the A3 plan and decisions, the p95 prompt, the ElastiCache result, the dev Valkey switch, and the proposed `CLAUDE.md` 3.5 text (not applied) |
 
 ## A. New high-priority work
 
@@ -81,6 +92,8 @@ review (`docs/plan-academic-access.md`).
 the cohort cap (15), expiry (6 months), and how the approver signs in.
 
 ### A3. Plugins that get a free key without registering
+**Decision (owner, 2026-11-17): the trial-ticket lane of `docs/plan-trial-lane-throttle.md`, with the recommendations accepted.** The options table below is the earlier analysis; the chosen design is not one of its four rows (it adds a signed ticket on separate routes instead of a key on every route).
+
 **Recap.** The nine plugins the directory shows as held or flagged are skills with no code; the key lives in
 `pyvar-mcp`, so only that package changes and the nine stay untouched. This improves their use but does not
 clear the flag (`docs/plan-anonymous-plugin-keys.md`).
@@ -367,6 +380,14 @@ Insights off about $6 to $10; the Fargate schedule about $12.
 | 4. Leave it | No work | About $400 a month |
 
 **Recommendation: 1 first (a measurement prompt, then dev), 2 next, 3 last.** Prod's cache is the same question and the same size of saving.
+
+**Measurement done 2026-11-17 (evidence section 13).** Over the last 14 full days the highest hourly maximum of
+`BytesUsedForCache` was 1.33 MB for dev (one two-hour burst on 2026-11-14, otherwise about 52 KB) and 0.076 MB for prod,
+against 80 MB (the line I set) and Valkey's 100 MB minimum; zero evictions; no trend. Both caches **fit**, so the size
+question for option 1 is closed. What it does not settle: whether Valkey meters the same bytes, whether the client and
+the Celery result backend behave the same on Valkey (untested), and the engine change itself (`cdk diff` has to show an
+in-place update and not a replacement before any PR). **Owner said go for dev (2026-11-17); built in PR #435** (the
+`cdk synth` diff is two lines in dev and nothing in prod), prod only after dev has run cleanly for a while.
 
 ### D4. No lifecycle policy on the API image repositories
 **Recap.** The prod repository holds 157 images and ECR billed $17.46 in October. **Correction to the first plan:** the
