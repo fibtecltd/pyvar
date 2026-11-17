@@ -132,8 +132,9 @@ customer-tier usage analytics.
 ```python
 # api/middleware/rate_limit.py (#146). NOT "100/min Standard, 1000/min Pro" —
 # the real limits are a per-user DAILY quota shared across every one of the
-# 386 compute endpoints, configured in config.py:
-#   free tier:        cfg.rate_limit_free_daily   = 10/day
+# 386 compute endpoints, configured in config.py and read through the one tier
+# table in api/tiers.py (a new tier is a new row there):
+#   free tier:        cfg.rate_limit_free_daily   = 20/day
 #   pro tier:          cfg.rate_limit_pro_daily     = 500/day
 #   enterprise/internal: unconditionally exempt
 #   unauthenticated /public/status.json and /public/demo-result.json (the S3-backed files):
@@ -148,7 +149,7 @@ customer-tier usage analytics.
 # slowapi's decorator sugar (@limiter.limit(...)) is NOT used per-route either:
 # with 386 hand-generated endpoints, slowapi's default_limits mechanism gives
 # EACH endpoint its own separate bucket (scope=None falls back to the endpoint
-# name), turning "10/day" into ~3,860 requests/day account-wide. Instead this
+# name), turning "20/day" into ~7,720 requests/day account-wide. Instead this
 # module calls the underlying `limits` RateLimiter directly with a fixed
 # scope string ("compute") shared by every endpoint, applied once via
 # `include_router(..., dependencies=[Depends(enforce_compute_rate_limit)])`.

@@ -34,6 +34,7 @@ from api.middleware.api_keys import (
     resolve_api_key,
     too_many_failures,
 )
+from api.tiers import policy_for
 from config import get_settings
 
 cfg = get_settings()
@@ -63,12 +64,8 @@ class TokenPayload:
         # are unlimited for simulation size and, per
         # api/middleware/rate_limit.py, both exempt from the compute quota.
         self.tier = tier  # free | pro | enterprise | internal
-        self.max_simulations = {
-            "free": 10_000,
-            "pro": 100_000,
-            "enterprise": 500_000,
-            "internal": 500_000,
-        }.get(tier, 10_000)
+        # The per-request simulation cap of the tier, from the one table (api/tiers.py).
+        self.max_simulations = policy_for(tier).max_simulations
 
 
 def decode_token_payload(token: str) -> TokenPayload:

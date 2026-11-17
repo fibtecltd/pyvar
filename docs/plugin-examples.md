@@ -1111,7 +1111,7 @@ Result (HTTP 202):
 
 A free-tier user alternates between a credit-risk and a liquidity endpoint. The daily allowance is a single shared 'compute' bucket, so the count carries across routes.
 
-**11 requests as a free-tier user**
+**21 requests as a free-tier user**
 
 ```text
 free-tier token, alternating:
@@ -1132,12 +1132,22 @@ request  7  expected_loss_el_computation       -> 200
 request  8  liquidity_coverage_ratio_lcr       -> 200
 request  9  expected_loss_el_computation       -> 200
 request 10  liquidity_coverage_ratio_lcr       -> 200
-request 11  expected_loss_el_computation       -> 429
+request 11  expected_loss_el_computation       -> 200
+request 12  liquidity_coverage_ratio_lcr       -> 200
+request 13  expected_loss_el_computation       -> 200
+request 14  liquidity_coverage_ratio_lcr       -> 200
+request 15  expected_loss_el_computation       -> 200
+request 16  liquidity_coverage_ratio_lcr       -> 200
+request 17  expected_loss_el_computation       -> 200
+request 18  liquidity_coverage_ratio_lcr       -> 200
+request 19  expected_loss_el_computation       -> 200
+request 20  liquidity_coverage_ratio_lcr       -> 200
+request 21  expected_loss_el_computation       -> 429
 response body: {"detail": "Rate limit exceeded. Please retry later."}
 Retry-After header: 86399 seconds
 ```
 
-**What to notice.** The free tier allows 10 compute requests per day. Requests 1 to 10 succeed across both endpoints; request 11 is refused with 429 and a Retry-After of about a day, rather than being counted per route.
+**What to notice.** The free tier allows 20 compute requests per day. Requests 1 to 20 succeed across both endpoints; request 21 is refused with 429 and a Retry-After of about a day, rather than being counted per route.
 
 ## pyvar-arch-compute
 

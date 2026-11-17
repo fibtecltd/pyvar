@@ -88,7 +88,7 @@ def counts() -> dict[str, int]:
 
 
 def fig_at_a_glance(out: Path) -> Path:
-    from api.middleware.rate_limit import _EXEMPT_TIERS
+    from api.tiers import policy_for
 
     functions, domains = ff.catalogue_counts()
     plugins, domain_skills, arch_skills, mcp = plugin_counts()
@@ -98,7 +98,10 @@ def fig_at_a_glance(out: Path) -> Path:
     pro_month = ff.default("rate_limit_pro_monthly_requests")
     pro_month_sims = ff.default("rate_limit_pro_monthly_simulations")
     free_sims, pro_sims, ent_sims = simulation_caps()
-    g.need("enterprise" in _EXEMPT_TIERS, "Enterprise is no longer exempt from the daily quota")
+    g.need(
+        policy_for("enterprise").daily_requests is None,
+        "Enterprise is no longer exempt from the daily quota",
+    )
 
     width, height = 1800, 1040
     cv = g.Canvas(width, height, "", "")

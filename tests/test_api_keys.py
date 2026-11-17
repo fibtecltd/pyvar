@@ -6,7 +6,7 @@ Reasoning:
   user's tier) and a mock would only echo the implementation back. Redis is replaced by
   a tiny in-process fake, since the cache is the only thing the code uses it for.
 - The free-tier quota test proves the point of the design: a key and a session JWT for
-  the same account draw from ONE bucket, so keys are not a way around the 10/day cap.
+  the same account draw from ONE bucket, so keys are not a way around the daily cap.
 """
 
 from __future__ import annotations

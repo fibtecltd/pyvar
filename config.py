@@ -157,6 +157,14 @@ class Settings(BaseSettings):
     # inline; only pro/enterprise jobs can ever be large enough to offload.
     s3_result_offload_threshold: int = 10_000
 
+    # ── var_jobs reconciler (storage/reconcile.py) ──────────────────────────────
+    # A background loop in each API task, hosted environments only (dev, staging, prod, production): a var_jobs
+    # row still "pending" after this many seconds is marked "failure". An hour is far beyond a job's queue wait,
+    # one retry (two deliveries of 60 s) and its run. Turn off with VAR_JOBS_RECONCILE_ENABLED=false.
+    var_jobs_reconcile_enabled: bool = True
+    var_jobs_pending_timeout_seconds: int = 3_600
+    var_jobs_reconcile_interval_seconds: int = 900
+
     # ── Rate limiting (#146) ────────────────────────────────────────────────────
     # Account-wide daily quota across ALL /api/v1 compute endpoints (var + the 8
     # domains), enforced by api/middleware/rate_limit.py. No verified traffic
@@ -167,7 +175,9 @@ class Settings(BaseSettings):
     # per-IP, /public/status.json + demo-result.json only. A home-page load makes three of
     # these calls, so 60 is about 20 loads an hour; the limit caps S3 reads, not visitors.
     rate_limit_unauth_per_hour: int = 60
-    rate_limit_free_daily: int = 10  # per-user, all /api/v1 compute endpoints
+    # Free tier: 20 a day (was 10; doubled on 2026-11-16, the owner's decision A6). Per-user, all /api/v1
+    # compute endpoints. Read through api/tiers.py, not directly.
+    rate_limit_free_daily: int = 20
     rate_limit_pro_daily: int = 500  # per-user, all /api/v1 compute endpoints
     rate_limit_register_per_hour: int = 5  # per-IP, POST /auth/register only
 
