@@ -151,6 +151,68 @@ def test_recorded_payloads_override_the_scalar_ones_and_are_sorted(tmp_path: Pat
     assert bench.load_payloads(catalogue, tmp_path / "absent.json")["/api/v1/d/c"] == {"x": 1}
 
 
+def test_a_body_takes_scalars_from_the_limits_and_arrays_from_named_fixtures() -> None:
+    bench = _bench()
+    params = [
+        {"name": "n", "type": "integer", "required": True, "default": 3},
+        {"name": "returns", "type": "object", "required": True},
+        {"name": "extra", "type": "object", "required": False},
+    ]
+    assert bench.payload_from_params(params, {"returns": [0.1, 0.2]}) == {
+        "n": 3,
+        "returns": [0.1, 0.2],
+    }
+    assert bench.payload_from_params(params, {}) is None  # a required array with no fixture
+
+
+def test_the_fixtures_are_deterministic_and_have_the_shapes_the_functions_expect() -> None:
+    bench = _bench()
+    first, second = bench.fixture_values(), bench.fixture_values()
+    assert first == second
+    assert len(first["returns"]) == len(first["benchmark_returns"]) == 252
+    assert len(first["returns_matrix"]) == 252 and {
+        len(row) for row in first["returns_matrix"]
+    } == {3}
+    assert {len(row) for row in first["factors"]} == {3}
+    assert {len(row) for row in first["factors_4"]} == {4}
+    assert {len(row) for row in first["factors_5"]} == {5}
+    cov = first["cov_matrix"]
+    assert len(cov) == 3 and all(len(row) == 3 for row in cov)
+    assert all(cov[i][j] == cov[j][i] for i in range(3) for j in range(3))
+    assert len(first["weights"]) == 3 and sum(first["weights"]) == pytest.approx(1.0)
+    assert len(first["breaches"]) == 250 and sum(first["breaches"]) == 3
+
+
+def test_every_body_override_names_a_real_route_and_real_parameters() -> None:
+    bench = _bench()
+    catalogue = {f["path"]: f for f in json.loads(bench.CATALOGUE.read_text(encoding="utf-8"))}
+    overrides = bench.body_overrides(bench.fixture_values())
+    assert overrides
+    for path, values in overrides.items():
+        assert path in catalogue, f"override for a route that is not in the catalogue: {path}"
+        known = {p["name"] for p in catalogue[path]["params"]}
+        assert set(values) <= known, f"{path}: override names parameters the function does not have"
+
+
+def test_every_built_payload_answers_200_so_a_changed_rule_cannot_silently_drop_a_function() -> (
+    None
+):
+    bench = _bench()
+    payloads = bench.load_payloads()
+    assert len(payloads) >= 250
+    assert "/api/v1/market-risk/historical_simulation_var" in payloads
+
+    async def run() -> dict[str, int]:
+        async with bench._client() as (client, headers):
+            return {
+                path: (await client.post(path, json=body, headers=headers)).status_code
+                for path, body in payloads.items()
+            }
+
+    refused = {path: code for path, code in asyncio.run(run()).items() if code != 200}
+    assert not refused, f"payloads the app now refuses (fix the fixture or the override): {refused}"
+
+
 def test_every_recorded_payload_is_still_a_post_route_of_the_app() -> None:
     from main import create_app
 

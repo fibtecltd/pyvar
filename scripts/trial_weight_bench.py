@@ -183,10 +183,188 @@ def units(ms: float | None) -> int | None:
     return None if ms is None else max(1, math.ceil(ms / UNIT_MS))
 
 
+def fixture_values() -> dict[str, Any]:
+    """Deterministic values for array and matrix parameters, by parameter name.
+
+    One year of daily observations (T = 252) on three assets (N = 3), a small covariance matrix, a
+    three-bucket curve and a three-name credit book: enough to make the common risk functions answer
+    200. The catalogue types every non-scalar parameter "object", so the name is the only guide; a
+    function whose arrays need another shape is left out (or takes a recorded payload) and shows up
+    as ERROR, not as a verdict about the function.
+    """
+    from ingestion.fixtures import generate_gbm_returns
+
+    series = [generate_gbm_returns(n_obs=252, seed=seed).tolist() for seed in (1, 2, 3)]
+    matrix = [list(row) for row in zip(*series, strict=True)]  # (T, N)
+    factor_series = [generate_gbm_returns(n_obs=252, seed=seed).tolist() for seed in range(11, 16)]
+    factors = [list(row) for row in zip(*factor_series[:3], strict=True)]  # (T, 3)
+    breaches = [1 if day in (40, 120, 200) else 0 for day in range(250)]
+    weights = [0.4, 0.3, 0.3]
+    cov = [[0.04, 0.01, 0.0], [0.01, 0.05, 0.01], [0.0, 0.01, 0.06]]
+    book = [1_000_000.0, 2_000_000.0, 500_000.0]
+    return {
+        "returns": series[0],
+        "portfolio_returns": series[0],
+        "benchmark_returns": series[1],
+        "excess_returns": series[0],
+        "hypothetical_pnl": series[0],
+        "risk_theoretical_pnl": series[1],
+        "returns_matrix": matrix,
+        "factors": factors,
+        "factors_4": [list(row) for row in zip(*factor_series[:4], strict=True)],
+        "factors_5": [list(row) for row in zip(*factor_series, strict=True)],
+        "factor_cov": cov,
+        "cov_matrix": cov,
+        "weights": weights,
+        "portfolio_weights": weights,
+        "benchmark_weights": weights,
+        "mean_returns": [0.08, 0.10, 0.12],
+        "breaches": breaches,
+        "sorted_losses": sorted(abs(x) * 1_000_000 for x in series[0][:100]),
+        "annual_losses": [abs(x) * 5_000_000 + 10_000 for x in series[0][:50]],
+        "annual_event_counts": [3, 5, 2, 4, 6, 3, 1, 4, 5, 2, 3, 4, 2, 5, 3, 4, 6, 2, 3, 4],
+        "loss_amounts": [abs(x) * 2_000_000 + 5_000 for x in series[0][:200]],
+        "cashflows": [100.0, 100.0, 1100.0],
+        "times": [1.0, 2.0, 3.0],
+        "discount_factors": [0.97, 0.94, 0.91],
+        "time_steps": [1.0, 2.0, 3.0],
+        "expected_exposure": [10.0, 12.0, 8.0],
+        "maturities": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "yields": [0.02, 0.025, 0.03, 0.032, 0.034],
+        "tenors": [1.0, 2.0, 5.0, 10.0],
+        "base_curve": [0.02, 0.025, 0.03, 0.034],
+        "liquidity_spreads": [0.001, 0.002, 0.003, 0.004],
+        "pd": [0.01, 0.02, 0.05],
+        "lgd": [0.45, 0.4, 0.6],
+        "ead": book,
+        "exposures": book,
+        "exposure_amounts": book,
+        "recovery_amounts": [400_000.0, 800_000.0, 250_000.0],
+        "asset_values": [100.0, 200.0, 150.0],
+        "asset_balances": [100.0, 200.0, 300.0],
+        "asset_rates": [0.02, 0.03, 0.04],
+        "liability_balances": [150.0, 250.0, 200.0],
+        "liability_rates": [0.015, 0.025, 0.035],
+        "bucket_assets": [100.0, 150.0, 200.0],
+        "bucket_liabilities": [120.0, 140.0, 160.0],
+        "net_cashflows": [10.0, -5.0, 20.0],
+        "base_rates": [0.02, 0.025, 0.03],
+        "forward_rates": [0.03, 0.031, 0.032],
+        "accruals": [0.25, 0.25, 0.25],
+        "funding_amounts": [100.0, 200.0, 300.0],
+    }
+
+
+def payload_from_params(
+    params: list[dict[str, Any]], fixtures: dict[str, Any]
+) -> dict[str, Any] | None:
+    """A request body from the required parameters: scalars by `param_value`, arrays by name from `fixtures`.
+
+    Args:
+        params: A function's "params" from portal/functions.json.
+        fixtures: Values by parameter name for the non-scalar parameters (see `fixture_values`).
+
+    Returns:
+        The body, or None when a required non-scalar parameter has no fixture.
+    """
+    body: dict[str, Any] = {}
+    for param in params:
+        if not param.get("required"):
+            continue
+        if param["type"] in SCALAR_TYPES:
+            body[param["name"]] = param_value(param)
+        elif param["name"] in fixtures:
+            body[param["name"]] = fixtures[param["name"]]
+        else:
+            return None
+    return body
+
+
+def body_overrides(fixtures: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Values that replace the built ones for functions with rules the catalogue does not state.
+
+    Several scalar parameters carry no default or limit in portal/functions.json, so the generic value
+    (1.0) is outside the function's own domain (a probability of 1, a start after an end, a stress window
+    that does not exist). Each entry below was needed to turn a 422 into a 200 and is a plain value of the
+    kind the function's documentation gives as an example.
+    """
+    curve_t = [0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0]
+    return {
+        "/api/v1/alm/loan_prepayment_rate_cpr": {"cpr": 0.06},
+        "/api/v1/alm/prepayment_model_mortgages": {
+            "principal": 250_000.0,
+            "annual_rate": 0.04,
+            "term_years": 30,
+            "cpr": 0.06,
+        },
+        "/api/v1/credit-risk/credit_var_analytical_vasicek": {
+            "pd": 0.02,
+            "lgd": 0.45,
+            "ead_total": 1_000_000.0,
+        },
+        "/api/v1/credit-risk/point_in_time_pd_estimation": {"ttc_pd": 0.02, "macro_index": 0.5},
+        "/api/v1/credit-risk/through_the_cycle_pd_adjustment": {
+            "pit_pd": 0.03,
+            "long_run_average_pd": 0.02,
+        },
+        "/api/v1/derivatives/chooser_option_pricer": {"tau_choose": 0.5, "tau_expiry": 1.0},
+        "/api/v1/derivatives/compound_option_pricer": {"tau_compound": 0.5, "tau_underlying": 1.0},
+        "/api/v1/derivatives/credit_default_swap_cds_pricer": {
+            "notional": 1_000_000.0,
+            "spread": 0.01,
+            "hazard_rate": 0.02,
+            "recovery_rate": 0.4,
+            "maturity": 5.0,
+            "discount_rate": 0.03,
+        },
+        "/api/v1/derivatives/forward_rate_agreement_fra": {
+            "notional": 1_000_000.0,
+            "fra_rate": 0.03,
+            "forward_rate": 0.031,
+            "start": 1.0,
+            "end": 1.5,
+            "discount_factor": 0.97,
+        },
+        "/api/v1/derivatives/nelson_siegel_svensson_curve": {
+            "maturities": curve_t,
+            "yields": [0.02, 0.022, 0.024, 0.027, 0.029, 0.032, 0.034, 0.035],
+        },
+        "/api/v1/derivatives/swap_rate_curve": {
+            "maturities": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "discount_factors": [0.98, 0.96, 0.94, 0.92, 0.90],
+        },
+        "/api/v1/derivatives/yield_to_maturity": {
+            "price": 98.0,
+            "cashflows": [5.0, 5.0, 105.0],
+            "times": [1.0, 2.0, 3.0],
+        },
+        "/api/v1/market-risk/compute_cvar": {"confidence_level": 0.99},
+        "/api/v1/market-risk/stressed_expected_shortfall": {
+            "stress_start": 10,
+            "stress_end": 60,
+            "portfolio_value": 1_000_000.0,
+        },
+        "/api/v1/operational/scenario_severity_estimation": {
+            "typical_loss": 10_000.0,
+            "worst_case_loss": 500_000.0,
+        },
+        "/api/v1/portfolio/carhart_4_factor_model": {"factors": fixtures["factors_4"]},
+        "/api/v1/portfolio/fama_french_5_factor_model": {"factors": fixtures["factors_5"]},
+        "/api/v1/portfolio/return_attribution_brinson": {
+            "portfolio_returns": [0.05, 0.02, 0.03],
+            "benchmark_returns": [0.04, 0.03, 0.02],
+        },
+        "/api/v1/portfolio/sector_attribution": {
+            "portfolio_returns": [0.05, 0.02, 0.03],
+            "benchmark_returns": [0.04, 0.03, 0.02],
+        },
+    }
+
+
 def load_payloads(
     catalogue: Path = CATALOGUE, curated: Path = CURATED
 ) -> dict[str, dict[str, Any]]:
-    """Request bodies by route: scalar-built from the catalogue, then the recorded ones on top.
+    """Request bodies by route: built from the catalogue (scalars and named fixtures), then the recorded ones on top.
 
     Args:
         catalogue: portal/functions.json.
@@ -196,10 +374,12 @@ def load_payloads(
         A dict route path to JSON body, sorted by path.
     """
     payloads: dict[str, dict[str, Any]] = {}
+    fixtures = fixture_values()
+    overrides = body_overrides(fixtures)
     for function in json.loads(catalogue.read_text(encoding="utf-8")):
-        body = scalar_payload(function["params"])
+        body = payload_from_params(function["params"], fixtures)
         if body is not None:
-            payloads[function["path"]] = body
+            payloads[function["path"]] = {**body, **overrides.get(function["path"], {})}
     if curated.exists():
         payloads.update(json.loads(curated.read_text(encoding="utf-8")))
     return dict(sorted(payloads.items()))
