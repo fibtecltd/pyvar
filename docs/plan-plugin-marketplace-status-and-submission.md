@@ -7,6 +7,10 @@ investigation + submission actions, no new engineering.
 > and are published in the developer portal; `pyvar-mcp` and `tengrade` are still listings from
 > the retired Claude Console form. The current state, what it shows and what not to do are in §6.
 
+> **Update 2026-11-17:** the directory team did not answer four e-mails about the nine held plugins (§6), so waiting for the
+> directory is closed as a route (owner decision). The plugins reach users through our own marketplaces; the question of one
+> company-wide marketplace is being explored.
+
 ## 1. What's already true, verified against the repo
 
 - pyvar ships **14 plugins** total: 13 skills (8 domain + 5 architecture) and

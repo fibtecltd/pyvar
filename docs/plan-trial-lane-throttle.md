@@ -15,9 +15,19 @@ acceptance did not name are recorded here as the working defaults, each easy to 
 | First-use friction alone justifies the build | Yes, accepted; the nine held plugins' directory flag is **not** expected to clear (reasons in "What I add") | The owner's rule was to rediscuss if the status of the nine did not improve; the proposal states plainly that it will not, and the owner went ahead |
 | Sizing | 260 tickets and 2,500 units a day, as written | The compute bound is the same for any size; the numbers only set how much real use fits |
 | L6 per-IP counters | Built, behind `trial_ip_counter_enabled`, **off until a short privacy note is written** | An IP prefix is personal data under UK GDPR even as a keyed hash; the note belongs with the A2 and A3 legal-text pass (register, section E2) |
-| `CLAUDE.md` 3.5 paragraph | **Not edited in PR 0 or yet.** PR 1 carries it only after the owner says so in terms | `CLAUDE.md` is the owner's file and 3.5 is a security rule; a general "recommendations accepted" does not name it |
+| `CLAUDE.md` 3.5 paragraph | Go given by the owner later on 2026-11-17; **applied in PR 1** (not edited before) | `CLAUDE.md` is the owner's file and 3.5 is a security rule; it is a root-level file, so editing it starts a pipeline run, which PR 1 starts anyway |
 
-PRs 1 to 3 wait for the owner's choice on the p95 result (section "The p95 run and what it changes"). Nothing in this plan's PR 0 changes the A3 lane's code, settings or infrastructure; PR #435 also carries the separate dev cache-engine change (`docs/plan-dev-idle-savings.md`).
+PRs 1 to 3 wait for the whitelist benchmark (`docs/trial-lane-whitelist-benchmark-2026-11-17.md`) and the owner's review of the candidate list. Nothing in this plan's PR 0 changes the A3 lane's code, settings or infrastructure; PR #435 also carries the separate dev cache-engine change (`docs/plan-dev-idle-savings.md`).
+
+**Second batch, later on 2026-11-17 (the owner):**
+
+- **Meter actual time** instead of a weight table (section "The p95 run and what it changes"): yes.
+- **`CLAUDE.md` 3.5 text:** go given. It is applied in PR 1 and not before: `CLAUDE.md` is a root-level file, so editing it starts a
+  CodePipeline run, and PR 1 starts one anyway; a separate text-only edit would cost a run for no change.
+- **"Contact Anthropic" is closed:** four e-mails to the directory team, no reply. No further effort goes into the nine held plugins'
+  directory status; distribution through our own marketplace is explored instead (`docs/plan-plugin-marketplace-status-and-submission.md`,
+  note at the top).
+- **The benchmark script is a new pull request** (the earlier one, #435, merged before it was written).
 
 ## What the proposal is, and how it differs from the rejected design
 
@@ -48,7 +58,7 @@ edge request fees, which exist today on every public path. Today's WAF allows 10
 
 | # | Layer and parameters | Stops | Does not stop | Failure mode |
 | --- | --- | --- | --- | --- |
-| L1 | Whitelist of inline functions (p95 of 1 s or less); weight = ceil(p95 ms / 50); run in a threadpool behind a per-task semaphore of 1; 429 when busy | queue starvation, Spot cost, event-loop stalls | many cheap calls | closed |
+| L1 | Whitelist of inline functions (p95 of 1 s or less, no uncompiled Numba kernel); charge = ceil(measured ms / 50) per call, hard 1 s deadline (metered, no weight table); run in a threadpool behind a per-task semaphore of 1; 429 when busy | queue starvation, Spot cost, event-loop stalls | many cheap calls | closed |
 | L2 | Per-ticket quota: 5 calls a day, 72 hours, so at most 15 per ticket (counter by `jti`) | value per ticket, replay of a leaked ticket | many tickets | closed |
 | L3 | Global compute budget: token bucket, capacity 100 units, 100 an hour, at most 2,500 a day; cache hits cost 0 | all compute cost, whatever the botnet size | denial of the trial to real users | closed (precedent: the assistant spend cap) |
 | L4 | Global issuance budget: capacity 20, 10 an hour, at most 260 tickets a day | ticket farming | fast draining of each refill | closed |
@@ -103,14 +113,14 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 | PR | Change | Pipeline run |
 | --- | --- | --- |
 | 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
-| 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**needs your explicit go**, text below); the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
+| 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**go given 2026-11-17**, text below); metering by measured time with the 1 s deadline, a body-size cap and an array-length cap; the whitelist from the benchmark; the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
 | 2 `feat(mcp)` 0.3.0 | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
 | 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
 
 Enabling in dev and then prod is `trial_ctl.py on`, with no run. PR 3 can ship before or after enabling: without it L5
 uses the shared "unknown" bucket and the application layers still bound cost.
 
-## Proposed `CLAUDE.md` 3.5 text (not applied; it goes into PR 1 only on the owner's explicit go)
+## Proposed `CLAUDE.md` 3.5 text (go given 2026-11-17; applied in PR 1, not before)
 
 Checked on 2026-11-17 against `api/middleware/auth.py` with python-jose, the library in use. A ticket with `aud`
 "pyvar-trial" is refused by a decoder that names no audience (every HTTP route through `decode_token_payload`) and by the
@@ -144,12 +154,12 @@ bullets use the file's wording and 100-column wrapping; route names are fixed in
 The same PR adds `api/middleware/trial.py` and `api/routes/trial.py` to the section 2 layout, as section 10 requires for any
 new module.
 
-## The p95 run and what it changes (2026-11-17; a proposal, not yet a decision)
+## The p95 run and what it changes (2026-11-17; decided by the owner the same day)
 
 Result (evidence section 14): dev has no usable per-function timings, so the weight table of L1 cannot be sized from dev's
 `api_usage`. Three consequences, the first two worth changing the design for:
 
-1. **Meter the actual time instead of a table of weights.** The cost bound only needs the compute bucket (L3) to be in real
+1. **Meter the actual time instead of a table of weights. Decided: yes (owner, 2026-11-17).** The cost bound only needs the compute bucket (L3) to be in real
    time, so each lane call is charged `ceil(measured wall ms / 50)` units when it finishes (cache hits 0), the bucket is
    checked for at least 20 units (one second) before a call starts, and every call has a hard 1 s deadline. No table, no
    calibration, no stale weights when a function changes; the semaphore of one (L1) keeps one call in flight per task, so the
@@ -158,7 +168,7 @@ Result (evidence section 14): dev has no usable per-function timings, so the wei
    of one kernel and the lifespan warms the same one, so a whitelisted function that calls any other `@njit` kernel would compile
    it on its first call in each new API task, seconds on a worker thread and a charge of many units for that one caller. Either
    leave such functions out, or add their kernels to the Dockerfile warm-up and the lifespan (PR 1).
-3. **The whitelist still needs a measurement, once, in this repository and not from traffic:** a script `scripts/trial_weight_bench.py`
+3. **The whitelist still needs a measurement, once, in this repository and not from traffic. Built in the benchmark PR; results in `docs/trial-lane-whitelist-benchmark-2026-11-17.md`:** a script `scripts/trial_weight_bench.py`
    (`scripts/` is a pipeline-excluded directory; it ships in the image because the Dockerfile copies everything) that posts a
    synthetic payload to each candidate route in process, as `scripts/generate_plugin_examples.py` does, and prints the first call
    and the p50, p95 and max of the next 30. Run locally for relative cost and broken payloads; run once on dev through the same
@@ -190,8 +200,8 @@ answer stays remote MCP with sign-in (the keyless options document's option 2), 
     environment, and the architecture skill showed a Secrets Manager call. They contain no code.
   - The hold is **at plugin level, not by version**: it stayed after 1.2.0 removed the wording, "Publish update" returns
     "Needs the directory team", and `liquidity-risk` gives the same result for the same bytes with nothing left to
-    reword. Only the directory team can lift it; the one route the records name is "Contact Anthropic" in the portal, and
-    it has not been tried.
+    reword. Only the directory team can lift it; the one route the records named, "Contact Anthropic" in the portal and
+    e-mail, was tried (four e-mails, no reply: owner, 2026-11-17) and is closed.
   - The lane changes the API and `pyvar-mcp` only. The nine stay byte-identical (the standing rule is not to change
     `plugins/` for them, because each changed version adds a review row), so nothing the hold depends on moves.
   - Separately, `pyvar-mcp` is a `uvx` launcher, which the directory holds for review whatever it stores.
