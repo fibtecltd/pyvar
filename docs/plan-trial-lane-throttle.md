@@ -144,6 +144,31 @@ bullets use the file's wording and 100-column wrapping; route names are fixed in
 The same PR adds `api/middleware/trial.py` and `api/routes/trial.py` to the section 2 layout, as section 10 requires for any
 new module.
 
+## The p95 run and what it changes (2026-11-17; a proposal, not yet a decision)
+
+Result (evidence section 14): dev has no usable per-function timings, so the weight table of L1 cannot be sized from dev's
+`api_usage`. Three consequences, the first two worth changing the design for:
+
+1. **Meter the actual time instead of a table of weights.** The cost bound only needs the compute bucket (L3) to be in real
+   time, so each lane call is charged `ceil(measured wall ms / 50)` units when it finishes (cache hits 0), the bucket is
+   checked for at least 20 units (one second) before a call starts, and every call has a hard 1 s deadline. No table, no
+   calibration, no stale weights when a function changes; the semaphore of one (L1) keeps one call in flight per task, so the
+   overdraft is at most one call per task. The earlier weights `ceil(p95 ms / 50)` become a documentation figure only.
+2. **The whitelist must exclude, or pre-warm, any function that runs an uncompiled Numba kernel.** The image pre-bakes the cache
+   of one kernel and the lifespan warms the same one, so a whitelisted function that calls any other `@njit` kernel would compile
+   it on its first call in each new API task, seconds on a worker thread and a charge of many units for that one caller. Either
+   leave such functions out, or add their kernels to the Dockerfile warm-up and the lifespan (PR 1).
+3. **The whitelist still needs a measurement, once, in this repository and not from traffic:** a script `scripts/trial_weight_bench.py`
+   (`scripts/` is a pipeline-excluded directory; it ships in the image because the Dockerfile copies everything) that posts a
+   synthetic payload to each candidate route in process, as `scripts/generate_plugin_examples.py` does, and prints the first call
+   and the p50, p95 and max of the next 30. Run locally for relative cost and broken payloads; run once on dev through the same
+   one-off pattern for absolute time (the migrate task is 0.25 vCPU, half the API task's 0.5, so its times are conservative) after
+   a build that contains the script has been deployed. Payloads for the catalogue's 385 functions do not exist (`portal/functions.json`
+   carries names, types, limits and defaults, no example values), so the first version covers only candidates whose payloads can be
+   taken from the existing tests.
+4. **Prod's `api_usage` would answer a different question:** which functions real users actually call, which is the right input for
+   choosing the whitelist. It needs its own authorisation and is probably thin (the prod ALB saw 16,444 requests in 14 days, section 12).
+
 ## Red team (one afternoon)
 
 About 150 residential proxy addresses over 8 or more networks and a native solver, polling the ticket route every few
