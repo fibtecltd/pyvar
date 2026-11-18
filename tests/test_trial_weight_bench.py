@@ -155,14 +155,54 @@ def test_a_body_takes_scalars_from_the_limits_and_arrays_from_named_fixtures() -
     bench = _bench()
     params = [
         {"name": "n", "type": "integer", "required": True, "default": 3},
-        {"name": "returns", "type": "object", "required": True},
+        {"name": "mystery", "type": "object", "required": True},
         {"name": "extra", "type": "object", "required": False},
     ]
-    assert bench.payload_from_params(params, {"returns": [0.1, 0.2]}) == {
+    assert bench.payload_from_params(params, {"mystery": [0.1, 0.2]}) == {
         "n": 3,
-        "returns": [0.1, 0.2],
+        "mystery": [0.1, 0.2],
     }
-    assert bench.payload_from_params(params, {}) is None  # a required array with no fixture
+    assert bench.payload_from_params(params, {}) is None  # a required array nothing can supply
+    # a per-function override supplies it, and also replaces a value already built
+    assert bench.payload_from_params(params, {}, {"mystery": [1], "n": 9}) == {
+        "n": 9,
+        "mystery": [1],
+    }
+
+
+@pytest.mark.parametrize(
+    ("name", "description", "expected"),
+    [
+        ("portfolio_weights", "", [0.4, 0.3, 0.3]),
+        ("asset_rates", "", [0.02, 0.025, 0.03]),
+        ("repricing_times", "", [1.0, 2.0, 3.0]),
+        ("tenors_days", "", [30.0, 90.0, 180.0]),
+        ("trade_prices", "", [100.0, 101.0, 99.0]),
+        ("deposit_balances", "", [100.0, 200.0, 300.0]),
+        ("from_idx_indices", "", [0, 1, 2]),
+        ("thresholds", "Mapping ``name -> minimum``.", None),
+        ("kri_definitions", "List of KRI definition dicts.", None),
+        ("risk_register", "List of risk dicts", None),
+        ("mystery_field", "", None),
+        # "jurisdiction" contains the letters "dict"; it is not a dict (this once hid a function)
+        (
+            "country_ccyb_rates",
+            "National CCyB rate per jurisdiction (decimal).",
+            [0.02, 0.025, 0.03],
+        ),
+    ],
+)
+def test_an_unknown_array_is_guessed_from_its_name_and_never_from_a_mapping(
+    name: str, description: str, expected: object
+) -> None:
+    assert _bench().guess_array(name, description) == expected
+
+
+def test_the_guess_is_a_fresh_list_each_time() -> None:
+    bench = _bench()
+    first = bench.guess_array("weights", "")
+    first.append(9.9)
+    assert bench.guess_array("weights", "") == [0.4, 0.3, 0.3]
 
 
 def test_the_fixtures_are_deterministic_and_have_the_shapes_the_functions_expect() -> None:
@@ -199,7 +239,11 @@ def test_every_built_payload_answers_200_so_a_changed_rule_cannot_silently_drop_
 ):
     bench = _bench()
     payloads = bench.load_payloads()
-    assert len(payloads) >= 250
+    catalogue = {f["path"] for f in json.loads(bench.CATALOGUE.read_text(encoding="utf-8"))}
+    assert set(payloads) == catalogue, (
+        "every catalogue function needs a payload: missing "
+        f"{sorted(catalogue - set(payloads))[:5]}, extra {sorted(set(payloads) - catalogue)[:5]}"
+    )
     assert "/api/v1/market-risk/historical_simulation_var" in payloads
 
     async def run() -> dict[str, int]:
