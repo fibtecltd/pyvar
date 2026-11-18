@@ -171,6 +171,7 @@ All at release `c52e056`, the code running in dev.
 ### What this changes, and what is open
 
 - **Spot safety:** graceful termination held (5 of 5); an abrupt loss of the worker lost the job and reported it failed (5 of 5, one timing); a real Spot notice was not tested. These statements say or imply that late acknowledgement makes an interrupted Spot instance's job only delayed: `CLAUDE.md` 3.2, `portal/guide-technical-deepdive.html` (line 92), `docs/publications/pyvar-technical-deepdive-medium-article.md` (line 79) and the comment at `pyvar-cdk/stacks/compute_stack.py` line 429. They are **not changed** in this pull request: the right wording depends on the decision below.
+- **Update 2026-11-18: decisions (1) and (2) below are built and were accepted by the second pass in section 15.**
 - **Decisions for the owner, open:** (1) set `task_reject_on_worker_lost` so an abruptly lost job is redelivered (the trade is possible redelivery loops and double execution, which the visibility timeout and the job's determinism limit); (2) give each message its own group id so jobs can run in parallel, after confirming the deployed kombu version and the cause; (3) then correct the four texts above and re-run W4 and W5.
 - **A second pass would add:** a read-only role on `var_jobs`/`api_usage` (row counts, duplicate check), a FIS template (the real 2-minute notice), an allow-listed source (API-mode load, which also measures the WAF), several kill timings and a larger n.
 
@@ -325,3 +326,50 @@ Read-only agent run of `docs/prompts/agent-a3-p95-measure.txt`: one Fargate one-
 - **Safety checks the agent reported:** names scanned for "prod" (none); `DB_*` secrets read by name only; the default command is the migration and the image has no ENTRYPOINT, so the override replaced it; all three required assertions passed, plus two extras (no write keywords, exactly three SELECTs); one `run-task` call; failures empty.
 - **Spend:** about $0.0003 (72 s at 0.25 vCPU and 0.5 GB, Fargate list prices assumed, not read from a bill).
 - **What the agent reported getting wrong:** nothing that changed a figure. Disclosed: it pinned the revision instead of the bare family name; the "verbatim" output in its report was abridged to keep job ids out of the body (the full file stayed on its machine); it added two safety assertions.
+
+## 15. B4: B1 and B2 acceptance test on dev (2026-11-17 to 18)
+
+Agent run of `docs/prompts/agent-b4-w4w5-rerun.txt`, in dev only, after #433 to #436 had been deployed (the dev API ran image tag `0ec81f3`, deployed 2026-11-17 19:48Z). The report is the source of every figure here; the author has not re-checked any against AWS. **Result: B1 and B2 both work in dev.** All 27 W4 jobs gave the correct result, the dead-letter queue was empty throughout, hard kills are redelivered once and succeed, and throughput scales with workers.
+
+**State read first.** Cache engine and version: Valkey 7.2 (the D3 switch is live). Queue: `maxReceiveCount` 2, `VisibilityTimeout` 60 s, dead-letter queue depth 0 at the start, after every trial and at the end. Group `pyvar-dev-workers` was at min 0, max 5, desired 1 (a scheduled-refresh worker); the run began once it reached 0. **B2 check:** with no workers, 3 jobs dispatched through the repository's own Celery code (celery 5.6.3, kombu 5.6.2) carried 3 different `MessageGroupId` values, each equal to its task id; received once each, never deleted, they reappeared after 30 s and ran as warm-ups, and all three results equalled the expected value. The workers' log stream carries no release line; the agent inferred their code from master at boot (`179bab9`, whose only differences from `0ec81f3` are docs, scripts and tests) and re-checked at the end.
+
+### W4: a worker killed mid-job (500,000 simulations, 250 days, about 3.3 s; n = 27)
+
+| Arm | Kill point (fraction of runtime) | n | Lost | Delayed (over 30 s) | Duplicated | Seconds to result (min / median / max) |
+| --- | --- | --- | --- | --- | --- | --- |
+| A, hard (`terminate-instances`) | 0.15 to 0.20 | 4 | 0 | 4 | 0 seen | 79 / 140 / 208 |
+| A, hard | 0.39 to 0.40 | 4 | 0 | 4 | 0 seen | 99 / 168 / 193 |
+| A, hard | 0.69 to 0.70 | 4 | 0 | 4 | 0 seen | 84 / 145 / 154 |
+| B, graceful (Auto Scaling terminate) | 0.10 to 0.23 | 5 | 0 | 0 | 0 | 3.2 / 3.3 / 3.3 |
+| B, graceful | 0.42 to 0.44 | 5 | 0 | 0 | 0 | 3.2 / 3.3 / 3.3 |
+| B, graceful | 0.72 to 0.78 | 5 | 0 | 0 | 0 | 3.2 / 3.3 / 3.3 |
+
+- **Against the first pass** (2026-11-14, section 7): 5 of 5 hard kills were lost and reported failed; now 0 of 12 are lost and none is reported failed.
+- **Arm A is delayed by design:** the original worker died, the message became visible again after the 60 s timeout, and it waited for the replacement worker (1.5 to 3.5 minutes after the kill); the redelivered run took 7.7 to 15.9 s on the fresh worker.
+- **Not seen:** the killed workers' own log lines never reached CloudWatch, so "0 duplicated" means none visible, and the receive count was not visible either; one redelivery is inferred from a delay longer than the visibility timeout. Evidence the first attempt began: the API showed the job started within 0.5 to 2.6 s of the enqueue and never showed failure.
+- **Timing:** worker logs reach CloudWatch 4 to 5 s late and a job takes 3.3 s, so kills were scheduled from the enqueue time and the landed point measured afterwards. Small n (4 per hard timing, 5 per graceful). The real 2-minute Spot notice was not tested (no FIS template).
+
+### W5: jobs a minute against the number of workers (first pass: 352, 364 and 251)
+
+| N | Load (a): 100,000 simulations, 1 day: jobs/min (middle 60%) | vs first pass | Efficiency | Max concurrent jobs | Load (b): 3.4 s jobs, jobs/min overall (middle 60%) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 662 (60/60 done in 7.1 s) | 1.9x | 1.00 | 2 | 35 (35) |
+| 2 | 1,338 (60/60 in 2.8 s) | 3.7x | 1.01 | 4 | 70 (70) |
+| 4 | 2,420 (120/120 in 3.0 s) | 9.6x | 0.91 | 8 | 139 (106) |
+
+- **Concurrency is 2 per worker (the prefork slots), so jobs now run in parallel:** the one-group-per-queue behaviour that serialised them is gone. Load (b) at N = 4 shows 0.76 efficiency over the middle 60% only because jobs complete in waves of 8; the overall 139 a minute is about 4 x 35.
+- **Rough:** the loads last 3 to 14 s, so the load-(a) middle-60% windows are only 1.6 to 1.8 s.
+
+### Database step, token, group, spend
+
+- **One run** of the read-only Fargate task: of 162 task ids passed (the 27 W4 trials, the 3 B2 jobs, all 56 load-(b) jobs and 76 load-(a) jobs), 162 rows are `success` with the fallback user `unknown`; no `failure` or `pending` row and none missing. ECS caps overrides at 8,192 characters, so the other 164 ids (load-(a)) were not checked.
+- **Token:** `sub` `internal-b4-agent`, tier `internal`, issued 2026-11-17 23:57:13Z, expiry 2026-11-18 02:57:13Z (3 hours); held in one process, not found on disk, in argv or in a log; it cannot be revoked before expiry except by rotating the secret.
+- **Group:** restored to min 0, max 5, desired 1 in the finally blocks, then taken to 0 / 5 / 0 by the existing scale-in policy; never above 5 (peak 4 workers). **Spend (estimate): about $0.11** (1.25 Spot instance-hours at about $0.106, root volumes, the database run); SQS, log and S3 traffic not priced.
+- **What the agent could not do:** a real-time "received" trigger; the Spot-notice arm (skipped as instructed); the receive count; the killed workers' log lines; full database coverage (above).
+- **What it reported getting wrong:** a first B2 dispatch failed at import (working directory not on `sys.path`; nothing sent); a first `run-task` for the database step exceeded the 8,192-character limit (a validation error, nothing started); a monitor started `tail` before the file existed; the brief expected desired 0 and a refresh worker was running; two warm-up jobs per worker instead of one. No call was denied and no name contained "prod".
+
+### What this changes (author)
+
+- **B1 and B2 are accepted.** The second W4/W5 pass the register waited for (B4) is done; the numbers above replace the first pass's.
+- **Texts that describe interruption:** `CLAUDE.md` section 3.2 says "task_acks_late=True is non-negotiable. If removed, interrupted Spot instances cause permanent job loss", and `portal/guide-technical-deepdive.html` line 92 says that removing it "means an interrupted Spot instance loses the job permanently, not just delays it". Section 7 showed late acknowledgement alone was **not** enough (5 of 5 hard kills lost); what makes a lost worker's job come back is `task_reject_on_worker_lost` with the queue's receive limit of 2 (B1). The sentences are not false but they credit one setting with what two do, and the delay is minutes (79 to 208 s), not "a moment". **Proposed wording for `CLAUDE.md` 3.2 (not applied: the file is the owner's and his earlier go covered 3.5 only):** "`task_acks_late=True` and `task_reject_on_worker_lost=True` are both non-negotiable: with late acknowledgement alone a hard-killed worker's job is lost (measured 5 of 5), with both it is redelivered once (queue `maxReceiveCount` 2) and finishes 1.5 to 3.5 minutes later (measured 12 of 12, `docs/p9-aws-evidence-2026-11-13.md` section 15)." The portal sentence is a `portal/` file, so a change to it starts a pipeline run and can ride the next code change. The Medium drafts are closed and left as they are.
+- **Dev cache:** the Valkey switch is live and the result backend and API read through it correctly for 30 jobs; prod can follow as a one-line override (a pipeline run and the prod approval), on the owner's go.

@@ -173,8 +173,8 @@ Result (evidence section 14): dev has no usable per-function timings, so the wei
    synthetic payload to each candidate route in process, as `scripts/generate_plugin_examples.py` does, and prints the first call
    and the p50, p95 and max of the next 30. Run locally for relative cost and broken payloads; run once on dev through the same
    one-off pattern for absolute time (the migrate task is 0.25 vCPU, half the API task's 0.5, so its times are conservative) after
-   a build that contains the script has been deployed. Payloads come from the catalogue's limits and defaults, from named fixtures for array parameters and from the domain API tests; 260 of the 385 functions
-   are covered so far (the results document says which are not).
+   a build that contains the script has been deployed. Payloads come from the catalogue's limits and defaults, from named fixtures for array parameters and from the domain API tests; all 385 functions
+   are covered (`docs/trial-lane-whitelist-benchmark-2026-11-17.md`).
 4. **Prod's `api_usage` would answer a different question:** which functions real users actually call, which is the right input for
    choosing the whitelist. It needs its own authorisation and is probably thin (the prod ALB saw 16,444 requests in 14 days, section 12).
 
