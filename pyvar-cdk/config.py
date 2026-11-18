@@ -300,6 +300,14 @@ class PyvarConfig:
                 # docs/plan-aurora-floor-measurement.md. Rollback: set this back to 1.0 and deploy.
                 aurora_min_acu=0.5,
                 aurora_max_acu=16.0,
+                # Valkey 7.2 in place of Redis OSS 7.1 (about $95/month; owner go 2026-11-18). Same in-place
+                # update that dev took on 2026-11-17: same cache name and endpoint, CloudFormation lists
+                # Engine as "No interruption". The prod cache held 0.076 MB at the last measurement
+                # (docs/p9-aws-evidence-2026-11-13.md section 13), far below Valkey's 100 MB minimum. AWS
+                # supports rolling back ONLY from 7.2 to Redis OSS 7.1, so do not bump the major version
+                # and do not switch back and forth.
+                cache_engine="valkey",
+                cache_major_engine_version="7",
                 result_retention_days=365,  # compliance retention
                 ses_domain_name="mail.pyvar.com",  # bare domain already owned by dev's SES identity
                 # Domain cutover Stage C (live cutover): pyvar.com/www.pyvar.com

@@ -156,8 +156,10 @@ LOCAL DEV:  CELERY_BROKER_URL = redis://localhost:6379/0
 AWS:        CELERY_BROKER_URL = sqs://
             SQS_QUEUE_NAME    = pyvar-{env}-var-jobs.fifo
 
-- The SQS queue is FIFO. task_acks_late=True is non-negotiable.
-  If removed, interrupted Spot instances cause permanent job loss.
+- The SQS queue is FIFO. task_acks_late=True and task_reject_on_worker_lost=True are both
+  non-negotiable: with late acknowledgement alone a hard-killed worker's job is lost (measured
+  5 of 5); with both it is redelivered once (queue maxReceiveCount 2) and finishes 79 to 208
+  seconds later (measured 12 of 12, docs/p9-aws-evidence-2026-11-13.md section 15).
 - visibility_timeout in SQS (60s) MUST exceed the max simulation runtime.
   If a new simulation type takes longer, update BOTH the Celery task
   timeout AND the SQS queue visibility timeout in the CDK stack.
