@@ -80,6 +80,15 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | `CLAUDE.md` 3.2 | **Yes, include** | Applied in the same PR: both `task_acks_late=True` and `task_reject_on_worker_lost=True` are non-negotiable, with the measured numbers. The range reads 79 to 208 seconds (the measured minimum and maximum; the proposed text said 1.5 to 3.5 minutes, but 79 s is 1.3 minutes) |
 | Order of A2 PR 1 and A3 PR 1 | Owner asked for a proposal with pros and cons | Given in chat on 2026-11-18; no order chosen yet |
 
+## Decisions, fifth round (2026-11-18, the owner, later in the day)
+
+| Item | Decision | Where it stands |
+| --- | --- | --- |
+| #438 | Merge | Merged (`3536d45`): prod cache to Valkey 7, `CLAUDE.md` 3.2, the portal guide sentence and its diagram label. A pipeline run follows; **the prod stage waits for the owner's approval** |
+| Education `CLAUDE.md` 3.5 bullets | Go | Recorded in `docs/plan-education-tier.md` section 8; applied in A2 PR 1 with the code they describe |
+| Trial lane PR 1 | "Start" | Built (see `docs/plan-trial-lane-throttle.md`, "PR 1 as built"). The whitelist is 30 functions, listed there for the owner's review; the lane stays OFF until `trial_ctl.py on` |
+| Order of A2 PR 1 and A3 PR 1 | Trial lane first (implied by the start order) | A2 PR 1 rebases on it and reuses its audience-checked decoder pattern |
+
 ## A. New high-priority work
 
 ### A1. A shared tier policy (prerequisite for A2 and A3)

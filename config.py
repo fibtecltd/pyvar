@@ -283,6 +283,49 @@ class Settings(BaseSettings):
     assistant_pin_days: int = 7  # first pin; doubles on a repeat up to four times as long
     assistant_degrade_probe_share: float = 0.10  # live probe traffic of a degraded writer
 
+    # ── No-sign-up trial lane (api/middleware/trial.py, api/routes/trial.py; docs/plan-trial-lane-throttle.md) ──
+    # The lane is OFF until the Redis key `pyvar:trial:on` is set (scripts/trial_ctl.py on); there is no deploy
+    # flag, because an absent or unreadable key must mean "off" (it fails closed, the opposite of the key cache).
+    # A ticket lives 72 hours and allows `trial_ticket_total_calls` calls over its life, and the "trial" row in
+    # api/tiers.py sets how many a day (5). Every function call is charged by measured wall time:
+    # ceil(ms / trial_unit_ms) units, a hard `trial_deadline_seconds` deadline, and a call starts only while
+    # the compute budget has at least `trial_min_units_to_start` units (one second) left.
+    trial_ticket_ttl_hours: int = 72
+    trial_ticket_total_calls: int = 15
+    trial_deadline_seconds: float = 1.0
+    trial_unit_ms: int = 50
+    trial_min_units_to_start: int = 20
+    # L3, the global compute budget: a token bucket (capacity, refill per hour) and a hard daily cap, in units.
+    trial_compute_capacity_units: int = 100
+    trial_compute_refill_per_hour: int = 100
+    trial_compute_daily_units: int = 2_500
+    # L4, the global issuance budget: tickets.
+    trial_issue_capacity: int = 20
+    trial_issue_refill_per_hour: int = 10
+    trial_issue_daily: int = 260
+    # L7, proof of work at issuance: leading zero bits of SHA-256, and how long a challenge stays valid.
+    trial_pow_bits: int = 20
+    trial_pow_bits_attack: int = 24
+    trial_pow_ttl_seconds: int = 120
+    # L5, per-network share of an hour's issuance and compute (the ASN comes from CloudFront-Viewer-ASN).
+    trial_asn_share: float = 0.25
+    trial_asn_share_attack: float = 0.10
+    # L6, per-IP issuance counters. An IP prefix is personal data under UK GDPR even as a keyed hash, so this
+    # stays False until the privacy note exists (register, section E2).
+    trial_ip_counter_enabled: bool = False
+    trial_ip_daily_limit: int = 2  # tickets a day per IPv4 address or IPv6 /64
+    trial_ip_v6_48_daily_limit: int = 4  # and per IPv6 /48
+    # L9, the automatic breaker: consecutive empty hourly checks before attack mode, and before a pause.
+    trial_breaker_attack_after: int = 3
+    trial_breaker_pause_after: int = 6
+    # Input caps on a trial call, on top of each function's own validation.
+    trial_max_body_bytes: int = 65_536
+    trial_max_array_elements: int = 2_000
+    # Run every whitelisted function once at start-up (hosted environments), so a fresh API task answers its
+    # first trial call inside the deadline. Measured on a 4 vCPU machine, all 30 first calls take 0.02 s once the
+    # app is imported: cheap insurance against a lazy import, not the fix for a stall that was seen.
+    trial_warm_on_start: bool = True
+
     # ── Billing (Phase A, item 5) ────────────────────────────────────────────
     # Stripe Checkout + webhook flow (api/routes/billing.py) that flips
     # User.tier to "pro" — see docs/plan-monetization-implementation.md.

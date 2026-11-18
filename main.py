@@ -46,6 +46,8 @@ from api.routes.operational import router as operational_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.public_data import router as public_data_router
 from api.routes.regulatory import router as regulatory_router
+from api.routes.trial import router as trial_router
+from api.routes.trial import warm_whitelist
 from api.routes.var import close_job_done_bus
 from api.routes.var import router as var_router
 from config import HOSTED_ENVS, get_settings, require_real_signing_secret
@@ -112,6 +114,14 @@ async def lifespan(app: FastAPI):
 
     dummy_returns = np.random.randn(30) * 0.01
     run_monte_carlo_var(dummy_returns, portfolio_value=1.0, n_simulations=1_000, seed=0)
+
+    # The no-sign-up trial lane runs its whitelisted functions inline under a one second deadline, and the first
+    # call of a function in a fresh process imports its libraries: run each once now, in a thread, so a new API
+    # task answers its first trial call inside the deadline (api/routes/trial.py::warm_whitelist). Hosted
+    # environments only, like the reconciler below; a failure is logged and never stops the task starting.
+    if cfg.trial_warm_on_start and cfg.app_env in HOSTED_ENVS:
+        with contextlib.suppress(Exception):
+            await asyncio.to_thread(warm_whitelist)
 
     # Close var_jobs rows that never reached a terminal state (storage/reconcile.py): hosted environments only,
     # so tests and local runs never open a database connection for it.
@@ -222,6 +232,12 @@ def create_app() -> FastAPI:
         alm_router,
     ):
         app.include_router(domain_router, prefix=cfg.api_v1_prefix, dependencies=compute_rate_limit)
+
+    # No-sign-up trial lane (docs/plan-trial-lane-throttle.md): a signed ticket, a whitelist of inline functions and
+    # its own Redis-backed limits, which FAIL CLOSED and keep the lane off until `pyvar:trial:on` is set. Not a
+    # compute endpoint for the daily quota and not behind get_current_user: a trial ticket is refused by every
+    # other route (its audience claim) and a session JWT or API key is refused by this one.
+    app.include_router(trial_router, prefix=cfg.api_v1_prefix)
 
     # Portal assistant, typed questions (flag off by default: assistant_typed_enabled). Not a compute
     # endpoint, so no enforce_compute_rate_limit; it carries its own dependencies in api/assistant/routes.py

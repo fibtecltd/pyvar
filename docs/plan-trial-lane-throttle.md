@@ -113,7 +113,7 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 | PR | Change | Pipeline run |
 | --- | --- | --- |
 | 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
-| 1 `feat(api)` | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**go given 2026-11-17**, text below); metering by measured time with the 1 s deadline, a body-size cap and an array-length cap; the whitelist from the benchmark; the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
+| 1 `feat(api)` **(built 2026-11-18; as-built notes below)** | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**go given 2026-11-17**, text below); metering by measured time with the 1 s deadline, a body-size cap and an array-length cap; the whitelist from the benchmark; the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
 | 2 `feat(mcp)` 0.3.0 | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
 | 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
 
@@ -177,6 +177,62 @@ Result (evidence section 14): dev has no usable per-function timings, so the wei
    are covered (`docs/trial-lane-whitelist-benchmark-2026-11-17.md`).
 4. **Prod's `api_usage` would answer a different question:** which functions real users actually call, which is the right input for
    choosing the whitelist. It needs its own authorisation and is probably thin (the prod ALB saw 16,444 requests in 14 days, section 12).
+
+## PR 1 as built (2026-11-18) and where it differs from this plan
+
+The lane is built behind the Redis key `pyvar:trial:on`; nothing changes for anyone until `scripts/trial_ctl.py on` is run.
+The module docstrings (`api/middleware/trial.py`, `api/routes/trial.py`, `api/trial_whitelist.py`) carry the reasoning; this is the
+summary, with every difference from the plan above.
+
+**What exists.** Three routes under `/api/v1/trial/` (not in the public OpenAPI document): `POST /challenge`, `POST /ticket`, and
+`POST /run/{function}` (the body is that function's own request). L1 to L7 and L9, the per-network share (L5) and the per-IP
+counter (L6, off) are in the API; L8 (the WAF rules) and the `CloudFront-Viewer-ASN` header are PR 3. The tier row `"trial"` is in
+`api/tiers.py` (10,000 simulations, 5 calls a day, no assistant questions); `scripts/trial_ctl.py` is the operator's tool
+(`status`, `on`, `off`, `attack on|off`, `pause on|off`, `budget`).
+
+**The whitelist is 30 functions, not the 315 that qualify.** The qualifying rule is the benchmark's: answered 200, p95 far under the
+deadline, no uncompiled kernel on a first call in a freshly warmed process. Of the 315 that pass, the lane takes three or four of each
+domain (list below), chosen as the functions a first-time user asks for, and **leaves out every function with a simulation, path,
+scenario or step count** (a test pins that). Reason: a call cannot be cancelled once it runs and the lane has one slot per API task, so
+the cost of a function must not grow with a number the caller picks. The 70 functions that compile on first call, among them the
+historical VaR and expected-shortfall, GARCH, Sharpe and drawdown functions, stay out until their kernels are baked into the image
+(a separate decision; `tests/test_trial_whitelist.py` fails if a listed function starts compiling). Widening the list is one line in
+`api/trial_examples.json` plus the tests that apply these rules. **For the owner's review:**
+
+| Domain | Functions |
+| --- | --- |
+| market-risk (7) | `parametric_delta_normal_var`, `cornish_fisher_var`, `component_var`, `kupiec_pof_test`, `traffic_light_backtesting`, `frtb_ima_expected_shortfall`, `reverse_stress_testing` |
+| derivatives (5) | `black_scholes_european_option`, `black_scholes_greeks`, `bond_pricer_fixed_coupon`, `yield_to_maturity`, `interest_rate_swap_irs_pricer` |
+| credit-risk (4) | `credit_var_analytical_vasicek`, `altman_z_score_credit_scoring`, `cds_spread_to_pd_conversion`, `ifrs_9_12_month_ecl_stage_1` |
+| liquidity (3) | `survival_horizon_calculator`, `wholesale_funding_concentration`, `liquidity_buffer_sizing` |
+| operational (3) | `basel_standardised_measurement_sma`, `kri_threshold_breach_detection`, `rcsa_inherent_risk_scoring` |
+| portfolio (3) | `mean_variance_optimisation`, `tracking_error`, `calmar_ratio` |
+| regulatory (3) | `basel_iii_cet1_ratio`, `basel_iii_leverage_ratio`, `basel_iv_output_floor` |
+| alm (2) | `duration_gap_analysis`, `irrbb_six_standard_rate_shocks` |
+
+**Differences from the plan**
+
+| Plan | As built | Why |
+| --- | --- | --- |
+| A token bucket kept in Redis (method unspecified) | A GCRA bucket in ONE key, changed with WATCH/MULTI and no Lua; a hard daily counter beside it | Every command is single-key, so a cluster-mode cache accepts it, and the tests can run the same commands on an in-process double (CLAUDE.md section 5 forbids a real server in tests). The key holds the time the bucket is next empty, so an idle bucket stores no credit |
+| (not stated) | A conflicting write waits a random, doubling moment and retries up to 8 times | **Measured on a real `redis-server` 7.0.15** (the one place the double could be wrong): with 5 immediate retries, 30 simultaneous takers got 9 tickets and 21 gave up, and 24 of 30 simultaneous charges were lost; with the backoff, 30 takers get exactly 20 tickets and 10 refusals, 60 get 20 and 40, none give up, and 30 of 30 charges land. Never more than the capacity in any run. Valkey 7.2 and ElastiCache Serverless are untested |
+| L9: "hourly checks" | The first request of each UTC hour (by whichever task is first; Redis decides) runs the check; the flags carry their own life (attack 24 h, pause 12 h) | The API has no scheduler. A forgotten flag cannot lock the lane for good. `trial_ctl.py attack off` / `pause off` also clear the strike count |
+| L5 for a request with no `CloudFront-Viewer-ASN` | Not capped by the share (still bound by the global budgets) | The header does not exist until PR 3; capping the shared "unknown" bucket at 25% would have limited the whole lane to 2 tickets an hour |
+| "Cache hits cost 0" | No result cache in the lane | The lane runs the engine every time; nothing to hit |
+| Refusal body for L2 to L9 | One 429 `trial_exhausted` body for all of them, including a bad or replayed proof of work | As planned. A bad ticket (401 `trial_ticket_invalid`), a function not on the list (404), an over-size body (413) and a body that does not validate (422) keep their own status |
+| 1 s deadline | On a timeout the caller gets 504 `trial_timeout` and is charged the deadline; **the worker thread keeps running to its end and keeps the lane's one slot until then**, so the next call on that task is refused as busy | A thread cannot be cancelled. The overdraft is bounded by that single slot. A function that can run long on bad input is exactly what the list excludes |
+| Per-ticket quota | 5 a day (read from the tier row) and 15 in all; a call that never reaches the engine (422, busy) gives its use back | A typo should not burn one of five |
+| Usage rows | An allowed call writes an `api_usage` row with tier `trial`; **no refusal does** (`api/middleware/usage.py`: only 2xx under `/trial/`) | The plan's "refusals are counted in Redis and Prometheus, not Postgres" |
+| Red-team changes (lottery, a 30% reserve for new networks, jittered refill) | **Not built.** The rolling bucket refills continuously, not on the hour; the semaphore of one is built | The plan listed them as proposals for the owner; they add state and are best decided after the lane has run |
+| Warm-up | `main.py` runs each whitelisted function once at start-up in hosted environments (`trial_warm_on_start`) | Measured 0.02 s for all 30 on a 4 vCPU machine once the app is imported, so it is insurance, not a known fix; the 0.5 vCPU figure is not measured |
+
+**Metrics** (Prometheus, bounded labels): `pyvar_trial_events{event}` (`issued`, `ran`, `timeout`, `input_error`, `ticket_invalid`,
+`function_unavailable`, `too_large`, `refused_<reason>`), `pyvar_trial_units`, `pyvar_trial_unrecorded` (a charge or refund that
+could not be written: a budget undercounts until it is read). The alarms of "Operations" are PR 3.
+
+**Not verified:** the Valkey 7.2 and ElastiCache Serverless behaviour of WATCH/MULTI and of pipelined single-key commands through its proxy; that CloudFront overwrites a viewer-supplied `CloudFront-Viewer-ASN` (if it does not, a caller could claim any network and escape its share; the global budgets still bound the cost); per-call time on a 0.5 vCPU Fargate task (the
+benchmark ran on 4 vCPUs, so every figure is the best case); the proof of work's real cost (20 bits is extrapolated); whether a
+client in the wild survives the 429 shape (PR 2); and demand.
 
 ## Red team (one afternoon)
 

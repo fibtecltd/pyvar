@@ -14,6 +14,8 @@ Reasoning:
 - Behaviour for the four existing tiers is unchanged and pinned by tests/test_tier_limits_behaviour.py, which was
   written and run before this refactor. An unknown tier still gets the free tier's limits, but now logs a
   warning once per name so the gap is visible.
+- "trial" is the odd one out among the five rows: the no-sign-up trial lane's calls carry it (api/routes/trial.py); no
+  account ever has it.
 - What a tier is NOT: the admin routes check the name "internal" (api/routes/internal.py) and the billing code
   moves users between "free" and "pro" (api/middleware/billing_lifecycle.py). Those are roles and transitions,
   not limits, and stay where they are.
@@ -33,7 +35,7 @@ FALLBACK_TIER = "free"
 
 # The tiers that exist. Adding one needs a row in `_policies` and an entry here; the test of this module fails
 # until both agree.
-KNOWN_TIERS = frozenset({"free", "pro", "enterprise", "internal"})
+KNOWN_TIERS = frozenset({"free", "pro", "enterprise", "internal", "trial"})
 
 _warned: set[str] = set()
 
@@ -98,6 +100,19 @@ def _policies() -> dict[str, TierPolicy]:
             monthly_simulations=None,
             assistant_group="enterprise",
             assistant_daily=cfg.assistant_quota_enterprise_daily,
+        ),
+        # The no-sign-up trial lane (docs/plan-trial-lane-throttle.md). It is not an account tier: no users or
+        # api_keys row has it, and a ticket never carries it as a claim. The row exists so the lane's per-ticket
+        # daily call count and the simulation cap come from this one table like everyone else's, and so the
+        # api_usage rows of an allowed trial call carry the tier "trial". No assistant questions.
+        "trial": TierPolicy(
+            name="trial",
+            max_simulations=10_000,
+            daily_requests=5,
+            monthly_requests=None,
+            monthly_simulations=None,
+            assistant_group="free",
+            assistant_daily=0,
         ),
     }
 
