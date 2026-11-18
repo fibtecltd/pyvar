@@ -182,6 +182,9 @@ def test_pyvar_mcp_launcher_pins_the_exact_version_it_ships() -> None:
 def test_pyvar_mcp_takes_its_key_from_a_sensitive_user_config_option() -> None:
     manifest = _manifest(PLUGINS / "mcp")
     option = manifest["userConfig"]["pyvar_api_key"]  # type: ignore[index]
-    assert option["sensitive"] is True and option["required"] is True
+    # Optional since 0.3.0: with no key the 30 functions of the no-sign-up trial still work
+    # (docs/plan-trial-lane-throttle.md), so installing must not demand one. A key stays sensitive.
+    assert option["sensitive"] is True and option["required"] is False
+    assert "Optional" in option["description"]
     env = manifest["mcpServers"]["pyvar"]["env"]  # type: ignore[index]
     assert env == {"PYVAR_API_KEY": "${user_config.pyvar_api_key}"}

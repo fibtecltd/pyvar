@@ -114,7 +114,7 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 | --- | --- | --- |
 | 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
 | 1 `feat(api)` **(built 2026-11-18; as-built notes below)** | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**go given 2026-11-17**, text below); metering by measured time with the 1 s deadline, a body-size cap and an array-length cap; the whitelist from the benchmark; the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
-| 2 `feat(mcp)` 0.3.0 | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
+| 2 `feat(mcp)` 0.3.0 **(built 2026-11-18; as-built notes below)** | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
 | 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
 
 Enabling in dev and then prod is `trial_ctl.py on`, with no run. PR 3 can ship before or after enabling: without it L5
@@ -233,6 +233,48 @@ could not be written: a budget undercounts until it is read). The alarms of "Ope
 **Not verified:** the Valkey 7.2 and ElastiCache Serverless behaviour of WATCH/MULTI and of pipelined single-key commands through its proxy; that CloudFront overwrites a viewer-supplied `CloudFront-Viewer-ASN` (if it does not, a caller could claim any network and escape its share; the global budgets still bound the cost); per-call time on a 0.5 vCPU Fargate task (the
 benchmark ran on 4 vCPUs, so every figure is the best case); the proof of work's real cost (20 bits is extrapolated); whether a
 client in the wild survives the 429 shape (PR 2); and demand.
+
+## PR 2 as built (2026-11-18): `pyvar-mcp` 0.3.0
+
+The plugin side of the lane, in `plugins/mcp`. **Not released:** merging does not publish; the tag `pyvar-mcp-v0.3.0` does (see "Release"
+below), and that needs the owner's go.
+
+| Piece | What it does |
+| --- | --- |
+| `pyvar_mcp/client.py` | `from_env` no longer fails without a key (the server used to stop at start-up); an empty key or an unsubstituted `${user_config...}` counts as no key. With a key, the path is unchanged and **the key always wins**. Without one, a call goes to `trial.py` |
+| `pyvar_mcp/trial.py` | Lazy bootstrap at the first call that needs a ticket (never at start-up or when listing tools): `POST /trial/challenge`, solve the SHA-256 puzzle, `POST /trial/ticket`, then `POST /trial/run/{function}`. `install.json` in `${CLAUDE_PLUGIN_DATA}`, mode 0600, written to a temporary file and `os.replace`d, with `install.lock` (`O_EXCL`, stale after 60 s) so two processes ask once. The ticket is ignored if the file is damaged, from another API address, or within 5 minutes of its end. Redirects are not followed, so a ticket goes to pyvar.com only. **One retry**: a 401 `trial_ticket_invalid` deletes the ticket and asks once more; a 429 whose `Retry-After` is 10 s or less is waited out once; anything else returns the server's own words (they name the free key), with "may work again in about N" when the wait is long |
+| Never in CI, never outside Claude Code | `CI` set (not empty, `0`, `false`, `no`), or no `CLAUDE_PLUGIN_DATA`: no trial, the old instruction to set `PYVAR_API_KEY`, as a tool error and not a crash |
+| `pyvar_mcp/trial_functions.py` | The 30 trial function names, a copy. A function off the list is refused **without a request** and with a message naming the free key. `list_pyvar_functions` marks each entry `available_without_key` when no key is set (and is unchanged when one is) |
+| `pyvar_mcp/main.py` | A tool call now runs in a worker thread (`anyio.to_thread`), so a sign-up puzzle or a wait never blocks the MCP loop; `PyvarSetupError` becomes an error result |
+| `.claude-plugin/plugin.json`, `pyproject.toml` | 0.2.2 to 0.3.0, the launcher pin `uvx pyvar-mcp==0.3.0`, and `pyvar_api_key` is `required: false` (still `sensitive`) |
+| `README.md` | "What this plugin stores and sends", in the wording of `docs/plan-anonymous-plugin-keys.md` section 2 (an "anonymous installation ticket issued by pyvar.com", "the plugin's own data directory") |
+
+**Proof-of-work cost** (this machine, pure Python): 20 bits, median 0.44 s (0.05 to 1.3 s over six runs); 24 bits (attack mode), 6 to 10 s. The
+client refuses a puzzle above 24 bits and gives up after 120 s.
+
+**Decisions of 2026-11-18 recorded here:** the 30-function list is confirmed (owner); `Retry-After` stays one value per refusal reason.
+
+**Left alone on purpose:** `plugins/mcp/smithery.yaml` and its `Dockerfile` (a container has no `CLAUDE_PLUGIN_DATA`, so it keeps requiring a key);
+the nine held skill plugins (byte-identical); `pyvar-client`; the key path's own `urllib` call (it still follows redirects; changing it is a separate decision).
+
+**Tests.** In `plugins/mcp/tests` (111 in all): the ticket file (mode 0600 under a permissive umask, atomic replace, damaged, oversized, other address,
+near expiry), the lock (mutual exclusion, stale takeover, released on error), the solver, lazy bootstrap (no file and no request until a call needs
+one), reuse across processes, two processes asking once, the single retry on 401 and on a short 429, a long wait reported not slept, the server never
+being asked after an unsolvable puzzle, the ticket never appearing in an error message, redirects refused, the key winning, CI and non-Claude-Code
+refusals, the listing marks, and the event loop staying free during a slow call. In the main repository, `tests/test_mcp_trial_contract.py` (45) runs
+the client's real code against the server's real routes in process: the function list equals the whitelist, the solver satisfies the server's
+check, bootstrap, reuse, the quota, a busy task, a replaced ticket, a switched-off lane, paused issuance and attack mode, and every one of the 30
+functions answering as it does through the authenticated route.
+
+**Release (the owner's go needed; PyPI never accepts a version twice).** Merge, then tag the merge commit `pyvar-mcp-v0.3.0` immediately: until the
+workflow has published, the launcher pin names a version PyPI does not have, so a fresh install from `master` fails (README, "Install"). Both
+marketplaces list the plugin from its default branch, so that window is real, and short. The lane is separate: until `trial_ctl.py on` is run, a
+0.3.0 plugin with no key gets the lane's 429 and the free-key message.
+
+**Not verified:** how the plugin directory's scanner treats `CLAUDE_PLUGIN_DATA` and a file-to-bearer-to-network path (the plan rated a resubmission's
+risk medium; the listing is frozen and nothing is resubmitted); what an unset optional sensitive option actually substitutes (an empty string and a
+literal placeholder are both handled); behaviour on Windows (the file mode is not enforced there; the tests that check it are skipped); the proof of
+work's time on a slow laptop.
 
 ## Red team (one afternoon)
 

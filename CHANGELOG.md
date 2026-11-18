@@ -9,6 +9,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The no-sign-up trial lane (API), off until switched on** — `POST /api/v1/trial/challenge`, `/trial/ticket` and
+  `/trial/run/{function}` give a first-time plugin user a few results with no registration: a signed trial ticket
+  (`aud` "pyvar-trial", random `jti`, 72 hours, no subject, no tier) from a solved proof of work, then 5 calls a day
+  (15 in all) of 30 whitelisted functions, run inline under a 1 second deadline and charged by measured time. Global
+  compute and issuance budgets are token buckets in Redis (WATCH/MULTI, jittered retry) and **fail closed**: Redis
+  unreadable, or no `pyvar:trial:on` key, means 429 `trial_exhausted`. `scripts/trial_ctl.py` is the switch
+  (`on`, `off`, `attack`, `pause`, `budget`). New `"trial"` tier row; only 2xx trial calls write `api_usage` rows.
+  `CLAUDE.md` 3.5 carries the new rules. Design and every difference from it: `docs/plan-trial-lane-throttle.md`.
+- **`pyvar-mcp` 0.3.0: works with no API key** — the plugin's API key option is now optional. With no key, 30 functions
+  run through the trial lane: the first call that needs it asks pyvar.com for an anonymous installation ticket (a solved
+  puzzle, nothing else) and keeps it in `install.json` in the plugin's own data directory (mode 0600); never when `CI`
+  is set or outside Claude Code. A key you set always wins. `list_pyvar_functions` marks the functions that work without
+  one, and tool calls no longer block the MCP loop. **Published only when `pyvar-mcp-v0.3.0` is tagged.**
 - **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
   cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
   `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of

@@ -17,6 +17,11 @@ Reasoning:
   assumed from memory) that this is the real, current, supported way to
   register a large, programmatically-generated tool set without writing
   385 individual @mcp.tool()-decorated functions by hand.
+- No API key is needed to start the server or to list its tools. With no key, the 30 functions on the
+  no-sign-up trial list run through pyvar.com's trial routes (trial.py), and list_pyvar_functions marks them
+  available_without_key; a call to any other function says it needs a free key. The anonymous installation
+  ticket the trial uses is requested at the first call that needs it, never at start-up. A tool call runs in a
+  worker thread (anyio.to_thread), so a first-call sign-up puzzle or a short wait never blocks the MCP loop.
 - Errors (a pyvar API 4xx/5xx, an unknown tool/function name, a schema
   validation mismatch on call_pyvar_function's params) come back as
   CallToolResult(is_error=True, content=[...]) -- a normal tool result the
@@ -35,7 +40,8 @@ from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
 from . import __version__, catalogue
-from .client import PyvarApiError, PyvarClient
+from .client import PyvarApiError, PyvarClient, PyvarSetupError
+from .trial_functions import TRIAL_FUNCTIONS
 
 SERVER_NAME = "pyvar-mcp"
 
@@ -54,7 +60,9 @@ def _list_pyvar_functions_tool() -> types.Tool:
             _GENERIC_TOOL_PREAMBLE
             + "Lists pyvar functions -- name, one-line summary, and required "
             "parameter names -- optionally filtered to one domain. Use this "
-            "first when you don't already know a function's exact name."
+            "first when you don't already know a function's exact name. "
+            "With no pyvar API key configured, only the functions marked "
+            "available_without_key can be run."
         ),
         input_schema={
             "type": "object",
@@ -141,6 +149,8 @@ def _invoke(
         result = client.call_function(entry["path"], params)
     except PyvarApiError as exc:
         return _error_result(f"pyvar API error (HTTP {exc.status_code}): {exc.body}")
+    except PyvarSetupError as exc:
+        return _error_result(exc.message)
     return _success_result(result)
 
 
@@ -170,6 +180,10 @@ def build_server() -> Server:
                 }
                 for e in entries
             ]
+            if not client.has_key:
+                # Only without a key does the mark matter: it says which functions the trial can run.
+                for item in listing:
+                    item["available_without_key"] = item["function_name"] in TRIAL_FUNCTIONS
             return _success_result({"functions": listing})
 
         if name == "call_pyvar_function":
@@ -182,12 +196,12 @@ def build_server() -> Server:
                     f"Unknown function {function_name!r} in domain {domain!r}. "
                     "Use list_pyvar_functions to see valid names."
                 )
-            return _invoke(client, entry, call_params)
+            return await anyio.to_thread.run_sync(_invoke, client, entry, call_params)
 
         entry = catalogue.by_tool_name(name)
         if entry is None:
             return _error_result(f"Unknown tool: {name!r}")
-        return _invoke(client, entry, arguments)
+        return await anyio.to_thread.run_sync(_invoke, client, entry, arguments)
 
     return Server(
         SERVER_NAME,
