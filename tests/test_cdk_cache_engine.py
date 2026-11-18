@@ -5,8 +5,8 @@ Reasoning:
   caches hold under 2 MB (docs/p9-aws-evidence-2026-11-13.md section 13), so the minimum is the whole
   bill. pyvar-cdk/config.py carries `cache_engine` and `cache_major_engine_version`; data_stack.py
   passes both to the cache.
-- Only dev moves to Valkey (owner decision 2026-11-17); prod and staging keep Redis until dev has run
-  cleanly, and prod's template must stay byte-identical.
+- Dev moved to Valkey on 2026-11-17 and prod followed on 2026-11-18 (owner decisions) once dev had run
+  cleanly; staging keeps Redis because no staging environment is deployed.
 - The switch must be an IN-PLACE update. CloudFormation replaces a serverless cache when its name
   changes, and replaces any resource when its logical ID changes; a replacement would give a new
   endpoint and an empty cache. So the logical ID and the name are pinned here.
@@ -50,7 +50,7 @@ def _data_stack_source() -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_only_dev_is_on_valkey_and_prod_and_staging_stay_on_redis() -> None:
+def test_dev_and_prod_are_on_valkey_and_staging_stays_on_redis() -> None:
     config = _cdk_config()
     engines = {
         env: (
@@ -59,7 +59,11 @@ def test_only_dev_is_on_valkey_and_prod_and_staging_stay_on_redis() -> None:
         )
         for env in ("dev", "staging", "prod")
     }
-    assert engines == {"dev": ("valkey", "7"), "staging": ("redis", None), "prod": ("redis", None)}
+    assert engines == {
+        "dev": ("valkey", "7"),
+        "staging": ("redis", None),
+        "prod": ("valkey", "7"),
+    }
 
 
 def test_the_default_is_redis_with_no_version_so_a_new_environment_changes_nothing() -> None:
@@ -72,7 +76,8 @@ def test_the_first_valkey_version_is_the_one_aws_can_roll_back_from() -> None:
     # AWS supports rolling back only from Valkey 7.2 to Redis OSS 7.1 (ElastiCache User Guide,
     # "Upgrading engine versions including cross engine upgrades"). A later bump is its own change.
     config = _cdk_config()
-    assert config.PyvarConfig.for_env("dev").cache_major_engine_version == "7"
+    for env in ("dev", "prod"):
+        assert config.PyvarConfig.for_env(env).cache_major_engine_version == "7", env
 
 
 def test_the_cache_takes_its_engine_and_version_from_the_config() -> None:

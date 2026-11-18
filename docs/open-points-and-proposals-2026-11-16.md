@@ -69,6 +69,17 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | D3 dev cache to Valkey | **Yes, dev first** | Built in PR #435: dev only, in place (same ID and name), Valkey major version 7 because AWS supports rollback only from 7.2; synth shows exactly two lines changed in dev and prod identical. Merging **starts a pipeline run** and the dev deploy performs the switch. Prod follows only after dev has run cleanly (`docs/plan-dev-idle-savings.md`) |
 | #435 scope | "Keep it open and fold more deliverables into it" | Now: the A3 plan and decisions, the p95 prompt, the ElastiCache result, the dev Valkey switch, and the proposed `CLAUDE.md` 3.5 text (not applied) |
 
+## Decisions, fourth round (2026-11-18, the owner)
+
+| Item | Decision | Where it stands |
+| --- | --- | --- |
+| #437 | Merge | Merged (`675bdad`): payloads for all 385 functions, the A2 plan, B4 results. Pipeline-safe (docs, scripts, tests only) |
+| Portal guide sentence | Rides the next code change | In the prod Valkey PR (below), with the matching label in the guide's diagram (`portal/guides-assets/deepdive-request-path.svg`, same claim, same page) |
+| `fibtec-marketplace` catalogue | Merge to `main` | Merged (PR #1, `4367ad7`; its validate job passed first). The owner imports a repository ruleset for `main` afterwards; other repository security settings are the owner's |
+| Prod cache to Valkey | **Yes, go on** | One override in `pyvar-cdk/config.py` (`cache_engine="valkey"`, `cache_major_engine_version="7"`). Synth, master against the branch: the only template that differs in dev or prod is `pyvar-prod-data` (`Engine` and `MajorEngineVersion`); dev identical. **Merging starts a pipeline run** and the prod stage waits for approval |
+| `CLAUDE.md` 3.2 | **Yes, include** | Applied in the same PR: both `task_acks_late=True` and `task_reject_on_worker_lost=True` are non-negotiable, with the measured numbers. The range reads 79 to 208 seconds (the measured minimum and maximum; the proposed text said 1.5 to 3.5 minutes, but 79 s is 1.3 minutes) |
+| Order of A2 PR 1 and A3 PR 1 | Owner asked for a proposal with pros and cons | Given in chat on 2026-11-18; no order chosen yet |
+
 ## A. New high-priority work
 
 ### A1. A shared tier policy (prerequisite for A2 and A3)
