@@ -46,10 +46,19 @@ logger = logging.getLogger(__name__)
 _pending: set[asyncio.Task] = set()
 
 
-def _should_track(path: str) -> bool:
-    """Track only compute API calls (everything under the versioned prefix)."""
+def _should_track(path: str, status_code: int = 200) -> bool:
+    """Track only compute API calls (everything under the versioned prefix).
+
+    The no-sign-up trial lane (api/routes/trial.py) is the exception inside the prefix: only the calls that
+    succeeded leave a row. Its refusals are counted in Redis and Prometheus, so an attacker's refused requests
+    cost no Postgres write (docs/plan-trial-lane-throttle.md, "Operations").
+    """
     prefix = cfg.api_v1_prefix
-    return path.startswith(prefix) and path.rstrip("/") != prefix.rstrip("/")
+    if not (path.startswith(prefix) and path.rstrip("/") != prefix.rstrip("/")):
+        return False
+    if path.startswith(f"{prefix.rstrip('/')}/trial/"):
+        return 200 <= status_code < 300
+    return True
 
 
 def _parse_path(path: str) -> tuple[str, str]:
@@ -131,7 +140,7 @@ async def usage_tracking_middleware(
         status_code = response.status_code
         return response
     finally:
-        if _should_track(request.url.path):
+        if _should_track(request.url.path, status_code):
             duration_ms = int((time.perf_counter() - start) * 1000)
             # Capture header now (request object may be consumed downstream); the
             # decode + DB write happen in the background task, not here.

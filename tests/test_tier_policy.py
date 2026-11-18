@@ -6,6 +6,8 @@ Reasoning:
   taught to three places and forgotten in the fourth. (The same gap once let an unknown tier get the free limits
   silently in every one of them.)
 - tests/test_tier_limits_behaviour.py pins that the four existing tiers behave exactly as before the refactor.
+- The fifth row, "trial", belongs to the no-sign-up trial lane (docs/plan-trial-lane-throttle.md): 10,000
+  simulations, 5 calls a day per ticket, no assistant questions.
 """
 
 from __future__ import annotations
@@ -28,8 +30,9 @@ PER_TIER_SETTINGS = re.compile(
 )  # matched against attribute names, so it must match a whole name
 
 
-def test_the_known_tiers_are_exactly_the_four_that_exist() -> None:
-    assert KNOWN_TIERS == {"free", "pro", "enterprise", "internal"}
+def test_the_known_tiers_are_exactly_the_five_that_exist() -> None:
+    # "trial" is not an account tier: only the no-sign-up lane's calls carry it (api/routes/trial.py).
+    assert KNOWN_TIERS == {"free", "pro", "enterprise", "internal", "trial"}
     assert FALLBACK_TIER in KNOWN_TIERS
 
 
@@ -39,7 +42,8 @@ def test_every_known_tier_has_a_complete_row(tier: str) -> None:
     assert policy.name == tier
     assert policy.max_simulations >= 1_000  # the schema's smallest request
     assert policy.assistant_group in {"free", "pro", "enterprise"}
-    assert policy.assistant_daily > 0
+    # Every tier may ask the assistant, except the no-sign-up trial lane, which gets no typed questions.
+    assert (policy.assistant_daily == 0) == (tier == "trial")
     for value in (policy.daily_requests, policy.monthly_requests, policy.monthly_simulations):
         assert value is None or value > 0
     assert {f.name for f in fields(TierPolicy)} == {
@@ -89,3 +93,10 @@ def test_only_the_tier_table_reads_the_per_tier_settings() -> None:
             if isinstance(node, ast.Attribute) and PER_TIER_SETTINGS.fullmatch(node.attr):
                 offenders.append(f"{path.relative_to(ROOT)}:{node.lineno}: .{node.attr}")
     assert not offenders, "read the per-tier numbers through api/tiers.py:\n" + "\n".join(offenders)
+
+
+def test_the_trial_row_is_the_lanes_limits_and_nothing_else() -> None:
+    trial = policy_for("trial")
+    assert (trial.max_simulations, trial.daily_requests, trial.assistant_daily) == (10_000, 5, 0)
+    assert trial.monthly_requests is None and trial.monthly_simulations is None
+    assert trial.assistant_group == "free"

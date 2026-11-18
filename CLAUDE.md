@@ -84,7 +84,10 @@ pyvar/
 │   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
 │   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
 │   ├── middleware/api_keys.py ← key hashing, Redis-cached lookup, failed-attempt throttle
-│   ├── middleware/usage.py    ← api_usage rows, allowlisted X-Pyvar-Client label
+│   ├── middleware/usage.py    ← api_usage rows, allowlisted X-Pyvar-Client label (trial refusals leave no row)
+│   ├── middleware/trial.py    ← no-sign-up trial lane: ticket (aud "pyvar-trial"), proof of work, Redis budgets and breaker (fail closed)
+│   ├── routes/trial.py        ← POST /trial/challenge  /trial/ticket  /trial/run/{function}: whitelisted functions inline, one slot, 1 s deadline
+│   ├── trial_whitelist.py     ← the 30 functions the lane may run, with trial_examples.json (one example body each)
 │   ├── middleware/rate_limit.py ← compute quota, public/register per-IP quotas, enforce_assistant_rate_limit (every tier)
 │   ├── responses.py           ← orjson response class
 │   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
@@ -218,7 +221,21 @@ AWS:        CELERY_BROKER_URL = sqs://
   exchanges a key or session for a 60 s, one-task token with an `aud` claim and no tier; every
   other route must keep refusing it (decode_token_payload does, by that claim). Do not drop the
   `aud`, and do not accept it in get_current_user.
-- Design, settings and failure modes: docs/plan-durable-api-keys.md.
+- The no-sign-up trial lane (the routes under /api/v1/trial/) accepts only a trial ticket: a signed
+  token with `aud` "pyvar-trial", a random `jti`, a 72 h life and no tier, issued with no users or
+  api_keys row. Every other route must keep refusing it (decode_token_payload does, by that claim),
+  and the trial routes must REQUIRE `aud` to be present and equal to "pyvar-trial" (python-jose lets
+  a token with no `aud` through a decoder that names one, so a session JWT would pass), which also
+  refuses an API key and a stream token. Do not drop the `aud`, do not accept a ticket in
+  get_current_user, and never give a ticket a tier claim or any way to raise one.
+- The trial lane runs only functions on its whitelist, inline, and never enqueues a job. Its global
+  compute and issuance budgets FAIL CLOSED, the opposite of the key cache above: if Redis cannot be
+  read, or the `pyvar:trial:on` key is absent, the lane is OFF and answers 429 `trial_exhausted`,
+  never a pass.
+- The per-IP counter holds only an HMAC of the IP prefix under a daily-rotating secret, in Redis with
+  a 26 h TTL. Never log it, never write it to Postgres, and leave it off unless
+  `trial_ip_counter_enabled` is set (after the privacy note exists).
+- Design, settings and failure modes: docs/plan-durable-api-keys.md, docs/plan-trial-lane-throttle.md.
 ```
 
 ### 3.6 Portal assistant answer bank

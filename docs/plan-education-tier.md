@@ -98,7 +98,7 @@ no user identifier by design, so resale or sharing cannot be attributed; revocat
 | 3, only if volume demands | the old plan's form and queue | Yes |
 
 **Flag:** `education_tier_enabled`, default False; when off, `effective_tier` returns `free` and the grant route answers 503.
-**Order with the trial lane:** its PR 1 edits `api/tiers.py`, `tests/test_tier_policy.py` and `CLAUDE.md` 3.5 too, so whichever merges second
+**Order with the trial lane (2026-11-18: the trial lane's PR 1 goes first; the owner said "start the trial lane PR 1"):** its PR 1 edits `api/tiers.py`, `tests/test_tier_policy.py` and `CLAUDE.md` 3.5 too, so whichever merges second
 rebases; the second must also adopt the first's `aud` helper.
 
 **Tests (CLAUDE.md section 5):** for the tier: 202 on submit; 401 without auth; 422 on bad parameters; 403 at 100,001 simulations; 429 on the
@@ -107,7 +107,7 @@ and each of the three session mints; a Stripe upgrade survives the expiry. For t
 `internal` JWT, a stream token and a token with no `aud`; refuse a grant to `pro`, `enterprise` or `internal`; 409 over the caps. Migration up
 and down; script tests with `--secret-stdin` and a loopback URL, no AWS.
 
-## 8. Draft `CLAUDE.md` 3.5 bullets (not applied; the owner's go for 3.5 covered the trial lane, so this set needs its own)
+## 8. `CLAUDE.md` 3.5 bullets (**go given by the owner on 2026-11-18; applied in A2 PR 1**, with the code they describe, not before)
 
 ```
 - The education tier is finite and expires: users.tier "education" counts only while
