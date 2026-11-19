@@ -278,7 +278,7 @@ work's time on a slow laptop.
 
 ## PR 3 as built (2026-11-19): the edge and the alarms
 
-Everything here is in `pyvar-cdk` (`edge_stack.py`, `api_stack.py`, `alerts_stack.py`), `scripts/toggle_kill_switch.sh`, and the lane's own
+Everything here is in `pyvar-cdk` (`edge_stack.py` and `api_stack.py`, both deployed by the pipeline), `scripts/toggle_kill_switch.sh`, and the lane's own
 log lines. **Nothing is enabled by it**: the lane stays off until `scripts/trial_ctl.py on`, and the new kill rule ships in Count.
 
 **At the edge (us-east-1, `EdgeStack`).** All scoped to a starts-with match on `/api/v1/trial/` **after URL decoding and path normalisation**
@@ -308,7 +308,7 @@ an allow-list rather than "all viewer headers" because the lane reads nothing el
 | Alarm | Where | Condition |
 | --- | --- | --- |
 | `pyvar-<env>-trial-waf-blocks` | us-east-1, own topic `pyvar-<env>-edge-alerts` (a CloudFront ACL's metrics are in us-east-1 and an alarm must publish to a topic of its own region) | WAF blocks of the three trial rate rules above 1,000 in 5 minutes |
-| `pyvar-<env>-trial-budget-empty` | API region, alerts topic | a breaker strike (the hourly check found the compute or issuance budget empty) in each of two consecutive hours: the word before the breaker trips at three |
+| `pyvar-<env>-trial-budget-empty` | API region (`api_stack.py`), publishing to the existing alerts topic by its ARN | a breaker strike (the hourly check found the compute or issuance budget empty) in each of two consecutive hours: the word before the breaker trips at three |
 | `pyvar-<env>-trial-issuance-refusals` | same | more than 50 ticket refusals for the issuance budget in an hour |
 | `pyvar-<env>-trial-asn-cap` | same | any request refused because its network reached its share (5 minute window) |
 | `pyvar-<env>-trial-pow-failures` | same | proof-of-work failures above 20% of ticket attempts in an hour, counted only from 20 attempts |
@@ -319,13 +319,13 @@ refusal** (`trial_issued`, `trial_refused_<reason>`) and **one WARNING line per 
 CloudWatch metric filter on the API container's log group counts each by the JSON key `event`. This app's structlog set-up renders a stdlib record's
 message as `event` and does **not** render `extra=`, so the name carries the fact; the number of strikes, for example, is not in the line. Calls
 that ran, failed on input or timed out write nothing (an allowed call already has an `api_usage` row). The metric names carry the environment
-(`trial-<kind>-<env>` in namespace `pyvar`, like the worker-error metric) because dev and prod share one account. `ApiStack` now exposes its
-container's log group (`api_log_group`); its logical ID and name are unchanged. The synth of that stack differs only by one new export.
+(`trial-<kind>-<env>` in namespace `pyvar`, like the worker-error metric) because dev and prod share one account. The filters and the five alarms are
+created in `ApiStack`, next to the log group the container's log driver creates (its logical ID and name are unchanged).
 `tests/test_trial_events.py` pins the lane's side with the real JSON logging set-up; `tests/test_cdk_trial_lane.py` pins the CDK side and that the
 two agree.
 
-**Synth diff against the master before this change** (dev and prod alike): `pyvar-<env>-alerts` +12 resources (7 metric filters, 5 alarms);
-`pyvar-<env>-api` no resource change (one new export); `pyvar-<env>-edge` +3 (an origin request policy, an SNS topic, an alarm) and two changed in
+**Synth diff against the master before this change** (dev and prod alike; this is the version as corrected on 2026-11-19, see below): `pyvar-<env>-api` +12
+resources (7 metric filters, 5 alarms); `pyvar-<env>-alerts` unchanged; `pyvar-<env>-edge` +3 (an origin request policy, an SNS topic, an alarm) and two changed in
 place (the web ACL: five new rules; the distribution: one new cache behaviour). Nothing is replaced.
 
 **What a reader should know before enabling it.**
@@ -346,7 +346,20 @@ there and prod is not reached.
 
 **Enabling, after the dev deploy:** add a subscriber to the new `pyvar-dev-edge-alerts` topic (the alerts topic has its own); then run
 `docs/prompts/agent-trial-enable-dev.txt` (it switches the lane on in dev and makes one real call through CloudFront, which is also the check that
-`Authorization`, the body and the ASN header arrive). Prod follows the same two steps when the owner says so.
+`Authorization`, the body and the ASN header arrive). Prod follows the same two steps when the owner says so. `trial_ctl.py` needs the cache
+address: the API task has it (`CELERY_RESULT_BACKEND`); the migrate task does not, so a one-off of that family must be given it as an
+environment override, copied from the API task definition (it is the cache endpoint, not a secret).
+
+**Two corrections, 2026-11-19, found by the first dev run of the enable prompt.**
+1. **The log-based alarms were in the wrong stack.** The first version of this PR created them in `alerts_stack.py`. That stack is deployed by hand and
+   is not in `PyvarDeployStage`, so a merge reached dev and prod without them (only the edge alarm, in `edge_stack.py`, was deployed), while the PR text
+   implied the pipeline would deploy them. CI cannot see this: `cdk synth` of the whole app includes the stack. They now live in `api_stack.py`,
+   which the pipeline deploys, and reference the alerts topic by ARN as `queue_stack.py` does (an object reference would be a dependency cycle).
+   `tests/test_cdk_trial_lane.py` now fails if a stack that creates a trial alarm is not one `PyvarDeployStage` imports. Deploying the alerts stack by
+   hand would not have been a fix: it would redeploy its dependencies from the standalone synth over the pipeline's stacks, and `--exclusively` would
+   fail because the pipeline's api stack has no export of the log group.
+2. **The enable prompt sent the agent to a task that cannot reach the cache** (exit 3, "Error 111 connecting to localhost:6379"): see above. The prompt now adds
+   the one environment variable.
 
 ## Red team (one afternoon)
 

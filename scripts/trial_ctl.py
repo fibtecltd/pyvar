@@ -14,6 +14,10 @@ Reasoning:
   cannot open the lane wider than its settings.
 - It talks to the same cache the API uses (storage/redis_client.py::redis_url()), so run it where the API's
   environment is available (an ECS one-off of the API task, as the other scripts do); `--redis-url` overrides.
+  A one-off of the MIGRATE task has no cache address (it exits 3, "connecting to localhost:6379"): add the
+  environment variable CELERY_RESULT_BACKEND, copied from the API task definition, which redis_url() reads and
+  normalises. `--redis-url` takes the URL as redis-py reads it, so it needs `ssl_cert_reqs=none`, not the
+  `CERT_NONE` spelling the API's variable carries.
   Nothing here prints a ticket, an address or a key, because the lane stores none in readable form.
 
 Usage (repo root):

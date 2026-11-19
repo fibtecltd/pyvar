@@ -83,8 +83,8 @@ def edge_constants(edge: str) -> dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def alerts() -> str:
-    return _source("alerts_stack.py")
+def api() -> str:
+    return _source("api_stack.py")
 
 
 # ── the path the edge matches is the path the API serves ───────────────────────────────────────────────────
@@ -244,8 +244,8 @@ def _lane_log_events() -> set[str]:
     return events
 
 
-def test_every_event_an_alarm_counts_is_one_the_lane_writes(alerts: str) -> None:
-    counted = set(_constants(alerts)["TRIAL_LOG_EVENTS"])
+def test_every_event_an_alarm_counts_is_one_the_lane_writes(api: str) -> None:
+    counted = set(_constants(api)["TRIAL_LOG_EVENTS"])
     assert counted == {
         "trial_issued",
         "trial_refused_pow",
@@ -258,16 +258,15 @@ def test_every_event_an_alarm_counts_is_one_the_lane_writes(alerts: str) -> None
     assert counted <= _lane_log_events()
 
 
-def test_the_metric_filters_match_the_json_event_key_in_the_api_log_group(alerts: str) -> None:
-    assert 'FilterPattern.string_value("$.event", "=", event)' in alerts
-    assert "log_group=api.api_log_group" in alerts
-    api = _source("api_stack.py")
+def test_the_metric_filters_match_the_json_event_key_in_the_api_log_group(api: str) -> None:
+    assert 'FilterPattern.string_value("$.event", "=", event)' in api
+    assert "log_group=self.api_log_group" in api  # the stack's own log group: no cross-stack export
     assert "self.api_log_group = api_log_driver.log_group" in api
     assert "logging=api_log_driver," in api
 
 
-def test_the_alarms_are_the_plans_five_and_each_pages_the_alerts_topic(alerts: str) -> None:
-    ids = re.findall(r'trial_alarm\(\s*"(Trial\w+Alarm)"', alerts)
+def test_the_alarms_are_the_plans_five_and_each_pages_the_alerts_topic(api: str) -> None:
+    ids = re.findall(r'trial_alarm\(\s*"(Trial\w+Alarm)"', api)
     assert ids == [
         "TrialEmptyBudgetAlarm",
         "TrialIssuanceRefusalsAlarm",
@@ -275,13 +274,48 @@ def test_the_alarms_are_the_plans_five_and_each_pages_the_alerts_topic(alerts: s
         "TrialPowFailureRatioAlarm",
         "TrialBreakerStateAlarm",
     ]
-    assert "add_alarm_action(cw_actions.SnsAction(self.topic))" in alerts
-    consts = _constants(alerts)
+    assert "add_alarm_action(cw_actions.SnsAction(alerts_topic))" in api
+    consts = _constants(api)
     assert consts["TRIAL_ISSUANCE_REFUSALS_PER_HOUR"] == 50
     assert consts["TRIAL_POW_FAILURE_PERCENT"] == 20
     # Two consecutive hourly checks, not one.
-    empty = alerts[alerts.index('"TrialEmptyBudgetAlarm"') :]
+    empty = api[api.index('"TrialEmptyBudgetAlarm"') :]
     assert "evaluation_periods=2" in empty[: empty.index('"TrialIssuanceRefusalsAlarm"')]
+
+
+def test_the_alerts_topic_is_referenced_by_the_name_the_alerts_stack_gives_it(api: str) -> None:
+    # By ARN, not by object: alerts_stack depends on api_stack, so an object reference would be a cycle.
+    assert 'self.format_arn(service="sns", resource=f"pyvar-{cfg.env_name}-alerts")' in api
+    assert 'topic_name=f"pyvar-{cfg.env_name}-alerts"' in _source("alerts_stack.py")
+
+
+def _pipeline_stage_source() -> str:
+    text = _source("pipeline_stack.py")
+    start = text.index("class PyvarDeployStage")
+    following = re.search(r"^class ", text[start + 1 :], flags=re.M)
+    return text[start : start + 1 + following.start()] if following else text[start:]
+
+
+def test_every_stack_that_creates_a_trial_alarm_is_deployed_by_the_pipeline() -> None:
+    """The first version of trial lane PR 3 put five alarms in alerts_stack.py, which is deployed by hand and is
+    not in the pipeline's stage: they merged, passed CI and never reached dev. A stack that creates a trial alarm
+    must be one PyvarDeployStage deploys, and alerts_stack must create none."""
+    stage = _pipeline_stage_source()
+    with_alarms = [
+        path.stem
+        for path in sorted(_CDK.glob("*_stack.py"))
+        if "-trial-" in path.read_text(encoding="utf-8")
+        and "cloudwatch.Alarm(" in path.read_text(encoding="utf-8")
+        and path.stem not in ("pipeline_stack",)
+    ]
+    assert set(with_alarms) == {"api_stack", "edge_stack"}, with_alarms
+    for module in with_alarms:
+        assert (
+            f"from stacks.{module} import" in stage
+        ), f"{module} is not deployed by PyvarDeployStage"
+    assert (
+        "from stacks.alerts_stack import" not in stage
+    )  # still deployed by hand: nothing may live there
 
 
 def test_the_edge_alarm_lives_in_the_edge_stack_and_names_the_three_blocking_rules(
