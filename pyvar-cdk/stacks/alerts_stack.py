@@ -30,17 +30,10 @@ Worker-error alarm:
   (Earlier revisions could not create this alarm because the workers logged to
   journald only, with no CloudWatch log group to attach a metric filter to.)
 
-No-sign-up trial lane alarms (docs/plan-trial-lane-throttle.md "Operations"):
-- Nothing in AWS scrapes the API's Prometheus counters, so the lane writes one JSON log line per issued
-  ticket, per refusal and per breaker change (api/middleware/trial.py::record_event and hourly_check), and the
-  metric filters below count them by the JSON key `event`. TRIAL_LOG_EVENTS is the list of those names;
-  tests/test_cdk_trial_lane.py fails if it drifts from the lane's own.
-- The alarms: two consecutive empty hourly checks (the breaker's strikes, one step before it trips); more than
-  50 issuance refusals in an hour; any network at its share cap; proof-of-work failures above 20% of ticket
-  attempts (with at least 20 attempts, so one bad request cannot trip it); any breaker state change. The
-  sixth, WAF blocks of the trial rate rules, is in edge_stack.py because it must live in us-east-1.
-- The filters hang off the API container's log group (api.api_log_group). The metric names carry the
-  environment, as the worker-error metric does, because dev and prod share one account and one namespace.
+The no-sign-up trial lane's log-based alarms are NOT in this stack. This stack is deployed by hand and is
+not part of the pipeline's PyvarDeployStage, so alarms placed here never reach dev or prod by a merge (the first
+version of trial lane PR 3 made exactly that mistake). They live in api_stack.py, which the pipeline deploys, and
+publish to this stack's topic by its deterministic ARN, as queue_stack.py's alarms do.
 """
 
 from __future__ import annotations
@@ -51,7 +44,6 @@ from aws_cdk import aws_budgets as budgets
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_cloudwatch_actions as cw_actions
 from aws_cdk import aws_iam as iam
-from aws_cdk import aws_logs as logs
 from aws_cdk import aws_sns as sns
 from constructs import Construct
 from stacks.api_stack import ApiStack
@@ -78,23 +70,6 @@ MONTHLY_BUDGET_USD = 1400
 # so they rescale automatically with MONTHLY_BUDGET_USD -- no separate edit needed.
 BUDGET_ACTUAL_THRESHOLD_PCT = 80  # notify when ACTUAL spend crosses 80% ($1,120)
 BUDGET_FORECAST_THRESHOLD_PCT = 100  # notify when spend is FORECAST to exceed $1,400
-
-# Log lines the no-sign-up trial lane writes (JSON key `event`) -> the suffix of the metric that counts them.
-# Keep in step with api/middleware/trial.py: tests/test_cdk_trial_lane.py compares the two.
-TRIAL_LOG_EVENTS = {
-    "trial_issued": "issued",
-    "trial_refused_pow": "refused-pow",
-    "trial_refused_issuance": "refused-issuance",
-    "trial_refused_asn": "refused-asn",
-    "trial_breaker_strike": "breaker-strike",
-    "trial_breaker_attack": "breaker-attack",
-    "trial_breaker_pause": "breaker-pause",
-}
-TRIAL_ISSUANCE_REFUSALS_PER_HOUR = 50  # more than this in an hour raises the alarm
-TRIAL_POW_FAILURE_PERCENT = 20  # more than this share of ticket attempts failing the proof of work
-TRIAL_POW_FAILURE_MIN_ATTEMPTS = (
-    20  # ...but only once there are at least this many attempts in the hour
-)
 
 
 class AlertsStack(Stack):
@@ -231,111 +206,6 @@ class AlertsStack(Stack):
             evaluation_periods=1,
             treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
         ).add_alarm_action(cw_actions.SnsAction(self.topic))
-
-        # ── (f) No-sign-up trial lane alarms (see the module docstring) ────────
-        def trial_metric(event: str, period: Duration) -> cloudwatch.IMetric:
-            """A metric counting the lane's log lines named `event`, in the API's log group."""
-            metric_name = f"trial-{TRIAL_LOG_EVENTS[event]}-{cfg.env_name}"
-            logs.MetricFilter(
-                self,
-                "TrialFilter" + "".join(part.title() for part in event.split("_")),
-                log_group=api.api_log_group,
-                filter_pattern=logs.FilterPattern.string_value("$.event", "=", event),
-                metric_namespace="pyvar",
-                metric_name=metric_name,
-                metric_value="1",
-                default_value=0,
-            )
-            return cloudwatch.Metric(
-                namespace="pyvar", metric_name=metric_name, statistic="Sum", period=period
-            )
-
-        def trial_alarm(
-            alarm_id: str,
-            name: str,
-            description: str,
-            metric: cloudwatch.IMetric,
-            threshold: float,
-            *,
-            evaluation_periods: int = 1,
-            comparison: cloudwatch.ComparisonOperator = (
-                cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD
-            ),
-        ) -> None:
-            cloudwatch.Alarm(
-                self,
-                alarm_id,
-                alarm_name=f"pyvar-{cfg.env_name}-trial-{name}",
-                alarm_description=description
-                + " See docs/plan-trial-lane-throttle.md (Operations).",
-                metric=metric,
-                threshold=threshold,
-                comparison_operator=comparison,
-                evaluation_periods=evaluation_periods,
-                datapoints_to_alarm=evaluation_periods,  # all of them: consecutive
-                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
-            ).add_alarm_action(cw_actions.SnsAction(self.topic))
-
-        hour, five_minutes = Duration.hours(1), Duration.minutes(5)
-        # One strike is written at each hourly check that finds the compute or issuance budget empty; the
-        # breaker starts attack mode at three and pauses issuance at six, so two in a row is the early word.
-        trial_alarm(
-            "TrialEmptyBudgetAlarm",
-            "budget-empty",
-            "The trial lane's budget was empty at two consecutive hourly checks.",
-            trial_metric("trial_breaker_strike", hour),
-            1,
-            evaluation_periods=2,
-            comparison=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-        )
-        trial_alarm(
-            "TrialIssuanceRefusalsAlarm",
-            "issuance-refusals",
-            f"More than {TRIAL_ISSUANCE_REFUSALS_PER_HOUR} ticket requests were refused for the issuance "
-            "budget in an hour.",
-            trial_metric("trial_refused_issuance", hour),
-            TRIAL_ISSUANCE_REFUSALS_PER_HOUR,
-        )
-        trial_alarm(
-            "TrialAsnCapAlarm",
-            "asn-cap",
-            "A network reached its share of the trial lane's hourly budget and was refused.",
-            trial_metric("trial_refused_asn", five_minutes),
-            0,
-        )
-        pow_failed = trial_metric("trial_refused_pow", hour)
-        pow_issued = trial_metric("trial_issued", hour)
-        trial_alarm(
-            "TrialPowFailureRatioAlarm",
-            "pow-failures",
-            f"More than {TRIAL_POW_FAILURE_PERCENT}% of ticket attempts failed the proof of work "
-            f"(counted from {TRIAL_POW_FAILURE_MIN_ATTEMPTS} attempts an hour).",
-            cloudwatch.MathExpression(
-                expression=(
-                    f"IF(failed + issued >= {TRIAL_POW_FAILURE_MIN_ATTEMPTS}, "
-                    "100 * failed / (failed + issued), 0)"
-                ),
-                using_metrics={"failed": pow_failed, "issued": pow_issued},
-                label="Trial proof-of-work failures (% of attempts)",
-                period=hour,
-            ),
-            TRIAL_POW_FAILURE_PERCENT,
-        )
-        trial_alarm(
-            "TrialBreakerStateAlarm",
-            "breaker-state",
-            "The trial lane's breaker set attack mode or paused ticket issuance.",
-            cloudwatch.MathExpression(
-                expression="attack + pause",
-                using_metrics={
-                    "attack": trial_metric("trial_breaker_attack", five_minutes),
-                    "pause": trial_metric("trial_breaker_pause", five_minutes),
-                },
-                label="Trial breaker state changes",
-                period=five_minutes,
-            ),
-            0,
-        )
 
         # ── (e) Queue-age alarm — owned by queue_stack, NOT recreated here ──────
         # The pyvar-{env}-queue-age alarm already exists (P4) in queue_stack and

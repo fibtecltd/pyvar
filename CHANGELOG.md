@@ -292,6 +292,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The trial lane's log-based alarms are deployed by the pipeline now (`infra(cdk)`)** — The five alarms and seven metric filters that count the
+  lane's log lines were created in `alerts_stack.py`, which is deployed by hand and is not in the pipeline's stage, so the merge of #441 reached dev
+  and prod without them (only the edge alarm arrived). They now live in `api_stack.py` and publish to the existing alerts topic by its ARN; a test
+  fails if a stack that creates a trial alarm is not one the pipeline deploys. The enable prompt (`docs/prompts/agent-trial-enable-dev.txt`) also
+  failed on its first dev run (exit 3: the migrate task has no cache address); it now adds `CELERY_RESULT_BACKEND` from the API task definition, and
+  `scripts/trial_ctl.py` says so. Details: `docs/plan-trial-lane-throttle.md` "Two corrections, 2026-11-19".
+
 - **The API and the workers use the same celery, kombu and their dependencies** — `requirements.txt` pinned
   `celery>=5.3.6` and nothing else on the message path, so the API image built on 2026-11-15 took kombu 5.7.0 and
   celery 5.7.0 while the worker AMIs (dev 2026-07-10, prod 2026-08-08) kept kombu 5.6.2 and celery 5.6.3

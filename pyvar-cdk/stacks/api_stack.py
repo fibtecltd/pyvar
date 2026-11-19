@@ -39,19 +39,40 @@ from __future__ import annotations
 import aws_cdk as cdk
 from aws_cdk import Duration, Stack
 from aws_cdk import aws_certificatemanager as acm
+from aws_cdk import aws_cloudwatch as cloudwatch
+from aws_cdk import aws_cloudwatch_actions as cw_actions
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
 from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_ecs_patterns as ecs_patterns
 from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_logs as logs
 from aws_cdk import aws_ses as ses
+from aws_cdk import aws_sns as sns
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 from stacks.data_stack import DataStack
 from stacks.network_stack import SecurityGroups
 
 from config import PyvarConfig
+
+# Log lines the no-sign-up trial lane writes (JSON key `event`) -> the suffix of the metric that counts them.
+# Keep in step with api/middleware/trial.py: tests/test_cdk_trial_lane.py compares the two.
+TRIAL_LOG_EVENTS = {
+    "trial_issued": "issued",
+    "trial_refused_pow": "refused-pow",
+    "trial_refused_issuance": "refused-issuance",
+    "trial_refused_asn": "refused-asn",
+    "trial_breaker_strike": "breaker-strike",
+    "trial_breaker_attack": "breaker-attack",
+    "trial_breaker_pause": "breaker-pause",
+}
+TRIAL_ISSUANCE_REFUSALS_PER_HOUR = 50  # more than this in an hour raises the alarm
+TRIAL_POW_FAILURE_PERCENT = 20  # more than this share of ticket attempts failing the proof of work
+TRIAL_POW_FAILURE_MIN_ATTEMPTS = (
+    20  # ...but only once there are at least this many attempts in the hour
+)
 
 # infra/172: mirrors pipeline_stack.py's stack_name= pinning. Without an
 # explicit policy_name=, CDK derives one from the FULL construct path
@@ -659,6 +680,131 @@ class ApiStack(Stack):
         self.api_log_group = api_log_driver.log_group
         self.alb = fargate_service.load_balancer
         self.alb_dns_name = fargate_service.load_balancer.load_balancer_dns_name
+
+        # ── No-sign-up trial lane: log-based alarms ───────────────────────────────
+        # Nothing in AWS scrapes the API's Prometheus counters, so the lane writes one JSON log line per issued
+        # ticket, per refusal and per breaker change (api/middleware/trial.py::record_event and hourly_check),
+        # and the metric filters below count them by the JSON key `event`; TRIAL_LOG_EVENTS lists the names and
+        # tests/test_cdk_trial_lane.py fails if it drifts from the lane's own. The alarms: two consecutive empty
+        # hourly checks; more than 50 issuance refusals in an hour; any network at its share cap; proof-of-work
+        # failures above 20% of ticket attempts (from 20 attempts); any breaker state change. The sixth alarm,
+        # WAF blocks, is in edge_stack.py because it must live in us-east-1. The metric names carry the
+        # environment, as the worker-error metric's do, because dev and prod share one account and namespace.
+        #
+        # Why here and not in alerts_stack.py: that stack is deployed by hand and is not in the pipeline's
+        # PyvarDeployStage, so alarms there never reach an environment by a merge. This stack is, and owns the
+        # log group. The alerts topic is OWNED by alerts_stack and referenced by its deterministic ARN, with no
+        # dependency edge (the same reasoning as queue_stack.py's reference: alerts -> api -> queue would close a
+        # cycle otherwise). alerts_stack pins the topic name to exactly this value; keep them in sync.
+        alerts_topic = sns.Topic.from_topic_arn(
+            self,
+            "TrialAlertsTopicImported",
+            self.format_arn(service="sns", resource=f"pyvar-{cfg.env_name}-alerts"),
+        )
+
+        def trial_metric(event: str, period: Duration) -> cloudwatch.IMetric:
+            """A metric counting the lane's log lines named `event`, in the API's log group."""
+            metric_name = f"trial-{TRIAL_LOG_EVENTS[event]}-{cfg.env_name}"
+            logs.MetricFilter(
+                self,
+                "TrialFilter" + "".join(part.title() for part in event.split("_")),
+                log_group=self.api_log_group,
+                filter_pattern=logs.FilterPattern.string_value("$.event", "=", event),
+                metric_namespace="pyvar",
+                metric_name=metric_name,
+                metric_value="1",
+                default_value=0,
+            )
+            return cloudwatch.Metric(
+                namespace="pyvar", metric_name=metric_name, statistic="Sum", period=period
+            )
+
+        def trial_alarm(
+            alarm_id: str,
+            name: str,
+            description: str,
+            metric: cloudwatch.IMetric,
+            threshold: float,
+            *,
+            evaluation_periods: int = 1,
+            comparison: cloudwatch.ComparisonOperator = (
+                cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD
+            ),
+        ) -> None:
+            cloudwatch.Alarm(
+                self,
+                alarm_id,
+                alarm_name=f"pyvar-{cfg.env_name}-trial-{name}",
+                alarm_description=description
+                + " See docs/plan-trial-lane-throttle.md (Operations).",
+                metric=metric,
+                threshold=threshold,
+                comparison_operator=comparison,
+                evaluation_periods=evaluation_periods,
+                datapoints_to_alarm=evaluation_periods,  # all of them: consecutive
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            ).add_alarm_action(cw_actions.SnsAction(alerts_topic))
+
+        hour, five_minutes = Duration.hours(1), Duration.minutes(5)
+        # One strike is written at each hourly check that finds the compute or issuance budget empty; the
+        # breaker starts attack mode at three and pauses issuance at six, so two in a row is the early word.
+        trial_alarm(
+            "TrialEmptyBudgetAlarm",
+            "budget-empty",
+            "The trial lane's budget was empty at two consecutive hourly checks.",
+            trial_metric("trial_breaker_strike", hour),
+            1,
+            evaluation_periods=2,
+            comparison=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        )
+        trial_alarm(
+            "TrialIssuanceRefusalsAlarm",
+            "issuance-refusals",
+            f"More than {TRIAL_ISSUANCE_REFUSALS_PER_HOUR} ticket requests were refused for the issuance "
+            "budget in an hour.",
+            trial_metric("trial_refused_issuance", hour),
+            TRIAL_ISSUANCE_REFUSALS_PER_HOUR,
+        )
+        trial_alarm(
+            "TrialAsnCapAlarm",
+            "asn-cap",
+            "A network reached its share of the trial lane's hourly budget and was refused.",
+            trial_metric("trial_refused_asn", five_minutes),
+            0,
+        )
+        pow_failed = trial_metric("trial_refused_pow", hour)
+        pow_issued = trial_metric("trial_issued", hour)
+        trial_alarm(
+            "TrialPowFailureRatioAlarm",
+            "pow-failures",
+            f"More than {TRIAL_POW_FAILURE_PERCENT}% of ticket attempts failed the proof of work "
+            f"(counted from {TRIAL_POW_FAILURE_MIN_ATTEMPTS} attempts an hour).",
+            cloudwatch.MathExpression(
+                expression=(
+                    f"IF(failed + issued >= {TRIAL_POW_FAILURE_MIN_ATTEMPTS}, "
+                    "100 * failed / (failed + issued), 0)"
+                ),
+                using_metrics={"failed": pow_failed, "issued": pow_issued},
+                label="Trial proof-of-work failures (% of attempts)",
+                period=hour,
+            ),
+            TRIAL_POW_FAILURE_PERCENT,
+        )
+        trial_alarm(
+            "TrialBreakerStateAlarm",
+            "breaker-state",
+            "The trial lane's breaker set attack mode or paused ticket issuance.",
+            cloudwatch.MathExpression(
+                expression="attack + pause",
+                using_metrics={
+                    "attack": trial_metric("trial_breaker_attack", five_minutes),
+                    "pause": trial_metric("trial_breaker_pause", five_minutes),
+                },
+                label="Trial breaker state changes",
+                period=five_minutes,
+            ),
+            0,
+        )
 
         cdk.CfnOutput(self, "AlbDnsName", value=self.alb_dns_name)
         cdk.CfnOutput(self, "EcrRepoUri", value=self.ecr_repo.repository_uri)
