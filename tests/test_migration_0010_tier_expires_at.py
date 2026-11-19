@@ -12,6 +12,7 @@ Reasoning:
 from __future__ import annotations
 
 import io
+import logging
 from pathlib import Path
 
 from alembic import command
@@ -27,7 +28,10 @@ PREVIOUS = "0009_api_keys"
 
 
 def _config() -> Config:
-    config = Config(str(ROOT / "alembic.ini"))
+    # No ini file on purpose: migrations/env.py calls logging.config.fileConfig() for a config that has one, and
+    # fileConfig disables every logger that already exists, which silently broke every later test that reads
+    # a log record (found by the full suite, not by this file alone).
+    config = Config()
     config.set_main_option("script_location", str(ROOT / "migrations"))
     return config
 
@@ -67,3 +71,9 @@ def test_the_model_agrees_with_the_column() -> None:
     assert column.nullable is True
     assert column.default is None and column.server_default is None
     assert isinstance(column.type, DateTime) and column.type.timezone is True
+
+
+def test_running_the_migrations_leaves_the_applications_loggers_enabled() -> None:
+    logger = logging.getLogger("api.tiers")
+    _sql("upgrade", f"{PREVIOUS}:{REVISION}")
+    assert logger.disabled is False

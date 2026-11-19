@@ -155,7 +155,7 @@ Demand is unmeasured: every number is a starting value. The cost figures are the
 - **The pool is the rate limiter, not a hand-made counter** (the plan marked the mechanism an assumption, section 4). 5,000 education VaR jobs per **30-day fixed
   window** (the same `limits` storage and window kind as every monthly cap here, not a calendar month), taken by `/var/compute`, read without taking by every
   education compute request. **While it is spent, an education account gets the FREE limits on every compute route** (20 a day, 10,000 simulations), not only on
-  VaR: "falls back to free limits" read literally, and the only reading that keeps the $130 bound. Like every quota here, it **fails open** on a cache error.
+  VaR: "falls back to free limits" read literally, and the only reading that keeps the $130 bound. A request the education cap itself refuses (over 100,000 simulations) takes nothing from the pool. Like every quota here, it **fails open** on a cache error.
 - **The monthly VaR simulation breach is a 429**, as the monthly request breach is (the plan said "a 429, never a downgrade" for the second only).
 - **Revoke, list and suspend-all work with the flag off**; grant and extend are the only 503s. A way to end access must not depend on the flag.
 - **`extend` of a lapsed grant re-checks the caps** (it makes the account active again), and an extension may go at most 12 months from today.
@@ -166,7 +166,7 @@ Demand is unmeasured: every number is a starting value. The cost figures are the
   it is a convenience, the `billing_events` table is the record. No secret or token is ever written.
 - **Not in the plan:** education uses the free tier's assistant allowance (`assistant_group` "free", the free daily number).
 
-**Tests** (`tests/test_education_tier.py` 28, `test_education_admin.py` 67, `test_education_grant_script.py` 14, `test_migration_0010_tier_expires_at.py` 4, plus the changed
+**Tests** (`tests/test_education_tier.py` 29, `test_education_admin.py` 67, `test_education_grant_script.py` 14, `test_migration_0010_tier_expires_at.py` 4, plus the changed
 `test_tier_policy.py`): the effective tier in every combination (flag, no expiry, past, future, naive, other tiers, a Stripe upgrade surviving an old date); the
 limits and that a breach changes nothing about the account; the pool, in and out, and failing open; 100,000 allowed and 100,001 refused; **every credential the API
 hands out is refused by every admin route** (a session JWT, an enterprise JWT, an internal JWT, an API key, a stream token, a trial ticket, a wrong or missing `aud`,

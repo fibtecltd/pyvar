@@ -292,6 +292,16 @@ async def test_when_the_pool_is_spent_a_var_job_gets_the_free_simulation_cap(pay
     apply_ok.assert_called_once()
 
 
+async def test_a_request_the_education_cap_refuses_takes_nothing_from_the_pool(payload) -> None:
+    token = create_access_token("edu-var", "education")
+    with patch.object(cfg, "education_var_pool_monthly", 1):
+        refused, _ = await submit(payload, 100_001, token)
+        assert refused.status_code == 403
+        assert rate_limit_module.education_pool_has_room() is True  # the one job is still there
+        accepted, _ = await submit(payload, 100_000, token)
+    assert accepted.status_code == 202
+
+
 async def test_a_var_job_of_another_tier_never_touches_the_pool(payload) -> None:
     token = create_access_token("pro-var", "pro")
     with patch.object(cfg, "education_var_pool_monthly", 1):

@@ -208,8 +208,13 @@ async def submit_var(
     # An education account draws from the month's shared pool of education VaR jobs; once it is spent the
     # request is held to the free tier's limits (docs/plan-education-tier.md, decision 4). Everyone else
     # is untouched: limits_tier is simply user.tier.
+    # A request the education cap itself refuses takes nothing from the pool.
     limits_tier = user.tier
-    if user.tier == "education" and not rate_limit_module.take_education_pool_job():
+    if (
+        user.tier == "education"
+        and body.n_simulations <= policy_for("education").max_simulations
+        and not rate_limit_module.take_education_pool_job()
+    ):
         limits_tier = "free"
     max_simulations = policy_for(limits_tier).max_simulations
 
