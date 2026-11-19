@@ -39,6 +39,14 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `trial_breaker_*`) with CloudWatch metric filters. The lane itself still stays off until `scripts/trial_ctl.py on`.
   `docs/prompts/agent-trial-enable-dev.txt` switches it on in dev and proves it with one real call.
   Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
+- **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
+  non-commercial, apply by e-mail), an "Education access" item in the privacy policy (what an application e-mail holds, that it
+  stays in the company mailbox, deletion 12 months after a refusal or after the grant ends, the lawful bases) and a row for the
+  mailbox provider in its sub-processor table, and three clauses in the terms (§3, §4, §10). `education_tier_enabled` in
+  `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds `EDUCATION_TIER_ENABLED=true` to the API container only where it
+  is true. **Prod stays off until a lawyer has read the text**: then one line turns it on. The text is a draft, not legal advice.
+  Synth against master: only `pyvar-dev-api` changes (that one entry); prod and staging API templates are identical. The trial lane's
+  dev and prod enablement is recorded in `docs/plan-trial-lane-throttle.md`. Details: `docs/plan-education-tier.md` section 11.
 - **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
   cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
   `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of

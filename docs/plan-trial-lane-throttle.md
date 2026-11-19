@@ -361,6 +361,28 @@ environment override, copied from the API task definition (it is the cache endpo
 2. **The enable prompt sent the agent to a task that cannot reach the cache** (exit 3, "Error 111 connecting to localhost:6379"): see above. The prompt now adds
    the one environment variable.
 
+## Switched on and verified (2026-11-19)
+
+Both environments were switched on and checked by an agent working to a written prompt (read-only AWS calls, one Fargate one-off for the switch and one for a read of the
+per-network counters, HTTPS to the API); the owner read each report. The switch is `scripts/trial_ctl.py on` in a one-off of the **migrate** task with
+`CELERY_RESULT_BACKEND` copied from the API task definition (the migrate task alone exits 3, "connecting to localhost:6379").
+
+| | Dev | Prod |
+| --- | --- | --- |
+| Alarms | the 5 in the API region and the WAF alarm in us-east-1 exist, all OK, one action each (`pyvar-dev-alerts`, `pyvar-dev-edge-alerts`) | the same 6 existed and were OK **before** the switch (the prompt refused to go on without them) |
+| Switch | `on: true`, not paused, not in attack mode | exit 0 in about 32 s; `on: true`, not paused, not in attack mode, 0 breaker strikes, 20-bit proof of work; ticket bucket 20 of 20 (260 a day), compute bucket 100 of 100 (2,500 a day); nothing used before |
+| A real call through `pyvar-mcp` 0.3.0 | worked | 0.84 s over 3 requests; result keys `confidence_level`, `horizon_days`, `sigma_p`, `var_abs`, `var_pct`, `z_score` |
+| Refusals | 401 `trial_ticket_invalid` for no `Authorization` header and for `Bearer x` (the first returns the same code as the second, not a bare 401) | the same two |
+| `CloudFront-Viewer-ASN` | a ticket request carrying a forged `64496` succeeded; the per-network keys sit under one real network, none for 64496 | the same: issue 2 and compute 1 under one real network, none for 64496 |
+| Log lines and metrics | 2 `trial_issued` and 1 `trial_refused_pow` lines (only `event`, `level`, `logger`, timestamp); `trial-issued-dev` Sum 2 and `trial-refused-pow-dev` Sum 1, about 4 minutes after the lines | 2 `trial_issued` lines; `trial-issued-prod` Sum 2 two minutes after; all 6 alarms still OK |
+| Filters | 7, patterns `{ $.event = "<event>" }` (the check's wording listed six as bare names; the loop that builds all seven is `api_stack.py`) | not read, apart from the one metric |
+
+This settles two items of "Not verified" below: that the origin request policy carries `CloudFront-Viewer-ASN`, and that CloudFront overwrites a viewer-supplied `CloudFront-*` header (the ASN header, both environments).
+
+**Still not verified:** that an alarm's notification arrives (the subscriptions are confirmed and the actions point at the right topics; nobody has seen a message); the other five filters
+(issuance and ASN refusals and the three breaker events) and `trial-refused-pow` in prod; the percentage branch of the `trial-pow-failures` expression, which needs 20 attempts; the WAF counters;
+per-call time on the 0.5 vCPU task under real traffic; whether WAF bills the requests it blocks; demand.
+
 ## Red team (one afternoon)
 
 About 150 residential proxy addresses over 8 or more networks and a native solver, polling the ticket route every few

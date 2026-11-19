@@ -1,6 +1,6 @@
 # Plan: education tier (A2), accepted 2026-11-18
 
-**Status: accepted by the owner on 2026-11-18, as proposed. PR 1 is built (2026-11-19, section 10), off by default; PR 2 (portal text and the flag) is not started.** This supersedes `docs/plan-academic-access.md`
+**Status: accepted by the owner on 2026-11-18, as proposed. PR 1 is built (2026-11-19, section 10), off by default; PR 2 (portal text and the flag) is built (2026-11-19, section 11): the flag is on in dev only, and prod stays off until a lawyer has read the text.** This supersedes `docs/plan-academic-access.md`
 (2026-11-16). It comes from an independent review (a Fable research agent, 2026-11-17) of that plan against the code at
 `d6c8bf0`, with three of its claims re-checked by the author (below). **[V]** means read at the file and line cited, **[A]** a
 recommendation or assumption. The review ran no code and no test.
@@ -94,7 +94,7 @@ no user identifier by design, so resale or sharing cannot be attributed; revocat
 | --- | --- | --- |
 | 0 `docs` | this file; the register entry; a note at the top of `docs/plan-academic-access.md` | **No** (`docs/` only) |
 | 1 `feat(api)` | `migrations/versions/0010_user_tier_expires_at.py`; `storage/models.py`; `api/tiers.py` (row, `KNOWN_TIERS`, `burst_per_minute`, `monthly_breach`, `effective_tier`); `config.py`; `api/middleware/rate_limit.py`; `api/routes/var.py`; `api/middleware/api_keys.py`; `api/routes/auth.py`; `api/routes/billing.py`; `api/middleware/auth.py` (`decode_admin_payload`); `api/routes/internal.py`; `schemas/internal.py`; `api/middleware/billing_lifecycle.py` (event names, e-mail copy); `scripts/education_grant.py`; `tests/`; `CLAUDE.md` sections 2 and 3.5 | **Yes**, including the migration |
-| 2 `feat(portal)` | `portal/privacy.html`, `portal/terms.html`, one "education access" paragraph; `pyvar-cdk/config.py` (flag on, dev then prod) | **Yes** |
+| 2 `feat(portal)` | `portal/privacy.html`, `portal/terms.html`, one "education access" paragraph; `pyvar-cdk/config.py` (flag on, dev then prod; as built, prod is a one-line follow-up after the lawyer's read, section 11) | **Yes** |
 | 3, only if volume demands | the old plan's form and queue | Yes |
 
 **Flag:** `education_tier_enabled`, default False; when off, `effective_tier` returns `free` and the grant route answers 503.
@@ -184,4 +184,36 @@ other tier-change e-mails); the Jisc and ICO points of section 9; demand.
 
 **To start using it (not part of this PR):** run PR 2 (privacy and terms text, the flag in `pyvar-cdk/config.py`, dev then prod), then
 `python scripts/education_grant.py grant --env dev --email <address> --cohort <label>`.
+
+## 11. PR 2 as built (2026-11-19)
+
+| Piece | What it is |
+| --- | --- |
+| The flag | `education_tier_enabled` in `pyvar-cdk/config.py` (default False). **On in `dev` only.** `api_stack.py` adds `EDUCATION_TIER_ENABLED=true` to the API container only where it is true, so the task definitions of prod and staging do not change (no literal "false" entry, as for `ASSISTANT_ENABLED`). Only the API process reads it. `tests/test_cdk_education_flag.py` |
+| Home page | One paragraph under the sign-up form (`portal/index.html`): education access is higher limits than the free tier, free, for a fixed period of up to 12 months, non-commercial, given by hand; apply by e-mail to `info@pyvar.com` from the institution's address. It states no limit except the 12 months, and `tests/test_education_portal_text.py` reads that number back from the settings |
+| Privacy policy | Section 2 no longer says "no name" without qualification (sign-up collects none) and gains an "Education access" item: what an application e-mail contains, that it stays in the company mailbox and not in the database, deletion 12 months after a refusal or after the grant ends, what the database holds (the end date and a code-and-cohort record of each change), and the two lawful bases (Article 6(1)(b) and (f)). Section 9's table gains "Our e-mail provider" |
+| Terms | Section 3: education access is a separate free tier, discretionary, for a fixed period, non-commercial, 18 or over, back to free when it ends with keys still working. Section 4: no commercial or client work, no sharing, lending or resale of an education key. Section 10: a grant may be ended, paused or changed with or without notice. Both pages are dated November 2026 |
+
+**Why prod is not switched on here.** The plan said "flag on, dev then prod". The text is a draft for a lawyer's read (section 5), and the privacy and
+terms pages go live in prod when this PR's prod stage is approved, whatever the flag says. So the flag is the part that waits: with it off in prod, an
+applicant who writes to `info@pyvar.com` can be answered by hand but no grant can be made (`grant` and `extend` answer 503; `revoke`, `list` and `suspend-all`
+always work). To open prod: add `education_tier_enabled=True,` to the `prod` override and change the expected value in `tests/test_cdk_education_flag.py` in the same commit.
+To close it again: remove the line, then `suspend-all --env prod --yes-prod --yes-all` ends the grants already given.
+
+**For the lawyer, and to decide before the prod stage is approved:**
+
+- The 12-month deletion of application e-mails is a promise someone has to keep by hand. Nobody has that job yet, and nothing reminds them. [A]
+- The row says "Our e-mail provider" because the repository does not name the provider of the `info@pyvar.com` mailbox. The policy should name it.
+- Article 6(1)(f) is cited, and the plan's section 5 calls for a written balancing test. **That test has not been written.** [A]
+- The rest of the policy cites no Article of the UK GDPR; whether to start here is a drafting choice for the lawyer.
+- The age rule is written for the holder ("18 or over"). The plan lets an instructor send the addresses of a class, so a class of under-18s is not covered and not offered.
+- The wording is mine, built from section 5. Nothing here is legal advice.
+
+**CodePipeline:** yes (`portal/` and `pyvar-cdk/` are outside the eight excluded directories). **Synth, master (`3dbc102`) against this branch, for `dev`, `prod` and `staging`
+(asset hashes masked):** the only template that differs is `pyvar-dev-api`, by exactly one container environment entry (`EDUCATION_TIER_ENABLED` = `true`), so the dev API service rolls.
+The prod and staging API templates are identical to master's. The public-data stack's portal zip changes in both environments (the portal files), and nothing else does: the
+privacy and terms text reaches prod when the prod stage is approved, whatever the flag says.
+
+**Not verified:** the pages in a browser at a phone width (the paragraph reuses classes already on the page); that the mailto link opens a usable draft in common mail clients; that
+the grant e-mail and the home page agree with what a lawyer will accept; demand. The first grant in dev (`scripts/education_grant.py grant --env dev`) has not been made.
 
