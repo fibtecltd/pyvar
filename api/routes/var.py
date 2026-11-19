@@ -205,13 +205,21 @@ async def submit_var(
     user: TokenPayload = Depends(get_current_user),
 ) -> OrjsonResponse:
 
+    # An education account draws from the month's shared pool of education VaR jobs; once it is spent the
+    # request is held to the free tier's limits (docs/plan-education-tier.md, decision 4). Everyone else
+    # is untouched: limits_tier is simply user.tier.
+    limits_tier = user.tier
+    if user.tier == "education" and not rate_limit_module.take_education_pool_job():
+        limits_tier = "free"
+    max_simulations = policy_for(limits_tier).max_simulations
+
     # Enforce per-tier simulation cap (fail fast before queuing)
-    if body.n_simulations > user.max_simulations:
+    if body.n_simulations > max_simulations:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Your {user.tier!r} tier allows a maximum of "
-                f"{user.max_simulations:,} simulations. "
+                f"Your {limits_tier!r} tier allows a maximum of "
+                f"{max_simulations:,} simulations. "
                 f"Requested: {body.n_simulations:,}."
             ),
         )
@@ -223,7 +231,7 @@ async def submit_var(
     # rate_limit module object, not `from ... import _limiter` directly, so
     # tests/conftest.py's autouse fixture (which patches
     # api.middleware.rate_limit._limiter) is picked up here too.
-    policy = policy_for(user.tier)
+    policy = policy_for(limits_tier)
     if policy.monthly_simulations is not None:
         sim_item = limits.parse(f"{policy.monthly_simulations}/month")
         try:
@@ -238,6 +246,11 @@ async def submit_var(
             sim_allowed = True
 
         if not sim_allowed:
+            if policy.monthly_breach == "refuse":
+                # No plan to move this account off (education): refuse, and change nothing about it.
+                rate_limit_module._raise_rate_limited(
+                    sim_item, user.user_id, "var-simulations-monthly"
+                )
             await downgrade_for_monthly_limit(
                 user_id=user.user_id,
                 downgrade_reason=DOWNGRADE_MONTHLY_SIMULATION_LIMIT,

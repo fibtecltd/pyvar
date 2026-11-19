@@ -44,6 +44,8 @@ optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 # `aud` of the token POST /var/stream-token/{task_id} mints for the WebSocket stream route.
 STREAM_TOKEN_AUDIENCE = "pyvar-stream"
+# `aud` of the operator token scripts/education_grant.py signs for the /internal/admin/ routes: 10 minutes, no tier.
+ADMIN_TOKEN_AUDIENCE = "pyvar-admin"
 
 
 class TokenPayload:
@@ -63,7 +65,7 @@ class TokenPayload:
         # usage analytics (api_usage.tier, var_jobs.tier), even though both
         # are unlimited for simulation size and, per
         # api/middleware/rate_limit.py, both exempt from the compute quota.
-        self.tier = tier  # free | pro | enterprise | internal
+        self.tier = tier  # free | pro | enterprise | internal | education
         # The per-request simulation cap of the tier, from the one table (api/tiers.py).
         self.max_simulations = policy_for(tier).max_simulations
 
@@ -138,6 +140,64 @@ def decode_stream_payload(token: str, task_id: str) -> TokenPayload:
     if payload.get("aud") is not None and payload.get("tid") != task_id:
         raise JWTError("Stream token was issued for a different task")
     return TokenPayload(sub=user_id, tier=payload.get("tier", "free"))
+
+
+class AdminPayload:
+    """The operator behind a valid admin token: a label (`sub`), nothing else. Not a user, not a tier."""
+
+    def __init__(self, operator: str):
+        self.operator = operator
+
+
+def decode_admin_payload(token: str) -> AdminPayload:
+    """Validate the token of an /internal/admin/ route: signed with the environment's secret, `aud` EXACTLY
+    "pyvar-admin", short-lived, a label as subject and no tier.
+
+    python-jose lets a token with NO `aud` through a decoder that names an audience, so the audience is
+    checked again by hand: a session JWT, an "internal" JWT and an API key are all refused here, and a stream
+    token or trial ticket (a different `aud`) fails the decode itself. Every other route refuses this token for
+    the opposite reason (it has an `aud` and decode_token_payload names none); do NOT accept it in
+    get_current_user.
+
+    Raises:
+        JWTError: bad signature, expired, no or a different audience, no `exp` or `iat`, a lifetime longer than
+            `admin_token_ttl_seconds`, a missing subject, or a `tier` claim.
+    """
+    payload = jwt.decode(
+        token,
+        cfg.jwt_secret,
+        algorithms=[cfg.jwt_algorithm],
+        audience=ADMIN_TOKEN_AUDIENCE,
+        options={"require_exp": True, "require_iat": True},
+    )
+    if payload.get("aud") != ADMIN_TOKEN_AUDIENCE:
+        raise JWTError("Not an admin token")
+    operator = payload.get("sub")
+    if not isinstance(operator, str) or not operator or len(operator) > 128:
+        raise JWTError("Missing operator label")
+    if "tier" in payload:
+        raise JWTError("An admin token carries no tier")
+    try:
+        lifetime = int(payload["exp"]) - int(payload["iat"])
+    except (TypeError, ValueError) as exc:
+        raise JWTError("Malformed times") from exc
+    if lifetime > cfg.admin_token_ttl_seconds:
+        raise JWTError("Admin token lives too long")
+    return AdminPayload(operator)
+
+
+async def require_admin_token(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> AdminPayload:
+    """FastAPI dependency for the /internal/admin/ routes: an admin token or a 401."""
+    try:
+        return decode_admin_payload(credentials.credentials)
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired admin token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
 
 
 async def get_current_user(

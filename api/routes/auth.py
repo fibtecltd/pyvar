@@ -54,6 +54,7 @@ from api.middleware.api_keys import generate_key, invalidate_cached_key
 from api.middleware.auth import TokenPayload, create_access_token, require_session
 from api.middleware.disposable_email import is_disposable_email
 from api.middleware.rate_limit import enforce_register_rate_limit
+from api.tiers import effective_tier
 from config import get_settings
 from schemas.auth import (
     ApiKeyCreated,
@@ -260,7 +261,7 @@ async def verify(token: str) -> VerifyResponse:
         # a returning user signing in must not be counted as newly verified.
         user.verified_at = user.verified_at or now
         external_id = user.external_id
-        tier = user.tier
+        tier = effective_tier(user.tier, user.tier_expires_at)
         await session.commit()
 
     access_token = create_access_token(user_id=external_id, tier=tier)
@@ -479,7 +480,7 @@ async def google_sign_in(body: GoogleSignInRequest) -> VerifyResponse:
 
         await session.commit()
         external_id = user.external_id
-        tier = user.tier
+        tier = effective_tier(user.tier, user.tier_expires_at)
 
     access_token = create_access_token(user_id=external_id, tier=tier)
     return VerifyResponse(access_token=access_token, tier=tier)

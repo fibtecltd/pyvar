@@ -18,6 +18,12 @@ Reasoning:
   this one mutates account state rather than only reading it.
 - No enforce_compute_rate_limit dependency: this isn't a compute endpoint,
   and "internal" tier is already exempt regardless.
+- The /internal/admin/education/* routes (docs/plan-education-tier.md) are the exception to the auth rule above:
+  they take an ADMIN token (`aud` "pyvar-admin", 10 minutes, signed by scripts/education_grant.py), not a session
+  JWT. A session JWT, an "internal" JWT, an API key and a stream token are all refused (require_admin_token), so
+  holding any credential the API hands out is never enough to grant access. They are kept out of the public
+  OpenAPI document. grant and extend answer 503 while `education_tier_enabled` is off; revoke, list and
+  suspend-all always work (a way to end access must not depend on the flag).
 """
 
 from __future__ import annotations
@@ -28,9 +34,17 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 
-from api.middleware.auth import TokenPayload, get_current_user
+from api import education_grants
+from api.middleware.auth import AdminPayload, TokenPayload, get_current_user, require_admin_token
 from config import get_settings
 from schemas.internal import (
+    EducationAccountOut,
+    EducationChangeResponse,
+    EducationExtendRequest,
+    EducationGrantRequest,
+    EducationListResponse,
+    EducationRevokeRequest,
+    EducationSuspendResponse,
     SuppressEmailRequest,
     SuppressEmailResponse,
     TokenReportResponse,
@@ -122,3 +136,108 @@ async def token_report(
         issued_today=issued_today,
         issued_cumulative=issued_cumulative,
     )
+
+
+# ── /internal/admin/education/* (admin token only) ────────────────────────────────────────────────────────
+
+
+def _refuse(exc: education_grants.GrantRefused) -> HTTPException:
+    return HTTPException(exc.status, exc.detail)
+
+
+def _iso(moment: datetime | None) -> str | None:
+    return moment.astimezone(timezone.utc).isoformat() if moment is not None else None
+
+
+@router.post(
+    "/admin/education/grant", response_model=EducationChangeResponse, include_in_schema=False
+)
+async def education_grant(
+    body: EducationGrantRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> EducationChangeResponse:
+    """Give a verified free account education access (a cohort and a per-domain cap apply)."""
+    async with get_sessionmaker()() as session:
+        try:
+            expires = await education_grants.grant(
+                session,
+                email=body.email,
+                months=body.months,
+                cohort=body.cohort,
+                allow_domain_over_cap=body.allow_domain_over_cap,
+            )
+        except education_grants.GrantRefused as exc:
+            raise _refuse(exc) from exc
+    logger.info("education_admin_grant", operator=admin.operator, cohort=body.cohort)
+    return EducationChangeResponse(email=body.email, tier="education", expires_at=_iso(expires))
+
+
+@router.post(
+    "/admin/education/extend", response_model=EducationChangeResponse, include_in_schema=False
+)
+async def education_extend(
+    body: EducationExtendRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> EducationChangeResponse:
+    """Move an education account's end date out; at most 12 months from today."""
+    async with get_sessionmaker()() as session:
+        try:
+            expires = await education_grants.extend(
+                session,
+                email=body.email,
+                months=body.months,
+                cohort=body.cohort,
+                allow_domain_over_cap=body.allow_domain_over_cap,
+            )
+        except education_grants.GrantRefused as exc:
+            raise _refuse(exc) from exc
+    logger.info("education_admin_extend", operator=admin.operator, cohort=body.cohort)
+    return EducationChangeResponse(email=body.email, tier="education", expires_at=_iso(expires))
+
+
+@router.post(
+    "/admin/education/revoke", response_model=EducationChangeResponse, include_in_schema=False
+)
+async def education_revoke(
+    body: EducationRevokeRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> EducationChangeResponse:
+    """End an education account's access now (back to the free tier)."""
+    async with get_sessionmaker()() as session:
+        try:
+            await education_grants.revoke(session, email=body.email, cohort=body.cohort)
+        except education_grants.GrantRefused as exc:
+            raise _refuse(exc) from exc
+    logger.info("education_admin_revoke", operator=admin.operator, cohort=body.cohort)
+    return EducationChangeResponse(email=body.email, tier="free", expires_at=None)
+
+
+@router.get("/admin/education/list", response_model=EducationListResponse, include_in_schema=False)
+async def education_list(
+    admin: AdminPayload = Depends(require_admin_token),
+) -> EducationListResponse:
+    """Every education account, active or run out, with its cohort label and end date."""
+    async with get_sessionmaker()() as session:
+        accounts = await education_grants.list_accounts(session)
+    return EducationListResponse(
+        active=sum(1 for a in accounts if a.active),
+        cohort_cap=cfg.education_cohort_cap,
+        domain_cap=cfg.education_domain_cap,
+        enabled=cfg.education_tier_enabled,
+        accounts=[
+            EducationAccountOut(
+                email=a.email, expires_at=_iso(a.expires_at), active=a.active, cohort=a.cohort
+            )
+            for a in accounts
+        ],
+    )
+
+
+@router.post(
+    "/admin/education/suspend-all", response_model=EducationSuspendResponse, include_in_schema=False
+)
+async def education_suspend_all(
+    admin: AdminPayload = Depends(require_admin_token),
+) -> EducationSuspendResponse:
+    """The kill switch: end every active education grant now."""
+    async with get_sessionmaker()() as session:
+        count = await education_grants.suspend_all(session)
+    logger.warning("education_admin_suspend_all", operator=admin.operator, accounts=count)
+    return EducationSuspendResponse(suspended=count)

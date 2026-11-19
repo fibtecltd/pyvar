@@ -201,6 +201,29 @@ class Settings(BaseSettings):
     rate_limit_pro_monthly_requests: int = 5_000
     rate_limit_pro_monthly_simulations: int = 2_000_000
 
+    # ── Education tier (docs/plan-education-tier.md, A2) ─────────────────────────
+    # A finite grant to a verified teacher or student, given by hand (scripts/education_grant.py): the account's
+    # users.tier is "education" while users.tier_expires_at is in the future, "free" otherwise. OFF until the
+    # flag is set: with it off, api/tiers.py::effective_tier gives every account its free limits and the admin
+    # grant route answers 503. The numbers are starting values (demand is unmeasured), read through api/tiers.py.
+    education_tier_enabled: bool = False
+    rate_limit_education_daily: int = 100  # all /api/v1 compute endpoints
+    rate_limit_education_monthly_requests: int = 2_000  # a breach is a 429, never a downgrade
+    rate_limit_education_burst_per_minute: int = 20
+    rate_limit_education_monthly_simulations: int = (
+        1_000_000  # VaR only; a breach is a 403, never a downgrade
+    )
+    # Grants: active education accounts in all, per e-mail domain, and the expiry a grant may be given.
+    education_cohort_cap: int = 25
+    education_domain_cap: int = 10
+    education_default_months: int = 6
+    education_max_months: int = 12
+    # The pool: education VaR jobs a month for everyone together; once spent, education VaR submissions get the
+    # free tier's simulation cap and daily quota until the next UTC month (api/education_pool.py).
+    education_var_pool_monthly: int = 5_000
+    # Lifetime of the admin token scripts/education_grant.py signs (api/middleware/auth.py::decode_admin_payload).
+    admin_token_ttl_seconds: int = 600
+
     # ── Registration anti-abuse ─────────────────────────────────────────────────
     # api/middleware/disposable_email.py vendors a static list of well-known
     # disposable/throwaway email domains, checked at POST /auth/register (before

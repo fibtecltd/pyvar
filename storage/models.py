@@ -106,6 +106,9 @@ class User(Base):
     )
     external_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
     tier: Mapped[str] = mapped_column(String(16), nullable=False, default="free")
+    # When a finite grant ends (0010_user_tier_expires_at). Read only for tier == "education": with no expiry, or a
+    # past one, the account counts as "free" (api/tiers.py::effective_tier). NULL for every other tier.
+    tier_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     api_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

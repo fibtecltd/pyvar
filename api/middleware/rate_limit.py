@@ -81,6 +81,13 @@ Reasoning:
   docs/plan-monetization-implementation.md §8's decisions log. Free/
   enterprise/internal are never subject to this check — Free has nowhere to
   downgrade to, and enterprise/internal are exempt above already.
+- Education accounts (docs/plan-education-tier.md) differ in three ways, all read from the tier's row in
+  api/tiers.py: a per-minute burst cap (checked first, so a refused burst does not use up the day's quota);
+  a monthly breach is a plain 429 and never reaches downgrade_for_monthly_limit (Pro's, with Pro's wording); and
+  once the month's pool of education VaR jobs is spent (api/routes/var.py takes from it), every education
+  request is held to the FREE tier's limits until the pool's window rolls over. The pool is read here without
+  taking from it (education_pool_has_room) and taken from only by a VaR submission (take_education_pool_job).
+  Both fail open on a Redis error, like every quota in this module.
 """
 
 from __future__ import annotations
@@ -163,6 +170,35 @@ def _raise_rate_limited(item: limits.RateLimitItem, *identifiers: str) -> None:
     )
 
 
+def _education_pool_item() -> limits.RateLimitItem:
+    return limits.parse(f"{cfg.education_var_pool_monthly}/month")
+
+
+def education_pool_has_room() -> bool:
+    """True while the month's pool of education VaR jobs is not spent. Reads; takes nothing. Fails open."""
+    try:
+        return bool(_limiter.limiter.test(_education_pool_item(), "education-pool", "var"))
+    except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+        logger.warning("Rate limit storage unavailable for the education pool", exc_info=True)
+        return True
+
+
+def take_education_pool_job() -> bool:
+    """Take one job from the pool; False when it is spent (the caller then applies the free limits). Fails open."""
+    try:
+        return bool(_limiter.limiter.hit(_education_pool_item(), "education-pool", "var"))
+    except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+        logger.warning("Rate limit storage unavailable for the education pool", exc_info=True)
+        return True
+
+
+def limits_tier_for(tier: str) -> str:
+    """The tier whose limits apply to a request now: education falls back to free while the pool is spent."""
+    if tier == "education" and not education_pool_has_room():
+        return "free"
+    return tier
+
+
 async def enforce_compute_rate_limit(
     request: Request,
     user: TokenPayload = Depends(get_current_user),
@@ -177,9 +213,20 @@ async def enforce_compute_rate_limit(
     docstring for why a fixed "compute" scope (not per-endpoint) is what
     makes this one shared bucket per user rather than 386 separate ones.
     """
-    policy = policy_for(user.tier)
+    policy = policy_for(limits_tier_for(user.tier))
     if policy.daily_requests is None:  # exempt from the quota (enterprise, internal)
         return
+
+    # A burst cap, where the tier has one, comes first: a refused burst must not use up the day's quota.
+    if policy.burst_per_minute is not None:
+        burst_item = limits.parse(f"{policy.burst_per_minute}/minute")
+        try:
+            burst_allowed = _limiter.limiter.hit(burst_item, user.user_id, "compute-burst")
+        except Exception:  # noqa: BLE001 — fail open on a Redis outage, see module docstring
+            logger.warning("Rate limit storage unavailable — allowing request", exc_info=True)
+            burst_allowed = True
+        if not burst_allowed:
+            _raise_rate_limited(burst_item, user.user_id, "compute-burst")
 
     item = limits.parse(f"{policy.daily_requests}/day")
 
@@ -210,6 +257,8 @@ async def enforce_compute_rate_limit(
         return
 
     if not monthly_allowed:
+        if policy.monthly_breach == "refuse":
+            _raise_rate_limited(monthly_item, user.user_id, "compute-monthly")
         await downgrade_for_monthly_limit(
             user_id=user.user_id,
             downgrade_reason=DOWNGRADE_MONTHLY_REQUEST_LIMIT,

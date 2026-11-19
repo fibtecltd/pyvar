@@ -22,6 +22,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   puzzle, nothing else) and keeps it in `install.json` in the plugin's own data directory (mode 0600); never when `CI`
   is set or outside Claude Code. A key you set always wins. `list_pyvar_functions` marks the functions that work without
   one, and tool calls no longer block the MCP loop. **Published only when `pyvar-mcp-v0.3.0` is tagged.**
+- **Education tier, built and off (A2 PR 1)** — A finite grant for teachers and students, given by hand: `users.tier_expires_at`
+  (migration `0010_user_tier_expires_at`), an `education` row in `api/tiers.py` (100 requests a day, 2,000 a month, 20 a minute, 100,000
+  simulations a request, 1,000,000 VaR simulations a month; a monthly breach is a 429 and never Pro's downgrade), `effective_tier()` at
+  every place a tier leaves the database, a shared pool of 5,000 education VaR jobs a month after which education gets the free limits,
+  and five admin routes under `/api/v1/internal/admin/education/` that accept only a 10-minute token with `aud` "pyvar-admin" (a session
+  JWT, an "internal" JWT, an API key, a stream token and a trial ticket are all refused, and the admin token is refused everywhere
+  else). `scripts/education_grant.py` is the operator command (`grant`, `extend`, `revoke`, `list`, `suspend-all`). **Off until
+  `education_tier_enabled` is set** (PR 2); grant and extend answer 503 and every education account reads as free. `CLAUDE.md` 3.5 carries
+  the new rules. Design and every difference from it: `docs/plan-education-tier.md` section 10.
 - **The trial lane's edge rules and alarms (`infra(cdk)`)** — Three WAF rate rules scoped to `/api/v1/trial/` (30 per 10
   minutes per address, 600 per 10 minutes per network, 300 per 5 minutes in all) in front of the shared aggregate rule, a
   kill rule for that path that ships in Count (`scripts/toggle_kill_switch.sh enable <env> TrialKillSwitch`), a cache

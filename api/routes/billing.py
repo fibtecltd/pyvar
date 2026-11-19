@@ -91,6 +91,7 @@ from api.middleware.billing_lifecycle import (
     restore_after_payment_succeeded,
     send_tier_change_email,
 )
+from api.tiers import effective_tier
 from config import get_settings
 from schemas.billing import CheckoutCompleteResponse, CheckoutResponse
 from storage.models import BillingEvent, User
@@ -280,7 +281,7 @@ async def checkout_complete(session_id: str) -> CheckoutCompleteResponse:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
 
         external_id = row.external_id
-        tier = row.tier
+        tier = effective_tier(row.tier, row.tier_expires_at)
 
     access_token = create_access_token(user_id=external_id, tier=tier)
     return CheckoutCompleteResponse(access_token=access_token, tier=tier)

@@ -71,7 +71,7 @@ pyvar/
 │   └── versions/
 │       ├── 0001_initial.py     ← var_jobs audit table
 │       ├── 0002_users_and_tier.py
-│       └── …                   ← through 0009_api_keys.py (see the directory)
+│       └── …                   ← through 0010_user_tier_expires_at.py (see the directory)
 │
 ├── scripts/
 │   ├── db.py                   ← Alembic CLI wrapper

@@ -14,7 +14,12 @@ Reasoning:
 - Behaviour for the four existing tiers is unchanged and pinned by tests/test_tier_limits_behaviour.py, which was
   written and run before this refactor. An unknown tier still gets the free tier's limits, but now logs a
   warning once per name so the gap is visible.
-- "trial" is the odd one out among the five rows: the no-sign-up trial lane's calls carry it (api/routes/trial.py); no
+- "education" is a finite grant (docs/plan-education-tier.md): users.tier says "education" only while
+  users.tier_expires_at is in the future. `effective_tier()` below is the ONE place that turns the stored pair into
+  a tier, and every site where a tier leaves the database (the API-key lookup and the three session mints) calls
+  it. Its monthly limits are refusals (HTTP 429), never the Pro downgrade (`monthly_breach`), and it adds a
+  per-minute burst cap (`burst_per_minute`).
+- "trial" is the odd one out among the rows: the no-sign-up trial lane's calls carry it (api/routes/trial.py); no
   account ever has it.
 - What a tier is NOT: the admin routes check the name "internal" (api/routes/internal.py) and the billing code
   moves users between "free" and "pro" (api/middleware/billing_lifecycle.py). Those are roles and transitions,
@@ -25,6 +30,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from config import get_settings
 
@@ -35,7 +41,10 @@ FALLBACK_TIER = "free"
 
 # The tiers that exist. Adding one needs a row in `_policies` and an entry here; the test of this module fails
 # until both agree.
-KNOWN_TIERS = frozenset({"free", "pro", "enterprise", "internal", "trial"})
+KNOWN_TIERS = frozenset({"free", "pro", "enterprise", "internal", "trial", "education"})
+
+# The one tier whose stored value depends on a date (see effective_tier).
+EDUCATION_TIER = "education"
 
 _warned: set[str] = set()
 
@@ -57,6 +66,11 @@ class TierPolicy:
     # used as a metrics label, and the assistant questions allowed per day.
     assistant_group: str
     assistant_daily: int
+    # Compute requests per minute per account (all /api/v1 compute endpoints); None: no burst cap.
+    burst_per_minute: int | None = None
+    # What breaching a monthly limit does: "downgrade" (Pro: moves to Free, billing_lifecycle.py) or "refuse"
+    # (a 429 and nothing else; the education tier has no plan to be moved off).
+    monthly_breach: str = "downgrade"
 
 
 def _policies() -> dict[str, TierPolicy]:
@@ -101,6 +115,19 @@ def _policies() -> dict[str, TierPolicy]:
             assistant_group="enterprise",
             assistant_daily=cfg.assistant_quota_enterprise_daily,
         ),
+        # The education tier (docs/plan-education-tier.md): a finite, hand-given grant. Limits are starting values
+        # (config.py); a monthly breach is a refusal, never a downgrade; no extra assistant allowance.
+        "education": TierPolicy(
+            name="education",
+            max_simulations=100_000,
+            daily_requests=cfg.rate_limit_education_daily,
+            monthly_requests=cfg.rate_limit_education_monthly_requests,
+            monthly_simulations=cfg.rate_limit_education_monthly_simulations,
+            assistant_group="free",
+            assistant_daily=cfg.assistant_quota_free_daily,
+            burst_per_minute=cfg.rate_limit_education_burst_per_minute,
+            monthly_breach="refuse",
+        ),
         # The no-sign-up trial lane (docs/plan-trial-lane-throttle.md). It is not an account tier: no users or
         # api_keys row has it, and a ticket never carries it as a claim. The row exists so the lane's per-ticket
         # daily call count and the simulation cap come from this one table like everyone else's, and so the
@@ -131,3 +158,48 @@ def policy_for(tier: str) -> TierPolicy:
             FALLBACK_TIER,
         )
     return table[FALLBACK_TIER]
+
+
+def effective_tier(
+    tier: str, tier_expires_at: datetime | None = None, now: datetime | None = None
+) -> str:
+    """The tier an account counts as right now, from the pair the database stores.
+
+    Only "education" depends on the date: it counts while `tier_expires_at` is in the future and the
+    feature flag is on; with no expiry, a past one or the flag off, the account is "free". Every other tier is
+    returned as stored. Call this wherever a tier leaves the database: the API-key lookup and each session
+    mint. A tier must never reach a token claim or a cache entry by any other route (CLAUDE.md 3.5).
+
+    Args:
+        tier: `users.tier` as stored.
+        tier_expires_at: `users.tier_expires_at`; naive values are read as UTC.
+        now: The current time (a parameter for tests).
+
+    Returns:
+        The tier to apply: `tier` itself, or "free" for an education account whose grant has lapsed.
+    """
+    if tier != EDUCATION_TIER:
+        return tier
+    if not get_settings().education_tier_enabled or tier_expires_at is None:
+        return FALLBACK_TIER
+    expires = tier_expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    moment = now if now is not None else datetime.now(timezone.utc)
+    return EDUCATION_TIER if expires > moment else FALLBACK_TIER
+
+
+def seconds_until_expiry(
+    tier: str, tier_expires_at: datetime | None, now: datetime | None = None
+) -> int | None:
+    """Seconds an education grant has left (at least 0), or None for any other tier or no expiry.
+
+    The API-key cache uses it so a cached tier never outlives the grant it came from.
+    """
+    if tier != EDUCATION_TIER or tier_expires_at is None:
+        return None
+    expires = tier_expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    moment = now if now is not None else datetime.now(timezone.utc)
+    return max(0, int((expires - moment).total_seconds()))

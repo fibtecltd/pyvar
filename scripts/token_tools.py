@@ -71,32 +71,62 @@ def sign_token(
     secret: str,
     *,
     sub: str,
-    tier: str,
+    tier: str | None,
     ttl_seconds: int,
     now: int | None = None,
     jti: str | None = None,
+    audience: str | None = None,
 ) -> str:
-    """Sign an HS256 JWT with `sub`, `tier`, `iat`, `exp` and, if given, `jti`.
+    """Sign an HS256 JWT with `sub`, `iat`, `exp` and, if given, `tier`, `jti` and `aud`.
 
     Args:
         secret: The environment's signing secret.
         sub: Subject claim: a label (or an account id) that identifies the holder.
-        tier: Tier claim (internal, enterprise, pro or free).
+        tier: Tier claim (internal, enterprise, pro or free); None leaves the claim out (an admin token has none).
         ttl_seconds: Lifetime in seconds; always becomes an `exp` claim.
         now: Issue time as a Unix timestamp (defaults to the current time).
         jti: A unique token id. The API ignores it today; a future revocation list would key on it.
+        audience: An `aud` claim. A token with one is refused by every route that names no audience, which is
+            what keeps a scoped token (the admin token) from working as a session.
 
     Returns:
         The compact token string.
     """
     issued = int(time.time()) if now is None else now
     header = b64url(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
-    claims: dict[str, Any] = {"sub": sub, "tier": tier, "iat": issued, "exp": issued + ttl_seconds}
+    claims: dict[str, Any] = {"sub": sub}
+    if (
+        tier is not None
+    ):  # the key order stays sub, tier, iat, exp: tokens for the old callers are unchanged
+        claims["tier"] = tier
+    claims.update({"iat": issued, "exp": issued + ttl_seconds})
+    if audience:
+        claims["aud"] = audience
     if jti:
         claims["jti"] = jti
     body = b64url(json.dumps(claims, separators=(",", ":")).encode())
     signature = hmac.new(secret.encode(), f"{header}.{body}".encode(), hashlib.sha256).digest()
     return f"{header}.{body}.{b64url(signature)}"
+
+
+def sign_admin_token(
+    secret: str, *, operator: str, audience: str, ttl_seconds: int, now: int | None = None
+) -> str:
+    """An admin token: `sub` is the operator's label, `aud` the admin audience, no tier, a random `jti`.
+
+    The API's /internal/admin/ routes accept only this shape (api/middleware/auth.py::decode_admin_payload).
+    """
+    import secrets as _secrets
+
+    return sign_token(
+        secret,
+        sub=operator,
+        tier=None,
+        ttl_seconds=ttl_seconds,
+        now=now,
+        jti=_secrets.token_urlsafe(12),
+        audience=audience,
+    )
 
 
 def decode_unverified(token: str) -> dict[str, Any]:
