@@ -13,6 +13,7 @@ Reasoning:
 
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -281,8 +282,9 @@ async def test_a_grant_sets_the_tier_and_expiry_and_writes_the_event_in_the_same
         "education",
     )
     assert event.user_id == "ext-ada"
-    assert event.reason is not None and event.reason.startswith("cohort=ucl-2026; months=6")
-    assert "ada" not in event.reason and "uni.ac.uk" not in event.reason  # no applicant data
+    # Exactly a code, the cohort label and a date: nothing an applicant wrote, no address, no domain.
+    assert event.reason is not None
+    assert re.fullmatch(r"cohort=ucl-2026; months=6; expires=\d{4}-\d{2}-\d{2}", event.reason)
     mail.assert_called_once_with("ada@uni.ac.uk", "education_granted")
 
 
@@ -418,7 +420,11 @@ async def test_the_domain_cap_binds_unless_overridden_and_the_override_never_lif
         assert (await client.post(GRANT, json=body("a"), headers=ADMIN)).status_code == 200
         assert (await client.post(GRANT, json=body("b"), headers=ADMIN)).status_code == 200
         blocked = await client.post(GRANT, json=body("c"), headers=ADMIN)
-        assert blocked.status_code == 409 and "uni.ac.uk" in blocked.json()["detail"]
+        assert blocked.status_code == 409
+        assert blocked.json()["detail"] == (
+            "2 education accounts are already active for uni.ac.uk. "
+            "Use allow_domain_over_cap for a class."
+        )
         override = await client.post(
             GRANT, json=body("c", allow_domain_over_cap=True), headers=ADMIN
         )
