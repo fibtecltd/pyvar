@@ -298,14 +298,17 @@ class ApiStack(Stack):
             execution_role=execution_role,
         )
 
+        # Kept in a variable so the alerts stack can attach metric filters to the log group the driver
+        # creates (the no-sign-up trial lane's alarms count its JSON log lines; see self.api_log_group).
+        api_log_driver = ecs.LogDrivers.aws_logs(
+            stream_prefix="pyvar-api",
+            log_retention=cdk.aws_logs.RetentionDays.ONE_MONTH,
+        )
         _container = task_def.add_container(
             "api",
             image=ecs.ContainerImage.from_ecr_repository(self.ecr_repo, tag=cfg.api_image_tag),
             port_mappings=[ecs.PortMapping(container_port=8000)],
-            logging=ecs.LogDrivers.aws_logs(
-                stream_prefix="pyvar-api",
-                log_retention=cdk.aws_logs.RetentionDays.ONE_MONTH,
-            ),
+            logging=api_log_driver,
             environment={
                 "APP_ENV": cfg.env_name,
                 "CELERY_BROKER_URL": "sqs://",
@@ -651,6 +654,9 @@ class ApiStack(Stack):
         # on (network_stack.py).
 
         # ── Expose outputs ────────────────────────────────────────────────────
+        # The API container's log group (created by the log driver when the container was added above, so
+        # its name and logical ID are unchanged by exposing it here). Bound by add_container, hence read late.
+        self.api_log_group = api_log_driver.log_group
         self.alb = fargate_service.load_balancer
         self.alb_dns_name = fargate_service.load_balancer.load_balancer_dns_name
 

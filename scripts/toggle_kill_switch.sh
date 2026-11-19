@@ -11,9 +11,13 @@
 # after that this script is the actual emergency lever.
 #
 # Usage:
-#   scripts/toggle_kill_switch.sh status  [env]   # default env: prod
-#   scripts/toggle_kill_switch.sh enable  [env]    # block everything NOW
-#   scripts/toggle_kill_switch.sh disable [env]    # restore normal traffic
+#   scripts/toggle_kill_switch.sh status  [env] [rule]   # default env: prod
+#   scripts/toggle_kill_switch.sh enable  [env] [rule]   # block NOW
+#   scripts/toggle_kill_switch.sh disable [env] [rule]   # restore normal traffic
+#
+# [rule] is EmergencyKillSwitch (the default: every request) or TrialKillSwitch
+# (only the no-sign-up trial path, /api/v1/trial/; docs/plan-trial-lane-throttle.md).
+# The two are independent: engaging one leaves the other as it was.
 #
 # Requires: aws CLI (configured with a principal that can wafv2:GetWebACL /
 # wafv2:UpdateWebACL), jq. The WebACL is CLOUDFRONT-scoped, which AWS
@@ -30,12 +34,23 @@ set -euo pipefail
 
 ACTION="${1:-}"
 ENV_NAME="${2:-prod}"
+RULE_NAME="${3:-EmergencyKillSwitch}"
 REGION="us-east-1" # CLOUDFRONT-scoped WebACLs are always managed here
 WAF_NAME="pyvar-${ENV_NAME}-waf"
-RULE_NAME="EmergencyKillSwitch"
 
 if [[ "$ACTION" != "status" && "$ACTION" != "enable" && "$ACTION" != "disable" ]]; then
-  echo "Usage: $0 {status|enable|disable} [env]  (env defaults to 'prod')" >&2
+  echo "Usage: $0 {status|enable|disable} [env] [rule]  (env defaults to 'prod'; rule to 'EmergencyKillSwitch')" >&2
+  exit 1
+fi
+
+# Only the two switch rules may be flipped: this script rewrites a rule's action, and a typo
+# must not turn a rate-limit or managed rule group into a Block/Count of the wrong thing.
+if [[ "$RULE_NAME" == "EmergencyKillSwitch" ]]; then
+  SCOPE_TEXT="all traffic"
+elif [[ "$RULE_NAME" == "TrialKillSwitch" ]]; then
+  SCOPE_TEXT="all no-sign-up trial traffic (/api/v1/trial/)"
+else
+  echo "Unknown rule '${RULE_NAME}': use EmergencyKillSwitch or TrialKillSwitch." >&2
   exit 1
 fi
 
@@ -69,9 +84,9 @@ fi
 
 echo "Current state: ${RULE_NAME} action = ${CURRENT_ACTION}" >&2
 if [[ "$CURRENT_ACTION" == "Block" ]]; then
-  echo "==> KILL SWITCH IS CURRENTLY ENGAGED — all traffic is being blocked." >&2
+  echo "==> ${RULE_NAME} IS CURRENTLY ENGAGED — ${SCOPE_TEXT} is being blocked." >&2
 else
-  echo "==> Kill switch is currently OFF — traffic flows normally." >&2
+  echo "==> ${RULE_NAME} is currently OFF — traffic flows normally." >&2
 fi
 
 if [[ "$ACTION" == "status" ]]; then
@@ -110,8 +125,8 @@ aws wafv2 update-web-acl \
 rm -f /tmp/pyvar-waf-update.json
 
 if [[ "$ACTION" == "enable" ]]; then
-  echo "==> KILL SWITCH ENGAGED. All traffic to pyvar-${ENV_NAME} is now blocked at the edge." >&2
-  echo "    Run '$0 disable ${ENV_NAME}' to restore normal traffic." >&2
+  echo "==> ${RULE_NAME} ENGAGED. ${SCOPE_TEXT} to pyvar-${ENV_NAME} is now blocked at the edge." >&2
+  echo "    Run '$0 disable ${ENV_NAME} ${RULE_NAME}' to restore normal traffic." >&2
 else
-  echo "==> Kill switch disengaged. Normal traffic restored for pyvar-${ENV_NAME}." >&2
+  echo "==> ${RULE_NAME} disengaged. Normal traffic restored for pyvar-${ENV_NAME}." >&2
 fi

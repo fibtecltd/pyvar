@@ -22,6 +22,14 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   puzzle, nothing else) and keeps it in `install.json` in the plugin's own data directory (mode 0600); never when `CI`
   is set or outside Claude Code. A key you set always wins. `list_pyvar_functions` marks the functions that work without
   one, and tool calls no longer block the MCP loop. **Published only when `pyvar-mcp-v0.3.0` is tagged.**
+- **The trial lane's edge rules and alarms (`infra(cdk)`)** — Three WAF rate rules scoped to `/api/v1/trial/` (30 per 10
+  minutes per address, 600 per 10 minutes per network, 300 per 5 minutes in all) in front of the shared aggregate rule, a
+  kill rule for that path that ships in Count (`scripts/toggle_kill_switch.sh enable <env> TrialKillSwitch`), a cache
+  behaviour whose origin request policy forwards `CloudFront-Viewer-ASN` to the API, and six alarms: WAF blocks (us-east-1,
+  its own SNS topic), and five that count the lane's new log lines (`trial_issued`, `trial_refused_<reason>`,
+  `trial_breaker_*`) with CloudWatch metric filters. The lane itself still stays off until `scripts/trial_ctl.py on`.
+  `docs/prompts/agent-trial-enable-dev.txt` switches it on in dev and proves it with one real call.
+  Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
 - **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
   cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
   `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of
