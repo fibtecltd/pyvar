@@ -205,3 +205,191 @@ async def test_unknown_tool_name_returns_error_not_exception(server):
 
     assert result.is_error is True
     assert "Unknown tool" in result.content[0].text
+
+
+# ── no key: the trial ─────────────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def keyless_server(monkeypatch, tmp_path):
+    monkeypatch.delenv("PYVAR_API_KEY", raising=False)
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path / "data"))
+    return build_server()
+
+
+@pytest.mark.asyncio
+async def test_a_server_with_no_key_starts_and_lists_tools_without_the_network_or_a_file(
+    keyless_server, tmp_path
+):
+    with patch("pyvar_mcp.trial._post", side_effect=AssertionError("no network")):
+        with patch("pyvar_mcp.client.urllib.request.urlopen", side_effect=AssertionError("no")):
+            tools = await _list_tools_handler(keyless_server)(None, None)
+            listing = await _call_tool_handler(keyless_server)(
+                None, types.CallToolRequestParams(name="list_pyvar_functions", arguments={})
+            )
+
+    assert len(tools.tools) == 385 + 2
+    assert listing.is_error is not True
+    assert not (tmp_path / "data").exists()  # nothing is written until a call needs a ticket
+
+
+@pytest.mark.asyncio
+async def test_without_a_key_the_listing_marks_the_thirty_trial_functions(keyless_server):
+    result = await _call_tool_handler(keyless_server)(
+        None, types.CallToolRequestParams(name="list_pyvar_functions", arguments={})
+    )
+
+    functions = json.loads(result.content[0].text)["functions"]
+    marked = [f["function_name"] for f in functions if f["available_without_key"]]
+    assert len(marked) == 30 and "parametric_delta_normal_var" in marked
+    assert all("available_without_key" in f for f in functions)
+
+
+@pytest.mark.asyncio
+async def test_with_a_key_the_listing_is_unchanged(server):
+    result = await _call_tool_handler(server)(
+        None, types.CallToolRequestParams(name="list_pyvar_functions", arguments={})
+    )
+
+    functions = json.loads(result.content[0].text)["functions"]
+    assert all("available_without_key" not in f for f in functions)
+
+
+@pytest.mark.asyncio
+async def test_the_listing_tool_tells_the_model_what_the_mark_means(keyless_server):
+    tools = (await _list_tools_handler(keyless_server)(None, None)).tools
+
+    assert "available_without_key" in tools[0].description
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("via", ["named", "generic"])
+async def test_without_a_key_a_function_off_the_list_comes_back_as_an_error_result(
+    keyless_server, via
+):
+    entry = catalogue_entry("historical_simulation_var")
+    arguments = {name: 1 for name in entry["input_schema"].get("required", [])}
+    if via == "named":
+        params = types.CallToolRequestParams(name="historical_simulation_var", arguments=arguments)
+    else:
+        params = types.CallToolRequestParams(
+            name="call_pyvar_function",
+            arguments={
+                "domain": "market-risk",
+                "function_name": "historical_simulation_var",
+                "params": arguments,
+            },
+        )
+
+    with patch("pyvar_mcp.trial._post", side_effect=AssertionError("no network")):
+        result = await _call_tool_handler(keyless_server)(None, params)
+
+    assert result.is_error is True
+    assert "free pyvar API key" in result.content[0].text
+    assert "https://www.pyvar.com#get-api-key" in result.content[0].text
+
+
+def catalogue_entry(function_name):
+    from pyvar_mcp import catalogue
+
+    return next(e for e in catalogue.all_functions() if e["function_name"] == function_name)
+
+
+def _trial_script():
+    answers = [
+        (200, {}, json.dumps({"challenge": "id.1999999999.4.sig", "bits": 4})),
+        (200, {}, json.dumps({"ticket": "tkn", "expires_at": 4_000_000_000})),
+        (200, {}, json.dumps({"var_abs": 12.5})),
+    ]
+    seen = []
+
+    def post(url, payload, bearer=None):
+        seen.append((url.rsplit("/", 1)[-1], bearer))
+        return answers.pop(0)
+
+    return post, seen
+
+
+@pytest.mark.asyncio
+async def test_without_a_key_a_trial_function_runs_and_the_ticket_is_kept_privately(
+    keyless_server, tmp_path
+):
+    entry = catalogue_entry("parametric_delta_normal_var")
+    arguments = {name: 1 for name in entry["input_schema"].get("required", [])}
+    post, seen = _trial_script()
+
+    with patch("pyvar_mcp.trial._post", post):
+        result = await _call_tool_handler(keyless_server)(
+            None,
+            types.CallToolRequestParams(name="parametric_delta_normal_var", arguments=arguments),
+        )
+
+    assert result.is_error is not True
+    assert json.loads(result.content[0].text) == {"var_abs": 12.5}
+    assert seen == [
+        ("challenge", None),
+        ("ticket", None),
+        ("parametric_delta_normal_var", "tkn"),
+    ]
+    stored = tmp_path / "data" / "install.json"
+    assert json.loads(stored.read_text())["ticket"] == "tkn"
+
+
+@pytest.mark.asyncio
+async def test_without_a_key_in_ci_the_call_is_an_error_result_not_a_crash(monkeypatch, tmp_path):
+    monkeypatch.delenv("PYVAR_API_KEY", raising=False)
+    monkeypatch.setenv("CI", "true")
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path / "data"))
+    server = build_server()  # still starts
+    entry = catalogue_entry("parametric_delta_normal_var")
+    arguments = {name: 1 for name in entry["input_schema"].get("required", [])}
+
+    with patch("pyvar_mcp.trial._post", side_effect=AssertionError("no network")):
+        result = await _call_tool_handler(server)(
+            None,
+            types.CallToolRequestParams(name="parametric_delta_normal_var", arguments=arguments),
+        )
+
+    assert result.is_error is True and "CI is set" in result.content[0].text
+    assert not (tmp_path / "data").exists()
+
+
+@pytest.mark.asyncio
+async def test_a_slow_call_does_not_block_the_event_loop(keyless_server):
+    """The sign-up puzzle or a wait runs in a worker thread, so the loop keeps serving other requests."""
+    import asyncio
+    import time
+
+    entry = catalogue_entry("parametric_delta_normal_var")
+    arguments = {name: 1 for name in entry["input_schema"].get("required", [])}
+    ticks = 0
+
+    def slow_post(url, payload, bearer=None):
+        time.sleep(0.3)
+        return 200, {}, json.dumps({"ok": True})
+
+    async def ticker():
+        nonlocal ticks
+        while True:
+            await asyncio.sleep(0.01)
+            ticks += 1
+
+    with patch("pyvar_mcp.trial._post", slow_post):
+        with patch("pyvar_mcp.trial.TicketStore.load", return_value=_ticket_stub()):
+            task = asyncio.create_task(ticker())
+            await _call_tool_handler(keyless_server)(
+                None,
+                types.CallToolRequestParams(
+                    name="parametric_delta_normal_var", arguments=arguments
+                ),
+            )
+            task.cancel()
+
+    assert ticks >= 10
+
+
+def _ticket_stub():
+    from pyvar_mcp.trial import Ticket
+
+    return Ticket("tkn", 4_000_000_000, "https://www.pyvar.com")

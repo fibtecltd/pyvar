@@ -15,10 +15,13 @@ what's actually deployed at pyvar.com.
 /plugin install pyvar-mcp@pyvar-marketplace
 ```
 
-You'll be prompted for a pyvar API key during install. Sign in at
-<https://www.pyvar.com#get-api-key> (emailed link or Google; no password, no
-credit card) and create one on the dashboard. It starts with `pyvar_`, lasts a
-year, and you can revoke it there at any time.
+You'll be asked for a pyvar API key during install, and you can leave it empty:
+without one, 30 of the functions work with no sign-up, a few calls a day
+(`list_pyvar_functions` marks them `available_without_key`). For every function
+and higher limits, sign in at <https://www.pyvar.com#get-api-key> (emailed link
+or Google; no password, no credit card), create a key on the dashboard and set it
+in the plugin's settings. It starts with `pyvar_`, lasts a year, and you can
+revoke it there at any time. A key you set is always the one used.
 
 The plugin starts the server with `uvx pyvar-mcp`, which downloads it from PyPI
 on first use, so it needs [uv](https://docs.astral.sh/uv/) on your PATH. If the
@@ -36,13 +39,44 @@ unpinned launcher), so a release changes three things together: `version` in
 versions and the pin disagree. Tag the merge commit as soon as it lands: until the
 tag's workflow has run, the pin names a version PyPI does not have yet.
 
+## What this plugin stores and sends
+
+**With an API key** the plugin sends it to pyvar.com as a bearer token with every
+call, together with the function's parameters and the label `X-Pyvar-Client:
+pyvar-mcp/<version>`. It stores nothing.
+
+**With no key** (inside Claude Code only, and never when `CI` is set; set
+`PYVAR_API_KEY` there) the first tool call that needs one asks pyvar.com for an
+anonymous installation ticket:
+
+- It sends a solved puzzle (a small proof of work, about a second of CPU) and
+  nothing else: no account, name, e-mail or machine details.
+- It keeps the ticket in `install.json` in **the plugin's own data directory**
+  (`${CLAUDE_PLUGIN_DATA}`), readable by you only (mode 0600), together with its
+  expiry, the time it was issued and the API address it came from. While it asks, a
+  lock file `install.lock` sits beside it. The plugin opens no file outside that
+  directory.
+- Later calls send the ticket to pyvar.com (and nowhere else: redirects are not
+  followed), plus the function's parameters and the label above.
+- A ticket lasts 72 hours and allows 5 calls a day, 15 in all, on the 30 functions
+  of the trial. When it expires or is refused it is replaced once, automatically.
+  When the trial is busy or spent, the answer says so and points to a free key.
+- Nothing is requested when the server starts or when tools are listed, only at the
+  first call that needs a ticket.
+- To stop it: set a key (it wins), or delete `install.json`. Removing the plugin
+  removes its data directory.
+
+pyvar.com counts calls by function, tier (`trial`), duration and status, with no
+user identifier; see <https://www.pyvar.com/privacy.html>.
+
 ## Tools
 
 Two generic tools, meant as your first choice:
 
 - **`list_pyvar_functions(domain?)`** — browse available functions, optionally
   filtered to one domain (`alm`, `credit-risk`, `derivatives`, `liquidity`,
-  `market-risk`, `operational`, `portfolio`, `regulatory`).
+  `market-risk`, `operational`, `portfolio`, `regulatory`). With no API key set,
+  each entry also says whether it is `available_without_key`.
 - **`call_pyvar_function(domain, function_name, params)`** — call any
   function by name. Validates `params` against the function's own schema
   before calling the API.

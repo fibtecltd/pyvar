@@ -88,6 +88,10 @@ checked against master at `7e35bbc` unless marked as inference. Companion docume
 | Education `CLAUDE.md` 3.5 bullets | Go | Recorded in `docs/plan-education-tier.md` section 8; applied in A2 PR 1 with the code they describe |
 | Trial lane PR 1 | "Start" | Built (see `docs/plan-trial-lane-throttle.md`, "PR 1 as built"). The whitelist is 30 functions, listed there for the owner's review; the lane stays OFF until `trial_ctl.py on` |
 | Order of A2 PR 1 and A3 PR 1 | Trial lane first (implied by the start order) | A2 PR 1 rebases on it and reuses its audience-checked decoder pattern |
+| #439 | Merge | Merged (`6168919`). The lane is OFF until `scripts/trial_ctl.py on` is run (dev first) |
+| Trial whitelist | The 30-function list is confirmed | Recorded in `docs/plan-trial-lane-throttle.md` |
+| `Retry-After` | Keep one value per refusal reason | As built |
+| Trial lane PR 2 | "Start" | Built: `pyvar-mcp` 0.3.0 (see the plan's "PR 2 as built"). **Not released:** the tag `pyvar-mcp-v0.3.0` publishes to PyPI and needs the owner's go |
 
 ## A. New high-priority work
 
