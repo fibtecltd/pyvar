@@ -1,6 +1,6 @@
 # Plan: education tier (A2), accepted 2026-11-18
 
-**Status: accepted by the owner on 2026-11-18, as proposed. Nothing is built.** This supersedes `docs/plan-academic-access.md`
+**Status: accepted by the owner on 2026-11-18, as proposed. PR 1 is built (2026-11-19, section 10), off by default; PR 2 (portal text and the flag) is not started.** This supersedes `docs/plan-academic-access.md`
 (2026-11-16). It comes from an independent review (a Fable research agent, 2026-11-17) of that plan against the code at
 `d6c8bf0`, with three of its claims re-checked by the author (below). **[V]** means read at the file and line cited, **[A]** a
 recommendation or assumption. The review ran no code and no test.
@@ -107,7 +107,7 @@ and each of the three session mints; a Stripe upgrade survives the expiry. For t
 `internal` JWT, a stream token and a token with no `aud`; refuse a grant to `pro`, `enterprise` or `internal`; 409 over the caps. Migration up
 and down; script tests with `--secret-stdin` and a loopback URL, no AWS.
 
-## 8. `CLAUDE.md` 3.5 bullets (**go given by the owner on 2026-11-18; applied in A2 PR 1**, with the code they describe, not before)
+## 8. `CLAUDE.md` 3.5 bullets (**go given by the owner on 2026-11-18; applied in A2 PR 1 on 2026-11-19**, with the code they describe; only the trailing design pointer was widened to name the trial plan too)
 
 ```
 - The education tier is finite and expires: users.tier "education" counts only while
@@ -132,3 +132,56 @@ The Jisc policy text, the ICO retention guidance and UK school lists were not op
 Whether the owner has an MFA identity in AWS is unknown (the repository shows none), so the approver should use his own AWS identity with
 MFA, allowed only to read the one secret, instead of the deployer key [A, recommended, not blocking]. The limiter on Valkey is unchecked.
 Demand is unmeasured: every number is a starting value. The cost figures are the repository's, not a bill.
+
+## 10. PR 1 as built (2026-11-19)
+
+**Off by default.** `education_tier_enabled` is False, so merging changes nothing for anyone: every education account (there are none) reads as
+`free`, and grant and extend answer 503. The portal text and the flag in `pyvar-cdk/config.py` are PR 2.
+
+| Piece | What it is |
+| --- | --- |
+| `migrations/versions/0010_user_tier_expires_at.py`, `storage/models.py` | One nullable `users.tier_expires_at`, no default, no backfill. **Run up, down and up again on a throwaway PostgreSQL 16**; `tests/test_migration_0010_tier_expires_at.py` pins the offline SQL (one ADD COLUMN; one DROP COLUMN) and the single head |
+| `api/tiers.py` | The `education` row (100,000 simulations; 100 a day, 2,000 a month, 20 a minute; 1,000,000 VaR simulations a month), two new `TierPolicy` fields (`burst_per_minute`, `monthly_breach`: `"downgrade"` for every other tier, `"refuse"` for education), `effective_tier()` and `seconds_until_expiry()` |
+| `config.py` | `education_tier_enabled` (False) and the numbers above, the caps (25 and 10), months (6 default, 12 at most), the pool (5,000) and the admin token life (600 s) |
+| `api/middleware/rate_limit.py`, `api/routes/var.py` | The burst check (**first**, so a refused burst does not use up the day), a monthly breach of a `refuse` tier is a 429 and never calls Pro's downgrade (requests **and** VaR simulations), and the pool (below) |
+| `api/middleware/api_keys.py`, `api/routes/auth.py` (2), `api/routes/billing.py` (1) | The four places a tier leaves the database read it through `effective_tier()`. The key cache's TTL is capped at the grant's remaining seconds **while the grant is live** (a lapsed one resolves to free and is cached normally) |
+| `api/middleware/auth.py` | `decode_admin_payload()` and `require_admin_token`: `aud` exactly "pyvar-admin" (checked a second time by hand, because python-jose lets a token with no `aud` through), `exp` and `iat` required, a life of at most `admin_token_ttl_seconds`, a subject, **no `tier` claim** |
+| `api/education_grants.py` (new), `api/routes/internal.py`, `schemas/internal.py` | The rules, in one module with no HTTP in it, and five routes under `/api/v1/internal/admin/education/`: `grant`, `extend`, `revoke`, `suspend-all` (POST) and `list` (GET), kept out of the public OpenAPI document |
+| `api/middleware/billing_lifecycle.py` | Four event names (`education_granted`, `_extended`, `_revoked`, `_suspended`) and the copy of the e-mail each sends to the account holder (best effort, like every tier-change e-mail) |
+| `scripts/education_grant.py`, `scripts/token_tools.py` | The operator command (`grant`, `extend`, `revoke`, `list`, `suspend-all`); `token_tools.sign_token` gained an optional `audience` and an optional `tier` (token bytes for the old callers are unchanged) |
+
+**Differences from the plan above.**
+- **The logic is a module of its own** (`api/education_grants.py`); the routes are thin. The plan listed the work under `api/routes/internal.py`.
+- **The pool is the rate limiter, not a hand-made counter** (the plan marked the mechanism an assumption, section 4). 5,000 education VaR jobs per **30-day fixed
+  window** (the same `limits` storage and window kind as every monthly cap here, not a calendar month), taken by `/var/compute`, read without taking by every
+  education compute request. **While it is spent, an education account gets the FREE limits on every compute route** (20 a day, 10,000 simulations), not only on
+  VaR: "falls back to free limits" read literally, and the only reading that keeps the $130 bound. A request the education cap itself refuses (over 100,000 simulations) takes nothing from the pool. Like every quota here, it **fails open** on a cache error.
+- **The monthly VaR simulation breach is a 429**, as the monthly request breach is (the plan said "a 429, never a downgrade" for the second only).
+- **Revoke, list and suspend-all work with the flag off**; grant and extend are the only 503s. A way to end access must not depend on the flag.
+- **`extend` of a lapsed grant re-checks the caps** (it makes the account active again), and an extension may go at most 12 months from today.
+- **The cohort label is validated** (1 to 40 characters of letters, digits, `.`, `_`, `-`) so no applicant's words can reach the audit row. The `billing_events.reason` is
+  `cohort=<label>; months=<n>; expires=<date>`, `cohort=<label>` or `code=suspend_all`, and a test fails if it ever holds an address or a name.
+- **A grant, extend, revoke and suspend-all drop the account's cached API keys** at once (best effort), so a change reaches a key in seconds, not after the 60 s cache.
+- **A ledger line** (`~/.pyvar/education.jsonl`, 0600; operator, time, environment, address, cohort, expiry) is written by the script after the API has confirmed;
+  it is a convenience, the `billing_events` table is the record. No secret or token is ever written.
+- **Not in the plan:** education uses the free tier's assistant allowance (`assistant_group` "free", the free daily number).
+
+**Tests** (`tests/test_education_tier.py` 29, `test_education_admin.py` 67, `test_education_grant_script.py` 14, `test_migration_0010_tier_expires_at.py` 4, plus the changed
+`test_tier_policy.py`): the effective tier in every combination (flag, no expiry, past, future, naive, other tiers, a Stripe upgrade surviving an old date); the
+limits and that a breach changes nothing about the account; the pool, in and out, and failing open; 100,000 allowed and 100,001 refused; **every credential the API
+hands out is refused by every admin route** (a session JWT, an enterprise JWT, an internal JWT, an API key, a stream token, a trial ticket, a wrong or missing `aud`,
+an expired token, no `exp`, no `iat`, a life of 11 minutes, a `tier` claim, no subject, another secret) **and the admin token is refused by a route of each other kind** (session-only, compute, internal-tier, stream-token); real rows
+for grant, extend, revoke, suspend-all and list, the two caps (the override never lifts the cohort cap, and a domain that merely ends the same way is not the same domain),
+the audit rows' contents, the sign-in mint, key resolution and the key cache; the script against the real application (the token it signs is the one the API accepts,
+"confirmed" only when the API's list agrees). The grant logic was also run once against a throwaway PostgreSQL 16 (case-insensitive address match, the suffix match
+on the domain, ordering, the events).
+
+**CodePipeline:** yes (`api/`, `migrations/`, `config.py`), and it includes the migration; the pipeline's migration step runs it in dev, then prod after approval.
+
+**Not verified:** the pool's window and `test()` against the real Valkey-backed limiter (tested on the in-memory storage only); that the e-mail copy is acceptable
+(a lawyer's read is already due for PR 2's text); that an organisation's mail filters do not treat the grant e-mail as marketing (it is sent from the same sender as the
+other tier-change e-mails); the Jisc and ICO points of section 9; demand.
+
+**To start using it (not part of this PR):** run PR 2 (privacy and terms text, the flag in `pyvar-cdk/config.py`, dev then prod), then
+`python scripts/education_grant.py grant --env dev --email <address> --cohort <label>`.
+

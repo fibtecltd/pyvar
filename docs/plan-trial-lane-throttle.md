@@ -115,7 +115,7 @@ above 1,000 in 5 minutes; any breaker state change. Refusals are counted in Redi
 | 0 | This design and the decisions above; `docs/prompts/agent-a3-p95-measure.txt`, a read-only prompt that measures per-function p95 on dev's `api_usage` for the weights (one Fargate one-off of the migrate task, as the C1 check did; its SQL was run against a throwaway local Postgres, including a write that the read-only transaction refused) | no (docs only) |
 | 1 `feat(api)` **(built 2026-11-18; as-built notes below)** | `"trial"` row in `api/tiers.py` (`max_simulations` 10,000, `daily_requests` 5, `assistant_daily` 0) and `KNOWN_TIERS`; settings; `api/middleware/trial.py`; `api/routes/trial.py`; weight table; `scripts/trial_ctl.py`; a `CLAUDE.md` 3.5 paragraph (**go given 2026-11-17**, text below); metering by measured time with the 1 s deadline, a body-size cap and an array-length cap; the whitelist from the benchmark; the trial decoder must **require** `aud` to be present and equal to `pyvar-trial` (tested below); off until the Redis key is set | yes |
 | 2 `feat(mcp)` 0.3.0 **(built 2026-11-18; as-built notes below)** | lazy bootstrap, `install.json`, proof-of-work solver, `CI` refusal, key wins if set, one retry, README "what this stores and sends" | yes |
-| 3 `infra(cdk)` | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
+| 3 `infra(cdk)` **(built 2026-11-19; as-built notes below)** | three scoped WAF rules, a kill rule in Count, `CloudFront-Viewer-ASN` in the origin request policy, alarms | yes |
 
 Enabling in dev and then prod is `trial_ctl.py on`, with no run. PR 3 can ship before or after enabling: without it L5
 uses the shared "unknown" bucket and the application layers still bound cost.
@@ -275,6 +275,78 @@ marketplaces list the plugin from its default branch, so that window is real, an
 risk medium; the listing is frozen and nothing is resubmitted); what an unset optional sensitive option actually substitutes (an empty string and a
 literal placeholder are both handled); behaviour on Windows (the file mode is not enforced there; the tests that check it are skipped); the proof of
 work's time on a slow laptop.
+
+## PR 3 as built (2026-11-19): the edge and the alarms
+
+Everything here is in `pyvar-cdk` (`edge_stack.py`, `api_stack.py`, `alerts_stack.py`), `scripts/toggle_kill_switch.sh`, and the lane's own
+log lines. **Nothing is enabled by it**: the lane stays off until `scripts/trial_ctl.py on`, and the new kill rule ships in Count.
+
+**At the edge (us-east-1, `EdgeStack`).** All scoped to a starts-with match on `/api/v1/trial/` **after URL decoding and path normalisation**
+(the API decodes `%74rial` and collapses `//` before routing, so a raw-path match could be walked around).
+
+| Priority | Rule | Action | What it does |
+| --- | --- | --- | --- |
+| 0 | `EmergencyKillSwitch` (unchanged) | Count | Block everything, flipped by the script |
+| **5** | **`TrialKillSwitch`** | **Count** | Block the trial path only; independent of the rule above |
+| 10, 20 | the two managed rule groups (unchanged) | | |
+| **21** | **`TrialRateLimitPerIp`** | Block | 30 per 600 s per source address |
+| **22** | **`TrialRateLimitPerAsn`** | Block | 600 per 600 s per network (WAF's own ASN key, so it does not depend on the header below) |
+| **23** | **`TrialRateLimitAll`** | Block | 300 per 300 s for the whole path (CONSTANT, so the scope-down is mandatory, as the file's docstring records) |
+| 25 | `AggregateRateLimit` (unchanged) | Block | 6,000 per 300 s for everyone |
+| 30 | `RateLimitPerIp` (unchanged) | Block | 100 per 300 s per address |
+
+The three trial rate rules sit before the aggregate rule, so a flood on the trial path is refused there and does not use up the 6,000 every other
+caller shares. A trial request the rules let through is still counted by `RateLimitPerIp` and `AggregateRateLimit`. A new cache behaviour
+`/api/v1/trial/*` (same cache policy as the default behaviour, so `Authorization` is in the key and POSTs are not cached) uses a **new origin
+request policy** that forwards three headers: `User-Agent`, `X-Pyvar-Client` and **`CloudFront-Viewer-ASN`**, no cookies and no query string. It is
+an allow-list rather than "all viewer headers" because the lane reads nothing else. Like the default behaviour's policy it does not forward the
+`Host` header. **`scripts/toggle_kill_switch.sh status|enable|disable [env] [rule]`** takes
+`EmergencyKillSwitch` (the default, so nothing that uses it changes) or `TrialKillSwitch`, and refuses any other name before it calls AWS.
+
+**Alarms (all page an SNS topic that has no subscribers until someone adds one, as the existing alerts topic).**
+
+| Alarm | Where | Condition |
+| --- | --- | --- |
+| `pyvar-<env>-trial-waf-blocks` | us-east-1, own topic `pyvar-<env>-edge-alerts` (a CloudFront ACL's metrics are in us-east-1 and an alarm must publish to a topic of its own region) | WAF blocks of the three trial rate rules above 1,000 in 5 minutes |
+| `pyvar-<env>-trial-budget-empty` | API region, alerts topic | a breaker strike (the hourly check found the compute or issuance budget empty) in each of two consecutive hours: the word before the breaker trips at three |
+| `pyvar-<env>-trial-issuance-refusals` | same | more than 50 ticket refusals for the issuance budget in an hour |
+| `pyvar-<env>-trial-asn-cap` | same | any request refused because its network reached its share (5 minute window) |
+| `pyvar-<env>-trial-pow-failures` | same | proof-of-work failures above 20% of ticket attempts in an hour, counted only from 20 attempts |
+| `pyvar-<env>-trial-breaker-state` | same | the breaker set attack mode or paused issuance (5 minute window) |
+
+**Why the alarms count log lines.** Nothing in AWS scrapes the API's Prometheus counters. The lane now writes **one INFO line per issued ticket and per
+refusal** (`trial_issued`, `trial_refused_<reason>`) and **one WARNING line per breaker change** (`trial_breaker_strike`, `_attack`, `_pause`), and a
+CloudWatch metric filter on the API container's log group counts each by the JSON key `event`. This app's structlog set-up renders a stdlib record's
+message as `event` and does **not** render `extra=`, so the name carries the fact; the number of strikes, for example, is not in the line. Calls
+that ran, failed on input or timed out write nothing (an allowed call already has an `api_usage` row). The metric names carry the environment
+(`trial-<kind>-<env>` in namespace `pyvar`, like the worker-error metric) because dev and prod share one account. `ApiStack` now exposes its
+container's log group (`api_log_group`); its logical ID and name are unchanged. The synth of that stack differs only by one new export.
+`tests/test_trial_events.py` pins the lane's side with the real JSON logging set-up; `tests/test_cdk_trial_lane.py` pins the CDK side and that the
+two agree.
+
+**Synth diff against the master before this change** (dev and prod alike): `pyvar-<env>-alerts` +12 resources (7 metric filters, 5 alarms);
+`pyvar-<env>-api` no resource change (one new export); `pyvar-<env>-edge` +3 (an origin request policy, an SNS topic, an alarm) and two changed in
+place (the web ACL: five new rules; the distribution: one new cache behaviour). Nothing is replaced.
+
+**What a reader should know before enabling it.**
+- `TrialRateLimitAll` is a shared bucket: 300 per 5 minutes for **every** trial caller together. Someone who fills it blocks every other trial
+  caller at the edge until the window passes (the lane's own budgets are far below it: 20 tickets an hour). That is the plan's design, not a bug.
+- A request whose path is not exactly `/api/v1/trial/...` after decoding is not subject to these rules and does not get the ASN header; the API then
+  treats it as "no network known" (not capped by the per-network share, still bound by every global budget).
+- The ALB-fronting WAF (`alb_waf_stack.py`) is left as it was; it never had the kill switch or the aggregate rule.
+
+**Not verified (a first deploy to dev is the check):** that `CloudFront-Viewer-ASN` is accepted in an origin request policy's header allow-list by
+CloudFormation (AWS's documentation lists it; nothing here can call the API); the web ACL's capacity after five more rules (the limit is 5,000
+units; the two managed groups use about 900 and the new ones a few each); that a CloudFront web ACL's metrics have exactly the dimensions the alarm
+uses (`WebACL` and `Rule`, no `Region`, per AWS's metric reference, not seen on a live ACL); whether CloudFront overwrites a viewer-supplied
+`CloudFront-Viewer-ASN` (carried over from PR 1; if it does not, a caller can claim another network and escape its share, and the global budgets
+still bound the cost); whether WAF bills the requests it blocks (the plan's open question since PR 0).
+As the file's own docstring records, a WAF shape can pass `cdk synth` and be refused at deploy; the pipeline deploys dev first, so a refusal stops
+there and prod is not reached.
+
+**Enabling, after the dev deploy:** add a subscriber to the new `pyvar-dev-edge-alerts` topic (the alerts topic has its own); then run
+`docs/prompts/agent-trial-enable-dev.txt` (it switches the lane on in dev and makes one real call through CloudFront, which is also the check that
+`Authorization`, the body and the ASN header arrive). Prod follows the same two steps when the owner says so.
 
 ## Red team (one afternoon)
 

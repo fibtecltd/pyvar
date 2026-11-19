@@ -88,7 +88,10 @@ pyvar/
 │   ├── middleware/trial.py    ← no-sign-up trial lane: ticket (aud "pyvar-trial"), proof of work, Redis budgets and breaker (fail closed)
 │   ├── routes/trial.py        ← POST /trial/challenge  /trial/ticket  /trial/run/{function}: whitelisted functions inline, one slot, 1 s deadline
 │   ├── trial_whitelist.py     ← the 30 functions the lane may run, with trial_examples.json (one example body each)
-│   ├── middleware/rate_limit.py ← compute quota, public/register per-IP quotas, enforce_assistant_rate_limit (every tier)
+│   ├── middleware/rate_limit.py ← compute quota (burst, daily, monthly), public/register per-IP quotas, enforce_assistant_rate_limit (every tier), the education VaR pool
+│   ├── tiers.py               ← the one table of tier limits; effective_tier(): an education grant counts only until its expiry
+│   ├── education_grants.py    ← grant / extend / revoke / list / suspend-all for education accounts (called only by the admin routes)
+│   ├── routes/internal.py     ← service routes (internal tier); /internal/admin/education/* take an admin token (aud "pyvar-admin")
 │   ├── responses.py           ← orjson response class
 │   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
 │
@@ -235,7 +238,21 @@ AWS:        CELERY_BROKER_URL = sqs://
 - The per-IP counter holds only an HMAC of the IP prefix under a daily-rotating secret, in Redis with
   a 26 h TTL. Never log it, never write it to Postgres, and leave it off unless
   `trial_ip_counter_enabled` is set (after the privacy note exists).
-- Design, settings and failure modes: docs/plan-durable-api-keys.md, docs/plan-trial-lane-throttle.md.
+- The education tier is finite and expires: users.tier "education" counts only while
+  users.tier_expires_at is in the future; with no expiry, or a past one, the account is
+  "free". Read it through effective_tier() wherever a tier leaves the database (the key
+  lookup and every session mint). Never grant "internal" or "enterprise" for education.
+- Education limits live in api/tiers.py like every tier's. A monthly breach is a 429; it
+  must never call downgrade_for_monthly_limit, which is Pro's.
+- The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
+  10 minutes, signed by scripts/education_grant.py. They must REQUIRE `aud` to be present and
+  equal (python-jose lets a token with no `aud` through a decoder that names one), so a
+  session JWT, an API key, an "internal" JWT and a stream token are all refused. Every
+  other route keeps refusing the admin token. Do not accept it in get_current_user.
+- A grant or revocation writes its billing_events row in the same transaction as the tier
+  change, with a code and a cohort label only: never an applicant's name or text.
+- Design, settings and failure modes: docs/plan-durable-api-keys.md, docs/plan-trial-lane-throttle.md,
+  docs/plan-education-tier.md.
 ```
 
 ### 3.6 Portal assistant answer bank

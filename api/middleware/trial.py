@@ -110,6 +110,22 @@ UNRECORDED = Counter(
     "Trial-lane bookkeeping writes that failed (a charge or a refund): a budget undercounts until it is read",
 )
 
+
+def record_event(event: str) -> None:
+    """Count one outcome in Prometheus and, for the ones an alarm needs, write one log line.
+
+    `issued` and every `refused_<reason>` also become a log line whose JSON key `event` is `trial_<event>`
+    (the stdlib record's message; this app's structlog set-up does not render `extra=`, so the name carries the
+    fact). CloudWatch metric filters in pyvar-cdk/stacks/alerts_stack.py count exactly these names, which is
+    how the lane's alarms work without a Prometheus server; tests/test_trial_events.py pins the two together.
+    Nothing is logged for `ran` and the other per-call outcomes: a successful call already has an `api_usage`
+    row, and one line per call would only add volume.
+    """
+    EVENTS.labels(event=event).inc()
+    if event == "issued" or event.startswith("refused_"):
+        logger.info("trial_%s", event)
+
+
 # Why a request was refused -> seconds to suggest in Retry-After. The body is the same for every reason.
 RETRY_AFTER_SECONDS = {
     "off": 300,
@@ -686,11 +702,15 @@ class TrialStore:
                 await client.delete(KEY_STRIKES)
                 return
             strikes = await self._incr(KEY_STRIKES, 1, STRIKES_TTL_SECONDS)
+            # One log line per state change (an alarm counts them; see record_event). The strike line comes
+            # first so a trip reads as strike, then what it set.
+            logger.warning("trial_breaker_strike", extra={"strikes": strikes})
             if strikes >= cfg.trial_breaker_pause_after:
                 await client.set(KEY_PAUSE, "1", ex=PAUSE_TTL_SECONDS)
+                logger.warning("trial_breaker_pause")
             if strikes >= cfg.trial_breaker_attack_after:
                 await client.set(KEY_ATTACK, "1", ex=ATTACK_TTL_SECONDS)
-            logger.warning("trial_breaker_strike", extra={"strikes": strikes})
+                logger.warning("trial_breaker_attack")
         except Exception:  # noqa: BLE001
             logger.warning("trial_breaker_check_failed")
 

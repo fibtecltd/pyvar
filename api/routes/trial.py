@@ -52,10 +52,10 @@ from api.middleware import trial as lane
 from api.middleware.auth import TokenPayload
 from api.middleware.rate_limit import get_trusted_client_ip
 from api.middleware.trial import (
-    EVENTS,
     StoreUnavailable,
     TrialRefused,
     TrialStore,
+    record_event,
     refusal_body,
 )
 from api.responses import OrjsonResponse
@@ -204,7 +204,7 @@ def warm_whitelist(budget_seconds: float = 20.0) -> int:
 
 
 def _refusal_response(refusal: TrialRefused) -> Response:
-    EVENTS.labels(event=f"refused_{refusal.reason}").inc()
+    record_event(f"refused_{refusal.reason}")
     return OrjsonResponse(
         content=refusal_body(),
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -213,7 +213,7 @@ def _refusal_response(refusal: TrialRefused) -> Response:
 
 
 def _error(code: str, detail: str, http_status: int, event: str, **headers: str) -> Response:
-    EVENTS.labels(event=event).inc()
+    record_event(event)
     return OrjsonResponse(
         content={"code": code, "detail": detail}, status_code=http_status, headers=headers
     )
@@ -364,7 +364,7 @@ async def ticket(request: Request) -> Response:
             await store.release_count(key)
         return _refusal_response(refusal)
     token, minted = lane.mint_ticket(store.now())
-    EVENTS.labels(event="issued").inc()
+    record_event("issued")
     return OrjsonResponse(
         content={
             "ticket": token,
@@ -457,7 +457,7 @@ async def run(function: str, request: Request) -> Response:
         except ValidationError as exc:
             for key in counted:
                 await store.release_count(key)
-            EVENTS.labels(event="input_error").inc()
+            record_event("input_error")
             return OrjsonResponse(
                 content={
                     "detail": exc.errors(
@@ -477,7 +477,7 @@ async def run(function: str, request: Request) -> Response:
     if asn is not None:
         await store.add_asn_units("compute", asn, units)
     if timed_out:
-        EVENTS.labels(event="timeout").inc()
+        record_event("timeout")
         return OrjsonResponse(
             content={
                 "code": "trial_timeout",
@@ -486,7 +486,7 @@ async def run(function: str, request: Request) -> Response:
             },
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
         )
-    EVENTS.labels(event="ran" if code == 200 else "input_error").inc()
+    record_event("ran" if code == 200 else "input_error")
     return Response(
         content=payload,
         status_code=code,

@@ -59,6 +59,12 @@ EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED = "downgraded_subscription_cancelled"
 EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT = "downgraded_monthly_request_limit"
 EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT = "downgraded_monthly_simulation_limit"
 EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED = "restored_after_payment_succeeded"
+# The education tier (docs/plan-education-tier.md): written by api/education_grants.py in the same transaction as
+# the change. Their `reason` is a code and the cohort label, never an applicant's name or words.
+EVENT_EDUCATION_GRANTED = "education_granted"
+EVENT_EDUCATION_EXTENDED = "education_extended"
+EVENT_EDUCATION_REVOKED = "education_revoked"
+EVENT_EDUCATION_SUSPENDED = "education_suspended"
 
 _NOTIFICATION_COPY: dict[str, tuple[str, str]] = {
     EVENT_UPGRADED: (
@@ -96,6 +102,26 @@ _NOTIFICATION_COPY: dict[str, tuple[str, str]] = {
     EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED: (
         "Your pyvar Pro access is active again",
         "A successful payment on your pyvar Pro subscription has restored " "your full Pro limits.",
+    ),
+    EVENT_EDUCATION_GRANTED: (
+        "Your pyvar education access is active",
+        "Your pyvar account now has education access: higher daily limits and larger simulation "
+        "sizes for teaching and study, for a limited time. It is for non-commercial use and "
+        "ends on its own at the date agreed; reply to the e-mail you applied with to renew it.",
+    ),
+    EVENT_EDUCATION_EXTENDED: (
+        "Your pyvar education access was extended",
+        "Your pyvar education access has been extended.",
+    ),
+    EVENT_EDUCATION_REVOKED: (
+        "Your pyvar education access has ended",
+        "Your pyvar education access has ended and your account is on the Free plan. "
+        "Your API keys keep working with the Free limits.",
+    ),
+    EVENT_EDUCATION_SUSPENDED: (
+        "Your pyvar education access is paused",
+        "Your pyvar education access has been paused and your account is on the Free plan "
+        "for now. Your API keys keep working with the Free limits.",
     ),
 }
 

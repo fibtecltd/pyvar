@@ -1,0 +1,21 @@
+TASK: in pyvar DEV only, check that the no-sign-up trial lane is deployed, switch it ON, prove it with one real call and one refusal, and report. The lane is a Redis switch, not a deploy (docs/plan-trial-lane-throttle.md, scripts/trial_ctl.py). Run it start to finish; the owner cannot answer questions.
+
+SETTINGS (fixed values given here; they are NOT environment variables, so never stop for them)
+- The owner authorises: read-only AWS calls on DEV (CodePipeline, ECS describe, CloudWatch Logs reads); ONE run of ONE Fargate task from the existing family pyvar-dev-migrate, its command replaced by the script in step 2, once; and HTTPS calls to https://dev.pyvar.com. No ECS Exec, no service change, no IAM or CDK change, no secret read, nothing on PROD.
+- Dev only: cluster pyvar-dev. If any name you are about to use contains prod, STOP. Stop at once on a denied call (do not work around it); say which one.
+
+STEPS
+1. Is the lane deployed? In the pyvar CodePipeline, find the newest execution whose Dev stage succeeded and whose source commit is 8f0d2a7 or later (commit 8f0d2a7 is the trial lane's client release). Then POST https://dev.pyvar.com/api/v1/trial/challenge with an empty JSON body: HTTP 429 whose JSON body has "code":"trial_exhausted" means the route exists and the lane is off (expected now); 404 means the code is not deployed: STOP and report. Record the status code and the Retry-After header.
+2. Switch it on. Network configuration from describe-services pyvar-dev-api (subnets, security groups, assignPublicIp as that service uses). Run the task ONCE with an override whose command is ["sh","-c","python scripts/trial_ctl.py on && python scripts/trial_ctl.py status --json"] (the image's working directory is /app and holds scripts/). Assert before running: command[0]=="sh", command[1]=="-c", the text contains "trial_ctl.py on" and contains none of "off", "attack", "pause", "budget", "alembic", "upgrade". One run-task call. After the response, check the override shows that command; if not, stop-task at once and report. Read the exit code and the task's log output (the log group of the pyvar-dev-migrate task). Expected: exit 0 and a status with "on": true, "paused": false, "attack": false. If the cache cannot be reached (exit 3), report it and stop.
+3. One real call through the plugin's own client (it solves the proof of work). In a new empty temporary directory, outside any clone: python3 -m venv v; v/bin/pip install pyvar-mcp==0.3.0; then run with v/bin/python -I -c:
+   import tempfile; from pathlib import Path; from pyvar_mcp.trial import TrialSession, TicketStore
+   d = Path(tempfile.mkdtemp()); s = TrialSession("https://dev.pyvar.com", TicketStore(d, "https://dev.pyvar.com"))
+   print(s.call("parametric_delta_normal_var", {"cov_matrix":[[0.04,0.01,0.0],[0.01,0.05,0.01],[0.0,0.01,0.06]],"portfolio_value":1.0,"weights":[0.4,0.3,0.3]}))
+   Time the whole thing and say how long the proof of work took. Print the result's keys and the first numbers, never the ticket (do not print the file in d).
+4. One refusal. POST https://dev.pyvar.com/api/v1/trial/run/parametric_delta_normal_var with NO Authorization header: expect 401. Then with "Authorization: Bearer x": expect 401 trial_ticket_invalid. Record both. Then call a function that is not on the list with the ticket in d's store through the session: s.call("heston_call_price", {}) must raise TrialError (not on the trial list; no request leaves the machine). Record the message.
+5. Read the API log group of pyvar-dev-api for the last 15 minutes: count lines that contain "trial" and any ERROR or traceback lines about the lane; list the distinct error messages (no addresses, no tickets).
+
+REPORT
+- Step 1 status codes and the deployed commit; step 2 exit code and the status JSON; step 3 result keys, elapsed seconds, proof-of-work seconds; step 4 the three outcomes; step 5 counts.
+- Whether the lane is now ON in dev. Do NOT switch anything else (no attack, pause or budget). Do not touch prod.
+- What you could not see, and everything you got wrong. No ids, hostnames, tickets or secrets in the body.

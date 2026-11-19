@@ -8,6 +8,8 @@ Reasoning:
 - tests/test_tier_limits_behaviour.py pins that the four existing tiers behave exactly as before the refactor.
 - The fifth row, "trial", belongs to the no-sign-up trial lane (docs/plan-trial-lane-throttle.md): 10,000
   simulations, 5 calls a day per ticket, no assistant questions.
+- The sixth, "education", is a finite grant (docs/plan-education-tier.md); its limits, the two fields only it uses
+  (a burst cap and "refuse, do not downgrade") and its rules are tested in tests/test_education_tier.py.
 """
 
 from __future__ import annotations
@@ -25,14 +27,15 @@ from api.tiers import FALLBACK_TIER, KNOWN_TIERS, TierPolicy, policy_for
 
 ROOT = Path(__file__).resolve().parents[1]
 PER_TIER_SETTINGS = re.compile(
-    r"rate_limit_(free|pro)_daily|rate_limit_pro_monthly_(requests|simulations)"
+    r"rate_limit_(free|pro|education)_daily|rate_limit_pro_monthly_(requests|simulations)"
+    r"|rate_limit_education_(monthly_requests|monthly_simulations|burst_per_minute)"
     r"|assistant_quota_(free|pro|enterprise)_daily"
 )  # matched against attribute names, so it must match a whole name
 
 
-def test_the_known_tiers_are_exactly_the_five_that_exist() -> None:
+def test_the_known_tiers_are_exactly_the_six_that_exist() -> None:
     # "trial" is not an account tier: only the no-sign-up lane's calls carry it (api/routes/trial.py).
-    assert KNOWN_TIERS == {"free", "pro", "enterprise", "internal", "trial"}
+    assert KNOWN_TIERS == {"free", "pro", "enterprise", "internal", "trial", "education"}
     assert FALLBACK_TIER in KNOWN_TIERS
 
 
@@ -54,7 +57,11 @@ def test_every_known_tier_has_a_complete_row(tier: str) -> None:
         "monthly_simulations",
         "assistant_group",
         "assistant_daily",
+        "burst_per_minute",
+        "monthly_breach",
     }
+    assert policy.monthly_breach in {"downgrade", "refuse"}
+    assert policy.burst_per_minute is None or policy.burst_per_minute > 0
 
 
 def test_the_table_and_the_known_tiers_agree() -> None:

@@ -82,18 +82,44 @@ set to the same _match_all_statement() the kill switch uses: this rule is
 deliberately meant to be a true global bucket with no narrowing, and a
 scope-down that matches unconditionally preserves that while satisfying
 the now-confirmed-mandatory field.
+
+No-sign-up trial lane (docs/plan-trial-lane-throttle.md, layers L5 and L8; trial lane PR 3). The lane is
+POST /api/v1/trial/{challenge,ticket,run/<function>}. What this stack adds for it, all scoped to that path
+(a starts-with match on the URL-decoded, normalised path) and none of it touching any other route:
+- TrialKillSwitch (priority 5): "block the trial path", shipped in Count like EmergencyKillSwitch and
+  flipped the same way (scripts/toggle_kill_switch.sh status|enable|disable <env> TrialKillSwitch). The
+  lane's own switch is a Redis key (scripts/trial_ctl.py off); this is the edge's second lever, for when the
+  API itself is the problem.
+- TrialRateLimitPerIp (21): 30 requests per 600 s per source address; TrialRateLimitPerAsn (22): 600 per
+  600 s per network (WAF's own ASN aggregation key, so it does not depend on the header below);
+  TrialRateLimitAll (23): 300 per 300 s for the whole path (CONSTANT, hence the mandatory scope-down). All
+  three sit BEFORE AggregateRateLimit (25), so a trial flood is stopped here and does not use up the 6,000
+  that every other caller shares. The lowest limit WAF accepts is 10 and the longest window 600 s, so WAF
+  alone cannot say "2 tickets a day"; that is the API's job (L6).
+- A cache behaviour for the path with its own origin request policy that forwards `CloudFront-Viewer-ASN`
+  to the API (L5, the per-network share). CloudFront adds that header only when an origin request policy
+  names it; the default behaviour's policy (ALL_VIEWER_EXCEPT_HOST_HEADER) does not. The policy is an
+  allow-list (the User-Agent, the plugin's X-Pyvar-Client label and that header): the lane reads nothing
+  else, and Authorization reaches the origin because it is in the cache policy's key, as for every route.
+- A us-east-1 SNS topic and one alarm (blocked requests of the three rate rules above 1,000 in 5 minutes).
+  An alarm must live in the region of its metric and publish to a topic of its own region, so this cannot
+  use the alerts stack's topic. Like that topic, it is created without subscribers: add one after deploy.
+The lane's other alarms count its log lines in the API's own region (stacks/alerts_stack.py).
 """
 
 from __future__ import annotations
 
 import aws_cdk as cdk
-from aws_cdk import Stack
+from aws_cdk import Duration, Stack
 from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_cloudfront as cf
 from aws_cdk import aws_cloudfront_origins as origins
+from aws_cdk import aws_cloudwatch as cloudwatch
+from aws_cdk import aws_cloudwatch_actions as cw_actions
 from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
 from aws_cdk import aws_secretsmanager as secretsmanager
+from aws_cdk import aws_sns as sns
 from aws_cdk import aws_wafv2 as waf
 from constructs import Construct
 
@@ -103,6 +129,21 @@ from config import PyvarConfig
 # AggregateRateLimit rule below. Conservative placeholder, not yet sized
 # against real public traffic (P11 §7 open item) -- revisit post-launch.
 AGGREGATE_RATE_LIMIT_PER_5MIN = 6000
+
+# The no-sign-up trial lane (api/routes/trial.py, mounted under the API's /api/v1). Every trial rule and the
+# trial cache behaviour key on this one path; tests/test_cdk_trial_lane.py pins it to the route's own prefix.
+TRIAL_PATH_PREFIX = "/api/v1/trial/"
+TRIAL_PATH_PATTERN = TRIAL_PATH_PREFIX + "*"
+# docs/plan-trial-lane-throttle.md L8: per source address, per network, and for the path as a whole.
+TRIAL_LIMIT_PER_IP = 30  # per TRIAL_WINDOW_PER_IP_ASN_SEC
+TRIAL_LIMIT_PER_ASN = 600  # per TRIAL_WINDOW_PER_IP_ASN_SEC
+TRIAL_WINDOW_PER_IP_ASN_SEC = 600
+TRIAL_LIMIT_ALL = 300  # per TRIAL_WINDOW_ALL_SEC
+TRIAL_WINDOW_ALL_SEC = 300
+# The three blocking rules' metric names (WAF's `Rule` metric dimension), in one place for the alarm below.
+TRIAL_RATE_RULE_METRICS = ("TrialRateLimitPerIp", "TrialRateLimitPerAsn", "TrialRateLimitAll")
+# Blocks of those rules in 5 minutes that page someone: a flood is under way, or a real caller is being refused.
+TRIAL_WAF_BLOCKS_ALARM_THRESHOLD = 1000
 
 
 def _match_all_statement() -> waf.CfnWebACL.StatementProperty:
@@ -123,6 +164,56 @@ def _match_all_statement() -> waf.CfnWebACL.StatementProperty:
                 waf.CfnWebACL.TextTransformationProperty(priority=0, type="NONE")
             ],
         )
+    )
+
+
+def _trial_path_statement() -> waf.CfnWebACL.StatementProperty:
+    """Matches a request whose path starts with TRIAL_PATH_PREFIX, after URL decoding and path normalisation.
+
+    The transformations matter: the API decodes %-escapes and collapses `//` before routing, so a match on the
+    raw path would let `/api/v1/%74rial/...` or `/api/v1//trial/...` reach the lane around these rules.
+    """
+    return waf.CfnWebACL.StatementProperty(
+        byte_match_statement=waf.CfnWebACL.ByteMatchStatementProperty(
+            field_to_match=waf.CfnWebACL.FieldToMatchProperty(uri_path={}),
+            positional_constraint="STARTS_WITH",
+            search_string=TRIAL_PATH_PREFIX,
+            text_transformations=[
+                waf.CfnWebACL.TextTransformationProperty(priority=0, type="URL_DECODE"),
+                waf.CfnWebACL.TextTransformationProperty(priority=1, type="NORMALIZE_PATH"),
+            ],
+        )
+    )
+
+
+def _trial_rate_rule(
+    name: str,
+    priority: int,
+    *,
+    aggregate_key_type: str,
+    limit: int,
+    window_sec: int,
+    custom_keys: list[waf.CfnWebACL.RateBasedStatementCustomKeyProperty] | None = None,
+) -> waf.CfnWebACL.RuleProperty:
+    """One blocking rate rule on the trial path; `name` is also its CloudWatch metric name."""
+    return waf.CfnWebACL.RuleProperty(
+        name=name,
+        priority=priority,
+        action=waf.CfnWebACL.RuleActionProperty(block={}),
+        statement=waf.CfnWebACL.StatementProperty(
+            rate_based_statement=waf.CfnWebACL.RateBasedStatementProperty(
+                aggregate_key_type=aggregate_key_type,
+                limit=limit,
+                evaluation_window_sec=window_sec,
+                custom_keys=custom_keys,
+                scope_down_statement=_trial_path_statement(),
+            )
+        ),
+        visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
+            cloud_watch_metrics_enabled=True,
+            metric_name=name,
+            sampled_requests_enabled=True,
+        ),
     )
 
 
@@ -165,6 +256,19 @@ class EdgeStack(Stack):
                     visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
                         cloud_watch_metrics_enabled=True,
                         metric_name="EmergencyKillSwitch",
+                        sampled_requests_enabled=True,
+                    ),
+                ),
+                # Trial lane kill switch -- priority 5, scoped to the trial path only, inert (count) like
+                # the one above and flipped the same way (scripts/toggle_kill_switch.sh ... TrialKillSwitch).
+                waf.CfnWebACL.RuleProperty(
+                    name="TrialKillSwitch",
+                    priority=5,
+                    action=waf.CfnWebACL.RuleActionProperty(count={}),
+                    statement=_trial_path_statement(),
+                    visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="TrialKillSwitch",
                         sampled_requests_enabled=True,
                     ),
                 ),
@@ -219,6 +323,30 @@ class EdgeStack(Stack):
                         metric_name="RateLimit",
                         sampled_requests_enabled=True,
                     ),
+                ),
+                # Trial lane rate limits (module docstring): before the aggregate rule, so a flood on the
+                # trial path is refused here and does not count against everyone else's shared 6,000.
+                _trial_rate_rule(
+                    "TrialRateLimitPerIp",
+                    21,
+                    aggregate_key_type="IP",
+                    limit=TRIAL_LIMIT_PER_IP,
+                    window_sec=TRIAL_WINDOW_PER_IP_ASN_SEC,
+                ),
+                _trial_rate_rule(
+                    "TrialRateLimitPerAsn",
+                    22,
+                    aggregate_key_type="CUSTOM_KEYS",
+                    limit=TRIAL_LIMIT_PER_ASN,
+                    window_sec=TRIAL_WINDOW_PER_IP_ASN_SEC,
+                    custom_keys=[waf.CfnWebACL.RateBasedStatementCustomKeyProperty(asn={})],
+                ),
+                _trial_rate_rule(
+                    "TrialRateLimitAll",
+                    23,
+                    aggregate_key_type="CONSTANT",
+                    limit=TRIAL_LIMIT_ALL,
+                    window_sec=TRIAL_WINDOW_ALL_SEC,
                 ),
                 # Aggregate (all-clients-combined) rate limit — see module
                 # docstring. Evaluated after the managed rule sets and before
@@ -319,6 +447,25 @@ class EdgeStack(Stack):
                 "Authorization",
                 "Cache-Control",
             ),
+        )
+
+        # Origin request policy for the trial path only. CloudFront adds `CloudFront-Viewer-ASN` to an origin
+        # request only when an origin request policy names it (the default behaviour's managed policy does
+        # not), and the API's per-network share (L5) reads it. An allow-list, not "all viewer headers": the lane
+        # reads the User-Agent, the plugin's X-Pyvar-Client label and that header, nothing else; Authorization
+        # is forwarded because api_cache_policy keys on it, as for every other route.
+        trial_origin_request_policy = cf.OriginRequestPolicy(
+            self,
+            "TrialOriginRequestPolicy",
+            origin_request_policy_name=f"pyvar-{cfg.env_name}-trial-origin",
+            comment="Forwards the viewer network (ASN) to the no-sign-up trial lane",
+            header_behavior=cf.OriginRequestHeaderBehavior.allow_list(
+                "User-Agent",
+                "X-Pyvar-Client",
+                "CloudFront-Viewer-ASN",
+            ),
+            query_string_behavior=cf.OriginRequestQueryStringBehavior.none(),
+            cookie_behavior=cf.OriginRequestCookieBehavior.none(),
         )
 
         # ── ACM Certificate (us-east-1, CloudFront alternate domain names) ────
@@ -424,6 +571,18 @@ class EdgeStack(Stack):
                     allowed_methods=cf.AllowedMethods.ALLOW_GET_HEAD,
                     response_headers_policy=hsts_policy,
                 ),
+                # No-sign-up trial lane: same cache policy as the default behaviour (POSTs are not
+                # cached; Authorization is in the key), but its own origin request policy so the API
+                # receives the viewer's network.
+                TRIAL_PATH_PATTERN: cf.BehaviorOptions(
+                    origin=alb_origin,
+                    viewer_protocol_policy=cf.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                    cache_policy=api_cache_policy,
+                    allowed_methods=cf.AllowedMethods.ALLOW_ALL,
+                    origin_request_policy=trial_origin_request_policy,
+                    response_headers_policy=hsts_policy,
+                    compress=True,
+                ),
                 # API docs: cache for 5 minutes
                 "/docs": cf.BehaviorOptions(
                     origin=alb_origin,
@@ -471,6 +630,50 @@ class EdgeStack(Stack):
                 record_name="api",
                 target=route53.RecordTarget.from_alias(targets.CloudFrontTarget(self.distribution)),
             )
+
+        # ── Trial lane: edge alarm (us-east-1) ────────────────────────────────
+        # A CloudFront web ACL's metrics are in us-east-1 under AWS/WAFV2, dimensioned by the ACL's metric
+        # name (`WebACL`) and the rule's metric name (`Rule`); there is no `Region` dimension for CloudFront
+        # (AWS's metric reference: "Required for all protected resource types except for Amazon CloudFront
+        # distributions"). The alarm and its SNS topic therefore live here, not in the alerts stack. The topic
+        # is created without subscribers, like the alerts topic: add one after deploy.
+        self.edge_alerts_topic = sns.Topic(
+            self,
+            "EdgeAlertsTopic",
+            topic_name=f"pyvar-{cfg.env_name}-edge-alerts",
+            display_name=f"pyvar {cfg.env_name} edge alerts",
+        )
+        trial_blocks = cloudwatch.MathExpression(
+            expression=" + ".join(f"m{i}" for i in range(len(TRIAL_RATE_RULE_METRICS))),
+            label="Trial lane requests blocked by WAF",
+            period=Duration.minutes(5),
+            using_metrics={
+                f"m{i}": cloudwatch.Metric(
+                    namespace="AWS/WAFV2",
+                    metric_name="BlockedRequests",
+                    dimensions_map={"WebACL": f"pyvar-{cfg.env_name}-waf", "Rule": rule},
+                    statistic="Sum",
+                    period=Duration.minutes(5),
+                )
+                for i, rule in enumerate(TRIAL_RATE_RULE_METRICS)
+            },
+        )
+        trial_blocks_alarm = cloudwatch.Alarm(
+            self,
+            "TrialWafBlocksAlarm",
+            alarm_name=f"pyvar-{cfg.env_name}-trial-waf-blocks",
+            alarm_description=(
+                "The WAF blocked more than 1,000 no-sign-up trial requests in 5 minutes: a flood on "
+                "/api/v1/trial/, or real callers being refused. See docs/plan-trial-lane-throttle.md "
+                "(Operations): scripts/trial_ctl.py attack on, or TrialKillSwitch."
+            ),
+            metric=trial_blocks,
+            threshold=TRIAL_WAF_BLOCKS_ALARM_THRESHOLD,
+            evaluation_periods=1,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+        )
+        trial_blocks_alarm.add_alarm_action(cw_actions.SnsAction(self.edge_alerts_topic))
 
         # ── Outputs ───────────────────────────────────────────────────────────
         # Stored on self (not just a bare CfnOutput) so pipeline_stack.py's

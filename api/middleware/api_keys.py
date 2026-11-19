@@ -38,6 +38,7 @@ from typing import Any
 import structlog
 from sqlalchemy import select
 
+from api.tiers import effective_tier, seconds_until_expiry
 from config import get_settings
 from storage.models import ApiKey, User
 from storage.session import get_sessionmaker
@@ -179,11 +180,24 @@ async def resolve_api_key(secret: str) -> ResolvedKey | None:
             key.last_used_at = now
             await session.commit()
 
-        resolved = ResolvedKey(str(key.id), user.external_id, user.tier)
+        # An education grant is read through effective_tier (an elapsed or missing expiry is "free"), and the
+        # cached entry below must not outlive the grant it came from.
+        resolved = ResolvedKey(
+            str(key.id), user.external_id, effective_tier(user.tier, user.tier_expires_at)
+        )
+        # Only while the grant is live: a lapsed one resolves to "free", which may be cached as usual (extending
+        # it later drops the entry), and a zero TTL would send every request of that key to the database.
+        grant_seconds_left = (
+            seconds_until_expiry(user.tier, user.tier_expires_at)
+            if resolved.tier == "education"
+            else None
+        )
 
     ttl = cfg.api_key_cache_ttl_seconds
     if expires is not None:
         ttl = min(ttl, int((expires - now).total_seconds()))
+    if grant_seconds_left is not None:
+        ttl = min(ttl, grant_seconds_left)
     await _cache_set(
         digest,
         {
