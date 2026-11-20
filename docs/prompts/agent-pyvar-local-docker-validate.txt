@@ -8,7 +8,7 @@ SETTINGS (fixed values, not environment variables; never stop for them)
 STEPS
 1. Print the Docker server version and arch, `uname -m`, free disk. The image is amd64: on any other arch add `--platform linux/amd64` to every `docker run` and say so (emulation; time everything).
 2. curl -L -o pyvar-local.tar.gz URL. Print size (expect 570477502) and sha256sum. From the release API print the asset's size and digest (if any) and say if they match.
-3. `docker load -i pyvar-local.tar.gz`: expect "Loaded image: IMAGE", exit 0. Print `docker image inspect IMAGE --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}} {{.Config.WorkingDir}} user={{.Config.User}} {{.Architecture}} {{.Created}} layers={{len .RootFS.Layers}}'` and the Env list. Expect ["python","-m","pyvar_local.cli"], ["list"], /app, empty user, amd64, created 2026-11-20T13:21, 11 layers.
+3. `docker load -i pyvar-local.tar.gz`: expect "Loaded image: IMAGE", exit 0. Print `docker image inspect IMAGE --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}} {{.Config.WorkingDir}} user={{.Config.User}} {{.Architecture}} {{.Created}} layers={{len .RootFS.Layers}}'` and the Env list in full (GPG_KEY there is the Python base image's public key id, not a secret). Expect ["python","-m","pyvar_local.cli"], ["list"], /app, empty user, amd64, created 2026-11-20T13:21, 11 layers.
 4. `docker run --rm IMAGE > list.out`: expect exit 0, 387 lines, and `grep -c montecarlo.run_monte_carlo_var list.out` = 1. Print line 1 only.
 5. `docker run --rm --entrypoint pytest IMAGE /app/tests/test_engine.py -q -p no:cacheprovider 2>&1 | tail -4`: expect 19 passed. On failure print the failing test names and the last 30 lines.
 6. Build the input on the host, never retype it:

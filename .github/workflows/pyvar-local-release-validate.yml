@@ -1,0 +1,51 @@
+name: pyvar Local release validate
+
+# Validates a PUBLISHED pyvar Local release (the GitHub release asset a user downloads) in real Docker: download,
+# size and sha256 against the release's own digest, `docker load`, image config, the default command, the engine
+# tests the release is gated on, a seeded VaR call twice, and non-root / read-only runs.
+#
+# Why this exists: the release pipeline (pyvar-cdk/stacks/local_package_stack.py) builds and tests the image BEFORE it
+# is saved and uploaded; nothing else checks the file a user actually gets. pyvar-local-ci.yml builds the Dockerfile
+# from source; this one never builds anything. The logic is in scripts/validate_pyvar_local_release.sh, which anyone
+# with Docker can also run by hand.
+#
+# Triggers: manually (Actions -> "pyvar Local release validate" -> Run workflow; leave the tag empty for the newest
+# pyvar-local-v0-* release, which is what you want after every rebuild), and once on any pull request that changes this
+# file or the script. Informational only, not a required check, same as pyvar-local-ci.yml. It lives under .github/,
+# which the pipeline's push trigger excludes: it does not start a CodePipeline run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. pyvar-local-v0-3dbc102a (empty = the newest pyvar-local-v0-* release)"
+        required: false
+        default: ""
+  pull_request:
+    branches: [master, develop]
+    paths:
+      - ".github/workflows/pyvar-local-release-validate.yml"
+      - "scripts/validate_pyvar_local_release.sh"
+
+# Reads the repository and the public release only. The default token is sent to api.github.com (by the script) so
+# that the release lookup is not rate-limited as an anonymous caller; the asset download itself is anonymous.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate the published release in Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # The tag is an input: it reaches the script through the environment, never interpolated into the shell,
+      # and the script refuses anything that is not pyvar-local-v0-<8 hex digits>.
+      - name: Validate
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/validate_pyvar_local_release.sh "$RELEASE_TAG"

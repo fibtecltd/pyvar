@@ -49,6 +49,38 @@ $ docker run --rm pyvar-local:<full-sha> list | head -3
 `pyvar-local` with no tag) for every command below. Optionally re-tag it to
 something shorter first: `docker tag pyvar-local:<full-sha> pyvar-local:local`.
 
+## Running it as another user, or on a read-only filesystem
+
+The image runs as root, and the engine's compiled-code cache (Numba's) is baked into `/app`. Run as any other user
+(`--user ...`, Kubernetes `runAsNonRoot`) or with `--read-only`, and every call that compiles code fails with
+`RuntimeError: cannot cache function ... no locator available` — even `list` and the tests — because the cache needs
+a directory the process can write to. Give it one:
+
+```
+# non-root: any writable home
+docker run --rm --user 1000:1000 -e HOME=/tmp pyvar-local:<full-sha> list
+
+# read-only filesystem (root or not): a tmpfs for the cache
+docker run --rm --read-only --tmpfs /tmp -e NUMBA_CACHE_DIR=/tmp/numba pyvar-local:<full-sha> list
+docker run --rm --read-only --user 1000:1000 --tmpfs /tmp -e NUMBA_CACHE_DIR=/tmp/numba pyvar-local:<full-sha> list
+```
+
+The results are identical to the root run (the seeded Monte Carlo call gives the same numbers), but the baked cache is
+not used, so the first call in each container compiles. Found and checked by `scripts/validate_pyvar_local_release.sh`
+(workflow "pyvar Local release validate"), which tries all of these on the published release. Making the image work
+as a non-root user by default is a change to `pyvar-local/Dockerfile` and a rebuild: not done yet.
+
+The image is `linux/amd64` only. On an ARM machine (Apple Silicon, Graviton) add `--platform linux/amd64` to every
+`docker run`; it then runs under emulation, which has not been tested.
+
+## Checking a published release
+
+`bash scripts/validate_pyvar_local_release.sh [pyvar-local-v0-<sha>]` downloads the release asset, checks its size and
+sha256 against GitHub's own digest, loads it, and runs the default command, the engine tests, a seeded VaR call twice
+(the output must be byte-identical) and the runs above. Needs Docker, curl and python3. The same script runs in GitHub
+Actions as "pyvar Local release validate" (Run workflow; leave the tag empty for the newest release). Run it after
+every rebuild.
+
 ## What's deliberately NOT in this image (yet)
 
 This image is scoped to the engine and a CLI — not a full local

@@ -46,8 +46,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   kept, one `account_erased` row; refuses pro, enterprise and internal accounts; never writes or prints the address. Both take only the
   admin token; `CLAUDE.md` 3.5 names the second script and the erasure rule. Details and the known Google sign-in limit:
   `docs/plan-education-tier.md` section 12.
-- **A prompt to validate pyvar Local in Docker** — `docs/prompts/agent-pyvar-local-docker-validate.txt`: load the published
-  release asset in real Docker, run the default command, the engine tests and a seeded VaR call, and try non-root and read-only runs.
+- **A check of the published pyvar Local release, in real Docker** — `scripts/validate_pyvar_local_release.sh` (and the manual
+  workflow "pyvar Local release validate", `.github/workflows/pyvar-local-release-validate.yml`, which also runs once on a pull
+  request that changes either file) downloads the release asset, compares its size and sha256 with GitHub's own digest, runs
+  `docker load`, checks the image config, the default command, the engine tests the release is gated on, a seeded VaR call
+  twice (byte-identical) and non-root / read-only runs. First real run, on `pyvar-local-v0-3dbc102a`: every release check passed
+  (570,477,502 bytes, sha256 `c458659a…1c18` matching the release digest, 387 functions, 19 tests, VaR 0.033103); **the image
+  fails as a non-root user or on a read-only filesystem** (`cannot cache function … no locator available`, even `list`): a
+  writable cache directory fixes it (`-e HOME=/tmp`, or `--tmpfs /tmp -e NUMBA_CACHE_DIR=/tmp/numba`), documented in
+  `pyvar-local/README.md` and checked by the script; making non-root the default is a Dockerfile change and a rebuild, not
+  done. `docs/prompts/agent-pyvar-local-docker-validate.txt` is the same check as a prompt for an agent with Docker.
 - **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
   non-commercial, 18 or over, UK or EU institutions, each person applies for themselves), an "Education access" item in the privacy policy
   (what an application e-mail holds and what not to send, that it stays in the company mailbox, a refused application's e-mail deleted within
