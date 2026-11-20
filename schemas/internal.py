@@ -111,3 +111,40 @@ class EducationListResponse(BaseModel):
 
 class EducationSuspendResponse(BaseModel):
     suspended: int
+
+
+class EducationTidyRequest(BaseModel):
+    """`months` is how long ago a grant must have ended; `apply` False (the default) only counts."""
+
+    months: int = Field(default=12, ge=1, le=120)
+    apply: bool = False
+
+
+class EducationTidyResponse(BaseModel):
+    found: int
+    applied: bool
+
+
+# ── /internal/admin/accounts/erase (docs/plan-education-tier.md section 12) ───────────────────────────────
+
+
+class AccountErasureRequest(BaseModel):
+    email: EmailStr
+    apply: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class AccountErasureResponse(BaseModel):
+    """What was or would be done. Carries the account identifier, never the address."""
+
+    account_id: str
+    old_tier: str
+    keys_revoked: int
+    keys_renamed: int
+    stripe_linked: bool
+    google_sign_in: bool
+    applied: bool

@@ -73,6 +73,11 @@ EVENT_EDUCATION_GRANTED = "education_granted"
 EVENT_EDUCATION_EXTENDED = "education_extended"
 EVENT_EDUCATION_REVOKED = "education_revoked"
 EVENT_EDUCATION_SUSPENDED = "education_suspended"
+# Housekeeping rows written by the operator's quiet commands (no entry in _NOTIFICATION_COPY: nobody is e-mailed):
+# a lapsed education label reset to free (api/education_grants.py::tidy), and an account erased at its holder's
+# request (api/account_erasure.py).
+EVENT_EDUCATION_TIDIED = "education_tidied"
+EVENT_ACCOUNT_ERASED = "account_erased"
 
 _NOTIFICATION_COPY: dict[str, tuple[str, str]] = {
     EVENT_UPGRADED: (

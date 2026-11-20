@@ -49,6 +49,8 @@ GRANT = "/api/v1/internal/admin/education/grant"
 EXTEND = "/api/v1/internal/admin/education/extend"
 REVOKE = "/api/v1/internal/admin/education/revoke"
 SUSPEND = "/api/v1/internal/admin/education/suspend-all"
+TIDY = "/api/v1/internal/admin/education/tidy"
+ERASE = "/api/v1/internal/admin/accounts/erase"
 
 
 def admin_token(**overrides: Any) -> str:
@@ -213,6 +215,8 @@ async def test_every_other_credential_is_refused_on_every_admin_route(
         ("POST", EXTEND, body("a")),
         ("POST", REVOKE, {"email": "a@uni.ac.uk", "cohort": "x"}),
         ("POST", SUSPEND, {}),
+        ("POST", TIDY, {}),
+        ("POST", ERASE, {"email": "a@uni.ac.uk"}),
     ):
         response = await client.request(method, path, json=payload, headers=bearer(token))
         assert response.status_code == 401, (kind, path, response.text)

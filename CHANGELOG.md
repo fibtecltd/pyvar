@@ -39,6 +39,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `trial_breaker_*`) with CloudWatch metric filters. The lane itself still stays off until `scripts/trial_ctl.py on`.
   `docs/prompts/agent-trial-enable-dev.txt` switches it on in dev and proves it with one real call.
   Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
+- **Two operator commands behind the privacy policy's promises** — `scripts/education_grant.py tidy` resets education labels whose
+  grant ended more than 12 months ago to plain `free` (counts only without `--yes`; one `billing_events` row each; no e-mail;
+  `POST /internal/admin/education/tidy`). `scripts/account_erase.py` erases an account at its holder's request (dry run unless `--yes`;
+  `POST /internal/admin/accounts/erase`): `users.email` set to NULL, tokens cleared, keys revoked and their names blanked, every row
+  kept, one `account_erased` row; refuses pro, enterprise and internal accounts; never writes or prints the address. Both take only the
+  admin token; `CLAUDE.md` 3.5 names the second script and the erasure rule. Details and the known Google sign-in limit:
+  `docs/plan-education-tier.md` section 12.
+- **A prompt to validate pyvar Local in Docker** — `docs/prompts/agent-pyvar-local-docker-validate.txt`: load the published
+  release asset in real Docker, run the default command, the engine tests and a seeded VaR call, and try non-root and read-only runs.
 - **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
   non-commercial, 18 or over, UK or EU institutions, each person applies for themselves), an "Education access" item in the privacy policy
   (what an application e-mail holds and what not to send, that it stays in the company mailbox, a refused application's e-mail deleted within
@@ -273,6 +282,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   Sentry's default logging integration, a failed send had become an error event carrying the address. The education grant and extension
   e-mails say "ends on 20 May 2027". `scripts/education_grant.py` writes no address to `~/.pyvar/education.jsonl`. Tests:
   `tests/test_tier_email_privacy.py`.
+
+- **CloudFront access logs expire after 90 days (`infra(cdk)`)** — The log bucket CDK creates for the distribution had no lifecycle
+  rule, so access logs (client IP addresses, URLs) were kept forever. `edge_stack.py` adds an expiry rule to that bucket
+  (`ACCESS_LOG_RETENTION_DAYS = 90`); a real synth of dev, staging and prod shows one changed resource each, the bucket's
+  `LifecycleConfiguration`, and no replacement. Logs older than 90 days are removed once, when the rule goes live. The privacy
+  policy (§4) states the period and that an IP address stays in the cache for up to about a day. `tests/test_cdk_access_log_retention.py`
+  pins the two together.
 
 - **No e-mail address in sign-in logs or in what Sentry receives** — The sign-in e-mail (`api/routes/auth.py`), the disposable and
   suppressed address skips and `POST /internal/suppress-email` log the domain and the account id, not the address; a failed sign-in send logs

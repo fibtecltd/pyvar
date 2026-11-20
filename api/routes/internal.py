@@ -18,12 +18,15 @@ Reasoning:
   this one mutates account state rather than only reading it.
 - No enforce_compute_rate_limit dependency: this isn't a compute endpoint,
   and "internal" tier is already exempt regardless.
-- The /internal/admin/education/* routes (docs/plan-education-tier.md) are the exception to the auth rule above:
-  they take an ADMIN token (`aud` "pyvar-admin", 10 minutes, signed by scripts/education_grant.py), not a session
+- The /internal/admin/* routes (education grants, and account erasure at a holder's request; docs/plan-education-tier.md)
+  are the exception to the auth rule above:
+  they take an ADMIN token (`aud` "pyvar-admin", 10 minutes, signed by the operator scripts
+  scripts/education_grant.py and scripts/account_erase.py), not a session
   JWT. A session JWT, an "internal" JWT, an API key and a stream token are all refused (require_admin_token), so
   holding any credential the API hands out is never enough to grant access. They are kept out of the public
-  OpenAPI document. grant and extend answer 503 while `education_tier_enabled` is off; revoke, list and
-  suspend-all always work (a way to end access must not depend on the flag).
+  OpenAPI document. grant and extend answer 503 while `education_tier_enabled` is off; revoke, list,
+  suspend-all, tidy and the erasure route always work (a way to end access, or to honour an erasure request, must
+  not depend on the flag). tidy and erase count only (a dry run) unless the body says `apply`.
 """
 
 from __future__ import annotations
@@ -34,11 +37,13 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 
-from api import education_grants
+from api import account_erasure, education_grants
 from api.middleware.auth import AdminPayload, TokenPayload, get_current_user, require_admin_token
 from config import get_settings
 from observability.redact import email_domain
 from schemas.internal import (
+    AccountErasureRequest,
+    AccountErasureResponse,
     EducationAccountOut,
     EducationChangeResponse,
     EducationExtendRequest,
@@ -46,6 +51,8 @@ from schemas.internal import (
     EducationListResponse,
     EducationRevokeRequest,
     EducationSuspendResponse,
+    EducationTidyRequest,
+    EducationTidyResponse,
     SuppressEmailRequest,
     SuppressEmailResponse,
     TokenReportResponse,
@@ -248,3 +255,47 @@ async def education_suspend_all(
         count = await education_grants.suspend_all(session)
     logger.warning("education_admin_suspend_all", operator=admin.operator, accounts=count)
     return EducationSuspendResponse(suspended=count)
+
+
+@router.post("/admin/education/tidy", response_model=EducationTidyResponse, include_in_schema=False)
+async def education_tidy(
+    body: EducationTidyRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> EducationTidyResponse:
+    """Reset education labels whose grant ended more than `months` months ago to "free" (no e-mail).
+    Counts only unless `apply`."""
+    async with get_sessionmaker()() as session:
+        found = await education_grants.tidy(session, months=body.months, apply=body.apply)
+    if body.apply:
+        logger.info("education_admin_tidy", operator=admin.operator, accounts=found)
+    return EducationTidyResponse(found=found, applied=body.apply)
+
+
+# ── /internal/admin/accounts/erase (admin token only) ────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/admin/accounts/erase", response_model=AccountErasureResponse, include_in_schema=False
+)
+async def account_erase(
+    body: AccountErasureRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> AccountErasureResponse:
+    """Remove an account's e-mail address and switch off its keys, at its holder's request. A dry run unless
+    `apply`. The answer names the account by its identifier, never the address."""
+    async with get_sessionmaker()() as session:
+        try:
+            result = await account_erasure.erase_account(
+                session, email=body.email, apply=body.apply
+            )
+        except account_erasure.ErasureRefused as exc:
+            raise HTTPException(exc.status, exc.detail) from exc
+    if body.apply:
+        logger.warning("account_admin_erase", operator=admin.operator, account_id=result.account_id)
+    return AccountErasureResponse(
+        account_id=result.account_id,
+        old_tier=result.old_tier,
+        keys_revoked=result.keys_revoked,
+        keys_renamed=result.keys_renamed,
+        stripe_linked=result.stripe_linked,
+        google_sign_in=result.google_sign_in,
+        applied=result.applied,
+    )

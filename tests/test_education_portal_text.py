@@ -126,11 +126,18 @@ def test_privacy_keeps_tier_change_records_six_years_and_says_what_happens_on_ac
     assert "We keep each of these records for six years from its date and then delete it" in item
     assert "up to 12 months and then goes back to plain" in item
     assert "not deleted on a schedule" not in page and "kept indefinitely" not in item
-    assert "a random account number that we can no longer match to you" in item
+    assert "an account identifier that we can no longer match to you" in item
+    assert "we delete your e-mail address and switch off your API keys" in item
     keep = _section(page, "4. How long computation and account records are kept")
     assert "Records of tier changes are kept for six years from their date." in keep
     assert "for as long as your account is open" in keep
+    assert "we delete your e-mail address and switch off your API keys within one month" in keep
+    assert "the account itself stays as an identifier with no e-mail address" in keep
     assert "Our application logs are kept for about one month" in keep
+    # the IP-address sentences: the CloudFront period is pinned to the CDK constant in
+    # tests/test_cdk_access_log_retention.py; the cache claim is about the hourly and daily IP counters
+    assert "We also use the IP address of a request to limit abuse" in keep
+    assert "keep it in our cache for up to about a day" in keep
 
 
 def test_privacy_states_purposes_and_bases_for_ordinary_accounts_too() -> None:

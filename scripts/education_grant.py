@@ -16,6 +16,11 @@ Reasoning:
   value that reaches the audit row is `--cohort`, a short token you choose ("ucl-risk-2026").
 - `suspend-all` is the kill switch: every active grant ends now. It needs `--yes-all`. It works with the
   feature flag off, like `revoke` and `list`.
+- `tidy` is the monthly housekeeping the privacy policy promises: an account whose grant ended more than 12
+  months ago goes from the label "education" to plain "free" (the label does nothing meanwhile: a past end date
+  already counts as free). It counts only, until you add `--yes`; it writes one `billing_events` row per account
+  and sends NO e-mail (`revoke` would tell someone whose access ended a year ago that it has ended). After
+  `--yes` it asks the API again and exits 5 unless nothing is left to tidy.
 - A ledger line (default ~/.pyvar/education.jsonl, 0600) records each change: who ran it, when, which
   environment, the action, the cohort and, for a grant or an extension, the months and the end date. It holds
   NO e-mail address (docs/plan-education-tier.md section 12): `list` and the API's `billing_events` table say
@@ -30,6 +35,8 @@ Usage (repo root):
     python scripts/education_grant.py revoke --env prod --yes-prod --email a@uni.ac.uk --cohort ucl-risk-2026
     python scripts/education_grant.py list   --env prod --yes-prod
     python scripts/education_grant.py suspend-all --env prod --yes-prod --yes-all
+    python scripts/education_grant.py tidy   --env prod --yes-prod            # counts only
+    python scripts/education_grant.py tidy   --env prod --yes-prod --yes      # does it
 
 Exit codes: 0 done (and confirmed, for grant and extend); 2 refused by a guard or bad arguments; 3 the secret
 could not be read; 5 the API refused, could not be reached, or the change could not be confirmed.
@@ -68,6 +75,7 @@ LEDGER_ENV = "PYVAR_EDUCATION_LEDGER"
 LEDGER_NAME = "education.jsonl"
 ROUTE = "/api/v1/internal/admin/education"
 MAX_MONTHS = 12
+TIDY_MONTHS = 12
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -79,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("revoke", "end an education account's access now"),
         ("list", "every education account"),
         ("suspend-all", "end every active grant now (the kill switch)"),
+        ("tidy", "reset grants that ended long ago to plain free (counts only without --yes)"),
     ):
         sub = commands.add_parser(name, help=help_text)
         sub.add_argument("--env", choices=ENVS, help="which environment's API to call")
@@ -106,6 +115,14 @@ def build_parser() -> argparse.ArgumentParser:
             )
         if name == "suspend-all":
             sub.add_argument("--yes-all", action="store_true", help="confirms ending every grant")
+        if name == "tidy":
+            sub.add_argument(
+                "--months",
+                type=int,
+                default=TIDY_MONTHS,
+                help=f"how long ago a grant ended (default {TIDY_MONTHS}, the policy's period)",
+            )
+            sub.add_argument("--yes", action="store_true", help="do it (otherwise only count)")
     return parser
 
 
@@ -183,6 +200,34 @@ def run(args: argparse.Namespace, out: TextIO) -> int:
 
     if args.command == "list":
         _show(_call("GET", f"{url}/list", token, None, "listing"), out)
+        return 0
+
+    if args.command == "tidy":
+        if not 1 <= args.months <= 120:
+            raise ToolError("--months must be between 1 and 120")
+        found = _call(
+            "POST", f"{url}/tidy", token, {"months": args.months, "apply": False}, "tidy (count)"
+        ).get("found")
+        if not args.yes:
+            print(
+                f"{found} education account(s) ended more than {args.months} months ago "
+                f"would go back to plain free; add --yes to do it",
+                file=out,
+            )
+            return 0
+        done = _call(
+            "POST", f"{url}/tidy", token, {"months": args.months, "apply": True}, "tidy"
+        ).get("found")
+        left = _call(
+            "POST", f"{url}/tidy", token, {"months": args.months, "apply": False}, "tidy (check)"
+        ).get("found")
+        if left:
+            raise ToolError(f"tidied {done} but the API still finds {left} to tidy", 5)
+        append_ledger(ledger, {**record, "tidied": done, "months": args.months})
+        print(
+            f"{done} education account(s) reset to plain free (none left to tidy), no e-mail sent",
+            file=out,
+        )
         return 0
 
     if args.command == "suspend-all":
