@@ -75,7 +75,14 @@
 <li>New accounts start on a <strong>free tier</strong> with a limited daily request quota and a capped number of simulations per request, shown in the product itself.</li>
 <li>A <strong>Pro tier</strong>, billed via Stripe on a recurring basis, raises these limits. Current limits are shown in the product at the time of use and may change.</li>
 <li>Payment is processed by Stripe; by making a payment you also agree to Stripe's own terms for that transaction.</li>
-<li><strong>Education access</strong> is a separate, free tier for teaching and study. We give it by hand, to people who apply, at our discretion and for a fixed period that we tell you. It is for non-commercial use by the person it was given to, who must be 18 or over, and it ends on that date unless we extend it. Its limits are higher than the free tier's and, like all limits, may change. When it ends, your account returns to the free tier and your API keys keep working with the free limits.</li>
+<li id="education"><strong>Education access</strong> is a free tier for non-commercial teaching and study.
+<ul>
+<li><strong>How you get it.</strong> You apply by e-mail (see the home page). We decide each request by hand, at our discretion, and may refuse. It is given to one person, who must be 18 or over, at an institution in the UK or the EU, and already hold a verified free account, for a fixed period of at most 12 months that we tell you when we grant it. An extension is a new request and is also at our discretion. Each person applies for themselves and is responsible for their own use of it.</li>
+<li><strong>Limits.</strong> They are higher than the free tier's and, like all limits, may change. There is a cap on simulations per request, caps on requests per minute, per day and per month, and a cap on VaR simulations per month. A request over a cap is refused until that cap's period rolls over; reaching one changes nothing else about your account. There is also a monthly allowance of VaR jobs shared by all education accounts together. Once it is used up, every education account is held to the free tier's limits until that allowance rolls over.</li>
+<li><strong>When it ends.</strong> On the end date, or earlier if we end or pause it (§10), your account goes back to the free tier. Your account and your API keys stay, and the keys keep working with the free limits. We e-mail you if we end or pause it early; we send no reminder when it runs out on its end date. If you upgrade to Pro, Pro replaces education access, and education access does not come back if Pro later ends.</li>
+<li><strong>No promises.</strong> Like the rest of the service, education access comes with no guarantee of availability (§7), so check it works before you build a class or a deadline around it.</li>
+</ul>
+</li>
 </ul>
 
 <h2 class="h2">4. Acceptable use</h2>
@@ -85,7 +92,7 @@
 <li>Submit a volume or pattern of requests intended to degrade the service for other users;</li>
 <li>Present a pyvar.com computational output as official regulatory approval, audited advice, or a substitute for your own organisation's risk-governance sign-off;</li>
 <li>Use the service for any unlawful purpose, or to process data you do not have the right to process;</li>
-<li>Use education access (§3) for paid, commercial or client work, or share, lend or resell an education-access key;</li>
+<li>Use education access (§3) for commercial work, including paid, client or employer work, or share, lend, sell or give an education-access key or account to anyone else — each person needs their own;</li>
 <li>Resell or provide pyvar.com's hosted service to a third party as your own offering, without our separate written agreement. (This restriction is about the hosted service only — running your own instance of the open-source engine is governed by its Apache-2.0 licence, not this clause.)</li>
 </ul>
 
@@ -99,13 +106,13 @@
 <p class="body-md">We aim to keep pyvar.com available, but <strong>we do not guarantee uninterrupted availability</strong>, and pyvar.com is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. To the maximum extent permitted by law, we disclaim all warranties, express or implied, about the service's fitness for a particular purpose or the accuracy of any computed output.</p>
 
 <h2 class="h2">8. Limitation of liability</h2>
-<p class="body-md">To the maximum extent permitted by law, Fibtec's total liability to you arising out of or relating to these terms or your use of pyvar.com will not exceed the amount you paid us in the 12 months before the claim arose (which is £0 for a free-tier account). We are not liable for indirect, incidental, or consequential damages, including from decisions made in reliance on a computed output — see §1 and §6. Nothing in these terms limits liability that cannot be limited under applicable law (including liability for death or personal injury caused by our negligence, or for fraud).</p>
+<p class="body-md">To the maximum extent permitted by law, Fibtec's total liability to you arising out of or relating to these terms or your use of pyvar.com will not exceed the amount you paid us in the 12 months before the claim arose (which is £0 for a free-tier account or an account with education access). We are not liable for indirect, incidental, or consequential damages, including from decisions made in reliance on a computed output — see §1 and §6. Nothing in these terms limits liability that cannot be limited under applicable law (including liability for death or personal injury caused by our negligence, or for fraud).</p>
 
 <h2 class="h2">9. Intellectual property</h2>
 <p class="body-md">pyvar.com's hosted service (the running infrastructure, not the underlying code) remains Fibtec's property. The engine's source code is separately licensed under Apache-2.0 and publicly available on GitHub — see the licence file in that repository for its own terms. You retain ownership of the data and parameters you submit; we claim no ownership over them, and as described in §5, most of it isn't even retained.</p>
 
 <h2 class="h2">10. Termination</h2>
-<p class="body-md">Either party may terminate at any time. We may also end, pause or change an education grant at any time, with or without notice; your account then returns to the free tier. Sections that by their nature should survive termination (including §5, §8, and §9) continue to apply.</p>
+<p class="body-md">Either party may terminate at any time. We may also end, pause or change education access (§3) at any time, with or without notice and without giving a reason; your account then stays open on the free tier. Sections that by their nature should survive termination (including §5, §8, and §9) continue to apply.</p>
 
 <h2 class="h2">11. Changes to these terms</h2>
 <p class="body-md">We may update these terms from time to time, and make reasonable efforts to notify account holders of material changes before they take effect.</p>

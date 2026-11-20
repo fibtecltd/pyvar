@@ -17,8 +17,11 @@ Reasoning:
 - `suspend-all` is the kill switch: every active grant ends now. It needs `--yes-all`. It works with the
   feature flag off, like `revoke` and `list`.
 - A ledger line (default ~/.pyvar/education.jsonl, 0600) records each change: who ran it, when, which
-  environment, the e-mail address, the action and the cohort. It is a convenience for the operator; the API's
-  `billing_events` table is the record. No secret or token is ever written or printed.
+  environment, the action, the cohort and, for a grant or an extension, the months and the end date. It holds
+  NO e-mail address (docs/plan-education-tier.md section 12): `list` and the API's `billing_events` table say
+  which account, and a file on a laptop that names people is a risk the record does not need. It is a
+  convenience for the operator; `billing_events` is the record. No secret or token is ever written or
+  printed.
 
 Usage (repo root):
     python scripts/education_grant.py grant  --env dev --email a@uni.ac.uk --months 6 --cohort ucl-risk-2026
@@ -194,7 +197,7 @@ def run(args: argparse.Namespace, out: TextIO) -> int:
     email = args.email.strip().lower()
     if args.command == "revoke":
         _call("POST", f"{url}/revoke", token, {"email": email, "cohort": args.cohort}, "revoke")
-        append_ledger(ledger, {**record, "email": email, "cohort": args.cohort})
+        append_ledger(ledger, {**record, "cohort": args.cohort})
         print(f"{email}: back on the Free tier", file=out)
         return 0
 
@@ -214,7 +217,6 @@ def run(args: argparse.Namespace, out: TextIO) -> int:
         ledger,
         {
             **record,
-            "email": email,
             "cohort": args.cohort,
             "months": args.months,
             "expires": expires,

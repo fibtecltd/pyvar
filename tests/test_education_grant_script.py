@@ -241,10 +241,40 @@ async def test_the_ledger_records_who_what_and_when_and_never_a_secret_or_token(
     assert len(lines) == 1
     record = lines[0]
     assert record["action"] == "grant" and record["env"] == "dev" and record["by"] == "fibtec-ops"
-    assert record["email"] == "ada@uni.ac.uk" and record["cohort"] == "ucl-2026"
+    assert record["cohort"] == "ucl-2026" and record["months"] == 6 and record["expires"]
     raw = world["ledger"].read_text()
     assert SECRET not in raw and world["seen"][0]["token"] not in raw
     assert oct(world["ledger"].stat().st_mode & 0o777) == "0o600"
+
+
+async def test_the_ledger_never_holds_an_e_mail_address(world) -> None:
+    """A file on a laptop that names people is a risk the API's own record does not need
+    (docs/plan-education-tier.md section 12): not on a grant, an extension or a revoke."""
+    await add_user(world, "ada")
+    assert (await run(world, *grant_args()))[0] == 0
+    assert (
+        await run(
+            world,
+            "extend",
+            "--env",
+            "dev",
+            "--email",
+            "ada@uni.ac.uk",
+            "--months",
+            "2",
+            "--cohort",
+            "ucl-2026",
+        )
+    )[0] == 0
+    assert (
+        await run(
+            world, "revoke", "--env", "dev", "--email", "ada@uni.ac.uk", "--cohort", "ucl-2026"
+        )
+    )[0] == 0
+    raw = world["ledger"].read_text()
+    assert len(raw.splitlines()) == 3
+    assert "ada" not in raw and "@" not in raw and "uni.ac.uk" not in raw
+    assert all("email" not in json.loads(line) for line in raw.splitlines())
 
 
 # ── guards that never reach the API ───────────────────────────────────────────────────────────────────────

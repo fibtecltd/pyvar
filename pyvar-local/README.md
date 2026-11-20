@@ -51,7 +51,7 @@ something shorter first: `docker tag pyvar-local:<full-sha> pyvar-local:local`.
 
 ## What's deliberately NOT in this image (yet)
 
-This first release is scoped to the engine and a CLI — not a full local
+This image is scoped to the engine and a CLI — not a full local
 FastAPI server matching the hosted API's route surface (auth, per-function
 REST endpoints, request/response schema validation). That's a real,
 larger piece of work tracked as a fast-follow, not built here — see the

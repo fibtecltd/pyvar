@@ -23,6 +23,12 @@ Reasoning:
   Re-downgrading an already-"free" account here is a no-op (skips the
   duplicate audit row and duplicate email); the CALLER is still responsible
   for rejecting the request either way, every time.
+- The holder's e-mail address is never written to a log line here (docs/plan-education-tier.md
+  section 12): server logs reach CloudWatch and, through the default logging integration, Sentry (a
+  failed send becomes an error event, a successful one a breadcrumb on any later error), and the
+  privacy policy does not list addresses among what Sentry sees. Logs carry the address's domain and,
+  where the caller has it, the account id. A failure logs the exception's class and AWS error code, never
+  its text or a traceback: SES error messages can echo the recipient's address.
 - restore_after_payment_succeeded only restores accounts downgraded for a
   monthly usage cap — deliberately NOT a payment-failure or
   subscription-cancellation downgrade, which have their own explicit path
@@ -32,6 +38,7 @@ Reasoning:
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
 
 import boto3
@@ -106,12 +113,13 @@ _NOTIFICATION_COPY: dict[str, tuple[str, str]] = {
     EVENT_EDUCATION_GRANTED: (
         "Your pyvar education access is active",
         "Your pyvar account now has education access: higher daily limits and larger simulation "
-        "sizes for teaching and study, for a limited time. It is for non-commercial use and "
-        "ends on its own at the date agreed; reply to the e-mail you applied with to renew it.",
+        "sizes for teaching and study. It is for non-commercial use and ends on {end_date}; "
+        "after that your account is on the Free plan and your API keys keep working with the "
+        "Free limits. To ask for an extension, reply to the e-mail you applied with.",
     ),
     EVENT_EDUCATION_EXTENDED: (
         "Your pyvar education access was extended",
-        "Your pyvar education access has been extended.",
+        "Your pyvar education access has been extended. It now ends on {end_date}.",
     ),
     EVENT_EDUCATION_REVOKED: (
         "Your pyvar education access has ended",
@@ -132,11 +140,50 @@ def _get_ses_client() -> Any:
     return boto3.client("ses", region_name=cfg.ses_region)
 
 
-def send_tier_change_email(email: str | None, event_type: str) -> None:
+def _email_domain(email: str) -> str:
+    """The part after the last "@", lower-cased: enough to tell which institution a failing send was
+    for, without naming the person. "unknown" if there is no "@"."""
+    _, _, domain = email.rpartition("@")
+    return domain.strip().lower() or "unknown"
+
+
+def _aws_error_code(exc: BaseException) -> str | None:
+    """The AWS error code of a botocore ClientError ("Throttling", "MessageRejected", ...), else None."""
+    response = getattr(exc, "response", None)
+    if isinstance(response, dict):
+        code = response.get("Error", {}).get("Code")
+        return str(code) if code else None
+    return None
+
+
+def _end_date_text(end_date: date | datetime | None) -> str:
+    """ "20 May 2027": unambiguous for a reader in any country. Without a date, the old wording."""
+    if end_date is None:
+        return "the date agreed"
+    return f"{end_date.day} {end_date.strftime('%B %Y')}"
+
+
+def send_tier_change_email(
+    email: str | None,
+    event_type: str,
+    *,
+    end_date: date | datetime | None = None,
+    account_id: str | None = None,
+) -> None:
     """Best-effort notification on any tier change. Never raises — the tier
     mutation itself has already been committed by the time this is called
     from every call site below, so a notification failure must never look
     like the tier change itself failed.
+
+    Args:
+        email: Where to send it; nothing is sent (or logged) if empty.
+        event_type: One of the EVENT_* names with copy in `_NOTIFICATION_COPY`.
+        end_date: For the education grant and extension e-mails, the day access ends; the copy
+            says "the date agreed" if it is missing.
+        account_id: The account's external id, logged in place of the address when the caller has it.
+
+    The address is never logged (see the module docstring): logs carry its domain, the event, the
+    account id if given and, on failure, the exception class and AWS error code.
     """
     if not email:
         return
@@ -146,6 +193,8 @@ def send_tier_change_email(email: str | None, event_type: str) -> None:
         logger.warning("tier_change_email_unknown_event_type", event_type=event_type)
         return
     subject, body = copy
+    if "{end_date}" in body:
+        body = body.replace("{end_date}", _end_date_text(end_date))
 
     try:
         _get_ses_client().send_email(
@@ -153,13 +202,22 @@ def send_tier_change_email(email: str | None, event_type: str) -> None:
             Destination={"ToAddresses": [email]},
             Message={"Subject": {"Data": subject}, "Body": {"Text": {"Data": body}}},
         )
-        logger.info("tier_change_email_sent", email=email, event_type=event_type)
-    except Exception:  # noqa: BLE001 — best-effort send, see docstring
-        # Unlike auth.py's send_verification_email, there is no recoverable
-        # token a human needs from this log line — always the safe (no
-        # secret material) branch, in every environment.
+        logger.info(
+            "tier_change_email_sent",
+            email_domain=_email_domain(email),
+            account_id=account_id,
+            event_type=event_type,
+        )
+    except Exception as exc:  # noqa: BLE001 — best-effort send, see docstring
+        # No exc_info and no str(exc): an SES error message can echo the recipient's address, and this
+        # line reaches Sentry. The class and the AWS error code are enough to act on.
         logger.error(
-            "tier_change_email_send_failed", email=email, event_type=event_type, exc_info=True
+            "tier_change_email_send_failed",
+            email_domain=_email_domain(email),
+            account_id=account_id,
+            event_type=event_type,
+            error_type=type(exc).__name__,
+            error_code=_aws_error_code(exc),
         )
 
 

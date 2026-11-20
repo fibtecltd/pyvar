@@ -1,6 +1,6 @@
 # Plan: education tier (A2), accepted 2026-11-18
 
-**Status: accepted by the owner on 2026-11-18, as proposed. PR 1 is built (2026-11-19, section 10), off by default; PR 2 (portal text and the flag) is built (2026-11-19, section 11): the flag is on in dev only, and prod stays off until a lawyer has read the text.** This supersedes `docs/plan-academic-access.md`
+**Status: accepted by the owner on 2026-11-18, as proposed. PR 1 is built (2026-11-19, section 10), off by default; PR 2 (portal text and the flag) is built (2026-11-19, section 11; owner decisions and three code changes of 2026-11-20 in section 12): the flag is on in dev only, and prod stays off until a lawyer has read the text.** This supersedes `docs/plan-academic-access.md`
 (2026-11-16). It comes from an independent review (a Fable research agent, 2026-11-17) of that plan against the code at
 `d6c8bf0`, with three of its claims re-checked by the author (below). **[V]** means read at the file and line cited, **[A]** a
 recommendation or assumption. The review ran no code and no test.
@@ -162,7 +162,7 @@ Demand is unmeasured: every number is a starting value. The cost figures are the
 - **The cohort label is validated** (1 to 40 characters of letters, digits, `.`, `_`, `-`) so no applicant's words can reach the audit row. The `billing_events.reason` is
   `cohort=<label>; months=<n>; expires=<date>`, `cohort=<label>` or `code=suspend_all`, and a test fails if it ever holds an address or a name.
 - **A grant, extend, revoke and suspend-all drop the account's cached API keys** at once (best effort), so a change reaches a key in seconds, not after the 60 s cache.
-- **A ledger line** (`~/.pyvar/education.jsonl`, 0600; operator, time, environment, address, cohort, expiry) is written by the script after the API has confirmed;
+- **A ledger line** (`~/.pyvar/education.jsonl`, 0600; operator, time, environment, action, cohort, months, expiry, and **no address**: section 12) is written by the script after the API has confirmed;
   it is a convenience, the `billing_events` table is the record. No secret or token is ever written.
 - **Not in the plan:** education uses the free tier's assistant allowance (`assistant_group` "free", the free daily number).
 
@@ -190,9 +190,9 @@ other tier-change e-mails); the Jisc and ICO points of section 9; demand.
 | Piece | What it is |
 | --- | --- |
 | The flag | `education_tier_enabled` in `pyvar-cdk/config.py` (default False). **On in `dev` only.** `api_stack.py` adds `EDUCATION_TIER_ENABLED=true` to the API container only where it is true, so the task definitions of prod and staging do not change (no literal "false" entry, as for `ASSISTANT_ENABLED`). Only the API process reads it. `tests/test_cdk_education_flag.py` |
-| Home page | One paragraph under the sign-up form (`portal/index.html`): education access is higher limits than the free tier, free, for a fixed period of up to 12 months, non-commercial, given by hand; apply by e-mail to `info@pyvar.com` from the institution's address. It states no limit except the 12 months, and `tests/test_education_portal_text.py` reads that number back from the settings |
-| Privacy policy | Section 2 no longer says "no name" without qualification (sign-up collects none) and gains an "Education access" item: what an application e-mail contains, that it stays in the company mailbox and not in the database, deletion 12 months after a refusal or after the grant ends, what the database holds (the end date and a code-and-cohort record of each change), and the two lawful bases (Article 6(1)(b) and (f)). Section 9's table gains "Our e-mail provider" |
-| Terms | Section 3: education access is a separate free tier, discretionary, for a fixed period, non-commercial, 18 or over, back to free when it ends with keys still working. Section 4: no commercial or client work, no sharing, lending or resale of an education key. Section 10: a grant may be ended, paused or changed with or without notice. Both pages are dated November 2026 |
+| Home page | One paragraph under the sign-up form (`portal/index.html`): education access is higher limits than the free tier, free, for a fixed period of up to 12 months, non-commercial, given by hand, for people aged 18 or over at an institution in the UK or the EU; sign up first, then e-mail `info@pyvar.com` from the institution's address; each person applies for themselves. It states no limit except the 12 months, and `tests/test_education_portal_text.py` reads that number back from the settings |
+| Privacy policy | Section 2's opening sentence says sign-up (not the whole service) asks for no name, and an "Education access" item gives: what an application e-mail holds and what not to send; that it stays in the company mailbox and not in the database; a refused application's e-mail deleted after 30 days with a one-line note (address, date, "refused") kept 12 months, an accepted one kept until 12 months after access ends; what the database holds (tier and end date, a code-and-cohort record of each change); that server logs carry the address's domain, not the address; and the lawful bases (Article 6(1)(b) and (f), UK GDPR and, for people in the EU, EU GDPR). Section 9's table gains the mailbox provider (Aruba) and the AWS row names the tier notices |
+| Terms | Section 3: education access is a free tier for non-commercial teaching and study, by application, discretionary, one person each (18 or over, at an institution in the UK or the EU, with a verified free account), for a fixed period of at most 12 months that we tell the holder (the grant e-mail now prints the end date), limits and the shared monthly pool, back to free when it ends with the keys still working, no reminder at the end date, Pro replaces it. Section 4: no commercial or client work, no sharing, lending or resale of an education key. Section 8: the £0 parenthesis covers it. Section 10: a grant may be ended, paused or changed with or without notice. Both pages are dated November 2026 |
 
 **Why prod is not switched on here.** The plan said "flag on, dev then prod". The text is a draft for a lawyer's read (section 5), and the privacy and
 terms pages go live in prod when this PR's prod stage is approved, whatever the flag says. So the flag is the part that waits: with it off in prod, an
@@ -202,12 +202,12 @@ To close it again: remove the line, then `suspend-all --env prod --yes-prod --ye
 
 **For the lawyer, and to decide before the prod stage is approved:**
 
-- The 12-month deletion of application e-mails is a promise someone has to keep by hand. Nobody has that job yet, and nothing reminds them. [A]
-- The row says "Our e-mail provider" because the repository does not name the provider of the `info@pyvar.com` mailbox. The policy should name it.
-- Article 6(1)(f) is cited, and the plan's section 5 calls for a written balancing test. **That test has not been written.** [A]
-- The rest of the policy cites no Article of the UK GDPR; whether to start here is a drafting choice for the lawyer.
-- The age rule is written for the holder ("18 or over"). The plan lets an instructor send the addresses of a class, so a class of under-18s is not covered and not offered.
-- The wording is mine, built from section 5. Nothing here is legal advice.
+- The deletions are promises someone keeps by hand (the owner, 2026-11-20): the e-mail 30 days after a refusal, the one-line note 12 months after, an accepted application 12 months after access ends. Nothing reminds anyone.
+- The lawful bases come from a second proposal (a subagent's, 2026-11-20, `scratchpad` only): (b) for the request and the grant, (f) for everything kept or checked afterwards, no consent, and a written balancing test that **has not been signed**; the sentence "We have weighed those interests against yours, in writing" is true only once it is.
+- The policy now names both the UK GDPR and, for people in the EU, the EU GDPR; whether Fibtec needs an EU representative is the lawyer's question.
+- The mailbox is Aruba (the owner says: a processor, with an agreement, EU-based); the processor terms are Aruba's published conditions, to be matched against the copy the owner holds.
+- Whether the permanent record (`billing_events`, the expired tier, the tier on the job record) may be kept for ever is undecided; the text says "not deleted on a schedule".
+- The age rule is written for the holder ("18 or over"); nothing checks it. The wording is drafted by models from section 5 and the code; nothing here is legal advice.
 
 **CodePipeline:** yes (`portal/` and `pyvar-cdk/` are outside the eight excluded directories). **Synth, master (`3dbc102`) against this branch, for `dev`, `prod` and `staging`
 (asset hashes masked):** the only template that differs is `pyvar-dev-api`, by exactly one container environment entry (`EDUCATION_TIER_ENABLED` = `true`), so the dev API service rolls.
@@ -217,3 +217,23 @@ privacy and terms text reaches prod when the prod stage is approved, whatever th
 **Not verified:** the pages in a browser at a phone width (the paragraph reuses classes already on the page); that the mailto link opens a usable draft in common mail clients; that
 the grant e-mail and the home page agree with what a lawyer will accept; demand. The first grant in dev (`scripts/education_grant.py grant --env dev`) has not been made.
 
+## 12. Decisions of 2026-11-20 and what changed in the code
+
+**Owner's decisions.** A grant lasts at most 12 months, no longer (a first answer of "until revoked" was withdrawn, so the finite design and `CLAUDE.md` 3.5 stand).
+Each person applies for themselves (no class lists; `--allow-domain-over-cap` stays only so that the owner can grant an eleventh applicant from one institution). Applicants are
+at institutions in the UK or the EU for now, 18 or over. The owner deletes application e-mails by hand. The company mailbox is Aruba (aruba.it). The EU GDPR applies to EU applicants as well as the UK GDPR.
+The wording names Article 6(1) (Version 2 of the lawful-basis proposal). A refused application's e-mail is deleted after 30 days, a one-line note kept 12 months.
+
+**Code changes (the owner's "go" on items 1, 2 and 5).**
+
+| Change | Where | Why |
+| --- | --- | --- |
+| A tier e-mail never writes the holder's address to a log line. Logs carry the address's domain, the event and, for the education routes, the account id; a failure logs the exception's class and AWS error code, **not its text or a traceback** (SES errors can echo the recipient) | `api/middleware/billing_lifecycle.py`, `api/education_grants.py` | Found 2026-11-20 by running the real code against a recording Sentry transport: with the default logging integration a failed send became an error event carrying the address, and a successful send a breadcrumb on any later error. The privacy policy lists Sentry as seeing no addresses. Pinned by `tests/test_tier_email_privacy.py` (reintroducing the old logging fails 5 of its 11 tests) |
+| The operator's ledger holds no e-mail address (time, operator, environment, action, cohort, months, end date) | `scripts/education_grant.py` | A file on a laptop that names people is a risk the record does not need; `list` and `billing_events` say which account. `tests/test_education_grant_script.py` |
+| The grant and extension e-mails state the end date ("ends on 20 May 2027"); without one they say "the date agreed" as before | `api/middleware/billing_lifecycle.py` | The Terms say the holder is told the period |
+
+**Not changed, flagged.** `api/routes/auth.py` logs the sign-in e-mail address in the same way (`verification_email_sent`, `verification_email_send_failed`, with `exc_info`), so a failed sign-in e-mail
+puts an address into a Sentry event too. It is outside the education work and outside the owner's "go"; the options are to stop logging addresses there, to add a scrubbing `before_send`, or both.
+
+**CodePipeline:** unchanged by these edits: `api/`, `scripts/`, `portal/`, `pyvar-cdk/` still put the pull request through a pipeline run, and the dev API task definition still gains only `EDUCATION_TIER_ENABLED`.
+**Not verified:** the grant e-mail's new copy in a real mail client; that Aruba's terms say what its public pages say (a subagent read them; the owner holds the agreement).

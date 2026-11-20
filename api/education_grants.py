@@ -218,11 +218,11 @@ async def grant(
         new_tier=EDUCATION_TIER,
         reason=f"cohort={cohort}; months={months}; expires={expires.date().isoformat()}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_granted", cohort=cohort, months=months)
-    send_tier_change_email(address, EVENT_EDUCATION_GRANTED)
+    send_tier_change_email(address, EVENT_EDUCATION_GRANTED, end_date=expires, account_id=account)
     return expires
 
 
@@ -270,11 +270,11 @@ async def extend(
         new_tier=EDUCATION_TIER,
         reason=f"cohort={cohort}; months={months}; expires={expires.date().isoformat()}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_extended", cohort=cohort, months=months)
-    send_tier_change_email(address, EVENT_EDUCATION_EXTENDED)
+    send_tier_change_email(address, EVENT_EDUCATION_EXTENDED, end_date=expires, account_id=account)
     return expires
 
 
@@ -299,11 +299,11 @@ async def revoke(session: AsyncSession, *, email: str, cohort: str) -> None:
         new_tier="free",
         reason=f"cohort={cohort}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_revoked", cohort=cohort)
-    send_tier_change_email(address, EVENT_EDUCATION_REVOKED)
+    send_tier_change_email(address, EVENT_EDUCATION_REVOKED, account_id=account)
 
 
 async def suspend_all(session: AsyncSession, *, now: datetime | None = None) -> int:
@@ -332,12 +332,12 @@ async def suspend_all(session: AsyncSession, *, now: datetime | None = None) -> 
             new_tier="free",
             reason="code=suspend_all",
         )
-    addresses = [u.email for u in rows]
+    recipients = [(u.email, u.external_id) for u in rows]
     await session.commit()
     await _drop_cached_keys(session, list(rows))
     logger.warning("education_suspended_all", accounts=len(rows))
-    for address in addresses:
-        send_tier_change_email(address, EVENT_EDUCATION_SUSPENDED)
+    for address, account in recipients:
+        send_tier_change_email(address, EVENT_EDUCATION_SUSPENDED, account_id=account)
     return len(rows)
 
 

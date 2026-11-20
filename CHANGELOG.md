@@ -40,13 +40,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `docs/prompts/agent-trial-enable-dev.txt` switches it on in dev and proves it with one real call.
   Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
 - **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
-  non-commercial, apply by e-mail), an "Education access" item in the privacy policy (what an application e-mail holds, that it
-  stays in the company mailbox, deletion 12 months after a refusal or after the grant ends, the lawful bases) and a row for the
-  mailbox provider in its sub-processor table, and three clauses in the terms (§3, §4, §10). `education_tier_enabled` in
-  `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds `EDUCATION_TIER_ENABLED=true` to the API container only where it
-  is true. **Prod stays off until a lawyer has read the text**: then one line turns it on. The text is a draft, not legal advice.
-  Synth against master: only `pyvar-dev-api` changes (that one entry); prod and staging API templates are identical. The trial lane's
-  dev and prod enablement is recorded in `docs/plan-trial-lane-throttle.md`. Details: `docs/plan-education-tier.md` section 11.
+  non-commercial, 18 or over, UK or EU institutions, each person applies for themselves), an "Education access" item in the privacy policy
+  (what an application e-mail holds and what not to send, that it stays in the company mailbox, a refused application's e-mail deleted after
+  30 days with a one-line note kept 12 months, an accepted one kept until 12 months after access ends, the lawful bases under the UK GDPR
+  and, for people in the EU, the EU GDPR) and a row for the mailbox provider (Aruba) in its sub-processor table, and clauses in the terms
+  (§3, §4, §8, §10). `education_tier_enabled` in `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds
+  `EDUCATION_TIER_ENABLED=true` to the API container only where it is true. **Prod stays off until a lawyer has read the text**: then one line
+  turns it on. The text is a draft, not legal advice. Synth against master: only `pyvar-dev-api` changes (that one entry); prod and staging API
+  templates are identical. Details: `docs/plan-education-tier.md` sections 11 and 12.
+- **pyvar Local rebuilt: `pyvar-local-v0-3dbc102a`** — Published 2026-11-20 from `master` at `3dbc102` by the manual pipeline (570,477,502 bytes,
+  a prerelease like the first), so the image now carries the NumPy VaR sort and the rBergomi weight change in `engine/`. `portal/local.html`
+  points at it and links the previous release (`pyvar-local-v0-6682472c`). `requirements-heavy.txt` pins only lower bounds, so the rebuilt image
+  has newer dependency versions than the first (it is about 15 MB larger); the engine tests gate every build.
 - **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
   cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
   `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of
@@ -259,6 +264,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   wiring) remain hard-gated behind decisions only Filippo can make.
 
 ### Changed
+
+- **Tier e-mails no longer log the holder's address; the grant e-mail states the end date; the education ledger holds no address** —
+  `send_tier_change_email` logs the address's domain (and the account id where the caller has it) instead of the address, and on a failed
+  send the exception's class and AWS error code instead of its text and a traceback, because SES errors can echo the recipient and, through
+  Sentry's default logging integration, a failed send had become an error event carrying the address. The education grant and extension
+  e-mails say "ends on 20 May 2027". `scripts/education_grant.py` writes no address to `~/.pyvar/education.jsonl`. Tests:
+  `tests/test_tier_email_privacy.py`. The sign-in e-mail log lines in `api/routes/auth.py` have the same pattern and are not changed here.
 
 - **Free tier: 20 compute requests a day, not 10** — `rate_limit_free_daily` (the owner's decision A6, 2026-11-16).
   Simulations per request stay at 10,000 (the S3 offload threshold and the default are tied to it), registration,

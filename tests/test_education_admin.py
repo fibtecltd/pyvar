@@ -285,7 +285,11 @@ async def test_a_grant_sets_the_tier_and_expiry_and_writes_the_event_in_the_same
     # Exactly a code, the cohort label and a date: nothing an applicant wrote, no address, no domain.
     assert event.reason is not None
     assert re.fullmatch(r"cohort=ucl-2026; months=6; expires=\d{4}-\d{2}-\d{2}", event.reason)
-    mail.assert_called_once_with("ada@uni.ac.uk", "education_granted")
+    mail.assert_called_once()
+    assert mail.call_args.args == ("ada@uni.ac.uk", "education_granted")
+    # the e-mail is told the end date (it prints it) and the account id (the logs use it, never the address)
+    assert mail.call_args.kwargs["account_id"] == "ext-ada"
+    assert aware(mail.call_args.kwargs["end_date"]) == aware(user.tier_expires_at)
 
 
 async def test_a_grant_for_a_single_month_and_for_twelve_is_allowed(client, db, enabled) -> None:
@@ -466,6 +470,8 @@ async def test_extend_adds_months_to_the_current_end_date(client, db, enabled, m
     assert after == education_grants.add_months(before, 3)
     assert [e.event_type for e in await events(db)] == ["education_granted", "education_extended"]
     assert mail.call_args.args == ("ada@uni.ac.uk", "education_extended")
+    assert aware(mail.call_args.kwargs["end_date"]) == after
+    assert mail.call_args.kwargs["account_id"] == "ext-ada"
 
 
 async def test_extend_never_goes_past_twelve_months_from_today(client, db, enabled) -> None:
@@ -522,6 +528,7 @@ async def test_revoke_returns_the_account_to_free_and_writes_the_event(
     )
     assert last.reason == "cohort=ucl-2026"
     assert mail.call_args.args == ("ada@uni.ac.uk", "education_revoked")
+    assert mail.call_args.kwargs == {"account_id": "ext-ada"}
 
 
 async def test_revoke_refuses_an_account_that_is_not_education(client, db) -> None:
