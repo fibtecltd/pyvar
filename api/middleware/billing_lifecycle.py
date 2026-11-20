@@ -47,6 +47,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_settings
+from observability.redact import aws_error_code, email_domain
 from storage.models import BillingEvent, User
 from storage.session import get_sessionmaker
 
@@ -140,22 +141,6 @@ def _get_ses_client() -> Any:
     return boto3.client("ses", region_name=cfg.ses_region)
 
 
-def _email_domain(email: str) -> str:
-    """The part after the last "@", lower-cased: enough to tell which institution a failing send was
-    for, without naming the person. "unknown" if there is no "@"."""
-    _, _, domain = email.rpartition("@")
-    return domain.strip().lower() or "unknown"
-
-
-def _aws_error_code(exc: BaseException) -> str | None:
-    """The AWS error code of a botocore ClientError ("Throttling", "MessageRejected", ...), else None."""
-    response = getattr(exc, "response", None)
-    if isinstance(response, dict):
-        code = response.get("Error", {}).get("Code")
-        return str(code) if code else None
-    return None
-
-
 def _end_date_text(end_date: date | datetime | None) -> str:
     """ "20 May 2027": unambiguous for a reader in any country. Without a date, the old wording."""
     if end_date is None:
@@ -204,7 +189,7 @@ def send_tier_change_email(
         )
         logger.info(
             "tier_change_email_sent",
-            email_domain=_email_domain(email),
+            email_domain=email_domain(email),
             account_id=account_id,
             event_type=event_type,
         )
@@ -213,11 +198,11 @@ def send_tier_change_email(
         # line reaches Sentry. The class and the AWS error code are enough to act on.
         logger.error(
             "tier_change_email_send_failed",
-            email_domain=_email_domain(email),
+            email_domain=email_domain(email),
             account_id=account_id,
             event_type=event_type,
             error_type=type(exc).__name__,
-            error_code=_aws_error_code(exc),
+            error_code=aws_error_code(exc),
         )
 
 

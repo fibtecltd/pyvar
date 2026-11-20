@@ -37,6 +37,7 @@ from sqlalchemy import func, select
 from api import education_grants
 from api.middleware.auth import AdminPayload, TokenPayload, get_current_user, require_admin_token
 from config import get_settings
+from observability.redact import email_domain
 from schemas.internal import (
     EducationAccountOut,
     EducationChangeResponse,
@@ -77,10 +78,15 @@ async def suppress_email(
         ).scalar_one_or_none()
 
         if existing is None:
-            logger.warning("suppress_email_no_matching_user", email=body.email, reason=body.reason)
+            logger.warning(
+                "suppress_email_no_matching_user",
+                email_domain=email_domain(body.email),
+                reason=body.reason,
+            )
             return SuppressEmailResponse(matched=False, already_suppressed=False)
 
         already_suppressed = existing.email_suppressed
+        account_id = existing.external_id
         existing.email_suppressed = True
         existing.suppression_reason = body.reason
         existing.suppressed_at = datetime.now(timezone.utc)
@@ -88,7 +94,8 @@ async def suppress_email(
 
     logger.info(
         "email_suppressed",
-        email=body.email,
+        email_domain=email_domain(body.email),
+        account_id=account_id,
         reason=body.reason,
         already_suppressed=already_suppressed,
     )

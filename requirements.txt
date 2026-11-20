@@ -47,7 +47,9 @@ psycopg2-binary>=2.9.9         # sync driver for Alembic migrations
 
 # ── Observability ─────────────────────────────────────────────
 prometheus-fastapi-instrumentator>=6.4.0
-sentry-sdk[fastapi]>=1.43.0
+# Bounded on purpose: observability/setup.py relies on this SDK's defaults for what it sends (local variables,
+# request bodies, the logging integration) and tests/test_sentry_privacy.py was written against 2.75.
+sentry-sdk[fastapi]>=2.75.0,<3
 structlog>=24.1.0
 
 # ── Security ──────────────────────────────────────────────────

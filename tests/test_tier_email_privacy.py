@@ -30,6 +30,7 @@ from botocore.exceptions import ClientError
 from structlog.testing import capture_logs
 
 import api.middleware.billing_lifecycle as lifecycle
+from observability.redact import email_domain
 
 ADDRESS = "zz-sentinel-holder@example.invalid"
 DOMAIN = "example.invalid"
@@ -96,12 +97,9 @@ def test_a_failure_that_is_not_an_aws_error_has_no_code() -> None:
 
 
 def test_the_domain_of_an_address_without_an_at_sign_is_unknown() -> None:
-    assert (
-        lifecycle._email_domain("nobody") == "nobody"
-        or lifecycle._email_domain("nobody") == "unknown"
-    )
-    assert lifecycle._email_domain("A@Uni.AC.uk") == "uni.ac.uk"
-    assert lifecycle._email_domain("trailing@") == "unknown"
+    assert email_domain("nobody") == "unknown"
+    assert email_domain("A@Uni.AC.uk") == "uni.ac.uk"
+    assert email_domain("trailing@") == "unknown"
 
 
 # ── what the holder is told ──────────────────────────────────────────────────────────────────────────────────

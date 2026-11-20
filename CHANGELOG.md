@@ -41,10 +41,12 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
 - **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
   non-commercial, 18 or over, UK or EU institutions, each person applies for themselves), an "Education access" item in the privacy policy
-  (what an application e-mail holds and what not to send, that it stays in the company mailbox, a refused application's e-mail deleted after
-  30 days with a one-line note kept 12 months, an accepted one kept until 12 months after access ends, the lawful bases under the UK GDPR
-  and, for people in the EU, the EU GDPR) and a row for the mailbox provider (Aruba) in its sub-processor table, and clauses in the terms
-  (§3, §4, §8, §10). `education_tier_enabled` in `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds
+  (what an application e-mail holds and what not to send, that it stays in the company mailbox, a refused application's e-mail deleted within
+  about a month with a one-line note kept 12 months, an accepted one kept until 12 months after access ends, tier-change records kept six
+  years, the lawful bases under the UK GDPR and the EU GDPR) and a row for the mailbox provider (Aruba) in its sub-processor table, and
+  clauses in the terms (§2 minimum age 18 for every account, §3 who may apply and what "non-commercial" means, §4, §8 and §12 consumer
+  sentences, §10). The privacy policy also gains, for every account: purposes and bases, how long account records and logs are kept, the EU
+  complaint route and a right to complain to Fibtec first. `education_tier_enabled` in `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds
   `EDUCATION_TIER_ENABLED=true` to the API container only where it is true. **Prod stays off until a lawyer has read the text**: then one line
   turns it on. The text is a draft, not legal advice. Synth against master: only `pyvar-dev-api` changes (that one entry); prod and staging API
   templates are identical. Details: `docs/plan-education-tier.md` sections 11 and 12.
@@ -270,7 +272,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   send the exception's class and AWS error code instead of its text and a traceback, because SES errors can echo the recipient and, through
   Sentry's default logging integration, a failed send had become an error event carrying the address. The education grant and extension
   e-mails say "ends on 20 May 2027". `scripts/education_grant.py` writes no address to `~/.pyvar/education.jsonl`. Tests:
-  `tests/test_tier_email_privacy.py`. The sign-in e-mail log lines in `api/routes/auth.py` have the same pattern and are not changed here.
+  `tests/test_tier_email_privacy.py`.
+
+- **No e-mail address in sign-in logs or in what Sentry receives** — The sign-in e-mail (`api/routes/auth.py`), the disposable and
+  suppressed address skips and `POST /internal/suppress-email` log the domain and the account id, not the address; a failed sign-in send logs
+  the exception's class and AWS error code, not its text or a traceback. Sentry is initialised from one function, `sentry_options()`
+  (`observability/setup.py`): frame local variables and request bodies are off (by default the SDK sent the locals of every frame, which held
+  the address and the request body of a crashing route), a `before_send` and a `before_breadcrumb` replace anything shaped like an e-mail
+  address (`observability/redact.py`), and the logging integration is written out. `sentry-sdk[fastapi]` is pinned `>=2.75.0,<3`. Tests:
+  `tests/test_sentry_privacy.py`, `tests/test_auth_log_privacy.py`. The worker AMI's own pip line in `ami_stack.py` is unchanged.
 
 - **Free tier: 20 compute requests a day, not 10** — `rate_limit_free_daily` (the owner's decision A6, 2026-11-16).
   Simulations per request stay at 10,000 (the S3 offload threshold and the default are tied to it), registration,
