@@ -14,9 +14,10 @@ Reasoning:
   home page gives (the longest grant) is read back from `Settings().education_max_months`. The retention periods
   (about a month, 12 months, six years) are an operator's promise, not a setting: they are pinned here so that a
   change to one sentence cannot leave the other contradicting it.
-- Owner decisions of 2026-11-20 pinned below: six years for tier-change records, 18 or over for every account, the
-  UK and the EU, a refused application e-mail deleted "within about a month", the privacy policy's bases,
-  retention and complaints paragraphs, and the consumer sentences.
+- Owner decisions pinned below (2026-11-20, reviewed plan of 2026-11-21): UK institutions only for now, 18 or over
+  for every account, one rule for application e-mails (deleted within two months of the decision, granted or
+  refused, no refusal note), six years for tier-change and job records, the privacy policy's bases, retention,
+  logs, automated-decision and complaints paragraphs, and the consumer sentences.
 - No browser and no network: the pages are read as text.
 """
 
@@ -66,13 +67,13 @@ def test_the_home_page_paragraph_names_the_one_address_and_the_two_pages_it_lean
     text = paragraph.group(0)
     assert f"mailto:{CONTACT}" in text
     assert 'href="terms.html#education"' in text and 'href="privacy.html#education"' in text
-    # it says by hand, non-commercial, adult, in the UK or the EU, and one person each: no one reads it as
+    # it says by hand, non-commercial, adult, in the UK, and one person each: no one reads it as
     # an automatic, commercial or class-wide offer
     for words in (
         "by hand",
         "non-commercial",
         "18 or over",
-        "the UK or the EU",
+        "at an institution in the UK can ask",
         "Each person applies for themselves",
     ):
         assert words in text, words
@@ -87,12 +88,22 @@ def test_privacy_says_what_is_kept_where_and_for_how_long() -> None:
     item = _education_item(_page("privacy.html"))
     assert CONTACT in item
     assert "not copied into the pyvar.com database" in item
-    # refused: the e-mail goes within about a month, a one-line note stays 12 months; granted: until 12 months
-    # after the end
-    assert "we delete the e-mail within about a month" in item
-    assert "after 30 days" not in item
-    assert 'a one-line note (your e-mail address, the date and "refused") for 12 months' in item
-    assert "until 12 months after your access ends" in item
+    # one rule, granted or refused: the e-mail goes within two months of the decision and no note is kept
+    # (owner's decision of 2026-11-21); an extension is a new request
+    assert (
+        "Whether we grant or refuse, we delete the e-mail within two months of our decision" in item
+    )
+    assert "keep no note of it" in item
+    assert "An extension is a new request, and the same rule applies to it" in item
+    application = re.search(r"<li><strong>Your application\.</strong>.*?</li>", item, re.S)
+    assert application, "the application bullet is missing"
+    for gone in (
+        "one-line note",
+        "about a month",
+        "after 30 days",
+        "12 months after your access ends",
+    ):  # (the logs bullet says "about a month": that is the logs, not the application)
+        assert gone not in application.group(0), gone
     # what applicants should send, and what they should not
     assert "a line confirming that you are 18 or over" in item
     assert "Do not send identity documents" in item and "do not send other people's details" in item
@@ -113,7 +124,11 @@ def test_privacy_does_not_say_the_logs_or_the_ledger_hold_the_address() -> None:
 
 def test_privacy_names_the_lawful_bases_under_both_regimes() -> None:
     item = _education_item(_page("privacy.html"))
-    assert "Article 6(1)(b) of the UK GDPR and of the EU GDPR" in item
+    assert "Article 6(1)(b) of the UK GDPR: steps taken at your request" in item
+    assert (
+        "EU GDPR" not in item
+    ), "education access is for UK institutions: the UK GDPR is the one that applies"
+    assert "keep your application for up to two months after we decide" in item
     assert "Article 6(1)(f)" in item and "compelling legitimate grounds" in item
     assert "(see §8)" in item
 
@@ -129,11 +144,19 @@ def test_privacy_keeps_tier_change_records_six_years_and_says_what_happens_on_ac
     assert "an account identifier that we can no longer match to you" in item
     assert "we delete your e-mail address and switch off your API keys" in item
     keep = _section(page, "4. How long computation and account records are kept")
-    assert "Records of tier changes are kept for six years from their date." in keep
+    assert (
+        "Records of tier changes are kept for six years from their date, and so are job records."
+        in keep
+    )
+    assert "is kept for six years from its date as a compliance audit trail" in keep
+    assert "retained indefinitely" not in keep and "never deleted programmatically" not in keep
     assert "for as long as your account is open" in keep
     assert "we delete your e-mail address and switch off your API keys within one month" in keep
     assert "the account itself stays as an identifier with no e-mail address" in keep
-    assert "Our application logs are kept for about one month" in keep
+    assert (
+        "Our application logs, kept for about one month, carry the domain of your e-mail address"
+        in keep
+    )
     # the IP-address sentences: the CloudFront period is pinned to the CDK constant in
     # tests/test_cdk_access_log_retention.py; the cache claim is about the hourly and daily IP counters
     assert "We also use the IP address of a request to limit abuse" in keep
@@ -147,6 +170,9 @@ def test_privacy_states_purposes_and_bases_for_ordinary_accounts_too() -> None:
         assert words in section, words
     assert "We do not use your data for marketing and we do not sell it" in section
     assert "without one we cannot create it" in section
+    # the owner's sentence on automated decisions (and the one other automatic move, so that it stays true)
+    assert "A Pro account that reaches its monthly limit moves to free automatically" in section
+    assert "nothing else about your account is decided by automated means" in section
 
 
 def test_privacy_rights_name_both_laws_and_both_complaint_routes() -> None:
@@ -186,8 +212,7 @@ def test_terms_hold_the_conditions_in_the_sections_the_plan_names() -> None:
         "work done for a client, an employer or a research sponsor who pays for the results or controls them",
         "18 or over",
         "by hand",
-        "a teacher or student at a university, college or school in the United Kingdom or a member state of the "
-        "European Union",
+        "a teacher or student at a university, college or school in the United Kingdom, and already hold",
         "for a fixed period of at most 12 months that we tell you when we grant it",
         "Each person applies for themselves",
     ):

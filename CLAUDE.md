@@ -186,8 +186,13 @@ AWS:        CELERY_BROKER_URL = sqs://
   Never edit a committed migration — create a new one.
 - Aurora SV2 uses async driver (asyncpg). Migration scripts use
   synchronous psycopg2 — this is intentional (Alembic runs offline).
-- The VaRJob table is an AUDIT LOG. Never delete rows programmatically.
-  Use the expiry lifecycle on S3 for large result cleanup instead.
+- The VaRJob and billing_events tables are AUDIT LOGS: rows are appended, never
+  updated, and kept for SIX YEARS from their date (the privacy policy, section 4;
+  owner's decision of 2026-11-21, replacing "retained indefinitely"). Only a
+  scheduled clean-up job may delete rows older than six years: that job is NOT
+  built yet (due by 2032, when the first rows reach six years), so until it
+  exists nothing deletes them. Never delete rows any other way. Use the expiry
+  lifecycle on S3 for large result cleanup instead.
 - Index on (user_id, created_at) is intentional — do not remove.
 ```
 
