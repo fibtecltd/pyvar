@@ -19,7 +19,11 @@ for how this image is actually built and published.
   `docker run --rm --entrypoint pytest pyvar-local /app/tests/test_engine.py -v`
 - A minimal CLI (`pyvar_local/cli.py`) — every public engine function is
   reachable by reflecting over the actual `engine/` modules at runtime, so
-  it can't drift out of sync with what `engine/` actually contains.
+  it can't drift out of sync with what `engine/` actually contains. `list`
+  prints the hosted API's 385 functions plus two engine-only entries that
+  have no route in that count: `montecarlo.run_monte_carlo_var` (the kernel
+  behind the `POST /var/compute` job, which the function catalogue leaves out
+  on purpose) and `alm_irrbb.economic_value_helper` (an internal helper).
 
 ```
 $ docker run --rm pyvar-local list | head -3

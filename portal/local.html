@@ -124,7 +124,7 @@
           <span style="color:var(--green)">$</span> docker load -i pyvar-local.tar.gz<br/>
           <span style="color:var(--dim)">Loaded image: pyvar-local:&lt;sha&gt;</span><br/>
           <br/>
-          <span style="color:var(--dim)"># browse the 385 functions</span><br/>
+          <span style="color:var(--dim)"># browse every engine function</span><br/>
           <span style="color:var(--green)">$</span> docker run --rm pyvar-local:&lt;sha&gt; list<br/>
           <br/>
           <span style="color:var(--dim)"># call one</span><br/>
@@ -145,7 +145,7 @@
           <div class="local-step-num">2</div>
           <div>
             <div class="local-step-title">Every function is reachable by name</div>
-            <div class="local-step-body">The CLI reflects over the actual <code style="font-family:var(--mono);color:var(--amber)">engine/</code> modules at runtime, so it can't drift out of sync with what the image actually contains — the same 385 functions as the hosted API, across all 8 domains.</div>
+            <div class="local-step-body">The CLI reflects over the actual <code style="font-family:var(--mono);color:var(--amber)">engine/</code> modules at runtime, so it can't drift out of sync with what the image actually contains — the same 385 functions as the hosted API, across all 8 domains. <code style="font-family:var(--mono);color:var(--amber)">list</code> also shows two engine-only entries that have no API route of their own: the Monte Carlo VaR kernel behind the VaR job endpoint (<code style="font-family:var(--mono);color:var(--amber)">montecarlo.run_monte_carlo_var</code>) and one internal helper (<code style="font-family:var(--mono);color:var(--amber)">alm_irrbb.economic_value_helper</code>).</div>
           </div>
         </div>
         <div class="local-step">

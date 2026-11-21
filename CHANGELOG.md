@@ -55,7 +55,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   fails as a non-root user or on a read-only filesystem** (`cannot cache function … no locator available`, even `list`): a
   writable cache directory fixes it (`-e HOME=/tmp`, or `--tmpfs /tmp -e NUMBA_CACHE_DIR=/tmp/numba`), documented in
   `pyvar-local/README.md` and checked by the script; making non-root the default is a Dockerfile change and a rebuild, not
-  done. The Local page (`portal/local.html`) carries a note with the workaround and the amd64-only limit.
+  done. The Local page (`portal/local.html`) carries a note with the workaround and the amd64-only limit, and says why `list` prints 387 entries
+  against the API's 385 functions (the Monte Carlo VaR kernel and one internal helper, both without a catalogue route).
   `docs/prompts/agent-pyvar-local-docker-validate.txt` is the same check as a prompt for an agent with Docker.
 - **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
   non-commercial, 18 or over, UK or EU institutions, each person applies for themselves), an "Education access" item in the privacy policy
