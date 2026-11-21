@@ -211,9 +211,10 @@ class VaRJob(Base):
     Audit record for every VaR computation submitted to pyvar.
     Created on POST /var/compute, updated when the Celery task completes.
 
-    Kept six years from ``created_at``, then deleted by a scheduled clean-up job
-    (CLAUDE.md §3.3; the privacy policy says six years). The job is not built yet
-    (due by 2032): until it exists, nothing deletes these rows.
+    Kept six years from ``created_at``, then deleted by the clean-up command
+    (api/audit_retention.py, run by the owner with scripts/audit_cleanup.py;
+    CLAUDE.md §3.3; the privacy policy says six years). Nothing else deletes
+    these rows.
     """
 
     __tablename__ = "var_jobs"
@@ -272,8 +273,8 @@ class BillingEvent(Base):
     downgrade paths in api/middleware/billing_lifecycle.py) writes one row
     here in the SAME transaction as the tier mutation. Like VaRJob (CLAUDE.md
     §3.3), this is an audit log — rows are never updated after being written,
-    and are kept six years, then deleted by the scheduled clean-up job (not built
-    yet, due by 2032: until it exists nothing deletes them).
+    and are kept six years, then deleted by the clean-up command
+    (api/audit_retention.py; nothing else deletes them).
 
     user_id stores User.external_id (a plain string), the same convention
     VaRJob.user_id already uses, not a UUID foreign key — keeps this table

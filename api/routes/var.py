@@ -43,7 +43,7 @@ Reasoning:
   fails, the request fails (503) without dispatching. This is deliberately
   NOT the api_usage fire-and-forget pattern: var_jobs is the regulatory audit
   log for every VaR computation (CLAUDE.md §3.3 — rows are kept six years
-  for compliance, then deleted by a clean-up job that is not built yet), so
+  for compliance, then deleted by the clean-up command, api/audit_retention.py), so
   "the compute ran but nothing was recorded" is the one outcome this write path
   exists to prevent. Once the
   row exists, the task_id is reused for apply_async so the row this endpoint

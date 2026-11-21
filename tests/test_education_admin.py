@@ -39,7 +39,7 @@ from api.middleware.auth import (
 )
 from config import get_settings
 from main import create_app
-from storage.models import ApiKey, Base, BillingEvent, User
+from storage.models import ApiKey, Base, BillingEvent, User, VaRJob
 from tests.test_api_keys import FakeRedis
 
 cfg = get_settings()
@@ -51,6 +51,8 @@ REVOKE = "/api/v1/internal/admin/education/revoke"
 SUSPEND = "/api/v1/internal/admin/education/suspend-all"
 TIDY = "/api/v1/internal/admin/education/tidy"
 ERASE = "/api/v1/internal/admin/accounts/erase"
+EXPORT = "/api/v1/internal/admin/accounts/export"
+CLEANUP = "/api/v1/internal/admin/audit/cleanup"
 
 
 def admin_token(**overrides: Any) -> str:
@@ -81,7 +83,8 @@ async def db():
     async with engine.begin() as conn:
         await conn.run_sync(
             lambda c: Base.metadata.create_all(
-                c, tables=[User.__table__, ApiKey.__table__, BillingEvent.__table__]
+                c,
+                tables=[User.__table__, ApiKey.__table__, BillingEvent.__table__, VaRJob.__table__],
             )
         )
     maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -217,6 +220,8 @@ async def test_every_other_credential_is_refused_on_every_admin_route(
         ("POST", SUSPEND, {}),
         ("POST", TIDY, {}),
         ("POST", ERASE, {"email": "a@uni.ac.uk"}),
+        ("POST", EXPORT, {"email": "a@uni.ac.uk", "section": "account"}),
+        ("POST", CLEANUP, {}),
     ):
         response = await client.request(method, path, json=payload, headers=bearer(token))
         assert response.status_code == 401, (kind, path, response.text)

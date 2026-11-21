@@ -296,8 +296,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 - **Audit-log rule: six years, then a clean-up job (`CLAUDE.md` 3.3)** — `var_jobs` and `billing_events` were "never deleted, retained
   indefinitely"; the owner decided on 2026-11-21 that they are kept six years from their date and then deleted by a scheduled clean-up job.
-  `CLAUDE.md` 3.3 and the comments in `storage/models.py` and `api/routes/var.py` say so. **The job is not built (due by 2032, when the first
-  rows reach six years): until it exists nothing deletes them.** `api_keys` rows stay never-deleted.
+  `CLAUDE.md` 3.3 and the comments in `storage/models.py` and `api/routes/var.py` say so. `api_keys` rows stay never-deleted.
+
+- **Six-year clean-up command (`feat(api)`)** — `api/audit_retention.py`, `POST /internal/admin/audit/cleanup` (admin token only) and
+  `scripts/audit_cleanup.py`. It deletes `var_jobs` and `billing_events` rows older than six years and nothing else. The period is a
+  constant pinned to the privacy page: neither the route nor the script takes one. Dry run unless `--yes`; rounds of committed batches,
+  oldest first; the script asks again afterwards and exits 5 unless nothing older remains. Run by the owner from late 2032, **not on a
+  timer** (`CLAUDE.md` 3.3 says so). Tests: `tests/test_audit_cleanup.py` (23), `tests/test_audit_cleanup_script.py` (13).
+
+- **Data-access export (`feat(api)`)** — `api/account_export.py`, `POST /internal/admin/accounts/export` (admin token only, one page of one
+  section per call) and `scripts/account_export.py`, which writes one 0600 JSON file: the account row, its keys, its tier-change records and
+  its job records, with a `not_included` list. Never in it: the sign-in token, the legacy key digest, any key digest (a test fails when a
+  column is added without a decision). The address is in the file's `account` section only, never in a log line, the output or the ledger.
+  Tests: `tests/test_account_export.py` (19), `tests/test_account_export_script.py` (15), shared harness `tests/script_world.py`.
 
 - **CloudFront access logs expire after 90 days (`infra(cdk)`)** — The log bucket CDK creates for the distribution had no lifecycle
   rule, so access logs (client IP addresses, URLs) were kept forever. `edge_stack.py` adds an expiry rule to that bucket

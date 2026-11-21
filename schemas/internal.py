@@ -21,7 +21,7 @@ Reasoning:
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -148,3 +148,54 @@ class AccountErasureResponse(BaseModel):
     stripe_linked: bool
     google_sign_in: bool
     applied: bool
+
+
+# ── /internal/admin/audit/cleanup (docs/plan-education-tier.md section 12) ────────────────────────────────
+
+
+class AuditCleanupRequest(BaseModel):
+    """No retention period here on purpose: the six years are a constant in api/audit_retention.py."""
+
+    apply: bool = False
+    max_rows: int = Field(default=20000, ge=1, le=200000)
+
+
+class AuditTableOut(BaseModel):
+    found: int
+    deleted: int
+    remaining: int
+
+
+class AuditCleanupResponse(BaseModel):
+    """Counts only. `cutoff` is the instant six years before the call; `remaining` is what a rerun still has."""
+
+    cutoff: str
+    var_jobs: AuditTableOut
+    billing_events: AuditTableOut
+    applied: bool
+
+
+# ── /internal/admin/accounts/export (docs/plan-education-tier.md section 12) ──────────────────────────────
+
+
+class AccountExportRequest(BaseModel):
+    email: EmailStr
+    section: Literal["account", "api_keys", "billing_events", "var_jobs"]
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=200, ge=1, le=1000)
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class AccountExportResponse(BaseModel):
+    """One page of one section of the copy. `next_offset` is None on the last page."""
+
+    account_id: str
+    section: str
+    rows: list[dict[str, Any]]
+    total: int
+    next_offset: int | None
+    not_included: list[str]
