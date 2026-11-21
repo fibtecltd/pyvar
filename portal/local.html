@@ -157,6 +157,24 @@
         </div>
       </div>
     </div>
+
+    <div class="reveal" id="other-users" style="margin-top:48px;max-width:760px">
+      <div class="local-step-title">Another user, a read-only filesystem, or an ARM machine</div>
+      <div class="local-step-body">The image runs as root and keeps its compiled-code cache inside <code style="font-family:var(--mono);color:var(--amber)">/app</code>. Started as another user (<code style="font-family:var(--mono);color:var(--amber)">--user</code>, Kubernetes <code style="font-family:var(--mono);color:var(--amber)">runAsNonRoot</code>) or with <code style="font-family:var(--mono);color:var(--amber)">--read-only</code>, every call fails with <code style="font-family:var(--mono);color:var(--amber)">cannot cache function … no locator available</code>, even <code style="font-family:var(--mono);color:var(--amber)">list</code>, because that cache needs a directory the process can write to. Give it one; the results are identical to the root run, and the first call in each container compiles.</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin:16px 0;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:2.1;overflow-x:auto">
+        <span style="color:var(--dim)"># another user</span><br/>
+        <span style="color:var(--green)">$</span> docker run --rm --user 1000:1000 \<br/>
+        &nbsp;&nbsp;-e HOME=/tmp \<br/>
+        &nbsp;&nbsp;pyvar-local:&lt;sha&gt; list<br/>
+        <br/>
+        <span style="color:var(--dim)"># read-only filesystem</span><br/>
+        <span style="color:var(--green)">$</span> docker run --rm --read-only \<br/>
+        &nbsp;&nbsp;--tmpfs /tmp \<br/>
+        &nbsp;&nbsp;-e NUMBA_CACHE_DIR=/tmp/numba \<br/>
+        &nbsp;&nbsp;pyvar-local:&lt;sha&gt; list
+      </div>
+      <div class="local-step-body">The image is <code style="font-family:var(--mono);color:var(--amber)">linux/amd64</code> only. On Apple Silicon or another ARM machine add <code style="font-family:var(--mono);color:var(--amber)">--platform linux/amd64</code> to every <code style="font-family:var(--mono);color:var(--amber)">docker run</code>; it then runs under emulation, which we have not tested. The two commands above are checked in Docker for every release by a <a href="https://github.com/fibtecltd/pyvar/blob/master/pyvar-local/README.md#running-it-as-another-user-or-on-a-read-only-filesystem" target="_blank" style="color:var(--green)">published script</a>.</div>
+    </div>
   </div>
 </section>
 
