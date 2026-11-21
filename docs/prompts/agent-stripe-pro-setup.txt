@@ -1,0 +1,28 @@
+TASK: set up Stripe TEST MODE for the pyvar Pro plan (GBP 50 a month) so that the pyvar DEV API can take a test payment. You configure and report. You change no application code, open no pull request, and do not touch live mode.
+
+SETTINGS (fixed values; never stop for them)
+- Account: Fibtec Limited's Stripe account, test mode only.
+- Plan: one Product "pyvar Pro"; one recurring Price, 50.00 GBP, monthly, no trial, no annual. Tax behaviour: inclusive (the price includes VAT where VAT applies; elsewhere the customer pays 50.00). Sold worldwide.
+- Webhook URL: https://dev.pyvar.com/api/v1/billing/webhook. Events: exactly checkout.session.completed and customer.subscription.deleted.
+- AWS Secrets Manager (the dev account and region where the pyvar secrets already live): pyvar/dev/stripe-secret-key, pyvar/dev/stripe-webhook-secret, pyvar/dev/stripe-price-id-pro. The dev API reads them at startup.
+- Support e-mail: info@pyvar.com. Privacy and terms links: https://pyvar.com/privacy.html and https://pyvar.com/terms.html
+- Allowed: Stripe test mode through the Dashboard, API, CLI or a headless browser; read and write those three secrets only.
+- Not allowed: live mode or any live key; a real card; deleting or archiving any existing Stripe object (reuse it or add a new one); printing, logging or pasting any key or secret, in your report too; the pyvar repository; any other AWS resource; e-mailing real people. Stop at once on a denied call and say which.
+- No AWS access? Do steps 1 to 4 and 6 to 8, and list the three secret names still to be loaded. Never paste a value.
+
+STEPS
+1. Inventory test mode first: products, prices, webhook endpoints, billing portal configurations, tax settings. Reuse an object only if it matches SETTINGS exactly; otherwise add a new one and leave the old one alone. Report the IDs.
+2. Create the Product and the Price (tax behaviour inclusive). Set the statement descriptor and the support e-mail.
+3. Create a restricted test key allowing only Customers (write), Checkout Sessions (write) and the customer portal (write). If Stripe names them differently, say how. Do not use the default full-permission key.
+4. Webhook endpoint for the URL above with exactly the two events. If an endpoint for that URL exists, you may edit its events; report before and after. Keep its signing secret.
+5. Load the restricted key, the endpoint's signing secret and the Price ID into the three secrets, from a mode-600 temporary file or stdin, never echoed; delete the file. Confirm each secret's version or last-changed time moved, without reading the value back.
+6. Failed payments (Dashboard, Billing, Subscriptions and emails): keep Smart Retries or the default schedule and report it; set "if all retries fail" to CANCEL the subscription (not leave it past due or unpaid). Turn on Stripe's customer e-mails for failed payments and for receipts.
+7. Billing portal (test): enabled; customers may update the payment method, see invoices, and cancel the subscription AT THE END OF THE BILLING PERIOD, not immediately; no plan switching, no pausing. Default return URL https://dev.pyvar.com/dashboard.html. Business name, support e-mail and the two links above.
+8. Tax (test): turn on Stripe Tax with the company's head-office address as origin. Add NO tax registration or number: the owner and the accountant decide. Report what Stripe says is still needed.
+9. Reach check, without paying: send one test webhook to the endpoint (Dashboard "send test webhook" or `stripe trigger checkout.session.completed`). Expect the delivery log to show HTTP 200 (the API logs an unknown customer and still answers 200). If it shows 400 or 503, report it; do not restart or change anything in AWS.
+10. Do NOT run payment, failed-payment, cap or cancellation tests. The dev API still downgrades at the first failed payment and at a monthly cap; the new behaviour is not built yet. A second prompt follows with those tests.
+
+REPORT
+- Per step: PASS, DIFFERENT (how) or NOT DONE (why).
+- Give: Product, Price, endpoint and portal configuration IDs (prod_, price_, we_, bpc_); the key's name and permission list only; the retry schedule and the after-retries action; the portal's cancel mode; Stripe Tax status and what it still needs; per secret: name, changed yes or no; the webhook delivery result.
+- What you could not see and what you got wrong. No secrets, no personal data, no host names other than pyvar.com ones.

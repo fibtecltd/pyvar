@@ -1,7 +1,7 @@
 # Plan: Pro tier and Stripe go-live
 
 Written 2026-11-21, after #443 merged (`9fcd180`). It turns the owner's Pro review into a code scope and a checklist for the
-Stripe agent. **No code is written yet.** Facts below were read from the code on master (named by file and function, not line);
+Stripe agent. **The owner's decisions of 2026-11-21 are recorded in section 6.** **No code is written yet.** Facts below were read from the code on master (named by file and function, not line);
 nothing was run. Not legal or tax advice. Older background: `docs/plan-monetization-implementation.md` (Phase A, built) and
 `docs/plan-pro-subscription-verification.md` (a Stripe test-mode run book; its tests 1 and 9 were executed on dev on 2026-09-29/30).
 
@@ -12,11 +12,11 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 | Price | £50 per account per month, GBP, billed monthly through Stripe. No annual plan, no trial |
 | Covers | One account; all its keys share one set of limits; up to 5 active keys |
 | Limits (checked against `api/tiers.py` and `config.py`: they match) | 100,000 simulations per request, 500 requests a day, 5,000 a month, 2,000,000 simulations a month |
-| Extras | Only what runs today. No priority queue, longer retention or SLA is promised; e-mail support only if the owner confirms it (decision D2) |
+| Extras | Only what runs today. No priority queue, longer retention or SLA is promised. **E-mail support is offered** (info@pyvar.com, the contact address already on the site); no response time is promised unless the owner states one (O2) |
 | At a monthly cap | Refuse until the window rolls over, with a message naming the cap. **No downgrade to Free** |
 | Cancellation | Pro continues to the end of the paid month, then Free. Account and keys stay |
 | Failed payment | Stripe retries as normal; Free only when the subscription finally ends |
-| VAT, who can buy | Open (D1). Least burden: UK customers only |
+| VAT, who can buy | **Decided:** for UK customers VAT is included in the £50; the subscription is open to customers worldwide, billed in GBP. Open for the accountant: Fibtec's VAT registration and what selling abroad requires (O1) |
 
 ## 2. Today's code against the offer
 
@@ -24,7 +24,7 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 | --- | --- | --- |
 | Cap refuses | Pro's monthly request cap (`api/middleware/rate_limit.py`) and simulation cap (`api/routes/var.py`) **move the account to Free**, send an e-mail, write an audit row and answer 403 | Set Pro `monthly_breach="refuse"` (the education tier already works this way): a 429 with `Retry-After`. Delete the downgrade and restore code (`downgrade_for_monthly_limit`, `restore_after_payment_succeeded`, the two reasons) and their tests. Keep the `users.tier_downgrade_reason` column (no migration) |
 | Message names the cap | The 429 text is generic ("Rate limit exceeded. Please retry later.") | Monthly refusals say which cap ("Pro monthly limit of 5,000 requests reached") and when it resets. Applies to education too |
-| "Window rolls over" | The monthly counter is a 30-day fixed window that starts at the first request after the previous window ended. It is **not** the calendar month or the Stripe billing period, yet the old message says "billing period" | Keep the window and say so in the Terms ("30 days from your first request in the window"), or tie it to the billing period (more code; D3). Recommended: keep |
+| "Window rolls over" | The monthly counter is a 30-day fixed window that starts at the first request after the previous window ended. It is **not** the calendar month or the Stripe billing period, yet the old message says "billing period" | **Decided (D3): keep the 30-day window** and say so in the Terms ("30 days from your first request in the window") |
 | Failed payment | **`invoice.payment_failed` moves the account to Free at the first failed attempt.** Stripe sends that event on every attempt, and a later successful retry does **not** restore it (restore covers only cap downgrades) | Stop downgrading on it. Downgrade only on `customer.subscription.deleted`. Stripe must be set to cancel after the final retry (section 5, D) or Pro never ends |
 | Cancellation | `customer.subscription.deleted` moves to Free: right. **No route lets a customer cancel** | Add `POST /billing/portal` (a Stripe Billing Portal session; JWT-authenticated like checkout) and a "Manage billing" button |
 | Webhook scope | A downgrade event sets Free whatever the current tier | Act only when the tier is `pro`, so a stray Stripe customer on an enterprise or education account is not downgraded |
@@ -37,7 +37,7 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 ## 3. Text to publish (same PR, shipped last)
 
 - Home page: one pricing line: Free £0 (20 requests a day), Pro £50 per account per month, Enterprise by contact.
-- Terms: what Pro includes; monthly billing and cancellation; limits may change; a request over a cap is refused until the window rolls over.
+- Terms: what Pro includes; monthly billing in GBP, VAT included for UK customers, open worldwide; cancellation (Pro to the end of the paid month, then Free); limits may change; a request over a cap is refused until the 30-day window rolls over; e-mail support at info@pyvar.com.
 - Privacy: the Stripe row and a billing-data sentence already exist; check they say what we store. **Remove the automated-downgrade wording**: one sentence, in the "Your email address" item ("A Pro account that reaches its monthly limit moves to free automatically ..."), is the owner's automated-decisions sentence from #443. It stays true until this PR; then drop the Pro clause and keep the rest. `tests/test_education_portal_text.py` pins it.
 - Public guide: `portal/guide-rest-api.html` and `portal/guides-assets/rest-tier-lifecycle.svg` describe the downgrade and restore paths; redraw them.
 - The portal goes public at prod approval whatever the flags say, so this PR is approved in prod **last**, after dev is verified and live Stripe secrets are loaded.
@@ -53,30 +53,41 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 
 ## 5. Stripe checklist for the agent
 
-Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code.
+Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code. **A to G are the prompt `docs/prompts/agent-stripe-pro-setup.txt` (4.4 KB), run now.** H needs the new code on dev and gets its own prompt then; I is live mode.
 
-- [ ] **A. Product and Price.** Product "pyvar Pro"; one recurring Price, £50.00 GBP, monthly, no trial, no annual. Tax behaviour as decided in D1. Statement descriptor and support e-mail set. Report the Product and Price IDs.
+- [ ] **A. Product and Price.** Product "pyvar Pro"; one recurring Price, £50.00 GBP, monthly, no trial, no annual. Tax behaviour inclusive (D1). Statement descriptor and support e-mail set. Report the Product and Price IDs.
 - [ ] **B. Keys and secrets.** Use a restricted key with only what the code calls: Customers and Checkout Sessions (write), plus the customer portal once `POST /billing/portal` exists (the agent confirms Stripe's exact permission names). Put the key, the webhook signing secret and the Price ID in AWS Secrets Manager under the three names in section 2, per environment (test values on dev, live on prod). Secrets never go in chat or the repository.
 - [ ] **C. Webhook endpoint.** `{API base}/api/v1/billing/webhook` for the environment (dev: `https://dev.pyvar.com/api/v1/billing/webhook`; confirm prod). Subscribe to exactly `checkout.session.completed` and `customer.subscription.deleted`. Report the endpoint ID.
 - [ ] **D. Failed payments.** Set the retry schedule (record it) and **"cancel the subscription if all retries fail"**. Turn on Stripe's failed-payment e-mails to customers (the API sends none for this).
 - [ ] **E. Billing Portal.** Enable it: update payment method, view invoices, **cancel at the end of the billing period (not immediately)**, no plan switching. Return URL: the dashboard.
 - [ ] **F. Receipts and branding.** Customer receipts on; business name, logo, support address.
-- [ ] **G. Tax and who can buy.** As the accountant decides (D1): Stripe Tax on or off, address collection, how "UK only" is enforced (address check or a Radar rule on card country) or only stated in the Terms.
+- [ ] **G. Tax.** Price tax behaviour **inclusive**; Stripe Tax on in test mode with the head-office address as origin; **no tax registration is added** until the accountant has decided (O1). Open worldwide, so no country restriction. The code PR adds address collection and `automatic_tax` to the Checkout session.
 - [ ] **H. Test-mode run on dev** using `docs/plan-pro-subscription-verification.md` and a test clock: (1) happy path with the new Price; (2) card `4000 0000 0000 0341`: the account **stays Pro** after the first failed charge and returns to Free only when Stripe cancels after the last retry; (3) a successful retry keeps Pro; (4) cancel in the portal: Pro until the period end, then `customer.subscription.deleted` and Free; (5) the same event delivered twice changes nothing. Report event IDs and the tier before and after each step.
 - [ ] **I. Live mode.** Repeat A to G with live objects; the owner makes one real £50 payment and a refund (owner's choice) before launch.
 - [ ] **J. Hand back** a list of the values set (no secrets), the test results and anything that behaved differently. The code PR is reviewed against it before any prod deploy.
 
 ## 6. Order and decisions
 
-Order: owner decisions → Stripe agent A to H on dev → code PR on dev → joint check → live Stripe and prod secrets (I) → prod approval of the PR last.
+Order: owner decisions (done; O1 and O2 open) → Stripe agent A to G on dev (the prompt) → code PR on dev → Stripe agent H on dev → live Stripe and prod secrets (I) → prod approval of the PR last.
 
-| Decision | Options | Recommendation |
+**Decided by the owner on 2026-11-21**
+
+| | Decision |
+| --- | --- |
+| D1 VAT and buyers | For UK customers the £50 includes VAT; the subscription is open to customers worldwide (this widens the earlier "UK only to start" recommendation) |
+| D2 Support at launch | Offered: e-mail, info@pyvar.com |
+| D3 Monthly window | Keep the 30-day window and word it in the Terms |
+
+**Still open**
+
+| | Question | For |
 | --- | --- | --- |
-| D1 VAT and buyers | £50 including or excluding VAT; UK only or wider | Accountant's call; start UK only |
-| D2 Support at launch | E-mail support offered, or nothing beyond the limits | Offer it only if someone answers it |
-| D3 Monthly window | Keep the 30-day window and word it, or tie it to the billing period | Keep |
+| O1 | Is Fibtec VAT-registered, and what does selling to consumers abroad require (local VAT or sales tax, registrations)? Stripe Tax calculates and collects; it does not register the company | Accountant |
+| O2 | Is any response time promised for e-mail support, or none? | Owner |
 
 ## 7. Known limits
+
+- Selling worldwide: consumers outside the UK may bring local VAT or sales-tax duties and local consumer rights (for example withdrawal rights for digital services). The consumer sentences in the Terms (§8, §12) were written for the UK. The accountant (O1) and the lawyer who reads the Terms should confirm before launch. This is not advice.
 
 - Fail-open: if the rate-limit store is down the caps are not enforced (existing design, `api/middleware/rate_limit.py`).
 - A customer who cancels in the portal and pays again later starts a new checkout; there is no resume.
