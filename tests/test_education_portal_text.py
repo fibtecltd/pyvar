@@ -170,8 +170,10 @@ def test_privacy_states_purposes_and_bases_for_ordinary_accounts_too() -> None:
         assert words in section, words
     assert "We do not use your data for marketing and we do not sell it" in section
     assert "without one we cannot create it" in section
-    # the owner's sentence on automated decisions (and the one other automatic move, so that it stays true)
-    assert "A Pro account that reaches its monthly limit moves to free automatically" in section
+    # the owner's sentence on automated decisions. Until 2026-11-21 it also named a Pro account moving to Free at a
+    # monthly limit; a monthly limit is now a refusal (docs/plan-pro-tier-stripe.md), so that clause must not return.
+    assert "moves to free automatically" not in section
+    assert "Education accounts are held to the free limits automatically" in section
     assert "nothing else about your account is decided by automated means" in section
 
 

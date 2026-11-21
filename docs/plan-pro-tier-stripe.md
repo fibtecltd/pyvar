@@ -1,7 +1,7 @@
 # Plan: Pro tier and Stripe go-live
 
 Written 2026-11-21, after #443 merged (`9fcd180`). It turns the owner's Pro review into a code scope and a checklist for the
-Stripe agent. **The owner's decisions of 2026-11-21 are recorded in section 6.** **No code is written yet.** Facts below were read from the code on master (named by file and function, not line);
+Stripe agent. **The owner's decisions of 2026-11-21 are recorded in section 6.** **Section 4 is built in PR #444 (2026-11-21); section 7a says what differs from this plan.** Facts below were read from the code on master (named by file and function, not line);
 nothing was run. Not legal or tax advice. Older background: `docs/plan-monetization-implementation.md` (Phase A, built) and
 `docs/plan-pro-subscription-verification.md` (a Stripe test-mode run book; its tests 1 and 9 were executed on dev on 2026-09-29/30).
 
@@ -84,3 +84,10 @@ Order: owner decisions (done) → Stripe agent A to G on dev (the prompt) → co
 - Fail-open: if the rate-limit store is down the caps are not enforced (existing design, `api/middleware/rate_limit.py`).
 - A customer who cancels in the portal and pays again later starts a new checkout; there is no resume.
 - Tests 2 to 8 and 10 of the verification run book were never executed against real Stripe; tests 4 to 8 describe the old downgrade behaviour and are rewritten here.
+
+## 7a. As built (PR #444), and what differs from sections 2 to 4
+
+- Done as planned: Pro's monthly caps refuse (429, naming the plan and the cap, `Retry-After`); the downgrade and restore code, their event types and e-mails and the `monthly_breach` field of the tier table are gone (a policy row now has no downgrade option at all); the webhook acts on `checkout.session.completed` and `customer.subscription.deleted` only, and the latter only for a `pro` account; `POST /billing/portal`; the dashboard's Upgrade and Manage billing buttons and the checkout return (completes the session, asks again until Pro); "Billing is not configured" is a returned 503; pricing line, Terms (new section `#pro`), privacy and the public guide and its diagram.
+- Added beyond the plan, because the new buttons made them reachable: checkout is refused (409) for an account that is already Pro (it would be charged twice) and for enterprise or internal accounts; a paid checkout never changes those two, and a second checkout on a Pro account is logged for a refund; an education account that upgrades loses its grant date.
+- Not done, and why: **automatic tax on the Checkout session** (`automatic_tax`, billing address collection) waits for the Stripe agent's report on Stripe Tax: Stripe refuses the parameter until Stripe Tax has an origin address, so it needs a flag and an environment variable in the CDK, as a follow-up. The Medium article copy of the REST guide and its diagram under `docs/publications/` still describe the old downgrade.
+- After a cancellation a session token keeps Pro for up to its 60 minutes and an API key for up to its 60-second cache; the next token and the next lookup read the database.

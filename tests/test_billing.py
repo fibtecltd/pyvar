@@ -373,9 +373,23 @@ async def test_webhook_checkout_completed_flips_tier_to_pro(app, monkeypatch):
     assert session.committed is True
 
 
+async def _post_event(app, session, event, **extra_patches):
+    """Deliver one Stripe event to the webhook with the DB faked; returns the response."""
+    with (
+        patch_sessionmaker(session),
+        patch_stripe_client(),
+        patch.object(stripe_sdk.Webhook, "construct_event", return_value=event),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/api/v1/billing/webhook", content=b"{}", headers={"stripe-signature": "valid"}
+            )
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("event_type", ["customer.subscription.deleted", "invoice.payment_failed"])
-async def test_webhook_downgrade_events_flip_tier_to_free(app, monkeypatch, event_type):
+async def test_webhook_subscription_deleted_flips_pro_to_free(app, monkeypatch):
+    """The end of the Stripe subscription (a cancellation reaching the end of its period, or Stripe giving up
+    after its payment retries) is the only thing that moves a Pro account to Free."""
     configure_billing(monkeypatch)
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     user_row = User(
@@ -383,27 +397,113 @@ async def test_webhook_downgrade_events_flip_tier_to_free(app, monkeypatch, even
     )
     session = FakeAsyncSession(lookup_result=user_row)
 
-    with (
-        patch_sessionmaker(session),
-        patch_stripe_client(),
-        patch.object(stripe_sdk.Webhook, "construct_event", return_value=_event(event_type)),
-    ):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post(
-                "/api/v1/billing/webhook",
-                content=b"{}",
-                headers={"stripe-signature": "valid"},
-            )
+    resp = await _post_event(
+        app, session, _event("customer.subscription.deleted", event_id="evt_end")
+    )
 
     assert resp.status_code == 200
     assert user_row.tier == "free"
+    assert user_row.tier_downgrade_reason == "subscription_cancelled"
+    (event,) = session.added
+    assert (event.event_type, event.old_tier, event.new_tier) == (
+        "downgraded_subscription_cancelled",
+        "pro",
+        "free",
+    )
+    assert event.stripe_event_id == "evt_end" and session.committed is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "event_type",
+    ["invoice.payment_failed", "invoice.paid", "invoice.payment_succeeded", "customer.updated"],
+)
+async def test_webhook_other_events_never_change_a_pro_account(app, monkeypatch, event_type):
+    """A failed payment is not the end of a subscription: Stripe sends invoice.payment_failed on every failed
+    attempt and retries on its own schedule, so Pro stays until customer.subscription.deleted. A paid invoice
+    restores nothing because nothing was taken away."""
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
+    user_row = User(
+        external_id="ext-5b", email="late@example.com", tier="pro", stripe_customer_id="cus_1"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    resp = await _post_event(app, session, _event(event_type))
+
+    assert resp.status_code == 200
+    assert user_row.tier == "pro" and user_row.tier_downgrade_reason is None
+    assert session.added == [] and session.committed is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tier", ["free", "education", "enterprise", "internal"])
+async def test_webhook_subscription_deleted_for_a_non_pro_account_changes_nothing(
+    app, monkeypatch, tier
+):
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
+    user_row = User(
+        external_id="ext-5c", email="stray@example.com", tier=tier, stripe_customer_id="cus_1"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    resp = await _post_event(app, session, _event("customer.subscription.deleted"))
+
+    assert resp.status_code == 200
+    assert user_row.tier == tier
+    assert session.added == [] and session.committed is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tier", ["pro", "enterprise", "internal"])
+async def test_webhook_checkout_completed_changes_only_a_free_or_education_account(
+    app, monkeypatch, tier
+):
+    """A paid checkout never turns a custom plan into Pro, and a second checkout on an account that is already
+    Pro changes nothing (an operator refunds the second charge)."""
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
+    user_row = User(
+        external_id="ext-5d", email="paid@example.com", tier=tier, stripe_customer_id="cus_1"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    resp = await _post_event(app, session, _event("checkout.session.completed"))
+
+    assert resp.status_code == 200
+    assert user_row.tier == tier
+    assert session.added == [] and session.committed is False
+
+
+@pytest.mark.asyncio
+async def test_webhook_checkout_completed_on_an_education_account_replaces_the_grant(
+    app, monkeypatch
+):
+    from datetime import datetime, timedelta, timezone
+
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
+    user_row = User(
+        external_id="ext-5e",
+        email="student@example.com",
+        tier="education",
+        tier_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        stripe_customer_id="cus_1",
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    resp = await _post_event(app, session, _event("checkout.session.completed"))
+
+    assert resp.status_code == 200
+    assert user_row.tier == "pro" and user_row.tier_expires_at is None
+    (event,) = session.added
+    assert (event.old_tier, event.new_tier) == ("education", "pro")
 
 
 @pytest.mark.asyncio
 async def test_webhook_ignores_unhandled_event_type(app, monkeypatch):
-    """invoice.paid (unlike before item 5 §8) is now a real, handled restore
-    event — see test_webhook_payment_succeeded_restores_pro_when_downgraded
-    below — so this uses a genuinely unacted-on event type instead."""
+    """An event type this app does not act on is acknowledged and nothing touches the DB."""
     configure_billing(monkeypatch)
     monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
     session = FakeAsyncSession(lookup_result=User(external_id="ext-6", tier="free"))
@@ -452,7 +552,7 @@ async def test_webhook_unknown_customer_does_not_raise(app, monkeypatch):
     assert session.committed is False
 
 
-# ── Item 5 §8 follow-on: audit trail, idempotency, notifications, restore ────
+# ── Item 5 §8 follow-on: audit trail, idempotency, notifications ────
 
 
 @pytest.mark.asyncio
@@ -525,142 +625,7 @@ async def test_webhook_checkout_completed_writes_audit_event_and_notifies(app, m
     assert event.old_tier == "free"
     assert event.new_tier == "pro"
     assert event.stripe_event_id == "evt_upgrade_1"
-    mock_send.assert_called_once_with("upgraded@example.com", EVENT_UPGRADED)
-
-
-@pytest.mark.asyncio
-async def test_webhook_payment_succeeded_restores_pro_when_downgraded(app, monkeypatch):
-    """A user previously downgraded (for a payment failure OR a monthly
-    limit — restore_after_payment_succeeded applies to both, see its own
-    docstring) gets Pro back automatically on the next successful payment,
-    with no new Checkout needed."""
-    from api.middleware.billing_lifecycle import (
-        DOWNGRADE_MONTHLY_REQUEST_LIMIT,
-        EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED,
-    )
-
-    configure_billing(monkeypatch)
-    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
-    user_row = User(
-        external_id="ext-9",
-        email="restored@example.com",
-        tier="free",
-        stripe_customer_id="cus_1",
-    )
-    user_row.tier_downgrade_reason = DOWNGRADE_MONTHLY_REQUEST_LIMIT
-    session = FakeAsyncSession(lookup_result=user_row)
-
-    with (
-        patch_sessionmaker(session),
-        patch_stripe_client(),
-        patch.object(
-            stripe_sdk.Webhook,
-            "construct_event",
-            return_value=_event("invoice.payment_succeeded", event_id="evt_restore_1"),
-        ),
-        patch("api.routes.billing.send_tier_change_email") as mock_send,
-    ):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post(
-                "/api/v1/billing/webhook",
-                content=b"{}",
-                headers={"stripe-signature": "valid"},
-            )
-
-    assert resp.status_code == 200
-    assert user_row.tier == "pro"
-    assert user_row.tier_downgrade_reason is None
-    assert session.committed is True
-    assert len(session.added) == 1
-    assert session.added[0].event_type == EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED
-    assert session.added[0].stripe_event_id == "evt_restore_1"
-    mock_send.assert_called_once_with(
-        "restored@example.com", EVENT_RESTORED_AFTER_PAYMENT_SUCCEEDED
-    )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("event_type", ["invoice.paid", "invoice.payment_succeeded"])
-async def test_webhook_payment_succeeded_noop_when_already_pro(app, monkeypatch, event_type):
-    """Both event names Stripe may send are handled identically, and neither
-    re-writes an audit row for a subscriber who's already Pro (e.g. the
-    very first invoice tied to a brand-new checkout.session.completed)."""
-    configure_billing(monkeypatch)
-    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
-    user_row = User(
-        external_id="ext-10",
-        email="already-pro@example.com",
-        tier="pro",
-        stripe_customer_id="cus_1",
-    )
-    session = FakeAsyncSession(lookup_result=user_row)
-
-    with (
-        patch_sessionmaker(session),
-        patch_stripe_client(),
-        patch.object(
-            stripe_sdk.Webhook, "construct_event", return_value=_event(event_type, event_id="evt_x")
-        ),
-        patch("api.routes.billing.send_tier_change_email") as mock_send,
-    ):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post(
-                "/api/v1/billing/webhook",
-                content=b"{}",
-                headers={"stripe-signature": "valid"},
-            )
-
-    assert resp.status_code == 200
-    assert user_row.tier == "pro"
-    assert len(session.added) == 0
-    mock_send.assert_not_called()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "downgrade_reason",
-    ["payment_failed", "subscription_cancelled"],
-)
-async def test_webhook_payment_succeeded_does_not_restore_non_monthly_downgrades(
-    app, monkeypatch, downgrade_reason
-):
-    """Narrowed scope: only a monthly-limit downgrade auto-restores on the
-    next successful payment. A payment-failure or subscription-cancellation
-    downgrade needs a fresh Checkout, not an incidental invoice event —
-    this must stay Free even though Stripe reports a successful payment."""
-    configure_billing(monkeypatch)
-    monkeypatch.setattr(billing_module.cfg, "stripe_webhook_secret", "whsec_test")
-    user_row = User(
-        external_id="ext-11",
-        email="not-restored@example.com",
-        tier="free",
-        stripe_customer_id="cus_1",
-    )
-    user_row.tier_downgrade_reason = downgrade_reason
-    session = FakeAsyncSession(lookup_result=user_row)
-
-    with (
-        patch_sessionmaker(session),
-        patch_stripe_client(),
-        patch.object(
-            stripe_sdk.Webhook,
-            "construct_event",
-            return_value=_event("invoice.payment_succeeded", event_id="evt_no_restore"),
-        ),
-        patch("api.routes.billing.send_tier_change_email") as mock_send,
-    ):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post(
-                "/api/v1/billing/webhook",
-                content=b"{}",
-                headers={"stripe-signature": "valid"},
-            )
-
-    assert resp.status_code == 200
-    assert user_row.tier == "free"
-    assert user_row.tier_downgrade_reason == downgrade_reason
-    assert len(session.added) == 0
-    mock_send.assert_not_called()
+    mock_send.assert_called_once_with("upgraded@example.com", EVENT_UPGRADED, account_id="ext-8")
 
 
 # ── _resolve_stripe_secrets ──────────────────────────────────────────────────
@@ -942,3 +907,153 @@ async def test_checkout_complete_returns_503_when_retry_also_fails(app, monkeypa
         resp = await client.get("/api/v1/billing/checkout/complete?session_id=cs_test_1")
 
     assert resp.status_code == 503
+
+
+# ── checkout guards (docs/plan-pro-tier-stripe.md) ────────────────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tier", ["pro", "enterprise", "internal"])
+async def test_checkout_is_refused_for_an_account_that_cannot_be_upgraded(app, monkeypatch, tier):
+    """A second subscription on a Pro account would be charged twice, and an enterprise or internal account is a
+    custom plan: both get a 409 and no Stripe call is made."""
+    configure_billing(monkeypatch)
+    user_row = User(external_id="ext-g1", email="g@example.com", tier=tier)
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id="ext-g1", tier=tier)
+            )
+
+    assert resp.status_code == 409
+    fake_stripe.Customer.create.assert_not_called()
+    fake_stripe.checkout.Session.create.assert_not_called()
+    assert ("Manage billing" in resp.json()["detail"]) == (tier == "pro")
+
+
+@pytest.mark.asyncio
+async def test_checkout_is_open_to_an_education_account(app, monkeypatch):
+    configure_billing(monkeypatch)
+    user_row = User(external_id="ext-g2", email="s@example.com", tier="education")
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.Customer.create.return_value = MagicMock(id="cus_edu")
+    fake_stripe.checkout.Session.create.return_value = MagicMock(url="https://checkout.example/x")
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id="ext-g2", tier="education")
+            )
+
+    assert resp.status_code == 200
+
+
+# ── POST /billing/portal ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_portal_requires_auth(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/api/v1/billing/portal")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_portal_opens_the_stripe_portal_for_the_callers_customer(app, monkeypatch):
+    configure_billing(monkeypatch)
+    user_row = User(
+        external_id="ext-p1", email="p@example.com", tier="pro", stripe_customer_id="cus_p1"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.billing_portal.Session.create.return_value = MagicMock(
+        url="https://billing.stripe.com/p/session/abc"
+    )
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/portal", headers=auth_header(user_id="ext-p1", tier="pro")
+            )
+
+    assert resp.status_code == 200
+    assert resp.json() == {"portal_url": "https://billing.stripe.com/p/session/abc"}
+    kwargs = fake_stripe.billing_portal.Session.create.call_args.kwargs
+    assert kwargs["customer"] == "cus_p1"
+    assert kwargs["return_url"].endswith("/dashboard.html")
+    assert session.committed is False
+
+
+@pytest.mark.asyncio
+async def test_portal_is_a_409_for_an_account_that_never_subscribed(app, monkeypatch):
+    configure_billing(monkeypatch)
+    session = FakeAsyncSession(lookup_result=User(external_id="ext-p2", tier="free"))
+    fake_stripe = MagicMock()
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/portal", headers=auth_header(user_id="ext-p2")
+            )
+
+    assert resp.status_code == 409
+    fake_stripe.billing_portal.Session.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_portal_is_a_404_when_the_user_row_is_missing(app, monkeypatch):
+    configure_billing(monkeypatch)
+    session = FakeAsyncSession(lookup_result=None)
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=MagicMock()),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/portal", headers=auth_header(user_id="ext-p3")
+            )
+
+    assert resp.status_code == 404
+
+
+# ── "Billing is not configured" is an answer, not an error ─────────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("POST", "/api/v1/billing/checkout"),
+        ("POST", "/api/v1/billing/portal"),
+        ("GET", "/api/v1/billing/checkout/complete?session_id=cs_test_1"),
+        ("POST", "/api/v1/billing/webhook"),
+    ],
+)
+async def test_every_billing_route_answers_503_when_billing_is_not_configured(
+    app, monkeypatch, method, path
+):
+    monkeypatch.setattr(billing_module.cfg, "stripe_secret_key", None)
+    monkeypatch.setattr(billing_module.cfg, "stripe_price_id_pro", None)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.request(method, path, headers=auth_header(), content=b"{}")
+
+    assert resp.status_code == 503
+    assert resp.json() == {"detail": billing_module.NOT_CONFIGURED_DETAIL}

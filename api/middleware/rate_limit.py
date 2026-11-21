@@ -71,19 +71,15 @@ Reasoning:
   (the portal's box works without signing in); a signed-in user, by session or API key, per user per day by
   tier. The count is taken before any model call, so a refused question costs nothing. Like the others it
   fails open on a Redis error; the gateway's separate spend cap (api/assistant/store.py) fails closed.
-- Monthly usage limits (item 5 §8 follow-on): Pro accounts additionally face
-  a monthly request-count cap (config.py's rate_limit_pro_monthly_requests),
-  checked here as a second `limits` item with its own "compute-monthly"
-  scope. Unlike the daily cap above, breaching it doesn't just 429 — it hard-
-  downgrades the account to Free via
-  api/middleware/billing_lifecycle.py::downgrade_for_monthly_limit (an audit
-  row + a best-effort notification email), per
-  docs/plan-monetization-implementation.md §8's decisions log. Free/
-  enterprise/internal are never subject to this check — Free has nowhere to
-  downgrade to, and enterprise/internal are exempt above already.
-- Education accounts (docs/plan-education-tier.md) differ in three ways, all read from the tier's row in
-  api/tiers.py: a per-minute burst cap (checked first, so a refused burst does not use up the day's quota);
-  a monthly breach is a plain 429 and never reaches downgrade_for_monthly_limit (Pro's, with Pro's wording); and
+- Monthly usage limits: Pro accounts additionally face a monthly request-count cap
+  (config.py's rate_limit_pro_monthly_requests), checked here as a second `limits` item with its own
+  "compute-monthly" scope. Breaching it is a 429 that names the cap and carries Retry-After; the account's
+  tier is NEVER changed (docs/plan-pro-tier-stripe.md; until 2026-11-21 a breach moved the account to Free,
+  which the owner replaced with refusal). The window is 30 days from the account's first request in it, not
+  the calendar month or the Stripe billing period, and the text says so. Free/enterprise/internal have no
+  monthly cap.
+- Education accounts (docs/plan-education-tier.md) differ in two ways, all read from the tier's row in
+  api/tiers.py: a per-minute burst cap (checked first, so a refused burst does not use up the day's quota); and
   once the month's pool of education VaR jobs is spent (api/routes/var.py takes from it), every education
   request is held to the FREE tier's limits until the pool's window rolls over. The pool is read here without
   taking from it (education_pool_has_room) and taken from only by a VaR submission (take_education_pool_job).
@@ -106,11 +102,6 @@ from slowapi.util import get_remote_address
 
 from api.assistant.metrics import REFUSED
 from api.middleware.auth import TokenPayload, get_current_user, get_optional_user
-from api.middleware.billing_lifecycle import (
-    DOWNGRADE_MONTHLY_REQUEST_LIMIT,
-    EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
-    downgrade_for_monthly_limit,
-)
 from api.tiers import policy_for
 from config import get_settings
 from storage.redis_client import redis_url
@@ -155,7 +146,17 @@ def get_trusted_client_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
-def _raise_rate_limited(item: limits.RateLimitItem, *identifiers: str) -> None:
+def monthly_cap_detail(plan: str, amount: int, what: str) -> str:
+    """The 429 text for a monthly cap: names the plan and the cap and says what happens next."""
+    return (
+        f"Monthly limit reached: the {plan.capitalize()} plan allows {amount:,} {what} in each 30-day window. "
+        "Requests are refused until the window resets; the Retry-After header gives the wait in seconds."
+    )
+
+
+def _raise_rate_limited(
+    item: limits.RateLimitItem, *identifiers: str, detail: str | None = None
+) -> None:
     retry_after = 60
     try:
         reset_at, _remaining = _limiter.limiter.get_window_stats(item, *identifiers)
@@ -165,7 +166,7 @@ def _raise_rate_limited(item: limits.RateLimitItem, *identifiers: str) -> None:
 
     raise HTTPException(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        detail="Rate limit exceeded. Please retry later.",
+        detail=detail or "Rate limit exceeded. Please retry later.",
         headers={"Retry-After": str(retry_after)},
     )
 
@@ -204,9 +205,8 @@ async def enforce_compute_rate_limit(
     user: TokenPayload = Depends(get_current_user),
 ) -> None:
     """Account-wide daily quota across every /api/v1 compute endpoint, plus
-    (Pro only) a monthly request-count quota that hard-downgrades to Free
-    instead of just 429ing — see module docstring's "Monthly usage limits"
-    note and docs/plan-monetization-implementation.md §8's decisions log.
+    (Pro and education) a monthly request-count quota. A breach is a 429 that names the cap; the account's
+    tier never changes — see the module docstring's "Monthly usage limits" note.
 
     Applied via `include_router(..., dependencies=[Depends(enforce_compute_rate_limit)])`
     in main.py for var_router and each of the 8 domain routers — see module
@@ -257,22 +257,11 @@ async def enforce_compute_rate_limit(
         return
 
     if not monthly_allowed:
-        if policy.monthly_breach == "refuse":
-            _raise_rate_limited(monthly_item, user.user_id, "compute-monthly")
-        await downgrade_for_monthly_limit(
-            user_id=user.user_id,
-            downgrade_reason=DOWNGRADE_MONTHLY_REQUEST_LIMIT,
-            event_type=EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT,
-            detail=(f"Exceeded {policy.monthly_requests:,} requests " "this billing period."),
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "Your Pro plan's monthly request limit has been reached. Your "
-                "account has moved to the Free plan for the rest of this "
-                "billing period; full Pro limits resume automatically at your "
-                "next billing date."
-            ),
+        _raise_rate_limited(
+            monthly_item,
+            user.user_id,
+            "compute-monthly",
+            detail=monthly_cap_detail(policy.name, policy.monthly_requests, "requests"),
         )
 
 

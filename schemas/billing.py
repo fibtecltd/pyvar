@@ -38,3 +38,9 @@ class CheckoutCompleteResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     tier: str = "free"
+
+
+class PortalResponse(BaseModel):
+    """Returned by POST /billing/portal — the Stripe-hosted page to redirect the browser to."""
+
+    portal_url: str

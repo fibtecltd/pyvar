@@ -8,8 +8,8 @@ Reasoning:
 - tests/test_tier_limits_behaviour.py pins that the four existing tiers behave exactly as before the refactor.
 - The fifth row, "trial", belongs to the no-sign-up trial lane (docs/plan-trial-lane-throttle.md): 10,000
   simulations, 5 calls a day per ticket, no assistant questions.
-- The sixth, "education", is a finite grant (docs/plan-education-tier.md); its limits, the two fields only it uses
-  (a burst cap and "refuse, do not downgrade") and its rules are tested in tests/test_education_tier.py.
+- The sixth, "education", is a finite grant (docs/plan-education-tier.md); its limits, the field only it uses
+  (a burst cap) and its rules are tested in tests/test_education_tier.py.
 """
 
 from __future__ import annotations
@@ -58,9 +58,7 @@ def test_every_known_tier_has_a_complete_row(tier: str) -> None:
         "assistant_group",
         "assistant_daily",
         "burst_per_minute",
-        "monthly_breach",
-    }
-    assert policy.monthly_breach in {"downgrade", "refuse"}
+    }, "a policy row has no downgrade option: a monthly cap is always a 429 (docs/plan-pro-tier-stripe.md)"
     assert policy.burst_per_minute is None or policy.burst_per_minute > 0
 
 

@@ -298,6 +298,21 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   indefinitely"; the owner decided on 2026-11-21 that they are kept six years from their date and then deleted by a scheduled clean-up job.
   `CLAUDE.md` 3.3 and the comments in `storage/models.py` and `api/routes/var.py` say so. `api_keys` rows stay never-deleted.
 
+- **Pro: a monthly cap refuses, only the end of the Stripe subscription ends Pro (`feat(billing)`)** — The owner's decisions of
+  2026-11-21 (`docs/plan-pro-tier-stripe.md`). A Pro account that reaches a monthly cap now gets a 429 that names the plan and the cap and
+  carries `Retry-After`; before, it was moved to Free (403, an audit row, an e-mail) and restored by a later paid invoice. A failed
+  payment no longer moves an account to Free: `invoice.payment_failed` is sent on every attempt, so the first declined card ended Pro, and
+  a later successful retry did not restore it. The webhook now acts on two events only, `checkout.session.completed` (free or education
+  to Pro) and `customer.subscription.deleted` (Pro to Free, for a `pro` account only). Removed: `downgrade_for_monthly_limit`,
+  `restore_after_payment_succeeded`, the event types and e-mails of the three old paths, and the `monthly_breach` field of the tier table.
+  Added: `POST /billing/portal` (Stripe's Billing Portal: card, invoices, cancel at the end of the period); Upgrade and Manage billing
+  buttons and the checkout return on the dashboard; a 409 for a checkout on an account that is already Pro or is enterprise or internal;
+  "Billing is not configured" returned as a 503 instead of raised (it was a Sentry error event). Text: the pricing line on the home page,
+  a Pro section in the Terms (`#pro`), the privacy page's payment paragraph (it said "the amount charged", which is not stored) and its
+  automated-decisions sentence (the Pro clause is gone), the public REST guide and its lifecycle diagram (which also showed the old Free
+  limit of 10 a day). `CLAUDE.md` 3.5: the rule for the two events. Tests: `tests/test_pro_offer.py` (9) and rewritten cap and webhook
+  tests; the dashboard was exercised in headless Chromium. Not in this entry: automatic tax on Checkout (waits for the Stripe set-up).
+
 - **Six-year clean-up command (`feat(api)`)** — `api/audit_retention.py`, `POST /internal/admin/audit/cleanup` (admin token only) and
   `scripts/audit_cleanup.py`. It deletes `var_jobs` and `billing_events` rows older than six years and nothing else. The period is a
   constant pinned to the privacy page: neither the route nor the script takes one. Dry run unless `--yes`; rounds of committed batches,

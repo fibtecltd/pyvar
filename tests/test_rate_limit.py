@@ -22,6 +22,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
 
 from api.middleware.auth import TokenPayload
 from api.middleware.rate_limit import (
@@ -144,52 +145,83 @@ async def test_compute_rate_limit_fails_open_on_storage_error(memory_limiter):
         await enforce_compute_rate_limit(FakeRequest(), user)  # must not raise
 
 
-# ── Monthly request-count cap, Pro only (item 5 §8 follow-on) ────────────────
+# ── Monthly request-count cap, Pro (docs/plan-pro-tier-stripe.md) ────────────
 
 
 @pytest.mark.asyncio
-async def test_compute_rate_limit_pro_monthly_cap_downgrades_and_raises_403(memory_limiter):
-    """Breaching the monthly cap is a 403 + downgrade, not a 429 — a
-    permanent-for-the-period state change, not "retry later today"."""
+async def test_compute_rate_limit_pro_monthly_cap_is_a_429_that_names_the_cap(memory_limiter):
+    """Breaching the monthly cap is a refusal until the window resets: a 429 with Retry-After and a message that
+    names the plan and the cap. The account's tier is not touched."""
     with (
         patch.object(cfg, "rate_limit_pro_daily", 100),
         patch.object(cfg, "rate_limit_pro_monthly_requests", 2),
-        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
     ):
         user = TokenPayload(sub="user-i", tier="pro")
         request = FakeRequest()
         await enforce_compute_rate_limit(request, user)
         await enforce_compute_rate_limit(request, user)
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             await enforce_compute_rate_limit(request, user)
-        assert exc_info.value.status_code == 403
 
-    mock_downgrade.assert_called_once()
-    call_kwargs = mock_downgrade.call_args.kwargs
-    assert call_kwargs["user_id"] == "user-i"
-    assert call_kwargs["downgrade_reason"] == "monthly_request_limit_exceeded"
+    error = exc_info.value
+    assert error.status_code == 429
+    assert "Pro plan allows 2 requests in each 30-day window" in error.detail
+    assert "refused until the window resets" in error.detail
+    assert int(error.headers["Retry-After"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_a_pro_account_stays_refused_for_the_rest_of_the_window(memory_limiter):
+    with (
+        patch.object(cfg, "rate_limit_pro_daily", 100),
+        patch.object(cfg, "rate_limit_pro_monthly_requests", 1),
+    ):
+        user = TokenPayload(sub="user-i2", tier="pro")
+        await enforce_compute_rate_limit(FakeRequest(), user)
+        for _ in range(3):
+            with pytest.raises(HTTPException) as exc_info:
+                await enforce_compute_rate_limit(FakeRequest(), user)
+            assert exc_info.value.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_two_keys_of_one_account_share_one_daily_and_one_monthly_counter(memory_limiter):
+    """Both counters are keyed by the account, never the key: a second key (or a re-created one) is not a fresh
+    allowance. A key resolves to the same TokenPayload.sub as the session that made it."""
+    with (
+        patch.object(cfg, "rate_limit_pro_daily", 100),
+        patch.object(cfg, "rate_limit_pro_monthly_requests", 3),
+    ):
+        key_one = TokenPayload(sub="account-one", tier="pro")
+        key_two = TokenPayload(sub="account-one", tier="pro")  # another key, the same account
+        other_account = TokenPayload(sub="account-two", tier="pro")
+        await enforce_compute_rate_limit(FakeRequest(), key_one)
+        await enforce_compute_rate_limit(FakeRequest(), key_two)
+        await enforce_compute_rate_limit(FakeRequest(), key_one)
+        with pytest.raises(HTTPException) as exc_info:
+            await enforce_compute_rate_limit(FakeRequest(), key_two)
+        assert exc_info.value.status_code == 429
+        await enforce_compute_rate_limit(
+            FakeRequest(), other_account
+        )  # a different account is unaffected
 
 
 @pytest.mark.asyncio
 async def test_compute_rate_limit_free_tier_not_subject_to_monthly_cap(memory_limiter):
-    """Free has nowhere to downgrade to — the monthly check must not even run."""
+    """Free has no monthly cap: the Pro setting must not reach it."""
     with (
         patch.object(cfg, "rate_limit_free_daily", 100),
         patch.object(cfg, "rate_limit_pro_monthly_requests", 1),
-        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
     ):
         user = TokenPayload(sub="user-j", tier="free")
         request = FakeRequest()
         for _ in range(5):
-            await enforce_compute_rate_limit(request, user)  # never throttled/downgraded
-
-    mock_downgrade.assert_not_called()
+            await enforce_compute_rate_limit(request, user)  # never throttled
 
 
 @pytest.mark.asyncio
 async def test_compute_rate_limit_monthly_check_fails_open_on_storage_error(memory_limiter):
-    """An ElastiCache outage on the monthly check specifically must not block
-    the request or trigger a spurious downgrade."""
+    """An ElastiCache outage on the monthly check specifically must not block the request."""
     real_hit = memory_limiter.limiter.hit
 
     def flaky_hit(item, *identifiers, cost=1):
@@ -200,12 +232,9 @@ async def test_compute_rate_limit_monthly_check_fails_open_on_storage_error(memo
     with (
         patch.object(cfg, "rate_limit_pro_daily", 100),
         patch.object(memory_limiter.limiter, "hit", side_effect=flaky_hit),
-        patch("api.middleware.rate_limit.downgrade_for_monthly_limit") as mock_downgrade,
     ):
         user = TokenPayload(sub="user-k", tier="pro")
         await enforce_compute_rate_limit(FakeRequest(), user)  # must not raise
-
-    mock_downgrade.assert_not_called()
 
 
 # ── enforce_public_rate_limit ────────────────────────────────────────────────
