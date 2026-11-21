@@ -12,11 +12,11 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 | Price | £50 per account per month, GBP, billed monthly through Stripe. No annual plan, no trial |
 | Covers | One account; all its keys share one set of limits; up to 5 active keys |
 | Limits (checked against `api/tiers.py` and `config.py`: they match) | 100,000 simulations per request, 500 requests a day, 5,000 a month, 2,000,000 simulations a month |
-| Extras | Only what runs today. No priority queue, longer retention or SLA is promised. **E-mail support is offered** (info@pyvar.com, the contact address already on the site); no response time is promised unless the owner states one (O2) |
+| Extras | Only what runs today. No priority queue, longer retention or SLA is promised. **E-mail support is offered** (info@pyvar.com, the contact address already on the site); **no response time is guaranteed** |
 | At a monthly cap | Refuse until the window rolls over, with a message naming the cap. **No downgrade to Free** |
 | Cancellation | Pro continues to the end of the paid month, then Free. Account and keys stay |
 | Failed payment | Stripe retries as normal; Free only when the subscription finally ends |
-| VAT, who can buy | **Decided:** for UK customers VAT is included in the £50; the subscription is open to customers worldwide, billed in GBP. Open for the accountant: Fibtec's VAT registration and what selling abroad requires (O1) |
+| VAT, who can buy | **Decided:** for UK customers VAT is included in the £50; the subscription is open to customers worldwide, billed in GBP. Fibtec is VAT-registered in the UK |
 
 ## 2. Today's code against the offer
 
@@ -37,7 +37,7 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 ## 3. Text to publish (same PR, shipped last)
 
 - Home page: one pricing line: Free £0 (20 requests a day), Pro £50 per account per month, Enterprise by contact.
-- Terms: what Pro includes; monthly billing in GBP, VAT included for UK customers, open worldwide; cancellation (Pro to the end of the paid month, then Free); limits may change; a request over a cap is refused until the 30-day window rolls over; e-mail support at info@pyvar.com.
+- Terms: what Pro includes; monthly billing in GBP, VAT included for UK customers, open worldwide; cancellation (Pro to the end of the paid month, then Free); limits may change; a request over a cap is refused until the 30-day window rolls over; e-mail support at info@pyvar.com, with no guarantee of response times.
 - Privacy: the Stripe row and a billing-data sentence already exist; check they say what we store. **Remove the automated-downgrade wording**: one sentence, in the "Your email address" item ("A Pro account that reaches its monthly limit moves to free automatically ..."), is the owner's automated-decisions sentence from #443. It stays true until this PR; then drop the Pro clause and keep the rest. `tests/test_education_portal_text.py` pins it.
 - Public guide: `portal/guide-rest-api.html` and `portal/guides-assets/rest-tier-lifecycle.svg` describe the downgrade and restore paths; redraw them.
 - The portal goes public at prod approval whatever the flags say, so this PR is approved in prod **last**, after dev is verified and live Stripe secrets are loaded.
@@ -61,14 +61,14 @@ Do everything in **test mode on dev first**, report, then repeat in live mode on
 - [ ] **D. Failed payments.** Set the retry schedule (record it) and **"cancel the subscription if all retries fail"**. Turn on Stripe's failed-payment e-mails to customers (the API sends none for this).
 - [ ] **E. Billing Portal.** Enable it: update payment method, view invoices, **cancel at the end of the billing period (not immediately)**, no plan switching. Return URL: the dashboard.
 - [ ] **F. Receipts and branding.** Customer receipts on; business name, logo, support address.
-- [ ] **G. Tax.** Price tax behaviour **inclusive**; Stripe Tax on in test mode with the head-office address as origin; **no tax registration is added** until the accountant has decided (O1). Open worldwide, so no country restriction. The code PR adds address collection and `automatic_tax` to the Checkout session.
+- [ ] **G. Tax.** Price tax behaviour **inclusive**; Stripe Tax on in test mode with the head-office address as origin; Fibtec is VAT-registered in the UK: add the UK registration in Stripe Tax once the owner gives the VAT number (the agent adds none on its own). Open worldwide, so no country restriction. The code PR adds address collection and `automatic_tax` to the Checkout session.
 - [ ] **H. Test-mode run on dev** using `docs/plan-pro-subscription-verification.md` and a test clock: (1) happy path with the new Price; (2) card `4000 0000 0000 0341`: the account **stays Pro** after the first failed charge and returns to Free only when Stripe cancels after the last retry; (3) a successful retry keeps Pro; (4) cancel in the portal: Pro until the period end, then `customer.subscription.deleted` and Free; (5) the same event delivered twice changes nothing. Report event IDs and the tier before and after each step.
 - [ ] **I. Live mode.** Repeat A to G with live objects; the owner makes one real £50 payment and a refund (owner's choice) before launch.
 - [ ] **J. Hand back** a list of the values set (no secrets), the test results and anything that behaved differently. The code PR is reviewed against it before any prod deploy.
 
 ## 6. Order and decisions
 
-Order: owner decisions (done; O1 and O2 open) → Stripe agent A to G on dev (the prompt) → code PR on dev → Stripe agent H on dev → live Stripe and prod secrets (I) → prod approval of the PR last.
+Order: owner decisions (done) → Stripe agent A to G on dev (the prompt) → code PR on dev → Stripe agent H on dev → live Stripe and prod secrets (I) → prod approval of the PR last.
 
 **Decided by the owner on 2026-11-21**
 
@@ -77,17 +77,9 @@ Order: owner decisions (done; O1 and O2 open) → Stripe agent A to G on dev (th
 | D1 VAT and buyers | For UK customers the £50 includes VAT; the subscription is open to customers worldwide (this widens the earlier "UK only to start" recommendation) |
 | D2 Support at launch | Offered: e-mail, info@pyvar.com |
 | D3 Monthly window | Keep the 30-day window and word it in the Terms |
-
-**Still open**
-
-| | Question | For |
-| --- | --- | --- |
-| O1 | Is Fibtec VAT-registered, and what does selling to consumers abroad require (local VAT or sales tax, registrations)? Stripe Tax calculates and collects; it does not register the company | Accountant |
-| O2 | Is any response time promised for e-mail support, or none? | Owner |
+| Facts | Fibtec is VAT-registered in the UK. E-mail support carries no guarantee of response times |
 
 ## 7. Known limits
-
-- Selling worldwide: consumers outside the UK may bring local VAT or sales-tax duties and local consumer rights (for example withdrawal rights for digital services). The consumer sentences in the Terms (§8, §12) were written for the UK. The accountant (O1) and the lawyer who reads the Terms should confirm before launch. This is not advice.
 
 - Fail-open: if the rate-limit store is down the caps are not enforced (existing design, `api/middleware/rate_limit.py`).
 - A customer who cancels in the portal and pays again later starts a new checkout; there is no resume.
