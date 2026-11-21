@@ -39,6 +39,7 @@ from api.middleware.billing_lifecycle import (
     EVENT_EDUCATION_GRANTED,
     EVENT_EDUCATION_REVOKED,
     EVENT_EDUCATION_SUSPENDED,
+    EVENT_EDUCATION_TIDIED,
     record_billing_event,
     send_tier_change_email,
 )
@@ -218,11 +219,11 @@ async def grant(
         new_tier=EDUCATION_TIER,
         reason=f"cohort={cohort}; months={months}; expires={expires.date().isoformat()}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_granted", cohort=cohort, months=months)
-    send_tier_change_email(address, EVENT_EDUCATION_GRANTED)
+    send_tier_change_email(address, EVENT_EDUCATION_GRANTED, end_date=expires, account_id=account)
     return expires
 
 
@@ -270,11 +271,11 @@ async def extend(
         new_tier=EDUCATION_TIER,
         reason=f"cohort={cohort}; months={months}; expires={expires.date().isoformat()}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_extended", cohort=cohort, months=months)
-    send_tier_change_email(address, EVENT_EDUCATION_EXTENDED)
+    send_tier_change_email(address, EVENT_EDUCATION_EXTENDED, end_date=expires, account_id=account)
     return expires
 
 
@@ -299,11 +300,11 @@ async def revoke(session: AsyncSession, *, email: str, cohort: str) -> None:
         new_tier="free",
         reason=f"cohort={cohort}",
     )
-    address = user.email
+    address, account = user.email, user.external_id
     await session.commit()
     await _drop_cached_keys(session, [user])
     logger.info("education_revoked", cohort=cohort)
-    send_tier_change_email(address, EVENT_EDUCATION_REVOKED)
+    send_tier_change_email(address, EVENT_EDUCATION_REVOKED, account_id=account)
 
 
 async def suspend_all(session: AsyncSession, *, now: datetime | None = None) -> int:
@@ -332,12 +333,58 @@ async def suspend_all(session: AsyncSession, *, now: datetime | None = None) -> 
             new_tier="free",
             reason="code=suspend_all",
         )
-    addresses = [u.email for u in rows]
+    recipients = [(u.email, u.external_id) for u in rows]
     await session.commit()
     await _drop_cached_keys(session, list(rows))
     logger.warning("education_suspended_all", accounts=len(rows))
-    for address in addresses:
-        send_tier_change_email(address, EVENT_EDUCATION_SUSPENDED)
+    for address, account in recipients:
+        send_tier_change_email(address, EVENT_EDUCATION_SUSPENDED, account_id=account)
+    return len(rows)
+
+
+async def tidy(
+    session: AsyncSession, *, months: int = 12, apply: bool = False, now: datetime | None = None
+) -> int:
+    """Reset education labels whose grant ended more than `months` months ago to plain "free". Returns how many
+    accounts it found (and, with `apply`, changed). Commits only with `apply`. Works with the flag off.
+
+    The privacy policy says an account keeps the label "education" with its end date for up to 12 months and then
+    goes back to "free". The label does nothing meanwhile (api/tiers.py::effective_tier already treats a past
+    date as free); this makes the record match the sentence. One `billing_events` row per account, no e-mail to
+    the holder (unlike `revoke`, which tells them access has ended: wrong for a grant that ended a year ago), and
+    no cohort label: it concerns the expiry, not the course.
+    """
+    moment = now or datetime.now(timezone.utc)
+    cutoff = add_months(moment, -months)
+    rows = (
+        (
+            await session.execute(
+                select(User).where(
+                    User.tier == EDUCATION_TIER,
+                    User.tier_expires_at.is_not(None),
+                    User.tier_expires_at < cutoff,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not apply or not rows:
+        return len(rows)
+    for user in rows:
+        user.tier = "free"
+        user.tier_expires_at = None
+        record_billing_event(
+            session,
+            user_id=user.external_id,
+            event_type=EVENT_EDUCATION_TIDIED,
+            old_tier=EDUCATION_TIER,
+            new_tier="free",
+            reason=f"code=tidy; months={months}",
+        )
+    await session.commit()
+    await _drop_cached_keys(session, list(rows))
+    logger.info("education_tidied", accounts=len(rows), months=months)
     return len(rows)
 
 

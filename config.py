@@ -211,15 +211,16 @@ class Settings(BaseSettings):
     rate_limit_education_monthly_requests: int = 2_000  # a breach is a 429, never a downgrade
     rate_limit_education_burst_per_minute: int = 20
     rate_limit_education_monthly_simulations: int = (
-        1_000_000  # VaR only; a breach is a 403, never a downgrade
+        1_000_000  # VaR only; a breach is a 429, never a downgrade
     )
     # Grants: active education accounts in all, per e-mail domain, and the expiry a grant may be given.
     education_cohort_cap: int = 25
     education_domain_cap: int = 10
     education_default_months: int = 6
     education_max_months: int = 12
-    # The pool: education VaR jobs a month for everyone together; once spent, education VaR submissions get the
-    # free tier's simulation cap and daily quota until the next UTC month (api/education_pool.py).
+    # The pool: education VaR jobs a month (the limiter's 30-day window) for everyone together; once spent, every
+    # education account gets the free tier's limits on all compute routes, and a VaR submission the free
+    # simulation cap, until the window rolls over (api/middleware/rate_limit.py: limits_tier_for, take_education_pool_job).
     education_var_pool_monthly: int = 5_000
     # Lifetime of the admin token scripts/education_grant.py signs (api/middleware/auth.py::decode_admin_payload).
     admin_token_ttl_seconds: int = 600

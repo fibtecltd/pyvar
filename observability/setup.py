@@ -27,6 +27,7 @@ from prometheus_client import Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from config import get_settings
+from observability.redact import scrub_breadcrumb, scrub_event
 
 cfg = get_settings()
 
@@ -106,6 +107,49 @@ def _resolve_sentry_dsn() -> str:
         return ""
 
 
+def sentry_options(dsn: str) -> dict[str, Any]:
+    """The keyword arguments for `sentry_sdk.init`, built in one place so that tests/test_sentry_privacy.py can
+    exercise exactly what production runs.
+
+    Privacy settings (docs/plan-education-tier.md section 12, tested 2026-11-20):
+    - `include_local_variables=False`: by default the SDK sends every stack frame's local variables, unscrubbed,
+      and a crashing route holds the request body (an e-mail address, a returns series) in locals.
+    - `max_request_body_size="never"`: no request body in the event's request section.
+    - `before_send` / `before_breadcrumb`: replace anything shaped like an e-mail address in what is about to be
+      sent; the net under "do not log addresses" (observability/redact.py).
+    - The logging integration is explicit: an ERROR log line becomes a Sentry event and INFO and above become
+      breadcrumbs. That was the SDK's default in the version tested, but the requirement used to be unpinned and a
+      newer default can differ; whether an error log is an issue is a choice made here.
+    """
+    # Imported here, not at module level: Sentry is optional observability.
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+    return {
+        "dsn": dsn,
+        "environment": cfg.app_env,
+        "integrations": [
+            FastApiIntegration(transaction_style="endpoint"),
+            CeleryIntegration(monitor_beat_tasks=True),
+            SqlalchemyIntegration(),
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
+        ],
+        # task #45 -- was compared against "production" (long form), but api_stack.py injects
+        # APP_ENV=cfg.env_name, which is the SHORT form CDK actually uses everywhere ("dev"/"staging"/
+        # "prod" -- see cfg.app_env's own docstring in config.py). Comparing against the long form meant
+        # this was always False in every real deployment, so prod silently sampled 100% of traces
+        # instead of the intended 10%.
+        "traces_sample_rate": 0.1 if cfg.app_env == "prod" else 1.0,
+        "send_default_pii": False,
+        "include_local_variables": False,
+        "max_request_body_size": "never",
+        "before_send": scrub_event,
+        "before_breadcrumb": scrub_breadcrumb,
+    }
+
+
 def setup_sentry() -> None:
     """Initialise Sentry SDK if a valid DSN is configured. No-op in development,
     and no-op (never a crash) on a malformed DSN -- Sentry is optional
@@ -122,32 +166,9 @@ def setup_sentry() -> None:
         return
 
     import sentry_sdk
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.fastapi import FastApiIntegration
-    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
     try:
-        sentry_sdk.init(
-            dsn=dsn,
-            environment=cfg.app_env,
-            integrations=[
-                FastApiIntegration(transaction_style="endpoint"),
-                CeleryIntegration(monitor_beat_tasks=True),
-                SqlalchemyIntegration(),
-            ],
-            # task #45 -- was compared against "production" (long form),
-            # but api_stack.py injects APP_ENV=cfg.env_name, which is the
-            # SHORT form CDK actually uses everywhere ("dev"/"staging"/
-            # "prod" -- see cfg.app_env's own docstring in config.py, added
-            # for the identical mismatch in cors_allowed_origins/
-            # public_base_url, tasks #42/#43). Comparing against the long
-            # form meant this was always False in every real deployment, so
-            # prod silently sampled 100% of traces instead of the intended
-            # 10% -- a cost/volume issue, not a correctness one, but the
-            # exact bug class this whole task chain has been hunting.
-            traces_sample_rate=0.1 if cfg.app_env == "prod" else 1.0,
-            send_default_pii=False,
-        )
+        sentry_sdk.init(**sentry_options(dsn))
     except Exception:
         # setup_logging() always runs before setup_sentry() (both call sites
         # -- main.py's setup_observability() and worker.py's module-level

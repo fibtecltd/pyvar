@@ -371,6 +371,10 @@ class ApiStack(Stack):
                 # where cfg.assistant_enabled is True (dev and prod), so another environment's
                 # task definition is unchanged and the app's default (off) applies there.
                 **({"ASSISTANT_ENABLED": "true"} if cfg.assistant_enabled else {}),
+                # Education tier: the app's education_tier_enabled (config.py). Set only where
+                # cfg.education_tier_enabled is True (dev for now), so every other task definition is
+                # unchanged and the app's default (off) applies there.
+                **({"EDUCATION_TIER_ENABLED": "true"} if cfg.education_tier_enabled else {}),
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).

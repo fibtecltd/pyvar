@@ -241,10 +241,40 @@ async def test_the_ledger_records_who_what_and_when_and_never_a_secret_or_token(
     assert len(lines) == 1
     record = lines[0]
     assert record["action"] == "grant" and record["env"] == "dev" and record["by"] == "fibtec-ops"
-    assert record["email"] == "ada@uni.ac.uk" and record["cohort"] == "ucl-2026"
+    assert record["cohort"] == "ucl-2026" and record["months"] == 6 and record["expires"]
     raw = world["ledger"].read_text()
     assert SECRET not in raw and world["seen"][0]["token"] not in raw
     assert oct(world["ledger"].stat().st_mode & 0o777) == "0o600"
+
+
+async def test_the_ledger_never_holds_an_e_mail_address(world) -> None:
+    """A file on a laptop that names people is a risk the API's own record does not need
+    (docs/plan-education-tier.md section 12): not on a grant, an extension or a revoke."""
+    await add_user(world, "ada")
+    assert (await run(world, *grant_args()))[0] == 0
+    assert (
+        await run(
+            world,
+            "extend",
+            "--env",
+            "dev",
+            "--email",
+            "ada@uni.ac.uk",
+            "--months",
+            "2",
+            "--cohort",
+            "ucl-2026",
+        )
+    )[0] == 0
+    assert (
+        await run(
+            world, "revoke", "--env", "dev", "--email", "ada@uni.ac.uk", "--cohort", "ucl-2026"
+        )
+    )[0] == 0
+    raw = world["ledger"].read_text()
+    assert len(raw.splitlines()) == 3
+    assert "ada" not in raw and "@" not in raw and "uni.ac.uk" not in raw
+    assert all("email" not in json.loads(line) for line in raw.splitlines())
 
 
 # ── guards that never reach the API ───────────────────────────────────────────────────────────────────────
@@ -287,3 +317,73 @@ async def test_the_base_url_may_only_be_loopback(world) -> None:
 async def test_an_operator_label_must_look_like_a_label(world) -> None:
     code, _, err = await run(world, "list", "--env", "dev", "--operator", "a b")
     assert code == 2 and "--operator" in err and world["seen"] == []
+
+
+# ── tidy: the monthly housekeeping the privacy policy promises ───────────────────────────────────────────────
+
+
+async def add_lapsed(world, name: str, months_ago: int) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    async with world["maker"]() as session:
+        session.add(
+            User(
+                external_id=f"ext-{name}",
+                email=f"{name}@uni.ac.uk",
+                tier="education",
+                email_verified=True,
+                tier_expires_at=datetime.now(timezone.utc) - timedelta(days=30 * months_ago + 1),
+            )
+        )
+        await session.commit()
+
+
+async def tiers(world) -> dict[str, str]:
+    async with world["maker"]() as session:
+        return {u.external_id: u.tier for u in (await session.execute(select(User))).scalars()}
+
+
+async def test_tidy_only_counts_until_told_to_do_it(world) -> None:
+    await add_lapsed(world, "old", 14)
+    code, out, err = await run(world, "tidy", "--env", "dev")
+    assert code == 0, err
+    assert "1 education account(s) ended more than 12 months ago" in out and "add --yes" in out
+    assert await tiers(world) == {"ext-old": "education"}
+    assert not world["ledger"].exists()
+
+
+async def test_tidy_with_yes_resets_the_label_sends_no_e_mail_and_checks_itself(world) -> None:
+    await add_lapsed(world, "old", 14)
+    await add_lapsed(world, "recent", 2)
+    with patch("api.education_grants.send_tier_change_email") as sent:
+        code, out, err = await run(world, "tidy", "--env", "dev", "--yes")
+    assert code == 0, err
+    assert "1 education account(s) reset to plain free (none left to tidy), no e-mail sent" in out
+    sent.assert_not_called()
+    assert await tiers(world) == {"ext-old": "free", "ext-recent": "education"}
+    (line,) = [json.loads(x) for x in world["ledger"].read_text().splitlines()]
+    assert line["action"] == "tidy" and line["tidied"] == 1 and line["months"] == 12
+    assert "@" not in world["ledger"].read_text() and SECRET not in world["ledger"].read_text()
+
+
+async def test_tidy_says_it_is_not_done_if_the_api_still_finds_work(world) -> None:
+    await add_lapsed(world, "old", 14)
+    real = world["seen"]
+    original = script.api_request
+
+    def liar(method, url, token, body=None, timeout=30):
+        if url.endswith("/tidy") and body and body.get("apply"):
+            return 200, {"found": 1, "applied": True}  # says it did, changes nothing
+        return original(method, url, token, body, timeout)
+
+    world["monkeypatch"].setattr(script, "api_request", liar)
+    code, out, err = await run(world, "tidy", "--env", "dev", "--yes")
+    assert code == 5 and "still finds 1 to tidy" in err
+    assert "reset to plain free" not in out and not world["ledger"].exists()
+    assert real is not None
+
+
+@pytest.mark.parametrize("months", ["0", "121"])
+async def test_tidy_refuses_a_silly_period_before_any_call(world, months) -> None:
+    code, _, err = await run(world, "tidy", "--env", "dev", "--months", months)
+    assert code == 2 and "between 1 and 120" in err and world["seen"] == []

@@ -56,6 +56,7 @@ from api.middleware.disposable_email import is_disposable_email
 from api.middleware.rate_limit import enforce_register_rate_limit
 from api.tiers import effective_tier
 from config import get_settings
+from observability.redact import aws_error_code, email_domain
 from schemas.auth import (
     ApiKeyCreated,
     ApiKeyInfo,
@@ -84,7 +85,9 @@ def get_ses_client() -> Any:
     return boto3.client("ses", region_name=cfg.ses_region)
 
 
-def send_verification_email(email: str, token: str, *, signin: bool = False) -> None:
+def send_verification_email(
+    email: str, token: str, *, signin: bool = False, account_id: str | None = None
+) -> None:
     """Send the verification link via SES (#149); log-only fallback on failure.
 
     Links to dashboard.html?token=... (portal/dashboard.html, served by this
@@ -125,8 +128,13 @@ def send_verification_email(email: str, token: str, *, signin: bool = False) -> 
             Destination={"ToAddresses": [email]},
             Message={"Subject": {"Data": subject}, "Body": {"Text": {"Data": body}}},
         )
-        logger.info("verification_email_sent", email=email, signin=signin)
-    except Exception:  # noqa: BLE001 — best-effort send, see docstring for why
+        logger.info(
+            "verification_email_sent",
+            email_domain=email_domain(email),
+            account_id=account_id,
+            signin=signin,
+        )
+    except Exception as exc:  # noqa: BLE001 — best-effort send, see docstring for why
         if cfg.app_env == "development":
             # Dev-only: no real AWS/SES credentials locally, so this is the
             # only way to recover the token for manual testing (the exact
@@ -134,7 +142,8 @@ def send_verification_email(email: str, token: str, *, signin: bool = False) -> 
             # outside development — see the redacted branch below.
             logger.error(
                 "verification_email_send_failed",
-                email=email,
+                email_domain=email_domain(email),
+                account_id=account_id,
                 token=token,
                 verify_url=verify_url,
                 exc_info=True,
@@ -149,7 +158,18 @@ def send_verification_email(email: str, token: str, *, signin: bool = False) -> 
             # token is still recoverable from the `users` table's
             # verification_token column for legitimate manual recovery,
             # without duplicating a working secret into logs.
-            logger.error("verification_email_send_failed", email=email, exc_info=True)
+            #
+            # No address and no traceback either (docs/plan-education-tier.md section 12): the
+            # failure text from SES can quote the recipient, an error log line becomes a Sentry
+            # event, and the privacy policy says Sentry is not sent e-mail addresses. The domain,
+            # the account id and the AWS error code are enough to find the account and the cause.
+            logger.error(
+                "verification_email_send_failed",
+                email_domain=email_domain(email),
+                account_id=account_id,
+                error_type=type(exc).__name__,
+                error_code=aws_error_code(exc),
+            )
 
 
 @router.post(
@@ -165,12 +185,15 @@ async def register(body: RegisterRequest) -> RegisterResponse:
         # *why* a registration didn't go through, so the blocklist itself
         # can't be probed/fingerprinted from the outside. No DB write, no
         # SES send: this domain never reaches either.
-        logger.warning("registration_skipped_disposable_email", email=str(body.email))
+        logger.warning(
+            "registration_skipped_disposable_email", email_domain=email_domain(str(body.email))
+        )
         return RegisterResponse()
 
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     signin = False
+    account_id: str | None = None
 
     async with get_sessionmaker()() as session:
         existing = (
@@ -185,7 +208,8 @@ async def register(body: RegisterRequest) -> RegisterResponse:
             # branch: never reveal suppression state to the caller.
             logger.warning(
                 "registration_skipped_suppressed_email",
-                email=str(body.email),
+                email_domain=email_domain(str(body.email)),
+                account_id=existing.external_id,
                 reason=existing.suppression_reason,
             )
             return RegisterResponse()
@@ -204,14 +228,17 @@ async def register(body: RegisterRequest) -> RegisterResponse:
                 return RegisterResponse()
             existing.verification_token = token
             existing.verification_sent_at = now
+            account_id = existing.external_id
             signin = True
         elif existing is not None:
             existing.verification_token = token
             existing.verification_sent_at = now
+            account_id = existing.external_id
         else:
+            account_id = str(uuid.uuid4())
             session.add(
                 User(
-                    external_id=str(uuid.uuid4()),
+                    external_id=account_id,
                     email=str(body.email),
                     verification_token=token,
                     verification_sent_at=now,
@@ -219,7 +246,7 @@ async def register(body: RegisterRequest) -> RegisterResponse:
             )
         await session.commit()
 
-    send_verification_email(str(body.email), token, signin=signin)
+    send_verification_email(str(body.email), token, signin=signin, account_id=account_id)
     return RegisterResponse()
 
 

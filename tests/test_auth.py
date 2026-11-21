@@ -144,7 +144,10 @@ async def test_register_already_verified_sends_a_signin_link(app):
     assert existing.email_verified is True
     assert existing.verification_token  # a fresh single-use token was issued
     mock_send.assert_called_once_with(
-        "verified@example.com", existing.verification_token, signin=True
+        "verified@example.com",
+        existing.verification_token,
+        signin=True,
+        account_id=existing.external_id,
     )
 
 

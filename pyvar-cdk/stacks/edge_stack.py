@@ -118,6 +118,7 @@ from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_cloudwatch_actions as cw_actions
 from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
+from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_sns as sns
 from aws_cdk import aws_wafv2 as waf
@@ -134,6 +135,13 @@ AGGREGATE_RATE_LIMIT_PER_5MIN = 6000
 # trial cache behaviour key on this one path; tests/test_cdk_trial_lane.py pins it to the route's own prefix.
 TRIAL_PATH_PREFIX = "/api/v1/trial/"
 TRIAL_PATH_PATTERN = TRIAL_PATH_PREFIX + "*"
+
+# How long CloudFront's standard access logs are kept. They hold each request's IP address and URL (query
+# string included), so the privacy policy states this number (portal/privacy.html section 4) and
+# tests/test_cdk_access_log_retention.py pins the two together: change both or neither. 90 days covers a
+# quarterly look-back (the Googlebot check in docs/seo-crawl-investigation.md read 46 days) without keeping
+# addresses indefinitely, which is what happened before the rule existed.
+ACCESS_LOG_RETENTION_DAYS = 90
 # docs/plan-trial-lane-throttle.md L8: per source address, per network, and for the path as a whole.
 TRIAL_LIMIT_PER_IP = 30  # per TRIAL_WINDOW_PER_IP_ASN_SEC
 TRIAL_LIMIT_PER_ASN = 600  # per TRIAL_WINDOW_PER_IP_ASN_SEC
@@ -594,6 +602,24 @@ class EdgeStack(Stack):
             },
             enable_logging=True,
             log_includes_cookies=False,
+        )
+
+        # enable_logging=True makes CDK create the log bucket itself, as a child of the distribution called
+        # "LoggingBucket", with no lifecycle rule: access logs (client IP addresses, URLs) were kept
+        # forever. Adding the rule to that same bucket changes only its LifecycleConfiguration: no
+        # replacement, nothing about the distribution. The rule also removes objects already older than the
+        # limit, once. Looked up by CDK's own child id, so a CDK release that renames it fails the synth here
+        # (and tests/test_cdk_access_log_retention.py) instead of silently dropping the rule.
+        log_bucket = self.distribution.node.try_find_child("LoggingBucket")
+        if not isinstance(log_bucket, s3.Bucket):
+            raise RuntimeError(
+                "CloudFront's access-log bucket was not found as 'LoggingBucket': the retention rule "
+                "cannot be attached (see ACCESS_LOG_RETENTION_DAYS)"
+            )
+        log_bucket.add_lifecycle_rule(
+            id="expire-access-logs",
+            enabled=True,
+            expiration=Duration.days(ACCESS_LOG_RETENTION_DAYS),
         )
 
         # P7 Task 6: without this, CloudFront's "Additional metrics" (CacheHitRate,

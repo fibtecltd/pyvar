@@ -39,6 +39,41 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `trial_breaker_*`) with CloudWatch metric filters. The lane itself still stays off until `scripts/trial_ctl.py on`.
   `docs/prompts/agent-trial-enable-dev.txt` switches it on in dev and proves it with one real call.
   Details, the synth diff and what is unverified: `docs/plan-trial-lane-throttle.md` "PR 3 as built".
+- **Two operator commands behind the privacy policy's promises** — `scripts/education_grant.py tidy` resets education labels whose
+  grant ended more than 12 months ago to plain `free` (counts only without `--yes`; one `billing_events` row each; no e-mail;
+  `POST /internal/admin/education/tidy`). `scripts/account_erase.py` erases an account at its holder's request (dry run unless `--yes`;
+  `POST /internal/admin/accounts/erase`): `users.email` set to NULL, tokens cleared, keys revoked and their names blanked, every row
+  kept, one `account_erased` row; refuses pro, enterprise and internal accounts; never writes or prints the address. Both take only the
+  admin token; `CLAUDE.md` 3.5 names the second script and the erasure rule. Details and the known Google sign-in limit:
+  `docs/plan-education-tier.md` section 12.
+- **A check of the published pyvar Local release, in real Docker** — `scripts/validate_pyvar_local_release.sh` (and the manual
+  workflow "pyvar Local release validate", `.github/workflows/pyvar-local-release-validate.yml`, which also runs once on a pull
+  request that changes either file) downloads the release asset, compares its size and sha256 with GitHub's own digest, runs
+  `docker load`, checks the image config, the default command, the engine tests the release is gated on, a seeded VaR call
+  twice (byte-identical) and non-root / read-only runs. First real run, on `pyvar-local-v0-3dbc102a`: every release check passed
+  (570,477,502 bytes, sha256 `c458659a…1c18` matching the release digest, 387 functions, 19 tests, VaR 0.033103); **the image
+  fails as a non-root user or on a read-only filesystem** (`cannot cache function … no locator available`, even `list`): a
+  writable cache directory fixes it (`-e HOME=/tmp`, or `--tmpfs /tmp -e NUMBA_CACHE_DIR=/tmp/numba`), documented in
+  `pyvar-local/README.md` and checked by the script; making non-root the default is a Dockerfile change and a rebuild, not
+  done. The Local page (`portal/local.html`) carries a note with the workaround and the amd64-only limit, and says why `list` prints 387 entries
+  against the API's 385 functions (the Monte Carlo VaR kernel and one internal helper, both without a catalogue route).
+  `docs/prompts/agent-pyvar-local-docker-validate.txt` is the same check as a prompt for an agent with Docker.
+- **Education tier: portal text, and on in dev only (A2 PR 2)** — One paragraph on the home page (free, by hand, up to 12 months,
+  non-commercial, 18 or over, UK institutions only for now, each person applies for themselves), an "Education access" item in the privacy policy
+  (what an application e-mail holds and what not to send, that it stays in the company mailbox, **one rule for every application e-mail: deleted
+  within two months of the decision, granted or refused, no refusal note**, tier-change records kept six years, the lawful basis under the UK
+  GDPR) and a row for the mailbox provider (Aruba) in its sub-processor table, and
+  clauses in the terms (§2 minimum age 18 for every account, §3 who may apply and what "non-commercial" means, §4, §8 and §12 consumer
+  sentences, §10). The privacy policy also gains, for every account: purposes and bases, how long account records and logs are kept (**job
+  records six years, not "indefinitely"**), what is automated (a Pro account over its monthly limit moves to free; education accounts are held
+  to the free limits when the shared allowance runs out), the EU complaint route and a right to complain to Fibtec first. `education_tier_enabled` in `pyvar-cdk/config.py` is true for `dev` only; `api_stack.py` adds
+  `EDUCATION_TIER_ENABLED=true` to the API container only where it is true. **Prod stays off until a lawyer has read the text**: then one line
+  turns it on. The text is a draft, not legal advice. Synth against master: only `pyvar-dev-api` changes (that one entry); prod and staging API
+  templates are identical. Details: `docs/plan-education-tier.md` sections 11 and 12.
+- **pyvar Local rebuilt: `pyvar-local-v0-3dbc102a`** — Published 2026-11-20 from `master` at `3dbc102` by the manual pipeline (570,477,502 bytes,
+  a prerelease like the first), so the image now carries the NumPy VaR sort and the rBergomi weight change in `engine/`. `portal/local.html`
+  points at it and links the previous release (`pyvar-local-v0-6682472c`). `requirements-heavy.txt` pins only lower bounds, so the rebuilt image
+  has newer dependency versions than the first (it is about 15 MB larger); the engine tests gate every build.
 - **One table of tier limits (`api/tiers.py`)** — What a tier may do was spread over four places: the simulation
   cap in `TokenPayload`, the daily and monthly request quotas in `rate_limit.py`, the monthly simulation quota in
   `routes/var.py` and the assistant's daily quota, and an unknown tier fell through to the free limits in each of
@@ -251,6 +286,44 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   wiring) remain hard-gated behind decisions only Filippo can make.
 
 ### Changed
+
+- **Tier e-mails no longer log the holder's address; the grant e-mail states the end date; the education ledger holds no address** —
+  `send_tier_change_email` logs the address's domain (and the account id where the caller has it) instead of the address, and on a failed
+  send the exception's class and AWS error code instead of its text and a traceback, because SES errors can echo the recipient and, through
+  Sentry's default logging integration, a failed send had become an error event carrying the address. The education grant and extension
+  e-mails say "ends on 20 May 2027". `scripts/education_grant.py` writes no address to `~/.pyvar/education.jsonl`. Tests:
+  `tests/test_tier_email_privacy.py`.
+
+- **Audit-log rule: six years, then a clean-up job (`CLAUDE.md` 3.3)** — `var_jobs` and `billing_events` were "never deleted, retained
+  indefinitely"; the owner decided on 2026-11-21 that they are kept six years from their date and then deleted by a scheduled clean-up job.
+  `CLAUDE.md` 3.3 and the comments in `storage/models.py` and `api/routes/var.py` say so. `api_keys` rows stay never-deleted.
+
+- **Six-year clean-up command (`feat(api)`)** — `api/audit_retention.py`, `POST /internal/admin/audit/cleanup` (admin token only) and
+  `scripts/audit_cleanup.py`. It deletes `var_jobs` and `billing_events` rows older than six years and nothing else. The period is a
+  constant pinned to the privacy page: neither the route nor the script takes one. Dry run unless `--yes`; rounds of committed batches,
+  oldest first; the script asks again afterwards and exits 5 unless nothing older remains. Run by the owner from late 2032, **not on a
+  timer** (`CLAUDE.md` 3.3 says so). Tests: `tests/test_audit_cleanup.py` (23), `tests/test_audit_cleanup_script.py` (13).
+
+- **Data-access export (`feat(api)`)** — `api/account_export.py`, `POST /internal/admin/accounts/export` (admin token only, one page of one
+  section per call) and `scripts/account_export.py`, which writes one 0600 JSON file: the account row, its keys, its tier-change records and
+  its job records, with a `not_included` list. Never in it: the sign-in token, the legacy key digest, any key digest (a test fails when a
+  column is added without a decision). The address is in the file's `account` section only, never in a log line, the output or the ledger.
+  Tests: `tests/test_account_export.py` (19), `tests/test_account_export_script.py` (15), shared harness `tests/script_world.py`.
+
+- **CloudFront access logs expire after 90 days (`infra(cdk)`)** — The log bucket CDK creates for the distribution had no lifecycle
+  rule, so access logs (client IP addresses, URLs) were kept forever. `edge_stack.py` adds an expiry rule to that bucket
+  (`ACCESS_LOG_RETENTION_DAYS = 90`); a real synth of dev, staging and prod shows one changed resource each, the bucket's
+  `LifecycleConfiguration`, and no replacement. Logs older than 90 days are removed once, when the rule goes live. The privacy
+  policy (§4) states the period and that an IP address stays in the cache for up to about a day. `tests/test_cdk_access_log_retention.py`
+  pins the two together.
+
+- **No e-mail address in sign-in logs or in what Sentry receives** — The sign-in e-mail (`api/routes/auth.py`), the disposable and
+  suppressed address skips and `POST /internal/suppress-email` log the domain and the account id, not the address; a failed sign-in send logs
+  the exception's class and AWS error code, not its text or a traceback. Sentry is initialised from one function, `sentry_options()`
+  (`observability/setup.py`): frame local variables and request bodies are off (by default the SDK sent the locals of every frame, which held
+  the address and the request body of a crashing route), a `before_send` and a `before_breadcrumb` replace anything shaped like an e-mail
+  address (`observability/redact.py`), and the logging integration is written out. `sentry-sdk[fastapi]` is pinned `>=2.75.0,<3`. Tests:
+  `tests/test_sentry_privacy.py`, `tests/test_auth_log_privacy.py`. The worker AMI's own pip line in `ami_stack.py` is unchanged.
 
 - **Free tier: 20 compute requests a day, not 10** — `rate_limit_free_daily` (the owner's decision A6, 2026-11-16).
   Simulations per request stay at 10,000 (the S3 offload threshold and the default are tied to it), registration,

@@ -47,6 +47,14 @@ class PyvarConfig:
     # this is True, so staging's task definition is unchanged.
     assistant_enabled: bool = False
 
+    # Education tier (docs/plan-education-tier.md, A2): a free, finite grant to a teacher or student, given by
+    # hand with scripts/education_grant.py. The app reads it as EDUCATION_TIER_ENABLED (config.py
+    # education_tier_enabled); while it is off every account has its free limits and the grant and extend
+    # routes answer 503 (revoke, list and suspend-all always work). api_stack.py sets the environment variable
+    # only when this is True. On in "dev"; "prod" stays off until the portal's privacy and terms text has had
+    # a lawyer's read (the plan's section 5), then a one-line change turns it on.
+    education_tier_enabled: bool = False
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that
@@ -240,6 +248,9 @@ class PyvarConfig:
                 # Portal assistant menus on in dev (see assistant_enabled above) and, since
                 # 2026-11-13, in prod.
                 assistant_enabled=True,
+                # Education tier on in dev, to try a grant end to end (scripts/education_grant.py
+                # grant --env dev). Prod is off: see education_tier_enabled above.
+                education_tier_enabled=True,
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
                 # Domain cutover Stage C: pyvar.com/www.pyvar.com move to prod
@@ -279,6 +290,11 @@ class PyvarConfig:
                 # flag (assistant_typed_enabled, false everywhere). To turn it off again, set
                 # this to False and deploy: the task definition then loses ASSISTANT_ENABLED.
                 assistant_enabled=True,
+                # education_tier_enabled is deliberately NOT set here: the default (False) holds until
+                # the privacy and terms text has had a lawyer's read. To open it, add
+                # `education_tier_enabled=True,` here and deploy; to close it again, remove the line (the
+                # task definition then loses EDUCATION_TIER_ENABLED) and run `scripts/education_grant.py
+                # suspend-all --env prod --yes-prod --yes-all` to end the grants already given.
                 # worker_min_capacity intentionally omitted -- base class
                 # default of 0 (scale-to-zero) applies. PR #227/#228 had
                 # temporarily set this to 1 as a launch-window mitigation for

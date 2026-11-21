@@ -90,8 +90,11 @@ pyvar/
 │   ├── trial_whitelist.py     ← the 30 functions the lane may run, with trial_examples.json (one example body each)
 │   ├── middleware/rate_limit.py ← compute quota (burst, daily, monthly), public/register per-IP quotas, enforce_assistant_rate_limit (every tier), the education VaR pool
 │   ├── tiers.py               ← the one table of tier limits; effective_tier(): an education grant counts only until its expiry
-│   ├── education_grants.py    ← grant / extend / revoke / list / suspend-all for education accounts (called only by the admin routes)
-│   ├── routes/internal.py     ← service routes (internal tier); /internal/admin/education/* take an admin token (aud "pyvar-admin")
+│   ├── education_grants.py    ← grant / extend / revoke / list / suspend-all / tidy for education accounts (called only by the admin routes)
+│   ├── account_erasure.py     ← erase an account at its holder's request: e-mail NULL, keys revoked and blanked, rows kept (admin route only)
+│   ├── account_export.py      ← a copy of one account's data for a data-access request: four paged sections, no credentials (admin route only)
+│   ├── audit_retention.py     ← the six-year clean-up of var_jobs and billing_events: the only code that may delete them (admin route only)
+│   ├── routes/internal.py     ← service routes (internal tier); /internal/admin/* (education, account erasure and export, audit clean-up) take an admin token (aud "pyvar-admin")
 │   ├── responses.py           ← orjson response class
 │   └── errors.py              ← 422 handler that stays renderable for NaN/Infinity input
 │
@@ -185,8 +188,16 @@ AWS:        CELERY_BROKER_URL = sqs://
   Never edit a committed migration — create a new one.
 - Aurora SV2 uses async driver (asyncpg). Migration scripts use
   synchronous psycopg2 — this is intentional (Alembic runs offline).
-- The VaRJob table is an AUDIT LOG. Never delete rows programmatically.
-  Use the expiry lifecycle on S3 for large result cleanup instead.
+- The VaRJob and billing_events tables are AUDIT LOGS: rows are appended, never
+  updated, and kept for SIX YEARS from their date (the privacy policy, section 4;
+  owner's decision of 2026-11-21, replacing "retained indefinitely"). Only the
+  clean-up command (api/audit_retention.py, reached through
+  /internal/admin/audit/cleanup and run by the owner with scripts/audit_cleanup.py;
+  there is no timer) may delete rows, and only rows older than six years. The six
+  years are a constant in that module, pinned to the privacy page by a test: the
+  route and the script take no period. The first rows reach six years in late 2032.
+  Never delete rows any other way. Use the expiry lifecycle on S3 for large result
+  cleanup instead.
 - Index on (user_id, created_at) is intentional — do not remove.
 ```
 
@@ -245,12 +256,25 @@ AWS:        CELERY_BROKER_URL = sqs://
 - Education limits live in api/tiers.py like every tier's. A monthly breach is a 429; it
   must never call downgrade_for_monthly_limit, which is Pro's.
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
-  10 minutes, signed by scripts/education_grant.py. They must REQUIRE `aud` to be present and
+  10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
+  scripts/account_export.py, scripts/audit_cleanup.py). They must
+  REQUIRE `aud` to be present and
   equal (python-jose lets a token with no `aud` through a decoder that names one), so a
   session JWT, an API key, an "internal" JWT and a stream token are all refused. Every
   other route keeps refusing the admin token. Do not accept it in get_current_user.
 - A grant or revocation writes its billing_events row in the same transaction as the tier
   change, with a code and a cohort label only: never an applicant's name or text.
+- Erasing an account (POST /internal/admin/accounts/erase) never deletes rows: users.email is set to NULL,
+  tokens are cleared, every key is revoked and its name blanked, and the users row stays so that api_keys
+  and the audit tables (which name the account by external_id) still join. A dry run unless `apply`; a pro,
+  enterprise or internal account is refused; the address is never logged or returned.
+- The data-access export (POST /internal/admin/accounts/export) only reads, one page of one section at a time,
+  and never returns a credential: not verification_token, not users.api_key_hash, not any key_hash. A test lists
+  every column of the four tables and fails when a new one has no decision. The address is in the `account`
+  section only and in no log line.
+- The audit clean-up (POST /internal/admin/audit/cleanup) deletes from var_jobs and billing_events only, only
+  rows with created_at older than six years, in committed batches; a dry run unless `apply`. Do not add a period
+  parameter, and do not point it at users, api_keys or api_usage.
 - Design, settings and failure modes: docs/plan-durable-api-keys.md, docs/plan-trial-lane-throttle.md,
   docs/plan-education-tier.md.
 ```

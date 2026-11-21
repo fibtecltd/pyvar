@@ -1,0 +1,22 @@
+TASK: on a machine with a Docker daemon, validate the published pyvar Local release pyvar-local-v0-3dbc102a by loading and running the downloaded release file in real Docker, compare with the expected values below, and report. A chroot test without Docker already passed; `docker load` and `docker run` on the download are what is left. Nothing outside this machine is touched.
+
+SETTINGS (fixed values, not environment variables; never stop for them)
+- URL=https://github.com/fibtecltd/pyvar/releases/download/pyvar-local-v0-3dbc102a/pyvar-local.tar.gz (570,477,502 bytes). IMAGE=pyvar-local:3dbc102a0564da66fe345699ad851f3fdd350289
+- Allowed: download that one file; docker load/run/image inspect/rmi; read https://api.github.com/repos/fibtecltd/pyvar/releases/tags/pyvar-local-v0-3dbc102a. Not allowed: docker login or push, pulling other images, AWS, any pyvar clone. Stop at once on a denied call and say which.
+- Work in a new empty directory from mktemp -d. Host Python: stdlib only. Needs about 6 GB free.
+
+STEPS
+1. Print the Docker server version and arch, `uname -m`, free disk. The image is amd64: on any other arch add `--platform linux/amd64` to every `docker run` and say so (emulation; time everything).
+2. curl -L -o pyvar-local.tar.gz URL. Print size (expect 570477502) and sha256sum. From the release API print the asset's size and digest (if any) and say if they match.
+3. `docker load -i pyvar-local.tar.gz`: expect "Loaded image: IMAGE", exit 0. Print `docker image inspect IMAGE --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}} {{.Config.WorkingDir}} user={{.Config.User}} {{.Architecture}} {{.Created}} layers={{len .RootFS.Layers}}'` and the Env list in full (GPG_KEY there is the Python base image's public key id, not a secret). Expect ["python","-m","pyvar_local.cli"], ["list"], /app, empty user, amd64, created 2026-11-20T13:21, 11 layers.
+4. `docker run --rm IMAGE > list.out`: expect exit 0, 387 lines, and `grep -c montecarlo.run_monte_carlo_var list.out` = 1. Print line 1 only.
+5. `docker run --rm --entrypoint pytest IMAGE /app/tests/test_engine.py -q -p no:cacheprovider 2>&1 | tail -4`: expect 19 passed. On failure print the failing test names and the last 30 lines.
+6. Build the input on the host, never retype it:
+   python3 -c 'import json,random;random.seed(0);print(json.dumps({"returns":[round(random.gauss(0.0005,0.012),6) for _ in range(30)],"portfolio_value":1000000,"confidence_level":0.99,"horizon_days":1,"n_simulations":1000,"seed":1}))' > params.json
+   `time docker run --rm IMAGE call montecarlo run_monte_carlo_var --params "$(cat params.json)" | head -8`, twice. Expect var_pct 0.033103, var_abs 33103.32, cvar_pct 0.036512, cvar_abs 36512.38, both runs byte-identical. Report both times.
+7. Same call with (a) `--user 1000:1000`, (b) `--read-only`, (c) `--read-only --tmpfs /tmp --user 1000:1000`. Per case: exit code, four numbers present or not, last 5 stderr lines if it failed. Do not try to fix anything.
+8. `docker rmi IMAGE`; delete the directory; confirm `docker image ls` no longer lists it.
+
+REPORT
+- Per step: PASS, DIFFERENT (how) or NOT DONE (why), with the values asked for: versions and arch (1); size, sha256, match (2); load line, inspect line, Env (3); exit, line count, grep count (4); pytest last line (5); four numbers, identical or not, two timings (6); exit and numbers for a, b, c (7); cleanup (8).
+- What you could not see and what you got wrong. No host names, user names, paths outside the temporary directory or tokens.
