@@ -5,6 +5,11 @@
 > three: a monthly cap is a 429 that names the cap; a failed payment changes nothing (Stripe retries); only the end of the
 > Stripe subscription, `customer.subscription.deleted`, moves Pro to Free. The tests below check that. The Free daily limit
 > is 20 (it was 10 when this plan was written). Tests 1 and 9 were executed on dev on 2026-09-29/30 (section 15).
+>
+> **Test clocks.** Tests 6 to 8 say "advance the test clock", but the API creates the Stripe customer itself, so a pyvar account's
+> customer cannot be attached to a clock. `docs/prompts/agent-stripe-pro-verify.txt` runs the same checks without one: an invoice forced
+> on the failing card (test 7), and the subscription ended through the Stripe API in place of the period end (test 8). Stripe's own
+> timing (renewal date, retry schedule) is then not exercised.
 
 **Purpose.** `tests/test_billing.py` (22 tests), `test_billing_lifecycle.py`
 (11 tests), and `test_rate_limit.py` (21 tests) already cover every code

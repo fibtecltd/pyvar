@@ -2,7 +2,7 @@
 
 Written 2026-11-21, after #443 merged (`9fcd180`). It turns the owner's Pro review into a code scope and a checklist for the
 Stripe agent. **The owner's decisions of 2026-11-21 are recorded in section 6.** **Section 4 is built in PR #444 (2026-11-21); section 7a says what differs from this plan.** Facts below were read from the code on master (named by file and function, not line);
-nothing was run. Not legal or tax advice. Older background: `docs/plan-monetization-implementation.md` (Phase A, built) and
+nothing was run. Older background: `docs/plan-monetization-implementation.md` (Phase A, built) and
 `docs/plan-pro-subscription-verification.md` (a Stripe test-mode run book; its tests 1 and 9 were executed on dev on 2026-09-29/30).
 
 ## 1. The offer (owner's review)
@@ -53,7 +53,7 @@ nothing was run. Not legal or tax advice. Older background: `docs/plan-monetizat
 
 ## 5. Stripe checklist for the agent
 
-Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code. **A to G are the prompt `docs/prompts/agent-stripe-pro-setup.txt` (4.4 KB), run now.** H needs the new code on dev and gets its own prompt then; I is live mode.
+Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code. **A to G are the prompt `docs/prompts/agent-stripe-pro-setup.txt` (4.4 KB), run now.** H is `docs/prompts/agent-stripe-pro-verify.txt` (4.9 KB), run once #444 is deployed to dev; I is live mode.
 
 - [ ] **A. Product and Price.** Product "pyvar Pro"; one recurring Price, £50.00 GBP, monthly, no trial, no annual. Tax behaviour inclusive (D1). Statement descriptor and support e-mail set. Report the Product and Price IDs.
 - [ ] **B. Keys and secrets.** Use a restricted key with only what the code calls: Customers and Checkout Sessions (write), plus the customer portal once `POST /billing/portal` exists (the agent confirms Stripe's exact permission names). Put the key, the webhook signing secret and the Price ID in AWS Secrets Manager under the three names in section 2, per environment (test values on dev, live on prod). Secrets never go in chat or the repository.
@@ -62,7 +62,7 @@ Do everything in **test mode on dev first**, report, then repeat in live mode on
 - [ ] **E. Billing Portal.** Enable it: update payment method, view invoices, **cancel at the end of the billing period (not immediately)**, no plan switching. Return URL: the dashboard.
 - [ ] **F. Receipts and branding.** Customer receipts on; business name, logo, support address.
 - [ ] **G. Tax.** Price tax behaviour **inclusive**; Stripe Tax on in test mode with the head-office address as origin; Fibtec is VAT-registered in the UK: add the UK registration in Stripe Tax once the owner gives the VAT number (the agent adds none on its own). Open worldwide, so no country restriction. The code PR adds address collection and `automatic_tax` to the Checkout session.
-- [ ] **H. Test-mode run on dev** using `docs/plan-pro-subscription-verification.md` and a test clock: (1) happy path with the new Price; (2) card `4000 0000 0000 0341`: the account **stays Pro** after the first failed charge and returns to Free only when Stripe cancels after the last retry; (3) a successful retry keeps Pro; (4) cancel in the portal: Pro until the period end, then `customer.subscription.deleted` and Free; (5) the same event delivered twice changes nothing. Report event IDs and the tier before and after each step.
+- [ ] **H. Test-mode run on dev** after #444 is deployed there: the prompt `docs/prompts/agent-stripe-pro-verify.txt` (4.9 KB). A test clock cannot be used: the API creates the Stripe customer itself (`create_checkout`), and a customer cannot be moved onto a clock afterwards. The prompt covers: (1) happy path with the new Price; (2) the monthly simulation cap, 20 calls of 100,000 and a refused 21st, with no setting changed; (3) card `4000 0000 0000 0341` forced to fail an invoice: the account **stays Pro**; (4) portal cancel at the period end, then the subscription ended through the Stripe API (standing in for the period end or the last failed retry): `customer.subscription.deleted`, Free, keys intact; (5) the same events delivered twice and an unknown customer change nothing; (6) paying again. Not covered, because Stripe's own timing is not exercised: the renewal date, the retry schedule, the real period end. Report event IDs and the tier (read with a probe) before and after each step.
 - [ ] **I. Live mode.** Repeat A to G with live objects; the owner makes one real £50 payment and a refund (owner's choice) before launch.
 - [ ] **J. Hand back** a list of the values set (no secrets), the test results and anything that behaved differently. The code PR is reviewed against it before any prod deploy.
 
