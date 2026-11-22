@@ -247,14 +247,24 @@ async def test_a_failed_payment_leaves_the_account_on_pro(db, redis, monkeypatch
 # ── "billing not configured" is not a Sentry error ───────────────────────────
 
 
-def events_for(sent: list[bytes], fragment: str) -> list[dict[str, Any]]:
-    """The recorded events whose request URL contains `fragment`.
+def reported_not_configured(sent: list[bytes]) -> list[dict[str, Any]]:
+    """The recorded events that report "billing is not configured" as an error: an HTTPException raised out of a
+    route (what the Sentry integration captures for a 5xx), or any event carrying the answer's text.
 
-    A recording client is process-wide, so it also sees unrelated ERROR log lines raised while it is bound (in CI,
-    a connection left by an earlier test, closed by the garbage collector against a closed event loop:
-    "RuntimeError: Event loop is closed"). Those have no request; only events of these requests count here.
+    Identified by cause, not by request URL. The recording client is process-wide, so it also sees unrelated ERROR
+    log lines logged while it is bound. In CI that is a connection an earlier test left, closed by the garbage
+    collector against a closed event loop ("RuntimeError: Event loop is closed"); when that fires during a billing
+    request, Sentry attaches the request's URL to it, so the URL cannot tell it from a real billing error.
     """
-    return [e for e in events_in(sent) if fragment in str((e.get("request") or {}).get("url", ""))]
+    return [
+        e
+        for e in events_in(sent)
+        if billing_module.NOT_CONFIGURED_DETAIL in str(e)
+        or any(
+            value.get("type") == "HTTPException"
+            for value in (e.get("exception") or {}).get("values", [])
+        )
+    ]
 
 
 def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() -> None:
@@ -268,9 +278,20 @@ def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() ->
     from fastapi.testclient import TestClient
     from sentry_sdk.integrations.fastapi import FastApiIntegration
 
+    real_unavailable = billing_module._billing_unavailable
+
+    def unavailable_amid_noise() -> Any:
+        # Unrelated noise inside the request, as CI produces: an ERROR log line with an exception. It is captured
+        # and carries this request's URL, and it must not be counted as the billing answer.
+        logging.getLogger("unrelated.pool").error(
+            "stray", exc_info=RuntimeError("Event loop is closed")
+        )
+        return real_unavailable()
+
     with (
         patch.object(billing_module.cfg, "stripe_secret_key", None),
         patch.object(billing_module.cfg, "stripe_price_id_pro", None),
+        patch.object(billing_module, "_billing_unavailable", unavailable_amid_noise),
         recording_client(FastApiIntegration(transaction_style="endpoint")) as sent,
     ):
         control = FastAPI()
@@ -282,15 +303,9 @@ def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() ->
         TestClient(control, raise_server_exceptions=False).get("/old-behaviour")
         sentry_sdk.flush()
         assert (
-            len(events_for(sent, "/old-behaviour")) == 1
+            len(reported_not_configured(sent)) == 1
         ), "the control must be reported, or this test proves nothing"
         sent.clear()
-
-        # Unrelated noise, as CI produces: an ERROR log line with an exception and no request. It is captured,
-        # and it must not be counted against the billing routes.
-        logging.getLogger("unrelated.pool").error(
-            "stray", exc_info=RuntimeError("Event loop is closed")
-        )
 
         token = create_access_token(user_id="ext-1", tier="free")
         headers: dict[str, Any] = {"Authorization": f"Bearer {token}"}
@@ -305,10 +320,15 @@ def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() ->
             assert response.status_code == 503, path
             assert response.json() == {"detail": billing_module.NOT_CONFIGURED_DETAIL}
         sentry_sdk.flush()
-        assert any(
-            "Event loop is closed" in str(e) for e in events_in(sent)
-        ), "the stray error was captured, so the filter below is what keeps it out"
+        noise = [
+            e
+            for e in events_in(sent)
+            if "Event loop is closed" in str(e) and "/api/v1/billing" in str(e.get("request"))
+        ]
         assert (
-            events_for(sent, "/api/v1/billing") == []
+            noise
+        ), "the stray error was captured with a billing URL, as in CI: the cause is what keeps it out"
+        assert (
+            reported_not_configured(sent) == []
         ), "an expected 'not configured' answer must not become an error event"
         assert billing_module.NOT_CONFIGURED_DETAIL not in received(sent)
