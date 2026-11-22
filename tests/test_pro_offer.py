@@ -34,7 +34,7 @@ from main import create_app
 from storage.models import ApiKey, BillingEvent, User
 from tests import test_education_admin as admin_tests
 from tests.test_billing import _event
-from tests.test_sentry_privacy import events_in, recording_client
+from tests.test_sentry_privacy import events_in, received, recording_client
 
 db = admin_tests.db
 redis = admin_tests.redis
@@ -247,10 +247,22 @@ async def test_a_failed_payment_leaves_the_account_on_pro(db, redis, monkeypatch
 # ── "billing not configured" is not a Sentry error ───────────────────────────
 
 
+def events_for(sent: list[bytes], fragment: str) -> list[dict[str, Any]]:
+    """The recorded events whose request URL contains `fragment`.
+
+    A recording client is process-wide, so it also sees unrelated ERROR log lines raised while it is bound (in CI,
+    a connection left by an earlier test, closed by the garbage collector against a closed event loop:
+    "RuntimeError: Event loop is closed"). Those have no request; only events of these requests count here.
+    """
+    return [e for e in events_in(sent) if fragment in str((e.get("request") or {}).get("url", ""))]
+
+
 def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() -> None:
     """A real client with the FastAPI integration. The route answers 503 as a response: no event. The control is
     the old behaviour (an HTTPException with status 503, which the integration reports): exactly one event.
     """
+    import logging
+
     import sentry_sdk
     from fastapi import FastAPI, HTTPException
     from fastapi.testclient import TestClient
@@ -270,9 +282,15 @@ def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() ->
         TestClient(control, raise_server_exceptions=False).get("/old-behaviour")
         sentry_sdk.flush()
         assert (
-            len(events_in(sent)) == 1
+            len(events_for(sent, "/old-behaviour")) == 1
         ), "the control must be reported, or this test proves nothing"
         sent.clear()
+
+        # Unrelated noise, as CI produces: an ERROR log line with an exception and no request. It is captured,
+        # and it must not be counted against the billing routes.
+        logging.getLogger("unrelated.pool").error(
+            "stray", exc_info=RuntimeError("Event loop is closed")
+        )
 
         token = create_access_token(user_id="ext-1", tier="free")
         headers: dict[str, Any] = {"Authorization": f"Bearer {token}"}
@@ -287,6 +305,10 @@ def test_billing_not_configured_sends_no_error_event_but_a_raised_503_would() ->
             assert response.status_code == 503, path
             assert response.json() == {"detail": billing_module.NOT_CONFIGURED_DETAIL}
         sentry_sdk.flush()
+        assert any(
+            "Event loop is closed" in str(e) for e in events_in(sent)
+        ), "the stray error was captured, so the filter below is what keeps it out"
         assert (
-            events_in(sent) == []
+            events_for(sent, "/api/v1/billing") == []
         ), "an expected 'not configured' answer must not become an error event"
+        assert billing_module.NOT_CONFIGURED_DETAIL not in received(sent)
