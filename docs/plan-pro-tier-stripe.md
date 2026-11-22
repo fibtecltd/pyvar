@@ -78,6 +78,7 @@ Order: owner decisions (done) → Stripe agent A to G on dev (the prompt) → co
 | D2 Support at launch | Offered: e-mail, info@pyvar.com |
 | D3 Monthly window | Keep the 30-day window and word it in the Terms |
 | Facts | Fibtec is VAT-registered in the UK. E-mail support carries no guarantee of response times |
+| D4 Dev Stripe key (2026-11-22) | Stripe stays in test mode, and `pyvar/dev/stripe-secret-key` keeps its existing test key until go-live. The restricted key is created for **live mode** |
 
 ## 7. Known limits
 
@@ -106,7 +107,7 @@ Stripe **test mode** on dev, in the "fibtec limited sandbox" account (GB, GBP). 
 
 Still open (Dashboard-only, or needs an owner input):
 
-1. **Restricted key** (Customers, Checkout Sessions, Customer portal: write; the app's four calls need no more) into `pyvar/dev/stripe-secret-key`, **before #444 is merged**: the API reads its secrets once, when a task starts.
+1. **Restricted key** (Customers, Checkout Sessions, Customer portal: write; the app's four calls need no more): **live mode only** (D4). Dev keeps its existing test key, so this does not hold up #444 or the second prompt. If that key turns out to be restricted without the portal permission, Prompt 2 step 4 will show it as a Stripe permission error.
 2. **Failed payments:** the retry schedule and "cancel the subscription if all retries fail", plus the customer e-mails. Without the cancel rule a failed renewal never ends Pro. Test and live mode have separate settings.
 3. **Support e-mail and business name** are account-level, so they apply to the other products too.
 4. **Stripe Tax** is active; the head-office address holds only the country. The full address is needed before `automatic_tax` is added to Checkout (follow-up PR).

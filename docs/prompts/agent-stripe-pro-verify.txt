@@ -1,7 +1,7 @@
 TASK: verify the pyvar Pro plan end to end on DEV with Stripe TEST MODE. You test and report. You change no application code, open no pull request, change no dev setting, and do not touch live mode.
 
 PRECONDITIONS (check first; if one fails, stop and say which)
-- The first Stripe prompt is done and its follow-ups are loaded: pyvar/dev/stripe-price-id-pro names price_1UeeDgQk6KiRREvyk9N27Td4, and stripe-secret-key holds the restricted pyvar key (the owner creates it in the Dashboard).
+- The first Stripe prompt is done: pyvar/dev/stripe-price-id-pro names price_1UeeDgQk6KiRREvyk9N27Td4. pyvar/dev/stripe-secret-key stays the existing test key until live mode: do not change it.
 - The dev API runs the Pro code: an unauthenticated POST https://dev.pyvar.com/api/v1/billing/portal answers 401 or 403, not 404 or 405.
 
 SETTINGS (fixed values; never stop for them)
