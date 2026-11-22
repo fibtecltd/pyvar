@@ -1,28 +1,28 @@
 TASK: verify the pyvar Pro plan end to end on DEV with Stripe TEST MODE. You test and report. You change no application code, open no pull request, change no dev setting, and do not touch live mode.
 
 PRECONDITIONS (check first; if one fails, stop and say which)
-- The first Stripe prompt is done: test Product and Price (GBP 50 monthly), webhook endpoint https://dev.pyvar.com/api/v1/billing/webhook with exactly checkout.session.completed and customer.subscription.deleted, the three pyvar/dev/stripe-* secrets loaded.
+- The first Stripe prompt is done and its follow-ups are loaded: pyvar/dev/stripe-price-id-pro names price_1UeeDgQk6KiRREvyk9N27Td4, and stripe-secret-key holds the restricted pyvar key (the owner creates it in the Dashboard).
 - The dev API runs the Pro code: an unauthenticated POST https://dev.pyvar.com/api/v1/billing/portal answers 401 or 403, not 404 or 405.
 
 SETTINGS (fixed values; never stop for them)
 - API base: https://dev.pyvar.com/api/v1. Cards: 4242 4242 4242 4242 pays; 4000 0000 0000 0341 attaches but fails every charge.
-- Accounts: one throwaway account, "A". Sign-in links go to a real inbox: ask the owner for the address and for the link. Never use another address, and never put one in your report.
-- Allowed: Stripe test mode (Dashboard, API, CLI, headless browser for the hosted Checkout and portal pages); HTTPS calls to the dev API as account A; read-only CloudWatch Logs of the dev API if you have them.
-- Not allowed: live mode; a real card; any dev setting, secret or database change; deleting or archiving Stripe objects (cancel test subscriptions only); printing any token, API key or secret, in your report too. Stop at once on a denied call and say which.
-- Tier probe (use it for every "tier" below): with an API key of A, POST /var/compute with 30 small log-returns and n_simulations 100001. It always answers 403 before any job is queued, and the text names the tier: 'free' with 10,000, or 'pro' with 100,000. Keys cache the tier up to 60 seconds: wait 70 seconds after a change before probing.
-- The API creates the Stripe customer itself, so a test clock cannot be attached. Time is emulated in step 4; say so in the report.
+- The Stripe sandbox is SHARED with other Fibtec products. Touch only account A's objects, endpoint we_1UEwCrQk6KiRREvyRKAI8EP6 and portal bpc_1UeeEgQk6KiRREvyDIzeKYac. Never run `stripe trigger` (it fires every product's endpoint).
+- Your Stripe calls use ETLGEN_STRIPE_SECRET_KEY as in the first run: only through each command's environment, never printed or written to disk.
+- Account "A": one throwaway account. Sign-in links go to a real inbox: ask the owner for the address and the link. Never put an address in your report.
+- Allowed: Stripe test mode; HTTPS calls to the dev API as A; read-only CloudWatch Logs of the dev API if you have them. Not allowed: live mode; a real card; any dev setting, secret or database change; deleting or archiving Stripe objects (cancel test subscriptions only); printing any token, key or secret. Stop at once on a denied call.
+- Tier probe: with an API key of A, POST /var/compute with 30 small log-returns and n_simulations 100001. It answers 403 before any job is queued, naming the tier: 'free' with 10,000, or 'pro' with 100,000. Keys cache the tier 60 seconds: wait 70 seconds after a change.
+- The API creates the Stripe customer itself, so no test clock can be attached. Step 4 emulates time; say so.
 
 STEPS
-1. Upgrade. Register A, sign in, and create an API key (POST /auth/api-keys with the session token; keep it in memory). Probe: expect 'free'. POST /billing/checkout with A's session token, pay on the hosted page with 4242, land on dashboard.html?checkout_session_id=... Call GET /billing/checkout/complete?session_id=...: expect tier pro and a NEW token whose tier claim is pro (decode the payload only). Probe: expect 'pro'. POST /billing/checkout again: expect 409. Report the evt_ id of checkout.session.completed and its delivery status (expect 200).
-2. Monthly simulation cap (no setting change). Create a second API key for A. Send 20 POST /var/compute with n_simulations 100000, alternating the keys: expect all 202. Send a 21st: expect 429, a Retry-After header, and the text "Monthly limit reached: the Pro plan allows 2,000,000 simulations in each 30-day window". Probe: still 'pro'. Leave the queued jobs alone.
-3. Failed payment. With the Stripe API attach card 0341 to A's customer and make it the subscription's default payment method; make Stripe invoice now (set billing_cycle_anchor to now with proration_behavior always_invoice, or any equivalent). Expect the charge to fail and the subscription past_due. Confirm the endpoint received no invoice event (it is not subscribed). Probe after 70 seconds: still 'pro'.
-4. Cancellation. POST /billing/portal as A: expect a portal_url. In the portal, cancel the plan: it must say the plan ends at the end of the billing period, not now. Stripe must show cancel_at_period_end true. Probe: still 'pro'. Then end the subscription at once with the Stripe API (this stands in for the period end, or for Stripe giving up after the last retry). Expect customer.subscription.deleted delivered with 200. Probe after 70 seconds: expect 'free'. GET /auth/api-keys: both keys still listed, none revoked. The log should show stripe_webhook_tier_updated.
-5. Duplicates and strays. Resend, from the Dashboard, the customer.subscription.deleted event and then the original checkout.session.completed event of step 1: expect 200 each, log stripe_webhook_duplicate_event_ignored, probe still 'free' (if A returns to 'pro', idempotency is broken: say so). Then `stripe trigger customer.subscription.deleted` (a customer pyvar does not know): expect 200 and log stripe_webhook_unknown_customer.
-6. Pay again. A (Free) does a new checkout with 4242: expect Pro again by the probe.
-7. Clean up: cancel every test subscription you made. List what you created.
+1. Upgrade. Register A, sign in, create an API key (POST /auth/api-keys; keep it in memory). Probe: 'free'. POST /billing/checkout, pay with 4242 on the hosted page, land on dashboard.html?checkout_session_id=... GET /billing/checkout/complete?session_id=...: expect tier pro and a NEW token whose tier claim is pro (decode the payload only). Probe: 'pro'. POST /billing/checkout again: expect 409. Report the evt_ id of checkout.session.completed and its delivery status.
+2. Monthly cap, no setting change. Create a second key. Send 20 POST /var/compute with n_simulations 100000, alternating keys: all 202. The 21st: expect 429, a Retry-After header, and "Monthly limit reached: the Pro plan allows 2,000,000 simulations in each 30-day window". Probe: still 'pro'. Leave queued jobs alone.
+3. Failed payment. Attach card 0341 to A's customer, make it the subscription's default payment method, and invoice now (billing_cycle_anchor now with proration_behavior always_invoice, or equivalent). Expect a failed charge and past_due. Confirm no invoice event reached the endpoint. Probe after 70 seconds: still 'pro'.
+4. Cancellation. POST /billing/portal as A: expect a portal_url. In the portal cancel the plan: it must say the plan ends at the end of the billing period. Stripe must show cancel_at_period_end true. Probe: 'pro'. Then end the subscription at once through the Stripe API (stands in for the period end or for the last failed retry). Expect customer.subscription.deleted delivered with 200. Probe after 70 seconds: 'free'. GET /auth/api-keys: both keys listed, none revoked. Log: stripe_webhook_tier_updated.
+5. Duplicates and strays. Resend the customer.subscription.deleted event, then step 1's checkout.session.completed event, to the pyvar endpoint only: 200, log stripe_webhook_duplicate_event_ignored, probe 'free' (if A returns to 'pro', idempotency is broken: say so). Then resend a recent event of another product to the pyvar endpoint only (stripe events resend EVT --webhook-endpoint we_1UEwCrQk6KiRREvyRKAI8EP6): expect log stripe_webhook_unknown_customer and no change.
+6. Pay again. A (Free) checks out again with 4242: expect 'pro'.
+7. Cancel every test subscription you made. List what you created.
 
 REPORT
-- Per step: PASS, DIFFERENT (how) or NOT DONE (why), with HTTP statuses.
-- Per step: Stripe ids (cus_, sub_, in_, evt_), webhook delivery statuses, tier by probe before and after, the log lines you saw (names only).
-- Which parts Stripe's own timing would cover and this run did not (renewal date, retry schedule, period end).
+- Per step: PASS, DIFFERENT (how) or NOT DONE (why), with HTTP statuses, Stripe ids (cus_, sub_, in_, evt_), tier before and after, log names.
+- What Stripe's own timing would cover that this run did not (renewal date, retry schedule, period end).
 - What you could not see and what you got wrong. No secrets, tokens, keys, addresses or personal data.

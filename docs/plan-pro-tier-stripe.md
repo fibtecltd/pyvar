@@ -53,7 +53,7 @@ nothing was run. Older background: `docs/plan-monetization-implementation.md` (P
 
 ## 5. Stripe checklist for the agent
 
-Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code. **A to G are the prompt `docs/prompts/agent-stripe-pro-setup.txt` (4.4 KB), run now.** H is `docs/prompts/agent-stripe-pro-verify.txt` (4.9 KB), run once #444 is deployed to dev; I is live mode.
+Do everything in **test mode on dev first**, report, then repeat in live mode only after the owner's go. Report IDs and settings, never secrets. Do not change application code. **A to G are the prompt `docs/prompts/agent-stripe-pro-setup.txt` (4.4 KB), run now.** H is `docs/prompts/agent-stripe-pro-verify.txt` (4.6 KB), run once #444 is deployed to dev; I is live mode.
 
 - [ ] **A. Product and Price.** Product "pyvar Pro"; one recurring Price, £50.00 GBP, monthly, no trial, no annual. Tax behaviour inclusive (D1). Statement descriptor and support e-mail set. Report the Product and Price IDs.
 - [ ] **B. Keys and secrets.** Use a restricted key with only what the code calls: Customers and Checkout Sessions (write), plus the customer portal once `POST /billing/portal` exists (the agent confirms Stripe's exact permission names). Put the key, the webhook signing secret and the Price ID in AWS Secrets Manager under the three names in section 2, per environment (test values on dev, live on prod). Secrets never go in chat or the repository.
@@ -62,7 +62,7 @@ Do everything in **test mode on dev first**, report, then repeat in live mode on
 - [ ] **E. Billing Portal.** Enable it: update payment method, view invoices, **cancel at the end of the billing period (not immediately)**, no plan switching. Return URL: the dashboard.
 - [ ] **F. Receipts and branding.** Customer receipts on; business name, logo, support address.
 - [ ] **G. Tax.** Price tax behaviour **inclusive**; Stripe Tax on in test mode with the head-office address as origin; Fibtec is VAT-registered in the UK: add the UK registration in Stripe Tax once the owner gives the VAT number (the agent adds none on its own). Open worldwide, so no country restriction. The code PR adds address collection and `automatic_tax` to the Checkout session.
-- [ ] **H. Test-mode run on dev** after #444 is deployed there: the prompt `docs/prompts/agent-stripe-pro-verify.txt` (4.9 KB). A test clock cannot be used: the API creates the Stripe customer itself (`create_checkout`), and a customer cannot be moved onto a clock afterwards. The prompt covers: (1) happy path with the new Price; (2) the monthly simulation cap, 20 calls of 100,000 and a refused 21st, with no setting changed; (3) card `4000 0000 0000 0341` forced to fail an invoice: the account **stays Pro**; (4) portal cancel at the period end, then the subscription ended through the Stripe API (standing in for the period end or the last failed retry): `customer.subscription.deleted`, Free, keys intact; (5) the same events delivered twice and an unknown customer change nothing; (6) paying again. Not covered, because Stripe's own timing is not exercised: the renewal date, the retry schedule, the real period end. Report event IDs and the tier (read with a probe) before and after each step.
+- [ ] **H. Test-mode run on dev** after #444 is deployed there: the prompt `docs/prompts/agent-stripe-pro-verify.txt` (4.6 KB). A test clock cannot be used: the API creates the Stripe customer itself (`create_checkout`), and a customer cannot be moved onto a clock afterwards. The prompt covers: (1) happy path with the new Price; (2) the monthly simulation cap, 20 calls of 100,000 and a refused 21st, with no setting changed; (3) card `4000 0000 0000 0341` forced to fail an invoice: the account **stays Pro**; (4) portal cancel at the period end, then the subscription ended through the Stripe API (standing in for the period end or the last failed retry): `customer.subscription.deleted`, Free, keys intact; (5) the same events delivered twice and an unknown customer change nothing; (6) paying again. Not covered, because Stripe's own timing is not exercised: the renewal date, the retry schedule, the real period end. Report event IDs and the tier (read with a probe) before and after each step.
 - [ ] **I. Live mode.** Repeat A to G with live objects; the owner makes one real £50 payment and a refund (owner's choice) before launch.
 - [ ] **J. Hand back** a list of the values set (no secrets), the test results and anything that behaved differently. The code PR is reviewed against it before any prod deploy.
 
@@ -91,3 +91,23 @@ Order: owner decisions (done) → Stripe agent A to G on dev (the prompt) → co
 - Added beyond the plan, because the new buttons made them reachable: checkout is refused (409) for an account that is already Pro (it would be charged twice) and for enterprise or internal accounts; a paid checkout never changes those two, and a second checkout on a Pro account is logged for a refund; an education account that upgrades loses its grant date.
 - Not done, and why: **automatic tax on the Checkout session** (`automatic_tax`, billing address collection) waits for the Stripe agent's report on Stripe Tax: Stripe refuses the parameter until Stripe Tax has an origin address, so it needs a flag and an environment variable in the CDK, as a follow-up. The Medium article copy of the REST guide and its diagram under `docs/publications/` still describe the old downgrade.
 - After a cancellation a session token keeps Pro for up to its 60 minutes and an API key for up to its 60-second cache; the next token and the next lookup read the database.
+
+## 8. Prompt 1 outcome (2026-11-22)
+
+Stripe **test mode** on dev, in the "fibtec limited sandbox" account (GB, GBP). The sandbox is **shared with other Fibtec products**: it also holds two other products' webhook endpoints and their objects, none of which were touched. The webhook handler is safe against that: it finds the user by `users.stripe_customer_id`, so another product's event is logged as `stripe_webhook_unknown_customer` and answered 200 with no change. Prompt 2 must never use `stripe trigger` (it fires every product's endpoint).
+
+| Item | Result |
+| --- | --- |
+| Product | `prod_VFQjvcwS08J6e9` "pyvar Pro" (existing; statement descriptor set to PYVAR PRO). Its default price is still the old £20 one; pyvar passes the Price explicitly, so that is harmless |
+| Price | `price_1UeeDgQk6KiRREvyk9N27Td4`: GBP 50.00 monthly, tax inclusive, no trial. `pyvar/dev/stripe-price-id-pro` now names it |
+| Webhook | `we_1UEwCrQk6KiRREvyRKAI8EP6` (existing endpoint edited, signing secret unchanged): exactly `checkout.session.completed` and `customer.subscription.deleted`; `invoice.payment_failed` removed |
+| Portal | `bpc_1UeeEgQk6KiRREvyDIzeKYac`, now the account's default: payment method and invoices on, cancel at the end of the period only, no plan switching or pause, return URL the dev dashboard. `POST /billing/portal` passes no `configuration`, so pyvar relies on this being the default; passing an explicit id (a setting) would stop another product's portal change from affecting pyvar |
+| Reach check | an existing event resent to the endpoint: `pending_webhooks` 1 to 0, so it was accepted; the exact HTTP code is visible only in the Dashboard |
+
+Still open (Dashboard-only, or needs an owner input):
+
+1. **Restricted key** (Customers, Checkout Sessions, Customer portal: write; the app's four calls need no more) into `pyvar/dev/stripe-secret-key`, **before #444 is merged**: the API reads its secrets once, when a task starts.
+2. **Failed payments:** the retry schedule and "cancel the subscription if all retries fail", plus the customer e-mails. Without the cancel rule a failed renewal never ends Pro. Test and live mode have separate settings.
+3. **Support e-mail and business name** are account-level, so they apply to the other products too.
+4. **Stripe Tax** is active; the head-office address holds only the country. The full address is needed before `automatic_tax` is added to Checkout (follow-up PR).
+5. **Live mode** repeats all of this.
