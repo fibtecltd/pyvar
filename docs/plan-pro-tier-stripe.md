@@ -123,7 +123,7 @@ Findings and what was done:
 
 | Finding | Action |
 | --- | --- |
-| Adaptive Pricing is on in the shared account: the hosted page defaulted to EUR (EUR 62.14 with a 4% fee); the Terms say pounds | Fixed in code for pyvar's session only (`adaptive_pricing[enabled]=false`); the account setting is untouched |
+| Adaptive Pricing is on in the shared account: the hosted page defaulted to EUR (EUR 62.14 with a 4% fee); the Terms say pounds | **Owner's decision, 2026-11-23: it stays on for every service, because payments are collected worldwide; no code change.** The session keeps its currency and amounts in GBP and the local figures are in `presentment_details` (Stripe's documentation; to be seen on dev). Whether the Terms need a sentence on paying in a local currency is the owner's |
 | Another service's endpoint subscribes to invoice events and receives A's | Our objects now carry `metadata[service]=pyvar`. TenGrade ignores events without its marker; etlgen and DocuGen are unchecked: look at their dev endpoint delivery logs in Stripe |
 | `automatic_tax` is off, so Checkout computes no tax on the inclusive price | Follow-up PR, once Stripe Tax has the full head-office address (section 8, item 4) |
 | An open GBP 50.00 invoice remains on the test customer, with a retry set for 2026-11-25 | Void it in the Dashboard (test mode) |

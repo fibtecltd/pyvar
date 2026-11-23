@@ -202,13 +202,13 @@ async def test_checkout_reuses_existing_stripe_customer(app, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_checkout_session_is_priced_in_pounds_and_marked_as_pyvar(app, monkeypatch):
-    """The Checkout session switches Adaptive Pricing off for itself and carries the service marker.
+async def test_checkout_session_is_marked_as_pyvar_and_leaves_adaptive_pricing_on(app, monkeypatch):
+    """The Checkout session carries the service marker and never sends `adaptive_pricing`.
 
-    The sandbox's Adaptive Pricing is on (an account-wide setting shared with other Fibtec services) and
-    showed a EUR price with a conversion fee; the Terms say the plan is billed in pounds. The marker is on
-    the session, on the subscription it creates, and on the customer, so the other services' webhooks can
-    tell pyvar's events from their own.
+    The marker is on the session, on the subscription it creates, and on the customer, so the other
+    services' webhooks can tell pyvar's events from their own. Adaptive Pricing is on in the shared Stripe
+    account by the owner's decision (2026-11-23, payments are collected worldwide): the session must not
+    switch it off.
     """
     configure_billing(monkeypatch)
     user_row = User(
@@ -232,7 +232,7 @@ async def test_checkout_session_is_priced_in_pounds_and_marked_as_pyvar(app, mon
 
     assert resp.status_code == 200
     create_kwargs = fake_stripe.checkout.Session.create.call_args.kwargs
-    assert create_kwargs["adaptive_pricing"] == {"enabled": False}
+    assert "adaptive_pricing" not in create_kwargs
     assert create_kwargs["metadata"] == {"service": "pyvar"}
     assert create_kwargs["subscription_data"] == {"metadata": {"service": "pyvar"}}
     assert billing_module.STRIPE_SERVICE == "pyvar"

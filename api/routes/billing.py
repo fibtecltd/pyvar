@@ -264,11 +264,6 @@ async def create_checkout(
         client_reference_id=user.user_id,
         mode="subscription",
         line_items=[{"price": cfg.stripe_price_id_pro, "quantity": 1}],
-        # The price is GBP 50.00 and the Terms say it is billed in pounds. The account's Adaptive
-        # Pricing is on (a setting shared with the other services), which would show a visitor outside
-        # the UK a EUR price with a conversion fee: switch it off for this session only, so the shared
-        # setting stays as it is.
-        adaptive_pricing={"enabled": False},
         # The session's events (checkout.session.completed) and the subscription's (customer.
         # subscription.*, and the invoices' subscription details) carry the marker.
         metadata={"service": STRIPE_SERVICE},

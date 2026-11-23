@@ -287,11 +287,10 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- **Checkout is priced in pounds and every Stripe object pyvar creates is marked (`fix(billing)`)** — The second Stripe
-  verification run on dev (2026-11-23) found that the hosted Checkout page defaulted to EUR (EUR 62.14 with a 4% conversion
-  fee) because the Stripe account's Adaptive Pricing is on; the Terms say the plan is billed in pounds. `POST /billing/checkout`
-  now sends `adaptive_pricing[enabled]=false` for its own session, so the account-wide setting, which the other Fibtec
-  services share, is left alone. The session, the subscription it creates and the customer now carry `metadata[service]=pyvar`
+- **Every Stripe object pyvar creates is marked (`fix(billing)`)** — The second Stripe verification run on dev (2026-11-23)
+  found that the hosted Checkout page offers a local currency (EUR 62.14 with a 4% conversion fee) because the Stripe account's
+  Adaptive Pricing is on. The owner's decision (2026-11-23) is that it stays on, for every Fibtec service, because payments are
+  collected worldwide: `POST /billing/checkout` never sends `adaptive_pricing`. The session, the subscription it creates and the customer now carry `metadata[service]=pyvar`
   (`STRIPE_SERVICE`): the account is shared and Stripe sends every endpoint every event, so the other services can tell pyvar's
   events from their own (TenGrade's webhook already ignores anything without its marker). pyvar's webhook does not read the
   marker: it matches users by Stripe customer id. Tests: `tests/test_billing.py`.
