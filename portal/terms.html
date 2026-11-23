@@ -74,7 +74,12 @@
 <h2 class="h2">3. Fees and tiers</h2>
 <ul class="body-md">
 <li>New accounts start on a <strong>free tier</strong> with a limited daily request quota and a capped number of simulations per request, shown in the product itself.</li>
-<li>A <strong>Pro tier</strong>, billed via Stripe on a recurring basis, raises these limits. Current limits are shown in the product at the time of use and may change.</li>
+<li id="pro"><strong>Pro</strong> is a paid subscription, open to customers worldwide. It costs &pound;50 per account per month, in pounds sterling, billed monthly through Stripe; for customers in the United Kingdom the price includes VAT. There is no annual plan and no free trial.
+<ul>
+<li><strong>What it includes.</strong> One account. All of the account's API keys share one set of limits, and an account may have up to 5 active keys. The limits are 100,000 simulations per request, 500 requests a day, 5,000 requests a month and 2,000,000 simulations a month. E-mail support is offered at info@pyvar.com, with no guarantee of response times. Nothing else is promised with Pro: no priority queue, longer retention or service level. Limits may change.</li>
+<li><strong>Monthly limits.</strong> A request over a daily or monthly limit is refused until that limit's period rolls over. The monthly period is 30 days counted from your first request in it, not the calendar month or your billing date. Reaching a limit changes nothing else about your account, and Pro stays active.</li>
+<li><strong>Billing and cancelling.</strong> You can cancel at any time from your dashboard (Manage billing). If you cancel, Pro continues to the end of the period you have paid for, then your account goes back to the free tier; your account and your API keys stay. If a payment fails, Stripe retries it on its own schedule and Pro stays active; if Stripe cannot collect the payment and ends the subscription, your account goes back to the free tier in the same way.</li>
+</ul></li>
 <li>Payment is processed by Stripe; by making a payment you also agree to Stripe's own terms for that transaction.</li>
 <li id="education"><strong>Education access</strong> is a free tier for non-commercial teaching and study. &ldquo;Non-commercial&rdquo; means work done to teach or to learn, or research whose results you are free to publish; it does not include work done for a client, an employer or a research sponsor who pays for the results or controls them, even if a university is where you do it.
 <ul>

@@ -1,5 +1,16 @@
 # Test plan: Pro subscription enrollment and limit enforcement
 
+> **Rewritten 2026-11-21 (docs/plan-pro-tier-stripe.md).** Tests 4 to 8 described the old behaviour: a monthly cap moved a
+> Pro account to Free, a failed payment moved it to Free at once, and a paid invoice restored it. The owner replaced all
+> three: a monthly cap is a 429 that names the cap; a failed payment changes nothing (Stripe retries); only the end of the
+> Stripe subscription, `customer.subscription.deleted`, moves Pro to Free. The tests below check that. The Free daily limit
+> is 20 (it was 10 when this plan was written). Tests 1 and 9 were executed on dev on 2026-09-29/30 (section 15).
+>
+> **Test clocks.** Tests 6 to 8 say "advance the test clock", but the API creates the Stripe customer itself, so a pyvar account's
+> customer cannot be attached to a clock. `docs/prompts/agent-stripe-pro-verify.txt` runs the same checks without one: an invoice forced
+> on the failing card (test 7), and the subscription ended through the Stripe API in place of the period end (test 8). Stripe's own
+> timing (renewal date, retry schedule) is then not exercised.
+
 **Purpose.** `tests/test_billing.py` (22 tests), `test_billing_lifecycle.py`
 (11 tests), and `test_rate_limit.py` (21 tests) already cover every code
 path in isolation — Stripe and the DB are both mocked, per `CLAUDE.md`
@@ -62,12 +73,12 @@ JWT-staleness bridge `api/routes/billing.py`'s own module docstring calls
 out as the gap this route exists to close. If step 6 returns the old
 tier, that bridge is broken.
 
-## 3. Test 2 — Daily rate limit (Free: 10/day, Pro: 500/day)
+## 3. Test 2 — Daily rate limit (Free: 20/day, Pro: 500/day)
 
-1. As a **Free** user, make 10 calls to any `/api/v1/<domain>/<fn>`
+1. As a **Free** user, make 20 calls to any `/api/v1/<domain>/<fn>`
    endpoint (they share one bucket — doesn't need to be the same
-   function each time). Confirm all 10 succeed.
-2. Make an 11th call. Confirm `429`, with a `Retry-After` header whose
+   function each time). Confirm all 20 succeed.
+2. Make a 21st call. Confirm `429`, with a `Retry-After` header whose
    value is a plausible number of seconds until midnight UTC (the
    `/day` window), and body `{"detail": "Rate limit exceeded. Please
    retry later."}`.
@@ -95,92 +106,82 @@ than the tier promises), and `Retry-After` is sane.
    (Enterprise still has *a* ceiling, just a higher one — not truly
    unlimited).
 
-## 5. Test 4 — Monthly request-count cap → auto-downgrade (needs a test clock)
+## 5. Test 4 — Monthly request-count cap → refusal (the tier never changes)
 
-This is the one that needs care: `rate_limit_pro_monthly_requests` is
-5,000 in real config — not practical to hit by making 5,000 real calls
-in a test session. **Temporarily** override it to a small number (e.g.
-`3`) via the dev environment's config **only for this test window**,
-then revert — `config.py`'s own comment confirms these are
-"retunable via config with no code change," so this is a supported
-operation, not a hack. Do this in dev only, never prod.
+`rate_limit_pro_monthly_requests` is 5,000 in real config — not practical to
+hit with 5,000 real calls. **Temporarily** override it to a small number (e.g.
+`3`) in the dev environment **only for this test window**, then revert. Dev
+only, never prod.
 
-1. With the override active, as a Pro test user, make 3 authenticated
-   calls (any domain). Confirm all succeed and the daily cap (§3) isn't
-   what's limiting them (stay under 500/day too).
+1. With the override active, as a Pro test user, make 3 authenticated calls
+   (any domain). Confirm all succeed and the daily cap (§3) isn't what is
+   limiting them.
 2. Make a 4th call. Confirm:
-   - `403` with the monthly-limit message
-     ("Your Pro plan's monthly request limit has been reached...").
-   - `users.tier` flips to `'free'` in the DB.
-   - `users.tier_downgrade_reason` is the monthly-request-limit reason
-     (`api/middleware/rate_limit.py`'s `DOWNGRADE_MONTHLY_REQUEST_LIMIT`).
-   - A `billing_events` row is written for
-     `EVENT_DOWNGRADED_MONTHLY_REQUEST_LIMIT`.
-   - The notification email fires (or its attempt is logged).
-3. Confirm the **already-issued Pro JWT** from before the downgrade
-   still claims `tier: pro` when decoded (expected — JWTs aren't
-   revoked), but the *next* request using it is evaluated against the
-   now-`free` DB tier only once the client fetches a fresh token via
-   `GET /billing/checkout/complete` — until then, `enforce_compute_rate_limit`
-   is checking the **JWT's own tier claim**, not the DB, so document
-   which one actually governs at this point (re-read
-   `api/middleware/auth.py` if the two disagree — this is worth
-   nailing down precisely during the test, not assumed).
-4. Revert the config override.
+   - `429` with a `Retry-After` header and the message "Monthly limit reached:
+     the Pro plan allows 3 requests in each 30-day window. Requests are refused
+     until the window resets; ...".
+   - `users.tier` is **still `'pro'`** and `tier_downgrade_reason` is `NULL`.
+   - **No** `billing_events` row and **no** e-mail.
+3. Make a 5th call from a *second API key of the same account*. Confirm it is
+   also refused: both keys share one counter (the counter is keyed by the account).
+4. Revoke one key and create another. Confirm the new key is still refused (the
+   counter is the account's, not the key's).
+5. Revert the config override. The window is 30 days from the first request in
+   it, not the calendar month or the billing date: do not wait for it to reset.
 
-## 6. Test 5 — Monthly simulation-count cap → auto-downgrade
+## 6. Test 5 — Monthly simulation-count cap → refusal
 
 Same approach as Test 4, but override `rate_limit_pro_monthly_simulations`
 to something small (e.g. `150000` — two 100k-simulation Pro calls
 should trip it) and drive it via `POST /api/v1/var/compute` specifically
 (`api/routes/var.py`'s own check, not `rate_limit.py`'s generic one —
 these are two separate code paths per `config.py`'s own comment on why
-simulation-count tracking is VaR-specific). Confirm the same
-downgrade/audit/email/reason (`DOWNGRADE_MONTHLY_SIMULATION_LIMIT`) triad
-as Test 4, using the `cost=body.n_simulations` weighted-hit mechanism
-rather than a flat per-call count.
+simulation-count tracking is VaR-specific). Confirm the same outcome as
+Test 4 (429 naming "150,000 simulations in each 30-day window", tier
+unchanged, no audit row, no e-mail) using the `cost=body.n_simulations`
+weighted-hit mechanism rather than a flat per-call count.
 
-## 7. Test 6 — Restore on next successful payment (test clock required)
+## 7. Test 6 — A paid invoice changes nothing
 
-Starting from a Test 4 or 5 downgraded account (`tier_downgrade_reason`
-is one of the two monthly reasons):
+On a Pro test account, advance the attached Stripe test clock to the next
+billing date so the subscription's next invoice succeeds (card
+`4242...`). Confirm the webhook receives `invoice.paid` /
+`invoice.payment_succeeded` (only if the endpoint subscribes to them: it
+should not) and that `users.tier` stays `'pro'` with no `billing_events` row.
+Nothing is restored because nothing is taken away any more.
 
-1. Advance the attached Stripe test clock to the next billing date, so
-   Stripe issues the subscription's next invoice and (with the
-   `4242...` card still on file) it succeeds.
-2. Confirm the webhook receives `invoice.paid` or
-   `invoice.payment_succeeded`.
-3. Confirm `users.tier` flips back to `'pro'`,
-   `tier_downgrade_reason` clears to `NULL`, and a `billing_events` row
-   is written for the restore.
-4. **Negative case:** repeat starting from a `DOWNGRADE_PAYMENT_FAILED`
-   or `DOWNGRADE_SUBSCRIPTION_CANCELLED` account instead. Confirm the
-   *same* `invoice.paid` event does **NOT** restore Pro —
-   `restore_after_payment_succeeded`'s own docstring says this is
-   deliberate (those two need a fresh Checkout, not an incidental
-   invoice event). This negative case is arguably more important to
-   verify than the positive one, since it's the one place a bug would
-   silently give away Pro access nobody paid for.
-
-## 8. Test 7 — Payment failure downgrade
+## 8. Test 7 — A failed payment does not end Pro
 
 1. On a test clock, attach card `4000 0000 0000 0341` (succeeds on
    attach, fails on subsequent charge) to a Pro subscription.
-2. Advance the clock to the next renewal so Stripe attempts (and, after
-   exhausting its own retry schedule, gives up on) the charge.
-3. Confirm `invoice.payment_failed` arrives, `users.tier` flips to
-   `free` with `tier_downgrade_reason = DOWNGRADE_PAYMENT_FAILED`, audit
-   row + email as before.
-4. Confirm a later `invoice.paid` (e.g. if the test continues and a
-   different card succeeds later) does **not** auto-restore this
-   account (see Test 6's negative case — same rule, different trigger).
+2. Advance the clock to the next renewal so Stripe attempts the charge and it
+   fails. (`invoice.payment_failed` is sent on every failed attempt, not only
+   the last; the endpoint should not subscribe to it, and if it does the API
+   ignores it.)
+3. Confirm the account **stays Pro**: `users.tier = 'pro'`, no
+   `billing_events` row, no e-mail from the API. Stripe's own failed-payment
+   e-mail goes to the customer.
+4. Advance the clock through Stripe's retries. Either a retry succeeds and
+   nothing changes, or the retries run out and Stripe cancels the
+   subscription (the dashboard setting is "cancel the subscription if all
+   retries fail"): then `customer.subscription.deleted` arrives and Test 8
+   applies.
 
-## 9. Test 8 — Subscription cancellation
+## 9. Test 8 — Subscription end (cancellation, or retries run out)
 
-Cancel the test subscription directly in the Stripe dashboard (or via
-API) rather than letting it lapse. Confirm `customer.subscription.deleted`
-arrives and produces the same downgrade triad with
-`DOWNGRADE_SUBSCRIPTION_CANCELLED`.
+1. In the **Billing Portal** (`POST /api/v1/billing/portal`, or the
+   dashboard's Manage billing), cancel the subscription. Confirm the portal
+   offers cancel **at the end of the billing period**, not immediately.
+2. Confirm the account stays Pro until the period ends. Advance the test
+   clock past the period end.
+3. Confirm `customer.subscription.deleted` arrives and: `users.tier` flips to
+   `'free'` with `tier_downgrade_reason = 'subscription_cancelled'`, one
+   `billing_events` row (`downgraded_subscription_cancelled`), the e-mail,
+   **the account and its keys stay** (no key revoked), and an API key now
+   resolves to the Free limits (within the 60-second key cache).
+4. A `customer.subscription.deleted` for an account that is *not* Pro
+   (a stray Stripe customer on a Free, education or enterprise account)
+   changes nothing.
 
 ## 10. Test 9 — Webhook idempotency
 

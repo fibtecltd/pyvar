@@ -48,24 +48,23 @@ Reasoning:
   three routes: Stripe events and the Checkout Session both carry a Stripe
   customer ID, never a pyvar external_id. Created once, on this user's
   first-ever checkout, and reused for every subscription after that.
-- Downgrade paths: customer.subscription.deleted (a cancellation reaching
-  the end of its billing period) and invoice.payment_failed (a renewal that
-  exhausted Stripe's own retry schedule) both flip tier back to "free" —
-  the plan doc's own definition of done is explicit that failed/cancelled
-  payments must not be silently left on "pro" forever.
-- Item 5 §8 follow-on: every tier change here (upgrade, either downgrade
-  path, and the restore path below) now writes a durable BillingEvent audit
-  row (api/middleware/billing_lifecycle.py) in the same transaction as the
-  User.tier mutation, and sends a best-effort SES notification — closing the
-  "downgrade happens silently" gap flagged when Phase A first shipped.
-- Restore path: invoice.paid / invoice.payment_succeeded (Stripe's "an
-  invoice was paid" signal, checked for both since Stripe emits one or the
-  other depending on API version/integration age) restores "pro" only for
-  an account downgraded by one of the two monthly caps
-  (api/middleware/rate_limit.py, api/routes/var.py) — deliberately NOT a
-  payment-failure or subscription-cancellation downgrade, which have their
-  own explicit path back (a fresh Checkout) — see
-  billing_lifecycle.restore_after_payment_succeeded's own docstring.
+- Tier changes (docs/plan-pro-tier-stripe.md): exactly two events act. checkout.session.completed moves a
+  free or education account to "pro"; customer.subscription.deleted (Stripe's own end of the subscription: the
+  end of the paid period after a cancellation, or the cancellation Stripe makes when its payment retries run
+  out) moves a "pro" account to "free". Nothing else changes a tier. In particular a failed payment does NOT:
+  Stripe sends invoice.payment_failed on every attempt, not after the last, and retries on its own schedule;
+  and a monthly usage cap is a 429 (api/middleware/rate_limit.py), not a downgrade. Both used to move the
+  account to Free; an account that paid late or filled its month must keep Pro.
+- A paid checkout never changes an enterprise or internal account (a custom plan is not a Pro subscription),
+  and a second checkout.session.completed for an account that is already "pro" changes nothing and is logged
+  for an operator to refund.
+- Every tier change here writes a durable BillingEvent audit row (api/middleware/billing_lifecycle.py) in the
+  same transaction as the User.tier mutation, and sends a best-effort SES notification.
+- POST /billing/portal opens Stripe's hosted Billing Portal for the caller's Stripe customer: update the card,
+  see invoices, cancel at the end of the period. The cancellation itself arrives as customer.subscription.deleted.
+- "Billing is not configured on this deployment" is an expected answer (prod has no Stripe secrets until the
+  live keys are loaded), so it is returned as a 503 response, not raised: a raised 5xx HTTPException is reported
+  to Sentry as an error (the one event in the 2026-11-14 to 2026-11-21 weekly report).
 - Idempotent against Stripe's at-least-once redelivery guarantee: every
   tier-changing event's Stripe event ID is checked against
   BillingEvent.stripe_event_id before acting, so a redelivered event doesn't
@@ -78,22 +77,20 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from api.middleware.auth import TokenPayload, create_access_token, get_current_user
 from api.middleware.billing_lifecycle import (
-    DOWNGRADE_PAYMENT_FAILED,
     DOWNGRADE_SUBSCRIPTION_CANCELLED,
-    EVENT_DOWNGRADED_PAYMENT_FAILED,
     EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED,
     EVENT_UPGRADED,
     record_billing_event,
-    restore_after_payment_succeeded,
     send_tier_change_email,
 )
 from api.tiers import effective_tier
 from config import get_settings
-from schemas.billing import CheckoutCompleteResponse, CheckoutResponse
+from schemas.billing import CheckoutCompleteResponse, CheckoutResponse, PortalResponse
 from storage.models import BillingEvent, User
 from storage.session import get_sessionmaker
 
@@ -101,25 +98,15 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 logger = structlog.get_logger()
 cfg = get_settings()
 
-# Subscription-lifecycle events this webhook acts on — see module docstring.
-# Anything else Stripe sends (customer.updated, etc.) is acknowledged with
-# 200 and otherwise ignored; Stripe requires a fast 2xx regardless of
-# whether an event is one this app acts on.
-_DOWNGRADE_EVENTS = {
-    "customer.subscription.deleted": (
-        EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED,
-        DOWNGRADE_SUBSCRIPTION_CANCELLED,
-    ),
-    "invoice.payment_failed": (EVENT_DOWNGRADED_PAYMENT_FAILED, DOWNGRADE_PAYMENT_FAILED),
-}
-# Both are Stripe's "an invoice was paid" signal (invoice.paid is the modern
-# name; invoice.payment_succeeded is the older/still-emitted equivalent) —
-# treated identically. Only restores an account downgraded for a monthly
-# limit (item 5 §8 follow-on) — see
-# billing_lifecycle.restore_after_payment_succeeded's own docstring for why
-# a payment-failure or subscription-cancellation downgrade is deliberately
-# NOT restored from here.
-_RESTORE_EVENTS = {"invoice.paid", "invoice.payment_succeeded"}
+# The two Stripe events this webhook acts on — see the module docstring. Anything else Stripe sends
+# (customer.updated, invoice.payment_failed, invoice.paid, ...) is acknowledged with 200 and ignored; Stripe
+# requires a fast 2xx regardless of whether an event is one this app acts on.
+_UPGRADE_EVENT = "checkout.session.completed"
+_ENDED_EVENT = "customer.subscription.deleted"
+_HANDLED_EVENTS = {_UPGRADE_EVENT, _ENDED_EVENT}
+# Tiers a completed checkout may upgrade. Enterprise and internal are custom or service plans, never Pro.
+_UPGRADABLE_TIERS = {"free", "education"}
+NOT_CONFIGURED_DETAIL = "Billing is not configured on this deployment."
 
 
 def _stripe_client() -> Any:
@@ -134,7 +121,9 @@ def _stripe_client() -> Any:
     return stripe
 
 
-def _require_billing_configured() -> None:
+def _billing_unavailable() -> JSONResponse | None:
+    """None when billing is configured; otherwise the 503 to return. A response, not a raised HTTPException, so
+    that this expected answer is not reported to Sentry as an error (see the module docstring)."""
     if not cfg.stripe_secret_key or not cfg.stripe_price_id_pro:
         # Lazy retry: the one-shot fetch at startup (main.py::create_app())
         # may have failed transiently for this specific task (Secrets
@@ -149,10 +138,12 @@ def _require_billing_configured() -> None:
         # genuinely unconfigured (only fires while a billing route is actually hit).
         _resolve_stripe_secrets()
     if not cfg.stripe_secret_key or not cfg.stripe_price_id_pro:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Billing is not configured on this deployment.",
+        logger.warning("billing_not_configured")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": NOT_CONFIGURED_DETAIL},
         )
+    return None
 
 
 # (cfg attribute, name suffix): each is read from Secrets Manager at pyvar/{app_env}/<suffix>.
@@ -181,7 +172,7 @@ def _resolve_stripe_secrets() -> None:
     IAM policy change) must not prevent the other two from being picked up,
     and must degrade to "billing unconfigured" rather than raise and block
     task launch -- every billing route already 503s via
-    _require_billing_configured() when either required value is unset.
+    _billing_unavailable() when either required value is unset.
 
     "Still missing" is decided per secret, not once for the lot: the lazy
     retry has to be able to pick up the one secret a startup fetch missed
@@ -214,11 +205,18 @@ def _resolve_stripe_secrets() -> None:
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
-async def create_checkout(user: TokenPayload = Depends(get_current_user)) -> CheckoutResponse:
+async def create_checkout(
+    user: TokenPayload = Depends(get_current_user),
+) -> CheckoutResponse | JSONResponse:
     """Start a Pro subscription: create/reuse a Stripe Customer, return a
     hosted Checkout URL for the client to redirect the browser to.
+
+    Refused with 409 for an account that is already Pro (a second subscription would be charged twice) and for
+    enterprise or internal accounts (a custom plan: contact us).
     """
-    _require_billing_configured()
+    unavailable = _billing_unavailable()
+    if unavailable is not None:
+        return unavailable
     stripe = _stripe_client()
 
     async with get_sessionmaker()() as session:
@@ -233,6 +231,17 @@ async def create_checkout(user: TokenPayload = Depends(get_current_user)) -> Che
             # branch means the row was deleted out from under a still-valid
             # token, not a normal user-facing case.
             raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+        if row.tier == "pro":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Your account is already on Pro. Use Manage billing to update or cancel it.",
+            )
+        if row.tier not in _UPGRADABLE_TIERS:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Your account is on a custom plan. Contact info@pyvar.com to change it.",
+            )
 
         if row.stripe_customer_id is None:
             customer = stripe.Customer.create(
@@ -257,13 +266,50 @@ async def create_checkout(user: TokenPayload = Depends(get_current_user)) -> Che
     return CheckoutResponse(checkout_url=checkout_session.url)
 
 
+@router.post("/portal", response_model=PortalResponse)
+async def create_portal_session(
+    user: TokenPayload = Depends(get_current_user),
+) -> PortalResponse | JSONResponse:
+    """Open Stripe's hosted Billing Portal for the caller: update the payment method, see invoices, cancel at
+    the end of the period. 409 when the account has never subscribed (no Stripe customer yet)."""
+    unavailable = _billing_unavailable()
+    if unavailable is not None:
+        return unavailable
+    stripe = _stripe_client()
+
+    async with get_sessionmaker()() as session:
+        row = (
+            await session.execute(select(User).where(User.external_id == user.user_id))
+        ).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+        customer_id = row.stripe_customer_id
+
+    if customer_id is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "There is no subscription to manage yet. Upgrade to Pro first.",
+        )
+
+    portal_session = stripe.billing_portal.Session.create(
+        customer=customer_id, return_url=f"{cfg.public_base_url}/dashboard.html"
+    )
+    logger.info("billing_portal_session_created", user_id=user.user_id)
+    return PortalResponse(portal_url=portal_session.url)
+
+
 @router.get("/checkout/complete", response_model=CheckoutCompleteResponse)
-async def checkout_complete(session_id: str) -> CheckoutCompleteResponse:
+async def checkout_complete(session_id: str) -> CheckoutCompleteResponse | JSONResponse:
     """Issue a fresh JWT reflecting the caller's current tier, after Stripe
     redirects the browser back from a completed Checkout. See module
     docstring for why this route exists and why it can't be JWT-authenticated.
+
+    The tier is read from the database: the webhook may land a moment after the redirect, so a client that
+    still sees "free" should ask again after a few seconds.
     """
-    _require_billing_configured()
+    unavailable = _billing_unavailable()
+    if unavailable is not None:
+        return unavailable
     stripe = _stripe_client()
 
     checkout_session = stripe.checkout.Session.retrieve(session_id)
@@ -287,19 +333,21 @@ async def checkout_complete(session_id: str) -> CheckoutCompleteResponse:
     return CheckoutCompleteResponse(access_token=access_token, tier=tier)
 
 
-@router.post("/webhook", status_code=status.HTTP_200_OK)
-async def stripe_webhook(request: Request) -> dict:
+@router.post("/webhook", status_code=status.HTTP_200_OK, response_model=dict[str, bool])
+async def stripe_webhook(request: Request) -> dict[str, bool] | JSONResponse:
     """Stripe webhook receiver — see module docstring for the trust model
-    (signature verification, not a JWT) and which events flip tier which way.
+    (signature verification, not a JWT) and the two events that change a tier.
 
     Idempotent against Stripe's own at-least-once redelivery guarantee: every
     tier-changing event's `event["id"]` is checked against BillingEvent.
     stripe_event_id before acting, so a redelivered event is acknowledged
-    with 200 but never processed twice (item 5 §8 follow-on) — matters here
-    specifically because processing now has side effects beyond the tier
-    flip itself (an audit row, a notification email) that must not double up.
+    with 200 but never processed twice — matters here specifically because
+    processing has side effects beyond the tier flip itself (an audit row, a
+    notification email) that must not double up.
     """
-    _require_billing_configured()
+    unavailable = _billing_unavailable()
+    if unavailable is not None:
+        return unavailable
     stripe = _stripe_client()
 
     payload = await request.body()
@@ -312,19 +360,16 @@ async def stripe_webhook(request: Request) -> dict:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid webhook signature.") from exc
 
     event_type = event["type"]
-    event_object = event["data"]["object"]
+    if event_type not in _HANDLED_EVENTS:
+        return {"received": True}
+
     # event_object is a real stripe.StripeObject (e.g. checkout.Session), not
     # a dict -- it has no .get(); attribute access is how the SDK proxies to
     # the underlying data, so getattr(..., default) is the dict-.get()
     # equivalent here. (Sentry afa9f2520c744907afa5d069149bfcbb.)
+    event_object = event["data"]["object"]
     customer_id = getattr(event_object, "customer", None)
     stripe_event_id = event["id"]
-
-    is_upgrade = event_type == "checkout.session.completed"
-    is_downgrade = event_type in _DOWNGRADE_EVENTS
-    is_restore = event_type in _RESTORE_EVENTS
-    if not (is_upgrade or is_downgrade or is_restore):
-        return {"received": True}
 
     if not customer_id:
         # Shouldn't happen for these event types (every one carries a
@@ -359,46 +404,56 @@ async def stripe_webhook(request: Request) -> dict:
 
         old_tier = row.tier
         email = row.email
-        fired_event_type: str | None
+        external_id = row.external_id
 
-        if is_restore:
-            fired_event_type = restore_after_payment_succeeded(
-                session, row, stripe_event_id=stripe_event_id
-            )
-            if fired_event_type is None:
-                # Already Pro (e.g. the first invoice.payment_succeeded for a
-                # brand-new subscription, which checkout.session.completed
-                # already handled) — nothing changed, nothing to record.
-                await session.commit()
+        if event_type == _UPGRADE_EVENT:
+            if old_tier == "pro":
+                # A second paid subscription for an account that already has Pro: nothing to change,
+                # and a charge an operator should refund.
+                logger.warning(
+                    "stripe_checkout_completed_already_pro",
+                    customer_id=customer_id,
+                    stripe_event_id=stripe_event_id,
+                )
+                return {"received": True}
+            if old_tier not in _UPGRADABLE_TIERS:
+                logger.warning(
+                    "stripe_checkout_completed_ignored",
+                    tier=old_tier,
+                    customer_id=customer_id,
+                    stripe_event_id=stripe_event_id,
+                )
                 return {"received": True}
             new_tier = "pro"
-        elif is_upgrade:
-            new_tier = "pro"
+            fired_event_type = EVENT_UPGRADED
             row.tier = new_tier
             row.tier_downgrade_reason = None
-            fired_event_type = EVENT_UPGRADED
-            record_billing_event(
-                session,
-                user_id=row.external_id,
-                event_type=fired_event_type,
-                old_tier=old_tier,
-                new_tier=new_tier,
-                stripe_event_id=stripe_event_id,
-            )
+            if old_tier == "education":
+                row.tier_expires_at = None  # the grant is replaced by the subscription
         else:
-            fired_event_type, downgrade_reason = _DOWNGRADE_EVENTS[event_type]
+            if old_tier != "pro":
+                # The subscription ended for an account that is not on Pro (a stray Stripe customer on a
+                # free, education or enterprise account): leave the tier alone.
+                logger.info(
+                    "stripe_subscription_end_ignored",
+                    tier=old_tier,
+                    customer_id=customer_id,
+                    stripe_event_id=stripe_event_id,
+                )
+                return {"received": True}
             new_tier = "free"
+            fired_event_type = EVENT_DOWNGRADED_SUBSCRIPTION_CANCELLED
             row.tier = new_tier
-            row.tier_downgrade_reason = downgrade_reason
-            record_billing_event(
-                session,
-                user_id=row.external_id,
-                event_type=fired_event_type,
-                old_tier=old_tier,
-                new_tier=new_tier,
-                stripe_event_id=stripe_event_id,
-            )
+            row.tier_downgrade_reason = DOWNGRADE_SUBSCRIPTION_CANCELLED
 
+        record_billing_event(
+            session,
+            user_id=external_id,
+            event_type=fired_event_type,
+            old_tier=old_tier,
+            new_tier=new_tier,
+            stripe_event_id=stripe_event_id,
+        )
         await session.commit()
 
     logger.info(
@@ -408,5 +463,5 @@ async def stripe_webhook(request: Request) -> dict:
         old_tier=old_tier,
         new_tier=new_tier,
     )
-    send_tier_change_email(email, fired_event_type)
+    send_tier_change_email(email, fired_event_type, account_id=external_id)
     return {"received": True}

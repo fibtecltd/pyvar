@@ -253,8 +253,14 @@ AWS:        CELERY_BROKER_URL = sqs://
   users.tier_expires_at is in the future; with no expiry, or a past one, the account is
   "free". Read it through effective_tier() wherever a tier leaves the database (the key
   lookup and every session mint). Never grant "internal" or "enterprise" for education.
-- Education limits live in api/tiers.py like every tier's. A monthly breach is a 429; it
-  must never call downgrade_for_monthly_limit, which is Pro's.
+- Education limits live in api/tiers.py like every tier's. A monthly breach is a 429 (naming the cap, with
+  Retry-After) for education and Pro alike and never changes a tier.
+- A Pro account's tier changes in two ways only (docs/plan-pro-tier-stripe.md): checkout.session.completed
+  moves a free or education account to "pro", and customer.subscription.deleted (Stripe's own end of the
+  subscription) moves a "pro" account to "free". A monthly cap, a failed payment (invoice.payment_failed is sent
+  on every attempt, not after the last) and a paid invoice never do. Enterprise and internal accounts are never
+  changed by a Stripe event. Keep "Billing is not configured" a returned 503, not a raised one (a raised 5xx is a
+  Sentry error event).
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
   10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
   scripts/account_export.py, scripts/audit_cleanup.py). They must

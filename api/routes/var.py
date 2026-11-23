@@ -12,13 +12,11 @@ Reasoning:
 - The route enforces the user's simulation cap based on their JWT tier claim
   before dispatching — fail fast, before burning CPU.
 
-- Monthly simulation-count cap, Pro only (item 5 §8 follow-on): a second,
-  cumulative check via the SAME Redis-backed limiter api/middleware/
-  rate_limit.py uses, scoped to VaR specifically since VaRJob is the only
-  endpoint family with a per-user simulation-count record today — see
-  config.py's rate_limit_pro_monthly_simulations comment. Breaching it hard-
-  downgrades the account to Free (api/middleware/billing_lifecycle.py), the
-  same reaction as rate_limit.py's monthly request-count cap, not a 429.
+- Monthly simulation-count cap (Pro and education): a second, cumulative check via the SAME Redis-backed
+  limiter api/middleware/rate_limit.py uses, scoped to VaR specifically since VaRJob is the only endpoint
+  family with a per-user simulation-count record today — see config.py's rate_limit_pro_monthly_simulations
+  comment. Breaching it is a 429 that names the cap, the same reaction as rate_limit.py's monthly request-count
+  cap; the account's tier never changes.
 
 - Rate limiting (issue #146): POST /compute is covered by the SAME account-wide
   daily quota as every other compute endpoint, not a VaR-specific per-minute
@@ -86,11 +84,6 @@ from api.middleware.auth import (
     create_stream_token,
     decode_stream_payload,
     get_current_user,
-)
-from api.middleware.billing_lifecycle import (
-    DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
-    EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
-    downgrade_for_monthly_limit,
 )
 from api.middleware.rate_limit import enforce_compute_rate_limit
 from api.responses import OrjsonResponse
@@ -252,26 +245,13 @@ async def submit_var(
             sim_allowed = True
 
         if not sim_allowed:
-            if policy.monthly_breach == "refuse":
-                # No plan to move this account off (education): refuse, and change nothing about it.
-                rate_limit_module._raise_rate_limited(
-                    sim_item, user.user_id, "var-simulations-monthly"
-                )
-            await downgrade_for_monthly_limit(
-                user_id=user.user_id,
-                downgrade_reason=DOWNGRADE_MONTHLY_SIMULATION_LIMIT,
-                event_type=EVENT_DOWNGRADED_MONTHLY_SIMULATION_LIMIT,
-                detail=(
-                    f"Exceeded {policy.monthly_simulations:,} " "simulations this billing period."
-                ),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=(
-                    "Your Pro plan's monthly simulation limit has been "
-                    "reached. Your account has moved to the Free plan for "
-                    "the rest of this billing period; full Pro limits resume "
-                    "automatically at your next billing date."
+            # A monthly cap is a refusal that names the cap; the account's tier never changes.
+            rate_limit_module._raise_rate_limited(
+                sim_item,
+                user.user_id,
+                "var-simulations-monthly",
+                detail=rate_limit_module.monthly_cap_detail(
+                    policy.name, policy.monthly_simulations, "simulations"
                 ),
             )
 

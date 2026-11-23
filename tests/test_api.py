@@ -338,16 +338,18 @@ async def test_submit_var_returns_429_once_daily_quota_exhausted(app, free_token
     assert "Retry-After" in second.headers
 
 
-# ── Monthly simulation-count cap, Pro only (item 5 §8 follow-on) ────────────
+# ── Monthly simulation-count cap, Pro (docs/plan-pro-tier-stripe.md) ────────────
 
 
 @pytest.mark.asyncio
-async def test_submit_var_pro_monthly_simulation_cap_downgrades_and_raises_403(
+async def test_submit_var_pro_monthly_simulation_cap_is_a_429_that_names_the_cap(
     app, pro_token, valid_payload
 ):
     """valid_payload requests 10,000 simulations (under Pro's 100,000
     per-request cap either time) — two submissions push the cumulative
-    monthly total past a lowered 15,000 cap, on the second call only."""
+    monthly total past a lowered 15,000 cap, on the second call only. The
+    refusal names the cap and carries Retry-After; nothing is dispatched
+    for the refused call and the account's tier is not touched."""
     from api.middleware import rate_limit as rate_limit_module
 
     mock_task = MagicMock()
@@ -357,8 +359,7 @@ async def test_submit_var_pro_monthly_simulation_cap_downgrades_and_raises_403(
         patch.object(rate_limit_module.cfg, "rate_limit_pro_daily", 1000),
         patch.object(rate_limit_module.cfg, "rate_limit_pro_monthly_simulations", 15_000),
         patch_sessionmaker(FakeAsyncSession()),
-        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
-        patch("api.routes.var.downgrade_for_monthly_limit") as mock_downgrade,
+        patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task) as dispatch,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             first = await client.post(
@@ -369,19 +370,17 @@ async def test_submit_var_pro_monthly_simulation_cap_downgrades_and_raises_403(
             )
 
     assert first.status_code == 202
-    assert second.status_code == 403
-    mock_downgrade.assert_called_once()
-    call_kwargs = mock_downgrade.call_args.kwargs
-    assert call_kwargs["user_id"] == "pro-user"
-    assert call_kwargs["downgrade_reason"] == "monthly_simulation_limit_exceeded"
+    assert second.status_code == 429
+    assert "Pro plan allows 15,000 simulations in each 30-day window" in second.json()["detail"]
+    assert int(second.headers["Retry-After"]) > 0
+    assert dispatch.call_count == 1
 
 
 @pytest.mark.asyncio
 async def test_submit_var_free_tier_not_subject_to_monthly_simulation_cap(
     app, free_token, valid_payload
 ):
-    """Free has nowhere to downgrade to — the monthly simulation check must
-    not even run for it."""
+    """Free has no monthly cap — the Pro setting must not reach it."""
     mock_task = MagicMock()
     mock_task.id = "free-tier-task-uuid"
 
@@ -390,7 +389,6 @@ async def test_submit_var_free_tier_not_subject_to_monthly_simulation_cap(
         patch("api.routes.var.cfg.rate_limit_pro_monthly_simulations", 1),
         patch_sessionmaker(FakeAsyncSession()),
         patch("api.routes.var.compute_var_task.apply_async", return_value=mock_task),
-        patch("api.routes.var.downgrade_for_monthly_limit") as mock_downgrade,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -398,7 +396,6 @@ async def test_submit_var_free_tier_not_subject_to_monthly_simulation_cap(
             )
 
     assert resp.status_code == 202
-    mock_downgrade.assert_not_called()
 
 
 # ── ElastiCache result caching ────────────────────────────────────────────────

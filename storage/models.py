@@ -150,20 +150,11 @@ class User(Base):
     # one.
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
 
-    # Set only when tier == "free" AND the account was auto-downgraded by
-    # api/middleware/billing_lifecycle.py rather than starting free or
-    # cancelling voluntarily via Stripe's own Dashboard with no replacement
-    # subscription (0008_billing_events_downgrade — item 5 §8
-    # follow-on). One of "payment_failed", "subscription_cancelled",
-    # "monthly_request_limit_exceeded", "monthly_simulation_limit_exceeded".
-    # Cleared (set back to NULL) whenever tier flips away from "free" again
-    # (a fresh Checkout, or Stripe's webhook telling us a payment succeeded —
-    # see billing_lifecycle.py's own docstring for why ANY successful payment
-    # restores Pro access, not just a limit-exceeded downgrade specifically).
-    # Exists so the webhook's invoice.payment_succeeded handler can tell "this
-    # account should auto-restore to Pro since it's still an active,
-    # successfully-billed subscriber" apart from "this account has simply
-    # never subscribed" — both look identical as tier == "free" alone.
+    # Set when a Pro account was moved to "free" by the end of its Stripe subscription: "subscription_cancelled"
+    # (api/routes/billing.py). Cleared (NULL) when a fresh Checkout moves the account to "pro" again.
+    # Older rows may hold "payment_failed", "monthly_request_limit_exceeded" or "monthly_simulation_limit_exceeded",
+    # written by paths removed on 2026-11-21 (docs/plan-pro-tier-stripe.md): a failed payment and a monthly cap no
+    # longer change a tier. Nothing reads the old values.
     tier_downgrade_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     def __repr__(self) -> str:
@@ -269,8 +260,8 @@ class BillingEvent(Base):
 
     Supersedes "check CloudWatch" as the only way to answer "why did this
     account change tier": every site that mutates User.tier (the Stripe
-    webhook's upgrade/downgrade handling, and the two monthly-limit
-    downgrade paths in api/middleware/billing_lifecycle.py) writes one row
+    webhook's upgrade and subscription-ended handling, and the education
+    grant routes) writes one row
     here in the SAME transaction as the tier mutation. Like VaRJob (CLAUDE.md
     §3.3), this is an audit log — rows are never updated after being written,
     and are kept six years, then deleted by the clean-up command
@@ -291,23 +282,23 @@ class BillingEvent(Base):
     )
     user_id: Mapped[str] = mapped_column(String(128), nullable=False)
 
-    # One of: "upgraded", "downgraded_payment_failed",
-    # "downgraded_subscription_cancelled", "downgraded_monthly_request_limit",
-    # "downgraded_monthly_simulation_limit", "restored_after_payment_succeeded"
+    # Written now: "upgraded", "downgraded_subscription_cancelled", the education_* types and "account_erased".
+    # Older rows may also hold "downgraded_payment_failed", "downgraded_monthly_request_limit",
+    # "downgraded_monthly_simulation_limit" or "restored_after_payment_succeeded" (paths removed on 2026-11-21)
     # — see api/middleware/billing_lifecycle.py's own constants (not a DB
     # enum: new event types are just a new string, no migration needed).
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     old_tier: Mapped[str] = mapped_column(String(16), nullable=False)
     new_tier: Mapped[str] = mapped_column(String(16), nullable=False)
 
-    # Human-readable detail (e.g. "Exceeded 5,000 requests this billing
-    # period."). Free text, not structured — this table is for answering
+    # Human-readable detail (a short code such as "code=erase"; older rows may hold text such as "Exceeded 5,000
+    # requests this billing period."). Free text, not structured — this table is for answering
     # "what happened and why" on lookup, not for further querying on reason.
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Stripe's own event["id"], for webhook-triggered rows only (NULL for the
-    # two monthly-limit downgrade paths, which have no Stripe event behind
-    # them) — both a trace-back-to-Stripe-Dashboard convenience and the
+    # education rows and the older monthly-limit rows, which have no Stripe
+    # event behind them) — both a trace-back-to-Stripe-Dashboard convenience and the
     # idempotency key api/routes/billing.py's webhook checks before writing,
     # so a Stripe redelivery of an already-processed event doesn't duplicate
     # a row.

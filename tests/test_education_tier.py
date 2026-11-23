@@ -4,7 +4,7 @@ Reasoning:
 - docs/plan-education-tier.md sets the limits (100 requests a day, 2,000 a month, 20 a minute, 100,000
   simulations a request, 1,000,000 VaR simulations a month, a shared pool of 5,000 education VaR jobs a month) and
   two rules that are easy to break quietly: a monthly breach is a 429 that changes nothing about the account (Pro's
-  breach downgrades it), and an education account whose grant has lapsed is a free account everywhere a tier
+  is the same since 2026-11-21), and an education account whose grant has lapsed is a free account everywhere a tier
   leaves the database. Both are pinned here against the real limiter (in-memory storage, from tests/conftest.py)
   and the real routes.
 - The numbers of other tiers are pinned elsewhere (tests/test_tier_limits_behaviour.py); this file adds the
@@ -14,7 +14,7 @@ Reasoning:
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -103,18 +103,15 @@ def test_the_education_row_is_the_plans_numbers() -> None:
     row = policy_for("education")
     assert (row.max_simulations, row.daily_requests, row.monthly_requests) == (100_000, 100, 2_000)
     assert (row.monthly_simulations, row.burst_per_minute) == (1_000_000, 20)
-    assert row.monthly_breach == "refuse"
     assert (row.assistant_group, row.assistant_daily) == ("free", cfg.assistant_quota_free_daily)
 
 
-def test_only_pro_downgrades_on_a_monthly_breach() -> None:
-    assert {name: policy_for(name).monthly_breach for name in tiers.KNOWN_TIERS} == {
-        "free": "downgrade",
-        "pro": "downgrade",
-        "enterprise": "downgrade",
-        "internal": "downgrade",
-        "trial": "downgrade",
-        "education": "refuse",
+def test_no_tier_has_a_downgrade_on_a_monthly_breach() -> None:
+    """A monthly breach is a refusal for every tier that has a cap; the policy row has no downgrade option."""
+    assert not hasattr(policy_for("pro"), "monthly_breach")
+    assert {n for n in tiers.KNOWN_TIERS if policy_for(n).monthly_requests is not None} == {
+        "pro",
+        "education",
     }
     assert [n for n in tiers.KNOWN_TIERS if policy_for(n).burst_per_minute is not None] == [
         "education"
@@ -155,33 +152,27 @@ async def test_the_burst_limit_is_a_429_and_does_not_use_up_the_days_quota() -> 
     assert remaining == 98  # two requests counted; the refused burst was not
 
 
-async def test_a_monthly_breach_is_a_429_and_never_calls_the_pro_downgrade() -> None:
-    downgrade = AsyncMock()
+async def test_a_monthly_breach_is_a_429_that_names_the_cap() -> None:
     with (
         patch.object(cfg, "rate_limit_education_monthly_requests", 2),
         patch.object(cfg, "rate_limit_education_burst_per_minute", 50),
-        patch.object(rate_limit_module, "downgrade_for_monthly_limit", downgrade),
     ):
         await call(education_user())
         await call(education_user())
         with pytest.raises(HTTPException) as refused:
             await call(education_user())
-    assert refused.value.status_code == 429  # Pro's breach is a 403 with the "moved to Free" text
+    assert refused.value.status_code == 429
+    assert "Education plan allows 2 requests in each 30-day window" in str(refused.value.detail)
     assert "downgrad" not in str(refused.value.detail).lower()
-    downgrade.assert_not_called()
 
 
-async def test_a_pro_monthly_breach_still_downgrades() -> None:
-    downgrade = AsyncMock()
-    with (
-        patch.object(cfg, "rate_limit_pro_monthly_requests", 1),
-        patch.object(rate_limit_module, "downgrade_for_monthly_limit", downgrade),
-    ):
+async def test_a_pro_monthly_breach_is_a_429_too() -> None:
+    with patch.object(cfg, "rate_limit_pro_monthly_requests", 1):
         await call(TokenPayload(sub="pro-1", tier="pro"))
         with pytest.raises(HTTPException) as refused:
             await call(TokenPayload(sub="pro-1", tier="pro"))
-    assert refused.value.status_code == 403
-    downgrade.assert_awaited_once()
+    assert refused.value.status_code == 429
+    assert "Pro plan allows 1 requests in each 30-day window" in str(refused.value.detail)
 
 
 # ── the pool of education VaR jobs ────────────────────────────────────────────────────────────────────────
@@ -310,16 +301,14 @@ async def test_a_var_job_of_another_tier_never_touches_the_pool(payload) -> None
     assert response.status_code == 202
 
 
-async def test_the_monthly_simulation_breach_is_a_429_and_never_a_downgrade(payload) -> None:
+async def test_the_monthly_simulation_breach_is_a_429_that_names_the_cap(payload) -> None:
     token = create_access_token("edu-sims", "education")
-    downgrade = AsyncMock()
-    with (
-        patch.object(cfg, "rate_limit_education_monthly_simulations", 120_000),
-        patch("api.routes.var.downgrade_for_monthly_limit", downgrade),
-    ):
+    with patch.object(cfg, "rate_limit_education_monthly_simulations", 120_000):
         first, _ = await submit(payload, 100_000, token)
         second, apply = await submit(payload, 100_000, token)  # 200,000 > 120,000
     assert first.status_code == 202
     assert second.status_code == 429
+    assert (
+        "Education plan allows 120,000 simulations in each 30-day window" in second.json()["detail"]
+    )
     apply.assert_not_called()
-    downgrade.assert_not_called()

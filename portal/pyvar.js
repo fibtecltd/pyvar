@@ -361,6 +361,46 @@ async function _keysApi(session, method, path, body) {
   return { ok: res.ok, status: res.status, data };
 }
 
+async function _billingApi(session, method, path) {
+  const res = await fetch(`${API_BASE}/api/v1/billing${path}`, {
+    method,
+    headers: { 'Authorization': `Bearer ${session}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+// The plan block: Upgrade for a free or education account, Manage billing for a Pro one (Stripe's hosted portal:
+// card, invoices, cancel at the end of the paid period). Nothing for enterprise or internal accounts.
+function _planBlock(session, tier) {
+  const errorEl = _h('div', { class: 'dash-body dash-error' });
+  const go = async (btn, path, urlField) => {
+    btn.disabled = true;
+    errorEl.textContent = '';
+    const r = await _billingApi(session, 'POST', path);
+    if (r.ok && r.data[urlField]) { window.location.href = r.data[urlField]; return; }
+    btn.disabled = false;
+    errorEl.textContent = r.status === 503
+      ? 'Billing is not available yet. Please try again later.'
+      : (r.data.detail || 'Something went wrong. Try again shortly.');
+  };
+  if (tier === 'pro') {
+    const manage = _h('button', { class: 'btn-green', onclick: () => go(manage, '/portal', 'portal_url') }, 'Manage billing');
+    return [
+      _h('div', { class: 'dash-body' }, 'Update your card, see invoices, or cancel. If you cancel, Pro continues to the end of the period you have paid for, then the account returns to Free; your keys stay.'),
+      manage, errorEl,
+    ];
+  }
+  if (tier === 'free' || tier === 'education') {
+    const upgrade = _h('button', { class: 'btn-green', onclick: () => go(upgrade, '/checkout', 'checkout_url') }, 'Upgrade to Pro');
+    return [
+      _h('div', { class: 'dash-body' }, 'Pro: £50 per account per month (VAT included for UK customers), billed monthly through Stripe. 100,000 simulations per request, 500 requests a day, 5,000 requests and 2,000,000 simulations a month, up to 5 active keys. Cancel any time.'),
+      upgrade, errorEl,
+    ];
+  }
+  return [];
+}
+
 function _signInAgain(card, message) {
   card.replaceChildren(
     _h('div', { class: 'dash-title' }, 'Sign in to manage your API keys'),
@@ -373,11 +413,35 @@ async function renderDashboard() {
   const card = document.getElementById('dashCard');
   if (!card) return;
 
-  const linkToken = new URLSearchParams(window.location.search).get('token');
+  const params = new URLSearchParams(window.location.search);
+  const linkToken = params.get('token');
+  const checkoutSession = params.get('checkout_session_id');
+  let notice = null;
+  let failTitle = 'Sign-in failed';
   let session = null;
   let tier = 'free';
   try {
-    if (linkToken) {
+    if (checkoutSession) {
+      // Back from Stripe's hosted Checkout. The page cannot send an Authorization header, so the session id
+      // (checked against Stripe by the API) is the credential, and the API answers with a fresh token. The
+      // webhook that moves the account to Pro can land a moment after the redirect: ask a few times.
+      failTitle = 'Payment not confirmed';
+      let data = {};
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await fetch(`${API_BASE}/api/v1/billing/checkout/complete?session_id=${encodeURIComponent(checkoutSession)}`);
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'We could not confirm the payment yet.');
+        if (data.tier === 'pro') break;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      session = data.access_token;
+      tier = data.tier;
+      localStorage.setItem('pyvar_jwt', session);
+      window.history.replaceState(null, '', 'dashboard.html');
+      notice = tier === 'pro'
+        ? 'Thank you. Your account is now on Pro.'
+        : 'Payment received. Your plan updates within a minute; reload this page to see it.';
+    } else if (linkToken) {
       const res = await fetch(`${API_BASE}/api/v1/auth/verify?token=${encodeURIComponent(linkToken)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'The link may be invalid or expired.');
@@ -401,18 +465,22 @@ async function renderDashboard() {
     // from it -- escape before reinterpreting as HTML, same rule as the comment
     // above _escapeHtml().
     const safeMessage = _escapeHtml((e && e.message) || 'The link may be invalid or expired.');
-    card.innerHTML = '<div class="dash-title">Sign-in failed</div>'
+    card.innerHTML = `<div class="dash-title">${failTitle}</div>`
       + `<div class="dash-body dash-error">${safeMessage} <a href="/#get-api-key">Request a new link</a>.</div>`;
     return;
   }
-  await renderKeyManager(card, session, tier);
+  if (params.get('checkout_cancelled') && !notice) {
+    notice = 'Checkout cancelled. You have not been charged.';
+    window.history.replaceState(null, '', 'dashboard.html');
+  }
+  await renderKeyManager(card, session, tier, null, notice);
 }
 
 function _fmtDate(iso) {
   return iso ? new Date(iso).toISOString().slice(0, 10) : '—';
 }
 
-async function renderKeyManager(card, session, tier, freshKey) {
+async function renderKeyManager(card, session, tier, freshKey, notice) {
   card.className = 'dash-card wide';
   const listed = await _keysApi(session, 'GET', '');
   if (listed.status === 401) { _signInAgain(card, 'Your session has ended.'); return; }
@@ -443,6 +511,8 @@ async function renderKeyManager(card, session, tier, freshKey) {
     _h('div', { class: 'dash-body' }, `${tier.charAt(0).toUpperCase() + tier.slice(1)} tier. A key lasts a year and works until you revoke it. `
       + 'Treat it like a password: set it as PYVAR_API_KEY, never commit it.'),
   ];
+  if (notice) parts.push(_h('div', { class: 'dash-body dash-notice', role: 'status' }, notice));
+  parts.push(..._planBlock(session, tier));
 
   if (created) {
     const keyBox = _h('div', { class: 'dash-token' }, created.key);

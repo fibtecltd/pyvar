@@ -17,8 +17,10 @@ Reasoning:
 - "education" is a finite grant (docs/plan-education-tier.md): users.tier says "education" only while
   users.tier_expires_at is in the future. `effective_tier()` below is the ONE place that turns the stored pair into
   a tier, and every site where a tier leaves the database (the API-key lookup and the three session mints) calls
-  it. Its monthly limits are refusals (HTTP 429), never the Pro downgrade (`monthly_breach`), and it adds a
-  per-minute burst cap (`burst_per_minute`).
+  it. It adds a per-minute burst cap (`burst_per_minute`).
+- A monthly limit (Pro and education have one) is always a refusal: HTTP 429 that names the cap and says when it
+  resets. It never changes the account's tier (docs/plan-pro-tier-stripe.md); only the end of a Stripe subscription
+  moves a Pro account to Free.
 - "trial" is the odd one out among the rows: the no-sign-up trial lane's calls carry it (api/routes/trial.py); no
   account ever has it.
 - What a tier is NOT: the admin routes check the name "internal" (api/routes/internal.py) and the billing code
@@ -58,9 +60,9 @@ class TierPolicy:
     max_simulations: int
     # Account-wide compute requests per day, over every /api/v1 compute endpoint. None: exempt from the quota.
     daily_requests: int | None
-    # Compute requests per billing month; breaching it moves a Pro account to Free (billing_lifecycle.py).
+    # Compute requests per 30-day window; breaching it is a 429 until the window resets (the tier never changes).
     monthly_requests: int | None
-    # VaR simulations per billing month (VaR only); same consequence.
+    # VaR simulations per 30-day window (VaR only); same consequence.
     monthly_simulations: int | None
     # The assistant's view of the tier: "free", "pro" or "enterprise" (the service tier counts as enterprise),
     # used as a metrics label, and the assistant questions allowed per day.
@@ -68,9 +70,6 @@ class TierPolicy:
     assistant_daily: int
     # Compute requests per minute per account (all /api/v1 compute endpoints); None: no burst cap.
     burst_per_minute: int | None = None
-    # What breaching a monthly limit does: "downgrade" (Pro: moves to Free, billing_lifecycle.py) or "refuse"
-    # (a 429 and nothing else; the education tier has no plan to be moved off).
-    monthly_breach: str = "downgrade"
 
 
 def _policies() -> dict[str, TierPolicy]:
@@ -116,7 +115,7 @@ def _policies() -> dict[str, TierPolicy]:
             assistant_daily=cfg.assistant_quota_enterprise_daily,
         ),
         # The education tier (docs/plan-education-tier.md): a finite, hand-given grant. Limits are starting values
-        # (config.py); a monthly breach is a refusal, never a downgrade; no extra assistant allowance.
+        # (config.py); no extra assistant allowance.
         "education": TierPolicy(
             name="education",
             max_simulations=100_000,
@@ -126,7 +125,6 @@ def _policies() -> dict[str, TierPolicy]:
             assistant_group="free",
             assistant_daily=cfg.assistant_quota_free_daily,
             burst_per_minute=cfg.rate_limit_education_burst_per_minute,
-            monthly_breach="refuse",
         ),
         # The no-sign-up trial lane (docs/plan-trial-lane-throttle.md). It is not an account tier: no users or
         # api_keys row has it, and a ticket never carries it as a claim. The row exists so the lane's per-ticket
