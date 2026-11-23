@@ -128,14 +128,13 @@ def test_domain_skill_reads_no_credential_from_the_machine(plugin: Path) -> None
 # "Plugin text adds a server the plugin does not declare. Text in your plugin tells Claude or the user
 # to add an MCP server that the plugin does not declare, so its tools could not be reviewed. If it runs
 # on the user's machine, remove the step: only a Verified organization's plugin can include a local
-# server." A domain plugin may tell the reader to install itself, and nothing else.
-FORBIDDEN_SERVER_TEXT = ("pyvar-mcp", "mcp add", "MCP server", "claude mcp")
-_PLUGIN_INSTALL = re.compile(r"/plugin install\s+(\S+)")
+# server." A domain plugin's text names no server and prints no `/plugin install` line at all (its README
+# points to the Discover tab), so nothing in it can be read as an instruction to add one.
+FORBIDDEN_SERVER_TEXT = ("pyvar-mcp", "mcp add", "MCP server", "claude mcp", "/plugin install")
 
 
 @pytest.mark.parametrize("plugin", DOMAIN_PLUGINS, ids=[p.name for p in DOMAIN_PLUGINS])
 def test_domain_plugin_text_adds_no_server(plugin: Path) -> None:
-    own = f"{_manifest(plugin)['name']}@pyvar-marketplace"
     files = [
         plugin / "SKILL.md",
         plugin / "README.md",
@@ -145,8 +144,6 @@ def test_domain_plugin_text_adds_no_server(plugin: Path) -> None:
         text = path.read_text(encoding="utf-8")
         for forbidden in FORBIDDEN_SERVER_TEXT:
             assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
-        for target in _PLUGIN_INSTALL.findall(text):
-            assert target == own, f"{path.relative_to(REPO)} tells the reader to install {target!r}"
 
 
 # The directory refuses a version whose skill, command, agent or output style has a frontmatter key

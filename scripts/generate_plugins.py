@@ -139,13 +139,7 @@ README_TEMPLATE = """\
 
 {what_it_is}
 
-## Install
-
-```
-/plugin marketplace add fibtecltd/pyvar
-/plugin install {name}@pyvar-marketplace
-```
-{key_section}
+{install_section}{key_section}
 ## Links
 
 - Documentation: {documentation}
@@ -156,6 +150,26 @@ README_TEMPLATE = """\
 
 Licence: Apache-2.0. pyvar is not independently validated for regulatory use; its output is
 not a substitute for your institution's own model validation.
+"""
+
+# The architecture skills keep the plain install block. A domain skill's README does not print a
+# `/plugin install` line: the directory refuses text that tells the reader to add a server the plugin
+# does not declare (2026-11-23), and a line of that shape is easy to misread as one, so it points to
+# the Discover tab instead.
+ARCH_INSTALL = """## Install
+
+```
+/plugin marketplace add fibtecltd/pyvar
+/plugin install {name}@pyvar-marketplace
+```
+"""
+DOMAIN_INSTALL = """## Install
+
+Add the pyvar marketplace, then open the `/plugin` Discover tab and install **{name}**:
+
+```
+/plugin marketplace add fibtecltd/pyvar
+```
 """
 
 DOMAIN_WHAT = (
@@ -198,6 +212,7 @@ def readme_for(plugin_name: str, description: str, is_arch: bool) -> str:
         name=plugin_name,
         description=description.rstrip("."),
         what_it_is=ARCH_WHAT if is_arch else DOMAIN_WHAT,
+        install_section=(ARCH_INSTALL if is_arch else DOMAIN_INSTALL).format(name=plugin_name),
         key_section="" if is_arch else KEY_SECTION,
         documentation=LISTING_FIELDS["documentationUrl"],
         repository="https://github.com/fibtecltd/pyvar",

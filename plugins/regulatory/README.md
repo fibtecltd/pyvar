@@ -6,9 +6,10 @@ A Claude skill: it teaches Claude which of pyvar's functions fits a question, wh
 
 ## Install
 
+Add the pyvar marketplace, then open the `/plugin` Discover tab and install **pyvar-regulatory**:
+
 ```
 /plugin marketplace add fibtecltd/pyvar
-/plugin install pyvar-regulatory@pyvar-marketplace
 ```
 
 ## The API key

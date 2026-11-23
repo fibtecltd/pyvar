@@ -6,9 +6,10 @@ A Claude skill: it teaches Claude which of pyvar's functions fits a question, wh
 
 ## Install
 
+Add the pyvar marketplace, then open the `/plugin` Discover tab and install **pyvar-market-risk**:
+
 ```
 /plugin marketplace add fibtecltd/pyvar
-/plugin install pyvar-market-risk@pyvar-marketplace
 ```
 
 ## The API key
