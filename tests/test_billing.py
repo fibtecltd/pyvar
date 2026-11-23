@@ -162,6 +162,11 @@ async def test_checkout_creates_stripe_customer_when_none_exists(app, monkeypatc
     assert create_kwargs["customer"] == "cus_new123"
     assert create_kwargs["mode"] == "subscription"
     assert create_kwargs["line_items"] == [{"price": "price_pro_123", "quantity": 1}]
+    # The Stripe account is shared with other Fibtec services: our customer is marked as pyvar's.
+    assert fake_stripe.Customer.create.call_args.kwargs["metadata"] == {
+        "external_id": "ext-1",
+        "service": "pyvar",
+    }
 
 
 @pytest.mark.asyncio
@@ -194,6 +199,43 @@ async def test_checkout_reuses_existing_stripe_customer(app, monkeypatch):
     assert session.committed is False  # nothing needed writing
     create_kwargs = fake_stripe.checkout.Session.create.call_args.kwargs
     assert create_kwargs["customer"] == "cus_existing"
+
+
+@pytest.mark.asyncio
+async def test_checkout_session_is_priced_in_pounds_and_marked_as_pyvar(app, monkeypatch):
+    """The Checkout session switches Adaptive Pricing off for itself and carries the service marker.
+
+    The sandbox's Adaptive Pricing is on (an account-wide setting shared with other Fibtec services) and
+    showed a EUR price with a conversion fee; the Terms say the plan is billed in pounds. The marker is on
+    the session, on the subscription it creates, and on the customer, so the other services' webhooks can
+    tell pyvar's events from their own.
+    """
+    configure_billing(monkeypatch)
+    user_row = User(
+        external_id="ext-3", email="gbp@example.com", tier="free", stripe_customer_id="cus_gbp"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.create.return_value = MagicMock(
+        url="https://checkout.stripe.com/session/gbp"
+    )
+
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id="ext-3")
+            )
+
+    assert resp.status_code == 200
+    create_kwargs = fake_stripe.checkout.Session.create.call_args.kwargs
+    assert create_kwargs["adaptive_pricing"] == {"enabled": False}
+    assert create_kwargs["metadata"] == {"service": "pyvar"}
+    assert create_kwargs["subscription_data"] == {"metadata": {"service": "pyvar"}}
+    assert billing_module.STRIPE_SERVICE == "pyvar"
 
 
 @pytest.mark.asyncio

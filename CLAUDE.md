@@ -261,6 +261,11 @@ AWS:        CELERY_BROKER_URL = sqs://
   on every attempt, not after the last) and a paid invoice never do. Enterprise and internal accounts are never
   changed by a Stripe event. Keep "Billing is not configured" a returned 503, not a raised one (a raised 5xx is a
   Sentry error event).
+- The Stripe account is SHARED with other Fibtec services (etlgen, TenGrade, DocuGen) and sends every endpoint every
+  event. Every object pyvar creates (customer, Checkout session, subscription) carries metadata service=pyvar
+  (billing.STRIPE_SERVICE), and the Checkout session sets adaptive_pricing[enabled]=false: the price is GBP 50.00 and
+  the account-wide Adaptive Pricing would show EUR with a fee. Never run `stripe trigger` against the shared account
+  (it fires every service's endpoint); resend one event to our endpoint instead.
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
   10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
   scripts/account_export.py, scripts/audit_cleanup.py). They must

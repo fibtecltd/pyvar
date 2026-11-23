@@ -107,6 +107,12 @@ _HANDLED_EVENTS = {_UPGRADE_EVENT, _ENDED_EVENT}
 # Tiers a completed checkout may upgrade. Enterprise and internal are custom or service plans, never Pro.
 _UPGRADABLE_TIERS = {"free", "education"}
 NOT_CONFIGURED_DETAIL = "Billing is not configured on this deployment."
+# The Stripe account is SHARED with other Fibtec services (etlgen, TenGrade, DocuGen), and Stripe
+# sends every endpoint every event. Every object pyvar creates carries metadata service=pyvar, so the
+# others can tell ours from theirs (TenGrade's webhook ignores anything without its own marker).
+# pyvar's own webhook does not read it: it finds the user by Stripe customer id, so another service's
+# event is an unknown customer and changes nothing.
+STRIPE_SERVICE = "pyvar"
 
 
 def _stripe_client() -> Any:
@@ -245,7 +251,8 @@ async def create_checkout(
 
         if row.stripe_customer_id is None:
             customer = stripe.Customer.create(
-                email=row.email, metadata={"external_id": user.user_id}
+                email=row.email,
+                metadata={"external_id": user.user_id, "service": STRIPE_SERVICE},
             )
             row.stripe_customer_id = customer.id
             await session.commit()
@@ -257,6 +264,15 @@ async def create_checkout(
         client_reference_id=user.user_id,
         mode="subscription",
         line_items=[{"price": cfg.stripe_price_id_pro, "quantity": 1}],
+        # The price is GBP 50.00 and the Terms say it is billed in pounds. The account's Adaptive
+        # Pricing is on (a setting shared with the other services), which would show a visitor outside
+        # the UK a EUR price with a conversion fee: switch it off for this session only, so the shared
+        # setting stays as it is.
+        adaptive_pricing={"enabled": False},
+        # The session's events (checkout.session.completed) and the subscription's (customer.
+        # subscription.*, and the invoices' subscription details) carry the marker.
+        metadata={"service": STRIPE_SERVICE},
+        subscription_data={"metadata": {"service": STRIPE_SERVICE}},
         success_url=(
             f"{cfg.public_base_url}/dashboard.html" "?checkout_session_id={CHECKOUT_SESSION_ID}"
         ),
