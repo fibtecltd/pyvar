@@ -101,11 +101,19 @@ def test_frontmatter_is_valid_and_matches_the_plugin(skill: str) -> None:
 def test_domain_skill_tells_claude_how_to_run_a_function(skill: str) -> None:
     text = (REPO / ".claude" / "skills" / skill / "SKILL.md").read_text()
     assert "API key" in _frontmatter(skill)["description"]
-    for needle in ("pyvar-mcp", f"{sync_skills.SIGNUP_URL}", "pyvar-client", "429", "pyvar_"):
+    for needle in (
+        "call_pyvar_function",
+        "list_pyvar_functions",
+        f"{sync_skills.SIGNUP_URL}",
+        "pyvar-client",
+        "429",
+        "pyvar_",
+    ):
         assert needle in text, f"{skill}: setup section lost {needle!r}"
     # The skill never reads the key from the user's machine: Anthropic's directory holds a plugin
-    # that does (rule "Update adds credential forward"). The key reaches the API through the
-    # pyvar-mcp plugin's own sensitive userConfig option, or the user runs the request themselves.
+    # that does (rule "Update adds credential forward"). It uses the pyvar tools only if the session
+    # already has them, and otherwise the user runs the request themselves with their own key. It
+    # names no server to install: see test_plugin_directory_policy.py.
     for forbidden in ("PYVAR_API_KEY", "os.environ", "$PYVAR", "in the environment"):
         assert (
             forbidden not in text
