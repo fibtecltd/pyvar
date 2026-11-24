@@ -32,6 +32,11 @@
 #   change  changes data and has no dry run: refused without --apply
 #   local   touches no AWS and no API (a ledger, a decode); no env needed; refuses --apply
 #
+# OPS_PROD_FLAG_AT: where the wrapper puts the --yes-prod it adds for prod. "end" (the default) suits a script whose
+# parser takes it after any subcommand; "front" suits one whose --yes-prod belongs to the top-level parser, before
+# the subcommand (scripts/billing_checkout_allow.py). --yes is always put last: it belongs to the subcommand.
+# tests/test_ops_wrappers.py feeds what each wrapper produces to the script's own parser.
+#
 # Test hooks (see tests/test_ops_wrappers.py): PYVAR_OPS_PYTHON names the Python to run;
 # PYVAR_OPS_CONFIRM_FILE names a file to read the confirmation from instead of /dev/tty.
 
@@ -173,7 +178,13 @@ ops_main() {
 
   final=(${passed[@]+"${passed[@]}"})
   [ "$mode" = dryrun ] && [ "$apply" = yes ] && final+=(--yes)
-  [ "$mode" != local ] && [ "$env" = prod ] && final+=(--yes-prod)
+  if [ "$mode" != local ] && [ "$env" = prod ]; then
+    if [ "${OPS_PROD_FLAG_AT:-end}" = front ]; then
+      final=(--yes-prod ${final[@]+"${final[@]}"}) # a top-level option of a script with subcommands
+    else
+      final+=(--yes-prod)
+    fi
+  fi
 
   if [ "$mode" != local ] && ops_needs_aws ${given[@]+"${given[@]}"}; then
     ops_check_aws "$region"

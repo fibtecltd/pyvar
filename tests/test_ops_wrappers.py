@@ -12,11 +12,13 @@ Reasoning:
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -122,6 +124,7 @@ def test_there_is_a_wrapper_for_each_operator_script() -> None:
         "account-erase.sh",
         "account-export.sh",
         "audit-cleanup.sh",
+        "billing-checkout-allow.sh",
         "education-grant.sh",
         "mint-api-key.sh",
         "mint-internal-token.sh",
@@ -140,6 +143,127 @@ def test_every_file_is_executable_and_parses(path: Path) -> None:
 def test_every_wrapper_names_a_script_that_exists(path: Path) -> None:
     line = next(x for x in path.read_text().splitlines() if x.startswith("OPS_SCRIPT="))
     assert (SCRIPTS_DIR / line.split("=", 1)[1].strip('"')).is_file()
+
+
+# ── what a wrapper hands over must be what the script's own parser accepts ──────
+# The stub Python in the other tests accepts any arguments, so on its own it cannot tell whether a flag the wrapper
+# adds (--yes, --yes-prod) is put where the real script takes it. Each case here runs a wrapper for prod, takes the
+# arguments it produced and gives them to the script's real build_parser().
+
+PARSER_CASES: list[tuple[str, str, list[str], dict[str, Any]]] = [
+    # wrapper, script (module), what the person types, what the script's parser must then report
+    (
+        "education-grant.sh",
+        "education_grant",
+        ["grant", "--env", "prod", "--email", EMAIL, "--months", "6", "--cohort", "c", "--apply"],
+        {"yes_prod": True},
+    ),
+    (
+        "education-grant.sh",
+        "education_grant",
+        ["tidy", "--env", "prod", "--apply"],
+        {"yes_prod": True, "yes": True},
+    ),
+    (
+        "education-grant.sh",
+        "education_grant",
+        ["suspend-all", "--env", "prod", "--yes-all", "--apply"],
+        {"yes_prod": True, "yes_all": True},
+    ),
+    ("education-grant.sh", "education_grant", ["list", "--env", "dev"], {"yes_prod": False}),
+    (
+        "account-erase.sh",
+        "account_erase",
+        ["--env", "prod", "--email", EMAIL, "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "account-export.sh",
+        "account_export",
+        ["--env", "prod", "--email", EMAIL, "--out", "x.json"],
+        {"yes_prod": True},
+    ),
+    (
+        "audit-cleanup.sh",
+        "audit_cleanup",
+        ["--env", "prod", "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "mint-api-key.sh",
+        "mint_api_key",
+        ["--env", "prod", "--account-id", "acct-001", "--apply"],
+        {"yes_prod": True},
+    ),
+    (
+        "revoke-api-key.sh",
+        "revoke_api_key",
+        ["revoke", "--env", "prod", "--account-id", "acct-001", "--id", "k1", "--apply"],
+        {"yes_prod": True},
+    ),
+    (
+        "revoke-api-key.sh",
+        "revoke_api_key",
+        ["list", "--env", "dev", "--account-id", "acct-001"],
+        {"yes_prod": False},
+    ),
+    (
+        "mint-internal-token.sh",
+        "mint_internal_token",
+        ["--env", "prod", "--apply"],
+        {"yes_prod": True},
+    ),
+    ("revoke-internal-token.sh", "revoke_internal_token", ["list"], {}),
+    (
+        "billing-checkout-allow.sh",
+        "billing_checkout_allow",
+        ["--env", "prod", "allow", "--email", EMAIL, "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "billing-checkout-allow.sh",
+        "billing_checkout_allow",
+        ["--env", "prod", "clear", "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "billing-checkout-allow.sh",
+        "billing_checkout_allow",
+        ["--env", "prod", "list"],
+        {"yes_prod": True},
+    ),
+]
+
+
+def _script_parser(script: str) -> Any:
+    spec = importlib.util.spec_from_file_location(
+        f"ops_real_{script}", SCRIPTS_DIR / f"{script}.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.build_parser()
+
+
+@pytest.mark.parametrize(
+    ("wrapper", "script", "typed", "expected"),
+    PARSER_CASES,
+    ids=[
+        f"{case[0]}-{'-'.join(a for a in case[2] if not a.startswith('--'))[:24]}"
+        for case in PARSER_CASES
+    ],
+)
+def test_what_a_wrapper_hands_over_is_accepted_by_the_scripts_own_parser(
+    run, capsys, wrapper: str, script: str, typed: list[str], expected: dict[str, Any]
+) -> None:
+    out = run(wrapper, *typed, confirm="prod")
+    assert out.code == 0, out.stderr
+    try:
+        parsed = _script_parser(script).parse_args(_flags(out))
+    except SystemExit:
+        pytest.fail(f"{script}.py refused {_flags(out)}: {capsys.readouterr().err.strip()[-200:]}")
+    for name, value in expected.items():
+        assert getattr(parsed, name) is value, (name, _flags(out))
 
 
 # ── the guards every wrapper shares ─────────────────────────────────────────────
@@ -331,3 +455,39 @@ def test_the_local_ledger_commands_need_no_aws_and_no_environment(run) -> None:
     assert _flags(out) == ["revoke", "--sub", "load-test"]
     assert run("revoke-internal-token.sh", "list", "--env", "prod").aws_calls == []
     assert run("revoke-internal-token.sh", "list", "--apply").code == 2
+
+
+def test_the_billing_wrapper_puts_yes_prod_before_the_subcommand_and_yes_after_it(run) -> None:
+    # In billing_checkout_allow.py --env and --yes-prod belong to the parser before the subcommand and --yes to the
+    # subcommand, so the wrapper must not simply append both.
+    out = run(
+        "billing-checkout-allow.sh",
+        "--env",
+        "prod",
+        "allow",
+        "--email",
+        EMAIL,
+        "--apply",
+        confirm="prod",
+    )
+    assert _flags(out) == ["--yes-prod", "--env", "prod", "allow", "--email", EMAIL, "--yes"]
+    assert EMAIL not in out.stderr and "--email <masked>" in out.stderr
+
+
+def test_the_billing_wrapper_reads_for_list_and_dry_runs_the_rest_without_apply(run) -> None:
+    assert _flags(run("billing-checkout-allow.sh", "--env", "dev", "list")) == [
+        "--env",
+        "dev",
+        "list",
+    ]
+    for action in (["allow", "--email", EMAIL], ["remove", "--email", EMAIL], ["clear"]):
+        dry = run("billing-checkout-allow.sh", "--env", "dev", *action)
+        assert dry.code == 0 and "--yes" not in _flags(dry)  # the script's own dry run
+    assert run("billing-checkout-allow.sh", "--env", "dev", "list", "--apply").code == 2
+
+
+def test_the_billing_wrapper_asks_before_clearing_the_allow_list(run) -> None:
+    refused = run("billing-checkout-allow.sh", "--env", "dev", "clear", "--apply", confirm="no")
+    assert refused.code == 2 and refused.python_args is None
+    done = run("billing-checkout-allow.sh", "--env", "dev", "clear", "--apply", confirm="dev")
+    assert _flags(done) == ["--env", "dev", "clear", "--yes"]
