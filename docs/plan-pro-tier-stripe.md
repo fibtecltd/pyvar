@@ -136,7 +136,9 @@ The check of this fix on dev is `docs/prompts/agent-stripe-pro-verify-gbp.txt`: 
 
 **Why `customer_update`.** pyvar always passes an existing Customer. By Stripe's documentation Checkout then does not save the address typed at checkout onto the Customer unless asked, and a renewal's tax is worked out from the Customer's address; `tax_id_collection` with an existing Customer is refused without `customer_update[name]=auto` (developers report this error; the API reference does not say it). Both are from documentation and reports, not yet seen on our account.
 
-**Not verified (to be seen on dev, test mode):** that the subscription's invoice carries the VAT line, the VAT ID and the marker `service=pyvar` (the marker is sent in `subscription_data[metadata]`, so it should appear in the invoice's subscription details); that Stripe accepts `automatic_tax` and `tax_id_collection` in subscription mode with an existing customer and what it does while Stripe Tax has no head-office address (the call of 2026-11-24 stopped at the `invoice_creation` error, which Stripe reports first); what a customer outside the UK pays; that the address is kept for renewals; whether the live restricted key needs a tax permission.
+**Seen on 2026-11-24 (sandbox, by hand, section 10 step 2, no customer passed):** with `automatic_tax` and `tax_id_collection` Stripe created a Checkout Session (`livemode` false), so it accepts both in subscription mode and raised no head-office-address error in that sandbox. (The same call with `invoice_creation` was refused, see above.)
+
+**Not verified (to be seen on dev, test mode):** that the subscription's invoice carries the VAT line, the VAT ID and the marker `service=pyvar` (the marker is sent in `subscription_data[metadata]`, so it should appear in the invoice's subscription details); `customer_update` with an existing customer (the by-hand call passes none); what a customer outside the UK pays; that the address is kept for renewals; whether the live restricted key needs a tax permission.
 
 **Turn-on, per Stripe mode and environment:**
 
