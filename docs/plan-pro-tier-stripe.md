@@ -112,3 +112,20 @@ Still open (Dashboard-only, or needs an owner input):
 3. **Support e-mail and business name** are account-level, so they apply to the other products too.
 4. **Stripe Tax** is active; the head-office address holds only the country. The full address is needed before `automatic_tax` is added to Checkout (follow-up PR).
 5. **Live mode** repeats all of this.
+
+## 9. Prompt 2 outcome (2026-11-23)
+
+Run on dev after #444 was deployed, Stripe test mode, one throwaway account. **Everything passed**: the upgrade through Checkout (a new token carrying the Pro tier), the monthly simulation cap (20 calls of 100,000 accepted; the 21st a 429 with `Retry-After` and the cap's text; the tier still Pro), a declined renewal (the account stayed Pro), a portal cancel at the period end (the account stayed Pro), the subscription ended through the Stripe API (`customer.subscription.deleted`: Free, both keys kept), a replayed event and another service's event (nothing changed), and paying again (Pro). The webhook's HTTP codes cannot be read through the API; "pending 1 to 0" and the dev log lines stand for them.
+
+How the run differed from the prompt: a billing-anchor reset netted to GBP 0.00, so a declined invoice was made by raising the subscription quantity; the portal records a period-end cancel as `cancel_at` (not `cancel_at_period_end`), and nothing in pyvar reads either field. Not exercised, because Stripe's own timing is: the renewal date, the Smart Retries schedule and what happens when they run out, the scheduled cancel firing by itself, and the monthly window resetting.
+
+Findings and what was done:
+
+| Finding | Action |
+| --- | --- |
+| Adaptive Pricing is on in the shared account: the hosted page defaulted to EUR (EUR 62.14 with a 4% fee); the Terms say pounds | **Owner's decision, 2026-11-23: it stays on for every service, because payments are collected worldwide; no code change.** The session keeps its currency and amounts in GBP and the local figures are in `presentment_details` (Stripe's documentation; to be seen on dev). Whether the Terms need a sentence on paying in a local currency is the owner's |
+| Another service's endpoint subscribes to invoice events and receives A's | Our objects now carry `metadata[service]=pyvar`. TenGrade ignores events without its marker; etlgen and DocuGen are unchecked: look at their dev endpoint delivery logs in Stripe |
+| `automatic_tax` is off, so Checkout computes no tax on the inclusive price | Follow-up PR, once Stripe Tax has the full head-office address (section 8, item 4) |
+| An open GBP 50.00 invoice remains on the test customer, with a retry set for 2026-11-25 | Void it in the Dashboard (test mode) |
+
+The check of this fix on dev is `docs/prompts/agent-stripe-pro-verify-gbp.txt`: the hosted page shows GBP 50.00 with no currency choice, and the session, the subscription and a new customer carry `service=pyvar`.

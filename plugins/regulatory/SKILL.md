@@ -22,22 +22,19 @@ numbers.
 The key is the user's to hold. Never look for it on their machine (environment variables, files,
 shell history, other tools' settings), and don't ask them to paste it into the chat.
 
-1. **Call through the pyvar MCP server.** The `pyvar-mcp` plugin asks the user for the key once,
-   when they enable it, and keeps it in the system's secure credential store; its tools attach it
-   to every call, so you never handle it. Use
+1. **Use the pyvar tools if they are already available.** If `call_pyvar_function` and
+   `list_pyvar_functions` are available in this session, call
    `call_pyvar_function(domain="regulatory", function_name="<function>", params=body)` with the
-   request body below (every example in this skill is a real, tested request), and
+   request body below (every example in this skill is a real, tested request), and use
    `list_pyvar_functions` to browse.
-2. **No pyvar tools available? Say so, and walk the user through setting them up** (free, about
-   a minute). First, get a key: open https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when
-   it is shown) or enter an email and click the link we send (single use; the same form signs
-   returning users in). The dashboard opens with a first API key already created: a string
-   starting `pyvar_`, shown once. A key lasts a year and can be revoked or replaced on the
-   dashboard at any time. Then install the `pyvar-mcp` plugin (the `/plugin` Discover tab, or
-   `/plugin install pyvar-mcp@pyvar-marketplace`); Claude Code asks for the key when it is
-   enabled. On a `401 Invalid, revoked or expired API key`, send the user back to the dashboard to
-   create a new one.
-3. **Cannot use MCP, or cannot run code or reach the network** (for example a sandbox with no
+2. **No pyvar tools available? Say so, and help the user get a key** (free, about a minute).
+   Open https://www.pyvar.com#get-api-key, then either click "Sign in with Google" (when it is shown) or enter an
+   email and click the link we send (single use; the same form signs returning users in). The
+   dashboard opens with a first API key already created: a string starting `pyvar_`, shown once.
+   A key lasts a year and can be revoked or replaced on the dashboard at any time. On a
+   `401 Invalid, revoked or expired API key`, send the user back to the dashboard to create a
+   new one.
+3. **No pyvar tools, or cannot run code or reach the network** (for example a sandbox with no
    internet)? Give the user the exact request to run themselves, with their own key where the
    placeholder is, instead of guessing a result:
    - Python: `pip install pyvar-client`, then
@@ -54,7 +51,7 @@ retrying in a loop.
 
 ## Worked examples
 
-Each request body below is the same set of keyword arguments for the Python client, the REST body and the MCP `params`. They were run against the real API.
+Each request body below is the same set of keyword arguments for the Python client, the REST body and the `params` of the pyvar tools. They were run against the real API.
 
 ### 1. CET1 ratio, combined buffer and leverage ratio for one bank
 

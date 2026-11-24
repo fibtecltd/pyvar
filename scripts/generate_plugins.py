@@ -139,13 +139,7 @@ README_TEMPLATE = """\
 
 {what_it_is}
 
-## Install
-
-```
-/plugin marketplace add fibtecltd/pyvar
-/plugin install {name}@pyvar-marketplace
-```
-{key_section}
+{install_section}{key_section}
 ## Links
 
 - Documentation: {documentation}
@@ -156,6 +150,26 @@ README_TEMPLATE = """\
 
 Licence: Apache-2.0. pyvar is not independently validated for regulatory use; its output is
 not a substitute for your institution's own model validation.
+"""
+
+# The architecture skills keep the plain install block. A domain skill's README does not print a
+# `/plugin install` line: the directory refuses text that tells the reader to add a server the plugin
+# does not declare (2026-11-23), and a line of that shape is easy to misread as one, so it points to
+# the Discover tab instead.
+ARCH_INSTALL = """## Install
+
+```
+/plugin marketplace add fibtecltd/pyvar
+/plugin install {name}@pyvar-marketplace
+```
+"""
+DOMAIN_INSTALL = """## Install
+
+Add the pyvar marketplace, then open the `/plugin` Discover tab and install **{name}**:
+
+```
+/plugin marketplace add fibtecltd/pyvar
+```
 """
 
 DOMAIN_WHAT = (
@@ -172,12 +186,24 @@ KEY_SECTION = """
 
 The skill needs your own pyvar API key to call the API, and never reads one from your
 machine. Get a free key at https://www.pyvar.com#get-api-key (sign in with Google or an emailed
-link; no password, no card), then install the `pyvar-mcp` plugin: Claude Code asks for the key
-when it is enabled and keeps it in the system's secure credential store.
+link; no password, no card). The dashboard shows the key once; it lasts a year and can be revoked
+or replaced there at any time. Keep it to yourself: do not paste it into a chat.
+
+Use it with the Python client:
 
 ```
-/plugin install pyvar-mcp@pyvar-marketplace
+pip install pyvar-client
 ```
+
+```python
+from pyvar_client import Client
+
+client = Client(api_key="<your pyvar key>")
+```
+
+or with the REST API: `POST https://www.pyvar.com/api/v1/<domain>/<function>` with the header
+`Authorization: Bearer <your pyvar key>` and the request body as JSON. Every example in the
+skill is a real request body.
 """
 
 
@@ -186,6 +212,7 @@ def readme_for(plugin_name: str, description: str, is_arch: bool) -> str:
         name=plugin_name,
         description=description.rstrip("."),
         what_it_is=ARCH_WHAT if is_arch else DOMAIN_WHAT,
+        install_section=(ARCH_INSTALL if is_arch else DOMAIN_INSTALL).format(name=plugin_name),
         key_section="" if is_arch else KEY_SECTION,
         documentation=LISTING_FIELDS["documentationUrl"],
         repository="https://github.com/fibtecltd/pyvar",

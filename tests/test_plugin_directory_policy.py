@@ -10,9 +10,14 @@ repeated daily on the same commit until the plugin changed):
 - Uses a credential from the user's machine: a skill that tells Claude to look for the API key in
   the environment, or to run code that reads it there, is held ("Update adds credential forward").
   The key has to come from a `userConfig` option with `sensitive: true`, which only an MCP server
-  can receive (a sensitive value is not substituted into skill text), so the skills point to the
-  pyvar-mcp plugin and carry no credential handling of their own. The one architecture skill that
-  was held, pyvar-arch-observability, showed code that reads a secret from the AWS secret store.
+  can receive (a sensitive value is not substituted into skill text), so the skills carry no
+  credential handling of their own. The one architecture skill that was held,
+  pyvar-arch-observability, showed code that reads a secret from the AWS secret store.
+- Text that adds a server the plugin does not declare: the skills and READMEs told the user to
+  install the pyvar-mcp plugin, which runs a local server (uvx pyvar-mcp==...); only a Verified
+  organization's plugin may include one, and nobody can ask to become Verified yet. Seen on the eight
+  domain plugins at commit 9337be3 (2026-11-23). The skills now use the pyvar tools only if the
+  session already has them, and tell the user to run the request with their own key otherwise.
 
 `claude plugin validate ./plugins/<name> --strict` runs the first two against a real plugin
 folder; run it too before submitting.
@@ -117,6 +122,27 @@ def test_domain_skill_reads_no_credential_from_the_machine(plugin: Path) -> None
     for path in _skill_files(plugin):
         text = path.read_text(encoding="utf-8")
         for forbidden in ("PYVAR_API_KEY", "os.environ", "getenv(", "$PYVAR", "in the environment"):
+            assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
+
+
+# "Plugin text adds a server the plugin does not declare. Text in your plugin tells Claude or the user
+# to add an MCP server that the plugin does not declare, so its tools could not be reviewed. If it runs
+# on the user's machine, remove the step: only a Verified organization's plugin can include a local
+# server." A domain plugin's text names no server and prints no `/plugin install` line at all (its README
+# points to the Discover tab), so nothing in it can be read as an instruction to add one.
+FORBIDDEN_SERVER_TEXT = ("pyvar-mcp", "mcp add", "MCP server", "claude mcp", "/plugin install")
+
+
+@pytest.mark.parametrize("plugin", DOMAIN_PLUGINS, ids=[p.name for p in DOMAIN_PLUGINS])
+def test_domain_plugin_text_adds_no_server(plugin: Path) -> None:
+    files = [
+        plugin / "SKILL.md",
+        plugin / "README.md",
+        *sorted((plugin / "references").glob("*.md")),
+    ]
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        for forbidden in FORBIDDEN_SERVER_TEXT:
             assert forbidden not in text, f"{path.relative_to(REPO)} mentions {forbidden!r}"
 
 
