@@ -23,8 +23,8 @@ requests (below), so its plugin files are always files that were already on mast
 Only when something under `plugins/` (other than `plugins/mcp/`) or under `.claude-plugin/` has
 changed on master and is ready to publish. Billing, portal, API, engine, tests, scripts and docs
 changes never need a release. Batch plugin changes into one release instead of several small ones:
-the directory may treat any new commit on the branch as a new version of every listing (that is what
-happened on master), so each advance costs a re-scan of all 13.
+any change that lands on `plugins-release` creates a new version of every plugin, starts a re-scan and
+cancels any publish request still waiting, so each advance costs a re-scan of all 13.
 
 Before the release, on master, run the checks from `docs/plan-plugin-marketplace-status-and-submission.md`
 ("Before each submission"): regenerate with `scripts/sync_skills.py` and `scripts/generate_plugins.py`,
@@ -44,10 +44,11 @@ does the regeneration check on every PR to master.
    protected branch cannot take a direct fast-forward push, so a merge commit is the route.
 4. Do not push to `plugins-release` any other way, never force-push it and never delete or recreate it.
 
-The release PR starts none of the existing workflows (they listen to PRs into `master` and `develop`);
-what it carries was already checked when it merged to master. If the workflow
-`.github/workflows/plugins-release-changes.yml` is present, it adds a job summary to the PR that lists
-the plugin directories whose files differ, so you can see where the content changed.
+Two workflows run on a release PR. `plugins-ci` listens to PRs into `plugins-release` as well as
+`master` and `develop`, filtered to plugin paths. `plugins-release-changes`
+(`.github/workflows/plugins-release-changes.yml`) adds a job summary that lists the plugin directories
+whose files differ, so you can see where the content changed. The other workflows listen to PRs into
+`master` and `develop` only; what a release carries was already checked when it merged to master.
 
 ## After the merge
 
@@ -59,11 +60,14 @@ listing is therefore changed once, to `plugins-release`, and then left alone.
 
 ## Protection on GitHub
 
-`plugins-release` is meant to take changes only through pull requests. Settings (a branch protection
-rule or a ruleset targeting `plugins-release`):
+`plugins-release` takes changes only through pull requests. The GitHub ruleset `plugins-release`
+(ID 27980975, active, no bypass) covers that branch only:
 
-- require a pull request before merging, with 0 required approvals unless a second reviewer exists;
-- block force pushes and block deletion;
-- no bypass for anyone, administrators included;
-- leave "require linear history" off (it would refuse merge commits) and require no status checks
-  (no existing workflow runs on a PR into this branch, so a required check would block every release).
+- it requires a pull request before merging, with 0 required approvals;
+- it blocks force pushes and blocks deletion;
+- it has no bypass for anyone, administrators included;
+- "require linear history" is off because it would refuse the merge commits;
+- no status check is required, so nothing stops a merge while `plugins-ci` is still running or has
+  failed: look at it before you merge a release.
+
+The ruleset `delete-forcepush` (ID 17923559) still covers `master` only.

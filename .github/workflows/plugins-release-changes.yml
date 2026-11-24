@@ -73,8 +73,8 @@ jobs:
                 echo "- ${stray_files} file(s) under \`plugins/\` that are in no plugin directory: look at them by hand."
               fi
               echo
-              echo "The directory may create a new version of every listing for any new commit on this branch;"
-              echo "the list above shows where the content differs."
+              echo "Any change that lands on plugins-release creates a new version of every plugin and cancels any"
+              echo "waiting publish request; the list above shows where the content differs."
             fi
             echo
             echo "Not part of the listings: ${mcp_files} file(s) under \`plugins/mcp/\` (pyvar-mcp follows master)"
