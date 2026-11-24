@@ -1,0 +1,82 @@
+name: Plugins release - changed plugins
+
+# Informational check for the release PR described in docs/plugins-release.md (base plugins-release,
+# head master). It runs ONLY on pull requests whose base branch is plugins-release: never on master,
+# never on a push, never on a PR into master or develop. It lists, in the job summary, the plugin
+# directories whose files the merge would change, so the owner can see where the content differs.
+# It never fails a PR for what it finds, writes nothing back (no comment, label or status beyond its
+# own job) and uses no secret.
+
+on:
+  pull_request:
+    branches: [plugins-release]
+
+# Read-only: the job only checks out and runs git diff.
+permissions:
+  contents: read
+
+jobs:
+  changed-plugins:
+    name: Changed plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Depth 2 is the PR's merge commit and both its parents: enough to diff the base side
+      # (what plugins-release holds now) against the merge result, without fetching all history.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+
+      - name: List changed plugin directories
+        run: |
+          set -euo pipefail
+
+          if ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "This PR's merge commit could not be read, so no list was made." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          changed="$(git -c core.quotepath=off diff --name-only 'HEAD^1' 'HEAD')"
+
+          # A plugin directory is plugins/<domain> or plugins/arch/<layer>. plugins/mcp is pyvar-mcp,
+          # which is published from master and not through this branch. Only the directory name is
+          # printed, and only if it matches [a-z0-9-]: a file name from the PR never reaches the summary.
+          dirs="$(printf '%s\n' "$changed" \
+            | sed -nE 's#^(plugins/arch/[a-z0-9-]+|plugins/[a-z0-9-]+)/.*#\1#p' \
+            | grep -v -x -e 'plugins/mcp' -e 'plugins/arch' \
+            | sort | uniq -c || true)"
+          mcp_files="$(printf '%s\n' "$changed" | grep -c '^plugins/mcp/' || true)"
+          marketplace_files="$(printf '%s\n' "$changed" | grep -c '^\.claude-plugin/' || true)"
+          other_files="$(printf '%s\n' "$changed" | sed '/^$/d' | grep -v -E '^(plugins/|\.claude-plugin/)' | wc -l || true)"
+          # Files under plugins/ (not plugins/mcp/) that sit in no plugin directory: reported, never dropped.
+          plugin_files="$(printf '%s\n' "$changed" | grep '^plugins/' | grep -v -c '^plugins/mcp/' || true)"
+          dir_files="$(printf '%s\n' "$dirs" | awk '{ s += $1 } END { print s + 0 }')"
+          stray_files="$((plugin_files - dir_files))"
+
+          {
+            echo "## Plugins in this release"
+            echo
+            if [ -z "$dirs" ] && [ "$marketplace_files" = "0" ] && [ "$stray_files" = "0" ]; then
+              echo "No plugin directory and no \`.claude-plugin/\` file changes. Nothing here needs a release."
+            else
+              if [ -n "$dirs" ]; then
+                echo "Plugin directories whose files change:"
+                echo
+                printf '%s\n' "$dirs" | awk '{ printf "- `%s` (%d file%s)\n", $2, $1, ($1 == 1 ? "" : "s") }'
+              fi
+              if [ "$marketplace_files" != "0" ]; then
+                echo
+                echo "- \`.claude-plugin/\` (${marketplace_files} file(s)): the marketplace manifest, which lists every plugin."
+              fi
+              if [ "$stray_files" != "0" ]; then
+                echo
+                echo "- ${stray_files} file(s) under \`plugins/\` that are in no plugin directory: look at them by hand."
+              fi
+              echo
+              echo "The directory may create a new version of every listing for any new commit on this branch;"
+              echo "the list above shows where the content differs."
+            fi
+            echo
+            echo "Not part of the listings: ${mcp_files} file(s) under \`plugins/mcp/\` (pyvar-mcp follows master)"
+            echo "and ${other_files} other file(s) outside \`plugins/\` and \`.claude-plugin/\`."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
