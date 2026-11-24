@@ -18,9 +18,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   It fails closed (Redis unreadable means nobody). Dev and a new environment stay open. Remove the prod line when Stripe
   goes live there. Runbook: `docs/plan-pro-tier-stripe.md` section 11. Tests: `tests/test_billing_gate.py`,
   `tests/test_billing.py`, `tests/test_cdk_stripe_checkout_gate.py`.
-- **Stripe Tax and VAT IDs on the Pro Checkout, off until switched on (`feat(billing)`)** — With the new
+- **Stripe Tax and VAT IDs on the Pro Checkout, on in dev only (`feat(billing)`)** — With the new
   setting `stripe_automatic_tax_enabled` (environment variable `STRIPE_AUTOMATIC_TAX_ENABLED`, set by `api_stack.py` only
-  where the CDK flag of the same name is true, and true in no environment yet) `POST /billing/checkout` also sends
+  where the CDK flag of the same name is true, and true in dev only, in Stripe's test mode) `POST /billing/checkout` also sends
   `automatic_tax`, `tax_id_collection` and `customer_update` (name and address `auto`, because pyvar always passes an existing
   customer). `invoice_creation`, which the other three services send, is not sent: Stripe refuses it in subscription mode and
   makes the invoice of every subscription payment by itself (seen on the sandbox, 2026-11-24). The Price stays tax-inclusive

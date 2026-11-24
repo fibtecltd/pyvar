@@ -57,9 +57,10 @@ class PyvarConfig:
 
     # Stripe Tax on the Pro Checkout (docs/plan-pro-tier-stripe.md section 10). The app reads it as
     # STRIPE_AUTOMATIC_TAX_ENABLED (config.py stripe_automatic_tax_enabled); api_stack.py sets the variable only
-    # when this is True. Off in every environment until the owner has put the full head-office address into
-    # Stripe Tax for that environment's Stripe mode; turning it on is then one line in that environment's
-    # override, and tests/test_cdk_stripe_tax_flag.py is changed in the same commit.
+    # when this is True. Off by default and wherever the owner has not put the full head-office address into
+    # Stripe Tax for that environment's Stripe mode; on in "dev" (test mode) since 2026-11-24. Turning it on
+    # elsewhere is one line in that environment's override, and tests/test_cdk_stripe_tax_flag.py is changed
+    # in the same commit.
     stripe_automatic_tax_enabled: bool = False
 
     # Who may start a Pro checkout (docs/plan-pro-tier-stripe.md section 11, api/billing_gate.py). The app reads it as
@@ -265,6 +266,10 @@ class PyvarConfig:
                 # Education tier on in dev, to try a grant end to end (scripts/education_grant.py
                 # grant --env dev). Prod is off: see education_tier_enabled above.
                 education_tier_enabled=True,
+                # Stripe Tax, tax IDs and the saved address on the Pro Checkout (docs/plan-pro-tier-stripe.md
+                # section 10), in Stripe's test mode. Prod and staging stay off: prod needs live Stripe Tax
+                # set-up first. To switch it off again, remove this line.
+                stripe_automatic_tax_enabled=True,
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
                 # Domain cutover Stage C: pyvar.com/www.pyvar.com move to prod

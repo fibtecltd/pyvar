@@ -1,10 +1,10 @@
-"""tests/test_cdk_stripe_tax_flag.py — Stripe Tax on the Pro Checkout is off everywhere, by one environment entry.
+"""tests/test_cdk_stripe_tax_flag.py — Stripe Tax on the Pro Checkout is on in dev only, by one environment entry.
 
 Reasoning:
 - The Checkout sends automatic_tax, tax_id_collection and customer_update only when the app's
   `stripe_automatic_tax_enabled` setting is true (docs/plan-pro-tier-stripe.md section 10). Stripe Tax needs the
-  full head-office address before that works, in test mode and again in live mode, so no environment has it on
-  yet. pyvar-cdk/config.py carries a per-environment `stripe_automatic_tax_enabled`, and api_stack.py turns it
+  full head-office address before that works, in test mode and again in live mode, so only dev (test mode, where
+  the owner checked it on 2026-11-24) has it on; prod waits for live Stripe Tax. pyvar-cdk/config.py carries a per-environment `stripe_automatic_tax_enabled`, and api_stack.py turns it
   into the container variable STRIPE_AUTOMATIC_TAX_ENABLED=true only where it is true.
 - Turning it on is then one line in that environment's override, and the expected value below is changed in the
   same commit: it is the record of the decision, not an accident.
@@ -43,13 +43,13 @@ def _cdk_config() -> ModuleType:
     return module
 
 
-def test_no_environment_has_stripe_tax_on_yet() -> None:
+def test_only_dev_has_stripe_tax_on() -> None:
     config = _cdk_config()
     flags = {
         env: config.PyvarConfig.for_env(env).stripe_automatic_tax_enabled
         for env in ("dev", "staging", "prod")
     }
-    assert flags == {"dev": False, "staging": False, "prod": False}
+    assert flags == {"dev": True, "staging": False, "prod": False}
 
 
 def test_the_default_is_off_so_a_new_environment_starts_without_it() -> None:
