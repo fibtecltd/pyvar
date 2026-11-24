@@ -22,7 +22,8 @@ Reasoning:
   six-year audit clean-up; docs/plan-education-tier.md)
   are the exception to the auth rule above:
   they take an ADMIN token (`aud` "pyvar-admin", 10 minutes, signed by the operator scripts
-  scripts/education_grant.py, scripts/account_erase.py, scripts/account_export.py and scripts/audit_cleanup.py), not a session
+  scripts/education_grant.py, scripts/account_erase.py, scripts/account_export.py, scripts/audit_cleanup.py and
+  scripts/billing_checkout_allow.py), not a session
   JWT. A session JWT, an "internal" JWT, an API key and a stream token are all refused (require_admin_token), so
   holding any credential the API hands out is never enough to grant access. They are kept out of the public
   OpenAPI document. grant and extend answer 503 while `education_tier_enabled` is off; revoke, list,
@@ -39,7 +40,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 
-from api import account_erasure, account_export, audit_retention, education_grants
+from api import account_erasure, account_export, audit_retention, billing_gate, education_grants
 from api.middleware.auth import AdminPayload, TokenPayload, get_current_user, require_admin_token
 from config import get_settings
 from observability.redact import email_domain
@@ -51,6 +52,8 @@ from schemas.internal import (
     AuditCleanupRequest,
     AuditCleanupResponse,
     AuditTableOut,
+    CheckoutAllowRequest,
+    CheckoutAllowResponse,
     EducationAccountOut,
     EducationChangeResponse,
     EducationExtendRequest,
@@ -367,3 +370,83 @@ async def audit_cleanup(
         billing_events=AuditTableOut(**vars(result.tables["billing_events"])),
         applied=result.applied,
     )
+
+
+# ── /internal/admin/billing/checkout-allow (admin token only) ────────────────────────────────────────────────
+
+
+@router.post(
+    "/admin/billing/checkout-allow",
+    response_model=CheckoutAllowResponse,
+    include_in_schema=False,
+)
+async def billing_checkout_allow(
+    body: CheckoutAllowRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> CheckoutAllowResponse:
+    """Allow, remove, list or clear the accounts that may start a Pro checkout while Stripe is in test mode
+    (api/billing_gate.py). `allow` and `remove` find the account by its address and keep only its identifier in the
+    set; a dry run unless `apply`. The answer names accounts by identifier, never by address. 503 and nothing
+    changed when the set cannot be reached."""
+    restricted = bool(cfg.stripe_checkout_restricted)
+    try:
+        if body.action == "list":
+            members = await billing_gate.allow_list_members()
+            return CheckoutAllowResponse(
+                action="list",
+                applied=False,
+                restricted=restricted,
+                members=len(members),
+                account_ids=members,
+            )
+        if body.action == "clear":
+            count = len(await billing_gate.allow_list_members())
+            if body.apply:
+                await billing_gate.allow_list_clear()
+                logger.warning(
+                    "billing_checkout_allow_changed", operator=admin.operator, action="clear"
+                )
+            return CheckoutAllowResponse(
+                action="clear",
+                applied=body.apply,
+                restricted=restricted,
+                members=0 if body.apply else count,
+            )
+
+        async with get_sessionmaker()() as session:
+            user = (
+                await session.execute(
+                    select(User).where(func.lower(User.email) == str(body.email).lower())
+                )
+            ).scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No account has this address.")
+        members = await billing_gate.allow_list_members()
+        was_allowed = user.external_id in members
+        after = set(members)
+        if body.apply:
+            if body.action == "allow":
+                await billing_gate.allow_list_add(user.external_id)
+                after.add(user.external_id)
+            else:
+                await billing_gate.allow_list_remove(user.external_id)
+                after.discard(user.external_id)
+            logger.warning(
+                "billing_checkout_allow_changed",
+                operator=admin.operator,
+                action=body.action,
+                account_id=user.external_id,
+            )
+        return CheckoutAllowResponse(
+            action=body.action,
+            applied=body.apply,
+            restricted=restricted,
+            account_id=user.external_id,
+            tier=user.tier,
+            was_allowed=was_allowed,
+            members=len(after),
+        )
+    except billing_gate.AllowListUnavailable as exc:
+        logger.warning("billing_checkout_allow_unavailable", reason=str(exc))
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "The allow list could not be reached."
+        ) from exc

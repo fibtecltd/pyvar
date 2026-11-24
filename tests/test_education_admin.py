@@ -53,6 +53,7 @@ TIDY = "/api/v1/internal/admin/education/tidy"
 ERASE = "/api/v1/internal/admin/accounts/erase"
 EXPORT = "/api/v1/internal/admin/accounts/export"
 CLEANUP = "/api/v1/internal/admin/audit/cleanup"
+CHECKOUT_ALLOW = "/api/v1/internal/admin/billing/checkout-allow"
 
 
 def admin_token(**overrides: Any) -> str:
@@ -222,6 +223,7 @@ async def test_every_other_credential_is_refused_on_every_admin_route(
         ("POST", ERASE, {"email": "a@uni.ac.uk"}),
         ("POST", EXPORT, {"email": "a@uni.ac.uk", "section": "account"}),
         ("POST", CLEANUP, {}),
+        ("POST", CHECKOUT_ALLOW, {"action": "list"}),
     ):
         response = await client.request(method, path, json=payload, headers=bearer(token))
         assert response.status_code == 401, (kind, path, response.text)

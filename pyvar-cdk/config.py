@@ -55,6 +55,21 @@ class PyvarConfig:
     # a lawyer's read (the plan's section 5), then a one-line change turns it on.
     education_tier_enabled: bool = False
 
+    # Stripe Tax on the Pro Checkout (docs/plan-pro-tier-stripe.md section 10). The app reads it as
+    # STRIPE_AUTOMATIC_TAX_ENABLED (config.py stripe_automatic_tax_enabled); api_stack.py sets the variable only
+    # when this is True. Off by default and wherever the owner has not put the full head-office address into
+    # Stripe Tax for that environment's Stripe mode; on in "dev" (test mode) since 2026-11-24. Turning it on
+    # elsewhere is one line in that environment's override, and tests/test_cdk_stripe_tax_flag.py is changed
+    # in the same commit.
+    stripe_automatic_tax_enabled: bool = False
+
+    # Who may start a Pro checkout (docs/plan-pro-tier-stripe.md section 11, api/billing_gate.py). The app reads it as
+    # STRIPE_CHECKOUT_RESTRICTED (config.py stripe_checkout_restricted); api_stack.py sets the variable only when this
+    # is True. True in "prod" while Stripe is in test mode there: the webhook has no live/test check, so without the
+    # gate anyone could pay the public test card and become Pro. When Stripe goes live on prod, remove the prod line
+    # and change tests/test_cdk_stripe_checkout_gate.py in the same commit.
+    stripe_checkout_restricted: bool = False
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that
@@ -251,6 +266,10 @@ class PyvarConfig:
                 # Education tier on in dev, to try a grant end to end (scripts/education_grant.py
                 # grant --env dev). Prod is off: see education_tier_enabled above.
                 education_tier_enabled=True,
+                # Stripe Tax, tax IDs and the saved address on the Pro Checkout (docs/plan-pro-tier-stripe.md
+                # section 10), in Stripe's test mode. Prod and staging stay off: prod needs live Stripe Tax
+                # set-up first. To switch it off again, remove this line.
+                stripe_automatic_tax_enabled=True,
                 # Option B: set worker_use_spot=False for guaranteed on-demand capacity
                 # Option C: override worker_instance_type e.g. "t3.xlarge" for different quota pool
                 # Domain cutover Stage C: pyvar.com/www.pyvar.com move to prod
@@ -282,6 +301,9 @@ class PyvarConfig:
             ),
             "prod": dict(
                 vpc_nat_gateways=2,  # 2 NAT GWs for full AZ independence
+                # Stripe is in TEST mode on prod until Fibtec goes live: only accounts an operator allows may start
+                # a checkout (api/billing_gate.py). Remove this line when Stripe goes live on prod.
+                stripe_checkout_restricted=True,
                 api_min_tasks=2,
                 api_max_tasks=20,
                 # Portal assistant menus (release 1: menus only). Decided by Filippo on

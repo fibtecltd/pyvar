@@ -238,6 +238,129 @@ async def test_checkout_session_is_marked_as_pyvar_and_leaves_adaptive_pricing_o
     assert billing_module.STRIPE_SERVICE == "pyvar"
 
 
+async def _checkout_create_kwargs(app, monkeypatch) -> dict:
+    """POST /billing/checkout for an existing Stripe customer and return what Session.create was given."""
+    configure_billing(monkeypatch)
+    user_row = User(
+        external_id="ext-4", email="tax@example.com", tier="free", stripe_customer_id="cus_tax"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.create.return_value = MagicMock(
+        url="https://checkout.stripe.com/session/tax"
+    )
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id="ext-4")
+            )
+    assert resp.status_code == 200
+    return dict(fake_stripe.checkout.Session.create.call_args.kwargs)
+
+
+_TAX_KEYS = ("automatic_tax", "tax_id_collection", "customer_update", "invoice_creation")
+
+
+@pytest.mark.asyncio
+async def test_checkout_sends_no_tax_parameters_while_the_flag_is_off(app, monkeypatch):
+    """Stripe Tax needs the head-office address first, so the default session is what it was before."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_automatic_tax_enabled", False)
+    create_kwargs = await _checkout_create_kwargs(app, monkeypatch)
+    for key in _TAX_KEYS:
+        assert key not in create_kwargs
+
+
+@pytest.mark.asyncio
+async def test_checkout_sends_stripe_tax_and_tax_ids_when_the_flag_is_on(app, monkeypatch):
+    """The three parameters, for an existing customer: tax, VAT IDs, the saved name and address.
+
+    `customer_update` carries both name and address because tax_id_collection with an existing customer
+    needs the name, and a renewal's tax is worked out from the address saved on the customer.
+    """
+    monkeypatch.setattr(billing_module.cfg, "stripe_automatic_tax_enabled", True)
+    create_kwargs = await _checkout_create_kwargs(app, monkeypatch)
+    assert create_kwargs["automatic_tax"] == {"enabled": True}
+    assert create_kwargs["tax_id_collection"] == {"enabled": True}
+    assert create_kwargs["customer_update"] == {"name": "auto", "address": "auto"}
+    # Stripe refuses invoice_creation in subscription mode (the invoice is created automatically): never sent
+    assert "invoice_creation" not in create_kwargs
+    # unchanged by the flag: the customer, the marker, and Adaptive Pricing left on
+    assert create_kwargs["customer"] == "cus_tax"
+    assert create_kwargs["metadata"] == {"service": "pyvar"}
+    assert "adaptive_pricing" not in create_kwargs
+
+
+class _AllowSet:
+    """Just the one Redis command the checkout gate uses (api/billing_gate.py)."""
+
+    def __init__(self, *members: str) -> None:
+        self.members = set(members)
+
+    async def sismember(self, key: str, member: str) -> bool:
+        assert key == "pyvar:billing:checkout:allow"
+        return member in self.members
+
+
+async def _checkout_while_restricted(app, monkeypatch, redis_client, *, user_id: str):
+    """POST /billing/checkout with the restriction on; return the response and the Stripe fake."""
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_checkout_restricted", True)
+    monkeypatch.setattr("api.billing_gate._redis", lambda: redis_client)
+    user_row = User(
+        external_id=user_id, email="gate@example.com", tier="free", stripe_customer_id="cus_gate"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.create.return_value = MagicMock(
+        url="https://checkout.stripe.com/session/gate"
+    )
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id=user_id)
+            )
+    return resp, fake_stripe
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_is_refused_for_an_account_not_in_the_allow_set(
+    app, monkeypatch
+):
+    """The same returned 503 as "billing is not configured"; Stripe is never called, no customer is made."""
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, _AllowSet("someone-else"), user_id="ext-gate-1"
+    )
+    assert resp.status_code == 503
+    assert resp.json() == {"detail": billing_module.NOT_CONFIGURED_DETAIL}
+    fake_stripe.checkout.Session.create.assert_not_called()
+    fake_stripe.Customer.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_is_refused_when_redis_is_unavailable(app, monkeypatch):
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, None, user_id="ext-gate-2"
+    )
+    assert resp.status_code == 503
+    fake_stripe.checkout.Session.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_goes_ahead_for_an_account_in_the_allow_set(app, monkeypatch):
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, _AllowSet("ext-gate-3"), user_id="ext-gate-3"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["checkout_url"] == "https://checkout.stripe.com/session/gate"
+    fake_stripe.checkout.Session.create.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_checkout_returns_404_when_user_row_missing(app, monkeypatch):
     configure_billing(monkeypatch)
