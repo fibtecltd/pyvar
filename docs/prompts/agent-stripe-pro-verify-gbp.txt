@@ -1,0 +1,19 @@
+TASK: check on DEV, in Stripe TEST MODE, that pyvar's Checkout keeps its currency and amounts in GBP while Adaptive Pricing stays on (owner's decision, 2026-11-23), and that the Stripe objects pyvar creates carry the marker service=pyvar. You test and report. You change no application code, no dev setting, and nothing in live mode.
+
+SETTINGS (fixed values; never stop for them)
+- Same rules as the second verification run. The Stripe sandbox is SHARED with other Fibtec products: touch only account A's objects (and B's, step 4); never run `stripe trigger`. Your Stripe calls use ETLGEN_STRIPE_SECRET_KEY only through each command's environment, never printed or written to disk.
+- API base: https://dev.pyvar.com/api/v1. Account A is the throwaway account of the second run, now Free. Sign-in links go to a real inbox: ask the owner for a fresh link. Never put an address, token or key in your report.
+- Tier probe as before: with an API key of the account, POST /var/compute, 30 small log-returns, n_simulations 100001: 403 naming 'free' (10,000) or 'pro' (100,000). Wait 70 seconds after a change. Create a new key for A after signing in.
+- Not allowed: live mode; a real card; any dev setting, secret or database change; deleting or archiving Stripe objects (cancel test subscriptions only). Stop at once on a denied call.
+
+STEPS
+1. Sign in as A. POST /billing/checkout. Open checkout_url in a headless browser. Report the amount and currency shown, and whether a currency selector or a converted price appears. A selector or a converted price is expected and allowed (the second run saw EUR 62.14 by default; say what you can about where your browser's address is).
+2. Retrieve that session with the Stripe API (the cs_ id is in the URL). Expect metadata.service = pyvar, currency gbp, and amount_total in GBP. Report presentment_details if the session has it.
+3. Pay with 4242 4242 4242 4242, in pounds, or, if the page offered a local currency, in that currency. Retrieve the new subscription: expect metadata.service = pyvar. Probe: 'pro'. If you paid in a local currency, report the session's currency, amount_total and presentment_details: the tier must still become pro.
+4. Only if the owner confirms: a second throwaway account B (ask for its address and link). POST /billing/checkout as B, then retrieve B's customer: expect metadata.service = pyvar and an external_id. A's customer is older and has no marker, so only a new account shows it. If the owner does not confirm, write "customer marker not checked".
+5. Cancel every subscription you made through the Stripe API; probe A: 'free'. List what you created.
+
+REPORT
+- Per step: PASS, DIFFERENT (how) or NOT DONE (why), with HTTP statuses, Stripe ids (cs_, cus_, sub_, evt_), the tier by probe.
+- If step 2 shows no marker, say that the deploy of this change is probably not there yet, and stop.
+- What you could not see and what you got wrong. No secrets, tokens, keys, addresses or personal data.

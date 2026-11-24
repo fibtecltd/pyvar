@@ -287,6 +287,13 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Every Stripe object pyvar creates is marked (`fix(billing)`)** — The second Stripe verification run on dev (2026-11-23)
+  found that the hosted Checkout page offers a local currency (EUR 62.14 with a 4% conversion fee) because the Stripe account's
+  Adaptive Pricing is on. The owner's decision (2026-11-23) is that it stays on, for every Fibtec service, because payments are
+  collected worldwide: `POST /billing/checkout` never sends `adaptive_pricing`. The session, the subscription it creates and the customer now carry `metadata[service]=pyvar`
+  (`STRIPE_SERVICE`): the account is shared and Stripe sends every endpoint every event, so the other services can tell pyvar's
+  events from their own (TenGrade's webhook already ignores anything without its marker). pyvar's webhook does not read the
+  marker: it matches users by Stripe customer id. Tests: `tests/test_billing.py`.
 - **Tier e-mails no longer log the holder's address; the grant e-mail states the end date; the education ledger holds no address** —
   `send_tier_change_email` logs the address's domain (and the account id where the caller has it) instead of the address, and on a failed
   send the exception's class and AWS error code instead of its text and a traceback, because SES errors can echo the recipient and, through
