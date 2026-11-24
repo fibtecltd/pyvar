@@ -90,7 +90,7 @@ Order: owner decisions (done) → Stripe agent A to G on dev (the prompt) → co
 
 - Done as planned: Pro's monthly caps refuse (429, naming the plan and the cap, `Retry-After`); the downgrade and restore code, their event types and e-mails and the `monthly_breach` field of the tier table are gone (a policy row now has no downgrade option at all); the webhook acts on `checkout.session.completed` and `customer.subscription.deleted` only, and the latter only for a `pro` account; `POST /billing/portal`; the dashboard's Upgrade and Manage billing buttons and the checkout return (completes the session, asks again until Pro); "Billing is not configured" is a returned 503; pricing line, Terms (new section `#pro`), privacy and the public guide and its diagram.
 - Added beyond the plan, because the new buttons made them reachable: checkout is refused (409) for an account that is already Pro (it would be charged twice) and for enterprise or internal accounts; a paid checkout never changes those two, and a second checkout on a Pro account is logged for a refund; an education account that upgrades loses its grant date.
-- Not done, and why: **automatic tax on the Checkout session** (`automatic_tax`, billing address collection) waits for the Stripe agent's report on Stripe Tax: Stripe refuses the parameter until Stripe Tax has an origin address, so it needs a flag and an environment variable in the CDK, as a follow-up. The Medium article copy of the REST guide and its diagram under `docs/publications/` still describe the old downgrade.
+- Not done, and why: **automatic tax on the Checkout session** (`automatic_tax`, billing address collection) waits for the Stripe agent's report on Stripe Tax: Stripe refuses the parameter until Stripe Tax has an origin address, so it needs a flag and an environment variable in the CDK, as a follow-up (built: section 10). The Medium article copy of the REST guide and its diagram under `docs/publications/` still describe the old downgrade.
 - After a cancellation a session token keeps Pro for up to its 60 minutes and an API key for up to its 60-second cache; the next token and the next lookup read the database.
 
 ## 8. Prompt 1 outcome (2026-11-22)
@@ -125,7 +125,25 @@ Findings and what was done:
 | --- | --- |
 | Adaptive Pricing is on in the shared account: the hosted page defaulted to EUR (EUR 62.14 with a 4% fee); the Terms say pounds | **Owner's decision, 2026-11-23: it stays on for every service, because payments are collected worldwide; no code change.** The session keeps its currency and amounts in GBP and the local figures are in `presentment_details` (Stripe's documentation; to be seen on dev). Whether the Terms need a sentence on paying in a local currency is the owner's |
 | Another service's endpoint subscribes to invoice events and receives A's | Our objects now carry `metadata[service]=pyvar`. TenGrade ignores events without its marker; etlgen and DocuGen are unchecked: look at their dev endpoint delivery logs in Stripe |
-| `automatic_tax` is off, so Checkout computes no tax on the inclusive price | Follow-up PR, once Stripe Tax has the full head-office address (section 8, item 4) |
+| `automatic_tax` is off, so Checkout computes no tax on the inclusive price | Built, off in every environment until Stripe Tax has the full head-office address (section 10) |
 | An open GBP 50.00 invoice remains on the test customer, with a retry set for 2026-11-25 | Void it in the Dashboard (test mode) |
 
 The check of this fix on dev is `docs/prompts/agent-stripe-pro-verify-gbp.txt`: the hosted page shows GBP 50.00 with no currency choice, and the session, the subscription and a new customer carry `service=pyvar`.
+
+## 10. Tax on Checkout (PR B, built 2026-11-24, off in every environment)
+
+**What it does.** With `stripe_automatic_tax_enabled` on (env `STRIPE_AUTOMATIC_TAX_ENABLED`; CDK flag of the same name; `billing._tax_checkout_params`) the Pro Checkout session also sends `automatic_tax`, `tax_id_collection`, `customer_update` (name and address `auto`) and `invoice_creation` (description "pyvar Pro subscription", marker `service=pyvar`), the set etlgen, TenGrade and DocuGen send for their payments. The Price keeps its tax-inclusive behaviour (D1), so no `tax_behavior` is sent. Intended result: a UK customer pays 50.00 of which 8.33 is VAT, with the VAT line (and a VAT ID, if entered) on the invoice; elsewhere the customer pays 50.00. Sales stay worldwide, with no country or rate check. The webhook is unchanged (it reads no amounts).
+
+**Why `customer_update`.** pyvar always passes an existing Customer. By Stripe's documentation Checkout then does not save the address typed at checkout onto the Customer unless asked, and a renewal's tax is worked out from the Customer's address; `tax_id_collection` with an existing Customer is refused without `customer_update[name]=auto` (developers report this error; the API reference does not say it). Both are from documentation and reports, not yet seen on our account.
+
+**Not verified (to be seen on dev, test mode):** that Stripe accepts `invoice_creation` in subscription mode (the reference describes it for one-time payments and says subscriptions create invoices automatically); what Stripe does with `automatic_tax` when Stripe Tax has no head-office address; what a customer outside the UK pays; that the address is kept for renewals; whether the live restricted key needs a tax permission.
+
+**Turn-on, per Stripe mode and environment:**
+
+1. Owner: the full head-office address in Stripe Tax (and the UK registration, which decides whether UK customers are charged VAT).
+2. By hand, before any deploy, with the test key taken from the environment and never pasted: `curl -s https://api.stripe.com/v1/checkout/sessions -u "$STRIPE_TEST_KEY:" -d mode=subscription -d "line_items[0][price]=price_1UeeDgQk6KiRREvyk9N27Td4" -d "line_items[0][quantity]=1" -d "automatic_tax[enabled]=true" -d "tax_id_collection[enabled]=true" -d "invoice_creation[enabled]=true" -d success_url=https://dev.pyvar.com/dashboard.html -d cancel_url=https://dev.pyvar.com/dashboard.html | grep -E '"(id|type|code|param|message)"'`. A `cs_test_` id means Stripe takes all three; an error says which one it refuses. (No customer is passed, so `customer_update` is not tested here; step 4 covers it.)
+3. If it is accepted: one line `stripe_automatic_tax_enabled=True` in the "dev" override of `pyvar-cdk/config.py`, with the expected value changed in `tests/test_cdk_stripe_tax_flag.py` in the same commit. That is a real pipeline run and a new dev task definition.
+4. Run `docs/prompts/agent-stripe-pro-verify-tax.txt` on dev.
+5. Live mode: repeat 1 to 4 with live objects, then the "prod" override, together with the live secrets, prod approved last.
+
+**If Stripe refuses `invoice_creation` in subscription mode:** remove that one key (and its assertion) from `_tax_checkout_params`. Stripe still creates the invoice of every subscription payment; how to carry `service=pyvar` onto it is then a question for the owner.

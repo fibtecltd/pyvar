@@ -375,6 +375,14 @@ class ApiStack(Stack):
                 # cfg.education_tier_enabled is True (dev for now), so every other task definition is
                 # unchanged and the app's default (off) applies there.
                 **({"EDUCATION_TIER_ENABLED": "true"} if cfg.education_tier_enabled else {}),
+                # Stripe Tax on the Pro Checkout: the app's stripe_automatic_tax_enabled (config.py). Set
+                # only where cfg.stripe_automatic_tax_enabled is True, so every other task definition is
+                # unchanged and the app's default (off) applies there.
+                **(
+                    {"STRIPE_AUTOMATIC_TAX_ENABLED": "true"}
+                    if cfg.stripe_automatic_tax_enabled
+                    else {}
+                ),
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).

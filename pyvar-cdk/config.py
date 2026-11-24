@@ -55,6 +55,13 @@ class PyvarConfig:
     # a lawyer's read (the plan's section 5), then a one-line change turns it on.
     education_tier_enabled: bool = False
 
+    # Stripe Tax on the Pro Checkout (docs/plan-pro-tier-stripe.md section 10). The app reads it as
+    # STRIPE_AUTOMATIC_TAX_ENABLED (config.py stripe_automatic_tax_enabled); api_stack.py sets the variable only
+    # when this is True. Off in every environment until the owner has put the full head-office address into
+    # Stripe Tax for that environment's Stripe mode; turning it on is then one line in that environment's
+    # override, and tests/test_cdk_stripe_tax_flag.py is changed in the same commit.
+    stripe_automatic_tax_enabled: bool = False
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that

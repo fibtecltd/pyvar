@@ -113,6 +113,8 @@ NOT_CONFIGURED_DETAIL = "Billing is not configured on this deployment."
 # pyvar's own webhook does not read it: it finds the user by Stripe customer id, so another service's
 # event is an unknown customer and changes nothing.
 STRIPE_SERVICE = "pyvar"
+# What a customer reads on the invoice of a Pro payment (invoice_creation, below).
+INVOICE_DESCRIPTION = "pyvar Pro subscription"
 
 
 def _stripe_client() -> Any:
@@ -125,6 +127,42 @@ def _stripe_client() -> Any:
 
     stripe.api_key = cfg.stripe_secret_key
     return stripe
+
+
+def _tax_checkout_params() -> dict[str, Any]:
+    """The Checkout parameters for Stripe Tax, tax IDs and an invoice: empty unless `stripe_automatic_tax_enabled`.
+
+    Why a flag: Stripe Tax needs the full head-office address before it will calculate anything, in test mode
+    and again in live mode, so the parameters are sent only in an environment where the owner has set that up
+    (docs/plan-pro-tier-stripe.md section 10). With the flag off the session is exactly what it was before.
+
+    The Price is created in Stripe with tax behaviour inclusive (owner's decision D1), so no tax_behavior is sent.
+    pyvar always passes an existing Customer, which has two consequences, both from Stripe's documentation
+    (not yet seen on our account):
+    - `customer_update[address]=auto` saves the billing address entered at checkout onto the Customer, which is
+      what a renewal's tax is worked out from; without it Checkout does not override the Customer's address.
+    - `tax_id_collection` with an existing Customer needs `customer_update[name]=auto` (Stripe refuses it
+      otherwise, as developers report; the API reference does not say so).
+
+    `invoice_creation` is the owner's requirement, as in etlgen, TenGrade and DocuGen. Stripe's reference
+    describes it for one-time payments and says subscriptions generate invoices automatically, so that Stripe
+    accepts it in subscription mode is NOT VERIFIED: it must be seen on dev before the flag is turned on, and if
+    Stripe refuses it, that one key is removed (the invoice of each payment exists anyway).
+    """
+    if not cfg.stripe_automatic_tax_enabled:
+        return {}
+    return {
+        "automatic_tax": {"enabled": True},
+        "tax_id_collection": {"enabled": True},
+        "customer_update": {"name": "auto", "address": "auto"},
+        "invoice_creation": {
+            "enabled": True,
+            "invoice_data": {
+                "description": INVOICE_DESCRIPTION,
+                "metadata": {"service": STRIPE_SERVICE},
+            },
+        },
+    }
 
 
 def _billing_unavailable() -> JSONResponse | None:
@@ -268,6 +306,7 @@ async def create_checkout(
         # subscription.*, and the invoices' subscription details) carry the marker.
         metadata={"service": STRIPE_SERVICE},
         subscription_data={"metadata": {"service": STRIPE_SERVICE}},
+        **_tax_checkout_params(),
         success_url=(
             f"{cfg.public_base_url}/dashboard.html" "?checkout_session_id={CHECKOUT_SESSION_ID}"
         ),

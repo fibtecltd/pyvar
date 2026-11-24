@@ -1,0 +1,19 @@
+TASK: check on DEV, in Stripe TEST MODE, that pyvar's Pro Checkout now calculates VAT, collects VAT IDs and makes an invoice (docs/plan-pro-tier-stripe.md section 10). You test and report. You change no application code, no dev setting, and nothing in live mode. Precondition (owner confirms): STRIPE_AUTOMATIC_TAX_ENABLED is on in dev and deployed, and Stripe Tax holds the full head-office address.
+
+SETTINGS (fixed values; never stop for them)
+- Same rules as the earlier verification runs. The Stripe sandbox is SHARED with other Fibtec products: touch only your own throwaway accounts' objects; never run `stripe trigger`. Use ETLGEN_STRIPE_SECRET_KEY only through each command's environment, never printed or written to disk.
+- API base: https://dev.pyvar.com/api/v1. Use a NEW throwaway account for each of A, B, C: a new account has a Stripe customer with no address, which is the case to see. Sign-in links go to a real inbox: ask the owner. Never put an address, token, key or VAT ID in your report.
+- Tier probe: with an API key of the account, POST /var/compute, 30 small log-returns, n_simulations 100001: 403 naming 'free' (10,000) or 'pro' (100,000). Wait 70 seconds after a change.
+- Not allowed: live mode; a real card; any dev setting, secret or database change; deleting Stripe objects (cancel test subscriptions only). Stop at once on a denied call.
+
+STEPS
+1. Account A. POST /billing/checkout. Expect 200 and a checkout_url. On any other status stop and report the status and Stripe's error type and code only. Retrieve the session by its cs_ id: report automatic_tax, tax_id_collection and invoice_creation as the session shows them.
+2. A pays with 4242 4242 4242 4242, billing address United Kingdom, no VAT ID. Report what the page shows: currency choice, price, VAT line, total. Then retrieve the subscription's latest invoice: report total, tax, description, metadata.service, and whether the Customer now has a name and a country. Expect total 5000 (or the equivalent in the currency paid), tax 833 if the UK registration is in Stripe Tax (else report the tax you see and say so). Probe: 'pro'.
+3. Account B, a UK business: as step 2 but enter the Stripe test VAT ID the Checkout page accepts for GB. Report whether the invoice and the Customer carry the tax ID, and the total.
+4. Account C, outside the UK (Germany), no VAT ID: report price, tax and total. Expect 5000 and no tax line; say what you see.
+5. Cancel every subscription you made through the Stripe API; probe each account: 'free'. List what you created.
+
+REPORT
+- Per step: PASS, DIFFERENT (how) or NOT DONE (why), with HTTP statuses, Stripe ids (cs_, cus_, sub_, in_), the tier by probe.
+- If step 1 fails with a Stripe error, say which parameter it names; do not retry.
+- What you could not see and what you got wrong. No secrets, tokens, keys, addresses, VAT IDs or personal data.

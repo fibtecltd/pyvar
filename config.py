@@ -363,6 +363,11 @@ class Settings(BaseSettings):
     # alongside the other two rather than hardcoded so switching Stripe
     # accounts (test -> live) needs only new env values, no code change.
     stripe_price_id_pro: str | None = None
+    # Stripe Tax on the Pro Checkout (docs/plan-pro-tier-stripe.md section 10): when true the session also
+    # sends automatic_tax, tax_id_collection, customer_update and invoice_creation (billing.py,
+    # _tax_checkout_params). Off by default: Stripe needs the full head-office address in Stripe Tax first,
+    # in test mode and again in live mode, so it is switched on per environment, after that.
+    stripe_automatic_tax_enabled: bool = False
 
     # ── Market data adapter (item 6, MD-2) ──────────────────────────────────────
     # Config-driven provider selection (ingestion/market_data/registry.py) —

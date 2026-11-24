@@ -267,6 +267,12 @@ AWS:        CELERY_BROKER_URL = sqs://
   never send adaptive_pricing[enabled]=false. A converted payment's Checkout Session keeps its currency and amounts in GBP and
   the local figures are in presentment_details (Stripe's documentation; not yet seen on our account). Never run
   `stripe trigger` against the shared account (it fires every service's endpoint); resend one event to our endpoint instead.
+- Stripe Tax on the Pro Checkout is behind `stripe_automatic_tax_enabled` (STRIPE_AUTOMATIC_TAX_ENABLED, set by api_stack.py
+  only where the CDK flag is true; off in every environment until the full head-office address is in Stripe Tax for that
+  Stripe mode). When on, the session also sends automatic_tax, tax_id_collection, customer_update (name and address auto) and
+  invoice_creation (billing._tax_checkout_params); never send them when it is off, and never send tax_behavior: the Price is
+  tax-inclusive (owner's D1). Sales are worldwide: no country or tax-rate check. Turn-on steps: docs/plan-pro-tier-stripe.md
+  section 10.
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
   10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
   scripts/account_export.py, scripts/audit_cleanup.py). They must

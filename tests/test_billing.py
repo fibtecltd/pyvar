@@ -238,6 +238,68 @@ async def test_checkout_session_is_marked_as_pyvar_and_leaves_adaptive_pricing_o
     assert billing_module.STRIPE_SERVICE == "pyvar"
 
 
+async def _checkout_create_kwargs(app, monkeypatch) -> dict:
+    """POST /billing/checkout for an existing Stripe customer and return what Session.create was given."""
+    configure_billing(monkeypatch)
+    user_row = User(
+        external_id="ext-4", email="tax@example.com", tier="free", stripe_customer_id="cus_tax"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.create.return_value = MagicMock(
+        url="https://checkout.stripe.com/session/tax"
+    )
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id="ext-4")
+            )
+    assert resp.status_code == 200
+    return dict(fake_stripe.checkout.Session.create.call_args.kwargs)
+
+
+_TAX_KEYS = ("automatic_tax", "tax_id_collection", "customer_update", "invoice_creation")
+
+
+@pytest.mark.asyncio
+async def test_checkout_sends_no_tax_parameters_while_the_flag_is_off(app, monkeypatch):
+    """Stripe Tax needs the head-office address first, so the default session is what it was before."""
+    monkeypatch.setattr(billing_module.cfg, "stripe_automatic_tax_enabled", False)
+    create_kwargs = await _checkout_create_kwargs(app, monkeypatch)
+    for key in _TAX_KEYS:
+        assert key not in create_kwargs
+
+
+@pytest.mark.asyncio
+async def test_checkout_sends_stripe_tax_tax_ids_and_an_invoice_when_the_flag_is_on(
+    app, monkeypatch
+):
+    """The four parameters, for an existing customer: tax, VAT IDs, the saved name and address, an invoice.
+
+    `customer_update` carries both name and address because tax_id_collection with an existing customer
+    needs the name, and a renewal's tax is worked out from the address saved on the customer.
+    """
+    monkeypatch.setattr(billing_module.cfg, "stripe_automatic_tax_enabled", True)
+    create_kwargs = await _checkout_create_kwargs(app, monkeypatch)
+    assert create_kwargs["automatic_tax"] == {"enabled": True}
+    assert create_kwargs["tax_id_collection"] == {"enabled": True}
+    assert create_kwargs["customer_update"] == {"name": "auto", "address": "auto"}
+    assert create_kwargs["invoice_creation"] == {
+        "enabled": True,
+        "invoice_data": {
+            "description": "pyvar Pro subscription",
+            "metadata": {"service": "pyvar"},
+        },
+    }
+    # unchanged by the flag: the customer, the marker, and Adaptive Pricing left on
+    assert create_kwargs["customer"] == "cus_tax"
+    assert create_kwargs["metadata"] == {"service": "pyvar"}
+    assert "adaptive_pricing" not in create_kwargs
+
+
 @pytest.mark.asyncio
 async def test_checkout_returns_404_when_user_row_missing(app, monkeypatch):
     configure_billing(monkeypatch)
