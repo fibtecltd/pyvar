@@ -9,14 +9,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Stripe Tax, VAT IDs and an invoice on the Pro Checkout, off until switched on (`feat(billing)`)** — With the new
+- **Stripe Tax and VAT IDs on the Pro Checkout, off until switched on (`feat(billing)`)** — With the new
   setting `stripe_automatic_tax_enabled` (environment variable `STRIPE_AUTOMATIC_TAX_ENABLED`, set by `api_stack.py` only
   where the CDK flag of the same name is true, and true in no environment yet) `POST /billing/checkout` also sends
-  `automatic_tax`, `tax_id_collection`, `customer_update` (name and address `auto`, because pyvar always passes an existing
-  customer) and `invoice_creation`, as etlgen, TenGrade and DocuGen do for their payments. The Price stays tax-inclusive
+  `automatic_tax`, `tax_id_collection` and `customer_update` (name and address `auto`, because pyvar always passes an existing
+  customer). `invoice_creation`, which the other three services send, is not sent: Stripe refuses it in subscription mode and
+  makes the invoice of every subscription payment by itself (seen on the sandbox, 2026-11-24). The Price stays tax-inclusive
   (owner's decision D1), so no `tax_behavior` is sent. With the flag off the session is unchanged. Stripe needs the full
-  head-office address in Stripe Tax first, in test mode and again in live mode. Not verified: that Stripe accepts
-  `invoice_creation` in subscription mode (see `docs/plan-pro-tier-stripe.md` section 10 for the check and the way back).
+  head-office address in Stripe Tax first, in test mode and again in live mode (turn-on steps: `docs/plan-pro-tier-stripe.md`
+  section 10).
   Tests: `tests/test_billing.py`, `tests/test_cdk_stripe_tax_flag.py`.
 - **The no-sign-up trial lane (API), off until switched on** — `POST /api/v1/trial/challenge`, `/trial/ticket` and
   `/trial/run/{function}` give a first-time plugin user a few results with no registration: a signed trial ticket

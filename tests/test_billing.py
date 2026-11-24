@@ -274,10 +274,8 @@ async def test_checkout_sends_no_tax_parameters_while_the_flag_is_off(app, monke
 
 
 @pytest.mark.asyncio
-async def test_checkout_sends_stripe_tax_tax_ids_and_an_invoice_when_the_flag_is_on(
-    app, monkeypatch
-):
-    """The four parameters, for an existing customer: tax, VAT IDs, the saved name and address, an invoice.
+async def test_checkout_sends_stripe_tax_and_tax_ids_when_the_flag_is_on(app, monkeypatch):
+    """The three parameters, for an existing customer: tax, VAT IDs, the saved name and address.
 
     `customer_update` carries both name and address because tax_id_collection with an existing customer
     needs the name, and a renewal's tax is worked out from the address saved on the customer.
@@ -287,13 +285,8 @@ async def test_checkout_sends_stripe_tax_tax_ids_and_an_invoice_when_the_flag_is
     assert create_kwargs["automatic_tax"] == {"enabled": True}
     assert create_kwargs["tax_id_collection"] == {"enabled": True}
     assert create_kwargs["customer_update"] == {"name": "auto", "address": "auto"}
-    assert create_kwargs["invoice_creation"] == {
-        "enabled": True,
-        "invoice_data": {
-            "description": "pyvar Pro subscription",
-            "metadata": {"service": "pyvar"},
-        },
-    }
+    # Stripe refuses invoice_creation in subscription mode (the invoice is created automatically): never sent
+    assert "invoice_creation" not in create_kwargs
     # unchanged by the flag: the customer, the marker, and Adaptive Pricing left on
     assert create_kwargs["customer"] == "cus_tax"
     assert create_kwargs["metadata"] == {"service": "pyvar"}

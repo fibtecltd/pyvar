@@ -113,8 +113,6 @@ NOT_CONFIGURED_DETAIL = "Billing is not configured on this deployment."
 # pyvar's own webhook does not read it: it finds the user by Stripe customer id, so another service's
 # event is an unknown customer and changes nothing.
 STRIPE_SERVICE = "pyvar"
-# What a customer reads on the invoice of a Pro payment (invoice_creation, below).
-INVOICE_DESCRIPTION = "pyvar Pro subscription"
 
 
 def _stripe_client() -> Any:
@@ -130,7 +128,7 @@ def _stripe_client() -> Any:
 
 
 def _tax_checkout_params() -> dict[str, Any]:
-    """The Checkout parameters for Stripe Tax, tax IDs and an invoice: empty unless `stripe_automatic_tax_enabled`.
+    """The Checkout parameters for Stripe Tax and tax IDs: empty unless `stripe_automatic_tax_enabled`.
 
     Why a flag: Stripe Tax needs the full head-office address before it will calculate anything, in test mode
     and again in live mode, so the parameters are sent only in an environment where the owner has set that up
@@ -144,10 +142,10 @@ def _tax_checkout_params() -> dict[str, Any]:
     - `tax_id_collection` with an existing Customer needs `customer_update[name]=auto` (Stripe refuses it
       otherwise, as developers report; the API reference does not say so).
 
-    `invoice_creation` is the owner's requirement, as in etlgen, TenGrade and DocuGen. Stripe's reference
-    describes it for one-time payments and says subscriptions generate invoices automatically, so that Stripe
-    accepts it in subscription mode is NOT VERIFIED: it must be seen on dev before the flag is turned on, and if
-    Stripe refuses it, that one key is removed (the invoice of each payment exists anyway).
+    `invoice_creation` is deliberately NOT sent, although etlgen, TenGrade and DocuGen send it: in subscription
+    mode Stripe refuses it ("You can only enable invoice creation when `mode` is set to `payment`. Invoices are
+    created automatically when `mode` is set to `subscription`", seen on the sandbox on 2026-11-24), and every
+    subscription payment gets its invoice from Stripe anyway.
     """
     if not cfg.stripe_automatic_tax_enabled:
         return {}
@@ -155,13 +153,6 @@ def _tax_checkout_params() -> dict[str, Any]:
         "automatic_tax": {"enabled": True},
         "tax_id_collection": {"enabled": True},
         "customer_update": {"name": "auto", "address": "auto"},
-        "invoice_creation": {
-            "enabled": True,
-            "invoice_data": {
-                "description": INVOICE_DESCRIPTION,
-                "metadata": {"service": STRIPE_SERVICE},
-            },
-        },
     }
 
 

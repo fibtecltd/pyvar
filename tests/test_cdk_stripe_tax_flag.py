@@ -1,7 +1,7 @@
 """tests/test_cdk_stripe_tax_flag.py — Stripe Tax on the Pro Checkout is off everywhere, by one environment entry.
 
 Reasoning:
-- The Checkout sends automatic_tax, tax_id_collection, customer_update and invoice_creation only when the app's
+- The Checkout sends automatic_tax, tax_id_collection and customer_update only when the app's
   `stripe_automatic_tax_enabled` setting is true (docs/plan-pro-tier-stripe.md section 10). Stripe Tax needs the
   full head-office address before that works, in test mode and again in live mode, so no environment has it on
   yet. pyvar-cdk/config.py carries a per-environment `stripe_automatic_tax_enabled`, and api_stack.py turns it
