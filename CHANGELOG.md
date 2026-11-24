@@ -15,6 +15,9 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `STRIPE_CHECKOUT_RESTRICTED`; CDK flag of the same name, true in the "prod" override only, set on the API task only
   where true) makes `POST /billing/checkout` start a checkout only for accounts an operator put in the Redis set
   `pyvar:billing:checkout:allow` (`api/billing_gate.py`); everyone else gets the "not configured" 503 they get today.
+  Accounts are managed with the new operator command `scripts/billing_checkout_allow.py` (`allow`, `remove`, `list`,
+  `clear`; a dry run unless `--yes`), which calls the admin route `/internal/admin/billing/checkout-allow` and finds the
+  account by its address, so it needs no Redis access and only the opaque account id is stored.
   It fails closed (Redis unreadable means nobody). Dev and a new environment stay open. Remove the prod line when Stripe
   goes live there. Runbook: `docs/plan-pro-tier-stripe.md` section 11. Tests: `tests/test_billing_gate.py`,
   `tests/test_billing.py`, `tests/test_cdk_stripe_checkout_gate.py`.

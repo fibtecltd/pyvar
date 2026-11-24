@@ -276,13 +276,14 @@ AWS:        CELERY_BROKER_URL = sqs://
   section 10.
 - While Stripe is in test mode on prod the Pro checkout is restricted: `stripe_checkout_restricted` (STRIPE_CHECKOUT_RESTRICTED,
   set by api_stack.py only where the CDK flag is true: prod) lets only accounts in the Redis set
-  pyvar:billing:checkout:allow (users.external_id, managed by hand with redis-cli) start a checkout; the others get the
+  pyvar:billing:checkout:allow (users.external_id, managed with scripts/billing_checkout_allow.py, which needs no Redis
+  access) start a checkout; the others get the
   "not configured" 503. It fails closed (api/billing_gate.py). The webhook has no live/test check and the test card is public,
   so never load test-mode Stripe secrets on a public deployment where this flag is off. Remove the prod line only when Stripe
   goes live there. Runbook: docs/plan-pro-tier-stripe.md section 11.
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
   10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
-  scripts/account_export.py, scripts/audit_cleanup.py). They must
+  scripts/account_export.py, scripts/audit_cleanup.py, scripts/billing_checkout_allow.py). They must
   REQUIRE `aud` to be present and
   equal (python-jose lets a token with no `aud` through a decoder that names one), so a
   session JWT, an API key, an "internal" JWT and a stream token are all refused. Every

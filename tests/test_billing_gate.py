@@ -3,7 +3,7 @@
 Reasoning:
 - pyvar's webhook has no live/test check and the dashboard offers "Upgrade to Pro" to every free account, so on a
   deployment whose Stripe keys are test keys anyone could pay the public test card and become Pro. Where
-  `stripe_checkout_restricted` is on, only accounts in a Redis set an operator manages by hand may start a checkout.
+  `stripe_checkout_restricted` is on, only accounts in a Redis set an operator manages (scripts/billing_checkout_allow.py) may start a checkout.
 - It FAILS CLOSED: Redis unconfigured or unreadable means nobody. With the setting off (dev, a new environment) the
   gate must not touch Redis at all, so a Redis outage cannot take checkout down where it is not needed.
 - The key name is part of the operator's procedure (docs/plan-pro-tier-stripe.md section 11), so it is pinned.

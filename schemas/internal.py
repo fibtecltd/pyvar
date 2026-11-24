@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class SuppressEmailRequest(BaseModel):
@@ -199,3 +199,44 @@ class AccountExportResponse(BaseModel):
     total: int
     next_offset: int | None
     not_included: list[str]
+
+
+# ── /internal/admin/billing/checkout-allow (docs/plan-pro-tier-stripe.md section 11) ────────────────────────
+
+
+class CheckoutAllowRequest(BaseModel):
+    """Manage the set of accounts allowed to start a Pro checkout while Stripe is in test mode (api/billing_gate.py).
+
+    `allow` and `remove` name an account by its address (looked up here, case-insensitively); `list` and `clear` take
+    none. A dry run unless `apply` (list never changes anything).
+    """
+
+    action: Literal["allow", "remove", "list", "clear"]
+    email: EmailStr | None = None
+    apply: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, v: str | None) -> str | None:
+        return None if v is None else v.strip().lower()
+
+    @model_validator(mode="after")
+    def _email_only_where_it_belongs(self) -> CheckoutAllowRequest:
+        if self.action in ("allow", "remove") and self.email is None:
+            raise ValueError("allow and remove need an email")
+        if self.action in ("list", "clear") and self.email is not None:
+            raise ValueError("list and clear take no email")
+        return self
+
+
+class CheckoutAllowResponse(BaseModel):
+    """What was or would be done. Names an account by its identifier, never the address."""
+
+    action: str
+    applied: bool
+    restricted: bool  # whether this deployment's gate is on (stripe_checkout_restricted)
+    account_id: str | None = None
+    tier: str | None = None
+    was_allowed: bool | None = None  # allow and remove: whether the account was in the set before
+    members: int  # accounts in the set after the action (or now, for a dry run)
+    account_ids: list[str] = []  # list only

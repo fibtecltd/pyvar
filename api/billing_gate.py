@@ -4,11 +4,16 @@ Why: pyvar's Stripe webhook acts on every verified checkout.session.completed an
 dashboard shows "Upgrade to Pro" to every signed-in free account. With test-mode Stripe keys on prod, anyone could
 pay with Stripe's public test card and get Pro's limits for nothing, and a test subscription never lapses by itself.
 So where `stripe_checkout_restricted` is true (prod, until Stripe goes live), a checkout may be started only by an
-account an operator has put in a Redis set, by hand and with no deploy:
+account an operator has put in a Redis set, with no deploy. The operator's command is
+scripts/billing_checkout_allow.py (it calls /internal/admin/billing/checkout-allow with an admin token, looks the
+account up by its address, and needs no Redis access):
 
-    redis-cli SADD     pyvar:billing:checkout:allow <account id>
-    redis-cli SREM     pyvar:billing:checkout:allow <account id>
-    redis-cli SMEMBERS pyvar:billing:checkout:allow
+    python scripts/billing_checkout_allow.py --env prod --yes-prod allow  --email <address> --yes
+    python scripts/billing_checkout_allow.py --env prod --yes-prod remove --email <address> --yes
+    python scripts/billing_checkout_allow.py --env prod --yes-prod list
+    python scripts/billing_checkout_allow.py --env prod --yes-prod clear --yes
+
+(Where Redis can be reached, the same set is SADD, SREM, SMEMBERS and DEL on pyvar:billing:checkout:allow.)
 
 The account id is users.external_id, the `sub` of the account's session token. It is an opaque id, not an address.
 
@@ -32,7 +37,7 @@ from config import get_settings
 logger = structlog.get_logger()
 cfg = get_settings()
 
-# A Redis set of account ids (users.external_id). Managed by hand; see the module docstring.
+# A Redis set of account ids (users.external_id). Managed with scripts/billing_checkout_allow.py; see the module docstring.
 CHECKOUT_ALLOW_KEY = "pyvar:billing:checkout:allow"
 
 
@@ -41,6 +46,58 @@ def _redis() -> Any:
     from api.routes.caching import _get_redis_client
 
     return _get_redis_client()
+
+
+class AllowListUnavailable(Exception):
+    """The allow set could not be reached or read. The admin route answers 503; nothing was changed."""
+
+
+def _admin_client() -> Any:
+    """The Redis client for the operator's commands. Unlike the checkout check, a failure here is an error to show."""
+    client = _redis()
+    if client is None:
+        raise AllowListUnavailable("no Redis client")
+    return client
+
+
+async def allow_list_members() -> list[str]:
+    """Every account id in the allow set, sorted. Raises AllowListUnavailable."""
+    try:
+        return sorted(await _admin_client().smembers(CHECKOUT_ALLOW_KEY))
+    except AllowListUnavailable:
+        raise
+    except Exception as exc:  # any storage failure is "unavailable": the operator is told
+        raise AllowListUnavailable(type(exc).__name__) from exc
+
+
+async def allow_list_add(user_id: str) -> None:
+    """Put an account id in the allow set. Raises AllowListUnavailable."""
+    try:
+        await _admin_client().sadd(CHECKOUT_ALLOW_KEY, user_id)
+    except AllowListUnavailable:
+        raise
+    except Exception as exc:
+        raise AllowListUnavailable(type(exc).__name__) from exc
+
+
+async def allow_list_remove(user_id: str) -> None:
+    """Take an account id out of the allow set. Raises AllowListUnavailable."""
+    try:
+        await _admin_client().srem(CHECKOUT_ALLOW_KEY, user_id)
+    except AllowListUnavailable:
+        raise
+    except Exception as exc:
+        raise AllowListUnavailable(type(exc).__name__) from exc
+
+
+async def allow_list_clear() -> None:
+    """Empty the allow set: every account is refused at once. Raises AllowListUnavailable."""
+    try:
+        await _admin_client().delete(CHECKOUT_ALLOW_KEY)
+    except AllowListUnavailable:
+        raise
+    except Exception as exc:
+        raise AllowListUnavailable(type(exc).__name__) from exc
 
 
 async def checkout_allowed(user_id: str) -> bool:
