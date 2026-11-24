@@ -9,6 +9,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **A checkout gate for prod while Stripe is in test mode there (`feat(billing)`)** — The Stripe webhook has no live/test
+  check and the dashboard offers "Upgrade to Pro" to every free account, so test-mode keys on a public deployment would let
+  anyone pay Stripe's public test card and become Pro for nothing. The new setting `stripe_checkout_restricted` (env
+  `STRIPE_CHECKOUT_RESTRICTED`; CDK flag of the same name, true in the "prod" override only, set on the API task only
+  where true) makes `POST /billing/checkout` start a checkout only for accounts an operator put in the Redis set
+  `pyvar:billing:checkout:allow` (`api/billing_gate.py`); everyone else gets the "not configured" 503 they get today.
+  It fails closed (Redis unreadable means nobody). Dev and a new environment stay open. Remove the prod line when Stripe
+  goes live there. Runbook: `docs/plan-pro-tier-stripe.md` section 11. Tests: `tests/test_billing_gate.py`,
+  `tests/test_billing.py`, `tests/test_cdk_stripe_checkout_gate.py`.
 - **Stripe Tax and VAT IDs on the Pro Checkout, off until switched on (`feat(billing)`)** — With the new
   setting `stripe_automatic_tax_enabled` (environment variable `STRIPE_AUTOMATIC_TAX_ENABLED`, set by `api_stack.py` only
   where the CDK flag of the same name is true, and true in no environment yet) `POST /billing/checkout` also sends

@@ -62,6 +62,13 @@ class PyvarConfig:
     # override, and tests/test_cdk_stripe_tax_flag.py is changed in the same commit.
     stripe_automatic_tax_enabled: bool = False
 
+    # Who may start a Pro checkout (docs/plan-pro-tier-stripe.md section 11, api/billing_gate.py). The app reads it as
+    # STRIPE_CHECKOUT_RESTRICTED (config.py stripe_checkout_restricted); api_stack.py sets the variable only when this
+    # is True. True in "prod" while Stripe is in test mode there: the webhook has no live/test check, so without the
+    # gate anyone could pay the public test card and become Pro. When Stripe goes live on prod, remove the prod line
+    # and change tests/test_cdk_stripe_checkout_gate.py in the same commit.
+    stripe_checkout_restricted: bool = False
+
     # SES EmailIdentity domain. Defaults to the bare domain (dev already
     # verified this one — see ses_stack.py). SES allows only one identity
     # per literal domain per account+region, so any other environment that
@@ -289,6 +296,9 @@ class PyvarConfig:
             ),
             "prod": dict(
                 vpc_nat_gateways=2,  # 2 NAT GWs for full AZ independence
+                # Stripe is in TEST mode on prod until Fibtec goes live: only accounts an operator allows may start
+                # a checkout (api/billing_gate.py). Remove this line when Stripe goes live on prod.
+                stripe_checkout_restricted=True,
                 api_min_tasks=2,
                 api_max_tasks=20,
                 # Portal assistant menus (release 1: menus only). Decided by Filippo on

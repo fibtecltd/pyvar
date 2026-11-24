@@ -80,6 +80,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
+from api.billing_gate import checkout_allowed
 from api.middleware.auth import TokenPayload, create_access_token, get_current_user
 from api.middleware.billing_lifecycle import (
     DOWNGRADE_SUBSCRIPTION_CANCELLED,
@@ -247,11 +248,19 @@ async def create_checkout(
     hosted Checkout URL for the client to redirect the browser to.
 
     Refused with 409 for an account that is already Pro (a second subscription would be charged twice) and for
-    enterprise or internal accounts (a custom plan: contact us).
+    enterprise or internal accounts (a custom plan: contact us). Where `stripe_checkout_restricted` is on (prod, while
+    Stripe is in test mode there) only an account an operator allowed gets this far; the others get the "not
+    configured" 503 (api/billing_gate.py).
     """
     unavailable = _billing_unavailable()
     if unavailable is not None:
         return unavailable
+    if not await checkout_allowed(user.user_id):
+        logger.info("billing_checkout_not_allowed", user_id=user.user_id)
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": NOT_CONFIGURED_DETAIL},
+        )
     stripe = _stripe_client()
 
     async with get_sessionmaker()() as session:

@@ -383,6 +383,12 @@ class ApiStack(Stack):
                     if cfg.stripe_automatic_tax_enabled
                     else {}
                 ),
+                # Who may start a Pro checkout: the app's stripe_checkout_restricted (config.py). Set only
+                # where cfg.stripe_checkout_restricted is True (prod, while Stripe is in test mode there), so
+                # every other task definition is unchanged and the app's default (open) applies there.
+                **(
+                    {"STRIPE_CHECKOUT_RESTRICTED": "true"} if cfg.stripe_checkout_restricted else {}
+                ),
             },
             secrets={
                 # Secrets Manager values injected at task start (not in image).

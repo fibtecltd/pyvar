@@ -368,6 +368,11 @@ class Settings(BaseSettings):
     # _tax_checkout_params). Off by default: Stripe needs the full head-office address in Stripe Tax first,
     # in test mode and again in live mode, so it is switched on per environment, after that.
     stripe_automatic_tax_enabled: bool = False
+    # Who may start a Pro checkout (api/billing_gate.py). When true only the accounts an operator put in the Redis
+    # set pyvar:billing:checkout:allow may; everyone else gets the "billing is not configured" 503. True on prod
+    # while Stripe is in test mode there, because the webhook has no live/test check and the test card is public.
+    # Off by default, so dev and a new environment are open.
+    stripe_checkout_restricted: bool = False
 
     # ── Market data adapter (item 6, MD-2) ──────────────────────────────────────
     # Config-driven provider selection (ingestion/market_data/registry.py) —

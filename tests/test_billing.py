@@ -293,6 +293,74 @@ async def test_checkout_sends_stripe_tax_and_tax_ids_when_the_flag_is_on(app, mo
     assert "adaptive_pricing" not in create_kwargs
 
 
+class _AllowSet:
+    """Just the one Redis command the checkout gate uses (api/billing_gate.py)."""
+
+    def __init__(self, *members: str) -> None:
+        self.members = set(members)
+
+    async def sismember(self, key: str, member: str) -> bool:
+        assert key == "pyvar:billing:checkout:allow"
+        return member in self.members
+
+
+async def _checkout_while_restricted(app, monkeypatch, redis_client, *, user_id: str):
+    """POST /billing/checkout with the restriction on; return the response and the Stripe fake."""
+    configure_billing(monkeypatch)
+    monkeypatch.setattr(billing_module.cfg, "stripe_checkout_restricted", True)
+    monkeypatch.setattr("api.billing_gate._redis", lambda: redis_client)
+    user_row = User(
+        external_id=user_id, email="gate@example.com", tier="free", stripe_customer_id="cus_gate"
+    )
+    session = FakeAsyncSession(lookup_result=user_row)
+    fake_stripe = MagicMock()
+    fake_stripe.checkout.Session.create.return_value = MagicMock(
+        url="https://checkout.stripe.com/session/gate"
+    )
+    with (
+        patch_sessionmaker(session),
+        patch("api.routes.billing._stripe_client", return_value=fake_stripe),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/v1/billing/checkout", headers=auth_header(user_id=user_id)
+            )
+    return resp, fake_stripe
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_is_refused_for_an_account_not_in_the_allow_set(
+    app, monkeypatch
+):
+    """The same returned 503 as "billing is not configured"; Stripe is never called, no customer is made."""
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, _AllowSet("someone-else"), user_id="ext-gate-1"
+    )
+    assert resp.status_code == 503
+    assert resp.json() == {"detail": billing_module.NOT_CONFIGURED_DETAIL}
+    fake_stripe.checkout.Session.create.assert_not_called()
+    fake_stripe.Customer.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_is_refused_when_redis_is_unavailable(app, monkeypatch):
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, None, user_id="ext-gate-2"
+    )
+    assert resp.status_code == 503
+    fake_stripe.checkout.Session.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_restricted_checkout_goes_ahead_for_an_account_in_the_allow_set(app, monkeypatch):
+    resp, fake_stripe = await _checkout_while_restricted(
+        app, monkeypatch, _AllowSet("ext-gate-3"), user_id="ext-gate-3"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["checkout_url"] == "https://checkout.stripe.com/session/gate"
+    fake_stripe.checkout.Session.create.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_checkout_returns_404_when_user_row_missing(app, monkeypatch):
     configure_billing(monkeypatch)
