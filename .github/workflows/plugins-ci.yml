@@ -24,7 +24,7 @@ name: pyvar plugins CI
 
 on:
   pull_request:
-    branches: [master, develop]
+    branches: [master, develop, plugins-release]
     paths:
       - ".claude/skills/**"
       - "plugins/**"

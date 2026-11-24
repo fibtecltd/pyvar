@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Iterator, Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
@@ -53,6 +54,7 @@ TIDY = "/api/v1/internal/admin/education/tidy"
 ERASE = "/api/v1/internal/admin/accounts/erase"
 EXPORT = "/api/v1/internal/admin/accounts/export"
 CLEANUP = "/api/v1/internal/admin/audit/cleanup"
+CHECKOUT_ALLOW = "/api/v1/internal/admin/billing/checkout-allow"
 
 
 def admin_token(**overrides: Any) -> str:
@@ -72,7 +74,29 @@ def bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-ADMIN = bearer(admin_token())
+class _FreshAdminHeaders(Mapping[str, str]):
+    """Request headers with an admin token minted at the moment they are read.
+
+    This used to be `bearer(admin_token())` built once when the file is imported. An admin token lives 600 s, and
+    pytest imports every test file before it runs any, so on a slow run (Python 3.12 in CI takes about 17 minutes)
+    the tests that came after the 10-minute mark were refused with a 401. Four other test files import ADMIN
+    too (account export, admin tidy and erase, audit clean-up, the billing allow list); all of them now get a
+    token that is valid when the request is made.
+    """
+
+    def __getitem__(self, key: str) -> str:
+        if key != "Authorization":
+            raise KeyError(key)
+        return bearer(admin_token())["Authorization"]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(("Authorization",))
+
+    def __len__(self) -> int:
+        return 1
+
+
+ADMIN = _FreshAdminHeaders()
 
 
 @pytest_asyncio.fixture
@@ -222,6 +246,7 @@ async def test_every_other_credential_is_refused_on_every_admin_route(
         ("POST", ERASE, {"email": "a@uni.ac.uk"}),
         ("POST", EXPORT, {"email": "a@uni.ac.uk", "section": "account"}),
         ("POST", CLEANUP, {}),
+        ("POST", CHECKOUT_ALLOW, {"action": "list"}),
     ):
         response = await client.request(method, path, json=payload, headers=bearer(token))
         assert response.status_code == 401, (kind, path, response.text)

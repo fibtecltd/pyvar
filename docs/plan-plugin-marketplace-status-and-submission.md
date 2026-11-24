@@ -166,6 +166,8 @@ finding comes from the directory's safety scan and policy review, which the comm
 so the test in `tests/test_plugin_directory_policy.py` stands in for it (no `PYVAR_API_KEY`,
 `os.environ` or `$PYVAR` in a domain skill).
 
+**Which branch:** the 13 listings follow `plugins-release`, not `master`; advance it only as described in `docs/plugins-release.md`.
+
 The directory's notes say a plugin's icon becomes its listing icon only the first time the plugin
 is saved or submitted in the developer portal, and that adding or changing it later does not
 change it. A plugin already saved there needs its icon set in the portal itself.

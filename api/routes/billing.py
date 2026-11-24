@@ -80,6 +80,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
+from api.billing_gate import checkout_allowed
 from api.middleware.auth import TokenPayload, create_access_token, get_current_user
 from api.middleware.billing_lifecycle import (
     DOWNGRADE_SUBSCRIPTION_CANCELLED,
@@ -125,6 +126,35 @@ def _stripe_client() -> Any:
 
     stripe.api_key = cfg.stripe_secret_key
     return stripe
+
+
+def _tax_checkout_params() -> dict[str, Any]:
+    """The Checkout parameters for Stripe Tax and tax IDs: empty unless `stripe_automatic_tax_enabled`.
+
+    Why a flag: Stripe Tax needs the full head-office address before it will calculate anything, in test mode
+    and again in live mode, so the parameters are sent only in an environment where the owner has set that up
+    (docs/plan-pro-tier-stripe.md section 10). With the flag off the session is exactly what it was before.
+
+    The Price is created in Stripe with tax behaviour inclusive (owner's decision D1), so no tax_behavior is sent.
+    pyvar always passes an existing Customer, which has two consequences, both from Stripe's documentation
+    (not yet seen on our account):
+    - `customer_update[address]=auto` saves the billing address entered at checkout onto the Customer, which is
+      what a renewal's tax is worked out from; without it Checkout does not override the Customer's address.
+    - `tax_id_collection` with an existing Customer needs `customer_update[name]=auto` (Stripe refuses it
+      otherwise, as developers report; the API reference does not say so).
+
+    `invoice_creation` is deliberately NOT sent, although etlgen, TenGrade and DocuGen send it: in subscription
+    mode Stripe refuses it ("You can only enable invoice creation when `mode` is set to `payment`. Invoices are
+    created automatically when `mode` is set to `subscription`", seen on the sandbox on 2026-11-24), and every
+    subscription payment gets its invoice from Stripe anyway.
+    """
+    if not cfg.stripe_automatic_tax_enabled:
+        return {}
+    return {
+        "automatic_tax": {"enabled": True},
+        "tax_id_collection": {"enabled": True},
+        "customer_update": {"name": "auto", "address": "auto"},
+    }
 
 
 def _billing_unavailable() -> JSONResponse | None:
@@ -218,11 +248,19 @@ async def create_checkout(
     hosted Checkout URL for the client to redirect the browser to.
 
     Refused with 409 for an account that is already Pro (a second subscription would be charged twice) and for
-    enterprise or internal accounts (a custom plan: contact us).
+    enterprise or internal accounts (a custom plan: contact us). Where `stripe_checkout_restricted` is on (prod, while
+    Stripe is in test mode there) only an account an operator allowed gets this far; the others get the "not
+    configured" 503 (api/billing_gate.py).
     """
     unavailable = _billing_unavailable()
     if unavailable is not None:
         return unavailable
+    if not await checkout_allowed(user.user_id):
+        logger.info("billing_checkout_not_allowed", user_id=user.user_id)
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": NOT_CONFIGURED_DETAIL},
+        )
     stripe = _stripe_client()
 
     async with get_sessionmaker()() as session:
@@ -268,6 +306,7 @@ async def create_checkout(
         # subscription.*, and the invoices' subscription details) carry the marker.
         metadata={"service": STRIPE_SERVICE},
         subscription_data={"metadata": {"service": STRIPE_SERVICE}},
+        **_tax_checkout_params(),
         success_url=(
             f"{cfg.public_base_url}/dashboard.html" "?checkout_session_id={CHECKOUT_SESSION_ID}"
         ),
