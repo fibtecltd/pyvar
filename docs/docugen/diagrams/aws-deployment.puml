@@ -1,0 +1,40 @@
+@startuml
+title pyvar AWS stacks, from pyvar-cdk/app.py
+skinparam componentStyle rectangle
+
+node "us-east-1" {
+  [EdgeStack: CloudFront, WAF, Route53] as edge
+}
+
+node "primary region (cfg.region)" {
+  [NetworkStack: VPC, subnets, security groups, VPC endpoints] as network
+  [ApiStack: ECS Fargate FastAPI behind an ALB] as api
+  [ComputeStack: EC2 Spot ASG Celery workers] as compute
+  [QueueStack: SQS FIFO job queue and DLQ] as queue
+  database "DataStack: Aurora SV2, ElastiCache Serverless, S3" as data
+  [PublicDataStack: status.json and demo-result.json publisher] as pub
+  [TokenReportStack: daily token-issuance email] as tokrep
+  [SesStack and SesEventsStack: email and bounce handling] as ses
+  [AlbWafStack: regional WAF on the ALB] as albwaf
+  [AlertsStack and ObservabilityStack] as ops
+  [AmiStack: Image Builder for the Numba worker AMI] as ami
+  [LocalPackageStack: pyvar-local build and release] as localpkg
+  [PipelineStack: CodePipeline CI/CD] as pipe
+}
+
+edge --> api : origin via ALB
+api --> data
+api --> queue
+compute --> queue
+compute --> data
+data ..> network : placed in the VPC
+queue ..> network : dependency
+pub ..> api : uses api.jwt_secret
+tokrep ..> api : uses api.jwt_secret
+tokrep ..> ses
+api ..> ses
+albwaf ..> api
+ops ..> api
+ops ..> compute
+pipe ..> api : deploys application stacks
+@enduml

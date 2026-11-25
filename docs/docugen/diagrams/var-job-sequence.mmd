@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant C as Client
+    participant A as API (api/routes/var.py)
+    participant P as Postgres (var_jobs)
+    participant B as Broker (SQS FIFO or Redis)
+    participant W as Worker (tasks/var_task.py)
+    participant E as engine/montecarlo.py
+    participant S as S3
+    participant R as Redis (result backend, job-done channel)
+
+    C->>A: POST /api/v1/var/compute with Bearer credential
+    Note over A: get_current_user, enforce_compute_rate_limit, cache_check
+    Note over A: 403 if n_simulations is above the tier cap
+    A->>P: INSERT var_jobs row, status pending
+    A->>B: compute_var_task.apply_async with task_id
+    A-->>C: 202 JobResponse with task_id
+    B->>W: deliver message
+    W->>E: run_monte_carlo_var
+    E-->>W: var_pct, cvar_pct, loss_dist and more
+    opt n_simulations above s3_result_offload_threshold
+        W->>S: write_result_to_s3, loss_dist emptied
+    end
+    W->>P: UPDATE var_jobs to success or failure
+    W->>R: publish on pyvar:var-job-done channel
+    W-->>R: Celery stores the task result
+    C->>A: GET /api/v1/var/result/task_id
+    A->>R: read state and result from the Celery backend
+    A-->>C: JobResultResponse with status and result
