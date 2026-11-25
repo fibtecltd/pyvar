@@ -74,6 +74,91 @@ TRIAL_POW_FAILURE_MIN_ATTEMPTS = (
     20  # ...but only once there are at least this many attempts in the hour
 )
 
+# Log lines the typed assistant writes (JSON key `event`) -> the suffix of the metric that counts them. Keep in step
+# with api/assistant/*.py: tests/test_cdk_assistant_infra.py compares the two.
+ASSISTANT_LOG_EVENTS = {
+    "assistant_client_unavailable": "client-unavailable",
+    "assistant_store_unavailable": "store-unavailable",
+    "assistant_ask_failed": "ask-failed",
+    "assistant_writer_degraded": "writer-degraded",
+    "assistant_watchdog_error": "watchdog-error",
+    "assistant_spend_not_recorded": "spend-not-recorded",
+    "assistant_budget_high": "budget-high",
+    "assistant_pinned": "pinned",
+}
+# (construct id, alarm name suffix, event counted, threshold: this many or more, period in minutes, description)
+ASSISTANT_ALARMS = (
+    (
+        "AssistantClientUnavailableAlarm",
+        "client-unavailable",
+        "assistant_client_unavailable",
+        1,
+        5,
+        "The typed assistant could not build its model client (no Anthropic key, or the SDK is missing): "
+        "every question is answered 503.",
+    ),
+    (
+        "AssistantStoreUnavailableAlarm",
+        "store-unavailable",
+        "assistant_store_unavailable",
+        1,
+        5,
+        "The typed assistant could not read its spend and kill-switch keys in Redis, so it refuses every "
+        "question (it fails closed).",
+    ),
+    (
+        "AssistantAskFailedAlarm",
+        "ask-failed",
+        "assistant_ask_failed",
+        3,
+        5,
+        "Three or more typed questions ended in an unexpected error in five minutes.",
+    ),
+    (
+        "AssistantWriterDegradedAlarm",
+        "writer-degraded",
+        "assistant_writer_degraded",
+        1,
+        5,
+        "The watchdog degraded a writer model: its audited answers were flagged too often, and its "
+        "questions now get the fixed text.",
+    ),
+    (
+        "AssistantWatchdogErrorsAlarm",
+        "watchdog-errors",
+        "assistant_watchdog_error",
+        5,
+        5,
+        "The watchdog logged five or more errors in five minutes. It fails open, so answers are unchanged, "
+        "but nothing is being audited or pinned.",
+    ),
+    (
+        "AssistantSpendNotRecordedAlarm",
+        "spend-not-recorded",
+        "assistant_spend_not_recorded",
+        3,
+        5,
+        "Three or more answers were served whose cost could not be recorded: the daily spend cap is "
+        "under-counting.",
+    ),
+    (
+        "AssistantBudgetHighAlarm",
+        "budget-high",
+        "assistant_budget_high",
+        1,
+        5,
+        "The typed assistant's spend today is at or above 80% of its daily cap.",
+    ),
+    (
+        "AssistantPinnedAlarm",
+        "pinned",
+        "assistant_pinned",
+        1,
+        60,
+        "The watchdog pinned a function to its fixed text (information, not an outage).",
+    ),
+)
+
 # infra/172: mirrors pipeline_stack.py's stack_name= pinning. Without an
 # explicit policy_name=, CDK derives one from the FULL construct path
 # (including any Stage/Pipeline nesting above this stack), so wrapping this
@@ -272,6 +357,19 @@ class ApiStack(Stack):
         )
         sentry_secret.grant_read(task_role)
 
+        # The typed assistant's Anthropic key (api/assistant/key.py) — externally managed (the owner creates it once
+        # per environment; ideally a dedicated workspace key with a spend limit set on Anthropic's side, as
+        # fibtec-docugen does), same from_secret_name_v2 + task-role treatment as the Sentry and Stripe secrets, and
+        # for the same reason: NOT injected via ECS `secrets={}`, because a missing or unreadable secret would then
+        # stop every API task launching, compute routes included, for a feature that is off. The app reads it at
+        # call time (cached 60 s, as fibtec-etlgen does), so a missing secret means "the assistant is not set up"
+        # (503) and nothing else, and `put-secret-value` is the whole rotation. The grant exists in every
+        # environment; the secret itself need not.
+        anthropic_secret = cdk.aws_secretsmanager.Secret.from_secret_name_v2(
+            self, "AnthropicSecret", f"pyvar/{cfg.env_name}/anthropic-api-key"
+        )
+        anthropic_secret.grant_read(task_role)
+
         # Stripe (item 5, Phase A billing — api/routes/billing.py) —
         # externally managed (not CDK-generated), same from_secret_name_v2
         # pattern as sentry_secret above, and now (infra/341) the SAME
@@ -375,6 +473,13 @@ class ApiStack(Stack):
                 # cfg.education_tier_enabled is True (dev for now), so every other task definition is
                 # unchanged and the app's default (off) applies there.
                 **({"EDUCATION_TIER_ENABLED": "true"} if cfg.education_tier_enabled else {}),
+                # Typed assistant and its watchdog: the app's assistant_typed_enabled and
+                # assistant_watchdog_enabled (config.py). Set only where the CDK flag is True (nowhere yet), so
+                # every task definition is unchanged and the app's default (off) applies.
+                **({"ASSISTANT_TYPED_ENABLED": "true"} if cfg.assistant_typed_enabled else {}),
+                **(
+                    {"ASSISTANT_WATCHDOG_ENABLED": "true"} if cfg.assistant_watchdog_enabled else {}
+                ),
                 # Stripe Tax on the Pro Checkout: the app's stripe_automatic_tax_enabled (config.py). Set
                 # only where cfg.stripe_automatic_tax_enabled is True, so every other task definition is
                 # unchanged and the app's default (off) applies there.
@@ -823,6 +928,51 @@ class ApiStack(Stack):
             ),
             0,
         )
+
+        # Typed-assistant alarms. The typed route (api/assistant/) is off in every environment, so none of these log
+        # lines is written yet and the alarms stay quiet (missing data is not breaching); they exist so that the
+        # first question is already watched. Same mechanism and reasons as the trial alarms above: a metric filter
+        # counts the JSON key `event` in this stack's own log group, and each alarm pages the shared alerts topic by
+        # its ARN. ASSISTANT_ALARMS lists them. Not covered here: the watchdog's Prometheus metrics (nothing in AWS
+        # scrapes them) and Anthropic's own rate-limit headroom (TenGrade's alerts_stack.py alarms on it; pyvar's
+        # client does not export it).
+        def assistant_metric(event: str, period: Duration) -> cloudwatch.IMetric:
+            """A metric counting the typed assistant's log lines named `event`, in the API's log group."""
+            metric_name = f"assistant-{ASSISTANT_LOG_EVENTS[event]}-{cfg.env_name}"
+            logs.MetricFilter(
+                self,
+                "AssistantFilter" + "".join(part.title() for part in event.split("_")),
+                log_group=self.api_log_group,
+                filter_pattern=logs.FilterPattern.string_value("$.event", "=", event),
+                metric_namespace="pyvar",
+                metric_name=metric_name,
+                metric_value="1",
+                default_value=0,
+            )
+            return cloudwatch.Metric(
+                namespace="pyvar", metric_name=metric_name, statistic="Sum", period=period
+            )
+
+        for (
+            alarm_id,
+            alarm_suffix,
+            event,
+            threshold,
+            period_minutes,
+            description,
+        ) in ASSISTANT_ALARMS:
+            cloudwatch.Alarm(
+                self,
+                alarm_id,
+                alarm_name=f"pyvar-{cfg.env_name}-assistant-{alarm_suffix}",
+                alarm_description=description
+                + " See CLAUDE.md 3.7 and docs/assistant-plan-implementation.md.",
+                metric=assistant_metric(event, Duration.minutes(period_minutes)),
+                threshold=threshold,
+                comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+                evaluation_periods=1,
+                treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            ).add_alarm_action(cw_actions.SnsAction(alerts_topic))
 
         cdk.CfnOutput(self, "AlbDnsName", value=self.alb_dns_name)
         cdk.CfnOutput(self, "EcrRepoUri", value=self.ecr_repo.repository_uri)

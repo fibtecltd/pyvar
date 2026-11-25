@@ -9,6 +9,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The typed assistant's infrastructure, all inert (`infra(cdk)`)** — Two CDK flags, `assistant_typed_enabled` and `assistant_watchdog_enabled`, off in every
+  environment (the environment variable is added to the API container only where its flag is true: nowhere yet, so no task definition changes);
+  `tests/test_assistant_privacy_terms.py` fails if an environment turns typed on without the model provider named in the privacy policy and terms, and
+  `tests/test_cdk_assistant_infra.py` fails if typed is on where the watchdog is not (`CLAUDE.md` 3.8). The secret `pyvar/<env>/anthropic-api-key` is
+  imported by name and granted to the API task role (one read-only statement on that one secret; deliberately not an ECS `secrets={}` entry, see
+  `CLAUDE.md` 3.7); the secret itself does not exist yet. Eight log-event metric filters and eight alarms on the shared alerts topic, same mechanism as the
+  trial lane's: key not set up, spend or kill-switch store unreadable (it fails closed), unexpected errors, a writer degraded, watchdog errors, spend not
+  recorded, spend at 80% of the cap, a function pinned. They stay quiet until the route is on. One WAF rule, `AssistantRateLimitPerIp` (priority 24, before
+  the aggregate rule): 30 requests per 300 s per address on `/api/v1/assistant/`, a backstop above the route's own quotas. Synth before and after (dev,
+  staging and prod; asset hashes masked): per environment the API stack gains 8 metric filters, 8 alarms and one changed IAM policy, and the edge stack's
+  web ACL gains the one rule; nothing is removed or replaced. Tests: `tests/test_cdk_assistant_infra.py` (19). Needs the commit before it: the app
+  reads the key from that secret. Pattern from the trial lane's alarms and fibtec-etlgen and fibtec-docugen's key handling.
+
 - **The dashboard shows which account is signed in (`feat(auth)`, issue #454)** — A person with more than one address could
   not tell, from the dashboard, which account a stored session, a key or a purchase belonged to. New read-only
   `GET /api/v1/auth/me` (`api/routes/auth.py`, `schemas/auth.py`): a session token only (`require_session`, as the
