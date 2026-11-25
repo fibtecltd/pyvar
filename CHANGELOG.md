@@ -418,6 +418,17 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   distribution is bit for bit unchanged on 12 reference arrays), and the rough Bergomi pricer computes its lag weights once instead of once per path (the pricer 781 to
   210 ms; its kernel 15 to 20 times faster; per-path payoffs differ by at most 3.7e-15 relative). No VaR or ES definition and no regulatory threshold changed; new tests
   re-derive both from independent NumPy code. The changed kernels recompile on the first call after a deploy.
+- **The privacy policy and terms name the model provider for the portal assistant (`feat(portal)`)** — `portal/privacy.html` §1 and §5 now say that a language
+  model is involved in one place only, the portal's optional assistant, and that the typed box (where the assistant offers one) sends the question, up to
+  three earlier turns and the function's name to Anthropic after the scrub removes e-mail addresses, keys, tokens and long random strings, never a
+  computation input or result and nothing about the account; that a second Anthropic model may read a sample of answers and only a yes/no count is kept;
+  that pyvar.com stores neither the question nor the answer; and that Anthropic's own policy governs what it keeps. The sub-processor table gains an
+  Anthropic row; `portal/terms.html` §6 gains an assistant clause (informational, may be wrong, not advice, never runs a computation, may be withdrawn).
+  Every statement is conditional on "where the assistant offers a box", so the text is true before the box exists. This is the privacy-and-terms gate
+  of `CLAUDE.md` 3.7; the typed route stays off. `tests/test_assistant_privacy_terms.py` pins the checkable promises to the code (what the scrub removes,
+  that no account argument reaches the model, the three-turn history limit) and fails if a CDK environment turns the typed route on while the Anthropic
+  row or the terms clause is missing. Wording follows the three sibling products' pages; what Anthropic keeps is deliberately left to Anthropic's own
+  policy, as theirs do. Plan: `docs/assistant-plan-implementation.md`.
 
 ### Fixed
 
