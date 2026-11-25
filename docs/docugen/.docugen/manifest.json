@@ -1,0 +1,1995 @@
+{
+ "documents": [
+  {
+   "kind": "markdown",
+   "path": "docs/README.md",
+   "sha256": "f5e0a903ef8a1d86c8fd13f153745c6d56aa26d9a1a799bb3945c8d9bc562e9a",
+   "sources": [
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/internal.py",
+     "sha256": "8bfca5f1a3343432d1a4632b3db76c7e33ac9d82d98c4ffc476346959f400435"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    }
+   ]
+  },
+  {
+   "kind": "markdown",
+   "path": "docs/api-domain-endpoints.md",
+   "sha256": "ba5604e993c4020d9985c5c6fc6529a06eec8b042cb6ea1d914d9b3a7997d343",
+   "sources": [
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/routes/alm.py",
+     "sha256": "710100bf0e849add5ae566cf64058d5b87c0a6ebab1f0949a8d3904b81f9b24e"
+    },
+    {
+     "path": "api/routes/credit_risk.py",
+     "sha256": "e7d0844e081abc38afbfb2929ba0c5fafbb3e18f3e26b66d01c13ead372384c8"
+    },
+    {
+     "path": "api/routes/derivatives.py",
+     "sha256": "7e739f986fc37722e56e053bac53932c537e8d57b6890b433f1309c471ae37ae"
+    },
+    {
+     "path": "api/routes/liquidity.py",
+     "sha256": "a36e33bee0dd403a843a887b4e8a4421eebbbc097c62fd9696f22d89e647fa3c"
+    },
+    {
+     "path": "api/routes/market_risk.py",
+     "sha256": "606353fcf08c5e8214d47385fa1d7dd817075aca60e6939babff0552a612b460"
+    },
+    {
+     "path": "api/routes/operational.py",
+     "sha256": "a757d8164ce92f8d80802dc13b0b65205c277253f75eb8fe4fee94ecc7c19beb"
+    },
+    {
+     "path": "api/routes/portfolio.py",
+     "sha256": "11b10a801ba7941433fc963ad07189c22986b1115d980b25a6ce6bc46423cd55"
+    },
+    {
+     "path": "api/routes/regulatory.py",
+     "sha256": "be02835ba5010d6c7902877ddb46c61c3a7e094024fef935fedb75dca2f83fbd"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    }
+   ]
+  },
+  {
+   "kind": "markdown",
+   "path": "docs/api-reference.md",
+   "sha256": "5e3e239591485654ae5844e4a15b9da6f6e19c67d9df8c51998b93ca10862a0b",
+   "sources": [
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/alm.py",
+     "sha256": "710100bf0e849add5ae566cf64058d5b87c0a6ebab1f0949a8d3904b81f9b24e"
+    },
+    {
+     "path": "api/routes/auth.py",
+     "sha256": "b060b419a84aa2c915e6eb5cd49009a4137a12119cce3edf8287614b344b6401"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/credit_risk.py",
+     "sha256": "e7d0844e081abc38afbfb2929ba0c5fafbb3e18f3e26b66d01c13ead372384c8"
+    },
+    {
+     "path": "api/routes/derivatives.py",
+     "sha256": "7e739f986fc37722e56e053bac53932c537e8d57b6890b433f1309c471ae37ae"
+    },
+    {
+     "path": "api/routes/internal.py",
+     "sha256": "8bfca5f1a3343432d1a4632b3db76c7e33ac9d82d98c4ffc476346959f400435"
+    },
+    {
+     "path": "api/routes/liquidity.py",
+     "sha256": "a36e33bee0dd403a843a887b4e8a4421eebbbc097c62fd9696f22d89e647fa3c"
+    },
+    {
+     "path": "api/routes/market_risk.py",
+     "sha256": "606353fcf08c5e8214d47385fa1d7dd817075aca60e6939babff0552a612b460"
+    },
+    {
+     "path": "api/routes/operational.py",
+     "sha256": "a757d8164ce92f8d80802dc13b0b65205c277253f75eb8fe4fee94ecc7c19beb"
+    },
+    {
+     "path": "api/routes/portfolio.py",
+     "sha256": "11b10a801ba7941433fc963ad07189c22986b1115d980b25a6ce6bc46423cd55"
+    },
+    {
+     "path": "api/routes/public_data.py",
+     "sha256": "e1a2c4f3619a392529ae626593c7b06d5502276b0d348c5e7b3caad4e1d7f4a6"
+    },
+    {
+     "path": "api/routes/regulatory.py",
+     "sha256": "be02835ba5010d6c7902877ddb46c61c3a7e094024fef935fedb75dca2f83fbd"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-client/README.md",
+     "sha256": "4969d8453d6bf06b48ec0adca9d4d7c21665e1bd7de0ee7531b587f63a8123e2"
+    },
+    {
+     "path": "schemas/assistant.py",
+     "sha256": "557007968e5ac3dd195da6345661dee63785825d7d8b1c9127237af0cb6d56be"
+    },
+    {
+     "path": "schemas/auth.py",
+     "sha256": "9c0d3e9a773c75eae93ec3b22ea0e53c119af140fdd48229fad6fa57214f1a0d"
+    },
+    {
+     "path": "schemas/billing.py",
+     "sha256": "1955b43bb7c3095f12939954e84ab48bc69497e27394155fdb5b89a15e4c617d"
+    },
+    {
+     "path": "schemas/var.py",
+     "sha256": "0dbb17750767409283239cdcc1f01236a2d82f03e0e30cfc9277093781d3a668"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    }
+   ]
+  },
+  {
+   "kind": "markdown",
+   "path": "docs/architecture-overview.md",
+   "sha256": "6f28bb9fb68369e0806898fbab4763d2b1c8fe382d81fc2df8dffe1e7875ed67",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/aws-deployment.puml",
+   "sha256": "3dadbbdbefe8996e40b60aacb4381880e106a7a45a1358892670ab79f2ffd03c",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/aws-deployment.svg",
+   "sha256": "d1aafa2e135a8c341257fd2a5ec8c1dee5d1c2e792be085ea2072ea9a3edc179",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/component-architecture.puml",
+   "sha256": "952985dad51558a8da4fdd5555d845175941b256acd21b875dc292e114687276",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/internal.py",
+     "sha256": "8bfca5f1a3343432d1a4632b3db76c7e33ac9d82d98c4ffc476346959f400435"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/component-architecture.svg",
+   "sha256": "dd599424b34eef86d2cbc66d4630bfe970084e0cb417735d333803573acbf9fc",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/internal.py",
+     "sha256": "8bfca5f1a3343432d1a4632b3db76c7e33ac9d82d98c4ffc476346959f400435"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/credential-kinds.mmd",
+   "sha256": "9236fa890275373edce93e0cda9f69c4b98d7a58392997a08403f6f0a221d768",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/credential-kinds.svg",
+   "sha256": "ef0dac14867c66f4278fe762ad58162473cab9e9936434a60b3143740fe9fde5",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/data-model.mmd",
+   "sha256": "3c660b70cab9b0be4b02fc243afe09d3083c5a037a3b9f17e594b62d4d9175e6",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/data-model.svg",
+   "sha256": "6dc3f0b396f194187af762101b964144fc6f538d13dd4da25d1b177965af713e",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/tier-transitions.mmd",
+   "sha256": "e5d161217b4b5f3cd1f80982454b52719fb94fdb6a0f75425115504120fc649e",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/tier-transitions.svg",
+   "sha256": "a939537f153ca3ecca3aae3eb8a8c0bf0eaaf070375af890d29c49aab2ac41f9",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/use-cases-inferred.puml",
+   "sha256": "47179c6c2033a21d90a42df7fcf599ce797ba6caf05fe96100c41a945e799e7e",
+   "sources": []
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/use-cases-inferred.svg",
+   "sha256": "1dfd6b7662e1f9d3794bc9eafb7df0c5762696685e72aa069461aa9a3cb4c7bb",
+   "sources": []
+  },
+  {
+   "kind": "diagram-source",
+   "path": "docs/diagrams/var-job-sequence.mmd",
+   "sha256": "8156c943b30221bb877a4c089cfea9aa78f4417edcde8f1b7ac70b8fb8da3430",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "diagram-svg",
+   "path": "docs/diagrams/var-job-sequence.svg",
+   "sha256": "f267c032afa44dc914ee249bcdfa6f3dc6ec6602a832176139ebd45ca5bf4cc1",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "markdown",
+   "path": "docs/onboarding-guide.md",
+   "sha256": "0a7a93437e8d3c0e36bcf9d072aeb2edbff7f9bce0481121ec91c71b3f1e9a74",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/routes/auth.py",
+     "sha256": "b060b419a84aa2c915e6eb5cd49009a4137a12119cce3edf8287614b344b6401"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-client/README.md",
+     "sha256": "4969d8453d6bf06b48ec0adca9d4d7c21665e1bd7de0ee7531b587f63a8123e2"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "schemas/auth.py",
+     "sha256": "9c0d3e9a773c75eae93ec3b22ea0e53c119af140fdd48229fad6fa57214f1a0d"
+    },
+    {
+     "path": "schemas/var.py",
+     "sha256": "0dbb17750767409283239cdcc1f01236a2d82f03e0e30cfc9277093781d3a668"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  },
+  {
+   "kind": "pdf",
+   "path": "docs/pdf/documentation.pdf",
+   "sha256": "665cfe89ab3924dfd95674b76e7beee2d9b486852fa19b30a1f098346eb02b92",
+   "sources": [
+    {
+     "path": ".github/workflows/ci.yml",
+     "sha256": "9363adf92621ffc524d49b05070581cd8cf1a6d31a0cd400122e6b0633c72b19"
+    },
+    {
+     "path": "CLAUDE.md",
+     "sha256": "c8ca0e81dc8f328ab55bc748d85b816bbbd19eb20e058c08245c919f2631176a"
+    },
+    {
+     "path": "CONTRIBUTING.md",
+     "sha256": "787f3006e2fee38936b591d6e0786635d01e24e2d47f48da9bec4a9147418b38"
+    },
+    {
+     "path": "Dockerfile",
+     "sha256": "563c91d1cf1a53db6caa548a8bb8fc0a516f018295d64d1c36f5297f352eca0b"
+    },
+    {
+     "path": "README.md",
+     "sha256": "14637498c8d2f24c8c9749b6ec412abaee4b3346c628be35c56ccff2679ae673"
+    },
+    {
+     "path": "api/assistant/routes.py",
+     "sha256": "d1edb97226f5e4903bdf9a201aac563f8a4b484dbb3f826dd05a6234bb607075"
+    },
+    {
+     "path": "api/middleware/auth.py",
+     "sha256": "cecce8cb3d20371267e18f4c758ae2f94a1de257583b083b79df1538fb2e89a0"
+    },
+    {
+     "path": "api/middleware/rate_limit.py",
+     "sha256": "cee8de1339e231fc680539c7722bd094c8666b59a4c4e21eff178efeac6b1ced"
+    },
+    {
+     "path": "api/middleware/usage.py",
+     "sha256": "d25320c542393e97b034d9e6cc1e8e4fa1676221268f739550a9d87245ace740"
+    },
+    {
+     "path": "api/routes/alm.py",
+     "sha256": "710100bf0e849add5ae566cf64058d5b87c0a6ebab1f0949a8d3904b81f9b24e"
+    },
+    {
+     "path": "api/routes/auth.py",
+     "sha256": "b060b419a84aa2c915e6eb5cd49009a4137a12119cce3edf8287614b344b6401"
+    },
+    {
+     "path": "api/routes/billing.py",
+     "sha256": "8357c04683662902bb74bbe90a0a7a5b070d000e3bf30da3b05c60f559ddb446"
+    },
+    {
+     "path": "api/routes/caching.py",
+     "sha256": "48b4817d37cb48672e6ab088202b4765c233cb2f027d4061d2be823ca490966e"
+    },
+    {
+     "path": "api/routes/credit_risk.py",
+     "sha256": "e7d0844e081abc38afbfb2929ba0c5fafbb3e18f3e26b66d01c13ead372384c8"
+    },
+    {
+     "path": "api/routes/derivatives.py",
+     "sha256": "7e739f986fc37722e56e053bac53932c537e8d57b6890b433f1309c471ae37ae"
+    },
+    {
+     "path": "api/routes/internal.py",
+     "sha256": "8bfca5f1a3343432d1a4632b3db76c7e33ac9d82d98c4ffc476346959f400435"
+    },
+    {
+     "path": "api/routes/liquidity.py",
+     "sha256": "a36e33bee0dd403a843a887b4e8a4421eebbbc097c62fd9696f22d89e647fa3c"
+    },
+    {
+     "path": "api/routes/market_risk.py",
+     "sha256": "606353fcf08c5e8214d47385fa1d7dd817075aca60e6939babff0552a612b460"
+    },
+    {
+     "path": "api/routes/operational.py",
+     "sha256": "a757d8164ce92f8d80802dc13b0b65205c277253f75eb8fe4fee94ecc7c19beb"
+    },
+    {
+     "path": "api/routes/portfolio.py",
+     "sha256": "11b10a801ba7941433fc963ad07189c22986b1115d980b25a6ce6bc46423cd55"
+    },
+    {
+     "path": "api/routes/public_data.py",
+     "sha256": "e1a2c4f3619a392529ae626593c7b06d5502276b0d348c5e7b3caad4e1d7f4a6"
+    },
+    {
+     "path": "api/routes/regulatory.py",
+     "sha256": "be02835ba5010d6c7902877ddb46c61c3a7e094024fef935fedb75dca2f83fbd"
+    },
+    {
+     "path": "api/routes/trial.py",
+     "sha256": "b864ae969c6a3f3ec4fef2d1f39b2e71a74b573c8e9f7b0cbf95bc3cfc40b6d8"
+    },
+    {
+     "path": "api/routes/var.py",
+     "sha256": "a9299482fdc0c2222cc20ce4c446766379e775919fb0c2fe2b83abb31fde568b"
+    },
+    {
+     "path": "api/tiers.py",
+     "sha256": "1bd5f59589113e35003b7aebd4f12b9c4fc3d9f53d3a046b91a7ddf5124c2fef"
+    },
+    {
+     "path": "assistant/README.md",
+     "sha256": "7a8f73380c6ce9ff37eb30ff74362edf1c22b4ac12e5ed7715824ff5dd1d7b04"
+    },
+    {
+     "path": "config.py",
+     "sha256": "b7fcb9995a511e0b0b12da6cc96e2704418bba738ed6a073a032b003d6de2880"
+    },
+    {
+     "path": "docker-compose.yml",
+     "sha256": "3523466a4b70c23b8a56cd815931ed5c1cc8e73912b6b3819f76e47144d891aa"
+    },
+    {
+     "path": "engine/montecarlo.py",
+     "sha256": "89c41c39e9c205aa2b0c0608aa3ec8c3e54852df8ba2119109e93bf59dc7e857"
+    },
+    {
+     "path": "main.py",
+     "sha256": "89412c045bc998104cdaf365b07cf9161a150d94b4a24ae2cd88bea122d8ed2d"
+    },
+    {
+     "path": "pyvar-cdk/app.py",
+     "sha256": "6261e1a002e90eb039dcc72f9453699aafff3c7e476183fa03ed80d3b450c49f"
+    },
+    {
+     "path": "pyvar-client/README.md",
+     "sha256": "4969d8453d6bf06b48ec0adca9d4d7c21665e1bd7de0ee7531b587f63a8123e2"
+    },
+    {
+     "path": "pyvar-full/README.md",
+     "sha256": "472e616970195af7575e454115489d0ca58b6dde39a83f9664f5eb2b9ee9102d"
+    },
+    {
+     "path": "pyvar-local/README.md",
+     "sha256": "0b5bd1f2abd4948684ff6cbd0a3d9a1e8e9d73c94bfcd3644441a9893b820eb9"
+    },
+    {
+     "path": "schemas/assistant.py",
+     "sha256": "557007968e5ac3dd195da6345661dee63785825d7d8b1c9127237af0cb6d56be"
+    },
+    {
+     "path": "schemas/auth.py",
+     "sha256": "9c0d3e9a773c75eae93ec3b22ea0e53c119af140fdd48229fad6fa57214f1a0d"
+    },
+    {
+     "path": "schemas/billing.py",
+     "sha256": "1955b43bb7c3095f12939954e84ab48bc69497e27394155fdb5b89a15e4c617d"
+    },
+    {
+     "path": "schemas/var.py",
+     "sha256": "0dbb17750767409283239cdcc1f01236a2d82f03e0e30cfc9277093781d3a668"
+    },
+    {
+     "path": "storage/models.py",
+     "sha256": "7dddba888cbdd8558814e727f4af989213fc1144a3176519c0548ed0b1af2708"
+    },
+    {
+     "path": "storage/reconcile.py",
+     "sha256": "a2db589c586d072fca78a9d5f24e825a775f92ef6b199bfe7daa92a3adc6e42d"
+    },
+    {
+     "path": "tasks/var_task.py",
+     "sha256": "2c5e812870b0c96017fc72272743b71a27040a9afab8cdcd7171abf3962527ae"
+    },
+    {
+     "path": "worker.py",
+     "sha256": "02f54abd87813550f60b51b920d9434de0bb1c04d698e70a3c66643057bc8799"
+    }
+   ]
+  }
+ ],
+ "generated_at": "2026-11-25T00:40:32Z",
+ "generator": {
+  "name": "fibtec-docugen",
+  "tools": {
+   "chromium": "156.0.8078.79",
+   "claude-code": "2.1.294",
+   "graphviz": "2.43.0",
+   "markdown-it": "14.1.0",
+   "mermaid-cli": "12.2.0",
+   "openjdk": "17.0.21.1",
+   "pdf-lib": "1.17.1",
+   "plantuml": "1.2026.9",
+   "python": "3.11.2"
+  },
+  "version": "1.4.0"
+ },
+ "schema": 1,
+ "source": {
+  "archive_sha256": "8de36ada8dcc92207aa5909556f5c86100033ffd8fa624e7510622fd198897b8",
+  "kind": "zip"
+ }
+}

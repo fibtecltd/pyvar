@@ -1,0 +1,38 @@
+@startuml
+title pyvar use cases (inferred from routes and the README)
+left to right direction
+
+actor "Visitor without an account" as visitor
+actor "Registered user" as user
+actor "Operator with admin token" as operator
+actor "Stripe" as stripe
+
+rectangle "pyvar API and portal" {
+  usecase "Try a whitelisted function (/trial)" as UC1
+  usecase "Ask the portal assistant (/assistant/ask)" as UC2
+  usecase "Register or sign in (/auth)" as UC3
+  usecase "Manage API keys (/auth/api-keys)" as UC4
+  usecase "Run a risk function (domain routers)" as UC5
+  usecase "Submit and fetch a VaR job (/var)" as UC6
+  usecase "Stream a VaR result (WS /var/stream)" as UC7
+  usecase "Subscribe to Pro (/billing)" as UC8
+  usecase "Grant education access (/internal/admin/education)" as UC9
+  usecase "Erase or export an account (/internal/admin/accounts)" as UC10
+  usecase "Clean up the audit log (/internal/admin/audit/cleanup)" as UC11
+  usecase "Report subscription events (/billing/webhook)" as UC12
+}
+
+visitor --> UC1
+visitor --> UC2
+visitor --> UC3
+user --> UC4
+user --> UC5
+user --> UC6
+user --> UC7
+user --> UC8
+user --> UC2
+operator --> UC9
+operator --> UC10
+operator --> UC11
+stripe --> UC12
+@enduml

@@ -1,0 +1,58 @@
+erDiagram
+    users {
+        uuid id PK
+        string external_id UK
+        string tier
+        datetime tier_expires_at
+        string email UK
+        bool email_verified
+        string stripe_customer_id UK
+        string tier_downgrade_reason
+        bool email_suppressed
+    }
+    api_keys {
+        uuid id PK
+        uuid user_id FK
+        string name
+        string prefix
+        string key_hash UK
+        datetime expires_at
+        datetime last_used_at
+        datetime revoked_at
+    }
+    var_jobs {
+        uuid id PK
+        string task_id UK
+        string user_id
+        string tier
+        string status
+        float portfolio_value
+        int n_simulations
+        float confidence_level
+        int horizon_days
+        float var_pct
+        float cvar_pct
+        string result_s3_key
+    }
+    billing_events {
+        uuid id PK
+        string user_id
+        string event_type
+        string old_tier
+        string new_tier
+        string stripe_event_id
+        datetime created_at
+    }
+    api_usage {
+        bigint id PK
+        string domain
+        string function_name
+        string tier
+        int duration_ms
+        int status
+        string client
+        datetime created_at
+    }
+    users ||--o{ api_keys : "user_id foreign key"
+    users ||..o{ var_jobs : "external_id as user_id, no foreign key"
+    users ||..o{ billing_events : "external_id as user_id, no foreign key"

@@ -1,0 +1,50 @@
+@startuml
+title pyvar components, as wired in main.py, tasks/var_task.py and storage/
+skinparam componentStyle rectangle
+
+package "Callers" {
+  [portal static site] as portal
+  [pyvar-client] as client
+  [pyvar-mcp] as mcp
+  [pyvar-jupyter] as jup
+}
+
+node "API process (main.py create_app)" {
+  [api/routes routers] as routes
+  [api/middleware] as mw
+  [api/assistant gateway] as asst
+  [storage/reconcile.py reconciler] as recon
+  [engine/ (called inline by domain routes)] as engine_inline
+}
+
+node "Worker process (worker.py)" {
+  [tasks/var_task.py compute_var_task] as task
+  [engine/montecarlo.py] as mc
+}
+
+queue "Broker" as broker
+database "Postgres" as pg
+database "Redis" as redis
+cloud "S3" as s3
+cloud "Anthropic API" as anth
+cloud "Stripe" as stripe
+
+portal --> routes : HTTP
+client --> routes : HTTPS, Bearer key
+mcp --> routes : HTTPS
+jup --> client : built on
+routes --> mw : auth, rate limit, usage
+routes --> engine_inline : domain endpoints
+routes --> broker : POST /var/compute
+routes --> pg : var_jobs, users, api_keys
+routes --> redis : cache, limits, results
+routes --> stripe : /billing routes
+asst --> anth : assistant/client.py
+asst --> redis : spend and kill switch
+recon --> pg : close stale pending rows
+broker --> task
+task --> mc
+task --> pg : terminal audit UPDATE
+task --> redis : result and job-done event
+task --> s3 : large results
+@enduml

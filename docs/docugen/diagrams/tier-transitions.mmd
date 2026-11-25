@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> free: account created
+    free --> pro: checkout.session.completed
+    education --> pro: checkout.session.completed
+    pro --> free: customer.subscription.deleted
+    free --> education: admin grant
+    education --> education: admin extend
+    education --> free: admin revoke
+    education --> free: tier_expires_at passed, read through effective_tier
+    note right of pro
+        A monthly cap is a 429, never a tier change.
+        A failed payment is not a tier change.
+    end note
+    note right of education
+        Counts only while tier_expires_at is in the future.
+    end note
