@@ -34,6 +34,12 @@ Reasoning:
   per-IP (api/middleware/rate_limit.py::enforce_register_rate_limit) —
   both close a real gap: an attacker could otherwise spam SES sends or
   probe the blocklist without limit.
+- GET /auth/me (issue #454, docs/plan-dashboard-signed-in-account.md): the dashboard shows which
+  account a session belongs to. It answers {email, tier} for a SESSION token only (require_session, as
+  the api-keys routes: an API key, a stream token, a trial ticket and an admin token are all refused).
+  The address is read from the database for the token's `sub`, never put in the token, and appears in
+  no log line, metric or exception text here; the response carries Cache-Control: no-store. An erased
+  account (users.email NULL) is answered without an address, never with an error.
 """
 
 from __future__ import annotations
@@ -58,6 +64,7 @@ from api.tiers import effective_tier
 from config import get_settings
 from observability.redact import aws_error_code, email_domain
 from schemas.auth import (
+    AccountInfo,
     ApiKeyCreated,
     ApiKeyInfo,
     ApiKeyList,
@@ -293,6 +300,31 @@ async def verify(token: str) -> VerifyResponse:
 
     access_token = create_access_token(user_id=external_id, tier=tier)
     return VerifyResponse(access_token=access_token, tier=tier)
+
+
+# ── GET /auth/me — which account is this session? (issue #454) ──────────────────────
+
+
+@router.get("/me", response_model=AccountInfo)
+async def whoami(response: Response, user: TokenPayload = Depends(require_session)) -> AccountInfo:
+    """Which account this session belongs to: its address and its tier, for the dashboard (issue #454).
+
+    Read-only, session token only. The address comes from the database for the token's `sub` and goes into this
+    response and nowhere else: not a log line, not a metric, not an exception text, not a token claim. The tier is
+    the one that applies now (effective_tier), not the token's claim. An erased account has no address
+    (users.email is NULL, CLAUDE.md 3.5): it is answered with `email: null`, not with an error. A token whose
+    account does not exist gets the same 403 as the api-keys routes. `no-store`: the answer is about one person.
+    """
+    response.headers["Cache-Control"] = "no-store"
+    async with get_sessionmaker()() as session:
+        account = (
+            await session.execute(select(User).where(User.external_id == user.user_id))
+        ).scalar_one_or_none()
+    if account is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "No verified account for this session.")
+    return AccountInfo(
+        email=account.email, tier=effective_tier(account.tier, account.tier_expires_at)
+    )
 
 
 # ── /auth/api-keys — durable keys, managed from a signed-in session ──────────────

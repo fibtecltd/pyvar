@@ -370,6 +370,27 @@ async function _billingApi(session, method, path) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// <account-line>
+// Which account this session belongs to: GET /auth/me (issue #454), shown as "Signed in as <address>". The address is
+// put on the page as TEXT (the `_h` builder appends a string as a text node, never as HTML) and nowhere else: not in the
+// token, not in localStorage, not on another page. If the call fails, or the account has no address (an erased one),
+// nothing is shown and the rest of the dashboard works as before.
+async function _signedInAs(session) {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+      headers: { 'Authorization': `Bearer ${session}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && typeof data.email === 'string' && data.email !== '' ? data.email : null;
+  } catch (e) { return null; }
+}
+
+function _accountLine(address) {
+  return _h('div', { class: 'dash-body dash-account' }, `Signed in as ${address}`);
+}
+// </account-line>
+
 // The plan block: Upgrade for a free or education account, Manage billing for a Pro one (Stripe's hosted portal:
 // card, invoices, cancel at the end of the paid period). Nothing for enterprise or internal accounts.
 function _planBlock(session, tier) {
@@ -482,7 +503,7 @@ function _fmtDate(iso) {
 
 async function renderKeyManager(card, session, tier, freshKey, notice) {
   card.className = 'dash-card wide';
-  const listed = await _keysApi(session, 'GET', '');
+  const [listed, address] = await Promise.all([_keysApi(session, 'GET', ''), _signedInAs(session)]);
   if (listed.status === 401) { _signInAgain(card, 'Your session has ended.'); return; }
   if (!listed.ok) {
     card.replaceChildren(
@@ -508,6 +529,7 @@ async function renderKeyManager(card, session, tier, freshKey, notice) {
   const rerender = (fresh) => renderKeyManager(card, session, tier, fresh);
   const parts = [
     _h('div', { class: 'dash-title' }, 'Your API keys'),
+    ...(address ? [_accountLine(address)] : []),
     _h('div', { class: 'dash-body' }, `${tier.charAt(0).toUpperCase() + tier.slice(1)} tier. A key lasts a year and works until you revoke it. `
       + 'Treat it like a password: set it as PYVAR_API_KEY, never commit it.'),
   ];

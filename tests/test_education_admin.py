@@ -272,6 +272,7 @@ def test_the_decoder_names_the_operator_and_nothing_else() -> None:
     "path,method",
     [
         ("/api/v1/auth/api-keys", "GET"),  # require_session
+        ("/api/v1/auth/me", "GET"),  # require_session; the one that returns the account's address
         ("/api/v1/market-risk/kupiec_pof_test", "POST"),  # a compute route
         ("/api/v1/internal/token-report", "GET"),  # the internal tier's own routes
         ("/api/v1/var/stream-token/abc", "POST"),
@@ -716,14 +717,20 @@ async def test_suspend_all_drops_every_cached_key(client, db, redis, enabled) ->
 
 
 def test_the_three_session_mints_read_the_tier_through_effective_tier() -> None:
-    """The places that sign a session token read the tier through effective_tier (CLAUDE.md 3.5)."""
+    """The places that sign a session token read the tier through effective_tier (CLAUDE.md 3.5).
+
+    Each of the three mints is checked by name, and the count is those three plus GET /auth/me: it signs nothing, it only
+    shows the tier, but it must apply the same rule or a lapsed education grant would still read "education" on the
+    dashboard. A new call site has to be added here on purpose."""
     import inspect
     import re
 
     from api.routes import auth, billing
 
+    for mint in (auth.verify, auth.google_sign_in, billing.checkout_complete, auth.whoami):
+        assert "effective_tier(" in inspect.getsource(mint), mint.__name__
     sources = [inspect.getsource(auth), inspect.getsource(billing)]
-    assert sum(src.count("effective_tier(") for src in sources) == 3
+    assert sum(src.count("effective_tier(") for src in sources) == 4
     for src in sources:
         assert not re.search(r"^\s+tier = (user|row)\.tier\s*$", src, re.M)
 

@@ -49,6 +49,18 @@ class VerifyResponse(BaseModel):
     tier: str = "free"
 
 
+class AccountInfo(BaseModel):
+    """Returned on GET /auth/me: which account a session belongs to (issue #454).
+
+    `email` is a plain string, not EmailStr: this is an output, an address that was valid when it was stored must
+    never turn the answer into a 500, and the field is None for an erased account (users.email is NULL after
+    scripts/account_erase.py). `tier` is the tier that applies now (api.tiers.effective_tier), not the claim in the
+    token. The address belongs to the holder of the session and is not logged anywhere."""
+
+    email: str | None
+    tier: str
+
+
 class GoogleSignInRequest(BaseModel):
     """POST /auth/google — the raw ID token Google Identity Services hands
     the frontend's sign-in callback. Verified server-side (signature,

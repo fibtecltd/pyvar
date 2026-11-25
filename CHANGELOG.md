@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The dashboard shows which account is signed in (`feat(auth)`, issue #454)** — A person with more than one address could
+  not tell, from the dashboard, which account a stored session, a key or a purchase belonged to. New read-only
+  `GET /api/v1/auth/me` (`api/routes/auth.py`, `schemas/auth.py`): a session token only (`require_session`, as the
+  api-keys routes: an API key, a stream token, a trial ticket and an admin token are all refused), answering
+  `{email, tier}` read from the database for the token's account, the tier through `effective_tier()`, not from the token's
+  claim. An erased account (no address) is answered with `email: null`, not an error. The address is in no log line, metric,
+  exception text or token claim, and the response is `Cache-Control: no-store`. `portal/pyvar.js` calls it when the key
+  manager is drawn and shows "Signed in as <address>" as text (never HTML); if the call fails, or there is no address, nothing
+  is shown and the rest of the dashboard is unchanged. Nothing new is stored (not in the token, not in localStorage), so the
+  privacy page needed no change. Tests: `tests/test_auth_me.py`, `tests/test_dashboard_account_line.py` (the real dashboard
+  code under node), and the new path in the admin-token matrix of `tests/test_education_admin.py`. Plan:
+  `docs/plan-dashboard-signed-in-account.md`.
 - **A checkout gate for prod while Stripe is in test mode there (`feat(billing)`)** — The Stripe webhook has no live/test
   check and the dashboard offers "Upgrade to Pro" to every free account, so test-mode keys on a public deployment would let
   anyone pay Stripe's public test card and become Pro for nothing. The new setting `stripe_checkout_restricted` (env
