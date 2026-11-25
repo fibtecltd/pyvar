@@ -13,7 +13,7 @@
 .dash-wrap{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:140px 0 72px}
 .dash-card{max-width:520px;width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:32px;margin:0 auto}
 .dash-title{font-family:var(--sans);font-size:22px;font-weight:600;color:var(--text);margin-bottom:10px}
-.dash-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.dash-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;overflow-wrap:anywhere}
 .dash-body a{color:var(--green)}
 .dash-token{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--green);word-break:break-all;margin-bottom:14px}
 .dash-copy{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:2px;transition:all .15s;display:inline-block}
@@ -21,7 +21,12 @@
 .dash-error{color:var(--red)}
 .dash-notice{color:var(--green);border:1px solid var(--border2);border-radius:4px;padding:10px 14px}
 .dash-card.wide{max-width:780px}
-.key-table{width:100%;border-collapse:collapse;font-size:12px;margin:18px 0}
+/* Phone width: .container is a flex item of .dash-wrap, and a flex item will not shrink below its content's minimum
+   width, so the seven-column key table stretched the card past the screen (centred, so the left part was cut off and
+   could not be scrolled to). min-width:0 lets it shrink to the screen; the table scrolls sideways inside its own box. */
+.dash-wrap>.container{min-width:0}
+.key-table-wrap{overflow-x:auto;margin:18px 0}
+.key-table{width:100%;border-collapse:collapse;font-size:12px}
 .key-table th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border2)}
 .key-table td{padding:8px;border-bottom:1px solid var(--border);color:var(--text2)}
 .key-table .mono{font-family:var(--mono)}

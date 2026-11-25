@@ -421,6 +421,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The dashboard fits a phone (`fix(portal)`)** — On a screen narrower than about 550 px the dashboard card was wider than the
+  screen: it sits in a centring flex row, a flex item will not shrink below its content's minimum width, and the seven-column keys
+  table needs about 450 px, so the card grew past the screen and, being centred, spilled off the left edge, where a page cannot
+  be scrolled to. Part of the card and its buttons (Upgrade to Pro, Revoke) could not be reached; measured in Chromium: too wide at 320 to
+  520 px, fitting from 560 px. Now `.dash-wrap > .container` may shrink (`min-width: 0`), the keys table scrolls sideways inside its own box
+  (`.key-table-wrap`, `portal/pyvar.js` and `portal/dashboard.html`), and the card's text breaks inside a long unbroken word
+  (`overflow-wrap: anywhere` on `.dash-body`: a 64-character key name or an address with no hyphen no longer runs past the card
+  at any width, desktop included). At 600 px and up, with ordinary content, the card is pixel-identical to before (compared at 600, 768, 1024 and 1280 px). Tests:
+  `tests/test_dashboard_phone_width.py` (the rules, as source) and the keys-table assertion in
+  `tests/test_dashboard_account_line.py` (the real dashboard code under node).
 - **The trial lane's log-based alarms are deployed by the pipeline now (`infra(cdk)`)** — The five alarms and seven metric filters that count the
   lane's log lines were created in `alerts_stack.py`, which is deployed by hand and is not in the pipeline's stage, so the merge of #441 reached dev
   and prod without them (only the edge alarm arrived). They now live in `api_stack.py` and publish to the existing alerts topic by its ARN; a test

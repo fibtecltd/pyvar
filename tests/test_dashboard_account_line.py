@@ -216,7 +216,10 @@ def test_the_rest_of_the_dashboard_is_as_it_was_when_the_line_is_missing(
     card = results[name]["card"]
     assert card[0]["text"] == "Your API keys"
     assert card[1]["text"].startswith("Free tier.")  # the plan text follows the title directly
-    assert any(c.get("tag") == "table" for c in card)  # the keys table is still there
+    # The keys table is still there, inside its scroll box (see tests/test_dashboard_phone_width.py); never bare in the card.
+    boxes = [c for c in card if "key-table-wrap" in c.get("cls", "")]
+    assert len(boxes) == 1 and boxes[0]["kids"] == ["table"]
+    assert not any(c.get("tag") == "table" for c in card)
     assert any("Upgrade to Pro" in c.get("text", "") or c.get("tag") == "button" for c in card)
     assert results[name]["cardClass"] == "dash-card wide"
 

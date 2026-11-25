@@ -569,9 +569,10 @@ async function renderKeyManager(card, session, tier, freshKey, notice) {
       _h('td', {}, _fmtDate(k.last_used_at)), _h('td', {}, status), _h('td', {}, action));
   });
   if (rows.length) {
-    parts.push(_h('table', { class: 'key-table' },
+    // The wrapper is what scrolls sideways on a phone (dashboard.html: .key-table-wrap); the card itself never grows.
+    parts.push(_h('div', { class: 'key-table-wrap' }, _h('table', { class: 'key-table' },
       _h('thead', {}, _h('tr', {}, ...['Name', 'Key', 'Created', 'Expires', 'Last used', 'Status', ''].map((c) => _h('th', {}, c)))),
-      _h('tbody', {}, ...rows)));
+      _h('tbody', {}, ...rows))));
   }
 
   const nameInput = _h('input', { class: 'get-key-input', maxlength: '64', placeholder: 'name, e.g. laptop or CI', 'aria-label': 'Key name' });
