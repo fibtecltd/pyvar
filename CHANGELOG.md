@@ -318,6 +318,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `market_data.providers`. 27 new tests across both phases; full suite
   re-run clean. MD-3 (the real Refinitiv adapter) and MD-4 (pipeline
   wiring) remain hard-gated behind decisions only Filippo can make.
+- **The typed assistant reads its Anthropic key from Secrets Manager at call time, and logs when spend passes 80% (`feat(assistant)`)** — `api/assistant/key.py`:
+  settings first, else (inside an ECS task only) the secret `pyvar/<env>/anthropic-api-key`, cached for 60 seconds, so a key can be rotated with
+  `put-secret-value` and no deploy; `api/assistant/deps.py` rebuilds the client when the value changes and answers 503 `assistant_unavailable` with no key,
+  as before. The key is deliberately not an ECS `secrets={}` entry (a missing secret would stop every task launching, compute routes included).
+  A failed read is never a stale or empty key and is retried after 15 seconds; its log lines carry the secret's short name, the exception class and the
+  AWS error code, never the value. `AnthropicClient` takes an optional `api_key`. `require_available` also writes one `assistant_budget_high` line (the
+  ratio only) while the day's spend is at or above 80% of the cap, for the CDK alarm. Nothing is switched on: `assistant_typed_enabled` stays false
+  everywhere, and the secret does not exist yet. Pattern from fibtec-etlgen's `api/lib/secret_value.py`; the Stripe resolver's rules (a value in settings
+  wins, nothing is read outside ECS). Tests: `tests/test_assistant_key.py` (15); the existing assistant tests still pass; `CLAUDE.md` 3.7.
 
 ### Changed
 

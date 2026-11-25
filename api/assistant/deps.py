@@ -12,8 +12,13 @@ Reasoning:
   `assistant_disabled` (flags or kill switch), `assistant_budget` (the day's spend cap; Retry-After is the time
   to 00:00 UTC), `assistant_unavailable` (the spend store or the model key cannot be reached), `assistant_busy`
   (this API task is already answering `assistant_max_concurrent` questions).
-- The model client is built on first use and kept: the SDK client is thread-safe, and building it reads the
-  key, which a deployment without one must not fail at start-up. A missing key or SDK is `assistant_unavailable`.
+- The model client is built on first use and kept: the SDK client is thread-safe, and building it needs the
+  key, which a deployment without one must not fail at start-up. The key comes from api/assistant/key.py (settings,
+  else Secrets Manager with a one-minute cache), and the client is rebuilt when that value changes, so a rotation
+  needs no deploy. A missing key or SDK is `assistant_unavailable`.
+- Above BUDGET_HIGH_RATIO of the day's spend cap every request that reaches the spend check writes one
+  `assistant_budget_high` line (ratio only, no visitor text); the CDK alarm on it (pyvar-<env>-assistant-budget-high)
+  is the early word before the cap refuses.
 - The catalogue is read once per process (portal/functions.json does not change while the app runs).
 """
 
@@ -27,6 +32,7 @@ import structlog
 from fastapi import Depends, HTTPException, status
 
 from api.assistant import metrics
+from api.assistant.key import resolve_key
 from api.assistant.store import (
     AssistantStore,
     StoreUnavailable,
@@ -46,7 +52,12 @@ logger = structlog.get_logger()
 HINT = "The buttons on each function page still work, and every function is listed on the home page (/)."
 MODEL_TIERS = ("haiku", "sonnet", "opus", "fable")
 
+# The share of the day's spend cap above which `assistant_budget_high` is logged (the CDK alarm counts it).
+BUDGET_HIGH_RATIO = 0.8
+
 _client: ModelClient | None = None
+# The key `_client` was built with: a changed key rebuilds the client.
+_client_key: str | None = None
 _catalogue: list[dict[str, Any]] | None = None
 _inflight = 0
 _runner: AuditRunner | None = None
@@ -91,18 +102,24 @@ def get_catalogue() -> list[dict[str, Any]]:
 
 
 def get_model_client() -> ModelClient:
-    """The Anthropic client, built on first use.
+    """The Anthropic client, built on first use and rebuilt when the key changes.
 
     Raises:
         HTTPException: 503 `assistant_unavailable` if the key or the SDK is missing.
     """
-    global _client
-    if _client is None:
+    global _client, _client_key
+    key = resolve_key()
+    if key is None:
+        _client, _client_key = None, None
+        logger.error("assistant_client_unavailable", error="MissingApiKey")
+        refuse("assistant_unavailable", "The assistant is not set up on this server.")
+    if _client is None or key != _client_key:
         try:
-            _client = AnthropicClient()
+            _client = AnthropicClient(api_key=key)
         except (ModelCallError, RuntimeError) as exc:
             logger.error("assistant_client_unavailable", error=type(exc).__name__)
             refuse("assistant_unavailable", "The assistant is not set up on this server.")
+        _client_key = key
     return _client
 
 
@@ -119,7 +136,10 @@ async def require_available(store: AssistantStore = Depends(get_store)) -> None:
     if gate.killed:
         refuse("assistant_disabled", "The assistant has been switched off.")
     budget = cfg.assistant_daily_budget_usd
-    metrics.BUDGET_USED_RATIO.set(gate.spent_usd / budget if budget > 0 else 1.0)
+    ratio = gate.spent_usd / budget if budget > 0 else 1.0
+    metrics.BUDGET_USED_RATIO.set(ratio)
+    if ratio >= BUDGET_HIGH_RATIO:
+        logger.warning("assistant_budget_high", ratio=round(ratio, 2))
     if gate.spent_usd >= budget:
         refuse(
             "assistant_budget",
