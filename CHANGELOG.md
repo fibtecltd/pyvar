@@ -9,6 +9,18 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The dashboard shows which account is signed in (`feat(auth)`, issue #454)** — A person with more than one address could
+  not tell, from the dashboard, which account a stored session, a key or a purchase belonged to. New read-only
+  `GET /api/v1/auth/me` (`api/routes/auth.py`, `schemas/auth.py`): a session token only (`require_session`, as the
+  api-keys routes: an API key, a stream token, a trial ticket and an admin token are all refused), answering
+  `{email, tier}` read from the database for the token's account, the tier through `effective_tier()`, not from the token's
+  claim. An erased account (no address) is answered with `email: null`, not an error. The address is in no log line, metric,
+  exception text or token claim, and the response is `Cache-Control: no-store`. `portal/pyvar.js` calls it when the key
+  manager is drawn and shows "Signed in as <address>" as text (never HTML); if the call fails, or there is no address, nothing
+  is shown and the rest of the dashboard is unchanged. Nothing new is stored (not in the token, not in localStorage), so the
+  privacy page needed no change. Tests: `tests/test_auth_me.py`, `tests/test_dashboard_account_line.py` (the real dashboard
+  code under node), and the new path in the admin-token matrix of `tests/test_education_admin.py`. Plan:
+  `docs/plan-dashboard-signed-in-account.md`.
 - **A checkout gate for prod while Stripe is in test mode there (`feat(billing)`)** — The Stripe webhook has no live/test
   check and the dashboard offers "Upgrade to Pro" to every free account, so test-mode keys on a public deployment would let
   anyone pay Stripe's public test card and become Pro for nothing. The new setting `stripe_checkout_restricted` (env
@@ -409,6 +421,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The dashboard fits a phone (`fix(portal)`)** — On a screen narrower than about 550 px the dashboard card was wider than the
+  screen: it sits in a centring flex row, a flex item will not shrink below its content's minimum width, and the seven-column keys
+  table needs about 450 px, so the card grew past the screen and, being centred, spilled off the left edge, where a page cannot
+  be scrolled to. Part of the card and its buttons (Upgrade to Pro, Revoke) could not be reached; measured in Chromium: too wide at 320 to
+  520 px, fitting from 560 px. Now `.dash-wrap > .container` may shrink (`min-width: 0`), the keys table scrolls sideways inside its own box
+  (`.key-table-wrap`, `portal/pyvar.js` and `portal/dashboard.html`), and the card's text breaks inside a long unbroken word
+  (`overflow-wrap: anywhere` on `.dash-body`: a 64-character key name or an address with no hyphen no longer runs past the card
+  at any width, desktop included). At 600 px and up, with ordinary content, the card is pixel-identical to before (compared at 600, 768, 1024 and 1280 px). Tests:
+  `tests/test_dashboard_phone_width.py` (the rules, as source) and the keys-table assertion in
+  `tests/test_dashboard_account_line.py` (the real dashboard code under node).
 - **The trial lane's log-based alarms are deployed by the pipeline now (`infra(cdk)`)** — The five alarms and seven metric filters that count the
   lane's log lines were created in `alerts_stack.py`, which is deployed by hand and is not in the pipeline's stage, so the merge of #441 reached dev
   and prod without them (only the edge alarm arrived). They now live in `api_stack.py` and publish to the existing alerts topic by its ARN; a test
