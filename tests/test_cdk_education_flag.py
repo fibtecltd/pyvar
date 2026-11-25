@@ -1,14 +1,15 @@
-"""tests/test_cdk_education_flag.py — the education tier is on in dev only, by one environment entry.
+"""tests/test_cdk_education_flag.py — the education tier is on in dev and prod, off in staging, by one entry each.
 
 Reasoning:
-- The tier is built and off by default (docs/plan-education-tier.md): with the app's `education_tier_enabled`
-  setting false, every account has its free limits and the grant and extend routes answer 503. pyvar-cdk/config.py
-  carries a per-environment `education_tier_enabled`, true only in the "dev" override, and api_stack.py turns it
-  into the container variable EDUCATION_TIER_ENABLED=true only where it is true, so staging's and prod's task
-  definitions do not change.
-- Prod stays off on purpose until the portal's privacy and terms text has had a lawyer's read (the plan's
-  section 5). Turning it on is then one line in the "prod" override, and this test is changed in the same
-  commit: the expected value below is the record of that decision, not an accident.
+- The tier is off by default (docs/plan-education-tier.md): with the app's `education_tier_enabled` setting false,
+  every account has its free limits and the grant and extend routes answer 503. pyvar-cdk/config.py carries a
+  per-environment `education_tier_enabled`, true in the "dev" and "prod" overrides, and api_stack.py turns it into
+  the container variable EDUCATION_TIER_ENABLED=true only where it is true, so staging's task definition does not
+  change.
+- Prod was switched on on 2026-11-25 by the owner's decision, as one line in the "prod" override, with this test
+  changed in the same commit: the expected value below is the record of that decision, not an accident. To close
+  it again, remove the line (and change the expected value here in the same commit), then end the grants already
+  given with `scripts/education_grant.py suspend-all`.
 - Same approach as tests/test_cdk_assistant_flag.py: the CDK code is read, not run, so aws-cdk-lib is not needed in
   the application test environment.
 - The variable name must match the app's setting: pydantic-settings reads EDUCATION_TIER_ENABLED into
@@ -45,13 +46,13 @@ def _cdk_config() -> ModuleType:
     return module
 
 
-def test_only_dev_has_the_education_tier_on() -> None:
+def test_the_education_tier_is_on_in_dev_and_prod_and_off_in_staging() -> None:
     config = _cdk_config()
     flags = {
         env: config.PyvarConfig.for_env(env).education_tier_enabled
         for env in ("dev", "staging", "prod")
     }
-    assert flags == {"dev": True, "staging": False, "prod": False}
+    assert flags == {"dev": True, "staging": False, "prod": True}
 
 
 def test_the_default_is_off_so_a_new_environment_starts_without_the_tier() -> None:
