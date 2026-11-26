@@ -11,8 +11,10 @@ Reasoning:
 - The promises about what is stored and logged are pinned by tests/test_assistant_gateway.py and
   tests/test_assistant_watchdog_*.py (no question or answer text in a log line, a metric or Redis); they are not
   repeated here.
-- Not pinned: what Anthropic does with the content (the page says we do not control it and points at Anthropic's own
-  policy), and the wording about its commercial terms, which comes from Anthropic's page and is the owner's to confirm.
+- Not pinned: what Anthropic does with the content (the page says we do not control it and points at Anthropic's
+  documentation). The wording about Anthropic's Commercial Terms, retention documentation, Trust Center and Data
+  Processing Addendum is the owner's, written after reading those pages; it is pinned verbatim below so that nobody
+  rewords it by accident, and it never cites Anthropic's privacy policy, which excludes business-customer content.
 """
 
 from __future__ import annotations
@@ -58,7 +60,11 @@ def test_the_sub_processor_table_names_anthropic_and_what_it_sees() -> None:
     row = anthropic_row()
     assert row is not None
     assert "question" in row and "Never your computation inputs or results" in row
-    assert "Anthropic's own privacy policy" in row
+    assert (
+        "See Anthropic's API data-retention documentation, Trust Center and Data Processing "
+        "Addendum for retention and location details"
+    ) in row
+    assert "privacy policy" not in row  # Anthropic's own policy excludes business-customer content
 
 
 def test_section_5_describes_the_box_and_keeps_its_promises() -> None:
@@ -67,9 +73,20 @@ def test_section_5_describes_the_box_and_keeps_its_promises() -> None:
         "never a computation input or result, and nothing about your account",
         "We do not store your question or the answer",
         "We do not control Anthropic's own data practices",
+        "Anthropic's Commercial Terms of Service say it may not train models on customer content "
+        "from its services. Its API data-retention documentation describes how long inputs and "
+        "outputs are kept, and its Trust Center and Data Processing Addendum list where data is "
+        "processed.",
         "it does not need any",
     ):
         assert sentence in PRIVACY, sentence
+
+
+def test_the_pages_never_cite_anthropics_own_privacy_policy() -> None:
+    # Anthropic's privacy policy excludes business-customer content, so it is the wrong document to point at.
+    for text in (PRIVACY, TERMS):
+        assert "Anthropic's own privacy policy" not in text
+        assert "its own privacy policy" not in text
 
 
 def test_the_page_no_longer_says_no_language_model_is_involved_anywhere() -> None:
