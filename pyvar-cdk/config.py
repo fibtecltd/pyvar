@@ -49,17 +49,18 @@ class PyvarConfig:
 
     # Typed-question gateway, POST /api/v1/assistant/ask (docs/assistant-plan-implementation.md; CLAUDE.md 3.7): a
     # visitor types a question and a model answers it. The app reads it as ASSISTANT_TYPED_ENABLED (config.py
-    # assistant_typed_enabled) and answers only when assistant_enabled is ALSO true. OFF in every environment. Do not
-    # turn it on until the privacy and terms pages name the model provider (tests/test_assistant_privacy_terms.py
-    # fails if a CDK environment sets this to True without them), the secret pyvar/<env>/anthropic-api-key exists,
-    # the watchdog below is on, and the owner has decided the launch settings. api_stack.py sets the environment
-    # variable only when this is True.
+    # assistant_typed_enabled) and answers only when assistant_enabled is ALSO true. On in dev only (the live run);
+    # off in staging and prod. /public/config reports it to the portal, which then adds the typed box
+    # (portal/assistant-typed.js). Do not turn it on in another environment until the privacy and terms pages
+    # name the model provider (tests/test_assistant_privacy_terms.py fails if a CDK environment sets this to True
+    # without them), the secret pyvar/<env>/anthropic-api-key exists, the watchdog below is on, and the owner has
+    # decided the launch settings. api_stack.py sets the environment variable only when this is True.
     assistant_typed_enabled: bool = False
 
     # The typed assistant's watchdog (CLAUDE.md 3.8): background audits, pins and the degrade flag. It must be ON
     # wherever assistant_typed_enabled is on outside a test (tests/test_cdk_assistant_infra.py pins that). The app
-    # reads it as ASSISTANT_WATCHDOG_ENABLED (config.py assistant_watchdog_enabled). OFF in every environment;
-    # api_stack.py sets the environment variable only when this is True.
+    # reads it as ASSISTANT_WATCHDOG_ENABLED (config.py assistant_watchdog_enabled). On in dev with the typed route,
+    # off elsewhere; api_stack.py sets the environment variable only when this is True.
     assistant_watchdog_enabled: bool = False
 
     # The typed assistant's allowlist (docs/assistant-runbook.md): while true, only signed-in accounts an operator has
@@ -285,6 +286,13 @@ class PyvarConfig:
                 # Portal assistant menus on in dev (see assistant_enabled above) and, since
                 # 2026-11-13, in prod.
                 assistant_enabled=True,
+                # The typed assistant, in dev only (the owner's launch decision of 2026-11-26, docs/assistant-runbook.md
+                # section 2): the live run in dev comes before anything in prod. It needs the secret
+                # pyvar/dev/anthropic-api-key (without it every question is 503 `assistant_unavailable` and the
+                # client-unavailable alarm fires) and the watchdog, which must be on wherever typed is. To turn
+                # both off again, remove these two lines and deploy.
+                assistant_typed_enabled=True,
+                assistant_watchdog_enabled=True,
                 # Education tier on in dev, to try a grant end to end (scripts/education_grant.py
                 # grant --env dev). Prod is on too: see the "prod" override.
                 education_tier_enabled=True,
