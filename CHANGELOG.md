@@ -7,6 +7,24 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **The typed assistant's allowlist, and its runbook (`feat(assistant)`)** — For the first weeks of the typed route in prod: while
+  `assistant_allowlist_enabled` is on (a CDK flag, off in every environment; `ASSISTANT_ALLOWLIST_ENABLED` is added to the API
+  container only where it is true), only signed-in accounts in the Redis set `pyvar:assistant:allow` may ask. An anonymous
+  visitor or an unlisted account gets 503 `assistant_closed`, checked after the switches, the kill switch and the spend cap and
+  before the model key, the concurrency slot and the quota, so a refusal calls no model and uses no quota
+  (`api/assistant/deps.py::require_allowed`, `api/assistant/store.py::is_allowed`). Reading the set fails closed: an unreadable
+  set is 503 `assistant_unavailable`, logged as `assistant_store_unavailable`, which an existing alarm counts. The set holds
+  account ids, never addresses. It is managed with `scripts/assistant_allow.py` (wrapper `scripts/ops/assistant-allow.sh`: list,
+  allow, remove, clear; dry run unless `--yes`) through the admin-token-only route `POST /internal/admin/assistant/allow`, which
+  follows the Pro checkout allow set's pattern. Anonymous visitors, or one tier, can instead be closed with a quota of 0
+  (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): tests pin that a 0 quota is a 429 through the real route,
+  calls no model and leaves everyone else alone. `docs/assistant-runbook.md` lists the switches, the rollout stages, the stop
+  order, the eight alarms and what to look at first. The typed route stays off everywhere. Tests:
+  `tests/test_assistant_allowlist.py` (19, with eight mutations that each fail one),
+  `tests/test_assistant_allow_admin.py`, `tests/test_assistant_allow_script.py`, and the wrapper and CDK flag tests.
+
 ## [0.3.0] — 2026-11-26
 
 ### Added
