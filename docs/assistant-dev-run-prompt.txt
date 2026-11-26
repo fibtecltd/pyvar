@@ -9,7 +9,7 @@ AUTHORISED
 - Read-only AWS: CloudWatch Logs and alarms, ECS describe/list, secretsmanager describe-secret (metadata only).
 - Pre-check and drills 3 and 4 ONLY: aws ecs run-task of the dev API task definition (container "api", network settings of the pyvar-dev-api service; docs/assistant-runbook.md section 4 has the exact form) with the command override ["python","scripts/assistant_ctl.py", <args>], and ONLY these args: status --json | kill on | kill off --yes | spend set --usd 50 --yes | spend set --micro <N> --yes | spend clear --yes. Wait for the task to stop; read its log lines and exit code (0 = done).
 - python scripts/assistant_eval/typed_cases.py --out $WORK/cases.jsonl (no network).
-NOT AUTHORISED: prod (if a name or command you are about to use says prod, STOP); --yes-prod; any other one-off command, AWS write or Redis key; GetSecretValue; config, flags, deploys; real personal data in a question. On a denied call do not work around it; name the call.
+NOT AUTHORISED: prod (if a name or command you are about to use says prod, STOP); --yes-prod; any other one-off command, AWS write or Redis key; GetSecretValue by you (the two key scripts read pyvar/dev/jwt-secret themselves, which is allowed; never the Anthropic secret); config, flags, deploys; real personal data in a question. On a denied call do not work around it; name the call.
 
 PRE-CHECKS: /public/config says assistant_enabled true. describe-secret pyvar/dev/anthropic-api-key exists. One-off "status --json": settings_of_this_task.typed_enabled and watchdog_enabled must be true; note kill_switch and spend_micro_usd. One probe with the key: 503 "assistant_disabled" means the typed route is off in dev, "assistant_unavailable" means no key or no Redis: STOP and say which.
 
