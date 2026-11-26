@@ -358,6 +358,10 @@ AWS:        CELERY_BROKER_URL = sqs://
   /internal/admin/assistant/allow, admin token only. To keep an audience out WITHOUT the allowlist, set its quota
   to 0 (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): a 0 quota is a 429, calls no model and
   leaves every other caller alone. Runbook: docs/assistant-runbook.md.
+- The kill switch and today's spend counter are written by scripts/assistant_ctl.py, run in an ECS one-off of the
+  API task (ECS Exec is off; the image carries scripts/), exactly as scripts/trial_ctl.py is. It touches only the
+  kill key, today's spend key and (read-only) the allowlist key. `kill on` stops the route and never asks;
+  `kill off`, `spend set` and `spend clear` are dry runs without --yes and need --yes-prod in a prod task.
 - Cost controls: the day's spend (Redis, micro-dollars, UTC day) and the kill switch key
   `pyvar:assistant:kill` are read before every question and FAIL CLOSED (503 assistant_unavailable).
   This is the opposite of the rate limiter, on purpose: it protects a paid external API. Recording

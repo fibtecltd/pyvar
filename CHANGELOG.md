@@ -9,6 +9,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`scripts/assistant_ctl.py`: the typed assistant's kill switch and spend counter without a Redis client (`feat(scripts)`)** —
+  `status [--json]` (kill switch, today's spend in dollars and exact millionths, the allowlist's size, the task's flags),
+  `kill on` (sets `pyvar:assistant:kill`; never asks), `kill off`, `spend set (--usd | --micro)` and `spend clear`
+  (dry runs unless `--yes`, and `--yes-prod` too in a prod task). It runs in an ECS one-off of the API task like
+  `scripts/trial_ctl.py` (the cache is in the VPC and ECS Exec is off), writes exactly the keys the route reads and no others,
+  and exits 3 with no traceback when the cache cannot be reached. `tests/test_assistant_ctl.py` (27, nine mutations each fail
+  one) runs the drills against the real route: kill on makes it 503 `assistant_disabled`, a spend over the cap makes it
+  503 `assistant_budget` with no model call, and a value read with `status --json` is put back exactly. The runbook's stop order
+  and the dev-run prompt use it. It has not been run in a real one-off.
 - **The typed-question box in the Try-it panel, and the typed route on in dev (`feat(portal)`)** — "Ask about this function"
   under the three buttons, in a new file `portal/assistant-typed.js` so that `portal/assistant.js` stays a reader that sends
   nothing. It sends one POST to `/api/v1/assistant/ask` when the visitor presses Ask (the question, the function's name and at

@@ -16,9 +16,10 @@ has been run against a live environment.
 | The portal box | none of its own: pyvar.js adds `portal/assistant-typed.js` when `/public/config` says `assistant_typed_enabled` (the typed flag with the menus on) | yes (follows the typed flag) | the "Ask about this function" box appears or not |
 | Who may ask | CDK flag `assistant_allowlist_enabled` | yes | on: only accounts in the set (section 3); off: everyone the other switches admit |
 | The set of accounts | `scripts/ops/assistant-allow.sh` (section 3) | no | per account, at once |
-| The kill switch | Redis key `pyvar:assistant:kill` (section 4) | no | any value: 503 `assistant_disabled` for everyone, at once |
+| The kill switch | `scripts/assistant_ctl.py kill on` or `kill off` in an ECS one-off (section 4) | no | on: 503 `assistant_disabled` for everyone, at once |
 | An audience, by quota | `assistant_quota_anon_per_hour`, `assistant_quota_<free\|pro\|enterprise>_daily` set to 0 | yes | 429 for that audience, no model call, nobody else affected |
 | The day's spend | `assistant_daily_budget_usd` (5.0) | yes | at the cap: 503 `assistant_budget` until 00:00 UTC |
+| Today's spend counter | `scripts/assistant_ctl.py spend set` or `clear` (section 4), for drills | no | over the cap: 503 `assistant_budget`; cleared: the route reopens |
 
 ## 2. Opening the route in stages (decision E7, 2026-11-26)
 
@@ -56,10 +57,29 @@ call confirms it. `list` says whether the allowlist is ON in that environment: t
 ## 4. Stopping it, fastest first
 
 1. **While the allowlist is on:** `scripts/ops/assistant-allow.sh --env prod clear --apply`. Needs no Redis access.
-2. **The kill switch:** `SET pyvar:assistant:kill 1` (any value) on the cache the API uses; `DEL` turns it back on.
-   It needs a Redis client inside the VPC. **Not verified here: which route you use** (for example `aws ecs
-   execute-command` into an API task, if exec is enabled); settle that before the first prod day.
+2. **The kill switch:** `python scripts/assistant_ctl.py kill on` in an ECS one-off of the API task (below). It sets
+   `pyvar:assistant:kill`, which the route reads before every question, so the next question on every task is 503
+   `assistant_disabled`. It never asks anything. `kill off --yes` (in prod `--yes-prod` too) turns the route back on.
 3. **A deploy** with `assistant_typed_enabled` off (or a quota of 0 for one audience).
+
+**Running `scripts/assistant_ctl.py`.** The cache is inside the VPC and ECS Exec is not enabled, so, as for
+`scripts/trial_ctl.py`, it runs in a one-off of the API task definition (the image carries `scripts/` at its working directory `/app`; the default
+command is the migration, so it is overridden; the API container is named `api`). Copy the network settings from the `pyvar-<env>-api` service:
+
+```
+aws ecs describe-services --cluster pyvar-<env> --services pyvar-<env>-api      # networkConfiguration, taskDefinition
+aws ecs run-task --cluster pyvar-<env> --launch-type FARGATE --task-definition <that taskDefinition> \
+  --network-configuration '<that networkConfiguration>' \
+  --overrides '{"containerOverrides":[{"name":"api","command":["python","scripts/assistant_ctl.py","status"]}]}'
+```
+
+Read the task's output from the API's log group and its exit code (`aws ecs describe-tasks`: 0 done, 2 refused by a
+guard or a bad request, 3 the cache could not be reached). Commands: `status [--json]` (kill switch, today's spend in
+dollars and exact millionths, the allowlist's size, this task's flags), `kill on`, `kill off --yes`, `spend set (--usd N
+| --micro N) --yes` and `spend clear --yes` (drills; read the value with `status --json` first to put it back exactly).
+Anything that could let the route spend more is a dry run without `--yes`, and in prod needs `--yes-prod`. It touches
+only the kill key, today's spend key and (to count it) the allowlist key. **Not verified:** it has not been run in a
+real one-off; the commands and the guard are tested against the real route with an in-memory Redis.
 
 ## 5. The eight alarms
 
