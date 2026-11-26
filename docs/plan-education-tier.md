@@ -196,6 +196,8 @@ other tier-change e-mails); the Jisc and ICO points of section 9; demand.
 | Privacy policy | Section 2's opening sentence says sign-up (not the whole service) asks for no name, and an "Education access" item gives: what an application e-mail holds and what not to send; that it stays in the company mailbox and not in the database; a refused application's e-mail deleted after 30 days with a one-line note (address, date, "refused") kept 12 months, an accepted one kept until 12 months after access ends; what the database holds (tier and end date, a code-and-cohort record of each change); that server logs carry the address's domain, not the address; and the lawful bases (Article 6(1)(b) and (f), UK GDPR and, for people in the EU, EU GDPR). Section 9's table gains the mailbox provider (Aruba) and the AWS row names the tier notices |
 | Terms | Section 3: education access is a free tier for non-commercial teaching and study, by application, discretionary, one person each (18 or over, at an institution in the UK or the EU, with a verified free account), for a fixed period of at most 12 months that we tell the holder (the grant e-mail now prints the end date), limits and the shared monthly pool, back to free when it ends with the keys still working, no reminder at the end date, Pro replaces it. Section 4: no commercial or client work, no sharing, lending or resale of an education key. Section 8: the £0 parenthesis covers it. Section 10: a grant may be ended, paused or changed with or without notice. Both pages are dated November 2026 |
 
+*Prod was opened on 2026-11-25: section 13. The paragraph below records why it was not opened in this PR.*
+
 **Why prod is not switched on here.** The plan said "flag on, dev then prod". The text is a draft for a lawyer's read (section 5), and the privacy and
 terms pages go live in prod when this PR's prod stage is approved, whatever the flag says. So the flag is the part that waits: with it off in prod, an
 applicant who writes to `info@pyvar.com` can be answered by hand but no grant can be made (`grant` and `extend` answer 503; `revoke`, `list` and `suspend-all`
@@ -288,3 +290,17 @@ Owner actions that are not code: confirm which Aruba product the mailbox is (own
 
 **CodePipeline:** unchanged by these edits: `api/`, `scripts/`, `portal/`, `pyvar-cdk/` still put the pull request through a pipeline run, and the dev API task definition still gains only `EDUCATION_TIER_ENABLED`.
 **Not verified:** the grant e-mail's new copy in a real mail client; that Aruba's terms say what its public pages say (a subagent read them; the owner holds the agreement).
+
+## 13. Opened in prod (2026-11-25)
+
+**Decision.** The owner opened the tier in prod on 2026-11-25. The change is the one line section 11 described: `education_tier_enabled=True` in the "prod" override of `pyvar-cdk/config.py`, with the expected value in `tests/test_cdk_education_flag.py` changed in the same commit (the test is now "on in dev and prod, off in staging"). The home-page paragraph, the privacy policy's "Education access" item and the Terms text were already live in prod: they went live with the prod stage of the PR that carried them, whatever the flag said (section 11).
+
+**What it switches on.** `EDUCATION_TIER_ENABLED=true` on the prod API container, and only there. `grant` and `extend` stop answering 503 in prod, and `effective_tier()` honours an education account's end date. Grants are still made by hand (`scripts/education_grant.py`, or `scripts/ops/education-grant.sh`); there is no sign-up form and no automatic grant, so no account changes until the owner makes one.
+
+**Synth, before and after (dev, staging and prod; 17 stack templates each; the account is a dummy one).** Prod: exactly one template differs, `pyvar-prod-api`, by exactly one container environment entry, `EDUCATION_TIER_ENABLED` = `true`. Dev and staging: all 17 byte-identical (compared like for like, from one clean checkout; a first comparison against a working checkout showed asset-hash differences that came from untracked build files there, not from this change).
+
+**Check after the prod deploy (read-only):** `scripts/ops/education-grant.sh list --env prod` must print `ON in this environment` (it prints OFF while the variable is missing) and an empty list. That proves the route, the table and the flag; it does not prove a grant works. The first grant is the owner's act (`grant`, which asks to confirm on prod).
+
+**To close it again:** remove the line from the "prod" override, change the expected value in `tests/test_cdk_education_flag.py` in the same commit, deploy (the task definition loses `EDUCATION_TIER_ENABLED`), then `scripts/education_grant.py suspend-all --env prod --yes-prod --yes-all` to end the grants already given. With the flag off every education account reads as free at once (`effective_tier()` checks the flag first), so the limits drop as soon as the deploy lands; `suspend-all` is what ends the grants in the database, so that opening the flag again later does not bring them back.
+
+**CodePipeline:** yes (`pyvar-cdk/` is outside the eight excluded directories). Only the prod API task definition changes, so only the prod API service rolls.

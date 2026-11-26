@@ -372,7 +372,7 @@ class ApiStack(Stack):
                 # task definition is unchanged and the app's default (off) applies there.
                 **({"ASSISTANT_ENABLED": "true"} if cfg.assistant_enabled else {}),
                 # Education tier: the app's education_tier_enabled (config.py). Set only where
-                # cfg.education_tier_enabled is True (dev for now), so every other task definition is
+                # cfg.education_tier_enabled is True (dev and prod), so every other task definition is
                 # unchanged and the app's default (off) applies there.
                 **({"EDUCATION_TIER_ENABLED": "true"} if cfg.education_tier_enabled else {}),
                 # Stripe Tax on the Pro Checkout: the app's stripe_automatic_tax_enabled (config.py). Set

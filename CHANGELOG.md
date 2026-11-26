@@ -321,6 +321,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Education tier on in prod (`feat(cdk)`)** — `education_tier_enabled=True` in the "prod" override of `pyvar-cdk/config.py`, so the prod API container gets
+  `EDUCATION_TIER_ENABLED=true` and `scripts/education_grant.py grant` and `extend` work in prod (they answered 503 while it was off);
+  `effective_tier()` honours an education account's end date there. Grants are still made by hand, one person at a time; there is no sign-up form and
+  no automatic grant, so no account changes until one is made. The home-page paragraph, the privacy policy's "Education access" item and the Terms
+  text were already live in prod. Synth before and after: in prod exactly one template differs (`pyvar-prod-api`, one container environment entry); dev
+  and staging are byte-identical. `tests/test_cdk_education_flag.py` now expects dev and prod on, staging off. After the deploy,
+  `scripts/ops/education-grant.sh list --env prod` must print "ON in this environment". To close it again: remove the line, change the test in the
+  same commit, deploy, then `suspend-all`. Plan: `docs/plan-education-tier.md` section 13.
+
 - **Every Stripe object pyvar creates is marked (`fix(billing)`)** — The second Stripe verification run on dev (2026-11-23)
   found that the hosted Checkout page offers a local currency (EUR 62.14 with a 4% conversion fee) because the Stripe account's
   Adaptive Pricing is on. The owner's decision (2026-11-23) is that it stays on, for every Fibtec service, because payments are
