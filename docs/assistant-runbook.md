@@ -13,6 +13,7 @@ has been run against a live environment.
 |---|---|---|---|
 | The route itself | CDK flag `assistant_typed_enabled` (needs `assistant_enabled` too) | yes | off: 503 `assistant_disabled` for everyone |
 | The watchdog | CDK flag `assistant_watchdog_enabled` (must be on wherever typed is) | yes | audits, pins, degrade flag |
+| The portal box | none of its own: pyvar.js adds `portal/assistant-typed.js` when `/public/config` says `assistant_typed_enabled` (the typed flag with the menus on) | yes (follows the typed flag) | the "Ask about this function" box appears or not |
 | Who may ask | CDK flag `assistant_allowlist_enabled` | yes | on: only accounts in the set (section 3); off: everyone the other switches admit |
 | The set of accounts | `scripts/ops/assistant-allow.sh` (section 3) | no | per account, at once |
 | The kill switch | Redis key `pyvar:assistant:kill` (section 4) | no | any value: 503 `assistant_disabled` for everyone, at once |
@@ -21,7 +22,8 @@ has been run against a live environment.
 
 ## 2. Opening the route in stages (decision E7, 2026-11-26)
 
-1. **Dev run** (decision D): one run, $2 cap, about 60 questions, with drills for the kill switch, the spend cap, the
+1. **Dev run** (decision D; the typed and watchdog flags are on in dev since the portal-box change, and the prompt for the agent
+   that runs it is `docs/assistant-dev-run-prompt.txt`; it needs the dev secret first, section 7): one run, $2 cap, about 60 questions, with drills for the kill switch, the spend cap, the
    quota and planted fake keys. Pass bar: no planted key echoed; the kill switch and the cap each refuse the next
    request with no model call; p95 under 12 s; the audit flag rate no worse than the measured 3.4%, and a person
    reads every flagged answer.

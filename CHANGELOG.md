@@ -9,6 +9,20 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The typed-question box in the Try-it panel, and the typed route on in dev (`feat(portal)`)** — "Ask about this function"
+  under the three buttons, in a new file `portal/assistant-typed.js` so that `portal/assistant.js` stays a reader that sends
+  nothing. It sends one POST to `/api/v1/assistant/ask` when the visitor presses Ask (the question, the function's name and at
+  most three earlier turns, which live in the panel's memory only), with the panel's key box as a Bearer header when it holds a
+  plausible token and as a visitor otherwise; nothing is sent on load, on opening the panel or while typing. The answer, its
+  functions, the checked example inputs and every refusal message (401, 422, 429 with its wait, the route's fixed 503 texts) are shown as
+  text, never as HTML; nothing is stored. A note under the box says what is sent to Anthropic, as the privacy policy section 5
+  does. `GET /public/config` gains `assistant_typed_enabled` (true only with the menus on, a complete bank and the typed flag),
+  and pyvar.js adds the script only then, into a new `#assistantTypedSlot`. The CDK flags `assistant_typed_enabled` and
+  `assistant_watchdog_enabled` are now **on in dev only**, for the live run (`docs/assistant-dev-run-prompt.txt`); staging and prod
+  are unchanged, so nothing changes in prod. Dev needs the secret `pyvar/dev/anthropic-api-key` first: without it every
+  question is a 503 `assistant_unavailable` and the client-unavailable alarm fires. Tests: `tests/test_assistant_typed_widget.py`
+  (the real file under node with a fake DOM whose `innerHTML` and storage throw, and a source scan), the `/public/config` tests, and the flag
+  test; the layout was looked at in Chromium at 1280 and 375 pixels.
 - **The typed assistant's allowlist, and its runbook (`feat(assistant)`)** — For the first weeks of the typed route in prod: while
   `assistant_allowlist_enabled` is on (a CDK flag, off in every environment; `ASSISTANT_ALLOWLIST_ENABLED` is added to the API
   container only where it is true), only signed-in accounts in the Redis set `pyvar:assistant:allow` may ask. An anonymous

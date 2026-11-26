@@ -111,6 +111,7 @@ pyvar/
 │   └── versions/              ← migration scripts (never edit manually)
 │
 ├── portal/assistant.js        ← widget in the Try-it panel (textContent only; loaded by pyvar.js only when /public/config says enabled)
+├── portal/assistant-typed.js  ← the typed-question box (textContent only; the one portal file that sends what a visitor types; loaded only when /public/config says assistant_typed_enabled)
 ├── portal/assistant/bank/     ← the answer bank: <bank_version>/<function>.json + manifest.json (written by the CLI only; absent until the first committed build)
 │
 ├── ui/                        ← Streamlit parameter dashboard
@@ -327,7 +328,13 @@ AWS:        CELERY_BROKER_URL = sqs://
 - The key is `anthropic_api_key` (SecretStr, config.py). Never log it; never log answer text.
 - /assistant/bank/ is a static mount (api/assistant_bank.py), registered before the portal catch-all
   and NOT a reserved API prefix. The widget shows only if assistant_enabled AND the manifest is
-  complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers.
+  complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers. It sends nothing.
+- portal/assistant-typed.js (the typed box) is a separate file so that assistant.js stays a pure reader. It
+  keeps to the same textContent rule, has exactly one fetch (POST /api/v1/assistant/ask, credentials omitted,
+  only when Ask is pressed), touches no storage, cookie or location, and keeps the earlier turns (at most
+  three) in the panel's memory only. pyvar.js adds it only when /public/config says assistant_typed_enabled
+  (the typed flag AND the menus on with a complete bank). Its note under the box repeats what the privacy
+  policy section 5 says: change one and change the other (tests/test_assistant_typed_widget.py).
 ```
 
 ### 3.7 Portal assistant typed-question gateway

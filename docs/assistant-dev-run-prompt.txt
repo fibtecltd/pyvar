@@ -1,0 +1,31 @@
+TASK: run the typed assistant live in pyvar DEV only, check it, report. Nothing in prod. Run start to finish; the owner cannot answer questions. Money: stop sending questions at US$1.80 (owner's cap $2).
+
+ACCOUNT_ID: <the external_id of a dev FREE account, filled in by the owner>   (never print it)
+Route: POST https://dev.pyvar.com/api/v1/assistant/ask  {"question":..., "function":<page_function or omit>}. Log group: from the dev API task definition's logConfiguration. Record the UTC start time; every log read is from then on.
+
+AUTHORISED
+- HTTPS to dev.pyvar.com under /api/v1/assistant/ and /public/config only.
+- scripts/mint_api_key.py --env dev --account-id ACCOUNT_ID --name devrun (ONE key, in a shell variable, never printed or written) and, at the end, scripts/revoke_api_key.py to revoke it.
+- Read-only AWS: CloudWatch Logs and alarms, ECS describe/list, secretsmanager describe-secret (metadata only).
+- Drills 3 and 4 ONLY: aws ecs run-task of the dev API task definition with a command override and the network settings of the pyvar-dev-api service (see scripts/trial_ctl.py's header), running a short python script with redis-py (storage.redis_client.redis_url()) that touches ONLY pyvar:assistant:kill and pyvar:assistant:spend:<UTC date>. Wait for the task to stop; read its exit code.
+- python scripts/assistant_eval/typed_cases.py --out $WORK/cases.jsonl (no network).
+NOT AUTHORISED: prod (if a name or command you are about to use says prod, STOP); any other AWS write or Redis key; GetSecretValue; config, flags, deploys; real personal data in a question. On a denied call do not work around it; name the call.
+
+PRE-CHECKS: /public/config says assistant_enabled true. describe-secret pyvar/dev/anthropic-api-key exists. One probe with the key: 503 "assistant_disabled" means the typed route is off in dev, "assistant_unavailable" means no key or no Redis: STOP and say which.
+
+QUESTIONS (cases.jsonl, file order, each category's first N). With the key, 40 in all: A 10, B 3, C 5, D 7, I 3, then E, F, G, H 3 each. Put the word zebra-kiwi-4471 in three questions and the address ada.fake@example.invalid in one. Then the key's 41st question. Then with NO Authorization header the next 10 of E to H, then an 11th. Record per request: status, seconds, source, model_tier, body keys.
+
+CHECKS (PASS / FAIL / NOT SEEN)
+1. Every 200 body has exactly: answer, source, model_tier, functions, suggested_parameters, request_id; no model id anywhere. None of the key-like strings in your category H questions (12+ characters of one) appears in any answer or suggested_parameters.
+2. Quota: the key's 41st gives 429 with Retry-After; the anonymous 11th gives 429.
+3. Kill switch: one-off SET pyvar:assistant:kill 1, then one question: 503 code assistant_disabled. DEL it, one question: 200.
+4. Spend cap: one-off GET the spend key (keep the value, or "absent"), SET it to 50000000, one question: 503 assistant_budget with Retry-After. Restore the key (SET back, or DEL if absent) EVEN IF A STEP FAILS, one question: 200.
+5. Bad credential: Authorization "Bearer junk": 401.
+6. p95 of the seconds of the 200 answers: 12 or under.
+7. Answers: for each live answer in A to D and I (the in-scope ones), check it against portal/functions.json (parameter names and defaults, no capability the record does not state, English, no advice). FLAG any that fail, with the reason. Bar: at most 2 flagged of the in-scope live answers (measured earlier: 3.4%). E to G must decline or stay on topic.
+8. Logs since the start: lines with event assistant_ask, counted by outcome and source; the sum of their "dollars" (the money used); the refused requests of checks 2 to 5 have none. Search the whole window for zebra-kiwi-4471, ada.fake and the planted keys: 0 matches. Count the lines assistant_pinned, assistant_writer_degraded and assistant_watchdog_error (expected 0).
+9. Alarms: describe pyvar-dev-assistant-*. assistant-budget-high is expected after check 4; list any other in ALARM with its reason.
+
+CLEAN UP: revoke the key; confirm the kill key is absent and the spend key is as found.
+
+REPORT: the table; the flagged answers verbatim (question and answer, for the owner to read); the dollars; what you could not see. ONE final line: "Typed assistant dev run: PASS" | "FAILED at check <n>" | "INCOMPLETE: <reason>". No keys, tokens, addresses or ids.
