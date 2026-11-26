@@ -344,6 +344,14 @@ AWS:        CELERY_BROKER_URL = sqs://
   This is the opposite of the rate limiter, on purpose: it protects a paid external API. Recording
   the spend after an answer fails open and is counted. The quota applies to every tier, enterprise
   included.
+- The key is read at call time by api/assistant/key.py (settings first; inside an ECS task the secret
+  `pyvar/<env>/anthropic-api-key`, cached 60 s; the client is rebuilt when the value changes, so a rotation
+  needs no deploy). Never inject it through ECS `secrets={}`: a missing or unreadable secret would stop
+  every API task launching, compute routes included, for a feature that is off. A failed read is None,
+  never a stale or empty key; the log lines carry the secret's short name, the exception class and the
+  AWS error code, never the value, exc_info or the message (tests/test_assistant_key.py).
+- Above 80% of the day's spend cap `require_available` writes one `assistant_budget_high` line (the
+  ratio only); the CDK alarm pyvar-<env>-assistant-budget-high counts it. Keep the line free of text.
 - Never log, store or put in a metric a visitor's question, an earlier turn, an answer or a tool
   result. Logs and metrics carry ids, tiers, outcomes, dollars and seconds only. Never return a model
   id in a response (model_tier is the family only).

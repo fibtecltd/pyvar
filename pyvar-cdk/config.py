@@ -47,6 +47,21 @@ class PyvarConfig:
     # this is True, so staging's task definition is unchanged.
     assistant_enabled: bool = False
 
+    # Typed-question gateway, POST /api/v1/assistant/ask (docs/assistant-plan-implementation.md; CLAUDE.md 3.7): a
+    # visitor types a question and a model answers it. The app reads it as ASSISTANT_TYPED_ENABLED (config.py
+    # assistant_typed_enabled) and answers only when assistant_enabled is ALSO true. OFF in every environment. Do not
+    # turn it on until the privacy and terms pages name the model provider (tests/test_assistant_privacy_terms.py
+    # fails if a CDK environment sets this to True without them), the secret pyvar/<env>/anthropic-api-key exists,
+    # the watchdog below is on, and the owner has decided the launch settings. api_stack.py sets the environment
+    # variable only when this is True.
+    assistant_typed_enabled: bool = False
+
+    # The typed assistant's watchdog (CLAUDE.md 3.8): background audits, pins and the degrade flag. It must be ON
+    # wherever assistant_typed_enabled is on outside a test (tests/test_cdk_assistant_infra.py pins that). The app
+    # reads it as ASSISTANT_WATCHDOG_ENABLED (config.py assistant_watchdog_enabled). OFF in every environment;
+    # api_stack.py sets the environment variable only when this is True.
+    assistant_watchdog_enabled: bool = False
+
     # Education tier (docs/plan-education-tier.md, A2): a free, finite grant to a teacher or student, given by
     # hand with scripts/education_grant.py. The app reads it as EDUCATION_TIER_ENABLED (config.py
     # education_tier_enabled); while it is off every account has its free limits and the grant and extend

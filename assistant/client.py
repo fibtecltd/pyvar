@@ -144,6 +144,7 @@ class AnthropicClient:
         sleep: Callable[[float], None] = time.sleep,
         rng: random.Random | None = None,
         sdk_client: Any | None = None,
+        api_key: str | None = None,
     ) -> None:
         """Build a client.
 
@@ -154,15 +155,17 @@ class AnthropicClient:
             rng: source of backoff jitter.
             sdk_client: an object with the SDK's `messages.create`; a test passes a fake, so no
                 SDK import, no key and no network is needed. In production leave it unset.
+            api_key: the key to use; when None it comes from settings (`anthropic_api_key`). The API passes the
+                one it read from Secrets Manager (api/assistant/key.py), so this module never reads AWS.
 
         Raises:
-            MissingApiKey: if no sdk_client is given and `anthropic_api_key` is not set.
+            MissingApiKey: if no sdk_client is given and no key is given or set in settings.
             RuntimeError: if the `anthropic` package is not installed.
         """
         if max_attempts < 1:
             raise ValueError("max_attempts must be at least 1")
         if sdk_client is None:
-            key = _settings_key()
+            key = api_key or _settings_key()
             if key is None:
                 raise MissingApiKey("anthropic_api_key is not set (config.py)")
             try:
