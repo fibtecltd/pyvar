@@ -5,13 +5,20 @@ Reasoning:
 - Everything here is a FastAPI dependency, so a test replaces the model client, the store or the catalogue with
   `app.dependency_overrides` and the production path is otherwise the one that runs.
 - Order matters and is fixed in routes.py: `require_available` (the switches, then the spend cap),
-  `get_model_client` (a missing key) and `limit_concurrency` run BEFORE the per-caller quota, so a question
-  refused because the service is off, over budget, not set up or busy does not use up the visitor's quota.
+  `require_allowed` (the allowlist, while it is on), `get_model_client` (a missing key) and `limit_concurrency`
+  run BEFORE the per-caller quota, so a question refused because the service is off, over budget, closed to this
+  caller, not set up or busy does not use up the visitor's quota and calls no model.
 - Refusals are 503 with a JSON `detail` of {code, message, hint}. The hint is static text that is true whether or
   not the model is reachable: the menu buttons need no model, and the catalogue is on the home page. Codes:
   `assistant_disabled` (flags or kill switch), `assistant_budget` (the day's spend cap; Retry-After is the time
   to 00:00 UTC), `assistant_unavailable` (the spend store or the model key cannot be reached), `assistant_busy`
-  (this API task is already answering `assistant_max_concurrent` questions).
+  (this API task is already answering `assistant_max_concurrent` questions), `assistant_closed` (the allowlist is
+  on and this caller is anonymous or not in it).
+- The allowlist (`assistant_allowlist_enabled`, off by default) is for the first weeks in prod: only signed-in
+  accounts in the Redis set `pyvar:assistant:allow` may ask. Reading the set FAILS CLOSED like the spend and the
+  kill switch (503 `assistant_unavailable`, logged as `assistant_store_unavailable`, which the CDK alarm counts).
+  It is managed with scripts/assistant_allow.py (api/assistant/allowlist.py). Because `require_allowed` resolves
+  the caller, a bad bearer credential is a 401 here, before the key and the slot, instead of at the quota.
 - The model client is built on first use and kept: the SDK client is thread-safe, and building it needs the
   key, which a deployment without one must not fail at start-up. The key comes from api/assistant/key.py (settings,
   else Secrets Manager with a one-minute cache), and the client is rebuilt when that value changes, so a rotation
@@ -41,6 +48,8 @@ from api.assistant.store import (
 )
 from api.assistant.watchdog import AuditRunner, Watchdog, WatchdogConfig
 from api.assistant_bank import BANK_DIR
+from api.middleware.auth import TokenPayload, get_optional_user
+from api.middleware.rate_limit import assistant_tier
 from assistant import bank, tools
 from assistant.client import AnthropicClient, ModelCallError, ModelClient
 from assistant.watchdog import Rules
@@ -50,6 +59,7 @@ cfg = get_settings()
 logger = structlog.get_logger()
 
 HINT = "The buttons on each function page still work, and every function is listed on the home page (/)."
+CLOSED = "Typed questions are open to a small group of accounts at the moment."
 MODEL_TIERS = ("haiku", "sonnet", "opus", "fable")
 
 # The share of the day's spend cap above which `assistant_budget_high` is logged (the CDK alarm counts it).
@@ -146,6 +156,31 @@ async def require_available(store: AssistantStore = Depends(get_store)) -> None:
             "The assistant has reached its limit for today and will be back after midnight UTC.",
             retry_after=seconds_until_utc_midnight(now),
         )
+
+
+async def require_allowed(
+    user: TokenPayload | None = Depends(get_optional_user),
+    store: AssistantStore = Depends(get_store),
+) -> None:
+    """While `assistant_allowlist_enabled` is on: 503 `assistant_closed` unless the caller is a signed-in account in
+    the operator's set, and 503 `assistant_unavailable` if the set cannot be read. Does nothing while it is off.
+    """
+    if not cfg.assistant_allowlist_enabled:
+        return
+    tier = assistant_tier(user)
+    if user is None:
+        refuse("assistant_closed", CLOSED, tier=tier)
+    try:
+        allowed = await store.is_allowed(user.user_id)
+    except StoreUnavailable:
+        logger.warning("assistant_store_unavailable")
+        refuse(
+            "assistant_unavailable",
+            "The assistant cannot check who may ask right now.",
+            tier=tier,
+        )
+    if not allowed:
+        refuse("assistant_closed", CLOSED, tier=tier)
 
 
 async def limit_concurrency() -> AsyncIterator[None]:

@@ -9,8 +9,9 @@ Reasoning:
   terms pages name the model provider (plan 4.6), the route answers 503 `assistant_disabled` and calls nothing.
 - Anyone may ask, signed in or not (the portal's box works for a visitor). A bearer credential, if sent, is
   validated like on every other route and picks the tier: the quota and the model. Dependency order, fixed
-  below: available (switches, kill switch, spend cap) -> model client (a missing key) -> concurrency slot ->
-  per-caller quota -> the handler. A refusal at any step costs the visitor no quota and costs no model call.
+  below: available (switches, kill switch, spend cap) -> allowed (the allowlist, while it is on: signed-in
+  accounts in the operator's set only) -> model client (a missing key) -> concurrency slot -> per-caller quota ->
+  the handler. A refusal at any step costs the visitor no quota and costs no model call.
 - `answer_question` is synchronous (the SDK client blocks), so it runs in a worker thread; the slot count bounds
   how many threads one API task spends on it.
 - A question is never logged, stored or put in a metric. The structured line `assistant_ask` carries the
@@ -43,6 +44,7 @@ from api.assistant.deps import (
     limit_concurrency,
     model_for,
     refuse,
+    require_allowed,
     require_available,
     tier_label,
 )
@@ -75,6 +77,7 @@ router = APIRouter(prefix="/assistant", tags=["assistant"])
     summary="Ask the assistant a question about pyvar's functions",
     dependencies=[
         Depends(require_available),
+        Depends(require_allowed),
         Depends(
             get_model_client
         ),  # resolved here so a missing key is refused before the quota is used
