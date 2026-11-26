@@ -289,7 +289,7 @@ a { color: inherit; text-decoration: none; }
   overflow-x: auto; max-height: 320px;
 }
 
-/* ── Assistant buttons in the Try-it panel (portal/assistant.js) ──
+/* ── Assistant buttons in the Try-it panel (portal/assistant.js) and the typed box (portal/assistant-typed.js) ──
    Colours come from the portal's own variables, so the block follows the page in whatever theme the page has
    (the portal has one palette today; there is no separate dark set to keep in step). The slot is empty, and
    takes no space, unless the assistant is on and the function has a bank file. */
@@ -333,6 +333,27 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 600px) {
   .assistant { padding: 12px; }
   .assistant-btn, .assistant-compare, .assistant-select { flex: 1 1 100%; }
+}
+
+/* The typed box (portal/assistant-typed.js) reuses the box, button and answer styles above. */
+.assistant-typed-form { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.assistant-typed-input {
+  flex: 1 1 260px; min-width: 0; box-sizing: border-box; min-height: 72px; resize: vertical;
+  font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--text);
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 8px 10px;
+}
+.assistant-typed-input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-color: var(--green); }
+.assistant-btn:disabled { opacity: .6; cursor: default; }
+.assistant-typed-note { margin-top: 8px; font-size: 11px; line-height: 1.5; color: var(--text2); overflow-wrap: anywhere; }
+.assistant-typed-link { color: var(--green); }
+.assistant-typed .assistant-list + .assistant-text { margin-top: 8px; }
+.assistant-typed-json {
+  margin: 6px 0 0; padding: 10px 12px; max-height: 240px; overflow: auto;
+  font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--text);
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+@media (max-width: 600px) {
+  .assistant-typed-input { flex: 1 1 100%; }
 }
 
 /* ── Typography ── */
