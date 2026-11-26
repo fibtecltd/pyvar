@@ -480,6 +480,12 @@ class ApiStack(Stack):
                 **(
                     {"ASSISTANT_WATCHDOG_ENABLED": "true"} if cfg.assistant_watchdog_enabled else {}
                 ),
+                # Its allowlist: the app's assistant_allowlist_enabled (config.py), the same way.
+                **(
+                    {"ASSISTANT_ALLOWLIST_ENABLED": "true"}
+                    if cfg.assistant_allowlist_enabled
+                    else {}
+                ),
                 # Stripe Tax on the Pro Checkout: the app's stripe_automatic_tax_enabled (config.py). Set
                 # only where cfg.stripe_automatic_tax_enabled is True, so every other task definition is
                 # unchanged and the app's default (off) applies there.

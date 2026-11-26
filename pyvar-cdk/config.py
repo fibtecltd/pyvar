@@ -62,6 +62,14 @@ class PyvarConfig:
     # api_stack.py sets the environment variable only when this is True.
     assistant_watchdog_enabled: bool = False
 
+    # The typed assistant's allowlist (docs/assistant-runbook.md): while true, only signed-in accounts an operator has
+    # put in the Redis set pyvar:assistant:allow (scripts/assistant_allow.py) may ask a typed question; everyone else,
+    # anonymous visitors included, is refused before any quota or model call. The app reads it as
+    # ASSISTANT_ALLOWLIST_ENABLED (config.py assistant_allowlist_enabled). OFF in every environment now; the owner
+    # turns it on together with the typed flag in prod for the first weeks and off again to open the route to every
+    # signed-in account. api_stack.py sets the environment variable only when this is True.
+    assistant_allowlist_enabled: bool = False
+
     # Education tier (docs/plan-education-tier.md, A2): a free, finite grant to a teacher or student, given by
     # hand with scripts/education_grant.py. The app reads it as EDUCATION_TIER_ENABLED (config.py
     # education_tier_enabled); while it is off every account has its free limits and the grant and extend

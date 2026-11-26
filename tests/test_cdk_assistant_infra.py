@@ -84,7 +84,9 @@ def cdk_config() -> ModuleType:
 # ── the flags ───────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("flag", ["assistant_typed_enabled", "assistant_watchdog_enabled"])
+@pytest.mark.parametrize(
+    "flag", ["assistant_typed_enabled", "assistant_watchdog_enabled", "assistant_allowlist_enabled"]
+)
 def test_the_flag_is_off_in_every_environment(flag: str) -> None:
     config = cdk_config()
     assert config.PyvarConfig(env_name="x", account="1").__dict__[flag] is False
@@ -106,6 +108,7 @@ def test_the_api_container_gets_each_variable_only_where_its_flag_is_true() -> N
     for variable, flag in (
         ("ASSISTANT_TYPED_ENABLED", "assistant_typed_enabled"),
         ("ASSISTANT_WATCHDOG_ENABLED", "assistant_watchdog_enabled"),
+        ("ASSISTANT_ALLOWLIST_ENABLED", "assistant_allowlist_enabled"),
     ):
         assert re.search(
             rf'\*\*\(\s*\{{"{variable}": "true"\}}\s*if cfg\.{flag}\s*else\s*\{{\}}\s*,?\s*\)', API
@@ -120,6 +123,7 @@ def test_the_variable_names_are_the_ones_the_application_reads(
     for variable, attribute in (
         ("ASSISTANT_TYPED_ENABLED", "assistant_typed_enabled"),
         ("ASSISTANT_WATCHDOG_ENABLED", "assistant_watchdog_enabled"),
+        ("ASSISTANT_ALLOWLIST_ENABLED", "assistant_allowlist_enabled"),
     ):
         monkeypatch.delenv(variable, raising=False)
         assert getattr(Settings(), attribute) is False
