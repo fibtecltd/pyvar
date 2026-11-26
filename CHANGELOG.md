@@ -7,7 +7,22 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-26
+
 ### Added
+
+- **The typed assistant's infrastructure, all inert (`infra(cdk)`)** — Two CDK flags, `assistant_typed_enabled` and `assistant_watchdog_enabled`, off in every
+  environment (the environment variable is added to the API container only where its flag is true: nowhere yet, so no task definition changes);
+  `tests/test_assistant_privacy_terms.py` fails if an environment turns typed on without the model provider named in the privacy policy and terms, and
+  `tests/test_cdk_assistant_infra.py` fails if typed is on where the watchdog is not (`CLAUDE.md` 3.8). The secret `pyvar/<env>/anthropic-api-key` is
+  imported by name and granted to the API task role (one read-only statement on that one secret; deliberately not an ECS `secrets={}` entry, see
+  `CLAUDE.md` 3.7); the secret itself does not exist yet. Eight log-event metric filters and eight alarms on the shared alerts topic, same mechanism as the
+  trial lane's: key not set up, spend or kill-switch store unreadable (it fails closed), unexpected errors, a writer degraded, watchdog errors, spend not
+  recorded, spend at 80% of the cap, a function pinned. They stay quiet until the route is on. One WAF rule, `AssistantRateLimitPerIp` (priority 24, before
+  the aggregate rule): 30 requests per 300 s per address on `/api/v1/assistant/`, a backstop above the route's own quotas. Synth before and after (dev,
+  staging and prod; asset hashes masked): per environment the API stack gains 8 metric filters, 8 alarms and one changed IAM policy, and the edge stack's
+  web ACL gains the one rule; nothing is removed or replaced. Tests: `tests/test_cdk_assistant_infra.py` (19). Needs the commit before it: the app
+  reads the key from that secret. Pattern from the trial lane's alarms and fibtec-etlgen and fibtec-docugen's key handling.
 
 - **The dashboard shows which account is signed in (`feat(auth)`, issue #454)** — A person with more than one address could
   not tell, from the dashboard, which account a stored session, a key or a purchase belonged to. New read-only
@@ -55,7 +70,7 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   run through the trial lane: the first call that needs it asks pyvar.com for an anonymous installation ticket (a solved
   puzzle, nothing else) and keeps it in `install.json` in the plugin's own data directory (mode 0600); never when `CI`
   is set or outside Claude Code. A key you set always wins. `list_pyvar_functions` marks the functions that work without
-  one, and tool calls no longer block the MCP loop. **Published only when `pyvar-mcp-v0.3.0` is tagged.**
+  one, and tool calls no longer block the MCP loop. Published to PyPI on 2026-11-19 (tag `pyvar-mcp-v0.3.0`, the merge of #440).
 - **Education tier, built and off (A2 PR 1)** — A finite grant for teachers and students, given by hand: `users.tier_expires_at`
   (migration `0010_user_tier_expires_at`), an `education` row in `api/tiers.py` (100 requests a day, 2,000 a month, 20 a minute, 100,000
   simulations a request, 1,000,000 VaR simulations a month; a monthly breach is a 429 and never Pro's downgrade), `effective_tier()` at
@@ -318,8 +333,26 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `market_data.providers`. 27 new tests across both phases; full suite
   re-run clean. MD-3 (the real Refinitiv adapter) and MD-4 (pipeline
   wiring) remain hard-gated behind decisions only Filippo can make.
+- **The typed assistant reads its Anthropic key from Secrets Manager at call time, and logs when spend passes 80% (`feat(assistant)`)** — `api/assistant/key.py`:
+  settings first, else (inside an ECS task only) the secret `pyvar/<env>/anthropic-api-key`, cached for 60 seconds, so a key can be rotated with
+  `put-secret-value` and no deploy; `api/assistant/deps.py` rebuilds the client when the value changes and answers 503 `assistant_unavailable` with no key,
+  as before. The key is deliberately not an ECS `secrets={}` entry (a missing secret would stop every task launching, compute routes included).
+  A failed read is never a stale or empty key and is retried after 15 seconds; its log lines carry the secret's short name, the exception class and the
+  AWS error code, never the value. `AnthropicClient` takes an optional `api_key`. `require_available` also writes one `assistant_budget_high` line (the
+  ratio only) while the day's spend is at or above 80% of the cap, for the CDK alarm. Nothing is switched on: `assistant_typed_enabled` stays false
+  everywhere, and the secret does not exist yet. Pattern from fibtec-etlgen's `api/lib/secret_value.py`; the Stripe resolver's rules (a value in settings
+  wins, nothing is read outside ECS). Tests: `tests/test_assistant_key.py` (15); the existing assistant tests still pass; `CLAUDE.md` 3.7.
 
 ### Changed
+
+- **Education tier on in prod (`feat(cdk)`)** — `education_tier_enabled=True` in the "prod" override of `pyvar-cdk/config.py`, so the prod API container gets
+  `EDUCATION_TIER_ENABLED=true` and `scripts/education_grant.py grant` and `extend` work in prod (they answered 503 while it was off);
+  `effective_tier()` honours an education account's end date there. Grants are still made by hand, one person at a time; there is no sign-up form and
+  no automatic grant, so no account changes until one is made. The home-page paragraph, the privacy policy's "Education access" item and the Terms
+  text were already live in prod. Synth before and after: in prod exactly one template differs (`pyvar-prod-api`, one container environment entry); dev
+  and staging are byte-identical. `tests/test_cdk_education_flag.py` now expects dev and prod on, staging off. After the deploy,
+  `scripts/ops/education-grant.sh list --env prod` must print "ON in this environment". To close it again: remove the line, change the test in the
+  same commit, deploy, then `suspend-all`. Plan: `docs/plan-education-tier.md` section 13.
 
 - **Every Stripe object pyvar creates is marked (`fix(billing)`)** — The second Stripe verification run on dev (2026-11-23)
   found that the hosted Checkout page offers a local currency (EUR 62.14 with a 4% conversion fee) because the Stripe account's
@@ -418,6 +451,16 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   distribution is bit for bit unchanged on 12 reference arrays), and the rough Bergomi pricer computes its lag weights once instead of once per path (the pricer 781 to
   210 ms; its kernel 15 to 20 times faster; per-path payoffs differ by at most 3.7e-15 relative). No VaR or ES definition and no regulatory threshold changed; new tests
   re-derive both from independent NumPy code. The changed kernels recompile on the first call after a deploy.
+- **The privacy policy and terms name the model provider for the portal assistant (`feat(portal)`)** — `portal/privacy.html` §1 and §5 now say that a language
+  model is involved in one place only, the portal's optional assistant, and that the typed box (where the assistant offers one) sends the question, up to
+  three earlier turns and the function's name to Anthropic after the scrub removes e-mail addresses, keys, tokens and long random strings, never a
+  computation input or result and nothing about the account; that a second Anthropic model may read a sample of answers and only a yes/no count is kept;
+  that pyvar.com stores neither the question nor the answer; and that Anthropic's own terms and documentation govern what it keeps. The sub-processor table gains an
+  Anthropic row; `portal/terms.html` §6 gains an assistant clause (informational, may be wrong, not advice, never runs a computation, may be withdrawn).
+  Every statement is conditional on "where the assistant offers a box", so the text is true before the box exists. This is the privacy-and-terms gate
+  of `CLAUDE.md` 3.7; the typed route stays off. `tests/test_assistant_privacy_terms.py` pins the checkable promises to the code (what the scrub removes,
+  that no account argument reaches the model, the three-turn history limit) and fails if a CDK environment turns the typed route on while the Anthropic
+  row or the terms clause is missing. Wording follows the three sibling products' pages; what Anthropic keeps is left to Anthropic's own documentation, named on the page in the owner's wording (its Commercial Terms of Service, API data-retention documentation, Trust Center and Data Processing Addendum), pinned verbatim by the test; its own privacy policy is not cited, because it excludes business-customer content. Plan: `docs/assistant-plan-implementation.md`.
 
 ### Fixed
 

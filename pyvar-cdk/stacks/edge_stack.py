@@ -105,6 +105,13 @@ POST /api/v1/trial/{challenge,ticket,run/<function>}. What this stack adds for i
   An alarm must live in the region of its metric and publish to a topic of its own region, so this cannot
   use the alerts stack's topic. Like that topic, it is created without subscribers: add one after deploy.
 The lane's other alarms count its log lines in the API's own region (stacks/alerts_stack.py).
+
+Typed-question assistant (api/assistant/routes.py, POST /api/v1/assistant/ask, off in every environment): one rule,
+AssistantRateLimitPerIp (24): 30 requests per 300 s per source address, scoped to that path (the same URL-decoded,
+normalised starts-with match as the trial rules) and placed BEFORE AggregateRateLimit (25), so a flood on the
+assistant is stopped here and does not use up the 6,000 that every other caller shares. It is a backstop for abuse,
+far above what a person types: the route's own quotas (anonymous 10 an hour per address; 40, 200 and 500 a day by
+tier) are the real limits. The menu buttons are static files under /assistant/bank/, not under this path.
 """
 
 from __future__ import annotations
@@ -152,6 +159,13 @@ TRIAL_WINDOW_ALL_SEC = 300
 TRIAL_RATE_RULE_METRICS = ("TrialRateLimitPerIp", "TrialRateLimitPerAsn", "TrialRateLimitAll")
 # Blocks of those rules in 5 minutes that page someone: a flood is under way, or a real caller is being refused.
 TRIAL_WAF_BLOCKS_ALARM_THRESHOLD = 1000
+
+# The typed-question route (api/assistant/routes.py, mounted under the API's /api/v1; off in every environment).
+# tests/test_cdk_assistant_infra.py pins the prefix to the route's own.
+ASSISTANT_PATH_PREFIX = "/api/v1/assistant/"
+# Per source address, per ASSISTANT_WINDOW_PER_IP_SEC: a backstop; the route's own quotas are the real limits.
+ASSISTANT_LIMIT_PER_IP = 30
+ASSISTANT_WINDOW_PER_IP_SEC = 300
 
 
 def _match_all_statement() -> waf.CfnWebACL.StatementProperty:
@@ -215,6 +229,48 @@ def _trial_rate_rule(
                 evaluation_window_sec=window_sec,
                 custom_keys=custom_keys,
                 scope_down_statement=_trial_path_statement(),
+            )
+        ),
+        visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
+            cloud_watch_metrics_enabled=True,
+            metric_name=name,
+            sampled_requests_enabled=True,
+        ),
+    )
+
+
+def _assistant_path_statement() -> waf.CfnWebACL.StatementProperty:
+    """Matches a request whose path starts with ASSISTANT_PATH_PREFIX, after URL decoding and path normalisation.
+
+    The same shape as `_trial_path_statement`, for the same reason: the API decodes %-escapes and collapses `//`
+    before routing, so a match on the raw path could be walked around.
+    """
+    return waf.CfnWebACL.StatementProperty(
+        byte_match_statement=waf.CfnWebACL.ByteMatchStatementProperty(
+            field_to_match=waf.CfnWebACL.FieldToMatchProperty(uri_path={}),
+            positional_constraint="STARTS_WITH",
+            search_string=ASSISTANT_PATH_PREFIX,
+            text_transformations=[
+                waf.CfnWebACL.TextTransformationProperty(priority=0, type="URL_DECODE"),
+                waf.CfnWebACL.TextTransformationProperty(priority=1, type="NORMALIZE_PATH"),
+            ],
+        )
+    )
+
+
+def _assistant_rate_rule() -> waf.CfnWebACL.RuleProperty:
+    """The blocking per-address rate rule on the typed-question path; its name is also its metric name."""
+    name = "AssistantRateLimitPerIp"
+    return waf.CfnWebACL.RuleProperty(
+        name=name,
+        priority=24,
+        action=waf.CfnWebACL.RuleActionProperty(block={}),
+        statement=waf.CfnWebACL.StatementProperty(
+            rate_based_statement=waf.CfnWebACL.RateBasedStatementProperty(
+                aggregate_key_type="IP",
+                limit=ASSISTANT_LIMIT_PER_IP,
+                evaluation_window_sec=ASSISTANT_WINDOW_PER_IP_SEC,
+                scope_down_statement=_assistant_path_statement(),
             )
         ),
         visibility_config=waf.CfnWebACL.VisibilityConfigProperty(
@@ -356,6 +412,8 @@ class EdgeStack(Stack):
                     limit=TRIAL_LIMIT_ALL,
                     window_sec=TRIAL_WINDOW_ALL_SEC,
                 ),
+                # Typed-question rate limit (module docstring): before the aggregate rule, for the same reason.
+                _assistant_rate_rule(),
                 # Aggregate (all-clients-combined) rate limit — see module
                 # docstring. Evaluated after the managed rule sets and before
                 # nothing (last): this and RateLimitPerIp are independent
