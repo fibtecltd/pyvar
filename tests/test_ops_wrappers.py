@@ -123,6 +123,7 @@ def test_there_is_a_wrapper_for_each_operator_script() -> None:
     assert [path.name for path in WRAPPERS] == [
         "account-erase.sh",
         "account-export.sh",
+        "assistant-allow.sh",
         "audit-cleanup.sh",
         "billing-checkout-allow.sh",
         "education-grant.sh",
@@ -229,6 +230,24 @@ PARSER_CASES: list[tuple[str, str, list[str], dict[str, Any]]] = [
     (
         "billing-checkout-allow.sh",
         "billing_checkout_allow",
+        ["--env", "prod", "list"],
+        {"yes_prod": True},
+    ),
+    (
+        "assistant-allow.sh",
+        "assistant_allow",
+        ["--env", "prod", "allow", "--email", EMAIL, "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "assistant-allow.sh",
+        "assistant_allow",
+        ["--env", "prod", "clear", "--apply"],
+        {"yes": True, "yes_prod": True},
+    ),
+    (
+        "assistant-allow.sh",
+        "assistant_allow",
         ["--env", "prod", "list"],
         {"yes_prod": True},
     ),
@@ -490,4 +509,36 @@ def test_the_billing_wrapper_asks_before_clearing_the_allow_list(run) -> None:
     refused = run("billing-checkout-allow.sh", "--env", "dev", "clear", "--apply", confirm="no")
     assert refused.code == 2 and refused.python_args is None
     done = run("billing-checkout-allow.sh", "--env", "dev", "clear", "--apply", confirm="dev")
+    assert _flags(done) == ["--env", "dev", "clear", "--yes"]
+
+
+def test_the_assistant_wrapper_puts_yes_prod_before_the_subcommand_and_yes_after_it(run) -> None:
+    # assistant_allow.py follows billing_checkout_allow.py: --env and --yes-prod belong to the parser before the
+    # subcommand and --yes to the subcommand, so the wrapper must not simply append both.
+    out = run(
+        "assistant-allow.sh",
+        "--env",
+        "prod",
+        "allow",
+        "--email",
+        EMAIL,
+        "--apply",
+        confirm="prod",
+    )
+    assert _flags(out) == ["--yes-prod", "--env", "prod", "allow", "--email", EMAIL, "--yes"]
+    assert EMAIL not in out.stderr and "--email <masked>" in out.stderr
+
+
+def test_the_assistant_wrapper_reads_for_list_and_dry_runs_the_rest_without_apply(run) -> None:
+    assert _flags(run("assistant-allow.sh", "--env", "dev", "list")) == ["--env", "dev", "list"]
+    for action in (["allow", "--email", EMAIL], ["remove", "--email", EMAIL], ["clear"]):
+        dry = run("assistant-allow.sh", "--env", "dev", *action)
+        assert dry.code == 0 and "--yes" not in _flags(dry)  # the script's own dry run
+    assert run("assistant-allow.sh", "--env", "dev", "list", "--apply").code == 2
+
+
+def test_the_assistant_wrapper_asks_before_clearing_the_allowlist(run) -> None:
+    refused = run("assistant-allow.sh", "--env", "dev", "clear", "--apply", confirm="no")
+    assert refused.code == 2 and refused.python_args is None
+    done = run("assistant-allow.sh", "--env", "dev", "clear", "--apply", confirm="dev")
     assert _flags(done) == ["--env", "dev", "clear", "--yes"]

@@ -265,6 +265,11 @@ class Settings(BaseSettings):
     # Models by tier are config, not code. All three default to Haiku: the first typed run found no gain
     # from Sonnet at 16 times the cost (results 9.18, rule T4); change a tier here once a ladder is decided.
     assistant_typed_enabled: bool = False
+    # While true, only signed-in accounts in the Redis set `pyvar:assistant:allow` may ask a typed question; every
+    # other caller, and every anonymous visitor, is refused (503 assistant_closed) before any quota or model call.
+    # Where it is false (the default) the set is ignored and everyone the other switches admit may ask. The set is
+    # managed with scripts/assistant_allow.py; reading it fails closed (api/assistant/deps.py::require_allowed).
+    assistant_allowlist_enabled: bool = False
     assistant_model_free: str = "claude-haiku-5-5"
     assistant_model_pro: str = "claude-haiku-5-5"
     assistant_model_enterprise: str = "claude-haiku-5-5"

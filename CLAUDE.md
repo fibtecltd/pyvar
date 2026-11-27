@@ -79,7 +79,7 @@ pyvar/
 │
 ├── api/                       ← FastAPI routes and middleware
 │   ├── assistant_bank.py      ← cached manifest read for /public/config + BankStaticFiles (Cache-Control) for /assistant/bank/
-│   ├── assistant/             ← typed-question gateway, POST /api/v1/assistant/ask (flag off): routes.py, deps.py (switches, spend cap, slots, model client), store.py (Redis spend + kill switch), metrics.py
+│   ├── assistant/             ← typed-question gateway, POST /api/v1/assistant/ask (flag off): routes.py, deps.py (switches, allowlist, spend cap, slots, model client), store.py (Redis spend, kill switch, allowlist read), allowlist.py (the operator's side of the allowlist), key.py (the Anthropic key at call time), metrics.py
 │   ├── routes/var.py          ← POST /var/compute  GET /var/result/{id}  WS /var/stream/{id}  POST /var/stream-token/{id}
 │   ├── routes/auth.py         ← register / sign-in link / verify / Google / API key routes
 │   ├── middleware/auth.py     ← bearer validation: session JWT or pyvar_ API key
@@ -111,6 +111,7 @@ pyvar/
 │   └── versions/              ← migration scripts (never edit manually)
 │
 ├── portal/assistant.js        ← widget in the Try-it panel (textContent only; loaded by pyvar.js only when /public/config says enabled)
+├── portal/assistant-typed.js  ← the typed-question box (textContent only; the one portal file that sends what a visitor types; loaded only when /public/config says assistant_typed_enabled)
 ├── portal/assistant/bank/     ← the answer bank: <bank_version>/<function>.json + manifest.json (written by the CLI only; absent until the first committed build)
 │
 ├── ui/                        ← Streamlit parameter dashboard
@@ -283,7 +284,8 @@ AWS:        CELERY_BROKER_URL = sqs://
   goes live there. Runbook: docs/plan-pro-tier-stripe.md section 11.
 - The admin routes under /internal/admin/ accept only an admin token: `aud` "pyvar-admin",
   10 minutes, signed by the operator scripts (scripts/education_grant.py, scripts/account_erase.py,
-  scripts/account_export.py, scripts/audit_cleanup.py, scripts/billing_checkout_allow.py). They must
+  scripts/account_export.py, scripts/audit_cleanup.py, scripts/billing_checkout_allow.py,
+  scripts/assistant_allow.py). They must
   REQUIRE `aud` to be present and
   equal (python-jose lets a token with no `aud` through a decoder that names one), so a
   session JWT, an API key, an "internal" JWT and a stream token are all refused. Every
@@ -326,7 +328,13 @@ AWS:        CELERY_BROKER_URL = sqs://
 - The key is `anthropic_api_key` (SecretStr, config.py). Never log it; never log answer text.
 - /assistant/bank/ is a static mount (api/assistant_bank.py), registered before the portal catch-all
   and NOT a reserved API prefix. The widget shows only if assistant_enabled AND the manifest is
-  complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers.
+  complete. portal/assistant.js must keep to textContent: no innerHTML, eval or inline handlers. It sends nothing.
+- portal/assistant-typed.js (the typed box) is a separate file so that assistant.js stays a pure reader. It
+  keeps to the same textContent rule, has exactly one fetch (POST /api/v1/assistant/ask, credentials omitted,
+  only when Ask is pressed), touches no storage, cookie or location, and keeps the earlier turns (at most
+  three) in the panel's memory only. pyvar.js adds it only when /public/config says assistant_typed_enabled
+  (the typed flag AND the menus on with a complete bank). Its note under the box repeats what the privacy
+  policy section 5 says: change one and change the other (tests/test_assistant_typed_widget.py).
 ```
 
 ### 3.7 Portal assistant typed-question gateway
@@ -337,8 +345,23 @@ AWS:        CELERY_BROKER_URL = sqs://
   environment until the privacy and terms pages name the model provider (plan 4.6) and the second
   measurement run has been approved and read (docs/assistant-phase0-results.md).
 - Dependency order is fixed (routes.py): require_available (switches, kill switch, daily spend cap)
-  -> limit_concurrency -> enforce_assistant_rate_limit -> handler. A question refused at any step
-  must cost the visitor no quota and cost no model call. Keep that order.
+  -> require_allowed (the allowlist, while it is on) -> get_model_client -> limit_concurrency
+  -> enforce_assistant_rate_limit -> handler. A question refused at any step
+  must cost the visitor no quota and cost no model call. Keep that order
+  (tests/test_assistant_allowlist.py reads it from the route).
+- The allowlist (`assistant_allowlist_enabled`, off by default; the CDK flag sets ASSISTANT_ALLOWLIST_ENABLED only
+  where it is true) is for the first weeks of the typed route in prod: only signed-in accounts in the Redis set
+  `pyvar:assistant:allow` may ask; an anonymous visitor or an unlisted account gets 503 `assistant_closed`, before
+  the key, the slot and the quota. Reading the set FAILS CLOSED (503 `assistant_unavailable`, log line
+  `assistant_store_unavailable`, which the CDK alarm counts). It holds account ids (users.external_id), never
+  addresses, and is managed with scripts/assistant_allow.py (wrapper scripts/ops/assistant-allow.sh) through
+  /internal/admin/assistant/allow, admin token only. To keep an audience out WITHOUT the allowlist, set its quota
+  to 0 (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): a 0 quota is a 429, calls no model and
+  leaves every other caller alone. Runbook: docs/assistant-runbook.md.
+- The kill switch and today's spend counter are written by scripts/assistant_ctl.py, run in an ECS one-off of the
+  API task (ECS Exec is off; the image carries scripts/), exactly as scripts/trial_ctl.py is. It touches only the
+  kill key, today's spend key and (read-only) the allowlist key. `kill on` stops the route and never asks;
+  `kill off`, `spend set` and `spend clear` are dry runs without --yes and need --yes-prod in a prod task.
 - Cost controls: the day's spend (Redis, micro-dollars, UTC day) and the kill switch key
   `pyvar:assistant:kill` are read before every question and FAIL CLOSED (503 assistant_unavailable).
   This is the opposite of the rate limiter, on purpose: it protects a paid external API. Recording

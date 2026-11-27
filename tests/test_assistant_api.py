@@ -84,6 +84,24 @@ async def test_the_assistant_is_on_only_with_the_setting_and_a_complete_bank(
 
 
 @pytest.mark.asyncio
+async def test_the_typed_box_is_off_by_default_and_on_only_with_the_menus_and_its_own_switch(
+    app: Any, bank_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The portal adds assistant-typed.js (the box that sends what a visitor types) only when this is true.
+    assert (await config(app))["assistant_typed_enabled"] is False  # the committed default
+    monkeypatch.setattr(public_data_module.cfg, "assistant_typed_enabled", True)
+    assert (await config(app))["assistant_typed_enabled"] is False  # menus off: no box
+    monkeypatch.setattr(public_data_module.cfg, "assistant_enabled", True)
+    assert (await config(app))["assistant_typed_enabled"] is False  # no complete bank yet: no box
+    write_bank(bank_root)
+    body = await config(app)
+    assert body["assistant_typed_enabled"] is True and body["assistant_enabled"] is True
+    monkeypatch.setattr(public_data_module.cfg, "assistant_typed_enabled", False)
+    body = await config(app)  # the menus alone never switch the box on
+    assert body["assistant_typed_enabled"] is False and body["assistant_enabled"] is True
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "kwargs",
     [

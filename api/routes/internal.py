@@ -23,7 +23,7 @@ Reasoning:
   are the exception to the auth rule above:
   they take an ADMIN token (`aud` "pyvar-admin", 10 minutes, signed by the operator scripts
   scripts/education_grant.py, scripts/account_erase.py, scripts/account_export.py, scripts/audit_cleanup.py and
-  scripts/billing_checkout_allow.py), not a session
+  scripts/billing_checkout_allow.py and scripts/assistant_allow.py), not a session
   JWT. A session JWT, an "internal" JWT, an API key and a stream token are all refused (require_admin_token), so
   holding any credential the API hands out is never enough to grant access. They are kept out of the public
   OpenAPI document. grant and extend answer 503 while `education_tier_enabled` is off; revoke, list,
@@ -41,6 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 
 from api import account_erasure, account_export, audit_retention, billing_gate, education_grants
+from api.assistant import allowlist as assistant_allowlist
 from api.middleware.auth import AdminPayload, TokenPayload, get_current_user, require_admin_token
 from config import get_settings
 from observability.redact import email_domain
@@ -49,6 +50,8 @@ from schemas.internal import (
     AccountErasureResponse,
     AccountExportRequest,
     AccountExportResponse,
+    AssistantAllowRequest,
+    AssistantAllowResponse,
     AuditCleanupRequest,
     AuditCleanupResponse,
     AuditTableOut,
@@ -449,4 +452,82 @@ async def billing_checkout_allow(
         logger.warning("billing_checkout_allow_unavailable", reason=str(exc))
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, "The allow list could not be reached."
+        ) from exc
+
+
+# ── /internal/admin/assistant/allow (admin token only) ───────────────────────────────────────────────────────
+
+
+@router.post(
+    "/admin/assistant/allow",
+    response_model=AssistantAllowResponse,
+    include_in_schema=False,
+)
+async def assistant_allow(
+    body: AssistantAllowRequest, admin: AdminPayload = Depends(require_admin_token)
+) -> AssistantAllowResponse:
+    """Allow, remove, list or clear the accounts that may ask the typed assistant a question while the allowlist is on
+    (api/assistant/allowlist.py). `allow` and `remove` find the account by its address and keep only its identifier in
+    the set; a dry run unless `apply`. The answer names accounts by identifier, never by address. 503 and nothing
+    changed when the set cannot be reached."""
+    enabled = bool(cfg.assistant_allowlist_enabled)
+    try:
+        if body.action == "list":
+            members = await assistant_allowlist.members()
+            return AssistantAllowResponse(
+                action="list",
+                applied=False,
+                enabled=enabled,
+                members=len(members),
+                account_ids=members,
+            )
+        if body.action == "clear":
+            count = len(await assistant_allowlist.members())
+            if body.apply:
+                await assistant_allowlist.clear()
+                logger.warning("assistant_allow_changed", operator=admin.operator, action="clear")
+            return AssistantAllowResponse(
+                action="clear",
+                applied=body.apply,
+                enabled=enabled,
+                members=0 if body.apply else count,
+            )
+
+        async with get_sessionmaker()() as session:
+            user = (
+                await session.execute(
+                    select(User).where(func.lower(User.email) == str(body.email).lower())
+                )
+            ).scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "No account has this address.")
+        members = await assistant_allowlist.members()
+        was_allowed = user.external_id in members
+        after = set(members)
+        if body.apply:
+            if body.action == "allow":
+                await assistant_allowlist.add(user.external_id)
+                after.add(user.external_id)
+            else:
+                await assistant_allowlist.remove(user.external_id)
+                after.discard(user.external_id)
+            logger.warning(
+                "assistant_allow_changed",
+                operator=admin.operator,
+                action=body.action,
+                account_id=user.external_id,
+            )
+        return AssistantAllowResponse(
+            action=body.action,
+            applied=body.apply,
+            enabled=enabled,
+            account_id=user.external_id,
+            tier=user.tier,
+            was_allowed=was_allowed,
+            members=len(after),
+        )
+    except assistant_allowlist.AllowListUnavailable as exc:
+        logger.warning("assistant_allow_unavailable", reason=str(exc))
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "The allowlist could not be reached."
         ) from exc

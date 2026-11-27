@@ -11,6 +11,7 @@ script's own exit code. The Python scripts still enforce every rule; a wrapper o
 | `account-export.sh` | `account_export.py` | reads, writes one local JSON file |
 | `audit-cleanup.sh` | `audit_cleanup.py` | dry run; `--apply` deletes rows older than six years |
 | `billing-checkout-allow.sh` | `billing_checkout_allow.py` | `list` reads; `allow`, `remove`, `clear` have a dry run; `--apply` does it |
+| `assistant-allow.sh` | `assistant_allow.py` | `list` reads; `allow`, `remove`, `clear` have a dry run; `--apply` does it |
 | `mint-api-key.sh` | `mint_api_key.py` | creates a key |
 | `revoke-api-key.sh` | `revoke_api_key.py` | `list` reads; `revoke` changes data |
 | `mint-internal-token.sh` | `mint_internal_token.py` | creates a token; `--decode` needs no AWS |

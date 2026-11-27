@@ -1011,6 +1011,7 @@ function openTryItPanel(fn, triggerEl) {
       <div class="tryit-desc"><p class="tryit-summary">${_catalogueInline(fn.summary)}</p>${_catalogueBlocksHtml(fn.description)}</div>
       ${_formulaBlockHtml(fn)}
       <div id="assistantSlot" class="assistant-slot" data-fn="${fn.name}"></div>
+      <div id="assistantTypedSlot" class="assistant-slot" data-fn="${fn.name}"></div>
       <div class="tryit-jwt-row">
         <input type="text" id="tryitJwt" class="tryit-jwt-input" placeholder="Paste your API key (JWT)…" value="${storedToken}"/>
         <a href="/#get-api-key" class="tryit-jwt-link">Get a free key →</a>
@@ -1023,7 +1024,8 @@ function openTryItPanel(fn, triggerEl) {
     </div>
   `;
   panel.classList.add('open');
-  // portal/assistant.js (loaded only when the assistant is enabled) fills #assistantSlot on this event.
+  // portal/assistant.js (loaded only when the assistant is enabled) fills #assistantSlot on this event, and
+  // portal/assistant-typed.js (loaded only when the typed route is on) fills #assistantTypedSlot.
   document.dispatchEvent(new CustomEvent('pyvar:tryit-open', { detail: { name: fn.name } }));
   document.getElementById('tryitClose').addEventListener('click', closeTryItPanel);
   document.getElementById('tryitForm').addEventListener('submit', e => _submitTryIt(e, fn));
@@ -1096,7 +1098,9 @@ function initNav() {
 // ── Portal assistant (portal/assistant.js, assistant/bank.py) ───────────────────────────────────────────
 // GET /public/config says whether the assistant is on and which answer-bank version to read
 // (api/routes/public_data.py). Only then is assistant.js added; otherwise nothing loads and the Try-it
-// panel is unchanged. Any failure here is silent, like the Google button above.
+// panel is unchanged. assistant-typed.js (the "Ask about this function" box, which sends what the visitor types)
+// is added only when the same answer also says assistant_typed_enabled. Any failure here is silent, like the
+// Google button above.
 async function initAssistant() {
   try {
     const res = await fetch(`${API_BASE}/public/config`);
@@ -1109,6 +1113,12 @@ async function initAssistant() {
     script.async = true;
     script.dataset.bankVersion = version;
     document.head.appendChild(script);
+    if (publicConfig.assistant_typed_enabled === true) {
+      const typed = document.createElement('script');
+      typed.src = `${API_BASE}/assistant-typed.js`;
+      typed.async = true;
+      document.head.appendChild(typed);
+    }
   } catch (e) {
     // Offline / pre-deploy: the page works without the assistant.
   }

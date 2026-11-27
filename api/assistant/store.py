@@ -10,6 +10,9 @@ Reasoning:
     no deploy: `redis-cli SET pyvar:assistant:kill 1`; `DEL` turns it back on. (The deploy-time flag
     `assistant_typed_enabled` is the other half of the switch; this one is for an incident.)
 - Both are read in ONE round trip (MGET) before every question.
+- A third key, the set `pyvar:assistant:allow` of account ids, is read only while `assistant_allowlist_enabled` is on
+  (api/assistant/deps.py::require_allowed, managed with scripts/assistant_allow.py). It fails closed like the other
+  two: if it cannot be read, nobody is let in.
 - Unlike the rate limiter, reading this FAILS CLOSED. The limiter fails open because it is an anti-abuse
   measure and a cache blip must not lock everyone out of the compute API. This is the cost control for a
   paid external API: if the spend cannot be read, the route cannot know whether the cap has been reached, so
@@ -37,6 +40,7 @@ from storage.redis_client import redis_url
 logger = structlog.get_logger()
 
 KILL_KEY = "pyvar:assistant:kill"
+ALLOW_KEY = "pyvar:assistant:allow"
 SPEND_PREFIX = "pyvar:assistant:spend:"
 MICRO = 1_000_000
 SPEND_TTL_SECONDS = 3 * 86_400
@@ -74,10 +78,10 @@ def seconds_until_utc_midnight(now: dt.datetime) -> int:
 def _build_client() -> Any:
     """The async Redis client, tuned like api/routes/caching.py's (see the module docstring)."""
     import redis.asyncio as aioredis
+    from redis.asyncio.retry import Retry
     from redis.backoff import ExponentialBackoff
     from redis.exceptions import ConnectionError as RedisConnectionError
     from redis.exceptions import TimeoutError as RedisTimeoutError
-    from redis.retry import Retry
 
     return aioredis.from_url(
         redis_url(),
@@ -117,6 +121,17 @@ class AssistantStore:
         except (
             Exception
         ) as exc:  # noqa: BLE001 — any storage or parsing failure means "cannot tell"
+            raise StoreUnavailable(type(exc).__name__) from exc
+
+    async def is_allowed(self, user_id: str) -> bool:
+        """True when `user_id` (users.external_id, the `sub` of the session token) is in the allowlist set.
+
+        Raises:
+            StoreUnavailable: the set could not be read (fail closed, see the module docstring).
+        """
+        try:
+            return bool(await self._redis().sismember(ALLOW_KEY, user_id))
+        except Exception as exc:  # noqa: BLE001 - any storage failure means "cannot tell"
             raise StoreUnavailable(type(exc).__name__) from exc
 
     async def add_spend(self, usd: float, now: dt.datetime | None = None) -> None:

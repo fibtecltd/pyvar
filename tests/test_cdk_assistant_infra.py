@@ -84,13 +84,23 @@ def cdk_config() -> ModuleType:
 # ── the flags ───────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("flag", ["assistant_typed_enabled", "assistant_watchdog_enabled"])
-def test_the_flag_is_off_in_every_environment(flag: str) -> None:
+@pytest.mark.parametrize(
+    "flag, expected",
+    [
+        # The owner's launch decision of 2026-11-26: the typed route and its watchdog run in dev first (the live run,
+        # docs/assistant-runbook.md section 2). Nothing is on in staging or prod, and the allowlist is off everywhere
+        # until the owner opens the route in prod.
+        ("assistant_typed_enabled", {"dev": True, "staging": False, "prod": False}),
+        ("assistant_watchdog_enabled", {"dev": True, "staging": False, "prod": False}),
+        ("assistant_allowlist_enabled", {"dev": False, "staging": False, "prod": False}),
+    ],
+)
+def test_the_flag_is_on_only_where_the_owner_decided(flag: str, expected: dict[str, bool]) -> None:
     config = cdk_config()
-    assert config.PyvarConfig(env_name="x", account="1").__dict__[flag] is False
+    assert config.PyvarConfig(env_name="x", account="1").__dict__[flag] is False  # the default
     assert {
         env: getattr(config.PyvarConfig.for_env(env), flag) for env in ("dev", "staging", "prod")
-    } == {"dev": False, "staging": False, "prod": False}
+    } == expected
 
 
 def test_wherever_typed_is_on_the_watchdog_is_on() -> None:
@@ -106,6 +116,7 @@ def test_the_api_container_gets_each_variable_only_where_its_flag_is_true() -> N
     for variable, flag in (
         ("ASSISTANT_TYPED_ENABLED", "assistant_typed_enabled"),
         ("ASSISTANT_WATCHDOG_ENABLED", "assistant_watchdog_enabled"),
+        ("ASSISTANT_ALLOWLIST_ENABLED", "assistant_allowlist_enabled"),
     ):
         assert re.search(
             rf'\*\*\(\s*\{{"{variable}": "true"\}}\s*if cfg\.{flag}\s*else\s*\{{\}}\s*,?\s*\)', API
@@ -120,6 +131,7 @@ def test_the_variable_names_are_the_ones_the_application_reads(
     for variable, attribute in (
         ("ASSISTANT_TYPED_ENABLED", "assistant_typed_enabled"),
         ("ASSISTANT_WATCHDOG_ENABLED", "assistant_watchdog_enabled"),
+        ("ASSISTANT_ALLOWLIST_ENABLED", "assistant_allowlist_enabled"),
     ):
         monkeypatch.delenv(variable, raising=False)
         assert getattr(Settings(), attribute) is False

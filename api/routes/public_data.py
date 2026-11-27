@@ -99,6 +99,9 @@ async def get_public_config() -> dict[str, Any]:
 
     `assistant_enabled` and `assistant_bank_version` tell the portal's assistant widget (portal/assistant.js)
     whether to appear and which answer-bank directory to read; see api/assistant_bank.py.
+    `assistant_typed_enabled` tells the portal to add the typed-question box (portal/assistant-typed.js): it is true
+    only where the menus are on AND the typed route's own switch is on in this environment. Whether a given visitor
+    may ask (an allowlist, a quota, the spend limit) is decided by the route, which answers with a fixed message.
 
     Unrelated to this module's S3-backed status/demo-result JSON above —
     grouped here only because it's the existing public, unauthenticated,
@@ -113,4 +116,5 @@ async def get_public_config() -> dict[str, Any]:
         "google_client_id": cfg.google_oauth_client_id,
         "assistant_enabled": bool(bank_version),
         "assistant_bank_version": bank_version,
+        "assistant_typed_enabled": bool(bank_version) and bool(cfg.assistant_typed_enabled),
     }

@@ -49,10 +49,10 @@ def _get_redis_client() -> Any:
     if _redis_client is None:
         try:
             import redis.asyncio as aioredis
+            from redis.asyncio.retry import Retry
             from redis.backoff import ExponentialBackoff
             from redis.exceptions import ConnectionError as RedisConnectionError
             from redis.exceptions import TimeoutError as RedisTimeoutError
-            from redis.retry import Retry
 
             _redis_client = aioredis.from_url(
                 redis_url(),

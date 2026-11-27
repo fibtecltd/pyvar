@@ -49,6 +49,7 @@ async def test_public_config_google_disabled_by_default(app, monkeypatch):
         "google_client_id": None,
         "assistant_enabled": False,
         "assistant_bank_version": "",
+        "assistant_typed_enabled": False,
     }
 
 
