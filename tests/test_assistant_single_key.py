@@ -15,7 +15,7 @@ import datetime as dt
 from pathlib import Path
 
 import pytest
-from redis.exceptions import ResponseError
+from redis.exceptions import ClusterCrossSlotError
 
 from api.assistant.single_key import delete_each, get_each
 from api.assistant.store import KILL_KEY, AssistantStore, StoreUnavailable, spend_key
@@ -45,15 +45,15 @@ def test_the_kill_switch_and_the_days_spend_are_in_different_slots() -> None:
 
 
 async def test_the_gateway_double_refuses_the_old_two_key_read() -> None:
-    with pytest.raises(ResponseError, match="CROSSSLOT"):
+    with pytest.raises(ClusterCrossSlotError):
         await FakeRedis().mget([KILL_KEY, spend_key(NOW)])
 
 
 async def test_the_watchdog_double_refuses_multi_key_reads_and_deletes_across_slots() -> None:
     redis = FakeWatchRedis()
-    with pytest.raises(ResponseError, match="CROSSSLOT"):
+    with pytest.raises(ClusterCrossSlotError):
         await redis.mget(["a:one", "b:two"])
-    with pytest.raises(ResponseError, match="CROSSSLOT"):
+    with pytest.raises(ClusterCrossSlotError):
         await redis.delete("a:one", "b:two")
     assert await redis.mget(["{t}:one", "{t}:two"]) == [None, None]  # the same tag is one slot
 
@@ -84,6 +84,18 @@ async def test_the_gate_still_fails_closed_when_a_read_fails() -> None:
     with pytest.raises(StoreUnavailable) as raised:
         await AssistantStore(redis).gate(NOW)
     assert str(raised.value) == "ConnectionError"  # the class only, which deps.py now logs
+
+
+async def test_a_cross_slot_error_surfaces_as_its_class_name_in_the_store_error() -> None:
+    """What the live Sentry event shows: StoreUnavailable("ClusterCrossSlotError") from the gate's read."""
+
+    class Refusing(FakeRedis):
+        async def get(self, key: str) -> str | None:
+            raise ClusterCrossSlotError(ClusterCrossSlotError.message)
+
+    with pytest.raises(StoreUnavailable) as raised:
+        await AssistantStore(Refusing()).gate(NOW)
+    assert str(raised.value) == "ClusterCrossSlotError"
 
 
 async def test_get_each_keeps_the_order_and_marks_missing_keys() -> None:

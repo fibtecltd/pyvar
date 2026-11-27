@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from redis.exceptions import ResponseError
+from redis.exceptions import ClusterCrossSlotError
 
 SLOTS = 16384
 
@@ -38,7 +38,9 @@ def hash_slot(key: str) -> int:
 
 
 def require_one_slot(keys: Iterable[str]) -> None:
-    """Raise the error a cluster-mode cache gives when `keys` do not all hash to one slot."""
+    """Raise what redis-py raises when `keys` do not all hash to one slot: ClusterCrossSlotError (the server's CROSSSLOT
+    reply, mapped to it; the live Sentry event of 2026-11-27 shows exactly this class and message).
+    """
     slots = {hash_slot(key) for key in keys}
     if len(slots) > 1:
-        raise ResponseError("CROSSSLOT Keys in request don't hash to the same slot")
+        raise ClusterCrossSlotError(ClusterCrossSlotError.message)

@@ -10,7 +10,8 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - **The typed route no longer answers 503 on every request on a cluster-mode cache (`fix(assistant)`)** — the first live
-  run in dev (2026-11-27) stopped at its first probe: `assistant_unavailable`, with `assistant_store_unavailable` in the log.
+  run in dev (2026-11-27) stopped at its first probe: `assistant_unavailable`, with `assistant_store_unavailable` in the log;
+  Sentry's event for it (PYVAR-17) shows `ClusterCrossSlotError` at the gate's `MGET`.
   The gate read the kill switch and the day's spend with one `MGET`, and ElastiCache Serverless (cluster mode) refuses a
   command over keys in different hash slots with CROSSSLOT (`pyvar:assistant:kill` is slot 11155, the day's spend key 729); the
   route fails closed, so every question was refused. The watchdog had the same pattern in three reads and two deletes, which fail

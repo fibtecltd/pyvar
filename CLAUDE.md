@@ -365,7 +365,8 @@ AWS:        CELERY_BROKER_URL = sqs://
 - Every Redis command the typed route and its watchdog issue names ONE key (api/assistant/single_key.py: `get_each`,
   `delete_each`). The cache is ElastiCache Serverless in cluster mode, which refuses a command over keys in different
   hash slots with CROSSSLOT, and these keys share no hash tag. The first live dev run (2026-11-27) answered 503
-  `assistant_unavailable` on every request because the gate read the kill switch and the day's spend with one MGET.
+  `assistant_unavailable` on every request because the gate read the kill switch and the day's spend with one MGET
+  (Sentry PYVAR-17: `ClusterCrossSlotError`).
   The test doubles refuse such a command (tests/redis_slots.py) and tests/test_assistant_single_key.py scans
   api/assistant/ and the trial lane for MGET, a multi-key DEL and the like. A new multi-key command fails there; do not
   add one. The 503's log line `assistant_store_unavailable` carries the exception class in `error` (never its message).
