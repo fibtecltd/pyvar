@@ -48,6 +48,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   `tests/test_assistant_allowlist.py` (19, with eight mutations that each fail one),
   `tests/test_assistant_allow_admin.py`, `tests/test_assistant_allow_script.py`, and the wrapper and CDK flag tests.
 
+### Fixed
+
+- **The asyncio Redis clients are given `redis.asyncio.retry.Retry` (`fix(redis)`)** — the trial lane, the typed assistant's
+  store, the route result cache and the market-data cache passed the synchronous `redis.retry.Retry` to an asyncio client.
+  Current redis-py converts it and warns (`A synchronous redis.retry.Retry was passed to an asyncio client`, seen once per
+  process in the prod log on 2026-11-27, nothing broken); the older redis-py the requirement still allows (`>=5.0.3`) does
+  not convert it. The rate limiter keeps the synchronous class on purpose: slowapi gives it to the `limits` library's
+  synchronous client. `tests/test_redis_asyncio_retry.py` (10, five mutations each fail one) pins both.
+
 ## [0.3.0] — 2026-11-26
 
 ### Added

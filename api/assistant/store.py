@@ -78,10 +78,10 @@ def seconds_until_utc_midnight(now: dt.datetime) -> int:
 def _build_client() -> Any:
     """The async Redis client, tuned like api/routes/caching.py's (see the module docstring)."""
     import redis.asyncio as aioredis
+    from redis.asyncio.retry import Retry
     from redis.backoff import ExponentialBackoff
     from redis.exceptions import ConnectionError as RedisConnectionError
     from redis.exceptions import TimeoutError as RedisTimeoutError
-    from redis.retry import Retry
 
     return aioredis.from_url(
         redis_url(),
