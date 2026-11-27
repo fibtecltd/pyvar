@@ -21,6 +21,15 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   commands, and six mutations (the gate and each watchdog site back to `MGET` or a multi-key `DEL`) each fail it. The
   `assistant_store_unavailable` line now carries the exception class in `error`. The dev-run prompt is reordered so that the
   two 200s of the kill-switch and spend drills come before the key's 41st question, which uses the quota up.
+- **The typed route's expected refusals are no longer Sentry errors (`fix(observability)`)** — the route refuses by raising an
+  `HTTPException` 503, which Sentry's FastAPI integration reports as an error with a "high priority issue" e-mail (PYVAR-17 was
+  one). `assistant_disabled` (the flag or the kill switch), `assistant_budget` (the spend cap), `assistant_closed` (the
+  allowlist, on every press of Ask by an anonymous visitor) and `assistant_busy` are working as designed, and would have
+  flooded Sentry the moment the route opened to the prod allowlist or the kill switch was used. `observability/sentry_filters.py`
+  drops those four (the route's own refusal counter still counts them) and passes everything else through the address scrubber
+  as before. `assistant_unavailable`, a real failure, still reports. `tests/test_assistant_sentry_filter.py` (17, six
+  mutations each fail one) reads the refusal codes from `deps.py` and `routes.py`, so a new one has to be classified, and
+  sends them through a real Sentry client.
 
 ### Added
 
