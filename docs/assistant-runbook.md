@@ -93,7 +93,7 @@ until the route is on.
 | Alarm | Fires on | First thing to look at |
 |---|---|---|
 | `client-unavailable` | 1 `assistant_client_unavailable` in 5 min | the secret `pyvar/<env>/anthropic-api-key` (section 7): missing, empty or unreadable; every question is a 503 |
-| `store-unavailable` | 1 `assistant_store_unavailable` in 5 min | Redis: the spend, the kill switch or the allowlist could not be read; the route fails closed, so this is an outage of the box |
+| `store-unavailable` | 1 `assistant_store_unavailable` in 5 min | Redis: the spend, the kill switch or the allowlist could not be read; the route fails closed, so this is an outage of the box. The line's `error` field is the exception class: `ResponseError` on a cluster-mode cache is a command over keys in different slots (CROSSSLOT: every command here must name one key), `ConnectionError`/`TimeoutError` is the cache itself |
 | `ask-failed` | 3 `assistant_ask_failed` in 5 min | the API log for the stack trace (no question or answer text is in it) |
 | `writer-degraded` | 1 `assistant_writer_degraded` in 5 min | the watchdog degraded a writer: its answers are fixed text with 10% probe traffic; see section 6 |
 | `watchdog-errors` | 5 `assistant_watchdog_error` in 5 min | the audit judge or its Redis state; answers are unaffected (it fails open) |

@@ -140,8 +140,8 @@ async def require_available(store: AssistantStore = Depends(get_store)) -> None:
     now = dt.datetime.now(dt.timezone.utc)
     try:
         gate = await store.gate(now)
-    except StoreUnavailable:
-        logger.warning("assistant_store_unavailable")
+    except StoreUnavailable as exc:
+        logger.warning("assistant_store_unavailable", error=str(exc))
         refuse("assistant_unavailable", "The assistant cannot check its spending limit right now.")
     if gate.killed:
         refuse("assistant_disabled", "The assistant has been switched off.")
@@ -172,8 +172,8 @@ async def require_allowed(
         refuse("assistant_closed", CLOSED, tier=tier)
     try:
         allowed = await store.is_allowed(user.user_id)
-    except StoreUnavailable:
-        logger.warning("assistant_store_unavailable")
+    except StoreUnavailable as exc:
+        logger.warning("assistant_store_unavailable", error=str(exc))
         refuse(
             "assistant_unavailable",
             "The assistant cannot check who may ask right now.",

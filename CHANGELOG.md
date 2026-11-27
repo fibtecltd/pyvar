@@ -7,6 +7,20 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The typed route no longer answers 503 on every request on a cluster-mode cache (`fix(assistant)`)** — the first live
+  run in dev (2026-11-27) stopped at its first probe: `assistant_unavailable`, with `assistant_store_unavailable` in the log.
+  The gate read the kill switch and the day's spend with one `MGET`, and ElastiCache Serverless (cluster mode) refuses a
+  command over keys in different hash slots with CROSSSLOT (`pyvar:assistant:kill` is slot 11155, the day's spend key 729); the
+  route fails closed, so every question was refused. The watchdog had the same pattern in three reads and two deletes, which fail
+  OPEN, so there it would have done nothing and said nothing. Each is now one command per key (`api/assistant/single_key.py`).
+  The test doubles did not enforce slots, which is why nothing caught it: they now refuse a cross-slot command
+  (`tests/redis_slots.py`), `tests/test_assistant_single_key.py` (11) scans the typed route and the trial lane for multi-key
+  commands, and six mutations (the gate and each watchdog site back to `MGET` or a multi-key `DEL`) each fail it. The
+  `assistant_store_unavailable` line now carries the exception class in `error`. The dev-run prompt is reordered so that the
+  two 200s of the kill-switch and spend drills come before the key's 41st question, which uses the quota up.
+
 ### Added
 
 - **`scripts/assistant_ctl.py`: the typed assistant's kill switch and spend counter without a Redis client (`feat(scripts)`)** —
