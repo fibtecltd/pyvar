@@ -37,6 +37,7 @@ from observability.redact import (
     scrub_event,
     scrub_text,
 )
+from observability.sentry_filters import before_send
 from observability.setup import cfg, sentry_options, setup_logging, setup_sentry
 
 # `send_default_pii` is still passed (it works on every SDK 1.x/2.x, the worker image installs an unpinned one);
@@ -128,7 +129,9 @@ def test_options_keep_locals_bodies_and_pii_out_and_install_the_scrubbers() -> N
     assert opts["include_local_variables"] is False
     assert opts["max_request_body_size"] == "never"
     assert opts["send_default_pii"] is False
-    assert opts["before_send"] is scrub_event
+    assert (
+        opts["before_send"] is before_send
+    )  # scrub_event, after dropping the assistant's expected refusals
     assert opts["before_breadcrumb"] is scrub_breadcrumb
 
 
@@ -157,7 +160,7 @@ def test_setup_sentry_passes_exactly_these_options(_no_sentry_in_tests: Any) -> 
         setup_sentry()
     kwargs = _no_sentry_in_tests.call_args.kwargs
     assert kwargs["include_local_variables"] is False
-    assert kwargs["before_send"] is scrub_event and kwargs["before_breadcrumb"] is scrub_breadcrumb
+    assert kwargs["before_send"] is before_send and kwargs["before_breadcrumb"] is scrub_breadcrumb
 
 
 # ── what a real client would send ────────────────────────────────────────────────────────────────────────────

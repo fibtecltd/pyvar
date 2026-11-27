@@ -9,7 +9,10 @@ Reasoning:
   * a kill switch, the key `pyvar:assistant:kill`. Any value turns the route off at once on every task, with
     no deploy: `redis-cli SET pyvar:assistant:kill 1`; `DEL` turns it back on. (The deploy-time flag
     `assistant_typed_enabled` is the other half of the switch; this one is for an incident.)
-- Both are read in ONE round trip (MGET) before every question.
+- Both are read before every question, by one GET each issued together, NOT by one MGET: the cache is ElastiCache
+  Serverless (cluster mode), where a command over keys in different hash slots is refused with CROSSSLOT, and these
+  two keys are in slots 11155 and 729 (the first live dev run answered 503 on every request because of it; see
+  api/assistant/single_key.py). Every command in this module names ONE key.
 - A third key, the set `pyvar:assistant:allow` of account ids, is read only while `assistant_allowlist_enabled` is on
   (api/assistant/deps.py::require_allowed, managed with scripts/assistant_allow.py). It fails closed like the other
   two: if it cannot be read, nobody is let in.
@@ -35,6 +38,7 @@ from typing import Any
 import structlog
 
 from api.assistant.metrics import SPEND_NOT_RECORDED
+from api.assistant.single_key import get_each
 from storage.redis_client import redis_url
 
 logger = structlog.get_logger()
@@ -109,14 +113,14 @@ class AssistantStore:
         return self._redis()
 
     async def gate(self, now: dt.datetime | None = None) -> Gate:
-        """The kill switch and today's spend, in one round trip.
+        """The kill switch and today's spend: one GET per key, issued together (see api/assistant/single_key.py).
 
         Raises:
             StoreUnavailable: the keys could not be read (fail closed, see the module docstring).
         """
         now = now or dt.datetime.now(dt.timezone.utc)
         try:
-            killed, spent = await self._redis().mget([KILL_KEY, spend_key(now)])
+            killed, spent = await get_each(self._redis(), [KILL_KEY, spend_key(now)])
             return Gate(killed is not None, int(spent or 0) / MICRO)
         except (
             Exception

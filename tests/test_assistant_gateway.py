@@ -35,6 +35,7 @@ from assistant import tools
 from config import get_settings
 from main import create_app
 from tests.assistant_typed_fakes import ScriptedClient, text_reply, tool_reply
+from tests.redis_slots import require_one_slot
 
 cfg = get_settings()
 FUNCTION = "historical_simulation_var"
@@ -74,6 +75,7 @@ class FakePipeline:
     async def execute(self) -> list[Any]:
         if self.redis.fail_write:
             raise ConnectionError("redis is down")
+        require_one_slot(key for _, key, _ in self.ops)
         for op, key, value in self.ops:
             if op == "incrby":
                 self.redis.data[key] = str(int(self.redis.data.get(key, 0)) + value)
@@ -83,7 +85,9 @@ class FakePipeline:
 
 
 class FakeRedis:
-    """The calls AssistantStore makes: mget, and a pipeline of incrby and expire."""
+    """The calls AssistantStore makes: get (and mget, which a cluster-mode cache refuses across slots), and a
+    pipeline of incrby and expire. A command over keys in different slots raises CROSSSLOT, as the real cache does
+    (tests/redis_slots.py)."""
 
     def __init__(self) -> None:
         self.data: dict[str, str] = {}
@@ -91,9 +95,15 @@ class FakeRedis:
         self.fail_read = False
         self.fail_write = False
 
+    async def get(self, key: str) -> str | None:
+        if self.fail_read:
+            raise ConnectionError("redis is down")
+        return self.data.get(key)
+
     async def mget(self, keys: list[str]) -> list[str | None]:
         if self.fail_read:
             raise ConnectionError("redis is down")
+        require_one_slot(keys)
         return [self.data.get(key) for key in keys]
 
     def pipeline(self, transaction: bool = True) -> FakePipeline:

@@ -54,7 +54,8 @@ ctl = _script()
 
 
 class Shared(FakeRedis):
-    """The gateway's async Redis stand-in plus the synchronous calls the script makes, on the same data."""
+    """The synchronous calls the script makes, on the same data as `route_view()`, the async stand-in the route
+    reads (the route awaits `get`, the script calls it plainly, so one object cannot be both)."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -88,6 +89,12 @@ class Shared(FakeRedis):
     def scard(self, key: str) -> int:
         self._up("scard", key)
         return len(self.sets.get(key, set()))
+
+    def route_view(self) -> FakeRedis:
+        """The gateway's async stand-in, sharing this object's data and expiries."""
+        view = FakeRedis()
+        view.data, view.ttls = self.data, self.ttls
+        return view
 
 
 def run(shared: Shared, *argv: str, now: dt.datetime | None = NOW) -> int:
@@ -313,13 +320,15 @@ def gw(monkeypatch: pytest.MonkeyPatch) -> Iterator[Gateway]:
     monkeypatch.setattr(deps, "_inflight", 0)
     monkeypatch.setattr(deps, "_client", None)
     gateway = Gateway()
-    gateway.redis = Shared()  # the app's store override reads `gateway.redis` at call time
+    gateway.shared = Shared()
+    gateway.redis = (
+        gateway.shared.route_view()
+    )  # the app's store override reads `gateway.redis` at call time
     yield gateway
 
 
 def drill(gateway: Gateway, *argv: str) -> int:
-    assert isinstance(gateway.redis, Shared)
-    return int(ctl.run(list(argv), client=gateway.redis))
+    return int(ctl.run(list(argv), client=gateway.shared))
 
 
 async def test_the_kill_switch_drill_stops_and_restarts_the_real_route(gw: Gateway) -> None:

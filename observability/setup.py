@@ -27,7 +27,8 @@ from prometheus_client import Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from config import get_settings
-from observability.redact import scrub_breadcrumb, scrub_event
+from observability.redact import scrub_breadcrumb
+from observability.sentry_filters import before_send
 
 cfg = get_settings()
 
@@ -116,7 +117,8 @@ def sentry_options(dsn: str) -> dict[str, Any]:
       and a crashing route holds the request body (an e-mail address, a returns series) in locals.
     - `max_request_body_size="never"`: no request body in the event's request section.
     - `before_send` / `before_breadcrumb`: replace anything shaped like an e-mail address in what is about to be
-      sent; the net under "do not log addresses" (observability/redact.py).
+      sent; the net under "do not log addresses" (observability/redact.py). `before_send` also drops the typed
+      assistant's expected 503 refusals (observability/sentry_filters.py): they are not errors.
     - The logging integration is explicit: an ERROR log line becomes a Sentry event and INFO and above become
       breadcrumbs. That was the SDK's default in the version tested, but the requirement used to be unpinned and a
       newer default can differ; whether an error log is an issue is a choice made here.
@@ -145,7 +147,7 @@ def sentry_options(dsn: str) -> dict[str, Any]:
         "send_default_pii": False,
         "include_local_variables": False,
         "max_request_body_size": "never",
-        "before_send": scrub_event,
+        "before_send": before_send,
         "before_breadcrumb": scrub_breadcrumb,
     }
 

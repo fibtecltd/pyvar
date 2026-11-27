@@ -7,6 +7,30 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The typed route no longer answers 503 on every request on a cluster-mode cache (`fix(assistant)`)** — the first live
+  run in dev (2026-11-27) stopped at its first probe: `assistant_unavailable`, with `assistant_store_unavailable` in the log;
+  Sentry's event for it (PYVAR-17) shows `ClusterCrossSlotError` at the gate's `MGET`.
+  The gate read the kill switch and the day's spend with one `MGET`, and ElastiCache Serverless (cluster mode) refuses a
+  command over keys in different hash slots with CROSSSLOT (`pyvar:assistant:kill` is slot 11155, the day's spend key 729); the
+  route fails closed, so every question was refused. The watchdog had the same pattern in three reads and two deletes, which fail
+  OPEN, so there it would have done nothing and said nothing. Each is now one command per key (`api/assistant/single_key.py`).
+  The test doubles did not enforce slots, which is why nothing caught it: they now refuse a cross-slot command
+  (`tests/redis_slots.py`), `tests/test_assistant_single_key.py` (11) scans the typed route and the trial lane for multi-key
+  commands, and six mutations (the gate and each watchdog site back to `MGET` or a multi-key `DEL`) each fail it. The
+  `assistant_store_unavailable` line now carries the exception class in `error`. The dev-run prompt is reordered so that the
+  two 200s of the kill-switch and spend drills come before the key's 41st question, which uses the quota up.
+- **The typed route's expected refusals are no longer Sentry errors (`fix(observability)`)** — the route refuses by raising an
+  `HTTPException` 503, which Sentry's FastAPI integration reports as an error with a "high priority issue" e-mail (PYVAR-17 was
+  one). `assistant_disabled` (the flag or the kill switch), `assistant_budget` (the spend cap), `assistant_closed` (the
+  allowlist, on every press of Ask by an anonymous visitor) and `assistant_busy` are working as designed, and would have
+  flooded Sentry the moment the route opened to the prod allowlist or the kill switch was used. `observability/sentry_filters.py`
+  drops those four (the route's own refusal counter still counts them) and passes everything else through the address scrubber
+  as before. `assistant_unavailable`, a real failure, still reports. `tests/test_assistant_sentry_filter.py` (17, six
+  mutations each fail one) reads the refusal codes from `deps.py` and `routes.py`, so a new one has to be classified, and
+  sends them through a real Sentry client.
+
 ### Added
 
 - **`scripts/assistant_ctl.py`: the typed assistant's kill switch and spend counter without a Redis client (`feat(scripts)`)** —

@@ -4,7 +4,7 @@ api/assistant/watchdog.py — the watchdog's state in Redis, and the steps the r
 Reasoning:
 - The rules are assistant/watchdog.py (pure, tested by simulation); the judge is assistant/audit.py. This module
   is the part that touches Redis and the clock, in the order the plan's section 8 gives:
-  * BEFORE the model call, `standing()`: is the page's function pinned, is the writer degraded. One MGET;
+  * BEFORE the model call, `standing()`: is the page's function pinned, is the writer degraded. One GET per key (never an MGET or a multi-key DEL: see api/assistant/single_key.py);
   * AFTER the answer, `plan()`: count the answer, decide whether to audit it, and reserve its price from
     the day's audit budget; then, in the background, `record()` the verdict (or `release()` the reservation);
   * `pinned_among()` once more on the functions the answer cited, because the page is not the only way a
@@ -55,6 +55,7 @@ from typing import Any
 import structlog
 
 from api.assistant import metrics
+from api.assistant.single_key import delete_each, get_each
 from assistant import watchdog as rules_module
 from assistant.audit import AuditVerdict, audit_answer
 from assistant.client import ModelClient
@@ -189,7 +190,7 @@ class Watchdog:
             keys = [_key("degrade", writer)]
             if page_function:
                 keys.append(_fn_key(self.ns, page_function, "pin"))
-            values = await self._redis().mget(keys)
+            values = await get_each(self._redis(), keys)
             degraded = values[0] is not None
             pinned = (page_function,) if page_function and values[1] is not None else ()
             metrics.WRITER_DEGRADED.labels(writer=writer).set(1 if degraded else 0)
@@ -208,7 +209,7 @@ class Watchdog:
         if not names:
             return ()
         try:
-            values = await self._redis().mget([_fn_key(self.ns, n, "pin") for n in names])
+            values = await get_each(self._redis(), [_fn_key(self.ns, n, "pin") for n in names])
             return tuple(n for n, v in zip(names, values, strict=True) if v is not None)
         except Exception as exc:  # noqa: BLE001
             self._failed("pinned_among", exc)
@@ -341,8 +342,8 @@ class Watchdog:
     async def _in_probe(self, function: str) -> bool:
         """True while the function has been pinned before, its pin has expired, and the probe is not over."""
         redis = self._redis()
-        level, pin = await redis.mget(
-            [_fn_key(self.ns, function, "level"), _fn_key(self.ns, function, "pin")]
+        level, pin = await get_each(
+            redis, [_fn_key(self.ns, function, "level"), _fn_key(self.ns, function, "pin")]
         )
         return level is not None and pin is None
 
@@ -401,7 +402,8 @@ class Watchdog:
                 [v == "1" for v in await redis.lrange(probe, 0, -1)], rules
             )
             if outcome == "unpin":
-                await redis.delete(
+                await delete_each(
+                    redis,
                     probe,
                     _fn_key(self.ns, function, "level"),
                     _fn_key(self.ns, function, "hist"),
@@ -478,7 +480,7 @@ class Watchdog:
             rules_module.flag_rate(flags)
         )
         if rules_module.window_recovered(flags, rules):
-            await redis.delete(_key("degrade", writer), _key("win", writer))
+            await delete_each(redis, _key("degrade", writer), _key("win", writer))
             effects.recovered = True
             metrics.WRITER_DEGRADED.labels(writer=writer).set(0)
             logger.warning("assistant_writer_recovered", writer=writer)

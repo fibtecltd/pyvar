@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from tests.redis_slots import require_one_slot
+
 
 class _FakePipeline:
     """The transaction AssistantStore.add_spend opens: incrby and expire, applied on execute."""
@@ -31,6 +33,7 @@ class _FakePipeline:
         return self
 
     async def execute(self) -> list[Any]:
+        require_one_slot(key for _, key, _ in self.ops)
         for op, key, value in self.ops:
             if op == "incrby":
                 await self.redis.incrby(key, value)
@@ -60,6 +63,7 @@ class FakeWatchRedis:
 
     async def mget(self, keys: list[str]) -> list[str | None]:
         self._check("mget")
+        require_one_slot(keys)
         return [self.strings.get(key) for key in keys]
 
     async def set(
@@ -83,6 +87,7 @@ class FakeWatchRedis:
 
     async def delete(self, *keys: str) -> int:
         self._check("delete")
+        require_one_slot(keys)
         removed = 0
         for key in keys:
             for store in (self.strings, self.hashes, self.lists):
