@@ -2,6 +2,7 @@ TASK: run the typed assistant live in pyvar DEV only, check it, report. Nothing 
 
 ACCOUNT_ID: <the external_id of a dev FREE account, filled in by the owner>   (never print it)
 Route: POST https://dev.pyvar.com/api/v1/assistant/ask  {"question":..., "function":<page_function or omit>}. Log group: from the dev API task definition's logConfiguration. Record the UTC start time; every log read is from then on.
+PACE: the edge WAF blocks an address above 30 requests per 300 s on this path (a 403, not our 429): send at most one request every 12 s, drills included. On a 403 wait 6 minutes, resume, note it; it is no answer.
 
 AUTHORISED
 - HTTPS to dev.pyvar.com under /api/v1/assistant/ and /public/config only.
