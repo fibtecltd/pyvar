@@ -1,11 +1,15 @@
 # Typed assistant: runbook
 
 For the person who runs the typed assistant (`POST /api/v1/assistant/ask`) once it is on. The design is
-`docs/assistant-plan-implementation.md`; the rules are `CLAUDE.md` 3.7 and 3.8. **Owner and only responder for now: the
-owner** (question B3 of 2026-11-26 was left open and (a), the owner alone, is assumed until the owner names a second
-recipient; the alarms below go to the shared alerts topic, whose mailbox must be read every day while the route is
-open). **Not verified:** every command below was checked against the code and its tests, none
-has been run against a live environment.
+`docs/assistant-plan-implementation.md`; the rules are `CLAUDE.md` 3.7 and 3.8. **Responders: the owner and the ops
+mailbox, `ops@fibtec.co.uk`** (question B3, answered 2026-11-27). The alarms below go to the shared alerts topic of the
+environment (`pyvar-<env>-alerts`); its subscribers are added by hand after a deploy and are not in the CDK, so the ops
+mailbox receives them only once it is subscribed to the topic and has confirmed (`aws sns subscribe --topic-arn <the
+topic> --protocol email --notification-endpoint ops@fibtec.co.uk`, then the confirmation link; `aws sns
+list-subscriptions-by-topic` shows the status). The topic carries every alarm of the environment, not only these eight.
+Whichever mailbox receives them must be read every day while the route is open. **Not verified:** every command below
+was checked against the code and its tests, none has been run against a live environment, and that the ops mailbox is
+subscribed to either topic has not been seen.
 
 ## 1. The switches, from the broadest to the narrowest
 
