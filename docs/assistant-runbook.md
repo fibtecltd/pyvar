@@ -7,9 +7,11 @@ environment (`pyvar-<env>-alerts`); its subscribers are added by hand after a de
 mailbox receives them only once it is subscribed to the topic and has confirmed (`aws sns subscribe --topic-arn <the
 topic> --protocol email --notification-endpoint ops@fibtec.co.uk`, then the confirmation link; `aws sns
 list-subscriptions-by-topic` shows the status). The topic carries every alarm of the environment, not only these eight.
-Whichever mailbox receives them must be read every day while the route is open. **Not verified:** every command below
-was checked against the code and its tests, none has been run against a live environment, and that the ops mailbox is
-subscribed to either topic has not been seen.
+Whichever mailbox receives them must be read every day while the route is open. **Not verified:** that the ops mailbox is
+subscribed to either topic has not been seen (the owner says it is). Every command below was checked against the code and
+its tests; since 2026-11-28 these have also run live: in dev the kill-switch and spend drills of the dev run, in prod
+`assistant_ctl.py status --json` (twice) and the allowlist's `allow` (the set has one member). Not yet run in prod:
+`kill`, `spend`, `remove`, `clear`.
 
 ## 1. The switches, from the broadest to the narrowest
 
@@ -43,7 +45,14 @@ subscribed to either topic has not been seen.
    4. Smoke, from an allowlisted account's API key pasted in the Try-it key box (an account asks as itself; the portal
       sends the key as a Bearer header): one question answers; the same question with no key is 503 `assistant_closed`.
       `scripts/assistant_ctl.py status --json` in a prod one-off (section 4) shows typed and watchdog on, the allowlist
-      on with the right number of members, the kill switch off.
+      on with the right number of members, the kill switch off. **Passed 2026-11-28** (the prompt: one agent, one
+      allowlisted Pro account, one key minted and revoked): no key is 503 `assistant_closed`, "Bearer junk" is 401, three
+      live answers (haiku, 1.1 to 5.7 s: an on-topic comparison of two backtests, a question with planted strings that
+      did not come back, a prompt-extraction attempt that was declined; the first was checked for exactly the six response
+      fields and no model id); `status --json` before and after: typed, watchdog and allowlist on, kill switch off, spend $0.0235 (the answers
+      $0.0019, the rest the audit judge); the planted strings are in no log line; all eight alarms OK. Not seen: an
+      unlisted signed-in account (needs a second account), a free-tier account, Sentry. The key's display prefix does
+      appear in the API's own `api_key_created` and `api_key_revoked` lines (by design), so a log search for it finds those two.
    5. Watch, daily, the alerts mailbox and the day's spend. What an unlisted visitor sees: the box is on every page of
       the portal (it follows `/public/config`), and an unlisted or anonymous Ask gets "Typed questions are open to a small
       group of accounts at the moment." with the hint that the buttons still work. Those refusals are not errors in
@@ -96,8 +105,10 @@ guard or a bad request, 3 the cache could not be reached). Commands: `status [--
 dollars and exact millionths, the allowlist's size, this task's flags), `kill on`, `kill off --yes`, `spend set (--usd N
 | --micro N) --yes` and `spend clear --yes` (drills; read the value with `status --json` first to put it back exactly).
 Anything that could let the route spend more is a dry run without `--yes`, and in prod needs `--yes-prod`. It touches
-only the kill key, today's spend key and (to count it) the allowlist key. **Not verified:** it has not been run in a
-real one-off; the commands and the guard are tested against the real route with an in-memory Redis.
+only the kill key, today's spend key and (to count it) the allowlist key. **Run in real one-offs on 2026-11-28:** in dev the
+kill-switch and spend drills (`kill on`, `kill off --yes`, `spend set --usd 50 --yes`, `spend set --micro N --yes` or `spend clear
+--yes`) and in prod `status --json` twice. **Not yet run in prod:** `kill` and `spend` (tested against the real route with an
+in-memory Redis, and in dev).
 
 ## 5. The eight alarms
 

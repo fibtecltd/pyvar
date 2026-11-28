@@ -60,6 +60,11 @@ ARTICLES = {
             "The assistant at a glance",
             [0.30, 0.70],
         ),
+        "What we measured": (
+            "assistant-measured-table",
+            "The typed assistant: what we measured",
+            [0.18, 0.27, 0.55],
+        ),
     },
     "pyvar-overview-medium-article": {
         "Seven ways in, one engine": (

@@ -7,6 +7,54 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-28
+
+### Added
+
+- **`scripts/assistant_ctl.py`: the typed assistant's kill switch and spend counter without a Redis client (`feat(scripts)`)** —
+  `status [--json]` (kill switch, today's spend in dollars and exact millionths, the allowlist's size, the task's flags),
+  `kill on` (sets `pyvar:assistant:kill`; never asks), `kill off`, `spend set (--usd | --micro)` and `spend clear`
+  (dry runs unless `--yes`, and `--yes-prod` too in a prod task). It runs in an ECS one-off of the API task like
+  `scripts/trial_ctl.py` (the cache is in the VPC and ECS Exec is off), writes exactly the keys the route reads and no others,
+  and exits 3 with no traceback when the cache cannot be reached. `tests/test_assistant_ctl.py` (27, nine mutations each fail
+  one) runs the drills against the real route: kill on makes it 503 `assistant_disabled`, a spend over the cap makes it
+  503 `assistant_budget` with no model call, and a value read with `status --json` is put back exactly. The runbook's stop order
+  and the dev-run prompt use it. It has since run in real one-offs on 2026-11-28: the dev run's kill-switch and spend-cap drills, and
+  `status --json` twice in prod (the prod smoke); `kill` and `spend` have not been run in prod.
+- **The typed-question box in the Try-it panel, and the typed route on in dev (`feat(portal)`)** — "Ask about this function"
+  under the three buttons, in a new file `portal/assistant-typed.js` so that `portal/assistant.js` stays a reader that sends
+  nothing. It sends one POST to `/api/v1/assistant/ask` when the visitor presses Ask (the question, the function's name and at
+  most three earlier turns, which live in the panel's memory only), with the panel's key box as a Bearer header when it holds a
+  plausible token and as a visitor otherwise; nothing is sent on load, on opening the panel or while typing. The answer, its
+  functions, the checked example inputs and every refusal message (401, 422, 429 with its wait, the route's fixed 503 texts) are shown as
+  text, never as HTML; nothing is stored. A note under the box says what is sent to Anthropic, as the privacy policy section 5
+  does. `GET /public/config` gains `assistant_typed_enabled` (true only with the menus on, a complete bank and the typed flag),
+  and pyvar.js adds the script only then, into a new `#assistantTypedSlot`. The CDK flags `assistant_typed_enabled` and
+  `assistant_watchdog_enabled` are **on in dev**, for the live run (`docs/assistant-dev-run-prompt.txt`); staging is unchanged. Prod was
+  switched on later in this release, to the allowlist only (the first entry under Changed). Dev needs the secret `pyvar/dev/anthropic-api-key` first: without it every
+  question is a 503 `assistant_unavailable` and the client-unavailable alarm fires. Tests: `tests/test_assistant_typed_widget.py`
+  (the real file under node with a fake DOM whose `innerHTML` and storage throw, and a source scan), the `/public/config` tests, and the flag
+  test; the layout was looked at in Chromium at 1280 and 375 pixels.
+- **The typed assistant's allowlist, and its runbook (`feat(assistant)`)** — For the first weeks of the typed route in prod: while
+  `assistant_allowlist_enabled` is on (a CDK flag, off in every environment; `ASSISTANT_ALLOWLIST_ENABLED` is added to the API
+  container only where it is true), only signed-in accounts in the Redis set `pyvar:assistant:allow` may ask. An anonymous
+  visitor or an unlisted account gets 503 `assistant_closed`, checked after the switches, the kill switch and the spend cap and
+  before the model key, the concurrency slot and the quota, so a refusal calls no model and uses no quota
+  (`api/assistant/deps.py::require_allowed`, `api/assistant/store.py::is_allowed`). Reading the set fails closed: an unreadable
+  set is 503 `assistant_unavailable`, logged as `assistant_store_unavailable`, which an existing alarm counts. The set holds
+  account ids, never addresses. It is managed with `scripts/assistant_allow.py` (wrapper `scripts/ops/assistant-allow.sh`: list,
+  allow, remove, clear; dry run unless `--yes`) through the admin-token-only route `POST /internal/admin/assistant/allow`, which
+  follows the Pro checkout allow set's pattern. Anonymous visitors, or one tier, can instead be closed with a quota of 0
+  (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): tests pin that a 0 quota is a 429 through the real route,
+  calls no model and leaves everyone else alone. `docs/assistant-runbook.md` lists the switches, the rollout stages, the stop
+  order, the eight alarms and what to look at first. In prod it is on, to this allowlist (the first entry under Changed). Tests:
+  `tests/test_assistant_allowlist.py` (19, with eight mutations that each fail one),
+  `tests/test_assistant_allow_admin.py`, `tests/test_assistant_allow_script.py`, and the wrapper and CDK flag tests.
+- **A "Sign in" link beside "Get API key" in the header of every page (`feat(portal)`)** — a plain link to `dashboard.html` (the
+  dashboard when signed in; otherwise the page that says to sign in and links to the e-mail-link and Google form), to the
+  left of the filled "Get API key" button, which is unchanged. On a phone both stay on one line (the "/" hint on Search goes,
+  and below 380 pixels so does the logo's text). `tests/test_portal_home_header.py` runs the real `buildNav()` under node.
+
 ### Changed
 
 - **The typed assistant is on in prod, to an allowlist only (`feat(assistant)`)** — the owner's go of 2026-11-28, after the dev
@@ -18,7 +66,11 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   so the portal's box appears on the function pages for everyone; an unlisted visitor who presses Ask is told the route is
   open to a small group of accounts. `tests/test_cdk_assistant_infra.py` pins the three flags per environment and that prod
   never runs the route without the allowlist while this stage lasts. Opening the route to every signed-in account is a
-  later PR that removes the allowlist line.
+  later PR that removes the allowlist line. Smoked in prod on 2026-11-28 with one allowlisted account: an anonymous
+  question is 503 `assistant_closed`, a bad credential 401, and three live answers (an on-topic comparison, one with
+  planted strings that did not come back, a prompt-extraction attempt that was declined) cost $0.0235 in all, audits
+  included; the planted strings are in no log line and the eight `pyvar-prod-assistant-*` alarms stayed OK. Not seen:
+  an unlisted signed-in account and a free-tier account.
 
 ### Fixed
 
@@ -43,57 +95,12 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   as before. `assistant_unavailable`, a real failure, still reports. `tests/test_assistant_sentry_filter.py` (17, six
   mutations each fail one) reads the refusal codes from `deps.py` and `routes.py`, so a new one has to be classified, and
   sends them through a real Sentry client.
-
-### Added
-
-- **`scripts/assistant_ctl.py`: the typed assistant's kill switch and spend counter without a Redis client (`feat(scripts)`)** —
-  `status [--json]` (kill switch, today's spend in dollars and exact millionths, the allowlist's size, the task's flags),
-  `kill on` (sets `pyvar:assistant:kill`; never asks), `kill off`, `spend set (--usd | --micro)` and `spend clear`
-  (dry runs unless `--yes`, and `--yes-prod` too in a prod task). It runs in an ECS one-off of the API task like
-  `scripts/trial_ctl.py` (the cache is in the VPC and ECS Exec is off), writes exactly the keys the route reads and no others,
-  and exits 3 with no traceback when the cache cannot be reached. `tests/test_assistant_ctl.py` (27, nine mutations each fail
-  one) runs the drills against the real route: kill on makes it 503 `assistant_disabled`, a spend over the cap makes it
-  503 `assistant_budget` with no model call, and a value read with `status --json` is put back exactly. The runbook's stop order
-  and the dev-run prompt use it. It has not been run in a real one-off.
-- **The typed-question box in the Try-it panel, and the typed route on in dev (`feat(portal)`)** — "Ask about this function"
-  under the three buttons, in a new file `portal/assistant-typed.js` so that `portal/assistant.js` stays a reader that sends
-  nothing. It sends one POST to `/api/v1/assistant/ask` when the visitor presses Ask (the question, the function's name and at
-  most three earlier turns, which live in the panel's memory only), with the panel's key box as a Bearer header when it holds a
-  plausible token and as a visitor otherwise; nothing is sent on load, on opening the panel or while typing. The answer, its
-  functions, the checked example inputs and every refusal message (401, 422, 429 with its wait, the route's fixed 503 texts) are shown as
-  text, never as HTML; nothing is stored. A note under the box says what is sent to Anthropic, as the privacy policy section 5
-  does. `GET /public/config` gains `assistant_typed_enabled` (true only with the menus on, a complete bank and the typed flag),
-  and pyvar.js adds the script only then, into a new `#assistantTypedSlot`. The CDK flags `assistant_typed_enabled` and
-  `assistant_watchdog_enabled` are now **on in dev only**, for the live run (`docs/assistant-dev-run-prompt.txt`); staging and prod
-  are unchanged, so nothing changes in prod. Dev needs the secret `pyvar/dev/anthropic-api-key` first: without it every
-  question is a 503 `assistant_unavailable` and the client-unavailable alarm fires. Tests: `tests/test_assistant_typed_widget.py`
-  (the real file under node with a fake DOM whose `innerHTML` and storage throw, and a source scan), the `/public/config` tests, and the flag
-  test; the layout was looked at in Chromium at 1280 and 375 pixels.
-- **The typed assistant's allowlist, and its runbook (`feat(assistant)`)** — For the first weeks of the typed route in prod: while
-  `assistant_allowlist_enabled` is on (a CDK flag, off in every environment; `ASSISTANT_ALLOWLIST_ENABLED` is added to the API
-  container only where it is true), only signed-in accounts in the Redis set `pyvar:assistant:allow` may ask. An anonymous
-  visitor or an unlisted account gets 503 `assistant_closed`, checked after the switches, the kill switch and the spend cap and
-  before the model key, the concurrency slot and the quota, so a refusal calls no model and uses no quota
-  (`api/assistant/deps.py::require_allowed`, `api/assistant/store.py::is_allowed`). Reading the set fails closed: an unreadable
-  set is 503 `assistant_unavailable`, logged as `assistant_store_unavailable`, which an existing alarm counts. The set holds
-  account ids, never addresses. It is managed with `scripts/assistant_allow.py` (wrapper `scripts/ops/assistant-allow.sh`: list,
-  allow, remove, clear; dry run unless `--yes`) through the admin-token-only route `POST /internal/admin/assistant/allow`, which
-  follows the Pro checkout allow set's pattern. Anonymous visitors, or one tier, can instead be closed with a quota of 0
-  (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): tests pin that a 0 quota is a 429 through the real route,
-  calls no model and leaves everyone else alone. `docs/assistant-runbook.md` lists the switches, the rollout stages, the stop
-  order, the eight alarms and what to look at first. The typed route stays off everywhere. Tests:
-  `tests/test_assistant_allowlist.py` (19, with eight mutations that each fail one),
-  `tests/test_assistant_allow_admin.py`, `tests/test_assistant_allow_script.py`, and the wrapper and CDK flag tests.
-
-### Fixed
-
 - **The asyncio Redis clients are given `redis.asyncio.retry.Retry` (`fix(redis)`)** — the trial lane, the typed assistant's
   store, the route result cache and the market-data cache passed the synchronous `redis.retry.Retry` to an asyncio client.
   Current redis-py converts it and warns (`A synchronous redis.retry.Retry was passed to an asyncio client`, seen once per
   process in the prod log on 2026-11-27, nothing broken); the older redis-py the requirement still allows (`>=5.0.3`) does
   not convert it. The rate limiter keeps the synchronous class on purpose: slowapi gives it to the `limits` library's
   synchronous client. `tests/test_redis_asyncio_retry.py` (10, five mutations each fail one) pins both.
-
 - **The home page's code example is the real one, and a test runs it (`fix(portal)`)** — the terminal panel imported `pyvar`
   (the PyPI package of that name is an unrelated one), built a `VaRClient` the client does not have, passed `confidence=`
   (the keyword is `confidence_level`) and read the result as attributes (`result.var_abs`, `result.runtime_ms`) although
@@ -109,13 +116,6 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   under node, and fails on any portal page that suggests `import pyvar`, `from pyvar import`, `pip install pyvar` or
   `VaRClient`. `scripts/check_home_snippet.py` runs the same snippet against a live deployment with a key
   (`PYVAR_API_KEY=... python scripts/check_home_snippet.py --base-url https://dev.pyvar.com`).
-
-### Added
-
-- **A "Sign in" link beside "Get API key" in the header of every page (`feat(portal)`)** — a plain link to `dashboard.html` (the
-  dashboard when signed in; otherwise the page that says to sign in and links to the e-mail-link and Google form), to the
-  left of the filled "Get API key" button, which is unchanged. On a phone both stay on one line (the "/" hint on Search goes,
-  and below 380 pixels so does the logo's text). `tests/test_portal_home_header.py` runs the real `buildNav()` under node.
 
 ## [0.3.0] — 2026-11-26
 
