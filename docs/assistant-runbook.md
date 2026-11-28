@@ -57,7 +57,7 @@ its tests; since 2026-11-28 these have also run live: in dev the kill-switch and
       the portal (it follows `/public/config`), and an unlisted or anonymous Ask gets "Typed questions are open to a small
       group of accounts at the moment." with the hint that the buttons still work. Those refusals are not errors in
       Sentry (`observability/sentry_filters.py`).
-3. **All signed-in free and Pro accounts**: turn `assistant_allowlist_enabled` off (a deploy).
+3. **All signed-in free and Pro accounts**: turn `assistant_allowlist_enabled` off (a deploy). Decision 5 of 2026-11-26 asks for the capability-claim guard first: it is built and measured offline (results 9.39) and not wired, so this step waits for the owner to wire it.
 4. **Anonymous visitors**, then **enterprise** (enterprise answers are not audited until the synchronous reader is built).
 
 Move to the next step only when, over the step: no pin is unresolved, the day's spend peaked below 50% of the cap, no
