@@ -7,6 +7,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The typed assistant is on in prod, to an allowlist only (`feat(assistant)`)** — the owner's go of 2026-11-28, after the dev
+  run passed (docs/assistant-runbook.md section 2). `pyvar-cdk/config.py`, "prod" override: `assistant_typed_enabled`,
+  `assistant_watchdog_enabled` and `assistant_allowlist_enabled`, three lines. The prod API task definition gains the three
+  matching environment variables and nothing else. The set `pyvar:assistant:allow` starts empty, so every question is 503
+  `assistant_closed` until an operator adds an account (`scripts/ops/assistant-allow.sh --env prod allow ... --apply`). It
+  needs the secret `pyvar/prod/anthropic-api-key` first. `/public/config` now reports `assistant_typed_enabled: true` in prod,
+  so the portal's box appears on the function pages for everyone; an unlisted visitor who presses Ask is told the route is
+  open to a small group of accounts. `tests/test_cdk_assistant_infra.py` pins the three flags per environment and that prod
+  never runs the route without the allowlist while this stage lasts. Opening the route to every signed-in account is a
+  later PR that removes the allowlist line.
+
 ### Fixed
 
 - **The typed route no longer answers 503 on every request on a cluster-mode cache (`fix(assistant)`)** — the first live
@@ -80,6 +93,29 @@ and versioning follows [Semantic Versioning](https://semver.org/).
   process in the prod log on 2026-11-27, nothing broken); the older redis-py the requirement still allows (`>=5.0.3`) does
   not convert it. The rate limiter keeps the synchronous class on purpose: slowapi gives it to the `limits` library's
   synchronous client. `tests/test_redis_asyncio_retry.py` (10, five mutations each fail one) pins both.
+
+- **The home page's code example is the real one, and a test runs it (`fix(portal)`)** — the terminal panel imported `pyvar`
+  (the PyPI package of that name is an unrelated one), built a `VaRClient` the client does not have, passed `confidence=`
+  (the keyword is `confidence_level`) and read the result as attributes (`result.var_abs`, `result.runtime_ms`) although
+  `client.var.compute()` returns a dict whose engine-time field is `duration_ms`. It now reads `from pyvar_client import
+  Client`, `Client(api_key="pyvar_...")` (a real key starts with `pyvar_`, not `pv_`), `confidence_level=0.99` and
+  `result["var_abs"]`, `result["cvar_abs"]`, `result["duration_ms"]`. The numbers shown are a real result of that call:
+  the fixed 60-day series and seed the publisher uses give `var_abs` 19762.04 and `cvar_abs` 23040.6 on dev, on prod and
+  from the engine run locally, to the last digit. The page's script now writes the live values the way Python prints them
+  (`19762.04`, not `19762.0`) and the number of paths as a Python literal (`1_000`, not `1,000`, which was not valid code).
+  `tests/test_portal_home_snippet.py` (9) reads the code out of the page and runs it unchanged through the real
+  `pyvar_client`, over a transport that answers with the server's own `VaRRequest`, engine and `VaRResult`, so a wrong
+  keyword, URL or field name fails; it checks the page's numbers against what the code prints, runs the page's hydration code
+  under node, and fails on any portal page that suggests `import pyvar`, `from pyvar import`, `pip install pyvar` or
+  `VaRClient`. `scripts/check_home_snippet.py` runs the same snippet against a live deployment with a key
+  (`PYVAR_API_KEY=... python scripts/check_home_snippet.py --base-url https://dev.pyvar.com`).
+
+### Added
+
+- **A "Sign in" link beside "Get API key" in the header of every page (`feat(portal)`)** — a plain link to `dashboard.html` (the
+  dashboard when signed in; otherwise the page that says to sign in and links to the e-mail-link and Google form), to the
+  left of the filled "Get API key" button, which is unchanged. On a phone both stay on one line (the "/" hint on Search goes,
+  and below 380 pixels so does the logo's text). `tests/test_portal_home_header.py` runs the real `buildNav()` under node.
 
 ## [0.3.0] — 2026-11-26
 

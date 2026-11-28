@@ -49,8 +49,9 @@ class PyvarConfig:
 
     # Typed-question gateway, POST /api/v1/assistant/ask (docs/assistant-plan-implementation.md; CLAUDE.md 3.7): a
     # visitor types a question and a model answers it. The app reads it as ASSISTANT_TYPED_ENABLED (config.py
-    # assistant_typed_enabled) and answers only when assistant_enabled is ALSO true. On in dev only (the live run);
-    # off in staging and prod. /public/config reports it to the portal, which then adds the typed box
+    # assistant_typed_enabled) and answers only when assistant_enabled is ALSO true. On in dev (the live run, passed
+    # 2026-11-28) and, since the owner's go of 2026-11-28, in prod to the allowlist only (below); off in staging.
+    # /public/config reports it to the portal, which then adds the typed box
     # (portal/assistant-typed.js). Do not turn it on in another environment until the privacy and terms pages
     # name the model provider (tests/test_assistant_privacy_terms.py fails if a CDK environment sets this to True
     # without them), the secret pyvar/<env>/anthropic-api-key exists, the watchdog below is on, and the owner has
@@ -59,16 +60,17 @@ class PyvarConfig:
 
     # The typed assistant's watchdog (CLAUDE.md 3.8): background audits, pins and the degrade flag. It must be ON
     # wherever assistant_typed_enabled is on outside a test (tests/test_cdk_assistant_infra.py pins that). The app
-    # reads it as ASSISTANT_WATCHDOG_ENABLED (config.py assistant_watchdog_enabled). On in dev with the typed route,
-    # off elsewhere; api_stack.py sets the environment variable only when this is True.
+    # reads it as ASSISTANT_WATCHDOG_ENABLED (config.py assistant_watchdog_enabled). On in dev and prod with the typed
+    # route, off in staging; api_stack.py sets the environment variable only when this is True.
     assistant_watchdog_enabled: bool = False
 
     # The typed assistant's allowlist (docs/assistant-runbook.md): while true, only signed-in accounts an operator has
     # put in the Redis set pyvar:assistant:allow (scripts/assistant_allow.py) may ask a typed question; everyone else,
     # anonymous visitors included, is refused before any quota or model call. The app reads it as
-    # ASSISTANT_ALLOWLIST_ENABLED (config.py assistant_allowlist_enabled). OFF in every environment now; the owner
-    # turns it on together with the typed flag in prod for the first weeks and off again to open the route to every
-    # signed-in account. api_stack.py sets the environment variable only when this is True.
+    # ASSISTANT_ALLOWLIST_ENABLED (config.py assistant_allowlist_enabled). On in prod together with the typed flag for
+    # the first weeks (docs/assistant-runbook.md section 2, stage 2); the owner removes that line, in a PR of its own,
+    # to open the route to every signed-in account (stage 3). Off in dev and staging. api_stack.py sets the
+    # environment variable only when this is True.
     assistant_allowlist_enabled: bool = False
 
     # Education tier (docs/plan-education-tier.md, A2): a free, finite grant to a teacher or student, given by
@@ -339,9 +341,20 @@ class PyvarConfig:
                 # Portal assistant menus (release 1: menus only). Decided by Filippo on
                 # 2026-11-13 (docs/assistant-phase0-results.md 9.35). No model is called and
                 # nothing is sent when a visitor clicks; the typed route stays off by its own
-                # flag (assistant_typed_enabled, false everywhere). To turn it off again, set
+                # flag (assistant_typed_enabled, below). To turn it off again, set
                 # this to False and deploy: the task definition then loses ASSISTANT_ENABLED.
                 assistant_enabled=True,
+                # The typed assistant in prod, to an allowlist of named accounts for about two weeks (the owner's launch
+                # decisions of 2026-11-26, E1 and E7, and his go of 2026-11-28 after the dev run passed; docs/assistant-
+                # runbook.md section 2, stage 2). The three flags go together: the route (it needs the secret
+                # pyvar/prod/anthropic-api-key, else every question is 503 `assistant_unavailable` and the
+                # client-unavailable alarm fires), the watchdog (it must be on wherever typed is) and the allowlist (so
+                # that nobody is let in until an operator adds an account with scripts/ops/assistant-allow.sh). To
+                # close the route at once without a deploy: scripts/assistant_ctl.py kill on, or the allowlist's
+                # `clear`. To turn it off by deploy, remove these three lines.
+                assistant_typed_enabled=True,
+                assistant_watchdog_enabled=True,
+                assistant_allowlist_enabled=True,
                 # Education tier on in prod (the owner's go, 2026-11-25): grants are made by hand with
                 # scripts/education_grant.py (docs/plan-education-tier.md). To close it again, remove this
                 # line and deploy (the task definition then loses EDUCATION_TIER_ENABLED), then run

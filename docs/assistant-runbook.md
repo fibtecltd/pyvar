@@ -31,9 +31,23 @@ subscribed to either topic has not been seen.
    that runs it is `docs/assistant-dev-run-prompt.txt`; it needs the dev secret first, section 7): one run, $2 cap, about 60 questions, with drills for the kill switch, the spend cap, the
    quota and planted fake keys. Pass bar: no planted key echoed; the kill switch and the cap each refuse the next
    request with no model call; p95 under 12 s; the audit flag rate no worse than the measured 3.4%, and a person
-   reads every flagged answer.
+   reads every flagged answer. **Passed 2026-11-28** (on the code of #465: 40 of 40 keyed questions answered, p95 5.83 s,
+   1 of 28 in-scope answers flagged, the kill switch and the cap each refused with no model call, no planted key echoed;
+   it cost $0.41, of which $0.375 was the audit judge). The first two attempts failed on a cluster-mode cache (#465).
 2. **Prod allowlist for about two weeks**: typed, watchdog and allowlist on; the owner's own accounts first, then a
-   few more. Anonymous visitors and enterprise stay out.
+   few more. Anonymous visitors and enterprise stay out. **The flags are on in prod from the deploy of the PR that adds
+   this paragraph** (`pyvar-cdk/config.py`, "prod" override: three lines). In order:
+   1. The secret `pyvar/prod/anthropic-api-key` exists (section 7), or every question is 503 `assistant_unavailable`.
+   2. Deploy; approve Prod. Nobody is let in yet: the set is empty, so every question is 503 `assistant_closed`.
+   3. Add the owner's accounts (section 3, `allow ... --apply`).
+   4. Smoke, from an allowlisted account's API key pasted in the Try-it key box (an account asks as itself; the portal
+      sends the key as a Bearer header): one question answers; the same question with no key is 503 `assistant_closed`.
+      `scripts/assistant_ctl.py status --json` in a prod one-off (section 4) shows typed and watchdog on, the allowlist
+      on with the right number of members, the kill switch off.
+   5. Watch, daily, the alerts mailbox and the day's spend. What an unlisted visitor sees: the box is on every page of
+      the portal (it follows `/public/config`), and an unlisted or anonymous Ask gets "Typed questions are open to a small
+      group of accounts at the moment." with the hint that the buttons still work. Those refusals are not errors in
+      Sentry (`observability/sentry_filters.py`).
 3. **All signed-in free and Pro accounts**: turn `assistant_allowlist_enabled` off (a deploy).
 4. **Anonymous visitors**, then **enterprise** (enterprise answers are not audited until the synchronous reader is built).
 
