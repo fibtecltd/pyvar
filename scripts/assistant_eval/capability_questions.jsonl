@@ -1,0 +1,47 @@
+{"id": "a01", "question": "Does Sharpe Ratio handle intraday returns?", "function": "sharpe_ratio", "kind": "capability_absent", "y": ["intraday"], "note": ""}
+{"id": "a02", "question": "Can the Sortino Ratio work with weekly data?", "function": "sortino_ratio", "kind": "capability_absent", "y": ["weekly"], "note": "periods_per_year makes weekly possible; the record never says 'weekly'"}
+{"id": "a03", "question": "Is multi-currency supported by Treynor Ratio?", "function": "treynor_ratio", "kind": "capability_absent", "y": ["multi-currency", "currency"], "note": "passive shape: Is Y supported by X"}
+{"id": "a04", "question": "Does Calmar Ratio accept a benchmark?", "function": "calmar_ratio", "kind": "capability_absent", "y": ["benchmark"], "note": ""}
+{"id": "a05", "question": "Can Kupiec POF Test run on a rolling window?", "function": "kupiec_pof_test", "kind": "capability_absent", "y": ["rolling"], "note": ""}
+{"id": "a06", "question": "Does Historical Simulation VaR support GPU acceleration?", "function": "historical_simulation_var", "kind": "capability_absent", "y": ["gpu"], "note": ""}
+{"id": "a07", "question": "Does Net Stable Funding Ratio NSFR work with intraday positions?", "function": "net_stable_funding_ratio_nsfr", "kind": "capability_absent", "y": ["intraday"], "note": "verb: work with"}
+{"id": "a08", "question": "Can Liquidity Coverage Ratio LCR export results to Excel?", "function": "liquidity_coverage_ratio_lcr", "kind": "capability_absent", "y": ["excel"], "note": "verb: export"}
+{"id": "a09", "question": "Is there an option to stream results from Historical Simulation VaR?", "function": "historical_simulation_var", "kind": "capability_absent", "y": ["stream"], "note": "shape: Is there an option to Y from X"}
+{"id": "a10", "question": "Can I pass a `currency` parameter to Sharpe Ratio?", "function": "sharpe_ratio", "kind": "capability_absent", "y": ["currency"], "note": ""}
+{"id": "a11", "question": "Can I give the Sortino Ratio a `benchmark` argument?", "function": "sortino_ratio", "kind": "capability_absent", "y": ["benchmark"], "note": "verb: give"}
+{"id": "a12", "question": "Does Average Drawdown support custom date ranges?", "function": "average_drawdown", "kind": "capability_absent", "y": ["date range", "date"], "note": ""}
+{"id": "a13", "question": "Will Calmar Ratio accept tick data?", "function": "calmar_ratio", "kind": "capability_absent", "y": ["tick"], "note": "modal: Will"}
+{"id": "a14", "question": "Could Kupiec POF Test handle fractional breaches?", "function": "kupiec_pof_test", "kind": "capability_absent", "y": ["fractional"], "note": "modal: Could"}
+{"id": "a15", "question": "Does the Treynor Ratio function support Excel input files?", "function": "treynor_ratio", "kind": "capability_absent", "y": ["excel"], "note": "'the ... function'"}
+{"id": "a16", "question": "Can Black Scholes European Option price American exercise?", "function": "black_scholes_european_option", "kind": "capability_absent", "y": ["american"], "note": "verb: price"}
+{"id": "a17", "question": "Can I use Sharpe Ratio for a single stock?", "function": "sharpe_ratio", "kind": "capability_absent", "y": ["single stock", "stock"], "note": "shape: Can I use X for Y"}
+{"id": "a18", "question": "Does Sortino Ratio take a custom benchmark index?", "function": "sortino_ratio", "kind": "capability_absent", "y": ["benchmark"], "note": "verb: take"}
+{"id": "a19", "question": "Is GPU execution available for Kupiec POF Test?", "function": "kupiec_pof_test", "kind": "capability_absent", "y": ["gpu"], "note": "shape: Is Y available for X"}
+{"id": "a20", "question": "Can Average Drawdown be computed in real time?", "function": "average_drawdown", "kind": "capability_absent", "y": ["real time", "real-time"], "note": "passive: Can X be computed in Y"}
+{"id": "a21", "question": "Does Historical Simulation VaR work with intraday returns?", "function": "historical_simulation_var", "kind": "capability_absent", "y": ["intraday"], "note": ""}
+{"id": "a22", "question": "Can I specify a `holiday_calendar` for Net Stable Funding Ratio NSFR?", "function": "net_stable_funding_ratio_nsfr", "kind": "capability_absent", "y": ["holiday_calendar"], "note": "verb: specify; preposition: for"}
+{"id": "p01", "question": "Does Sharpe Ratio support annualisation?", "function": "sharpe_ratio", "kind": "capability_present", "y": ["annualisation"], "note": "'Annualisation factor' is a parameter description"}
+{"id": "p02", "question": "Can I pass a `periods_per_year` parameter to Sharpe Ratio?", "function": "sharpe_ratio", "kind": "capability_present", "y": ["periods_per_year"], "note": ""}
+{"id": "p03", "question": "Does Kupiec POF Test accept a confidence level?", "function": "kupiec_pof_test", "kind": "capability_present", "y": ["confidence level"], "note": "confidence_level parameter"}
+{"id": "p04", "question": "Can I pass a `risk_free` parameter to Treynor Ratio?", "function": "treynor_ratio", "kind": "capability_present", "y": ["risk_free"], "note": ""}
+{"id": "p05", "question": "Does Historical Simulation VaR support a portfolio value?", "function": "historical_simulation_var", "kind": "capability_present", "y": ["portfolio value"], "note": ""}
+{"id": "p06", "question": "Does Average Drawdown handle equity curves?", "function": "average_drawdown", "kind": "capability_present", "y": ["equity curve"], "note": ""}
+{"id": "p07", "question": "Does Liquidity Coverage Ratio LCR support an inflow cap?", "function": "liquidity_coverage_ratio_lcr", "kind": "capability_present", "y": ["inflow cap"], "note": ""}
+{"id": "p08", "question": "Does Calmar Ratio support annualised returns?", "function": "calmar_ratio", "kind": "capability_present", "y": ["annualised"], "note": ""}
+{"id": "p09", "question": "Can Black Scholes European Option take a dividend yield?", "function": "black_scholes_european_option", "kind": "capability_present", "y": ["dividend yield"], "note": ""}
+{"id": "p10", "question": "Does Sortino Ratio support a target return?", "function": "sortino_ratio", "kind": "capability_present", "y": ["target"], "note": ""}
+{"id": "o01", "question": "What inputs does Sharpe Ratio need?", "function": "sharpe_ratio", "kind": "other", "y": [], "note": ""}
+{"id": "o02", "question": "When would I use Sortino Ratio instead of Sharpe Ratio?", "function": "sortino_ratio", "kind": "other", "y": [], "note": ""}
+{"id": "o03", "question": "What does the Kupiec POF Test compute?", "function": "kupiec_pof_test", "kind": "other", "y": [], "note": ""}
+{"id": "o04", "question": "Which function gives me expected shortfall?", "function": null, "kind": "other", "y": [], "note": ""}
+{"id": "o05", "question": "How is Calmar Ratio calculated?", "function": "calmar_ratio", "kind": "other", "y": [], "note": ""}
+{"id": "o06", "question": "What is the default for confidence_level in Historical Simulation VaR?", "function": "historical_simulation_var", "kind": "other", "y": [], "note": ""}
+{"id": "o07", "question": "Is Sharpe Ratio the same as Sortino Ratio?", "function": "sharpe_ratio", "kind": "other", "y": [], "note": "hard negative"}
+{"id": "o08", "question": "Is the Sharpe ratio annualised?", "function": "sharpe_ratio", "kind": "other", "y": [], "note": "hard negative"}
+{"id": "o09", "question": "Can you recommend a VaR function for a bond portfolio?", "function": null, "kind": "other", "y": [], "note": ""}
+{"id": "o10", "question": "Can I see an example input for Sortino Ratio?", "function": "sortino_ratio", "kind": "other", "y": [], "note": ""}
+{"id": "o11", "question": "Does Kupiec POF Test need at least 250 observations?", "function": "kupiec_pof_test", "kind": "other", "y": [], "note": ""}
+{"id": "o12", "question": "Does it matter whether returns are daily or monthly for Sharpe Ratio?", "function": "sharpe_ratio", "kind": "other", "y": [], "note": ""}
+{"id": "o13", "question": "Does Traffic Light Backtesting return a zone or a number?", "function": "traffic_light_backtesting", "kind": "other", "y": [], "note": "hard negative"}
+{"id": "o14", "question": "Can Sortino Ratio and Sharpe Ratio be compared directly?", "function": "sortino_ratio", "kind": "other", "y": [], "note": "hard negative"}
+{"id": "o15", "question": "Is there a function for stress testing?", "function": null, "kind": "other", "y": [], "note": ""}
