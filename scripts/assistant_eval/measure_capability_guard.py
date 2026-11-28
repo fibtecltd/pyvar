@@ -144,14 +144,10 @@ def _catalogue() -> list[dict[str, Any]]:
 
 
 def _opus_flagged(verdict: dict[str, Any] | None) -> bool:
-    """The flag rule of docs/assistant-tier-run-N-flags.csv: unfaithful, not useful, or implausible values."""
+    """The project's flag rule (judge.typed_breakdown): not faithful, or example values judged implausible."""
     if not verdict:
         return False
-    return (
-        verdict.get("faithful") is False
-        or verdict.get("useful") is False
-        or verdict.get("plausible_values") is False
-    )
+    return bool(not verdict.get("faithful", True) or verdict.get("plausible_values") is False)
 
 
 # --------------------------------------------------------------------------------------------------- 1. extraction
