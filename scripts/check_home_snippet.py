@@ -11,6 +11,10 @@ Reasoning:
   and the base URL put in by a thin subclass (the page's text is not edited), and `returns` is the 60-day demo series
   the publisher uses (pyvar-cdk/lambda/public_data_publisher/handler.py), which is also what the panel's numbers come from.
 - The key is read from PYVAR_API_KEY and is never printed. Use a dev key against dev: a run is one VaR job (1,000 paths).
+- It imports the repository's own pyvar-client, so `httpx` (the client's one runtime dependency, in requirements.txt)
+  must be installed where it runs: on a machine without the project's environment, `pip install httpx` first. Without
+  it the run prints "the snippet failed: ModuleNotFoundError" and exits 1, before any request is made. `--show` needs
+  nothing installed.
 
 Usage (repo root):
     PYVAR_API_KEY=pyvar_... python scripts/check_home_snippet.py --base-url https://dev.pyvar.com
