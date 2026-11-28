@@ -38,10 +38,15 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The repo root first (the `assistant` package); this directory last, so its modules (graders, prompts, cases ...)
+# never shadow another import in a process that loads this file, a test session for one.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parent))
 
 import capability_guard as cg  # noqa: E402
+
 from assistant import graders, typed_graders  # noqa: E402
 
 FUNCTIONS = ROOT / "portal" / "functions.json"
@@ -91,12 +96,26 @@ NON_CLAIM_SHAPES = (
 )
 
 
+# Claims the guard does NOT catch, kept here so the gap stays visible: a claim worded as an instruction to the visitor
+# reads like the workaround advice the guard has to leave alone ("You would have to resample it first").
+KNOWN_GAP_SHAPES = (
+    "You should set `periods_per_year` to the number of intraday bars per year.",
+    "You will need to pass the intraday bars as `returns`.",
+)
+
+
 def measure_shapes(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
     entry = next(e for e in catalogue if e["name"] == "sharpe_ratio")
     records = cg.trimmed([entry])
     caught = [s for s in CLAIM_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]]
-    flagged = [s for s in NON_CLAIM_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]]
+    flagged = [
+        s for s in NON_CLAIM_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]
+    ]
+    gaps_caught = [
+        s for s in KNOWN_GAP_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]
+    ]
     return {
+        "known_gaps": [len(gaps_caught), len(KNOWN_GAP_SHAPES)],
         "claims": [len(caught), len(CLAIM_SHAPES)],
         "claims_missed": [s for s in CLAIM_SHAPES if s not in caught],
         "non_claims": [len(NON_CLAIM_SHAPES) - len(flagged), len(NON_CLAIM_SHAPES)],
@@ -105,7 +124,9 @@ def measure_shapes(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _load(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
 
 
 def _norm(text: str) -> str:
@@ -138,7 +159,13 @@ def _opus_flagged(verdict: dict[str, Any] | None) -> bool:
 
 def measure_frozen(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
     by_name = {e["name"]: e for e in catalogue}
-    out: dict[str, Any] = {"absent": [0, 0], "present": [0, 0], "other": [0, 0], "failures": [], "sha": None}
+    out: dict[str, Any] = {
+        "absent": [0, 0],
+        "present": [0, 0],
+        "other": [0, 0],
+        "failures": [],
+        "sha": None,
+    }
     for row in _load(QUESTIONS):
         records = cg.trimmed([by_name[row["function"]]]) if row["function"] else []
         terms = cg.guard_terms(row["question"], catalogue, records)
@@ -151,14 +178,23 @@ def measure_frozen(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
         out[kind][0] += int(good)
         if not good:
             out["failures"].append(
-                {"id": row["id"], "question": row["question"], "kind": kind, "terms": terms,
-                 "phrase": cg.capability_phrase(row["question"], catalogue)}
+                {
+                    "id": row["id"],
+                    "question": row["question"],
+                    "kind": kind,
+                    "terms": terms,
+                    "phrase": cg.capability_phrase(row["question"], catalogue),
+                }
             )
     return out
 
 
-def _records_for(catalogue_by_name: dict[str, dict[str, Any]], names: list[str]) -> list[dict[str, Any]]:
-    return cg.trimmed([catalogue_by_name[n] for n in dict.fromkeys(names) if n in catalogue_by_name])
+def _records_for(
+    catalogue_by_name: dict[str, dict[str, Any]], names: list[str]
+) -> list[dict[str, Any]]:
+    return cg.trimmed(
+        [catalogue_by_name[n] for n in dict.fromkeys(names) if n in catalogue_by_name]
+    )
 
 
 def measure_cases(cases: list[dict[str, Any]], catalogue: list[dict[str, Any]]) -> dict[str, Any]:
@@ -178,13 +214,22 @@ def measure_cases(cases: list[dict[str, Any]], catalogue: list[dict[str, Any]]) 
             if any(_related(t, y) for t in terms for y in truth):
                 d_found += 1
             else:
-                d_missed.append({"id": case["id"], "question": case["question"], "truth": truth, "terms": terms})
+                d_missed.append(
+                    {"id": case["id"], "question": case["question"], "truth": truth, "terms": terms}
+                )
         else:
             other_total += 1
             if terms:
                 other_trigger += 1
-                triggered.append({"id": case["id"], "question": case["question"][:100], "terms": terms})
-    return {"d": [d_found, d_total], "d_missed": d_missed, "other": [other_trigger, other_total], "triggered": triggered}
+                triggered.append(
+                    {"id": case["id"], "question": case["question"][:100], "terms": terms}
+                )
+    return {
+        "d": [d_found, d_total],
+        "d_missed": d_missed,
+        "other": [other_trigger, other_total],
+        "triggered": triggered,
+    }
 
 
 # ------------------------------------------------------------------------------------------------------ 2. replay
@@ -206,17 +251,28 @@ def replay(run_dir: Path, catalogue: list[dict[str, Any]]) -> dict[str, dict[str
             case = cases[row["case_id"]]
             text = row.get("text") or ""
             function = (case.get("expect") or {}).get("function") or case.get("page_function")
-            records = _records_for(by_name, [*([function] if function else []), *(row.get("records_seen") or [])])
+            records = _records_for(
+                by_name, [*([function] if function else []), *(row.get("records_seen") or [])]
+            )
             terms, claims = cg.check_answer(case["question"], text, catalogue, records)
             truth = (case.get("expect") or {}).get("absent_terms") or []
             harness = typed_graders.unsupported_claims(text, list(truth)) if truth else []
             rows.append(
                 {
-                    "id": row["case_id"], "category": case["category"], "source": row.get("source"),
-                    "question": case["question"], "terms": terms, "claims": sorted(set(claims)),
-                    "harness_claims": sorted(set(harness)), "truth": truth,
+                    "id": row["case_id"],
+                    "category": case["category"],
+                    "source": row.get("source"),
+                    "question": case["question"],
+                    "terms": terms,
+                    "claims": sorted(set(claims)),
+                    "harness_claims": sorted(set(harness)),
+                    "truth": truth,
                     "opus_flagged": judged.get((row["case_id"], int(row.get("rep", 0)))),
-                    "text": text, "old_grade_support_failed": ((row.get("grade") or {}).get("checks") or {}).get("no_support_claim") is False,
+                    "text": text,
+                    "old_grade_support_failed": ((row.get("grade") or {}).get("checks") or {}).get(
+                        "no_support_claim"
+                    )
+                    is False,
                 }
             )
         result[writer] = {"rows": rows}
@@ -229,7 +285,8 @@ def summarise_replay(rows: list[dict[str, Any]]) -> dict[str, Any]:
     non_d = [r for r in live if r["category"] != "D"]
     fires = [r for r in live if r["claims"]]
     return {
-        "answers": len(rows), "live": len(live),
+        "answers": len(rows),
+        "live": len(live),
         "guard_fires": len(fires),
         "d_live": len(d),
         "d_guard_fires": sum(1 for r in d if r["claims"]),
@@ -259,7 +316,13 @@ def sharpe_regression(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--run", action="append", default=[], metavar="LABEL=DIR", help="a run directory (repeatable)")
+    parser.add_argument(
+        "--run",
+        action="append",
+        default=[],
+        metavar="LABEL=DIR",
+        help="a run directory (repeatable)",
+    )
     parser.add_argument("--show", action="store_true", help="print every answer the guard fires on")
     parser.add_argument("--json", metavar="FILE", help="write the full measurement as JSON")
     args = parser.parse_args(argv)
@@ -269,10 +332,14 @@ def main(argv: list[str]) -> int:
     f = report["frozen"]
     print("== 1a. Extraction on the frozen varied set (capability_questions.jsonl)")
     print(f"   feature absent from the record, term found:      {f['absent'][0]}/{f['absent'][1]}")
-    print(f"   feature stated in the record, guard stays out:   {f['present'][0]}/{f['present'][1]}")
+    print(
+        f"   feature stated in the record, guard stays out:   {f['present'][0]}/{f['present'][1]}"
+    )
     print(f"   not a capability question, guard stays out:      {f['other'][0]}/{f['other'][1]}")
     for item in f["failures"]:
-        print(f"   FAIL {item['id']} [{item['kind']}] {item['question']!r}: phrase={item['phrase']!r} terms={item['terms']}")
+        print(
+            f"   FAIL {item['id']} [{item['kind']}] {item['question']!r}: phrase={item['phrase']!r} terms={item['terms']}"
+        )
 
     report["runs"] = {}
     for spec in args.run:
@@ -289,8 +356,12 @@ def main(argv: list[str]) -> int:
         replayed = replay(run_dir, catalogue)
         report["runs"][label] = {"cases": len(cases), "extraction": extraction, "writers": {}}
         print(f"\n== 1b. Extraction on {label}: {len(cases)} cases")
-        print(f"   category D (templated), term found:       {extraction['d'][0]}/{extraction['d'][1]}")
-        print(f"   other categories with a guard term:       {extraction['other'][0]}/{extraction['other'][1]}")
+        print(
+            f"   category D (templated), term found:       {extraction['d'][0]}/{extraction['d'][1]}"
+        )
+        print(
+            f"   other categories with a guard term:       {extraction['other'][0]}/{extraction['other'][1]}"
+        )
         for m in extraction["d_missed"]:
             print(f"   MISSED {m['id']} {m['question']!r} truth={m['truth']} terms={m['terms']}")
         for t in extraction["triggered"]:
@@ -299,23 +370,44 @@ def main(argv: list[str]) -> int:
             s = summarise_replay(data["rows"])
             report["runs"][label]["writers"][writer] = {"summary": s}
             print(f"\n== 2. Replay {label}/{writer}: {s['answers']} answers, {s['live']} live")
-            print(f"   guard would fail on the first try:        {s['guard_fires']} of {s['live']} live")
-            print(f"   category D live {s['d_live']}: guard fires {s['d_guard_fires']}, harness (true term) fires {s['d_harness_fires']}, both {s['d_both']}")
+            print(
+                f"   guard would fail on the first try:        {s['guard_fires']} of {s['live']} live"
+            )
+            print(
+                f"   category D live {s['d_live']}: guard fires {s['d_guard_fires']}, harness (true term) fires {s['d_harness_fires']}, both {s['d_both']}"
+            )
             print(f"   D guard only: {s['d_guard_only']} | D harness only: {s['d_harness_only']}")
-            print(f"   other categories: guard terms on {s['non_d_with_terms']} answers, fires on {s['non_d_guard_fires']}")
-            print(f"   Opus judged {s['opus_judged']}, flagged {s['opus_flagged']}; guard fires on flagged {s['fires_on_opus_flagged']}, on clean {s['fires_on_opus_clean']}, unjudged {s['fires_unjudged']}")
+            print(
+                f"   other categories: guard terms on {s['non_d_with_terms']} answers, fires on {s['non_d_guard_fires']}"
+            )
+            print(
+                f"   Opus judged {s['opus_judged']}, flagged {s['opus_flagged']}; guard fires on flagged {s['fires_on_opus_flagged']}, on clean {s['fires_on_opus_clean']}, unjudged {s['fires_unjudged']}"
+            )
             if args.show:
                 for r in data["rows"]:
                     if r["claims"]:
-                        print(f"   --- {r['id']} {r['question']!r} terms={r['terms']} claims={r['claims']} harness={r['harness_claims']}")
+                        print(
+                            f"   --- {r['id']} {r['question']!r} terms={r['terms']} claims={r['claims']} harness={r['harness_claims']}"
+                        )
                         for sentence in graders._sentences(r["text"]):
                             if any(cg.term_pattern(t).search(sentence) for t in r["claims"]):
                                 print(f"       > {sentence[:220]}")
-            regress = [r for r in data["rows"] if r["category"] == "D" and r["old_grade_support_failed"] and not r["harness_claims"]]
+            regress = [
+                r
+                for r in data["rows"]
+                if r["category"] == "D"
+                and r["old_grade_support_failed"]
+                and not r["harness_claims"]
+            ]
             if regress:
                 fired = [r["id"] for r in regress if r["claims"]]
-                report["runs"][label]["writers"][writer]["regressions_9_27"] = {"ids": [r["id"] for r in regress], "guard_fires_on": fired}
-                print(f"   9.27 misfires (old check failed, corrected check passes): {len(regress)}; guard fires on {fired}")
+                report["runs"][label]["writers"][writer]["regressions_9_27"] = {
+                    "ids": [r["id"] for r in regress],
+                    "guard_fires_on": fired,
+                }
+                print(
+                    f"   9.27 misfires (old check failed, corrected check passes): {len(regress)}; guard fires on {fired}"
+                )
             report["runs"][label]["writers"][writer]["rows"] = [
                 {k: v for k, v in r.items() if k != "text"} for r in data["rows"]
             ]
@@ -323,18 +415,25 @@ def main(argv: list[str]) -> int:
     sharpe = sharpe_regression(catalogue)
     report["sharpe_d_six_03"] = sharpe
     print("\n== 3. The real miss of 9.36 (D:six:03, the two quoted sentences)")
-    print(f"   terms {sharpe['terms']}, claims {sharpe['claims']}: {'CAUGHT' if sharpe['caught'] else 'MISSED'}")
+    print(
+        f"   terms {sharpe['terms']}, claims {sharpe['claims']}: {'CAUGHT' if sharpe['caught'] else 'MISSED'}"
+    )
     shapes = measure_shapes(catalogue)
     report["shapes"] = shapes
     print("\n== 4. Claim detector on fixed phrasings (coverage of wording, not real traffic)")
     print(f"   claims caught:                  {shapes['claims'][0]}/{shapes['claims'][1]}")
     print(f"   non-claims left alone:          {shapes['non_claims'][0]}/{shapes['non_claims'][1]}")
+    print(
+        f"   known gaps (claims worded as instructions): caught {shapes['known_gaps'][0]}/{shapes['known_gaps'][1]} (0 is the known state)"
+    )
     for s in shapes["claims_missed"]:
         print(f"   MISSED CLAIM  {s!r}")
     for s in shapes["non_claims_flagged"]:
         print(f"   FLAGGED NON-CLAIM  {s!r}")
     if args.json:
-        Path(args.json).write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
+        Path(args.json).write_text(
+            json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8"
+        )
     return 0
 
 

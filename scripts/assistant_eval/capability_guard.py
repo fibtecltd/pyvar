@@ -11,9 +11,9 @@ Reasoning:
   the record states is right), and asks whether the answer asserts what is left. Everything else is the existing
   check: a sentence that names the term, carries no negation (`graders._NEGATION`, `typed_graders._EXTRA_NEGATION`)
   and is not only a workaround for the visitor is a claim.
-- One difference from the harness check, on purpose: a term matches at a word start and may carry a suffix
-  (`stream` matches "streaming"), not anywhere inside a word. The harness check is a substring test, which a
-  catalogue term like `real` or `tick` would trip on "realised" or "ticker".
+- One difference from the harness check, on purpose: a term matches at a word start and may carry an ordinary
+  inflection (`stream` matches "streaming", "currency" matches "currencies"), not anywhere inside a word. The
+  harness check is a substring test, which a term like `excel` trips on "excellent" and `tick` on "ticker".
 - v2 (after the first measurement, v1 = commit 7e293e5): four general fixes, each for a class of failure that
   measurement showed, none for a single case. A term is stemmed to its singular, so "equity curves" meets the
   record's "equity curve" and "feeds" meets "feed"; a phrase made only of generic words ("real time") is kept whole
@@ -21,6 +21,9 @@ Reasoning:
   harness check also lacks (its misfire on run 6's D:gen:25); and a conditional about the visitor's own situation
   ("If your assets are in different currencies, convert them ...") is advice for them, not a claim about the
   function (run 4's D:gen:15). The frozen question set informed these fixes, so v2's numbers on it are not held out.
+  v3 (after the fixed phrasings of the measurement, v2 = the commit before it): two more general classes, a visitor
+  obligation ("You would have to resample it first") is advice for them, and an exclusion ("outside what this
+  function covers", "out of scope") negates like "not" does.
 - This file is pure: standard library plus the two grader modules, no network, no model. It lives in
   scripts/assistant_eval/ until the measurement says whether it ships; if it does, it moves to assistant/ with the
   wiring (`typed_graders.grade_typed` would call `guard_terms` when `expect` gives no `absent_terms`) and that is a
@@ -81,9 +84,19 @@ _CONTRAST = re.compile(
     r"\b(?:rather than|instead of|as opposed to|other than|apart from|in place of|unlike|except(?: for)?)\b",
     re.IGNORECASE,
 )
+# What the visitor would have to do themselves: "You would have to resample it", "you need to aggregate".
+_VISITOR_OBLIGATION = re.compile(
+    r"\byou(?:['\u2019]d| would| will)?\s+(?:need|have|must|should|ought)\b", re.IGNORECASE
+)
+# An exclusion with no negation word: "outside what this function covers", "out of scope", "unavailable".
+_EXCLUSION = re.compile(
+    r"\b(?:outside|beyond)\s+(?:of\s+)?(?:what|its|the|this|that)\b|\bout of (?:scope|range)\b|\bunavailable\b",
+    re.IGNORECASE,
+)
 # A conditional about the visitor's own situation tells them what to do; it says nothing about the function.
 _VISITOR_CONDITIONAL = re.compile(
-    r"^\W*(?:if|when|where|whenever)\s+(?:you|your|you['\u2019](?:re|ve)|the user|users?|they|their)\b", re.IGNORECASE
+    r"^\W*(?:if|when|where|whenever)\s+(?:you|your|you['\u2019](?:re|ve)|the user|users?|they|their)\b",
+    re.IGNORECASE,
 )
 
 
@@ -144,16 +157,30 @@ def raw_terms(phrase: str) -> list[str]:
                 terms.append(cand)
     if not terms:
         # Every word is generic ("real time"): the phrase itself is the term, a hyphen standing for a space.
-        content = [w.lower() for w in words if w.lower() not in {"a", "an", "the", "any", "some", "my", "our", "your"}]
+        content = [
+            w.lower()
+            for w in words
+            if w.lower() not in {"a", "an", "the", "any", "some", "my", "our", "your"}
+        ]
         if len(content) >= 2:
             terms.append("-".join(content))
     return terms
 
 
 def term_pattern(term: str) -> re.Pattern[str]:
-    """A term at a word start, with any suffix; a hyphen also matches a space or nothing ("real-time", "realtime")."""
+    """A term at a word start, with an ordinary inflection at most ("stream" meets "streaming", "excel" not "excellent").
+
+    A hyphen also matches a space or nothing ("real-time", "realtime"); "currency" meets "currencies" and "price"
+    meets "pricing".
+    """
     body = re.escape(term).replace(r"\-", r"[- ]?")
-    return re.compile(rf"(?<![A-Za-z0-9_]){body}[A-Za-z0-9_]*", re.IGNORECASE)
+    if "_" not in term and len(term) > 3 and term.endswith("y"):
+        body = body[:-1] + "(?:y|ies)"
+    elif "_" not in term and term.endswith("e"):
+        body = body[:-1] + "(?:e|es|ed|ing)"
+    return re.compile(
+        rf"(?<![A-Za-z0-9_]){body}(?:s|es|ed|ing|ly|al|ion|ions)?(?![A-Za-z0-9_])", re.IGNORECASE
+    )
 
 
 def record_text(records: Iterable[Mapping[str, Any]]) -> str:
@@ -181,7 +208,14 @@ def guard_terms(
     catalogue: Sequence[Mapping[str, Any]],
     records: Sequence[Mapping[str, Any]],
 ) -> list[str]:
-    """The terms the answer may not assert: Y of a capability question, minus what the records already mention."""
+    """The terms the answer may not assert: Y of a capability question, minus what the records already mention.
+
+    No records, no terms: the guard judges what is absent from the records the model was shown, and without any it
+    has nothing to compare with (every word of Y would be a term, "returns" included).
+    """
+    # Absent from what? With no record there is nothing to compare Y with, so no judgement.
+    if not records:
+        return []
     phrase = capability_phrase(question, catalogue)
     if not phrase:
         return []
@@ -200,8 +234,10 @@ def support_claims(answer: str, terms: Sequence[str]) -> list[str]:
                 and not graders._NEGATION.search(sentence)
                 and not typed_graders._EXTRA_NEGATION.search(sentence)
                 and not _CONTRAST.search(sentence)
+                and not _EXCLUSION.search(sentence)
                 and not typed_graders._is_workaround(sentence)
                 and not _VISITOR_CONDITIONAL.search(sentence)
+                and not _VISITOR_OBLIGATION.search(sentence)
             ):
                 claims.append(term)
     return claims
