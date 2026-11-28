@@ -56,6 +56,54 @@ SHARPE_ANSWER = (
 )
 
 
+# Sentences about "intraday" in the shapes an answer to SHARPE_QUESTION can take. Written before the guard was run on
+# them. They test the claim detector's coverage of phrasings, not how often a model writes a claim: no recorded answer
+# apart from D:six:03 contains one (see the replay), so recall on real traffic is not measurable offline.
+CLAIM_SHAPES = (
+    "Yes, Sharpe Ratio supports intraday data.",
+    "Intraday returns can be passed in as long as they are in that form.",
+    "It works with intraday data as long as you set periods_per_year accordingly.",
+    "The function accepts intraday returns.",
+    "You can pass intraday returns directly.",
+    "Intraday data is handled the same way as daily data.",
+    "Sharpe Ratio takes intraday returns and annualises them.",
+    "pyvar computes intraday Sharpe ratios when `periods_per_year` is set to the number of intraday periods.",
+    "Yes: just provide the intraday series as `returns`.",
+    "Intraday frequency is covered by the `periods_per_year` parameter.",
+    "It is available for intraday data too.",
+    "For intraday data, set `periods_per_year` to 252 times the number of bars per day.",
+)
+NON_CLAIM_SHAPES = (
+    "No, Sharpe Ratio does not support intraday data.",
+    "Nothing in its inputs covers intraday data.",
+    "It doesn't appear to handle intraday returns.",
+    "Intraday data is not a supported input.",
+    "The function takes one series of per-period returns rather than intraday bars.",
+    "If you have intraday data, you would need to aggregate it yourself.",
+    "If your returns are intraday, convert them to daily returns first.",
+    "pyvar does not offer intraday handling for this function.",
+    "Sharpe Ratio lacks an intraday mode.",
+    "There is no intraday option among its parameters.",
+    "You would have to resample intraday data to daily first.",
+    "Intraday data is outside what this function covers.",
+    "That is a different tool's job, not this function's.",
+    "Daily returns only; intraday series are out of scope.",
+)
+
+
+def measure_shapes(catalogue: list[dict[str, Any]]) -> dict[str, Any]:
+    entry = next(e for e in catalogue if e["name"] == "sharpe_ratio")
+    records = cg.trimmed([entry])
+    caught = [s for s in CLAIM_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]]
+    flagged = [s for s in NON_CLAIM_SHAPES if cg.check_answer(SHARPE_QUESTION, s, catalogue, records)[1]]
+    return {
+        "claims": [len(caught), len(CLAIM_SHAPES)],
+        "claims_missed": [s for s in CLAIM_SHAPES if s not in caught],
+        "non_claims": [len(NON_CLAIM_SHAPES) - len(flagged), len(NON_CLAIM_SHAPES)],
+        "non_claims_flagged": flagged,
+    }
+
+
 def _load(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
@@ -276,6 +324,15 @@ def main(argv: list[str]) -> int:
     report["sharpe_d_six_03"] = sharpe
     print("\n== 3. The real miss of 9.36 (D:six:03, the two quoted sentences)")
     print(f"   terms {sharpe['terms']}, claims {sharpe['claims']}: {'CAUGHT' if sharpe['caught'] else 'MISSED'}")
+    shapes = measure_shapes(catalogue)
+    report["shapes"] = shapes
+    print("\n== 4. Claim detector on fixed phrasings (coverage of wording, not real traffic)")
+    print(f"   claims caught:                  {shapes['claims'][0]}/{shapes['claims'][1]}")
+    print(f"   non-claims left alone:          {shapes['non_claims'][0]}/{shapes['non_claims'][1]}")
+    for s in shapes["claims_missed"]:
+        print(f"   MISSED CLAIM  {s!r}")
+    for s in shapes["non_claims_flagged"]:
+        print(f"   FLAGGED NON-CLAIM  {s!r}")
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
     return 0

@@ -14,6 +14,13 @@ Reasoning:
 - One difference from the harness check, on purpose: a term matches at a word start and may carry a suffix
   (`stream` matches "streaming"), not anywhere inside a word. The harness check is a substring test, which a
   catalogue term like `real` or `tick` would trip on "realised" or "ticker".
+- v2 (after the first measurement, v1 = commit 7e293e5): four general fixes, each for a class of failure that
+  measurement showed, none for a single case. A term is stemmed to its singular, so "equity curves" meets the
+  record's "equity curve" and "feeds" meets "feed"; a phrase made only of generic words ("real time") is kept whole
+  as one term; a contrast ("rather than a live feed", "instead of", "unlike") negates like "not" does, which the
+  harness check also lacks (its misfire on run 6's D:gen:25); and a conditional about the visitor's own situation
+  ("If your assets are in different currencies, convert them ...") is advice for them, not a claim about the
+  function (run 4's D:gen:15). The frozen question set informed these fixes, so v2's numbers on it are not held out.
 - This file is pure: standard library plus the two grader modules, no network, no model. It lives in
   scripts/assistant_eval/ until the measurement says whether it ships; if it does, it moves to assistant/ with the
   wiring (`typed_graders.grade_typed` would call `guard_terms` when `expect` gives no `absent_terms`) and that is a
@@ -69,6 +76,28 @@ _PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     )
 )
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*")
+# A contrast negates what follows it, like "not": "a single snapshot rather than a live feed".
+_CONTRAST = re.compile(
+    r"\b(?:rather than|instead of|as opposed to|other than|apart from|in place of|unlike|except(?: for)?)\b",
+    re.IGNORECASE,
+)
+# A conditional about the visitor's own situation tells them what to do; it says nothing about the function.
+_VISITOR_CONDITIONAL = re.compile(
+    r"^\W*(?:if|when|where|whenever)\s+(?:you|your|you['\u2019](?:re|ve)|the user|users?|they|their)\b", re.IGNORECASE
+)
+
+
+def _stem(word: str) -> str:
+    """The singular of a plural term ("curves" -> "curve", "breaches" -> "breach", "currencies" -> "currency")."""
+    if "_" in word or len(word) < 5:
+        return word
+    if word.endswith("ies"):
+        return word[:-3] + "y"
+    if word.endswith(("sses", "shes", "ches", "xes", "zes")):
+        return word[:-2]
+    if word.endswith("s") and not word.endswith(("ss", "us", "is")):
+        return word[:-1]
+    return word
 
 
 def _names(catalogue: Iterable[Mapping[str, Any]]) -> list[str]:
@@ -102,15 +131,22 @@ def capability_phrase(question: str, catalogue: Iterable[Mapping[str, Any]]) -> 
 def raw_terms(phrase: str) -> list[str]:
     """The distinctive words of Y: identifiers whole, hyphen compounds whole and by part, generic words dropped."""
     terms: list[str] = []
-    for word in _WORD.findall(phrase):
+    words = _WORD.findall(phrase)
+    for word in words:
         low = word.lower()
         if "-" in low:
             candidates = [low, *low.split("-")]
         else:
             candidates = [low]
         for cand in candidates:
+            cand = _stem(cand)
             if len(cand) >= 3 and cand not in GENERIC and cand not in terms:
                 terms.append(cand)
+    if not terms:
+        # Every word is generic ("real time"): the phrase itself is the term, a hyphen standing for a space.
+        content = [w.lower() for w in words if w.lower() not in {"a", "an", "the", "any", "some", "my", "our", "your"}]
+        if len(content) >= 2:
+            terms.append("-".join(content))
     return terms
 
 
@@ -163,7 +199,9 @@ def support_claims(answer: str, terms: Sequence[str]) -> list[str]:
                 pattern.search(sentence)
                 and not graders._NEGATION.search(sentence)
                 and not typed_graders._EXTRA_NEGATION.search(sentence)
+                and not _CONTRAST.search(sentence)
                 and not typed_graders._is_workaround(sentence)
+                and not _VISITOR_CONDITIONAL.search(sentence)
             ):
                 claims.append(term)
     return claims
