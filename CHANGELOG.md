@@ -7,6 +7,19 @@ and versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The typed assistant is on in prod, to an allowlist only (`feat(assistant)`)** — the owner's go of 2026-11-28, after the dev
+  run passed (docs/assistant-runbook.md section 2). `pyvar-cdk/config.py`, "prod" override: `assistant_typed_enabled`,
+  `assistant_watchdog_enabled` and `assistant_allowlist_enabled`, three lines. The prod API task definition gains the three
+  matching environment variables and nothing else. The set `pyvar:assistant:allow` starts empty, so every question is 503
+  `assistant_closed` until an operator adds an account (`scripts/ops/assistant-allow.sh --env prod allow ... --apply`). It
+  needs the secret `pyvar/prod/anthropic-api-key` first. `/public/config` now reports `assistant_typed_enabled: true` in prod,
+  so the portal's box appears on the function pages for everyone; an unlisted visitor who presses Ask is told the route is
+  open to a small group of accounts. `tests/test_cdk_assistant_infra.py` pins the three flags per environment and that prod
+  never runs the route without the allowlist while this stage lasts. Opening the route to every signed-in account is a
+  later PR that removes the allowlist line.
+
 ### Fixed
 
 - **The typed route no longer answers 503 on every request on a cluster-mode cache (`fix(assistant)`)** — the first live

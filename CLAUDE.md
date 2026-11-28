@@ -356,7 +356,8 @@ AWS:        CELERY_BROKER_URL = sqs://
   the key, the slot and the quota. Reading the set FAILS CLOSED (503 `assistant_unavailable`, log line
   `assistant_store_unavailable`, which the CDK alarm counts). It holds account ids (users.external_id), never
   addresses, and is managed with scripts/assistant_allow.py (wrapper scripts/ops/assistant-allow.sh) through
-  /internal/admin/assistant/allow, admin token only. To keep an audience out WITHOUT the allowlist, set its quota
+  /internal/admin/assistant/allow, admin token only. It is on in prod from 2026-11-28 (stage 2 of the rollout, with the
+  typed and watchdog flags; tests/test_cdk_assistant_infra.py pins all three); dev and staging leave it off. To keep an audience out WITHOUT the allowlist, set its quota
   to 0 (`assistant_quota_anon_per_hour`, `assistant_quota_<tier>_daily`): a 0 quota is a 429, calls no model and
   leaves every other caller alone. Runbook: docs/assistant-runbook.md.
 - The kill switch and today's spend counter are written by scripts/assistant_ctl.py, run in an ECS one-off of the

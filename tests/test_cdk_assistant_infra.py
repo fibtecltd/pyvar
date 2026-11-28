@@ -87,12 +87,13 @@ def cdk_config() -> ModuleType:
 @pytest.mark.parametrize(
     "flag, expected",
     [
-        # The owner's launch decision of 2026-11-26: the typed route and its watchdog run in dev first (the live run,
-        # docs/assistant-runbook.md section 2). Nothing is on in staging or prod, and the allowlist is off everywhere
-        # until the owner opens the route in prod.
-        ("assistant_typed_enabled", {"dev": True, "staging": False, "prod": False}),
-        ("assistant_watchdog_enabled", {"dev": True, "staging": False, "prod": False}),
-        ("assistant_allowlist_enabled", {"dev": False, "staging": False, "prod": False}),
+        # The owner's launch decisions of 2026-11-26 and 2026-11-28 (docs/assistant-runbook.md section 2): the typed
+        # route and its watchdog ran in dev first (passed 2026-11-28) and are now in prod for the allowlist only
+        # (stage 2). Nothing is on in staging. Opening the route to every signed-in account (stage 3) removes the
+        # allowlist line in prod, in a PR of its own that changes the last line here.
+        ("assistant_typed_enabled", {"dev": True, "staging": False, "prod": True}),
+        ("assistant_watchdog_enabled", {"dev": True, "staging": False, "prod": True}),
+        ("assistant_allowlist_enabled", {"dev": False, "staging": False, "prod": True}),
     ],
 )
 def test_the_flag_is_on_only_where_the_owner_decided(flag: str, expected: dict[str, bool]) -> None:
@@ -110,6 +111,13 @@ def test_wherever_typed_is_on_the_watchdog_is_on() -> None:
         cfg = config.PyvarConfig.for_env(env)
         if cfg.assistant_typed_enabled:
             assert cfg.assistant_watchdog_enabled, env
+
+
+def test_in_prod_the_typed_route_is_never_on_without_the_allowlist_while_stage_two_lasts() -> None:
+    # The owner opens the route to every signed-in account on purpose, as stage 3 (a PR that removes the allowlist line
+    # and updates this test with it). Until then nobody turns the route on in prod without the allowlist by accident.
+    prod = cdk_config().PyvarConfig.for_env("prod")
+    assert prod.assistant_typed_enabled and prod.assistant_allowlist_enabled
 
 
 def test_the_api_container_gets_each_variable_only_where_its_flag_is_true() -> None:
