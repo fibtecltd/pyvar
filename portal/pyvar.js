@@ -44,6 +44,7 @@ function buildNav(active = 'home') {
       <button type="button" class="nav-search-btn" id="navSearchBtn" aria-haspopup="dialog">Search <kbd>/</kbd></button>
       <span class="nav-version" data-version>v0.1.2</span>
       <a href="https://fibtec.co.uk" target="_blank" class="nav-gh" title="Built by Fibtec Limited">by fibtec.co.uk</a>
+      <a href="dashboard.html" class="nav-signin">Sign in</a>
       <a href="/#get-api-key" class="nav-cta">Get API key</a>
     </div>
   </nav>`;
@@ -194,10 +195,11 @@ async function initTerminalDemo() {
     const nSim = data.request.n_simulations;
     const confidencePct = Math.round(data.request.confidence_level * 100);
 
-    if (nSimEl) nSimEl.textContent = nSim.toLocaleString('en-GB');
-    varEl.textContent = data.result.var_abs.toFixed(1);
+    // The panel shows Python: the number as a literal (1_000, not 1,000) and each value as print() shows it.
+    if (nSimEl) nSimEl.textContent = String(nSim).replace(/\B(?=(\d{3})+(?!\d))/g, '_');
+    varEl.textContent = String(data.result.var_abs);
     if (varNoteEl) varNoteEl.textContent = `# ${fmtGBP(data.result.var_abs)} (${confidencePct}% VaR)`;
-    cvarEl.textContent = data.result.cvar_abs.toFixed(1);
+    cvarEl.textContent = String(data.result.cvar_abs);
     if (cvarNoteEl) cvarNoteEl.textContent = `# ${fmtGBP(data.result.cvar_abs)} (CVaR/ES)`;
     if (runtimeEl) runtimeEl.textContent = data.runtime_ms;
     if (runtimeNoteEl) {
