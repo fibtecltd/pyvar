@@ -155,10 +155,11 @@ def run_snippet(
     module.Client = PageClient
     try:
         out = io.StringIO()
+        compiled = compile(code, str(INDEX), "exec")
+        namespace = {"returns": demo_returns()}
         with contextlib.redirect_stdout(out):
-            exec(
-                compile(code, str(INDEX), "exec"), {"returns": demo_returns()}
-            )  # noqa: S102 - the repo's own page
+            # nosec B102: the code is the snippet in this repository's own home page, run by an operator or a test.
+            exec(compiled, namespace)  # nosec B102  # noqa: S102
     finally:
         module.Client = real
     return out.getvalue().splitlines()
