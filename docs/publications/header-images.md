@@ -63,7 +63,9 @@ The eight images in `assets/headers/` come from `python scripts/generate_article
 **Why it fits:** the article is a checkable account of the seven pull requests after launch and what one of them taught the team about deployment.
 **Alt text:** A timeline of seven pull requests, numbers 326 to 332, ending at a flag for version 0.2.0, with one tile marked as the feature that never deployed.
 
-### 6. The assistant that never answers live (done, 2026-11-13)
+### 6. The assistant: stored answers and the typed box (done, 2026-11-13; article updated 2026-11-28)
+
+**Update, 2026-11-28.** The article, first published as "An AI assistant that never answers live", is now "An AI assistant that answers from files, and asks a model only behind a gate" and covers the typed box. The header is unchanged: its eight facts describe the stored answers, and each of them holds.
 
 **What was done.** Filippo supplied a 3D illustration of an assistant character. Instead of regenerating it, only the parts that were wrong for this article were edited in place; the character, the pyvar logo, the layout, the colours, the speech bubble and the bell curve are the original, and so are the name plaque and the icons. The original is kept in `assets/headers/source/assistant-header-original.webp`; the result is `assets/headers/header-pyvar-assistant.png` (1536 x 1024).
 
