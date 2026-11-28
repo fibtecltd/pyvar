@@ -99,6 +99,12 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 6px;
 }
 .nav-gh:hover { border-color: var(--green); color: var(--green); }
+.nav-signin {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  color: var(--text2); padding: 7px 4px; transition: color .15s;
+}
+.nav-signin:hover { color: var(--green); }
+.nav-signin, .nav-cta { white-space: nowrap; }
 .nav-cta {
   font-family: var(--mono); font-size: 11px; font-weight: 600;
   letter-spacing: .04em; color: var(--bg); background: var(--green);
@@ -508,11 +514,19 @@ a { color: inherit; text-decoration: none; }
   .section { padding: 60px 0; }
   .footer-nav { grid-template-columns: 1fr 1fr; }
 }
-/* Phone width: the bar holds the logo, Search and Get API key; "by fibtec.co.uk" does not fit beside them. */
+/* Phone width: the bar holds the logo, Search, Sign in and Get API key; "by fibtec.co.uk" does not fit beside them, and
+   the "/" key hint on the Search button means nothing without a keyboard. */
 @media (max-width: 600px) {
   .nav-gh { display: none; }
-  .nav-right { gap: 8px; }
-  .nav-cta { padding: 7px 12px; }
+  .nav-search-btn kbd { display: none; }
+  .nav-search-btn { padding: 5px 9px; }
+  .nav-right { gap: 6px; }
+  .nav-signin { padding: 7px 0; }
+  .nav-cta { padding: 7px 10px; }
+}
+/* The smallest phones (375 and under): the logo mark stays, its text goes, so that nothing is cut off. */
+@media (max-width: 380px) {
+  .nav-logo-domain { display: none; }
 }
 /* Domain-page hero: the text and its four figures sit side by side, and stack on a phone. */
 .hero-split { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: end; margin-top: 16px; }

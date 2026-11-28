@@ -179,24 +179,27 @@
         </div>
         <div class="terminal-body">
           <div><span class="t-prompt">$</span> <span class="t-cmd">python3</span></div>
-          <div><span class="t-prompt">>>></span> <span class="t-cmd">from pyvar import VaRClient</span></div>
-          <div><span class="t-prompt">>>></span> <span class="t-cmd">client = VaRClient(api_key=<span class="t-key">"pv_..."</span>)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">from pyvar_client import Client</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">client = Client(api_key=<span class="t-key">"pyvar_..."</span>)</span></div>
           <div><span class="t-prompt">>>></span> <span class="t-cmd">result = client.var.compute(</span></div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">portfolio_value</span>=<span class="t-val">1_000_000</span>,</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">returns</span>=returns,</div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">confidence</span>=<span class="t-val">0.99</span>,</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">confidence_level</span>=<span class="t-val">0.99</span>,</div>
           <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-key">n_simulations</span>=<span class="t-val" data-demo="n_simulations">1_000</span></div>
           <div>)</div>
           <br/>
-          <!-- Illustrative example by default; hydrated with a real, periodically-refreshed
-               compute result from /public/demo-result.json when it loads (portal/pyvar.js). -->
+          <!-- The numbers below are a real result of this exact call (the fixed 60-day series the publisher
+               uses, seed 42), as the live API returned it on 2026-11-28 (var_abs and cvar_abs are the same on every
+               run; duration_ms is the engine time and varies). They are replaced with the latest
+               /public/demo-result.json when the page loads (portal/pyvar.js). compute() returns a dict, so the
+               fields are read with result["..."]; tests/test_portal_home_snippet.py runs this code. -->
           <div class="t-section"># ── Result ──────────────────────────</div>
-          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.var_abs)</span></div>
-          <div><span class="t-ok" data-demo="var_abs">28200.0</span>  <span class="t-section" data-demo="var_note"># £28,200 (99% VaR)</span></div>
-          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.cvar_abs)</span></div>
-          <div><span class="t-ok" data-demo="cvar_abs">35100.0</span>  <span class="t-section" data-demo="cvar_note"># £35,100 (CVaR/ES)</span></div>
-          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result.runtime_ms)</span></div>
-          <div><span class="t-ok" data-demo="runtime_ms">2341</span>  <span class="t-section" data-demo="runtime_note"># 1k paths · 2.3s</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result["var_abs"])</span></div>
+          <div><span class="t-ok" data-demo="var_abs">19762.04</span>  <span class="t-section" data-demo="var_note"># £19,762 (99% VaR)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result["cvar_abs"])</span></div>
+          <div><span class="t-ok" data-demo="cvar_abs">23040.6</span>  <span class="t-section" data-demo="cvar_note"># £23,041 (CVaR/ES)</span></div>
+          <div><span class="t-prompt">>>></span> <span class="t-cmd">print(result["duration_ms"])</span></div>
+          <div><span class="t-ok" data-demo="runtime_ms">2990</span>  <span class="t-section" data-demo="runtime_note"># 1,000 paths · 3.0s</span></div>
         </div>
       </div>
     </div>
